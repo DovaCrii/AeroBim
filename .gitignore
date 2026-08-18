@@ -1,0 +1,61 @@
+# Dependencias
+node_modules/
+.pnpm-store/
+
+# Build
+dist/
+build/
+*.tsbuildinfo
+.vite/
+
+# Entorno — nunca se confirman
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Datos de proyecto: modelos, nubes y geodatos viven fuera del repositorio
+*.ifc
+*.ifcxml
+*.ifczip
+*.frag
+*.xkt
+*.las
+*.laz
+*.copc.laz
+*.e57
+*.bcf
+*.bcfzip
+*.tif
+*.tiff
+*.dxf
+*.rvt
+*.nwd
+data/
+media/
+uploads/
+models/
+pointclouds/
+
+# Base de datos local
+*.sqlite3
+*.db
+
+# Editores y sistema operativo
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Registros
+*.log
+npm-debug.log*

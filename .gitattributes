@@ -1,0 +1,26 @@
+# Normaliza el fin de línea: LF en el repositorio, nativo en el disco
+* text=auto eol=lf
+
+# Windows conserva CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Binarios: nunca se normalizan ni se diferencian como texto
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.wasm binary
+*.ifc binary
+*.frag binary
+*.las binary
+*.laz binary
+*.e57 binary
+*.tif binary
+*.tiff binary
+
+# SVG es texto y su diff vale la pena
+*.svg text
