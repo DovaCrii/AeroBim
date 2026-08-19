@@ -21,15 +21,18 @@ real abre y se ve en poco más de un segundo.
   real, generados por BricsCAD, sobreviven el round-trip sin una sola diferencia.
 - **`F0.3`**: monorepo con build, lint, formato y pruebas verdes.
 
-### Lo último que entró: selección con propiedades (`F1.2`)
+### El visor ya se puede mostrar
 
-Un clic resuelve el elemento, lo resalta en violeta y abre su ficha con categoría, GUID
-—validado con `bim-core`—, tipo y material. Y la vista inicial ya es una isométrica en la
-que se reconoce la planta, más un botón **Encuadrar**.
+Con `F1.1` y `F1.2` cerradas, la aplicación hace lo que alguien espera de un visor:
 
-**Antes de una prueba con la oficina técnica falta `F1.1` (árbol espacial).** Con
-selección y propiedades ya se consulta el modelo, pero sin árbol no se puede navegar por
-plantas ni aislar una disciplina, y eso es lo primero que alguien intenta.
+- abre un IFC real en poco más de un segundo, en vista isométrica;
+- **recorre el árbol** del modelo, aísla una categoría con un clic y oculta lo que estorba;
+- **clic sobre un elemento** → categoría, GUID validado, tipo y material, con el elemento
+  resaltado;
+- orbita con el ratón, y **Encuadrar** vuelve a la vista general.
+
+Verificado de punta a punta sobre `Piso 5.ifc`: aislar `IFCDOOR (10)` deja exactamente las
+diez puertas en pantalla, y **Ver todo** devuelve el edificio.
 
 ### El siguiente paso
 
@@ -50,12 +53,18 @@ interfaz** y compara la ruta directa contra la envoltura:
 
 ### Y después, en este orden
 
-1. **Fase 1 — visor IFC usable.** `F1.2` ya está; siguen el árbol espacial (`F1.1`),
-   cortes, mediciones y varios modelos a la vez.
-   - **`F1.1` es lo que falta para una prueba interna con valor.**
+1. **Fase 1 — lo que queda:** cortes (`F1.3`), mediciones (`F1.4`), varios modelos a la vez
+   (`F1.5`) y vistas guardadas (`F1.6`).
    - **`F1.2` tiene un cabo suelto honesto:** el código lee psets pero **no se ha podido
      verificar con un archivo que los traiga**, porque el modelo de prueba se exportó sin
      ellos. Hace falta un IFC con psets para cerrarlo de verdad.
+   - **That Open trae mucho más hecho de lo que se está usando.** Antes de escribir código
+     para las tareas que quedan, revisar sus componentes: `Clipper` (cortes), `Hider`
+     (visibilidad), `MeasurementUtils` y las anotaciones, `OrthoPerspectiveCamera` con
+     `PlanMode`/`OrbitMode`/`FirstPersonMode`, `ShadowedScene`, `EdgeProjector`,
+     `TechnicalDrawings` + `DxfExporter`, `Views`/`Viewpoints`, `Classifier`, `ItemsFinder`
+     e `IDSSpecifications`. Varias fases del plan pueden ser integración en vez de
+     construcción.
 2. **Fase 2 — nubes de puntos.** El as-built contra el modelo, que es la
    comparación que hoy nadie puede hacer sin software de pago.
 

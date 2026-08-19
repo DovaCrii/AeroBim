@@ -184,7 +184,7 @@ software de escritorio ni pedir una licencia.
 
 | #      | Tarea                                                                                            | Estado       |
 | ------ | ------------------------------------------------------------------------------------------------ | ------------ |
-| `F1.1` | Árbol espacial navegable (proyecto → sitio → edificio → planta → elemento) con aislar y ocultar  | ⬜           |
+| `F1.1` | Árbol espacial navegable (proyecto → sitio → edificio → planta → elemento) con aislar y ocultar  | ✅ ver abajo |
 | `F1.2` | Panel de propiedades y **psets** del elemento seleccionado                                       | ✅ ver abajo |
 | `F1.3` | Planos de corte y secciones                                                                      | ⬜           |
 | `F1.4` | Mediciones: distancia, área y ángulo                                                             | ⬜           |
@@ -197,6 +197,36 @@ visor que muestra propiedades distintas a las del archivo es peor que no tenerlo
 
 `F1.5` no es un extra: la coordinación consiste precisamente en mirar dos
 disciplinas juntas. Un visor de un modelo por vez no coordina nada.
+
+### `F1.1`: árbol espacial con aislar y ocultar (2026-08-19)
+
+El panel izquierdo recorre el modelo, y cada fila **aísla** con un clic u **oculta** con el
+control de visibilidad. **Ver todo** restaura. Verificado sobre el modelo real: aislar
+`IFCDOOR (10)` deja en pantalla exactamente las diez puertas, y restaurar devuelve el
+edificio completo.
+
+#### Cómo viene el árbol de Fragments, que no es lo que uno supone
+
+Vale saberlo antes de tocar esa parte, porque el primer intento produjo niveles fantasma
+etiquetados "sin categoría":
+
+| Nodo                                | Qué es                                              |
+| ----------------------------------- | --------------------------------------------------- |
+| `category` presente, `localId` nulo | **Grupo** por categoría (`IFCBEAM`, `IFCDOOR`)      |
+| `localId` presente, `category` nulo | El **elemento** real. Hereda la categoría del grupo |
+
+Es decir, **Fragments ya agrupa por categoría**: reagrupar por encima duplica niveles. Y el
+árbol no trae nombres, así que se resuelven aparte —`Name`, con `LongName` de respaldo,
+que es donde muchos exportadores ponen el nombre de plantas y edificios— en **una sola
+consulta por modelo**, no una por nodo.
+
+#### Dos decisiones de presentación
+
+- **Los grupos de más de 30 elementos no se listan.** El modelo de prueba tiene 470
+  `IfcBuildingElementProxy`: listarlos da un árbol que nadie recorre. El grupo sigue siendo
+  aislable y ocultable completo, y para llegar a uno concreto se hace clic en el modelo.
+- **Un elemento sin nombre se muestra como `IFCBEAM #30188`.** El identificador es lo único
+  que lo distingue de sus hermanos, y es honesto: inventar "Viga 1" sería peor.
 
 ### `F1.2`: clic → propiedades, con el GUID validado (2026-08-19)
 

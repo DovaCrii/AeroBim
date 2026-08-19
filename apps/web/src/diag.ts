@@ -176,6 +176,26 @@ export async function seleccion(container: HTMLElement, ifcUrl: string, log: Log
   if (encontrados === 0) log("\nningun rayo toco geometria");
 }
 
+/** El árbol espacial completo, para ver cómo viene estructurado el modelo. */
+export async function arbol(container: HTMLElement, ifcUrl: string, log: Log): Promise<void> {
+  const viewer = await BimViewer.create(container);
+  const bytes = new Uint8Array(await (await fetch(ifcUrl)).arrayBuffer());
+  await viewer.loadIfc(bytes, ifcUrl);
+
+  const trees = await viewer.getSpatialTrees();
+  for (const tree of trees) {
+    log(`\n=== ${tree.modelId} ===`);
+    const imprimir = (nodo: (typeof tree)["root"], nivel: number) => {
+      const sangria = "  ".repeat(nivel);
+      log(
+        `${sangria}${nodo.label}  [cat=${nodo.category ?? "null"} id=${nodo.localId ?? "null"} n=${nodo.count} ids=${nodo.localIds.length}]`,
+      );
+      for (const hijo of nodo.children) imprimir(hijo, nivel + 1);
+    };
+    imprimir(tree.root, 0);
+  }
+}
+
 /** Mismo flujo, a través de `@aerobim/viewer`. */
 export async function clase(container: HTMLElement, ifcUrl: string, log: Log): Promise<void> {
   const t0 = performance.now();

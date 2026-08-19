@@ -63,6 +63,41 @@ export interface LoadedModel {
   readonly metrics: LoadMetrics;
 }
 
+/**
+ * Un nodo del árbol espacial, ya listo para dibujar.
+ *
+ * El árbol que entrega Fragments trae solo categorías e identificadores; acá los nodos
+ * llegan con su nombre resuelto y con **todos los identificadores que cuelgan debajo**, que
+ * es lo que permite aislar una planta entera con un clic.
+ */
+export interface SpatialNode {
+  /** Ruta única en el árbol. Sirve de clave estable al dibujar. */
+  readonly key: string;
+  /** Nombre del elemento, o su categoría cuando no tiene nombre. */
+  readonly label: string;
+  readonly category: string | null;
+  readonly localId: number | null;
+  /** Cuántos elementos cuelgan de este nodo. */
+  readonly count: number;
+  /** Identificadores de todo lo que cuelga del nodo, para aislar u ocultar de una vez. */
+  readonly localIds: readonly number[];
+  readonly children: readonly SpatialNode[];
+  /**
+   * Hijos que existen pero no se listan, por ser demasiados.
+   *
+   * Una categoría con 470 elementos convierte el árbol en una lista que nadie recorre. El
+   * grupo sigue siendo aislable y ocultable completo; para llegar a un elemento concreto se
+   * hace clic en el modelo.
+   */
+  readonly hiddenChildren: number;
+}
+
+/** El árbol espacial de un modelo cargado. */
+export interface ModelTree {
+  readonly modelId: string;
+  readonly root: SpatialNode;
+}
+
 /** Un par nombre/valor ya legible, listo para mostrar. */
 export interface PropertyValue {
   readonly name: string;
@@ -199,6 +234,116 @@ function textoDe(valor: unknown): string | null {
 function nombreDe(item: FRAGS.ItemData): string | null {
   const campo = item["Name"];
   return campo !== undefined && esAtributo(campo) ? textoDe(campo.value) : null;
+}
+
+/** Recorre el árbol en profundidad aplicando `visitar` a cada nodo. */
+function forEachNode(node: FRAGS.SpatialTreeItem, visitar: (node: FRAGS.SpatialTreeItem) => void) {
+  visitar(node);
+  for (const hijo of node.children ?? []) forEachNode(hijo, visitar);
+}
+
+/** Nombres de un conjunto de elementos, en una sola consulta. */
+async function namesOf(
+  model: FRAGS.FragmentsModel,
+  localIds: readonly number[],
+): Promise<Map<number, string>> {
+  const nombres = new Map<number, string>();
+  if (localIds.length === 0) return nombres;
+
+  const datos = await model.getItemsData([...localIds], {
+    attributesDefault: false,
+    attributes: ["Name", "LongName"],
+  });
+
+  for (const dato of datos) {
+    const idCampo = dato["_localId"];
+    if (idCampo === undefined || !esAtributo(idCampo)) continue;
+    const id = idCampo.value;
+    if (typeof id !== "number") continue;
+
+    // `LongName` es lo que muchos exportadores usan en plantas y edificios, donde `Name`
+    // queda con un código interno.
+    const nombre = nombreDe(dato) ?? textoDe((dato["LongName"] as FRAGS.ItemAttribute)?.value);
+    if (nombre !== null) nombres.set(id, nombre);
+  }
+
+  return nombres;
+}
+
+/**
+ * Techo de elementos cuyos nombres se consultan de una vez.
+ *
+ * Por encima solo se nombran los contenedores: los elementos individuales no se listan, así
+ * que su nombre no se usaría.
+ */
+const MAX_NOMBRES = 2000;
+
+/** Hijos que un nodo lista antes de plegarse a un solo grupo. Ver `hiddenChildren`. */
+const MAX_HIJOS_LISTADOS = 30;
+
+/** Etiqueta legible de una categoría IFC: `IFCBUILDINGSTOREY` → `Planta`. */
+const ETIQUETAS: Record<string, string> = {
+  IFCPROJECT: "Proyecto",
+  IFCSITE: "Sitio",
+  IFCBUILDING: "Edificio",
+  IFCBUILDINGSTOREY: "Planta",
+  IFCSPACE: "Recinto",
+};
+
+/**
+ * Convierte el árbol crudo en {@link SpatialNode}.
+ *
+ * **Fragments ya agrupa por categoría**, y conviene saber cómo antes de tocar esto: un nodo
+ * con `category` y sin `localId` es un **grupo** (`IFCBEAM`, `IFCDOOR`), y sus hijos —con
+ * `localId` y sin `category`— son los elementos. Intentar reagrupar produce niveles
+ * fantasma etiquetados "sin categoría".
+ *
+ * La categoría se hereda del grupo al elemento, porque el elemento no la trae.
+ */
+function buildNode(
+  raw: FRAGS.SpatialTreeItem,
+  nombres: Map<number, string>,
+  key: string,
+  categoriaHeredada: string | null,
+): SpatialNode {
+  const category = raw.category ?? categoriaHeredada;
+
+  const children = (raw.children ?? []).map((hijo, indice) =>
+    buildNode(hijo, nombres, `${key}.${indice}`, category),
+  );
+
+  const localIds = [
+    ...(raw.localId !== null ? [raw.localId] : []),
+    ...children.flatMap((hijo) => hijo.localIds),
+  ];
+
+  const esGrupo = raw.localId === null;
+  const nombre = raw.localId !== null ? nombres.get(raw.localId) : undefined;
+  const etiquetaTipo = category !== null ? (ETIQUETAS[category] ?? category) : "Elemento";
+
+  let label: string;
+  if (esGrupo) {
+    label = `${etiquetaTipo} (${localIds.length})`;
+  } else if (nombre !== undefined) {
+    label = nombre;
+  } else {
+    // Sin nombre, el identificador es lo único que distingue un elemento de otro.
+    label = `${etiquetaTipo} #${raw.localId}`;
+  }
+
+  // Un grupo con cientos de elementos no se lista: ver `hiddenChildren`.
+  const listables = children.length <= MAX_HIJOS_LISTADOS ? children : [];
+
+  return {
+    key,
+    label,
+    category,
+    localId: raw.localId,
+    count: localIds.length,
+    localIds,
+    children: listables,
+    hiddenChildren: children.length - listables.length,
+  };
 }
 
 /** Categoría IFC de un objeto (`IFCBEAMTYPE`, `IFCMATERIAL`, …). */
@@ -606,6 +751,84 @@ export class BimViewer {
    */
   get camera(): OBC.SimpleCamera {
     return this.world.camera;
+  }
+
+  /**
+   * Árbol espacial de cada modelo cargado: proyecto → sitio → edificio → planta →
+   * elementos.
+   *
+   * Los nombres se resuelven en **una sola consulta por modelo** en vez de una por nodo:
+   * son decenas de contenedores y cientos de elementos, y preguntar de uno en uno hace
+   * que abrir el árbol tarde más que abrir el modelo.
+   */
+  async getSpatialTrees(): Promise<ModelTree[]> {
+    this.assertAlive();
+
+    const trees: ModelTree[] = [];
+    for (const [modelId, model] of this.fragments.list) {
+      const raw = await model.getSpatialStructure();
+
+      const todos: number[] = [];
+      forEachNode(raw, (node) => {
+        if (node.localId !== null) todos.push(node.localId);
+      });
+
+      // Se piden los nombres de todos los elementos en **una** consulta mientras el modelo
+      // sea de tamaño razonable. Por encima de ese techo solo se nombran los contenedores:
+      // los elementos individuales ni se listan, así que su nombre no se usaría.
+      const aConsultar =
+        todos.length <= MAX_NOMBRES
+          ? todos
+          : todos.filter((id) => {
+              let esContenedor = false;
+              forEachNode(raw, (node) => {
+                if (node.localId === id && (node.children?.length ?? 0) > 0) esContenedor = true;
+              });
+              return esContenedor;
+            });
+
+      trees.push({ modelId, root: buildNode(raw, await namesOf(model, aConsultar), "0", null) });
+    }
+
+    return trees;
+  }
+
+  /** Muestra u oculta un conjunto de elementos de un modelo. */
+  async setVisible(modelId: string, localIds: readonly number[], visible: boolean): Promise<void> {
+    this.assertAlive();
+
+    const model = this.fragments.list.get(modelId);
+    if (!model) return;
+
+    await model.setVisible([...localIds], visible);
+    await this.fragments.core.update(true);
+  }
+
+  /**
+   * Deja visibles **solo** estos elementos, en todos los modelos.
+   *
+   * Es la operación que hace útil al árbol: ver una planta sin el resto del edificio
+   * encima.
+   */
+  async isolate(modelId: string, localIds: readonly number[]): Promise<void> {
+    this.assertAlive();
+
+    for (const [id, model] of this.fragments.list) {
+      // `undefined` afecta a todos los elementos del modelo.
+      await model.setVisible(undefined, false);
+      if (id === modelId) await model.setVisible([...localIds], true);
+    }
+    await this.fragments.core.update(true);
+  }
+
+  /** Vuelve a mostrar todo. */
+  async showAll(): Promise<void> {
+    this.assertAlive();
+
+    for (const [, model] of this.fragments.list) {
+      await model.setVisible(undefined, true);
+    }
+    await this.fragments.core.update(true);
   }
 
   /**

@@ -50,6 +50,21 @@ informa metros plausibles. `F0.4` y `F0.5` quedan cumplidas.
 - **El tamaño del Fragments se reportaba como 0 B.** `core.load` transfiere el búfer al
   worker y lo deja con `byteLength = 0`; ahora se anota antes de cargar.
 
+### Añadido — árbol espacial, `F1.1` (2026-08-19)
+
+- **Panel de estructura** que recorre el modelo, con **aislar** en un clic, **ocultar** por
+  nodo y **Ver todo** para restaurar. Verificado sobre el modelo real: aislar `IFCDOOR (10)`
+  deja exactamente las diez puertas en pantalla.
+- Los nombres se resuelven en **una sola consulta por modelo** (con `LongName` de respaldo,
+  que es donde muchos exportadores ponen el nombre de plantas y edificios).
+- **Los grupos de más de 30 elementos no se listan**: el modelo de prueba tiene 470
+  `IfcBuildingElementProxy` y listarlos da un árbol que nadie recorre. El grupo sigue siendo
+  aislable completo.
+
+Lo que costó entender: **Fragments ya agrupa por categoría**. Un nodo con `category` y sin
+`localId` es un grupo; uno con `localId` es el elemento, y hereda la categoría del grupo.
+Reagrupar por encima producía niveles fantasma etiquetados "sin categoría".
+
 ### Añadido — selección con propiedades, `F1.2` (2026-08-19)
 
 - **Un clic sobre el modelo abre la ficha del elemento**: categoría, GUID, tipo y material,

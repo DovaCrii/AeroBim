@@ -1,7 +1,8 @@
-import { BimViewer, type LoadedModel, type PickedItem } from "@aerobim/viewer";
+import { BimViewer, type LoadedModel, type ModelTree, type PickedItem } from "@aerobim/viewer";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { MetricsPanel } from "./components/MetricsPanel.js";
 import { PropertiesPanel } from "./components/PropertiesPanel.js";
+import { SpatialTree } from "./components/SpatialTree.js";
 
 type Status =
   | { readonly kind: "starting" }
@@ -16,6 +17,7 @@ export function App() {
   const [models, setModels] = useState<readonly LoadedModel[]>([]);
   const [dragging, setDragging] = useState(false);
   const [selected, setSelected] = useState<PickedItem | null>(null);
+  const [trees, setTrees] = useState<readonly ModelTree[]>([]);
 
   useEffect(() => {
     const host = canvasHost.current;
@@ -53,7 +55,13 @@ export function App() {
       const bytes = new Uint8Array(await file.arrayBuffer());
       const loaded = await instance.loadIfc(bytes, file.name);
       setModels((current) => [...current, loaded]);
+      setTrees(await instance.getSpatialTrees());
       setStatus({ kind: "ready" });
+
+      // El árbol aparece recién ahora y estrecha el lienzo, así que el encuadre que hizo
+      // `loadIfc` se queda corto y el modelo sale cortado. Se reencuadra una vez que el
+      // navegador ya aplicó el nuevo ancho.
+      requestAnimationFrame(() => void instance.frameAll());
     } catch (error: unknown) {
       setStatus({ kind: "error", message: describe(error) });
     }
@@ -89,13 +97,28 @@ export function App() {
     void viewer.current?.clearSelection();
   }, []);
 
+  const onIsolate = useCallback((modelId: string, localIds: readonly number[]) => {
+    void viewer.current?.isolate(modelId, localIds);
+  }, []);
+
+  const onToggleVisible = useCallback(
+    (modelId: string, localIds: readonly number[], visible: boolean) => {
+      void viewer.current?.setVisible(modelId, localIds, visible);
+    },
+    [],
+  );
+
+  const onShowAll = useCallback(() => {
+    void viewer.current?.showAll();
+  }, []);
+
   return (
     <div className="flex h-full w-full flex-col">
       <header className="flex items-center gap-3 border-b border-white/10 px-4 py-3">
         <img src="/aerobim-mark.svg" alt="" className="h-8 w-auto" />
         <div>
           <h1 className="text-sm font-semibold">AeroBim</h1>
-          <p className="text-xs text-white/50">Visor IFC · prueba de concepto (F0.4)</p>
+          <p className="text-xs text-white/50">Visor y coordinador BIM</p>
         </div>
 
         <div className="ml-auto flex items-center gap-3">
@@ -128,40 +151,51 @@ export function App() {
         </div>
       </header>
 
-      <div className="relative flex min-h-0 flex-1">
-        <div
-          ref={canvasHost}
-          className="min-h-0 flex-1"
-          onClick={(event) => void onCanvasClick(event)}
-          onDragOver={(event) => {
-            event.preventDefault();
-            setDragging(true);
-          }}
-          onDragLeave={() => setDragging(false)}
-          onDrop={onDrop}
-        />
-
-        {dragging && (
-          <div className="pointer-events-none absolute inset-4 rounded-lg border-2 border-dashed border-brand/70" />
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        {trees.length > 0 && (
+          <SpatialTree
+            trees={trees}
+            onIsolate={onIsolate}
+            onToggleVisible={onToggleVisible}
+            onShowAll={onShowAll}
+          />
         )}
 
-        {models.length === 0 && status.kind !== "loading" && (
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-            <p className="text-sm text-white/40">
-              Arrastra un archivo IFC aqui, o usa <span className="text-white/70">Abrir IFC</span>
+        <div className="relative flex min-h-0 min-w-0 flex-1">
+          <div
+            ref={canvasHost}
+            className="min-h-0 min-w-0 flex-1"
+            onClick={(event) => void onCanvasClick(event)}
+            onDragOver={(event) => {
+              event.preventDefault();
+              setDragging(true);
+            }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={onDrop}
+          />
+
+          {dragging && (
+            <div className="pointer-events-none absolute inset-4 rounded-lg border-2 border-dashed border-brand/70" />
+          )}
+
+          {models.length === 0 && status.kind !== "loading" && (
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+              <p className="text-sm text-white/40">
+                Arrastra un archivo IFC aqui, o usa <span className="text-white/70">Abrir IFC</span>
+              </p>
+            </div>
+          )}
+
+          {models.length > 0 && selected === null && (
+            <p className="pointer-events-none absolute bottom-4 left-4 text-xs text-white/40">
+              Haz clic en un elemento para ver sus propiedades
             </p>
-          </div>
-        )}
+          )}
 
-        {models.length > 0 && selected === null && (
-          <p className="pointer-events-none absolute bottom-4 left-4 text-xs text-white/40">
-            Haz clic en un elemento para ver sus propiedades
-          </p>
-        )}
+          {selected !== null && <PropertiesPanel item={selected} onClose={closeProperties} />}
 
-        {selected !== null && <PropertiesPanel item={selected} onClose={closeProperties} />}
-
-        {models.length > 0 && <MetricsPanel models={models} />}
+          {models.length > 0 && <MetricsPanel models={models} />}
+        </div>
       </div>
     </div>
   );
