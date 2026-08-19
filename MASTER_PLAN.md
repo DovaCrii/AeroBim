@@ -230,9 +230,9 @@ software de escritorio ni pedir una licencia.
 | `F1.3` | Planos de corte y secciones                                                                                                           | ✅ ver abajo            |
 | `F1.4` | Mediciones: distancia, área y ángulo                                                                                                  | ✅ ver abajo            |
 | `F1.5` | Cargar **varios modelos IFC a la vez** (arquitectura + estructura + instalaciones) y alternarlos                                      | 🟡 carga, falta gestión |
-| `F1.8` | **Barra de herramientas y panel de modelos** — reubicar y agrupar las herramientas; ordenar, activar y desactivar lo cargado          | ⬜ **prioridad**        |
 | `F1.6` | Vistas guardadas: cámara, visibilidad y cortes, recuperables por nombre                                                               | ⬜                      |
 | `F1.7` | **Modos de vista**: proyección perspectiva/ortográfica, navegación (órbita, planta, primera persona) y representación (sólido, malla) | ✅ ver abajo            |
+| `F1.8` | **Barra de herramientas y panel de modelos** — reubicar y agrupar las herramientas; ordenar, activar y desactivar lo cargado          | ⬜ **lo siguiente**     |
 
 **Oráculo:** el mismo modelo abierto en **Bonsai/BlenderBIM** (o cualquier visor
 IFC de escritorio). El árbol, los psets y las mediciones deben coincidir — un

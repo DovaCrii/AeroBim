@@ -112,45 +112,41 @@ encaja en la Fase 3.
 
 Queda pendiente escribirlo como decisión en el plan y medir cuánto mejora con el worker.
 
+### Y después, en este orden
+
+1. **`F1.8` — la barra de herramientas y el panel de modelos.** Ver el aviso del principio.
+   Es lo que pidió el usuario y lo que decide si la herramienta se siente usable.
+2. **Cambiar mediciones y resaltado por los componentes de `components-front`.** Ver la
+   tabla de arriba: menos código propio y con señal visual, que es justo lo que falta.
+3. **Confirmar con el usuario los puntos 5, 6 y 7** de la tabla de la prueba: si el hover y
+   la medición quedaron resueltos por el arreglo del arrastre, y arreglar el modo fantasma.
+4. **`F1.6` vistas guardadas**, con `Views` y `Viewpoints` de la librería.
+5. **Mover la conversión a un Web Worker** (`F0.6`), y medir cuánto baja el bloqueo.
+6. **Fase 2 — nubes de puntos.** El as-built contra el modelo, la comparación que hoy nadie
+   puede hacer sin software de pago.
+
+### Cómo levantar y cómo medir
+
 ```bash
 npm run dev
 ```
 
+Para exponerlo a la red local —hace falta autorizar el puerto en el firewall de Windows—:
+
+```bash
+npm run dev:host
+```
+
 Herramienta de medición: `apps/web/public/diag.html`, que ejecuta el pipeline **sin la
-interfaz** y compara la ruta directa contra la envoltura:
+interfaz** y separa un problema del visor de uno de integración. Modos: `clase`, `manual`,
+`camara`, `arbol`, `seleccion`, `medir`, `cortes`.
 
 `http://localhost:5173/diag.html?modo=clase&ifc=/samples/muro-minimo.ifc`
 
-### Y después, en este orden
-
-1. **La barra de herramientas y el panel de modelos** — ver el aviso del principio. Es lo
-   que pidió el usuario y lo que decide si la herramienta se siente usable.
-2. **Cambiar mediciones y resaltado por los componentes de `components-front`** — ver la
-   tabla de arriba. Menos código propio y con señal visual.
-3. **`F1.6` vistas guardadas.** `F1.5` (varios modelos) **ya funciona**: dos modelos abiertos
-   a la vez, cada uno con su árbol y sus métricas. Falta pulirlo con la gestión del panel
-   lateral (punto 8) y marcarlo en el plan.
-4. **Mover la conversión a un Web Worker** (`F0.6`).
-   - **`F1.2` tiene un cabo suelto honesto:** el código lee psets pero **no se ha podido
-     verificar con un archivo que los traiga**, porque el modelo de prueba se exportó sin
-     ellos. Hace falta un IFC con psets para cerrarlo de verdad.
-   - **That Open trae mucho más hecho de lo que se está usando.** Antes de escribir código
-     para las tareas que quedan, revisar sus componentes: `Clipper` (cortes), `Hider`
-     (visibilidad), `MeasurementUtils` y las anotaciones, `OrthoPerspectiveCamera` con
-     `PlanMode`/`OrbitMode`/`FirstPersonMode`, `ShadowedScene`, `EdgeProjector`,
-     `TechnicalDrawings` + `DxfExporter`, `Views`/`Viewpoints`, `Classifier`, `ItemsFinder`
-     e `IDSSpecifications`. Varias fases del plan pueden ser integración en vez de
-     construcción.
-5. **Fase 2 — nubes de puntos.** El as-built contra el modelo, que es la
-   comparación que hoy nadie puede hacer sin software de pago.
-
 ### Los modelos de prueba
 
-`Piso 5.ifc` es dato de la organización y `.gitignore` excluye todo `*.ifc`. Para repetir
-las mediciones hay que copiarlo a `apps/web/public/samples/piso-5.ifc`.
-
-**Hay dos modelos reales de la organización**, ninguno versionado. Para repetir las
-mediciones hay que copiarlos a `apps/web/public/samples/`:
+**Hay dos modelos reales de la organización**, ninguno versionado (`.gitignore` excluye todo
+`*.ifc`). Para repetir las mediciones hay que copiarlos a `apps/web/public/samples/`:
 
 | Modelo                       | Tamaño  | Qué aporta                                                     |
 | ---------------------------- | ------- | -------------------------------------------------------------- |
@@ -167,8 +163,9 @@ proyecto real:
 
 ### Cómo obtener un IFC con psets desde BricsCAD
 
-El modelo de prueba no los trae, y no es un defecto del archivo: su propia cabecera lo
-declara. Si se abre el `.ifc` con un editor de texto, en `FILE_DESCRIPTION` aparece:
+Aplica a `Piso 5.ifc`; el modelo de 32,7 MB sí trae 839 psets. No es un defecto del archivo:
+su propia cabecera lo declara. Si se abre el `.ifc` con un editor de texto, en
+`FILE_DESCRIPTION` aparece:
 
 ```
 Option [IfcExportBaseQuantities: Off]
@@ -198,9 +195,11 @@ corregir.**
 ## Estado al 2026-08-19
 
 - **Build:** `npm install && npm run build` verde en los tres paquetes (Node 26).
-- **Pruebas:** 49 en `packages/bim-core`, incluidos los vectores de GUID reales.
+- **Pruebas:** **67** en `packages/bim-core` — los vectores de GUID reales de BricsCAD y la
+  geometría de las mediciones contra casos elementales.
 - **Código:** monorepo armado — `packages/bim-core` (dominio puro), `packages/viewer`
-  (envoltura de That Open) y `apps/web` (React 19 + Vite 8 + Tailwind 4).
+  (envoltura de That Open, con `components` + `components-front` + `fragments`) y
+  `apps/web` (React 19 + Vite 8 + Tailwind 4).
 - **Documentación:** plan por fases, MVP, arquitectura, referencias con licencias
   verificadas y contrato con AeroPlanner.
 - **Licencia:** MIT.
