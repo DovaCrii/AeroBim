@@ -15,6 +15,7 @@ import {
   distancePartsM,
   emptyElementClasses,
   isIfcGuid,
+  looksNumeric,
   missingElementClasses,
   NO_IFC_UNITS,
   parseIfcUnits,
@@ -694,7 +695,13 @@ function propiedad(
   value: string,
   units: IfcUnits,
 ): PropertyValue {
-  const esNumero = typeof campo.value === "number";
+  // **Un número puede venir escrito como texto**, y hay que rescatarlo: ProStructures exporta el
+  // peso de un perfil como `IFCLABEL('579.84')` mientras el largo del mismo perfil sí va como
+  // medida. Si solo se aceptaran números, ese peso se quedaría sin kilos.
+  const esNumero =
+    typeof campo.value === "number" ||
+    (typeof campo.value === "string" && looksNumeric(campo.value));
+
   // El tipo se comprueba en ejecución aunque Fragments lo declare `string`: es un dato que llega
   // de la librería, y si alguna vez viniera un número, `resolveUnitSymbol` fallaría y se llevaría
   // por delante la ficha de propiedades completa. Sin tipo, la unidad se deduce del nombre, que
@@ -1587,6 +1594,32 @@ export class BimViewer {
     } finally {
       this.applyingHighlights = false;
     }
+  }
+
+  /**
+   * Los datos de un elemento **por su identificador**, sin pasar por un clic.
+   *
+   * Es el mismo camino que usa {@link pickAt} una vez que sabe a quién preguntar, y existe aparte
+   * porque hay dos casos en que el elemento se conoce y el ratón no interviene: comprobar la lectura
+   * de propiedades sobre un modelo real —ver `diag.html?modo=psets`— y, más adelante, abrir un tema
+   * de coordinación que apunta a un elemento por su GUID.
+   */
+  async describeItemById(modelId: string, localId: number): Promise<PickedItem | null> {
+    this.assertAlive();
+
+    const model = this.fragments.list.get(modelId);
+    if (!model) return null;
+
+    const [data] = await model.getItemsData([localId], {
+      attributesDefault: true,
+      relations: {
+        IsDefinedBy: { attributes: true, relations: true },
+        DefinesOcurrence: { attributes: true, relations: false },
+        HasAssociations: { attributes: true, relations: false },
+      },
+    });
+
+    return describeItem(modelId, localId, data, this.unitsByModel.get(modelId) ?? NO_IFC_UNITS);
   }
 
   /**

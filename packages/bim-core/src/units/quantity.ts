@@ -46,18 +46,29 @@ const MAGNITUD_POR_TIPO: Record<string, QuantityKind> = {
 };
 
 /**
- * Tipos de IFC que **no** son un número con dimensión, y para los que ni se intenta inferir.
+ * Tipos numéricos que **no** llevan unidad, y para los que ni se intenta inferir.
  *
- * Un `IFCINTEGER` llamado `Length` es un contador o un identificador, no ocho metros. Cortar
- * acá evita que la inferencia por nombre convierta un `Element Id` en milímetros.
+ * Un `IFCINTEGER` llamado `Length` es un contador o un identificador, no ocho metros. Cortar acá
+ * evita que la inferencia por nombre convierta un `Element Id` en milímetros.
  */
-const TIPOS_SIN_MAGNITUD = new Set([
-  "IFCBOOLEAN",
-  "IFCLOGICAL",
+const TIPOS_SIN_MAGNITUD = new Set(["IFCBOOLEAN", "IFCLOGICAL", "IFCINTEGER"]);
+
+/**
+ * Tipos de texto: el archivo dice que el valor es una cadena.
+ *
+ * **Se tratan como "sin información" y no como "sin unidad"**, porque los exportadores los usan mal.
+ * Verificado en un modelo real de ProStructures: el peso de un perfil viaja como
+ * `IFCPROPERTYSINGLEVALUE('Weight',$,IFCLABEL('579.84'),$)` — un número escrito como etiqueta—
+ * mientras el largo del mismo perfil sí va como `IFCPOSITIVELENGTHMEASURE`. Si el tipo de texto
+ * cortara la deducción, ese peso se quedaría sin sus kilos para siempre.
+ *
+ * La salida se marca como deducida, así que la interfaz la muestra atenuada y el tipo declarado va en
+ * el tooltip: quien mire puede ver que el archivo dijo "etiqueta" y que la unidad es nuestra lectura.
+ */
+const TIPOS_DE_TEXTO = new Set([
   "IFCLABEL",
   "IFCTEXT",
   "IFCIDENTIFIER",
-  "IFCINTEGER",
   "IFCDATETIME",
   "IFCDATE",
   "IFCDURATION",
@@ -101,9 +112,25 @@ export function quantityKindFromIfcType(ifcType: string): QuantityKind | null {
   return MAGNITUD_POR_TIPO[ifcType.trim().toUpperCase()] ?? null;
 }
 
-/** `true` si el tipo IFC deja claro que el valor no es una medida con unidad. */
+/** `true` si el tipo IFC deja claro que el valor es un número sin unidad. */
 export function isDimensionlessIfcType(ifcType: string): boolean {
   return TIPOS_SIN_MAGNITUD.has(ifcType.trim().toUpperCase());
+}
+
+/** `true` si el tipo IFC declara el valor como texto, aunque contenga un número. */
+export function isTextIfcType(ifcType: string): boolean {
+  return TIPOS_DE_TEXTO.has(ifcType.trim().toUpperCase());
+}
+
+/**
+ * `true` si un texto es un número a secas.
+ *
+ * Sirve para reconocer un valor que el archivo declara como etiqueta y que en realidad es una medida.
+ * Es deliberadamente estricto —sin unidades pegadas, sin rangos, sin listas— porque de esto depende
+ * que no se le pongan kilos a un código de pieza.
+ */
+export function looksNumeric(value: string): boolean {
+  return /^-?\d+([.,]\d+)?$/.test(value.trim());
 }
 
 /**
@@ -210,6 +237,8 @@ export function resolveUnitSymbol({
       // lo respalda, pero el archivo no lo dijo, y esa diferencia se muestra.
       return { symbol: simbolo, inferred: !loDeclaraElArchivo(declarada, units) };
     }
+    // Un número sin dimensión —un entero, un booleano— no lleva unidad y no hay nada que deducir.
+    // Un **texto**, en cambio, no dice nada fiable: si trae un número, se deduce por el nombre.
     if (isDimensionlessIfcType(ifcType)) return null;
   }
 

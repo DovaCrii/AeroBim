@@ -180,7 +180,13 @@ npm run dev:host
 
 Herramienta de medición: `apps/web/public/diag.html`, que ejecuta el pipeline **sin la
 interfaz** y separa un problema del visor de uno de integración. Modos: `clase`, `manual`,
-`camara`, `arbol`, `seleccion`, `medir`, `cortes`, `perpendicular`.
+`camara`, `arbol`, `seleccion`, `medir`, `cortes`, `perpendicular`, `conversion`, `psets`.
+
+**`psets` es el más útil para revisar datos:** lee un elemento **por categoría** en vez de buscarlo
+con el ratón, y muestra cada propiedad con su unidad y con el tipo que declara el archivo. Es lo que
+resolvió por qué al peso le faltaban los kilos.
+
+`http://localhost:5173/diag.html?modo=psets&categoria=IFCMEMBER&ifc=/samples/tu-modelo.ifc`
 
 **Aviso sobre navegadores que no pintan:** en una pestaña oculta —el panel de vista previa de
 un agente, por ejemplo— el rayo funciona las primeras veces y después deja de encontrar

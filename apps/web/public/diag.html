@@ -56,7 +56,9 @@
         const diag = await import("/@fs/D:/I+D/AeroBim/apps/web/src/diag.ts");
         const ejecutar = diag[modo] ?? diag.clase;
         const espera = Number(params.get("espera") ?? "0");
-        await ejecutar(document.getElementById("escena"), ifcUrl, linea, espera);
+        // `categoria` solo lo usa el modo `psets`; los demás lo ignoran.
+        const categoria = params.get("categoria") ?? undefined;
+        await ejecutar(document.getElementById("escena"), ifcUrl, linea, espera, categoria);
         linea("\nOK");
         document.title = "OK · " + modo;
       } catch (error) {

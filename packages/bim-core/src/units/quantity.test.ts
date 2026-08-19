@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { IfcUnits } from "./ifcUnits.js";
-import { quantityKindFromName, resolveUnitSymbol } from "./quantity.js";
+import { looksNumeric, quantityKindFromName, resolveUnitSymbol } from "./quantity.js";
 
 /** Lo que declara un IFC de arquitectura típico: geometría en mm, cantidades en metros. */
 const UNIDADES: IfcUnits = {
@@ -41,7 +41,16 @@ describe("resolveUnitSymbol — el tipo IFC manda", () => {
     expect(
       resolveUnitSymbol({ ifcType: "IFCINTEGER", name: "Length", units: UNIDADES }),
     ).toBeNull();
-    expect(resolveUnitSymbol({ ifcType: "IFCLABEL", name: "Height", units: UNIDADES })).toBeNull();
+  });
+
+  it("**deduce igual cuando el archivo escribe una medida como etiqueta**", () => {
+    // Caso real de ProStructures: el peso de un perfil viaja como IFCLABEL('579.84') mientras el
+    // largo del mismo perfil va como IFCPOSITIVELENGTHMEASURE. Si el tipo de texto cortara la
+    // deducción, ese peso se quedaría sin kilos para siempre. Se marca como deducido.
+    expect(resolveUnitSymbol({ ifcType: "IFCLABEL", name: "Weight", units: UNIDADES })).toEqual({
+      symbol: "kg",
+      inferred: true,
+    });
   });
 
   it("cae al kilo cuando el archivo no declara la masa, y lo marca como deducido", () => {
@@ -95,6 +104,22 @@ describe("resolveUnitSymbol — el nombre como respaldo", () => {
     expect(
       resolveUnitSymbol({ ifcType: "IFCREAL", name: "Density/Spec. Weight", units: UNIDADES }),
     ).toBeNull();
+  });
+});
+
+describe("looksNumeric", () => {
+  it("reconoce un número escrito como texto, que es lo que hay que rescatar", () => {
+    expect(looksNumeric("579.84")).toBe(true);
+    expect(looksNumeric(" 1510 ")).toBe(true);
+    expect(looksNumeric("-2,5")).toBe(true);
+  });
+
+  it("no toma por número lo que no lo es: de esto depende no ponerle kilos a un código", () => {
+    expect(looksNumeric("F-60")).toBe(false);
+    expect(looksNumeric("M-01")).toBe(false);
+    expect(looksNumeric("AUSTRALIA.AS_UB")).toBe(false);
+    expect(looksNumeric("579.84 kg")).toBe(false);
+    expect(looksNumeric("")).toBe(false);
   });
 });
 

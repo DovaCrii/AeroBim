@@ -60,6 +60,8 @@ export {
 
 export {
   isDimensionlessIfcType,
+  isTextIfcType,
+  looksNumeric,
   quantityKindFromIfcType,
   quantityKindFromName,
   resolveUnitSymbol,

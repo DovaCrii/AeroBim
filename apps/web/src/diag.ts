@@ -190,6 +190,65 @@ export async function seleccion(container: HTMLElement, ifcUrl: string, log: Log
   if (encontrados === 0) log("\nningun rayo toco geometria");
 }
 
+/**
+ * Las propiedades de un elemento **elegido por categoría**, con sus unidades.
+ *
+ * Existe porque buscar un elemento con el ratón es un juego de puntería: en un modelo de planta el
+ * centro de la pantalla es siempre maquinaria, y los perfiles de acero —los que traen los psets de
+ * cantidades— hay que ir a buscarlos. Acá se piden por categoría y se lee el primero.
+ *
+ * Es la forma de comprobar la lectura de unidades sobre un modelo real sin depender de dónde caiga un
+ * clic. La categoría se pasa en la URL: `?modo=psets&categoria=IFCMEMBER`.
+ */
+export async function psets(
+  container: HTMLElement,
+  ifcUrl: string,
+  log: Log,
+  _espera = 0,
+  categoria = "IFCMEMBER",
+): Promise<void> {
+  const viewer = await BimViewer.create(container);
+  const bytes = new Uint8Array(await (await fetch(ifcUrl)).arrayBuffer());
+  const loaded = await viewer.loadIfc(bytes, ifcUrl);
+
+  log(`unidades declaradas: ${JSON.stringify(loaded.units)}`);
+
+  const porCategoria = await loaded.model.getItemsOfCategories([new RegExp(`^${categoria}$`)]);
+  const ids = Object.values(porCategoria).flat();
+  log(`${categoria}: ${ids.length} elementos`);
+
+  const primero = ids[0];
+  if (primero === undefined) {
+    log(`no hay ningún ${categoria} en el modelo`);
+    return;
+  }
+
+  const item = await viewer.describeItemById(loaded.id, primero);
+  if (item === null) {
+    log("el elemento no devolvió datos");
+    return;
+  }
+
+  log(`\ncategoria: ${item.category} · nombre: ${item.name ?? "sin nombre"}`);
+  // El tipo declarado va al lado del valor: es lo que explica por qué una unidad aparece o no.
+  const linea = (p: {
+    name: string;
+    value: string;
+    unit: string | null;
+    unitInferred: boolean;
+    ifcType: string | null;
+  }) =>
+    `    ${p.name} = ${p.value}${p.unit === null ? "" : ` ${p.unit}`}` +
+    `${p.unitInferred ? " (deducida)" : ""}   [${p.ifcType ?? "sin tipo"}]`;
+
+  log(`atributos (${item.attributes.length}):`);
+  for (const a of item.attributes) log(linea(a));
+  for (const grupo of item.groups) {
+    log(`\n  ${grupo.name}`);
+    for (const p of grupo.properties) log(linea(p));
+  }
+}
+
 /** El árbol espacial completo, para ver cómo viene estructurado el modelo. */
 export async function arbol(container: HTMLElement, ifcUrl: string, log: Log): Promise<void> {
   const viewer = await BimViewer.create(container);

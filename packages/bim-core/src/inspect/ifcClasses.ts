@@ -258,7 +258,12 @@ export function isElementClass(ifcClass: string): boolean {
   if (!clase.startsWith("IFC")) return false;
   if (NO_SON_ELEMENTOS.has(clase)) return false;
   // Un `…TYPE` es la definición de un tipo de elemento, no un elemento: no se dibuja.
-  if (clase.endsWith("TYPE")) return false;
+  //
+  // Y un `…STYLE` tampoco: en IFC2X3 el tipo de una puerta es `IfcDoorStyle`, que describe cómo son
+  // las puertas de esa clase y no es ninguna de ellas. Sin esta línea, un modelo de arquitectura con
+  // siete estilos de puerta acusaba "siete puertas sin cargar" con las diez puertas dibujadas — un
+  // falso positivo que hacía dudar del aviso entero, que es lo peor que le puede pasar a un aviso.
+  if (clase.endsWith("TYPE") || clase.endsWith("STYLE")) return false;
   return !ARMAZON_ESPACIAL.has(clase);
 }
 

@@ -129,6 +129,13 @@ describe("isElementClass", () => {
     expect(isElementClass("IFCBUILDINGSTOREY")).toBe(false);
     expect(isElementClass("NOEMPIEZAPORIFC")).toBe(false);
   });
+
+  it("descarta los estilos: un IfcDoorStyle describe puertas, no es una puerta", () => {
+    // Caso real: un modelo de BricsCAD con 10 puertas y 7 estilos de puerta acusaba "7 sin cargar".
+    expect(isElementClass("IFCDOORSTYLE")).toBe(false);
+    expect(isElementClass("IFCWINDOWSTYLE")).toBe(false);
+    expect(isElementClass("IFCDOOR")).toBe(true);
+  });
 });
 
 describe("emptyElementClasses", () => {

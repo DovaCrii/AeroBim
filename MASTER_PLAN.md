@@ -427,6 +427,48 @@ Verificado sobre el modelo real: `Length 3520 mm`, `Volume 0.038 m³`, `Weight 3
 manda la unidad base del SI. Longitud, área y volumen **no** caen a metros: ahí el mismo atajo
 convertiría un modelo en milímetros en uno en metros.
 
+#### Y el caso que faltaba: una medida escrita como texto (2026-08-19)
+
+Al peso le seguía faltando el kilo, y la causa estaba en el archivo. ProStructures escribe:
+
+```
+#7887=IFCPROPERTYSINGLEVALUE('Length',$,IFCPOSITIVELENGTHMEASURE(1510.),$);
+#7893=IFCPROPERTYSINGLEVALUE('Weight',$,IFCLABEL('579.84'),$);
+```
+
+El largo va como medida y **el peso como etiqueta**: un número escrito como texto. El visor lo
+tomaba al pie de la letra —un texto no lleva unidad— y se quedaba sin kilos.
+
+Ahora los tipos de texto se tratan como **"sin información"** y no como "sin unidad": si el valor es
+un número a secas y el nombre dice de qué magnitud es, se deduce y se marca como deducida. Los tipos
+numéricos sin dimensión —`IFCINTEGER`, `IFCBOOLEAN`— siguen cortando la deducción, porque ahí el
+archivo sí está diciendo algo fiable.
+
+Verificado sobre el modelo real con `diag.html?modo=psets&categoria=IFCMEMBER`, que lee un elemento
+por categoría en vez de buscarlo con el ratón:
+
+```
+Length = 970 mm                  [IFCPOSITIVELENGTHMEASURE]
+Volume = 0.001 m³                [IFCVOLUMEMEASURE]
+Weight = 5.14145 kg (deducida)   [IFCLABEL]
+Weight/Length = 5.1119           [IFCLABEL]      ← sin unidad: es kg/m
+Density/Spec. Weight = 7850      [IFCLABEL]      ← sin unidad: es kg/m³
+Total Count = 0                  [IFCLABEL]      ← sin unidad: es un conteo
+```
+
+Que los cocientes y el conteo se queden sin unidad **es el resultado correcto**, y es lo que
+distingue una deducción prudente de una que inventa.
+
+#### El falso positivo de las puertas (2026-08-19)
+
+`Piso 5.ifc` acusaba **"7 elementos sin cargar: IFCDOORSTYLE"** con sus diez puertas dibujadas. En
+IFC2X3 el tipo de una puerta es `IfcDoorStyle`: describe cómo son las puertas de esa clase y no es
+ninguna de ellas. El filtro descartaba los `…TYPE` y no los `…STYLE`.
+
+Con el filtro corregido, `Piso 5.ifc` no acusa nada: 555 entidades declaradas menos 7 estilos son
+548 elementos, y 548 tienen geometría. **Un aviso con falsos positivos no sirve**: en cuanto miente
+una vez, deja de creerse el resto.
+
 ### `F1.8` la barra de herramientas y el panel lateral (2026-08-19)
 
 La barra de abajo tenía catorce botones en fila, dos llamados "Planta" y ningún icono. La
