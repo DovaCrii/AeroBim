@@ -233,6 +233,23 @@ export async function medir(container: HTMLElement, ifcUrl: string, log: Log): P
   }
 }
 
+/** Cortes: comprueba que los planos se crean y que se quitan. */
+export async function cortes(container: HTMLElement, ifcUrl: string, log: Log): Promise<void> {
+  const viewer = await BimViewer.create(container);
+  const bytes = new Uint8Array(await (await fetch(ifcUrl)).arrayBuffer());
+  await viewer.loadIfc(bytes, ifcUrl);
+
+  log(`planos al empezar: ${viewer.sectionCount}`);
+
+  for (const eje of ["horizontal", "longitudinal", "transversal"] as const) {
+    await viewer.addSection(eje);
+    log(`tras corte ${eje}: ${viewer.sectionCount} plano(s)`);
+  }
+
+  await viewer.clearSections();
+  log(`tras quitar los cortes: ${viewer.sectionCount}`);
+}
+
 /** Mismo flujo, a través de `@aerobim/viewer`. */
 export async function clase(container: HTMLElement, ifcUrl: string, log: Log): Promise<void> {
   const t0 = performance.now();

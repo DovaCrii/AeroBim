@@ -9,17 +9,22 @@ import { useState } from "react";
  */
 export function SpatialTree({
   trees,
+  hidden,
   onIsolate,
   onToggleVisible,
   onShowAll,
 }: {
   readonly trees: readonly ModelTree[];
+  /**
+   * Claves de los nodos ocultos.
+   *
+   * El estado vive **fuera** del árbol a propósito: cuando estaba dentro de cada fila,
+   * "Ver todo" restauraba el modelo pero los iconos seguían mostrando lo oculto, y la
+   * interfaz mentía sobre lo que se estaba viendo.
+   */
+  readonly hidden: ReadonlySet<string>;
   readonly onIsolate: (modelId: string, localIds: readonly number[]) => void;
-  readonly onToggleVisible: (
-    modelId: string,
-    localIds: readonly number[],
-    visible: boolean,
-  ) => void;
+  readonly onToggleVisible: (node: SpatialNode, modelId: string, visible: boolean) => void;
   readonly onShowAll: () => void;
 }) {
   return (
@@ -45,6 +50,7 @@ export function SpatialTree({
             node={tree.root}
             modelId={tree.modelId}
             depth={0}
+            hidden={hidden}
             onIsolate={onIsolate}
             onToggleVisible={onToggleVisible}
           />
@@ -58,23 +64,21 @@ function Node({
   node,
   modelId,
   depth,
+  hidden,
   onIsolate,
   onToggleVisible,
 }: {
   readonly node: SpatialNode;
   readonly modelId: string;
   readonly depth: number;
+  readonly hidden: ReadonlySet<string>;
   readonly onIsolate: (modelId: string, localIds: readonly number[]) => void;
-  readonly onToggleVisible: (
-    modelId: string,
-    localIds: readonly number[],
-    visible: boolean,
-  ) => void;
+  readonly onToggleVisible: (node: SpatialNode, modelId: string, visible: boolean) => void;
 }) {
   // Los dos primeros niveles abiertos: proyecto y sitio no aportan nada plegados, y así se
   // ve el edificio sin tener que hacer clic.
   const [open, setOpen] = useState(depth < 2);
-  const [visible, setVisible] = useState(true);
+  const visible = !hidden.has(node.key);
   const tieneHijos = node.children.length > 0 || node.hiddenChildren > 0;
 
   return (
@@ -110,12 +114,13 @@ function Node({
 
         <button
           type="button"
-          onClick={() => {
-            const siguiente = !visible;
-            setVisible(siguiente);
-            onToggleVisible(modelId, node.localIds, siguiente);
-          }}
-          className="shrink-0 text-white/30 opacity-0 group-hover:opacity-100 hover:text-white"
+          onClick={() => onToggleVisible(node, modelId, !visible)}
+          className={[
+            "shrink-0 hover:text-white",
+            // El icono de lo oculto queda siempre a la vista; el de lo visible solo al pasar
+            // por encima, para no llenar el árbol de adornos.
+            visible ? "text-white/30 opacity-0 group-hover:opacity-100" : "text-brand",
+          ].join(" ")}
           title={visible ? "Ocultar" : "Mostrar"}
           aria-label={visible ? "Ocultar" : "Mostrar"}
         >
@@ -131,6 +136,7 @@ function Node({
               node={hijo}
               modelId={modelId}
               depth={depth + 1}
+              hidden={hidden}
               onIsolate={onIsolate}
               onToggleVisible={onToggleVisible}
             />

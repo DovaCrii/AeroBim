@@ -15,6 +15,14 @@ export {
 } from "./identity/ifcGuid.js";
 
 export {
+  angleAtDeg,
+  distanceM,
+  perimeterM,
+  polygonAreaM2,
+  type Point3,
+} from "./measure/geometry.js";
+
+export {
   fromMeters,
   metersPerUnit,
   METRE,

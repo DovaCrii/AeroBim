@@ -1,12 +1,15 @@
 import {
   BimViewer,
   type LoadedModel,
+  type MeasureMode,
   type Measurement,
   type ModelTree,
   type NavigationMode,
   type PickedItem,
   type Projection,
   type RenderStyle,
+  type SectionAxis,
+  type SpatialNode,
 } from "@aerobim/viewer";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { MetricsPanel } from "./components/MetricsPanel.js";
@@ -31,8 +34,11 @@ export function App() {
   const [projection, setProjection] = useState<Projection>("Perspective");
   const [navigation, setNavigation] = useState<NavigationMode>("Orbit");
   const [style, setStyle] = useState<RenderStyle>("solid");
-  const [measuring, setMeasuring] = useState(false);
+  const [measureMode, setMeasureMode] = useState<MeasureMode | null>(null);
   const [measurement, setMeasurement] = useState<Measurement | null>(null);
+  const [hasSections, setHasSections] = useState(false);
+  /** Nodos del árbol ocultos, por clave. El árbol los lee para dibujar su icono. */
+  const [hidden, setHidden] = useState<ReadonlySet<string>>(new Set());
 
   useEffect(() => {
     const host = canvasHost.current;
@@ -98,8 +104,8 @@ export function App() {
       if (!instance) return;
 
       try {
-        if (measuring) {
-          // Devuelve `null` mientras espera el segundo punto, o si el clic cayó al vacío.
+        if (measureMode !== null) {
+          // Devuelve `null` mientras faltan puntos, o si el clic cayó al vacío.
           const resultado = await instance.addMeasurePoint(event.clientX, event.clientY);
           if (resultado !== null) setMeasurement(resultado);
           return;
@@ -114,7 +120,7 @@ export function App() {
         setStatus({ kind: "error", message: describe(error) });
       }
     },
-    [measuring],
+    [measureMode],
   );
 
   const onProjection = useCallback((next: Projection) => {
@@ -132,16 +138,22 @@ export function App() {
     void viewer.current?.setRenderStyle(next);
   }, []);
 
-  const onToggleMeasure = useCallback(() => {
-    setMeasuring((activo) => {
-      const siguiente = !activo;
-      if (!siguiente) {
-        // Al salir del modo se limpia: una cota abandonada a medias solo estorba.
-        viewer.current?.resetMeasurement();
-        setMeasurement(null);
-      }
-      return siguiente;
-    });
+  const onMeasureMode = useCallback((mode: MeasureMode | null) => {
+    setMeasureMode(mode);
+    // Cambiar de modo descarta lo anterior: una cota a medias solo estorba, y mezclar
+    // puntos de una distancia con los de un área da un número sin sentido.
+    setMeasurement(null);
+    viewer.current?.setMeasureMode(mode);
+  }, []);
+
+  const onSection = useCallback((axis: SectionAxis) => {
+    setHasSections(true);
+    void viewer.current?.addSection(axis);
+  }, []);
+
+  const onClearSections = useCallback(() => {
+    setHasSections(false);
+    void viewer.current?.clearSections();
   }, []);
 
   const closeProperties = useCallback(() => {
@@ -149,19 +161,26 @@ export function App() {
     void viewer.current?.clearSelection();
   }, []);
 
-  const onIsolate = useCallback((modelId: string, localIds: readonly number[]) => {
-    void viewer.current?.isolate(modelId, localIds);
+  const onToggleVisible = useCallback((node: SpatialNode, modelId: string, visible: boolean) => {
+    setHidden((actual) => {
+      const siguiente = new Set(actual);
+      if (visible) siguiente.delete(node.key);
+      else siguiente.add(node.key);
+      return siguiente;
+    });
+    void viewer.current?.setVisible(modelId, node.localIds, visible);
   }, []);
 
-  const onToggleVisible = useCallback(
-    (modelId: string, localIds: readonly number[], visible: boolean) => {
-      void viewer.current?.setVisible(modelId, localIds, visible);
-    },
-    [],
-  );
-
   const onShowAll = useCallback(() => {
+    setHidden(new Set());
     void viewer.current?.showAll();
+  }, []);
+
+  const onIsolateNode = useCallback((modelId: string, localIds: readonly number[]) => {
+    // Aislar deja todo lo demás oculto, así que los iconos del árbol dejarían de decir la
+    // verdad. Se limpian: el estado que se muestra es "nada oculto a mano".
+    setHidden(new Set());
+    void viewer.current?.isolate(modelId, localIds);
   }, []);
 
   return (
@@ -207,7 +226,8 @@ export function App() {
         {trees.length > 0 && (
           <SpatialTree
             trees={trees}
-            onIsolate={onIsolate}
+            hidden={hidden}
+            onIsolate={onIsolateNode}
             onToggleVisible={onToggleVisible}
             onShowAll={onShowAll}
           />
@@ -240,10 +260,8 @@ export function App() {
 
           {models.length > 0 && (
             <p className="pointer-events-none absolute top-4 left-1/2 -translate-x-1/2 text-xs text-white/50">
-              {measuring
-                ? measurement !== null
-                  ? `Distancia: ${measurement.distanceM.toFixed(3)} m — clic para medir de nuevo`
-                  : "Clic en dos puntos del modelo para medir"
+              {measureMode !== null
+                ? describeMeasurement(measureMode, measurement)
                 : selected === null
                   ? "Haz clic en un elemento para ver sus propiedades"
                   : ""}
@@ -259,11 +277,14 @@ export function App() {
               projection={projection}
               navigation={navigation}
               style={style}
-              measuring={measuring}
+              measureMode={measureMode}
+              hasSections={hasSections}
               onProjection={onProjection}
               onNavigation={onNavigation}
               onStyle={onStyle}
-              onToggleMeasure={onToggleMeasure}
+              onMeasureMode={onMeasureMode}
+              onSection={onSection}
+              onClearSections={onClearSections}
             />
           )}
         </div>
@@ -287,6 +308,31 @@ function StatusBadge({ status }: { readonly status: Status }) {
     );
   }
   return <span className="text-xs text-white/40">Listo</span>;
+}
+
+/**
+ * Qué decir según el modo de medición y lo que haya medido.
+ *
+ * El texto también instruye: dice cuántos puntos faltan, porque un modo de medición sin
+ * indicación deja al usuario haciendo clics sin saber por qué no pasa nada.
+ */
+function describeMeasurement(mode: MeasureMode, measurement: Measurement | null): string {
+  if (measurement === null) {
+    if (mode === "distance") return "Clic en dos puntos del modelo";
+    if (mode === "angle") return "Clic en tres puntos — el segundo es el vértice";
+    return "Clic en el contorno; desde el tercer punto se muestra el área";
+  }
+
+  if (measurement.mode === "distance") {
+    return `Distancia: ${measurement.distanceM.toFixed(3)} m — clic para medir de nuevo`;
+  }
+  if (measurement.mode === "angle") {
+    return `Ángulo: ${measurement.angleDeg.toFixed(1)}° — clic para medir de nuevo`;
+  }
+  return (
+    `Área: ${measurement.areaM2.toFixed(2)} m² · perímetro ${measurement.perimeterM.toFixed(2)} m ` +
+    `(${measurement.points.length} vértices) — sigue clicando para ampliar`
+  );
 }
 
 /** Mensaje legible sin exponer la traza cruda. */

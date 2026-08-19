@@ -50,6 +50,28 @@ informa metros plausibles. `F0.4` y `F0.5` quedan cumplidas.
 - **El tamaño del Fragments se reportaba como 0 B.** `core.load` transfiere el búfer al
   worker y lo deja con `byteLength = 0`; ahora se anota antes de cargar.
 
+### Añadido — cortes y mediciones completas, `F1.3` y `F1.4` (2026-08-19)
+
+- **Cortes por tres ejes**, con el plano arrastrable y un botón para quitarlos. Verificado con
+  el contador de planos: 0 → 1 → 2 → 3 y de vuelta a 0. El efecto visual **no se pudo
+  capturar** porque el panel de vista previa dejó de componer.
+- **Ángulo y área**, que faltaban para cerrar `F1.4`. El área se recalcula con cada vértice,
+  así que se ve crecer mientras se recorre el contorno. Medido sobre el modelo real: 1,131 m,
+  19,4° y 1,92 m² con 6,88 m de perímetro.
+- **La geometría de las mediciones se mudó a `bim-core`**, donde tiene 18 pruebas contra casos
+  elementales: el cuadrado unitario mide 1 m², el triángulo 3-4-5 mide 6 m², el ángulo recto
+  da 90°. Son números con consecuencias —alguien pide material con un área— y no deben vivir
+  sin pruebas en la capa de dibujo. Dos casos que delatan una mala implementación: un polígono
+  a 300 m del origen debe medir lo mismo, y **un faldón inclinado mide su superficie real
+  (√2 m²), no su sombra en planta (1 m²)**.
+
+### Corregido — el árbol mentía sobre lo que estaba oculto
+
+El estado de visibilidad vivía dentro de cada fila del árbol, así que **Ver todo** restauraba
+el modelo pero los iconos seguían marcando lo oculto. Ahora el estado vive fuera y el icono
+dice la verdad; aislar también lo limpia, porque aislar deja todo lo demás oculto y los
+iconos dejarían de corresponder.
+
 ### Añadido — modos de vista y medición, `F1.7` y `F1.4` (2026-08-19)
 
 A pedido del usuario. Una barra bajo el modelo agrupa lo que cambia **cómo** se mira,

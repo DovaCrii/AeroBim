@@ -10,7 +10,15 @@
  * datos. Las reglas de dominio viven en `@aerobim/bim-core`.
  */
 
-import { isIfcGuid, type IfcGuid } from "@aerobim/bim-core";
+import {
+  angleAtDeg,
+  distanceM,
+  isIfcGuid,
+  perimeterM,
+  polygonAreaM2,
+  type IfcGuid,
+  type Point3,
+} from "@aerobim/bim-core";
 import * as OBC from "@thatopen/components";
 import * as FRAGS from "@thatopen/fragments";
 import * as THREE from "three";
@@ -39,13 +47,31 @@ export type NavigationMode = "Orbit" | "Plan" | "FirstPerson";
 /** Cómo se dibujan los elementos. */
 export type RenderStyle = "solid" | "wireframe";
 
-/** Una medición de distancia entre dos puntos de la escena. */
-export interface Measurement {
-  readonly start: THREE.Vector3;
-  readonly end: THREE.Vector3;
-  /** Distancia en metros. La escena está en metros; el IFC se convirtió al cargar. */
-  readonly distanceM: number;
-}
+/** Qué se está midiendo. */
+export type MeasureMode = "distance" | "angle" | "area";
+
+/**
+ * Una medición terminada.
+ *
+ * Las magnitudes están en metros y grados: la escena está en metros porque el factor de
+ * unidades del IFC se aplicó al convertir.
+ */
+export type Measurement =
+  | {
+      readonly mode: "distance";
+      readonly points: readonly THREE.Vector3[];
+      readonly distanceM: number;
+    }
+  | { readonly mode: "angle"; readonly points: readonly THREE.Vector3[]; readonly angleDeg: number }
+  | {
+      readonly mode: "area";
+      readonly points: readonly THREE.Vector3[];
+      readonly areaM2: number;
+      readonly perimeterM: number;
+    };
+
+/** Ejes sobre los que se puede cortar el modelo. */
+export type SectionAxis = "horizontal" | "longitudinal" | "transversal";
 
 export interface BimViewerOptions {
   /**
@@ -263,6 +289,16 @@ function textoDe(valor: unknown): string | null {
 function nombreDe(item: FRAGS.ItemData): string | null {
   const campo = item["Name"];
   return campo !== undefined && esAtributo(campo) ? textoDe(campo.value) : null;
+}
+
+/**
+ * Pasa un vector de la escena al punto del dominio.
+ *
+ * La geometría de las mediciones vive en `bim-core`, donde está probada contra casos
+ * elementales sin necesitar un navegador. Acá solo se traduce el tipo.
+ */
+function toPoint3(v: THREE.Vector3): Point3 {
+  return [v.x, v.y, v.z];
 }
 
 /** Recorre el árbol en profundidad aplicando `visitar` a cada nodo. */
@@ -552,8 +588,9 @@ export class BimViewer {
   private modelCount = 0;
   private renderStyle: RenderStyle = "solid";
   private measurementLine: THREE.Line | null = null;
-  /** Primer punto de la medición en curso. Ver {@link addMeasurePoint}. */
-  private measureStart: THREE.Vector3 | null = null;
+  private measureMode: MeasureMode | null = null;
+  /** Puntos de la medición en curso. Ver {@link addMeasurePoint}. */
+  private measurePoints: THREE.Vector3[] = [];
 
   private constructor(
     components: OBC.Components,
@@ -892,35 +929,137 @@ export class BimViewer {
   }
 
   /**
-   * Suma un punto a la medición en curso.
+   * Fija qué se mide, o `null` para salir del modo medición.
    *
-   * El primer clic fija el origen y devuelve `null`; el segundo cierra la medición, la
-   * dibuja y devuelve la distancia. Un clic al vacío no cuenta y también devuelve `null`.
+   * Cambiar de modo descarta lo que hubiera a medias: mezclar puntos de una distancia con
+   * los de un área da un número sin sentido.
+   */
+  setMeasureMode(mode: MeasureMode | null): void {
+    this.assertAlive();
+    this.measureMode = mode;
+    this.resetMeasurement();
+  }
+
+  /**
+   * Suma un punto a la medición en curso y devuelve el resultado cuando ya hay bastantes.
    *
-   * El ciclo vive acá y no en la interfaz a propósito: así quien la use no necesita tocar
-   * vectores de Three.js ni saber cómo se ajusta un punto a una arista.
+   * Cuántos hacen falta depende del modo: dos para una distancia, tres para un ángulo, y a
+   * partir de tres el área **se recalcula con cada vértice nuevo**, así que se ve crecer
+   * mientras se recorre el contorno.
+   *
+   * Devuelve `null` mientras faltan puntos, y también si el clic cayó al vacío. El ciclo
+   * vive acá y no en la interfaz a propósito: quien la use no necesita tocar vectores de
+   * Three.js ni saber cómo se ajusta un punto a una arista.
    */
   async addMeasurePoint(clientX: number, clientY: number): Promise<Measurement | null> {
     this.assertAlive();
+    if (this.measureMode === null) return null;
 
     const punto = await this.snapAt(clientX, clientY);
     if (punto === null) return null;
 
-    if (this.measureStart === null) {
-      this.measureStart = punto;
-      this.clearMeasurements();
-      return null;
+    this.measurePoints.push(punto);
+    const puntos = this.measurePoints;
+
+    if (this.measureMode === "distance") {
+      if (puntos.length < 2) return null;
+      const [a, b] = [puntos[0]!, puntos[1]!];
+      this.drawPolyline([a, b]);
+      this.measurePoints = [];
+      return {
+        mode: "distance",
+        points: [a, b],
+        distanceM: distanceM(toPoint3(a), toPoint3(b)),
+      };
     }
 
-    const medicion = this.drawMeasurement(this.measureStart, punto);
-    this.measureStart = null;
-    return medicion;
+    if (this.measureMode === "angle") {
+      if (puntos.length < 3) return null;
+      const [a, b, c] = [puntos[0]!, puntos[1]!, puntos[2]!];
+      this.drawPolyline([a, b, c]);
+      this.measurePoints = [];
+      return {
+        mode: "angle",
+        points: [a, b, c],
+        angleDeg: angleAtDeg(toPoint3(a), toPoint3(b), toPoint3(c)),
+      };
+    }
+
+    // Área: el contorno sigue abierto, así que se acumula y se recalcula con cada vértice.
+    if (puntos.length < 3) {
+      this.drawPolyline(puntos);
+      return null;
+    }
+    this.drawPolyline([...puntos, puntos[0]!]);
+    const contorno = puntos.map(toPoint3);
+    return {
+      mode: "area",
+      points: [...puntos],
+      areaM2: polygonAreaM2(contorno),
+      perimeterM: perimeterM([...contorno, contorno[0]!]),
+    };
   }
 
   /** Descarta la medición en curso y la dibujada. */
   resetMeasurement(): void {
-    this.measureStart = null;
+    this.measurePoints = [];
     this.clearMeasurements();
+  }
+
+  /**
+   * Corta el modelo con un plano que pasa por su centro.
+   *
+   * Los tres ejes cubren lo que se pide en la práctica: un corte **horizontal** para mirar
+   * una planta desde arriba sin la cubierta, y dos **verticales** para ver el interior. El
+   * plano se puede arrastrar después con el ratón.
+   *
+   * Se usa `createFromNormalAndCoplanarPoint` y no `create`, que coloca el plano donde
+   * apunte el cursor: un corte por el centro es predecible, y es lo que alguien espera al
+   * pulsar un botón llamado "corte horizontal".
+   */
+  async addSection(axis: SectionAxis): Promise<void> {
+    this.assertAlive();
+
+    const clipper = this.components.get(OBC.Clipper);
+    clipper.enabled = true;
+
+    const centro = new THREE.Vector3();
+    const caja = new THREE.Box3();
+    for (const [, model] of this.fragments.list) {
+      const suya = await this.boxOf(model);
+      if (suya !== null) caja.union(suya);
+    }
+    if (caja.isEmpty()) return;
+    caja.getCenter(centro);
+
+    const normales: Record<SectionAxis, THREE.Vector3> = {
+      horizontal: new THREE.Vector3(0, 1, 0),
+      longitudinal: new THREE.Vector3(1, 0, 0),
+      transversal: new THREE.Vector3(0, 0, 1),
+    };
+
+    clipper.createFromNormalAndCoplanarPoint(this.world, normales[axis], centro);
+    await this.fragments.core.update(true);
+  }
+
+  /**
+   * Cuántos planos de corte hay activos.
+   *
+   * Se expone para poder comprobar que un corte se creó de verdad. A ojo cuesta distinguir
+   * "el corte no se aplicó" de "el corte cayó donde no se ve nada".
+   */
+  get sectionCount(): number {
+    return this.components.get(OBC.Clipper).list.size;
+  }
+
+  /** Quita todos los planos de corte. */
+  async clearSections(): Promise<void> {
+    this.assertAlive();
+
+    const clipper = this.components.get(OBC.Clipper);
+    clipper.deleteAll();
+    clipper.enabled = false;
+    await this.fragments.core.update(true);
   }
 
   /**
@@ -954,21 +1093,13 @@ export class BimViewer {
     return result?.point.clone() ?? null;
   }
 
-  /**
-   * Dibuja la medición entre dos puntos y devuelve la distancia en metros.
-   *
-   * La escena está en metros porque el factor de unidades del IFC se aplicó al convertir,
-   * así que la distancia de Three.js **es** la distancia real. Eso es exactamente lo que la
-   * comprobación de dimensiones del modelo verifica al cargar.
-   */
-  drawMeasurement(start: THREE.Vector3, end: THREE.Vector3): Measurement {
-    this.assertAlive();
-
+  /** Dibuja el trazo de la medición, reemplazando el anterior. */
+  private drawPolyline(points: readonly THREE.Vector3[]): void {
     this.clearMeasurements();
+    if (points.length < 2) return;
 
-    const geometry = new THREE.BufferGeometry().setFromPoints([start, end]);
     const line = new THREE.Line(
-      geometry,
+      new THREE.BufferGeometry().setFromPoints([...points]),
       new THREE.LineBasicMaterial({ color: SELECTION_COLOR, depthTest: false }),
     );
     // Se dibuja por encima de la geometría: una cota escondida dentro de un muro no sirve.
@@ -976,8 +1107,6 @@ export class BimViewer {
 
     this.measurementLine = line;
     this.world.scene.three.add(line);
-
-    return { start, end, distanceM: start.distanceTo(end) };
   }
 
   /** Quita la medición dibujada. */

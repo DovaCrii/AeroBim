@@ -186,8 +186,8 @@ software de escritorio ni pedir una licencia.
 | ------ | ------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
 | `F1.1` | Árbol espacial navegable (proyecto → sitio → edificio → planta → elemento) con aislar y ocultar                                       | ✅ ver abajo |
 | `F1.2` | Panel de propiedades y **psets** del elemento seleccionado                                                                            | ✅ ver abajo |
-| `F1.3` | Planos de corte y secciones                                                                                                           | ⬜           |
-| `F1.4` | Mediciones: distancia, área y ángulo                                                                                                  | 🟡 distancia |
+| `F1.3` | Planos de corte y secciones                                                                                                           | ✅ ver abajo |
+| `F1.4` | Mediciones: distancia, área y ángulo                                                                                                  | ✅ ver abajo |
 | `F1.5` | Cargar **varios modelos IFC a la vez** (arquitectura + estructura + instalaciones) y alternarlos                                      | ⬜           |
 | `F1.6` | Vistas guardadas: cámara, visibilidad y cortes, recuperables por nombre                                                               | ⬜           |
 | `F1.7` | **Modos de vista**: proyección perspectiva/ortográfica, navegación (órbita, planta, primera persona) y representación (sólido, malla) | ✅ ver abajo |
@@ -198,6 +198,42 @@ visor que muestra propiedades distintas a las del archivo es peor que no tenerlo
 
 `F1.5` no es un extra: la coordinación consiste precisamente en mirar dos
 disciplinas juntas. Un visor de un modelo por vez no coordina nada.
+
+### `F1.3` cortes y `F1.4` mediciones completas (2026-08-19)
+
+**Cortes.** Tres botones cortan el modelo por su centro: horizontal —para mirar la planta
+sin la cubierta— y dos verticales. El plano se arrastra después con el ratón, y **Sin
+cortes** los quita todos.
+
+Se usa `createFromNormalAndCoplanarPoint` en vez de `create`, que coloca el plano donde
+apunte el cursor: un corte por el centro es predecible, y es lo que alguien espera al pulsar
+un botón llamado "corte horizontal".
+
+Verificado con el contador de planos: 0 → 1 → 2 → 3 al añadir los tres, y 0 al quitarlos.
+**El efecto visual del corte no se pudo capturar** (el panel de vista previa dejó de
+componer), así que consta que los planos se crean y se eliminan, no cómo se ve.
+
+**Mediciones, ahora las tres.** Distancia entre dos puntos, ángulo entre tres —el segundo es
+el vértice— y área de un contorno que **se recalcula con cada vértice**, así que se ve crecer
+mientras se recorre. Medido sobre el modelo real: 1,131 m de distancia, 19,4° de ángulo, y
+1,92 m² con 6,88 m de perímetro.
+
+#### La geometría se mudó al dominio, y ahí sí tiene pruebas
+
+`angleAtDeg`, `polygonAreaM2`, `perimeterM` y `distanceM` viven en `packages/bim-core`, no en
+el visor. **Son números con consecuencias** —alguien va a pedir material con un área— y en el
+dominio se prueban contra casos elementales verificables a mano: el cuadrado unitario mide
+1 m², el triángulo 3-4-5 mide 6 m², un ángulo recto da 90°.
+
+Dos casos merecen mención porque son los que delatan una implementación mala:
+
+- **Un polígono lejos del origen mide igual.** La fórmula del área vectorial se rompe si se
+  implementa sin cerrar el contorno; el test lo pone a 300 m del origen.
+- **Un faldón inclinado mide su superficie real, no su sombra.** Un plano que sube 1 m en 1 m
+  tiene √2 m² por metro de ancho, no 1 m². Proyectar al plano horizontal deja la obra corta
+  de material, y por eso hay un test con exactamente ese caso.
+
+18 pruebas nuevas; 67 en total.
 
 ### `F1.7`: modos de vista, y `F1.4`: medir distancias (2026-08-19)
 

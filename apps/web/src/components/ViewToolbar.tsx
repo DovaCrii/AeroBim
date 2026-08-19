@@ -1,4 +1,10 @@
-import type { NavigationMode, Projection, RenderStyle } from "@aerobim/viewer";
+import type {
+  MeasureMode,
+  NavigationMode,
+  Projection,
+  RenderStyle,
+  SectionAxis,
+} from "@aerobim/viewer";
 
 /**
  * Barra de modos de vista.
@@ -11,20 +17,26 @@ export function ViewToolbar({
   projection,
   navigation,
   style,
-  measuring,
+  measureMode,
+  hasSections,
   onProjection,
   onNavigation,
   onStyle,
-  onToggleMeasure,
+  onMeasureMode,
+  onSection,
+  onClearSections,
 }: {
   readonly projection: Projection;
   readonly navigation: NavigationMode;
   readonly style: RenderStyle;
-  readonly measuring: boolean;
+  readonly measureMode: MeasureMode | null;
+  readonly hasSections: boolean;
   readonly onProjection: (projection: Projection) => void;
   readonly onNavigation: (mode: NavigationMode) => void;
   readonly onStyle: (style: RenderStyle) => void;
-  readonly onToggleMeasure: () => void;
+  readonly onMeasureMode: (mode: MeasureMode | null) => void;
+  readonly onSection: (axis: SectionAxis) => void;
+  readonly onClearSections: () => void;
 }) {
   return (
     <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-lg border border-white/10 bg-ink/90 p-1 backdrop-blur">
@@ -88,13 +100,60 @@ export function ViewToolbar({
 
       <Separator />
 
-      <Toggle
-        active={measuring}
-        onClick={onToggleMeasure}
-        title="Medir distancia entre dos puntos, con ajuste a vértices y aristas"
-      >
-        Medir
-      </Toggle>
+      <Group label="Cortes">
+        <Toggle
+          active={false}
+          onClick={() => onSection("horizontal")}
+          title="Corte horizontal por el centro: mira la planta sin la cubierta"
+        >
+          ⌗ Planta
+        </Toggle>
+        <Toggle
+          active={false}
+          onClick={() => onSection("longitudinal")}
+          title="Corte vertical longitudinal"
+        >
+          ⌗ Long.
+        </Toggle>
+        <Toggle
+          active={false}
+          onClick={() => onSection("transversal")}
+          title="Corte vertical transversal"
+        >
+          ⌗ Trans.
+        </Toggle>
+        {hasSections && (
+          <Toggle active onClick={onClearSections} title="Quitar todos los cortes">
+            Sin cortes
+          </Toggle>
+        )}
+      </Group>
+
+      <Separator />
+
+      <Group label="Medir">
+        <Toggle
+          active={measureMode === "distance"}
+          onClick={() => onMeasureMode(measureMode === "distance" ? null : "distance")}
+          title="Distancia entre dos puntos, con ajuste a vértices y aristas"
+        >
+          Distancia
+        </Toggle>
+        <Toggle
+          active={measureMode === "angle"}
+          onClick={() => onMeasureMode(measureMode === "angle" ? null : "angle")}
+          title="Ángulo entre tres puntos: el segundo es el vértice"
+        >
+          Ángulo
+        </Toggle>
+        <Toggle
+          active={measureMode === "area"}
+          onClick={() => onMeasureMode(measureMode === "area" ? null : "area")}
+          title="Área de un contorno: se recalcula con cada vértice"
+        >
+          Área
+        </Toggle>
+      </Group>
     </div>
   );
 }

@@ -32,7 +32,8 @@ Con `F1.1` y `F1.2` cerradas, la aplicación hace lo que alguien espera de un vi
 - orbita con el ratón, y **Encuadrar** vuelve a la vista general;
 - **cambia de proyección** (perspectiva ↔ ortográfica), de **modo de navegación** (órbita,
   planta, interior) y de **representación** (sólido, fantasma);
-- **mide distancias** entre dos puntos, con ajuste a vértices y aristas.
+- **mide** distancias, ángulos y áreas, con ajuste a vértices y aristas;
+- **corta** el modelo por tres ejes, con los planos arrastrables.
 
 Verificado de punta a punta sobre `Piso 5.ifc`: aislar `IFCDOOR (10)` deja exactamente las
 diez puertas en pantalla, y **Ver todo** devuelve el edificio.
@@ -56,8 +57,9 @@ interfaz** y compara la ruta directa contra la envoltura:
 
 ### Y después, en este orden
 
-1. **Fase 1 — lo que queda:** cortes (`F1.3`), mediciones (`F1.4`), varios modelos a la vez
-   (`F1.5`) y vistas guardadas (`F1.6`).
+1. **Fase 1 — lo que queda:** varios modelos a la vez (`F1.5`) y vistas guardadas (`F1.6`).
+   Con `F1.5` la Fase 1 queda cerrada, y es la que falta para coordinar de verdad: mirar dos
+   disciplinas juntas.
    - **`F1.2` tiene un cabo suelto honesto:** el código lee psets pero **no se ha podido
      verificar con un archivo que los traiga**, porque el modelo de prueba se exportó sin
      ellos. Hace falta un IFC con psets para cerrarlo de verdad.
