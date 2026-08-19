@@ -477,12 +477,16 @@ export function App() {
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
         {panelIzquierdo && (
-          <aside className="w-72 shrink-0 border-r border-white/10 bg-ink/50">
+          // **Los paneles cede n antes que el modelo.** Con `shrink-0` y una ventana estrecha —412 px
+          // en una prueba— los dos paneles se comían el ancho entero y el lienzo quedaba en cero: el
+          // modelo desaparecía sin explicación. Ahora se encogen y el lienzo tiene mínimo garantizado.
+          <aside className="w-72 min-w-0 shrink border-r border-white/10 bg-ink/50">
             <PropertiesPanel item={selected} onClose={closeProperties} />
           </aside>
         )}
 
-        <div className="relative flex min-h-0 min-w-0 flex-1">
+        {/* El lienzo nunca baja de 240 px: es lo que impide que los paneles lo dejen en cero. */}
+        <div className="relative flex min-h-0 min-w-[240px] flex-1 shrink-0">
           <div
             ref={canvasHost}
             // El cursor dice qué va a hacer el próximo clic: la cruz de precisión mientras se mide
@@ -522,7 +526,7 @@ export function App() {
         </div>
 
         {panelDerecho && (
-          <aside className="w-72 shrink-0 border-l border-white/10 bg-ink/50">
+          <aside className="w-72 min-w-0 shrink border-l border-white/10 bg-ink/50">
             <ProjectBrowser
               cotas={drawn}
               onToggleMeasurement={onToggleMeasurement}

@@ -328,6 +328,31 @@ const SELECTION_COLOR = 0x9b5de5;
 const SELECTION_CSS = "#9b5de5";
 
 /**
+ * El punto del ratón tal como lo espera el rayo de Fragments: **en píxeles de la ventana**.
+ *
+ * Existe para dejar dicho por qué no se le resta la posición del lienzo, que es lo que uno haría por
+ * costumbre y lo que estuvo mal durante toda la primera etapa del visor.
+ *
+ * `screenToCast` de Fragments hace esto por dentro:
+ *
+ * ```js
+ * const rect = element.getBoundingClientRect();
+ * const x = (p.x - rect.left) / scaleX;
+ * ```
+ *
+ * Es decir, **ya resta el rectángulo**. Restarlo antes lo resta dos veces, y el rayo sale desviado
+ * exactamente lo que mide el borde izquierdo del lienzo. Con el árbol como única columna eran 48 px
+ * y el fallo pasaba por "el picker es impreciso"; al poner el panel de propiedades a la izquierda
+ * pasaron a ser 288 px y entonces se veía clarísimo: clic en un pilar, se seleccionaba otro.
+ *
+ * La moraleja para la próxima envoltura: **antes de convertir coordenadas, leer qué espera la
+ * librería.** Este error no da error, solo respuestas equivocadas.
+ */
+function mouseFor(clientX: number, clientY: number): THREE.Vector2 {
+  return new THREE.Vector2(clientX, clientY);
+}
+
+/**
  * Cosas de la escena que se pueden apagar sin destruirlas.
  *
  * Es lo que tienen en común la cota de una distancia, el relleno de un área y la etiqueta de un
@@ -1381,10 +1406,10 @@ export class BimViewer {
     const convertMs = performance.now() - startedAt;
 
     onStage("reading");
-    const [categories, itemsWithGeometry, emptyClasses] = await Promise.all([
+    const [categories, itemsWithGeometry, cargados] = await Promise.all([
       model.getCategories(),
       model.getItemsWithGeometry(),
-      this.classesWithoutGeometry(model),
+      this.loadedByClass(model),
     ]);
 
     onStage("drawing");
@@ -1411,42 +1436,40 @@ export class BimViewer {
         itemsWithGeometry: itemsWithGeometry.length,
         sizeM,
         convertedIn: this.conversor.location,
-        missingClasses: missingElementClasses(clasesDelArchivo, categories),
-        emptyClasses,
+        missingClasses: missingElementClasses(clasesDelArchivo, cargados.porClase),
+        emptyClasses: emptyElementClasses(cargados.sinDibujo),
       },
     };
   }
 
   /**
-   * Qué elementos entraron al modelo **sin geometría**, contados por clase.
+   * Cuántos elementos llegaron de cada clase, y cuáles llegaron **sin dibujo**.
    *
-   * Se calcula restando: todos los identificadores del modelo menos los que tienen geometría, y de
-   * los que quedan se leen sus categorías. El filtro de `bim-core` descarta lo que nunca tuvo
-   * geometría —psets, materiales, unidades, tipos, el armazón espacial— para que la cuenta solo
-   * hable de elementos que deberían verse.
-   *
-   * Es la comprobación que faltaba: los contadores del visor decían "839 elementos con geometría" y
-   * no había forma de saber cuántos se habían quedado sin ella.
+   * Las dos cifras salen de la misma consulta porque comparten el trabajo caro: pedir los
+   * identificadores agrupados por categoría. De ahí se cuenta por clase —lo que se compara contra el
+   * archivo— y se separan los que no tienen geometría, que es el otro caso posible.
    */
-  private async classesWithoutGeometry(
-    model: FRAGS.FragmentsModel,
-  ): Promise<readonly MissingClass[]> {
+  private async loadedByClass(model: FRAGS.FragmentsModel): Promise<{
+    porClase: ReadonlyMap<string, number>;
+    sinDibujo: readonly (string | null)[];
+  }> {
     const [porCategoria, conGeometria] = await Promise.all([
-      // Una sola consulta devuelve los identificadores agrupados por categoría. Preguntar la
-      // categoría de cada elemento por separado costaría miles de idas y vueltas al worker.
       model.getItemsOfCategories([/^IFC/]),
       model.getItemsIdsWithGeometry(),
     ]);
 
     const tienen = new Set(conGeometria);
-    const categorias: string[] = [];
+    const porClase = new Map<string, number>();
+    const sinDibujo: string[] = [];
+
     for (const [categoria, ids] of Object.entries(porCategoria)) {
+      porClase.set(categoria.toUpperCase(), ids.length);
       for (const id of ids) {
-        if (!tienen.has(id)) categorias.push(categoria);
+        if (!tienen.has(id)) sinDibujo.push(categoria);
       }
     }
 
-    return emptyElementClasses(categorias);
+    return { porClase, sinDibujo };
   }
 
   /**
@@ -1455,9 +1478,9 @@ export class BimViewer {
    * Devuelve `null` si ahí no hay nada, que es la mitad de los clics en un visor y no es
    * un error.
    *
-   * Las coordenadas van en píxeles de la ventana (`clientX` / `clientY` de un evento de
-   * ratón); la conversión al espacio del lienzo ocurre acá, para que quien llame no tenga
-   * que saber dónde está el canvas.
+   * **Las coordenadas van tal cual, en píxeles de la ventana** (`clientX` / `clientY` del evento de
+   * ratón). No hay que restarles la posición del lienzo: el `screenToCast` de Fragments ya lo hace
+   * por dentro. Restarla antes fue un fallo real y difícil de ver — ver {@link mouseFor}.
    */
   async pickAt(clientX: number, clientY: number): Promise<PickedItem | null> {
     this.assertAlive();
@@ -1465,10 +1488,9 @@ export class BimViewer {
     const canvas = this.world.renderer?.three.domElement;
     if (!canvas) return null;
 
-    const rect = canvas.getBoundingClientRect();
     const result = await this.fragments.raycast({
       camera: this.world.camera.three,
-      mouse: new THREE.Vector2(clientX - rect.left, clientY - rect.top),
+      mouse: mouseFor(clientX, clientY),
       dom: canvas,
     });
     if (!result) return null;
@@ -1824,10 +1846,9 @@ export class BimViewer {
     const canvas = this.world.renderer?.three.domElement;
     if (!canvas) return null;
 
-    const rect = canvas.getBoundingClientRect();
     const comun = {
       camera: this.world.camera.three,
-      mouse: new THREE.Vector2(clientX - rect.left, clientY - rect.top),
+      mouse: mouseFor(clientX, clientY),
       dom: canvas,
     };
 
@@ -1932,10 +1953,9 @@ export class BimViewer {
     const canvas = this.world.renderer?.three.domElement;
     if (!canvas) return null;
 
-    const rect = canvas.getBoundingClientRect();
     const result = await this.fragments.raycast({
       camera: this.world.camera.three,
-      mouse: new THREE.Vector2(clientX - rect.left, clientY - rect.top),
+      mouse: mouseFor(clientX, clientY),
       dom: canvas,
       // El orden es la preferencia: primero vértice, luego arista, y la cara como respaldo.
       // Sin `FACE` un clic en el medio de un muro no devuelve nada, y medir se vuelve un

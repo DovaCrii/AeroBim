@@ -22,6 +22,7 @@
 
 import type { ConvertRequest, ConvertResponse } from "@aerobim/viewer";
 import { IfcImporter } from "@thatopen/fragments";
+import { IFCPROXY } from "web-ifc";
 
 /**
  * El importador, creado una sola vez.
@@ -37,6 +38,15 @@ function importadorPara(wasmPath: string): IfcImporter {
   if (importer === null) {
     importer = new IfcImporter();
     importer.wasm = { path: wasmPath, absolute: true };
+
+    // **`IfcProxy` se añade a mano**, porque el conjunto de clases del importador no lo trae y sin
+    // él sus elementos no se importan —ni al árbol—. Un modelo de planta de ProStructures declara
+    // cientos: es lo que faltaba en `716-LCD-ME-ISUP-D-TEST.ifc`.
+    //
+    // No se llama a `prepareImporter` de `@aerobim/viewer` aunque exista y haga esto mismo:
+    // importarlo desde acá arrastraría three.js y los componentes al worker, que solo necesita el
+    // conversor. **Si esa lista crece, hay que crecerla en los dos sitios** — ver `converter.ts`.
+    importer.classes.elements.add(IFCPROXY);
   }
   return importer;
 }

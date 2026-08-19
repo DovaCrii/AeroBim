@@ -48,16 +48,31 @@ describe("countIfcEntities", () => {
 describe("missingElementClasses", () => {
   it("señala las clases de elemento que el visor no cargó, de más a menos", () => {
     // Es el caso real: un modelo de planta industrial donde el visor solo trae la estructura.
-    const faltantes = missingElementClasses(countIfcEntities(IFC), ["IFCBEAM"]);
+    const cargadas = new Map([["IFCBEAM", 2]]);
+    const faltantes = missingElementClasses(countIfcEntities(IFC), cargadas);
 
     expect(faltantes).toEqual([
-      { ifcClass: "IFCPIPESEGMENT", count: 3 },
-      { ifcClass: "IFCMECHANICALFASTENER", count: 1 },
+      { ifcClass: "IFCPIPESEGMENT", inFile: 3, loaded: 0, count: 3 },
+      { ifcClass: "IFCMECHANICALFASTENER", inFile: 1, loaded: 0, count: 1 },
+    ]);
+  });
+
+  it("**detecta una clase cargada a medias**, que es el caso difícil de ver", () => {
+    // Del modelo real de planta: la clase aparece entre las cargadas, así que una comparación por
+    // nombre no diría nada. Si de tres tuberías llegan dos, falta una y hay que decirlo.
+    const cargadas = new Map([
+      ["IFCBEAM", 2],
+      ["IFCPIPESEGMENT", 2],
+      ["IFCMECHANICALFASTENER", 1],
+    ]);
+
+    expect(missingElementClasses(countIfcEntities(IFC), cargadas)).toEqual([
+      { ifcClass: "IFCPIPESEGMENT", inFile: 3, loaded: 2, count: 1 },
     ]);
   });
 
   it("no acusa a la geometría, las relaciones ni los tipos", () => {
-    const faltantes = missingElementClasses(countIfcEntities(IFC), ["IFCBEAM"]);
+    const faltantes = missingElementClasses(countIfcEntities(IFC), new Map([["IFCBEAM", 2]]));
     const clases = faltantes.map((f) => f.ifcClass);
 
     expect(clases).not.toContain("IFCCARTESIANPOINT");
@@ -68,14 +83,33 @@ describe("missingElementClasses", () => {
   });
 
   it("no acusa al armazón espacial, que no es geometría que se mire", () => {
-    const clases = missingElementClasses(countIfcEntities(IFC), []).map((f) => f.ifcClass);
+    const clases = missingElementClasses(countIfcEntities(IFC), new Map()).map((f) => f.ifcClass);
     expect(clases).not.toContain("IFCPROJECT");
     expect(clases).not.toContain("IFCSITE");
   });
 
   it("no señala nada cuando el visor cargó todo lo que había", () => {
-    const cargadas = ["IFCBEAM", "IFCPIPESEGMENT", "IFCMECHANICALFASTENER"];
+    const cargadas = new Map([
+      ["IFCBEAM", 2],
+      ["IFCPIPESEGMENT", 3],
+      ["IFCMECHANICALFASTENER", 1],
+    ]);
     expect(missingElementClasses(countIfcEntities(IFC), cargadas)).toEqual([]);
+  });
+
+  it("no se queja si el modelo trae más de los que el archivo declara", () => {
+    // No es geometría que falte, y este informe no puede explicarlo: se calla.
+    const cargadas = new Map([["IFCBEAM", 99]]);
+    const clases = missingElementClasses(countIfcEntities(IFC), cargadas).map((f) => f.ifcClass);
+    expect(clases).not.toContain("IFCBEAM");
+  });
+
+  it("ignora los huecos: un IfcOpeningElement es la ausencia de material, no un cuerpo", () => {
+    const conHueco = new Map([
+      ["IFCWALL", 1],
+      ["IFCOPENINGELEMENT", 12],
+    ]);
+    expect(missingElementClasses(conHueco, new Map([["IFCWALL", 1]]))).toEqual([]);
   });
 });
 
@@ -109,8 +143,8 @@ describe("emptyElementClasses", () => {
     ];
 
     expect(emptyElementClasses(sinGeometria)).toEqual([
-      { ifcClass: "IFCPIPESEGMENT", count: 3 },
-      { ifcClass: "IFCBUILDINGELEMENTPROXY", count: 1 },
+      { ifcClass: "IFCPIPESEGMENT", inFile: 3, loaded: 3, count: 3 },
+      { ifcClass: "IFCBUILDINGELEMENTPROXY", inFile: 1, loaded: 1, count: 1 },
     ]);
   });
 

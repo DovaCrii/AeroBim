@@ -246,7 +246,15 @@ function FaltaGeometria({
         {clases.slice(0, 8).map((clase) => (
           <li key={clase.ifcClass} className="flex justify-between gap-2">
             <span className="min-w-0 truncate font-mono text-white/70">{clase.ifcClass}</span>
-            <span className="shrink-0 tabular-nums text-white/45">{clase.count}</span>
+            {/* Las tres cifras cuentan historias distintas: cargados en cero es una clase que el
+                conversor no procesa; a medias es una clase que sí procesa y en la que algunos
+                elementos fallaron, que es el caso difícil de ver. */}
+            <span
+              className="shrink-0 tabular-nums text-white/45"
+              title={`${clase.loaded} de ${clase.inFile} cargados`}
+            >
+              {clase.loaded > 0 ? `${clase.count} de ${clase.inFile}` : clase.count}
+            </span>
           </li>
         ))}
       </ul>

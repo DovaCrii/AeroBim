@@ -14,9 +14,41 @@
  */
 
 import { IfcImporter } from "@thatopen/fragments";
+import { IFCPROXY } from "web-ifc";
 
 /** Dónde corre la conversión. */
 export type ConvertLocation = "worker" | "main";
+
+/**
+ * Clases IFC que el importador de Fragments no procesa y **sí hay que procesar**.
+ *
+ * `IfcProxy` es el comodín del estándar: un producto con geometría y sitio propios, para lo que no
+ * encaja en una clase concreta. El conjunto de clases del importador no lo incluye —tiene
+ * `IfcBuildingElementProxy`, que es otra cosa— y el resultado es que **el elemento no se importa,
+ * ni al árbol**.
+ *
+ * Se descubrió con un modelo real: `716-LCD-ME-ISUP-D-TEST.ifc`, una planta exportada por
+ * ProStructures de Bentley, declara 805 `IFCMEMBER`, 34 `IFCCOLUMN` y **433 `IFCPROXY`**. El visor
+ * mostraba la estructura de acero y faltaba todo lo demás —la maquinaria, los grandes elementos
+ * curvos—: eran esos 433. El mismo modelo en OpenPlant los muestra.
+ *
+ * **Esta lista se amplía con datos, no con suposiciones.** El aviso de "elementos del archivo que no
+ * se cargaron" del panel de modelos es el que dice qué clase falta; cuando aparezca una nueva se
+ * añade acá con el modelo que la delató.
+ */
+const CLASES_QUE_FALTAN: readonly number[] = [IFCPROXY];
+
+/**
+ * Deja un importador listo: el WASM local y las clases que el conjunto por defecto se salta.
+ *
+ * **Vive acá y se usa desde los dos lados** —el conversor del hilo principal y el del worker, que
+ * está en la aplicación porque crear un worker es cosa del empaquetador—. Que el worker tenga que
+ * repetir esta llamada es el precio de ese reparto, y por eso está en una sola función con nombre.
+ */
+export function prepareImporter(importer: IfcImporter, wasmPath: string): void {
+  importer.wasm = { path: wasmPath, absolute: true };
+  for (const clase of CLASES_QUE_FALTAN) importer.classes.elements.add(clase);
+}
 
 /** Lo que se le pide al worker de conversión. */
 export interface ConvertRequest {
@@ -59,7 +91,7 @@ export function mainThreadConverter(wasmPath: string): Converter {
       // siguiente lo encontraría vacío.
       if (importer === null) {
         importer = new IfcImporter();
-        importer.wasm = { path: wasmPath, absolute: true };
+        prepareImporter(importer, wasmPath);
       }
       return importer.process({ bytes });
     },

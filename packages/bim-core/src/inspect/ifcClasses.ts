@@ -28,6 +28,7 @@
  */
 const NO_SON_ELEMENTOS = new Set([
   // Geometría y representación
+  "IFCBOUNDINGBOX",
   "IFCCARTESIANPOINT",
   "IFCCARTESIANPOINTLIST2D",
   "IFCCARTESIANPOINTLIST3D",
@@ -203,6 +204,11 @@ const NO_SON_ELEMENTOS = new Set([
   "IFCLOCALTIME",
   "IFCCALENDARDATE",
   "IFCDATEANDTIME",
+  // Huecos: son la ausencia de material, no un cuerpo. El conversor los omite a propósito y
+  // contarlos como geometría que falta llenaría el aviso de ruido en cualquier modelo de
+  // arquitectura, donde hay uno por cada puerta y ventana.
+  "IFCOPENINGELEMENT",
+  "IFCFEATUREELEMENTSUBTRACTION",
 ]);
 
 /**
@@ -223,9 +229,20 @@ export function countIfcEntities(ifcText: string): ReadonlyMap<string, number> {
   return cuentas;
 }
 
-/** Una clase del archivo que parece un elemento físico y no llegó al modelo cargado. */
+/**
+ * Una clase de elemento de la que **falta geometría en pantalla**.
+ *
+ * Se informan las tres cifras porque cuentan tres historias distintas: `loaded` en cero es una clase
+ * que el conversor no procesa; `loaded` a medias es una clase que sí procesa y en la que **algunos
+ * elementos fallaron**, que es el caso más difícil de ver y el que aparece en modelos de planta.
+ */
 export interface MissingClass {
   readonly ifcClass: string;
+  /** Cuántos declara el archivo. */
+  readonly inFile: number;
+  /** Cuántos llegaron al modelo cargado. */
+  readonly loaded: number;
+  /** Los que faltan: `inFile - loaded`. */
   readonly count: number;
 }
 
@@ -255,24 +272,33 @@ const ARMAZON_ESPACIAL = new Set([
 ]);
 
 /**
- * Clases de elemento que el archivo declara y el visor **no** cargó.
+ * Clases de elemento de las que **el modelo tiene menos que el archivo**.
  *
- * `loaded` son las categorías que el modelo convertido informa. Lo que quede fuera de esa lista y
- * sea un elemento físico ({@link isElementClass}) es geometría que debería estar en pantalla y no
- * está — y además **no existe en el modelo**, así que no se puede ni seleccionar.
+ * **Compara cantidades, no presencia**, y esa es la diferencia que importa: si de quinientas
+ * tuberías llegan trescientas, la clase aparece entre las cargadas y una comparación por nombre no
+ * diría nada. En un modelo de arquitectura eso casi no pasa; en uno de planta industrial, donde la
+ * geometría es de barridos y B-reps que el motor no siempre resuelve, es el caso normal.
  *
  * Ordenadas de más a menos, porque lo que falta en cantidad es lo que se nota al mirar.
  */
 export function missingElementClasses(
-  counts: ReadonlyMap<string, number>,
-  loaded: readonly string[],
+  inFile: ReadonlyMap<string, number>,
+  loaded: ReadonlyMap<string, number>,
 ): readonly MissingClass[] {
-  const cargadas = new Set(loaded.map((categoria) => categoria.toUpperCase()));
+  const cargadas = new Map<string, number>();
+  for (const [categoria, cuantos] of loaded) cargadas.set(categoria.toUpperCase(), cuantos);
 
   const faltantes: MissingClass[] = [];
-  for (const [ifcClass, count] of counts) {
-    if (cargadas.has(ifcClass) || !isElementClass(ifcClass)) continue;
-    faltantes.push({ ifcClass, count });
+  for (const [ifcClass, enArchivo] of inFile) {
+    if (!isElementClass(ifcClass)) continue;
+
+    const yaCargados = cargadas.get(ifcClass) ?? 0;
+    const faltan = enArchivo - yaCargados;
+    // Más cargados que declarados no es un error que este informe pueda explicar —serían elementos
+    // que el conversor sintetiza— y desde luego no es geometría que falte.
+    if (faltan <= 0) continue;
+
+    faltantes.push({ ifcClass, inFile: enArchivo, loaded: yaCargados, count: faltan });
   }
 
   return faltantes.sort((a, b) => b.count - a.count);
@@ -304,7 +330,9 @@ export function emptyElementClasses(
     cuentas.set(clase, (cuentas.get(clase) ?? 0) + 1);
   }
 
+  // `inFile` y `loaded` se informan igual para que la forma sea la misma que la del otro caso: acá
+  // todos se importaron —`loaded` los cuenta— y todos están sin dibujo, así que faltan todos.
   return [...cuentas]
-    .map(([ifcClass, count]) => ({ ifcClass, count }))
+    .map(([ifcClass, count]) => ({ ifcClass, inFile: count, loaded: count, count }))
     .sort((a, b) => b.count - a.count);
 }

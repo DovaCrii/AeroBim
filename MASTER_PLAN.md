@@ -223,18 +223,19 @@ Se decide con los números de `F0.5`, no por preferencia.
 **Objetivo de salida:** alguien de oficina técnica revisa un modelo sin abrir
 software de escritorio ni pedir una licencia.
 
-| #       | Tarea                                                                                                                                 | Estado                   |
-| ------- | ------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
-| `F1.1`  | Árbol espacial navegable (proyecto → sitio → edificio → planta → elemento) con aislar y ocultar                                       | ✅ ver abajo             |
-| `F1.2`  | Panel de propiedades y **psets** del elemento seleccionado                                                                            | ✅ ver abajo             |
-| `F1.3`  | Planos de corte y secciones                                                                                                           | ✅ ver abajo             |
-| `F1.4`  | Mediciones: distancia, área y ángulo                                                                                                  | ✅ ver abajo             |
-| `F1.5`  | Cargar **varios modelos IFC a la vez** (arquitectura + estructura + instalaciones) y alternarlos                                      | ✅ ver abajo             |
-| `F1.6`  | Vistas guardadas: cámara, visibilidad y cortes, recuperables por nombre                                                               | ⬜                       |
-| `F1.7`  | **Modos de vista**: proyección perspectiva/ortográfica, navegación (órbita, planta, primera persona) y representación (sólido, malla) | ✅ ver abajo             |
-| `F1.8`  | **Barra de herramientas y panel de modelos** — reubicar y agrupar las herramientas; ordenar, activar y desactivar lo cargado          | ✅ ver abajo             |
-| `F1.9`  | **Unidades de las propiedades** — cada número con la unidad que declara el archivo                                                    | ✅ ver abajo             |
-| `F1.10` | **Geometría que no se carga** — el conversor deja fuera clases de elemento de modelos industriales                                    | 🟥 **el problema grave** |
+| #       | Tarea                                                                                                                                 | Estado       |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| `F1.1`  | Árbol espacial navegable (proyecto → sitio → edificio → planta → elemento) con aislar y ocultar                                       | ✅ ver abajo |
+| `F1.2`  | Panel de propiedades y **psets** del elemento seleccionado                                                                            | ✅ ver abajo |
+| `F1.3`  | Planos de corte y secciones                                                                                                           | ✅ ver abajo |
+| `F1.4`  | Mediciones: distancia, área y ángulo                                                                                                  | ✅ ver abajo |
+| `F1.5`  | Cargar **varios modelos IFC a la vez** (arquitectura + estructura + instalaciones) y alternarlos                                      | ✅ ver abajo |
+| `F1.6`  | Vistas guardadas: cámara, visibilidad y cortes, recuperables por nombre                                                               | ⬜           |
+| `F1.7`  | **Modos de vista**: proyección perspectiva/ortográfica, navegación (órbita, planta, primera persona) y representación (sólido, malla) | ✅ ver abajo |
+| `F1.8`  | **Barra de herramientas y panel de modelos** — reubicar y agrupar las herramientas; ordenar, activar y desactivar lo cargado          | ✅ ver abajo |
+| `F1.9`  | **Unidades de las propiedades** — cada número con la unidad que declara el archivo                                                    | ✅ ver abajo |
+| `F1.10` | **Geometría que no se carga** — el conversor dejaba fuera `IfcProxy`: 433 elementos de 1.274                                          | ✅ ver abajo |
+| `F1.11` | **El picker caía desviado** el ancho del panel izquierdo: se seleccionaba otro elemento                                               | ✅ ver abajo |
 
 **Oráculo:** el mismo modelo abierto en **Bonsai/BlenderBIM** (o cualquier visor
 IFC de escritorio). El árbol, los psets y las mediciones deben coincidir — un
@@ -243,7 +244,66 @@ visor que muestra propiedades distintas a las del archivo es peor que no tenerlo
 `F1.5` no es un extra: la coordinación consiste precisamente en mirar dos
 disciplinas juntas. Un visor de un modelo por vez no coordina nada.
 
-### `F1.10` el problema grave: el conversor deja geometría fuera (2026-08-19)
+### `F1.11` el picker caía desviado, y era nuestro (2026-08-19)
+
+**Clic en un pilar, se seleccionaba otro.** La causa: `pickAt` le restaba a las coordenadas del ratón
+la posición del lienzo antes de pasárselas al rayo, y **Fragments ya se la resta por dentro**:
+
+```js
+// screenToCast, en @thatopen/fragments
+const rect = element.getBoundingClientRect();
+const x = (p.x - rect.left) / scaleX;
+```
+
+Restada dos veces, el rayo salía desviado **exactamente lo que mide el borde izquierdo del lienzo**.
+Con el árbol como única columna eran 48 px y el fallo pasaba por "el picker es impreciso"; al poner
+el panel de propiedades a la izquierda pasaron a ser 288 px y se volvió evidente.
+
+Este error explica en retrospectiva **todas las quejas de selección desde la primera prueba de uso**,
+y también por qué no se reproducía en `diag.html`: ahí el contenedor empieza en x = 0, así que restar
+cero dos veces no cambia nada. La lección queda escrita en el código: **antes de convertir
+coordenadas, leer qué espera la librería** — este error no da error, solo respuestas equivocadas.
+
+### `F1.10` cerrada: eran los `IfcProxy` (2026-08-19)
+
+**El usuario entregó el modelo y la respuesta salió en una consulta.** `716-LCD-ME-ISUP-D-TEST.ifc`,
+una planta exportada por **ProStructures 24** de Bentley, declara:
+
+| Clase       | Cuántos |
+| ----------- | ------- |
+| `IFCMEMBER` | 805     |
+| `IFCPROXY`  | **433** |
+| `IFCCOLUMN` | 34      |
+
+Y el visor cargaba 839: los 805 perfiles y las 34 columnas. **Faltaban los 433 `IfcProxy`**, que es
+donde ProStructures pone todo lo que no es estructura: la maquinaria, los grandes elementos curvos, el
+transportador. `IfcProxy` es el comodín del estándar —un producto con geometría y sitio propios para
+lo que no encaja en una clase concreta— y **no está en el conjunto de clases de `IfcImporter`**, que
+sí trae `IfcBuildingElementProxy`, otra cosa.
+
+El arreglo es una línea: añadir `WEBIFC.IFCPROXY` a `importer.classes.elements`. Medido antes y
+después sobre el mismo archivo:
+
+| Qué                     | Antes                | Después                  |
+| ----------------------- | -------------------- | ------------------------ |
+| Elementos en el árbol   | 841                  | **1.274**                |
+| Elementos con geometría | 839                  | **1.272**                |
+| Dimensiones del modelo  | 16,2 × 17,1 × 29,9 m | **20,6 × 21,0 × 69,0 m** |
+| Fragments               | 1,5 MB               | 3,7 MB                   |
+
+Los 69 metros de largo son el transportador que en OpenPlant se veía salir del edificio y en AeroBim
+no estaba. Y un clic sobre esa geometría nueva abre su ficha, así que no es solo dibujo.
+
+**El diagnóstico ahora compara cantidades, no presencia.** Antes solo detectaba la clase ausente por
+completo; si de 500 tuberías llegaran 300, la clase aparecía entre las cargadas y no avisaba nada. Es
+el caso que aparecerá con más modelos de Bentley, así que el aviso dice **cuántos de cuántos**.
+
+**Cómo se amplía la lista de clases:** con datos. El aviso del panel de modelos dice qué clase falta;
+cuando aparezca una nueva se añade con el modelo que la delató. La lista vive en dos sitios que hay
+que mantener a la par —`packages/viewer/src/converter.ts` y `apps/web/src/convert.worker.ts`— porque
+el worker no puede importar el paquete del visor sin arrastrarse three.js entero.
+
+### El problema, como se veía antes de tener el archivo (2026-08-19)
 
 **El mismo IFC de 32,7 MB abierto en Bentley OpenPlant muestra mucho más que AeroBim.** En el visor
 aparece la estructura de acero —cerchas, columnas— y **falta el resto**: los grandes elementos
