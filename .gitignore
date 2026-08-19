@@ -59,3 +59,10 @@ Thumbs.db
 # Registros
 *.log
 npm-debug.log*
+
+# WASM copiado de node_modules por apps/web/scripts/copy-wasm.mjs
+apps/web/public/wasm/
+
+# Excepcion: el fixture minimo si se versiona. Es sintetico, escrito a mano, y no
+# contiene dato alguno de un proyecto real. Cualquier otro .ifc queda fuera.
+!apps/web/public/samples/muro-minimo.ifc

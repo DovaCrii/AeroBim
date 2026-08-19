@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>AeroBim · diagnóstico del visor</title>
+    <style>
+      body {
+        margin: 0;
+        background: #161f2d;
+        color: #f8f9fa;
+        font:
+          13px/1.5 ui-monospace,
+          monospace;
+      }
+      #log {
+        padding: 12px;
+        white-space: pre-wrap;
+      }
+      #escena {
+        height: 50vh;
+        border-top: 1px solid #ffffff22;
+      }
+    </style>
+  </head>
+  <body>
+    <!--
+      Página de medición para F0.4 y F0.5, deliberadamente **sin la interfaz**.
+
+      Separa dos preguntas que juntas confunden: si el pipeline de That Open abre el
+      modelo, y si nuestra envoltura lo integra bien. La lógica vive en `src/diag.ts`
+      para que los módulos se resuelvan igual que en la aplicación.
+
+      Uso:
+        /diag.html?modo=clase&ifc=/samples/muro-minimo.ifc
+        /diag.html?modo=manual&ifc=/samples/muro-minimo.ifc
+    -->
+    <div id="log">iniciando…</div>
+    <div id="escena"></div>
+    <script type="module">
+      const log = document.getElementById("log");
+      const linea = (texto) => {
+        log.textContent += `\n${texto}`;
+      };
+
+      const params = new URLSearchParams(location.search);
+      const ifcUrl = params.get("ifc") ?? "/samples/muro-minimo.ifc";
+      const modo = params.get("modo") ?? "clase";
+
+      log.textContent =
+        `modo=${modo} · ifc=${ifcUrl}\n` +
+        `crossOriginIsolated=${globalThis.crossOriginIsolated} · ` +
+        `SharedArrayBuffer=${typeof SharedArrayBuffer}`;
+
+      try {
+        const diag = await import("/@fs/D:/I+D/AeroBim/apps/web/src/diag.ts");
+        const ejecutar = modo === "manual" ? diag.manual : diag.clase;
+        const espera = Number(params.get("espera") ?? "0");
+        await ejecutar(document.getElementById("escena"), ifcUrl, linea, espera);
+        linea("\nOK");
+        document.title = "OK · " + modo;
+      } catch (error) {
+        linea(`\nERROR: ${error?.stack ?? error}`);
+        document.title = "ERROR · " + modo;
+      }
+    </script>
+  </body>
+</html>

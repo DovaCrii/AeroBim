@@ -33,13 +33,13 @@ dron y quieren contrastar lo construido contra lo modelado.
 
 ## Qué resuelve
 
-| Capacidad | Qué hace |
-| --- | --- |
-| **Visor IFC** | Abre modelos IFC 2x3/4/4x3 en el navegador, con árbol espacial, propiedades y psets |
-| **Nubes de puntos** | Carga el levantamiento (LAS/LAZ) en la misma escena que el modelo |
-| **Coordinación** | Temas de observación con viewpoints, importables y exportables como BCF 2.1/3.0 |
-| **Interferencias** | Detección de clashes entre grupos de elementos, con resultado navegable |
-| **Geo + BIM** | El modelo georreferenciado sobre la ortofoto y el terreno del propio vuelo |
+| Capacidad           | Qué hace                                                                            |
+| ------------------- | ----------------------------------------------------------------------------------- |
+| **Visor IFC**       | Abre modelos IFC 2x3/4/4x3 en el navegador, con árbol espacial, propiedades y psets |
+| **Nubes de puntos** | Carga el levantamiento (LAS/LAZ) en la misma escena que el modelo                   |
+| **Coordinación**    | Temas de observación con viewpoints, importables y exportables como BCF 2.1/3.0     |
+| **Interferencias**  | Detección de clashes entre grupos de elementos, con resultado navegable             |
+| **Geo + BIM**       | El modelo georreferenciado sobre la ortofoto y el terreno del propio vuelo          |
 
 Ninguna de esas piezas se construye de cero: cada una tiene una base
 open-source verificada en [docs/REFERENCES.md](docs/REFERENCES.md).
@@ -76,15 +76,15 @@ razonamiento está en [docs/REFERENCES.md](docs/REFERENCES.md).
 
 ## Cómo se lee este repositorio
 
-| Documento | Para qué |
-| --- | --- |
-| [MASTER_PLAN.md](MASTER_PLAN.md) | **Fuente de verdad del trabajo pendiente**, por fases y con estado |
-| [HANDOFF.md](HANDOFF.md) | Punto exacto de retome |
-| [AGENTS.md](AGENTS.md) | Convenciones obligatorias antes de tocar código |
-| [docs/MVP.md](docs/MVP.md) | Qué entra en la primera versión y qué queda fuera, con el motivo |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Paquetes, límites entre capas y flujo de datos |
-| [docs/REFERENCES.md](docs/REFERENCES.md) | Cada proyecto de referencia, su licencia y qué se toma de él |
-| [docs/INTEGRATION_AEROPLANNER.md](docs/INTEGRATION_AEROPLANNER.md) | Contrato con AeroPlanner: qué cruza la frontera y qué no |
+| Documento                                                          | Para qué                                                           |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------ |
+| [MASTER_PLAN.md](MASTER_PLAN.md)                                   | **Fuente de verdad del trabajo pendiente**, por fases y con estado |
+| [HANDOFF.md](HANDOFF.md)                                           | Punto exacto de retome                                             |
+| [AGENTS.md](AGENTS.md)                                             | Convenciones obligatorias antes de tocar código                    |
+| [docs/MVP.md](docs/MVP.md)                                         | Qué entra en la primera versión y qué queda fuera, con el motivo   |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)                       | Paquetes, límites entre capas y flujo de datos                     |
+| [docs/REFERENCES.md](docs/REFERENCES.md)                           | Cada proyecto de referencia, su licencia y qué se toma de él       |
+| [docs/INTEGRATION_AEROPLANNER.md](docs/INTEGRATION_AEROPLANNER.md) | Contrato con AeroPlanner: qué cruza la frontera y qué no           |
 
 ## Aplicaciones hermanas
 

@@ -101,15 +101,15 @@ Este proyecto es MIT y debe seguir siéndolo. Antes de copiar o adaptar código 
 proyecto de referencia, confirmar su licencia en `docs/REFERENCES.md` y registrar el
 origen en el archivo destino.
 
-| Origen                                          | Licencia   | Se puede                                                                                       |
-| ----------------------------------------------- | ---------- | ---------------------------------------------------------------------------------------------- |
-| That Open (`components`, `fragments`), Three.js | MIT        | Portar e integrar, manteniendo el aviso de copyright                                           |
-| `web-ifc`                                       | MPL-2.0    | Usar como dependencia. Si se **modifica** un archivo suyo, ese archivo queda bajo MPL           |
-| Potree, PDAL                                    | BSD        | Portar e integrar, manteniendo el aviso                                                         |
-| CesiumJS, `3d-tiles-tools`, TerriaJS            | Apache-2.0 | Portar e integrar, conservando avisos y el archivo `NOTICE` si existe                           |
-| IfcOpenShell, `ifcclash`, `bcf-client`          | LGPL-3.0   | **Usar como librería o proceso aparte, sin copiar su código.** Enlazar sí; portar líneas no      |
-| xeokit-sdk, BIMserver                           | AGPL-3.0   | **Solo leer como referencia conceptual.** No copiar código ni enlazarlo                        |
-| xbim                                            | CDDL       | Referencia conceptual. Stack .NET, fuera de nuestra arquitectura                               |
+| Origen                                          | Licencia   | Se puede                                                                                    |
+| ----------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------- |
+| That Open (`components`, `fragments`), Three.js | MIT        | Portar e integrar, manteniendo el aviso de copyright                                        |
+| `web-ifc`                                       | MPL-2.0    | Usar como dependencia. Si se **modifica** un archivo suyo, ese archivo queda bajo MPL       |
+| Potree, PDAL                                    | BSD        | Portar e integrar, manteniendo el aviso                                                     |
+| CesiumJS, `3d-tiles-tools`, TerriaJS            | Apache-2.0 | Portar e integrar, conservando avisos y el archivo `NOTICE` si existe                       |
+| IfcOpenShell, `ifcclash`, `bcf-client`          | LGPL-3.0   | **Usar como librería o proceso aparte, sin copiar su código.** Enlazar sí; portar líneas no |
+| xeokit-sdk, BIMserver                           | AGPL-3.0   | **Solo leer como referencia conceptual.** No copiar código ni enlazarlo                     |
+| xbim                                            | CDDL       | Referencia conceptual. Stack .NET, fuera de nuestra arquitectura                            |
 
 Una línea copiada de un proyecto AGPL contamina todo el repositorio. Ante la duda,
 se reimplementa desde la documentación, no desde el código.
@@ -123,15 +123,15 @@ código fuente al nuestro, sí. La distinción importa.
 Los tests que solo comparan el código consigo mismo no prueban que el modelo se
 esté leyendo bien. Antes de marcar ✅:
 
-| Qué se construye                | Contra qué se verifica                                                              |
-| ------------------------------- | ----------------------------------------------------------------------------------- |
-| Árbol espacial, propiedades, psets | El mismo IFC abierto en **Bonsai/BlenderBIM** o cualquier visor de escritorio      |
-| Mediciones                      | Cotas conocidas del modelo, y el mismo par de puntos en un visor de escritorio       |
-| Alineación nube ↔ modelo        | **CloudCompare** con el mismo par de archivos                                        |
-| Export BCF                      | El archivo **abre en Navisworks o Solibri** con el viewpoint intacto, y a la inversa |
-| Interferencias                  | Conjunto de prueba con conflictos colocados a propósito: cuántos encuentra y cuántos pierde |
-| Georreferenciación (Fase 6)     | Un punto de coordenada conocida, comprobado en **QGIS**                              |
-| Rendimiento                     | Un IFC de obra **real**, no el modelo de demostración de la documentación            |
+| Qué se construye                   | Contra qué se verifica                                                                      |
+| ---------------------------------- | ------------------------------------------------------------------------------------------- |
+| Árbol espacial, propiedades, psets | El mismo IFC abierto en **Bonsai/BlenderBIM** o cualquier visor de escritorio               |
+| Mediciones                         | Cotas conocidas del modelo, y el mismo par de puntos en un visor de escritorio              |
+| Alineación nube ↔ modelo           | **CloudCompare** con el mismo par de archivos                                               |
+| Export BCF                         | El archivo **abre en Navisworks o Solibri** con el viewpoint intacto, y a la inversa        |
+| Interferencias                     | Conjunto de prueba con conflictos colocados a propósito: cuántos encuentra y cuántos pierde |
+| Georreferenciación (Fase 6)        | Un punto de coordenada conocida, comprobado en **QGIS**                                     |
+| Rendimiento                        | Un IFC de obra **real**, no el modelo de demostración de la documentación                   |
 
 Antes de entregar: build, lint y formato en verde, y **verificación en el navegador**
 de lo que se ve. Un lector de IFC correcto con la escena mal dibujada sigue siendo un

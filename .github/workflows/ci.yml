@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 26
+          cache: npm
+
+      # El hook de lefthook no aporta nada en CI y falla sin git hooks.
+      - run: npm ci --ignore-scripts
+
+      - run: npm run fmt:check
+      - run: npm run lint
+      - run: npm run build
+      - run: npm test

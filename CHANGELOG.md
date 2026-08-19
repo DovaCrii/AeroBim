@@ -5,7 +5,44 @@ Este proyecto sigue [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
-### Añadido
+### Añadido — Fase 0, andamiaje y mediciones (2026-08-19)
+
+- **Monorepo npm** con tres paquetes: `packages/bim-core` (dominio puro, sin React ni
+  Three.js), `packages/viewer` (envoltura de That Open, para aislar su API) y
+  `apps/web` (React 19 + Vite 8 + Tailwind 4). Build, lint, formato y pruebas verdes.
+- **GUID de IFC** (`IfcGloballyUniqueId`) en `bim-core`: compresión, expansión y
+  validación, con 49 pruebas. **Verificado contra un oráculo externo**: los 579 GUID
+  únicos de un modelo real exportado por BricsCAD sobreviven el round-trip sin una sola
+  diferencia. Una muestra quedó como test de regresión.
+- **Unidades de longitud** en `bim-core`: prefijos SI y unidades imperiales con sus
+  factores exactos. Ante una unidad desconocida devuelve `null` en vez de asumir metros,
+  porque asumir ahí coloca un modelo en el lugar equivocado sin que nadie se entere.
+- **Visor** con carga de IFC, encuadre automático y panel de métricas, más el WASM de
+  `web-ifc` servido localmente (sin CDN, coherente con el local-first).
+- **Página de diagnóstico** `apps/web/public/diag.html`, que ejecuta el pipeline sin la
+  interfaz para separar problemas del visor de problemas de integración.
+- **Fixture** `muro-minimo.ifc`: un IFC2X3 sintético de 2 KB en milímetros, que además
+  delata errores de conversión de unidades.
+
+### Medido sobre un modelo real (IFC2X3 de BricsCAD, 1,52 MB)
+
+| Qué                    | Resultado                    |
+| ---------------------- | ---------------------------- |
+| Parseo con `web-ifc`   | 24 ms                        |
+| Conversión a Fragments | 643 ms                       |
+| Tamaño del `.frag`     | 113 KB — **13,7× más chico** |
+
+Con eso `F0.5` queda cumplida y la promesa de Fragments confirmada.
+
+### Pendiente conocido
+
+- **`F0.4` sigue abierta.** `IfcLoader.load` de `@thatopen/components` no completa de
+  forma reproducible y no emite error alguno. Se descartaron midiendo: el WASM, el
+  worker, el aislamiento de origen, React, el tamaño del modelo, el pre-bundling, la
+  resolución del módulo y la duplicación de dependencias. La vía alternativa —convertir
+  con `IfcImporter` y cargar el `.frag`— ya está medida y es el siguiente paso.
+
+### Añadido — arranque del repositorio (2026-08-18)
 
 - **Arranque del repositorio** (2026-08-18). AeroBim se separa de AeroPlanner como
   producto propio: visor y coordinador BIM en el navegador — modelos IFC, nubes de

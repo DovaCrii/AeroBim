@@ -1,0 +1,11 @@
+# Rechaza el commit si el formato o el linter fallan.
+# Se arregla con `npm run fmt` y `npm run lint:fix`.
+pre-commit:
+  parallel: true
+  commands:
+    prettier:
+      glob: "*.{ts,tsx,js,jsx,json,css,md,yml,yaml}"
+      run: npx prettier --check {staged_files}
+    oxlint:
+      glob: "*.{ts,tsx,js,jsx}"
+      run: npx oxlint {staged_files}

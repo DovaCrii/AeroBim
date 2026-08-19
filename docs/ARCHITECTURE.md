@@ -35,7 +35,7 @@ Lo que entra aquí:
 - **Identidad de elementos**: el GUID de IFC como clave, y las conversiones desde
   los identificadores efímeros de cada motor.
 - **Modelo de temas de coordinación**: tema, viewpoint, comentario, estado, ciclo de
-  vida. Independiente de BCF como formato — BCF es un *adapter*, igual que WPML lo
+  vida. Independiente de BCF como formato — BCF es un _adapter_, igual que WPML lo
   es en AeroPlanner.
 - **Filtros y agrupación**: "todos los muros de la planta 3", "estructura vs
   instalaciones". Reglas, no consultas a una escena.
@@ -100,10 +100,10 @@ Fragments; el IFC de origen es la fuente de verdad.**
 
 ## Las dos vistas, y por qué son dos
 
-| Vista                   | Motor                  | Para qué                                        |
-| ----------------------- | ---------------------- | ----------------------------------------------- |
-| **Modelo** (Fases 1–5)  | Three.js + That Open   | Coordinar: árbol, psets, cortes, BCF, clashes    |
-| **Geoespacial** (Fase 6)| CesiumJS               | Situar: ortofoto, terreno, contexto de la obra   |
+| Vista                    | Motor                | Para qué                                       |
+| ------------------------ | -------------------- | ---------------------------------------------- |
+| **Modelo** (Fases 1–5)   | Three.js + That Open | Coordinar: árbol, psets, cortes, BCF, clashes  |
+| **Geoespacial** (Fase 6) | CesiumJS             | Situar: ortofoto, terreno, contexto de la obra |
 
 Podrían haber sido una sola, y sería peor. La vista de modelo trabaja en
 coordenadas locales de proyecto con precisión de milímetros; la geoespacial trabaja
