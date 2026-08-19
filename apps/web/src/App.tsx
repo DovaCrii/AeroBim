@@ -38,6 +38,24 @@ type Status =
  * worker (`F0.6`), pero sí se puede decir en qué va — que es la diferencia entre esperar y no saber
  * si se colgó. Los avisos aparecen entre etapas, en los huecos en que el navegador puede pintar.
  */
+/**
+ * El worker que convierte los IFC, uno para toda la aplicación.
+ *
+ * Vive acá y no dentro del visor porque **crear un worker es cosa del empaquetador**: Vite reconoce
+ * este `new URL(..., import.meta.url)` y emite el worker como un módulo propio con sus dependencias
+ * dentro. Hecho desde el paquete, lo incrustaba como URL `data:` y sus `import` no resolvían.
+ *
+ * Se crea una sola vez, en la primera llamada: `BimViewer.create` devuelve una única instancia por
+ * contenedor y StrictMode monta cada efecto dos veces, así que crearlo por montaje dejaría un worker
+ * huérfano con su WASM cargado.
+ */
+let conversor: Worker | null = null;
+
+function workerDeConversion(): Worker {
+  conversor ??= new Worker(new URL("./convert.worker.ts", import.meta.url), { type: "module" });
+  return conversor;
+}
+
 const ETAPAS: Record<LoadStage, string> = {
   converting: "convirtiendo la geometría",
   loading: "cargando en la escena",
@@ -119,7 +137,7 @@ export function App() {
     let cancelled = false;
     let desuscribir: (() => void) | null = null;
 
-    BimViewer.create(host)
+    BimViewer.create(host, { convertWorker: workerDeConversion() })
       .then((instance) => {
         if (cancelled) return;
         viewer.current = instance;

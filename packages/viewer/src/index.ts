@@ -29,6 +29,14 @@ import * as OBC from "@thatopen/components";
 import * as OBF from "@thatopen/components-front";
 import * as FRAGS from "@thatopen/fragments";
 import * as THREE from "three";
+import {
+  mainThreadConverter,
+  workerConverter,
+  type ConvertLocation,
+  type Converter,
+} from "./converter.js";
+
+export type { ConvertLocation, Converter, ConvertRequest, ConvertResponse } from "./converter.js";
 
 /**
  * Las unidades del modelo se reexportan desde acá.
@@ -136,6 +144,15 @@ export interface BimViewerOptions {
    * unpkg para leer un archivo del disco contradice el local-first del proyecto.
    */
   readonly wasmPath?: string;
+  /**
+   * El worker que convierte los IFC. **Sin él se convierte en el hilo principal.**
+   *
+   * Lo crea la aplicación porque crear un worker es cosa del empaquetador — ver la cabecera de
+   * `converter.ts`, donde está el intento que salió mal—. Y no hay valor por defecto a propósito:
+   * un respaldo silencioso al hilo principal significaría diez segundos de interfaz congelada sin
+   * que nadie sepa por qué, y este repositorio ya pagó una vez el precio de un fallo silencioso.
+   */
+  readonly convertWorker?: Worker;
 }
 
 /**
@@ -163,6 +180,8 @@ export interface LoadMetrics {
   readonly itemsWithGeometry: number;
   /** Dimensiones del modelo en metros, o `null` si no se pudo determinar. */
   readonly sizeM: readonly [number, number, number] | null;
+  /** Dónde corrió la conversión. Es el dato con el que se responde `F0.6`. */
+  readonly convertedIn: ConvertLocation;
   /**
    * Clases de elemento que el archivo declara y que **no llegaron a la escena**.
    *
@@ -845,7 +864,6 @@ export class BimViewer {
   private readonly world: World;
   private readonly fragments: OBC.FragmentsManager;
   private readonly container: HTMLElement;
-  private readonly wasmPath: string;
   private disposed = false;
   /** `true` mientras hay una conversión en curso. Ver {@link wireEvents}. */
   private loading = false;
@@ -885,8 +903,8 @@ export class BimViewer {
   private readonly drawn: { id: string; kind: MeasureMode; object: MeasureObject }[] = [];
   /** Unidades declaradas por cada modelo, por identificador. */
   private readonly unitsByModel = new Map<string, IfcUnits>();
-  /** Importador de IFC, reutilizado entre cargas. Ver {@link importer}. */
-  private ifcImporter: FRAGS.IfcImporter | null = null;
+  /** Quien convierte los IFC. Ver {@link converter} y `converter.ts`. */
+  private readonly conversor: Converter;
 
   private constructor(
     components: OBC.Components,
@@ -894,12 +912,16 @@ export class BimViewer {
     fragments: OBC.FragmentsManager,
     container: HTMLElement,
     wasmPath: string,
+    convertWorker: Worker | undefined,
   ) {
     this.components = components;
     this.world = world;
     this.fragments = fragments;
     this.container = container;
-    this.wasmPath = wasmPath;
+    this.conversor =
+      convertWorker === undefined
+        ? mainThreadConverter(wasmPath)
+        : workerConverter(wasmPath, convertWorker);
     this.tools = {
       distance: components.get(OBF.LengthMeasurement),
       angle: components.get(OBF.AngleMeasurement),
@@ -975,6 +997,7 @@ export class BimViewer {
       fragments,
       container,
       options.wasmPath ?? DEFAULT_WASM_PATH,
+      options.convertWorker,
     );
     viewer.wireEvents();
     viewer.wireMeasureTools();
@@ -1276,11 +1299,16 @@ export class BimViewer {
     const units = parseIfcUnits(texto);
     const clasesDelArchivo = countIfcEntities(texto);
 
+    // **El tamaño del IFC se anota antes de convertir.** Los bytes se le pasan al worker
+    // transferidos, no copiados, y un `ArrayBuffer` transferido queda con `byteLength` en 0. Es la
+    // misma trampa que ya se pagó con el búfer del Fragments, ahora del otro lado del pipeline.
+    const ifcBytes = bytes.byteLength;
+
     let fragByteLength: number;
     let model: FRAGS.FragmentsModel;
     try {
       onStage("converting");
-      const fragments = await this.importer().process({ bytes });
+      const fragments = await this.conversor.convert(bytes);
 
       // El tamaño se anota **antes** de cargar: `core.load` transfiere el búfer al
       // worker, y un `ArrayBuffer` transferido queda con `byteLength` en 0. Leerlo
@@ -1322,13 +1350,14 @@ export class BimViewer {
       model,
       units,
       metrics: {
-        ifcBytes: bytes.byteLength,
+        ifcBytes,
         fragBytes: fragByteLength,
         convertMs,
         displayMs,
         categoryCount: categories.length,
         itemsWithGeometry: itemsWithGeometry.length,
         sizeM,
+        convertedIn: this.conversor.location,
         missingClasses: missingElementClasses(clasesDelArchivo, categories),
         emptyClasses,
       },
@@ -1851,21 +1880,13 @@ export class BimViewer {
   }
 
   /**
-   * El importador de IFC, creado una sola vez.
+   * Dónde está corriendo la conversión.
    *
-   * **Crear uno por carga rompe el segundo modelo.** El primer importador inicializa el
-   * WASM de `web-ifc`, que vive en una variable de módulo, y al terminar lo libera; el
-   * siguiente encuentra el módulo ya liberado y aborta con
-   * `both async and sync fetching of the wasm failed`. Reutilizarlo es lo que permite abrir
-   * más de un modelo, que es justo lo que la coordinación necesita.
+   * Se expone porque es la respuesta de `F0.6` y porque conviene poder comprobarlo sin abrir un
+   * modelo: si el worker no arrancara, esto lo diría antes de que alguien espere diez segundos.
    */
-  private importer(): FRAGS.IfcImporter {
-    if (this.ifcImporter === null) {
-      const importer = new FRAGS.IfcImporter();
-      importer.wasm = { path: this.wasmPath, absolute: true };
-      this.ifcImporter = importer;
-    }
-    return this.ifcImporter;
+  get converter(): ConvertLocation {
+    return this.conversor.location;
   }
 
   /** Borra todas las mediciones dibujadas, de los tres tipos. */
@@ -2104,6 +2125,9 @@ export class BimViewer {
     if (this.disposed) return;
     this.disposed = true;
     porContenedor.delete(this.container);
+    // El worker de conversión también se termina: es un hilo con un WASM de varios megabytes
+    // dentro, y sin esto sobreviviría al visor sin que nadie pueda volver a usarlo.
+    this.conversor.dispose();
     this.components.dispose();
   }
 

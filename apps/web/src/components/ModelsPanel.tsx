@@ -168,7 +168,12 @@ function ModelRow({
             label="Fragments"
             value={`${formatBytes(loaded.metrics.fragBytes)} · ${formatRatio(loaded.metrics)}`}
           />
-          <Row label="Conversión" value={formatMs(loaded.metrics.convertMs)} />
+          <Row
+            label="Conversión"
+            value={`${formatMs(loaded.metrics.convertMs)} · ${
+              loaded.metrics.convertedIn === "worker" ? "en worker" : "hilo principal"
+            }`}
+          />
           <Row label="Hasta verlo" value={formatMs(loaded.metrics.displayMs)} />
           <Row label="Categorías IFC" value={String(loaded.metrics.categoryCount)} />
           <Row
