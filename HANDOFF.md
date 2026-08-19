@@ -137,11 +137,14 @@ Queda pendiente escribirlo como decisión en el plan y medir cuánto mejora con 
 1. **`F1.10` — la geometría que falta.** Ver el aviso del principio. Es lo único que hace que
    el visor mienta sobre el modelo, y por eso va antes que cualquier mejora.
 2. **El error al girar**, con el mensaje que dé la consola del usuario.
-3. **Herramientas de medición que se pidieron y no están:** perpendicular, y más tipos de
-   cota. Existe `VolumeMeasurement` en la librería; perpendicular hay que ver si sale de
-   `LinearAnnotationsTool`, que trae modos de proyección.
-4. **De la referencia de Revit y Bentley, lo que falta:** la rejilla del entorno. El fondo
-   claro de esos programas **no** se copia sin decidirlo: el oscuro es el de la familia.
+3. **Confirmar la perpendicular en uso real.** Está hecha —dos clics, cara y punto— y su
+   geometría tiene seis pruebas, pero **la interacción no se pudo verificar**: en el navegador
+   de pruebas ningún rayo encuentra geometría después de un par de refrescos. Si no encuentra
+   la cara, lo primero que hay que probar es **no encender el medidor de distancia** en ese
+   modo (`setMeasureMode`, en `packages/viewer`): se enciende solo para que dibuje el marcador
+   de ajuste, y su selector lee píxeles de la escena.
+4. **Más tipos de cota, si se piden:** `VolumeMeasurement` de la librería mide el volumen de
+   los elementos que se le señalen, y sería lo siguiente para mediciones de cantidades.
 5. **`F1.6` vistas guardadas**, con `Views` y `Viewpoints` de la librería.
 6. **Mover la conversión a un Web Worker** (`F0.6`), y medir cuánto baja el bloqueo.
 7. **Fase 2 — nubes de puntos.** El as-built contra el modelo, la comparación que hoy nadie
@@ -177,7 +180,13 @@ npm run dev:host
 
 Herramienta de medición: `apps/web/public/diag.html`, que ejecuta el pipeline **sin la
 interfaz** y separa un problema del visor de uno de integración. Modos: `clase`, `manual`,
-`camara`, `arbol`, `seleccion`, `medir`, `cortes`.
+`camara`, `arbol`, `seleccion`, `medir`, `cortes`, `perpendicular`.
+
+**Aviso sobre navegadores que no pintan:** en una pestaña oculta —el panel de vista previa de
+un agente, por ejemplo— el rayo funciona las primeras veces y después deja de encontrar
+geometría, porque cada refresco la deja en un estado que no se resuelve hasta dibujar un
+fotograma. Ahí `diag.html` da falsos negativos y **lo visual hay que confirmarlo en un
+navegador a la vista.**
 
 `http://localhost:5173/diag.html?modo=clase&ifc=/samples/muro-minimo.ifc`
 
