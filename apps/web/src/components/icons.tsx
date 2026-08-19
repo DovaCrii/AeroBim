@@ -375,6 +375,24 @@ export function IconTrash(props: IconProps) {
   );
 }
 
+/**
+ * Aislar: dejar solo un elemento a la vista.
+ *
+ * Un cuerpo lleno rodeado de cuerpos vacíos, que es exactamente lo que hace la operación.
+ */
+export function IconIsolate(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <rect x="9" y="9" width="6" height="6" rx="1" fill="currentColor" stroke="none" />
+      <rect x="9" y="9" width="6" height="6" rx="1" />
+      <rect x="2.5" y="2.5" width="5" height="5" rx="1" strokeDasharray="2 2" />
+      <rect x="16.5" y="2.5" width="5" height="5" rx="1" strokeDasharray="2 2" />
+      <rect x="2.5" y="16.5" width="5" height="5" rx="1" strokeDasharray="2 2" />
+      <rect x="16.5" y="16.5" width="5" height="5" rx="1" strokeDasharray="2 2" />
+    </Svg>
+  );
+}
+
 /** Cerrar: la cruz. */
 export function IconX(props: IconProps) {
   return (

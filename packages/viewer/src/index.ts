@@ -253,15 +253,15 @@ export interface SpatialNode {
   readonly count: number;
   /** Identificadores de todo lo que cuelga del nodo, para aislar u ocultar de una vez. */
   readonly localIds: readonly number[];
-  readonly children: readonly SpatialNode[];
   /**
-   * Hijos que existen pero no se listan, por ser demasiados.
+   * **Todos** los hijos del nodo, sin recortar.
    *
-   * Una categoría con 470 elementos convierte el árbol en una lista que nadie recorre. El
-   * grupo sigue siendo aislable y ocultable completo; para llegar a un elemento concreto se
-   * hace clic en el modelo.
+   * Antes se descartaban los de los grupos con más de treinta elementos, y el árbol decía "470
+   * elementos — clic en el modelo para verlos": un callejón sin salida, porque en una categoría de
+   * cientos no hay forma de llegar a uno concreto con el ratón. Cuántos se pintan de entrada lo
+   * decide la interfaz, que es donde ese problema vive.
    */
-  readonly hiddenChildren: number;
+  readonly children: readonly SpatialNode[];
 }
 
 /** El árbol espacial de un modelo cargado. */
@@ -366,6 +366,116 @@ const SELECTION_CSS = "#9b5de5";
  */
 function mouseFor(clientX: number, clientY: number): THREE.Vector2 {
   return new THREE.Vector2(clientX, clientY);
+}
+
+/**
+ * Un vector unitario dentro del plano de `normal`.
+ *
+ * Hace falta para dibujar la escuadra del ángulo recto: uno de sus lados va sobre la cara. Se elige
+ * cruzando la normal con un eje que no sea paralelo a ella —si la cara es horizontal se usa el eje X
+ * y si no, la vertical— porque el producto cruzado con un vector paralelo da cero y no daría
+ * dirección alguna.
+ */
+function direccionEnElPlano(normal: THREE.Vector3): THREE.Vector3 {
+  const referencia =
+    Math.abs(normal.y) > 0.9 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0);
+  return new THREE.Vector3().crossVectors(normal, referencia).normalize();
+}
+
+/** Una polilínea suelta de la escena, dibujada por encima de la geometría. */
+function polilinea(puntos: readonly THREE.Vector3[], color: number): THREE.Line {
+  const linea = new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints([...puntos]),
+    new THREE.LineBasicMaterial({ color, depthTest: false }),
+  );
+  // Por encima del modelo: una marca de medición escondida dentro de una viga no sirve de nada.
+  linea.renderOrder = 2;
+  return linea;
+}
+
+/**
+ * La escuadra que marca el ángulo recto en el pie de una perpendicular.
+ *
+ * **Es lo que convierte una línea en una cota perpendicular.** Sin ella, la línea que va del punto a
+ * la cara es una raya más y no dice que forme noventa grados: quien mira no puede confiar en que la
+ * medida sea la perpendicular y no una diagonal cualquiera. Es la misma notación de un plano a mano.
+ *
+ * Se dibuja con dos segmentos —un lado sobre la cara y otro sobre la perpendicular— y su tamaño es
+ * una fracción de la medida, acotada, para que se vea igual midiendo cinco centímetros que veinte
+ * metros.
+ */
+function escuadraDeAnguloRecto(
+  pie: THREE.Vector3,
+  haciaElPunto: THREE.Vector3,
+  normal: THREE.Vector3,
+  color: number,
+): THREE.Line {
+  const largo = pie.distanceTo(haciaElPunto);
+  const lado = Math.min(Math.max(largo * 0.12, 0.02), 1);
+
+  const sobreLaCara = direccionEnElPlano(normal).multiplyScalar(lado);
+  const sobreLaPerpendicular = haciaElPunto.clone().sub(pie).normalize().multiplyScalar(lado);
+
+  const a = pie.clone().add(sobreLaCara);
+  const esquina = a.clone().add(sobreLaPerpendicular);
+  const b = pie.clone().add(sobreLaPerpendicular);
+
+  return polilinea([a, esquina, b], color);
+}
+
+/**
+ * La marca de la cara de referencia: una cruz sobre la cara y su normal saliendo.
+ *
+ * Aparece con el primer clic y contesta la pregunta que antes quedaba en el aire: **¿tomó la cara que
+ * quería?** Sin esto, el primer clic de una perpendicular no producía ningún cambio en pantalla y no
+ * había forma de saber si había entrado.
+ *
+ * El tamaño va con la distancia a la cámara, como en cualquier programa de dibujo: así se ve igual de
+ * grande esté uno cerca de un tornillo o lejos de una nave.
+ */
+function marcaDeReferencia(
+  punto: THREE.Vector3,
+  normal: THREE.Vector3,
+  distanciaALaCamara: number,
+  color: number,
+): THREE.Group {
+  const tamano = Math.min(Math.max(distanciaALaCamara * 0.02, 0.02), 2);
+
+  const enElPlano = direccionEnElPlano(normal).multiplyScalar(tamano);
+  const cruzado = new THREE.Vector3()
+    .crossVectors(normal, enElPlano)
+    .normalize()
+    .multiplyScalar(tamano);
+
+  const grupo = new THREE.Group();
+  grupo.add(polilinea([punto.clone().sub(enElPlano), punto.clone().add(enElPlano)], color));
+  grupo.add(polilinea([punto.clone().sub(cruzado), punto.clone().add(cruzado)], color));
+  // La normal saliendo de la cara: dice hacia dónde se va a medir.
+  grupo.add(
+    polilinea(
+      [
+        punto,
+        punto.clone().add(
+          normal
+            .clone()
+            .normalize()
+            .multiplyScalar(tamano * 1.5),
+        ),
+      ],
+      color,
+    ),
+  );
+  return grupo;
+}
+
+/** Libera una polilínea o un grupo de ellas: geometría y material son propios de cada una. */
+function liberarDibujo(objeto: THREE.Object3D): void {
+  objeto.removeFromParent();
+  objeto.traverse((hijo) => {
+    if (!(hijo instanceof THREE.Line)) return;
+    hijo.geometry.dispose();
+    (hijo.material as THREE.Material).dispose();
+  });
 }
 
 /**
@@ -595,9 +705,6 @@ async function namesOf(
  */
 const MAX_NOMBRES = 2000;
 
-/** Hijos que un nodo lista antes de plegarse a un solo grupo. Ver `hiddenChildren`. */
-const MAX_HIJOS_LISTADOS = 30;
-
 /** Etiqueta legible de una categoría IFC: `IFCBUILDINGSTOREY` → `Planta`. */
 const ETIQUETAS: Record<string, string> = {
   IFCPROJECT: "Proyecto",
@@ -648,9 +755,6 @@ function buildNode(
     label = `${etiquetaTipo} #${raw.localId}`;
   }
 
-  // Un grupo con cientos de elementos no se lista: ver `hiddenChildren`.
-  const listables = children.length <= MAX_HIJOS_LISTADOS ? children : [];
-
   return {
     key,
     label,
@@ -658,8 +762,7 @@ function buildNode(
     localId: raw.localId,
     count: localIds.length,
     localIds,
-    children: listables,
-    hiddenChildren: children.length - listables.length,
+    children,
   };
 }
 
@@ -968,6 +1071,14 @@ export class BimViewer {
     object: MeasureObject;
     /** Lo que se dibuja de esa medición: la cota, el relleno, la etiqueta. */
     visuals: Ocultable[];
+    /**
+     * Dibujos **propios**, que hay que liberar a mano al borrar la medición.
+     *
+     * Son los que no crea la librería: hoy, la escuadra del ángulo recto de una perpendicular. Se
+     * apuntan aparte porque la librería solo libera lo suyo, y una marca que sobrevive a su medición
+     * se queda flotando en la escena sin dueño.
+     */
+    owned: THREE.Object3D[];
     visible: boolean;
   }[] = [];
   /**
@@ -978,6 +1089,15 @@ export class BimViewer {
    * {@link registrarCota} los recoge.
    */
   private visualesPendientes: Ocultable[] = [];
+  /** Dibujos propios que esperan a que su medición quede registrada. Ver {@link registrarCota}. */
+  private propiosPendientes: THREE.Object3D[] = [];
+  /**
+   * La marca de la cara de referencia mientras se mide una perpendicular.
+   *
+   * Vive fuera del registro de mediciones porque no pertenece a ninguna: es de la medición **a
+   * medias**, y desaparece en cuanto se completa o se cancela.
+   */
+  private marcaReferencia: THREE.Object3D | null = null;
   /** Unidades declaradas por cada modelo, por identificador. */
   private readonly unitsByModel = new Map<string, IfcUnits>();
   /** Quien convierte los IFC. Ver {@link converter} y `converter.ts`. */
@@ -1309,7 +1429,12 @@ export class BimViewer {
     if (indice === -1) return;
 
     const [entrada] = this.drawn.splice(indice, 1);
-    if (entrada !== undefined) this.listaDe(entrada.kind).delete(entrada.object);
+    if (entrada === undefined) return;
+
+    this.listaDe(entrada.kind).delete(entrada.object);
+    // Los dibujos propios los libera nadie más: la librería solo se ocupa de los suyos.
+    for (const propio of entrada.owned) liberarDibujo(propio);
+    this.world.renderer?.update();
   }
 
   /**
@@ -1344,15 +1469,18 @@ export class BimViewer {
    */
   private registrarCota(kind: MeasureMode, object: MeasureObject): void {
     const visuals = this.visualesPendientes;
+    const owned = this.propiosPendientes;
     this.visualesPendientes = [];
+    this.propiosPendientes = [];
 
     const existente = this.drawn.find((cota) => cota.object === object);
     if (existente !== undefined) {
       existente.visuals.push(...visuals);
+      existente.owned.push(...owned);
       return;
     }
 
-    this.drawn.push({ id: object.id, kind, object, visuals, visible: true });
+    this.drawn.push({ id: object.id, kind, object, visuals, owned, visible: true });
   }
 
   /** Avisa a quien escuche que hay una medición nueva, o que se borraron todas. */
@@ -1855,6 +1983,7 @@ export class BimViewer {
 
     this.measureMode = mode;
     this.referencePlane = null;
+    this.quitarMarcaDeReferencia();
 
     // Solo un medidor activo a la vez. Con dos escuchando el puntero, cada clic entraba en las
     // dos mediciones y salían cotas que nadie pidió.
@@ -1933,6 +2062,19 @@ export class BimViewer {
       const cara = await this.rayAt(clientX, clientY, false);
       if (cara?.normal == null) return false;
       this.referencePlane = { point: cara.point, normal: cara.normal };
+
+      // **Se marca la cara elegida.** Antes el primer clic no producía ningún cambio en pantalla y
+      // no había forma de saber si había entrado ni cuál era la cara de referencia.
+      const punto = new THREE.Vector3(...cara.point);
+      const marca = marcaDeReferencia(
+        punto,
+        new THREE.Vector3(...cara.normal),
+        this.world.camera.three.position.distanceTo(punto),
+        SELECTION_COLOR,
+      );
+      this.marcaReferencia = marca;
+      this.world.scene.three.add(marca);
+      this.world.renderer?.update();
       return true;
     }
 
@@ -1944,12 +2086,10 @@ export class BimViewer {
       (await this.rayAt(clientX, clientY, true)) ?? (await this.rayAt(clientX, clientY, false));
     if (toque === null) return false;
 
-    const perpendicular = perpendicularToPlane(
-      toque.point,
-      this.referencePlane.point,
-      this.referencePlane.normal,
-    );
+    const plano = this.referencePlane;
+    const perpendicular = perpendicularToPlane(toque.point, plano.point, plano.normal);
     this.referencePlane = null;
+    this.quitarMarcaDeReferencia();
     if (perpendicular === null) return false;
 
     // Menos de un milímetro es el punto sobre la propia cara: no hay perpendicular que dibujar.
@@ -1958,16 +2098,38 @@ export class BimViewer {
       return true;
     }
 
-    const linea = new OBF.Line(
-      new THREE.Vector3(...toque.point),
-      new THREE.Vector3(...perpendicular.footM),
+    const punto = new THREE.Vector3(...toque.point);
+    const pie = new THREE.Vector3(...perpendicular.footM);
+
+    // **La escuadra va antes que la cota.** Se deja en la cola de dibujos propios, y al añadir la
+    // cota a su medidor esa cola se recoge junto con los dibujos que crea la librería: así la marca
+    // se apaga y se borra con su medición, sin quedarse suelta en la escena.
+    const escuadra = escuadraDeAnguloRecto(
+      pie,
+      punto,
+      new THREE.Vector3(...plano.normal),
+      SELECTION_COLOR,
     );
+    this.world.scene.three.add(escuadra);
+    this.visualesPendientes.push(escuadra);
+    this.propiosPendientes.push(escuadra);
+
+    const linea = new OBF.Line(punto, pie);
     linea.units = "m";
     linea.rounding = 3;
     this.tools.distance.list.add(linea);
 
     this.emitMeasurement({ mode: "perpendicular", distanceM: perpendicular.distanceM });
+    this.world.renderer?.update();
     return true;
+  }
+
+  /** Quita la marca de la cara de referencia, si había alguna. */
+  private quitarMarcaDeReferencia(): void {
+    if (this.marcaReferencia === null) return;
+    liberarDibujo(this.marcaReferencia);
+    this.marcaReferencia = null;
+    this.world.renderer?.update();
   }
 
   /**
@@ -2020,6 +2182,9 @@ export class BimViewer {
     this.tools.distance.cancelCreation();
     this.tools.angle.cancelCreation();
     this.tools.area.cancelCreation();
+    // La perpendicular a medias también se descarta, con su marca de referencia.
+    this.referencePlane = null;
+    this.quitarMarcaDeReferencia();
     this.emitMeasurement(null);
   }
 
@@ -2127,9 +2292,17 @@ export class BimViewer {
     this.tools.distance.list.clear();
     this.tools.angle.list.clear();
     this.tools.area.list.clear();
+
+    for (const cota of this.drawn) {
+      for (const propio of cota.owned) liberarDibujo(propio);
+    }
     this.drawn.length = 0;
+    for (const propio of this.propiosPendientes) liberarDibujo(propio);
     this.visualesPendientes = [];
+    this.propiosPendientes = [];
+
     this.emitMeasurement(null);
+    this.world.renderer?.update();
   }
 
   /** Cuántas mediciones hay dibujadas ahora mismo, de cualquier tipo. */

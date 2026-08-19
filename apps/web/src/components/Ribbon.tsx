@@ -15,7 +15,10 @@ import {
   IconCursor,
   IconDistance,
   IconEdge,
+  IconEye,
+  IconEyeOff,
   IconFirstPerson,
+  IconIsolate,
   IconFrameAll,
   IconFrameSelection,
   IconGhost,
@@ -78,8 +81,11 @@ export function Ribbon({
   distanceMode,
   hasSections,
   hasSelection,
+  selectionVisible,
   measurementCount,
   onTab,
+  onToggleSelectionVisible,
+  onIsolateSelection,
   onFrameAll,
   onView,
   onFrameSelection,
@@ -109,8 +115,12 @@ export function Ribbon({
   readonly distanceMode: DistanceMode;
   readonly hasSections: boolean;
   readonly hasSelection: boolean;
+  /** `false` cuando el elemento seleccionado está apagado. */
+  readonly selectionVisible: boolean;
   readonly measurementCount: number;
   readonly onTab: (tab: RibbonTab) => void;
+  readonly onToggleSelectionVisible: () => void;
+  readonly onIsolateSelection: () => void;
   readonly onFrameAll: () => void;
   readonly onView: (view: StandardView) => void;
   readonly onFrameSelection: () => void;
@@ -429,6 +439,28 @@ export function Ribbon({
             </Grupo>
 
             <Grupo label="Visibilidad">
+              <Boton
+                icon={selectionVisible ? <IconEyeOff /> : <IconEye />}
+                label={selectionVisible ? "Apagar" : "Encender"}
+                hint={
+                  hasSelection
+                    ? "Apaga o enciende el elemento seleccionado. También en su ficha"
+                    : "Selecciona un elemento primero"
+                }
+                disabled={!hasSelection}
+                onClick={onToggleSelectionVisible}
+              />
+              <Boton
+                icon={<IconIsolate />}
+                label="Aislar"
+                hint={
+                  hasSelection
+                    ? "Deja solo el elemento seleccionado a la vista"
+                    : "Selecciona un elemento primero"
+                }
+                disabled={!hasSelection}
+                onClick={onIsolateSelection}
+              />
               <Boton
                 icon={<IconTree />}
                 label="Ver todo"

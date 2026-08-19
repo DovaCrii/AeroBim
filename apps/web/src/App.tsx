@@ -149,6 +149,13 @@ export function App() {
   /** Modelos apagados enteros, por identificador. Ver el panel de modelos. */
   const [hiddenModels, setHiddenModels] = useState<ReadonlySet<string>>(new Set());
   /**
+   * Elementos apagados de uno en uno, como `modelo:identificador`.
+   *
+   * Se lleva aparte de lo que oculta el árbol —que va por nodo— porque acá se apaga **un elemento
+   * concreto**, el seleccionado, y la ficha tiene que poder decir si está encendido o no.
+   */
+  const [hiddenElements, setHiddenElements] = useState<ReadonlySet<string>>(new Set());
+  /**
    * La pestaña abierta de la cinta.
    *
    * **La distribución sigue a Revit y a los modeladores de Bentley**, que es de donde vienen quienes
@@ -417,8 +424,41 @@ export function App() {
   const onShowAll = useCallback(() => {
     setHidden(new Set());
     setHiddenModels(new Set());
+    setHiddenElements(new Set());
     void viewer.current?.showAll();
   }, []);
+
+  /** La clave con la que se recuerda un elemento apagado. */
+  const claveDe = (item: PickedItem) => `${item.modelId}:${item.localId}`;
+
+  const selectionVisible = selected === null || !hiddenElements.has(claveDe(selected));
+
+  /** Apaga o enciende **el elemento seleccionado**, que es lo que se pidió tener a un botón. */
+  const onToggleSelectionVisible = useCallback(() => {
+    const instance = viewer.current;
+    if (instance === null || selected === null) return;
+
+    const clave = `${selected.modelId}:${selected.localId}`;
+    const encender = hiddenElements.has(clave);
+
+    setHiddenElements((actual) => {
+      const siguiente = new Set(actual);
+      if (encender) siguiente.delete(clave);
+      else siguiente.add(clave);
+      return siguiente;
+    });
+    void instance.setVisible(selected.modelId, [selected.localId], encender);
+  }, [selected, hiddenElements]);
+
+  /** Aislar el elemento seleccionado: lo mismo que aislar un nodo del árbol, con un solo id. */
+  const onIsolateSelection = useCallback(() => {
+    if (selected === null) return;
+
+    setHidden(new Set());
+    setHiddenModels(new Set());
+    setHiddenElements(new Set());
+    void viewer.current?.isolate(selected.modelId, [selected.localId]);
+  }, [selected]);
 
   const onIsolateNode = useCallback((modelId: string, localIds: readonly number[]) => {
     // Aislar deja todo lo demás oculto, así que los iconos del árbol y los del panel de
@@ -426,6 +466,7 @@ export function App() {
     // oculto a mano".
     setHidden(new Set());
     setHiddenModels(new Set());
+    setHiddenElements(new Set());
     void viewer.current?.isolate(modelId, localIds);
   }, []);
 
@@ -519,8 +560,11 @@ export function App() {
         distanceMode={distanceMode}
         hasSections={hasSections}
         hasSelection={selected !== null}
+        selectionVisible={selectionVisible}
         measurementCount={measurementCount}
         onTab={setTab}
+        onToggleSelectionVisible={onToggleSelectionVisible}
+        onIsolateSelection={onIsolateSelection}
         onFrameAll={() => void viewer.current?.frameAll()}
         onView={(view: StandardView) => void viewer.current?.frameAll(view)}
         onFrameSelection={() => void viewer.current?.frameSelection()}
@@ -549,7 +593,13 @@ export function App() {
           // en una prueba— los dos paneles se comían el ancho entero y el lienzo quedaba en cero: el
           // modelo desaparecía sin explicación. Ahora se encogen y el lienzo tiene mínimo garantizado.
           <aside className="w-72 min-w-0 shrink border-r border-white/10 bg-ink/50">
-            <PropertiesPanel item={selected} onClose={closeProperties} />
+            <PropertiesPanel
+              item={selected}
+              visible={selectionVisible}
+              onClose={closeProperties}
+              onToggleVisible={onToggleSelectionVisible}
+              onIsolate={onIsolateSelection}
+            />
           </aside>
         )}
 

@@ -7,53 +7,72 @@
 
 **Rama de trabajo: `codex/fase-0-andamiaje`, con PR abierto y sin fusionar.**
 
-> ## ⚠️ Lo siguiente: la geometría que el conversor deja fuera (`F1.10`)
+> ## ⚠️ Lo siguiente: confirmar la perpendicular y abrir la Fase 2
 >
-> **Es el problema más grave que hay abierto, y es de fidelidad.** El mismo IFC de 32,7 MB
-> abierto en **Bentley OpenPlant** muestra mucho más que AeroBim: en el visor aparece la
-> estructura de acero y **falta el resto** —los grandes elementos curvos de la planta,
-> tuberías, maquinaria—. No hay error ni aviso: el visor abre el modelo, informa 839
-> elementos con geometría y muestra la mitad.
+> **La Fase 1 está completa** y `F0.6` cerrada. Lo que queda antes de la Fase 2 son dos
+> confirmaciones del usuario y una idea suya que quedó a medio camino:
 >
-> **Por qué no se notaba.** Cuando el conversor no puede con un elemento **no lo deja en el
-> árbol sin dibujar: no lo importa**. Así que ningún contador interno lo echa de menos, y el
-> hueco solo se ve comparando contra el archivo. Verificado con un fixture propio,
-> `elemento-sin-geometria.ifc`.
+> 1. **La medición perpendicular, en uso real.** Se rehízo para que **se vea la perpendicularidad**:
+>    el primer clic marca la cara de referencia —una cruz con su normal saliendo— y la cota se dibuja
+>    con **la escuadra del ángulo recto** en el pie, que es la notación de un plano y lo que el usuario
+>    pedía ("no marca esa perpendicularidad para poder medir"). Las marcas escalan con la distancia a
+>    la cámara y se apagan y borran con su medición. **No se pudo verificar en el navegador de
+>    pruebas** (ver el aviso de más abajo sobre pestañas que no pintan): hay que preguntarle.
+> 2. **Llevar la selección al árbol.** El usuario lo pidió y luego lo reorientó: prefiere **un botón
+>    para apagar y encender lo seleccionado**, y eso está hecho —en la ficha del elemento y en la
+>    cinta, con "Aislar" al lado—. Queda pendiente, si lo vuelve a pedir, **resaltar el elemento
+>    seleccionado en el árbol y desplegar el camino hasta él**: los datos ya lo permiten, porque el
+>    árbol dejó de recortar los hijos de los grupos grandes (se listan treinta y el resto a un clic).
+> 3. **Fase 2 — nubes de puntos.** El as-built contra el modelo, que es la comparación que hoy nadie
+>    puede hacer sin software de pago.
 >
-> **Dos cosas ya descartadas o confirmadas:**
+> ### Lo que ya se resolvió con los modelos reales del usuario
 >
-> - El conjunto de clases del importador (`ifcClasses.elements` de `@thatopen/fragments`) tiene
->   unas 140 clases e **incluye** tubería, fittings, segmentos de flujo, elementos de
->   distribución y el proxy genérico. Lo que exporta un modelador de planta está ahí, así que
->   **probablemente no es la causa**.
-> - Un elemento sin geometría utilizable se descarta entero. Comprobado.
+> Los dos IFC están en `apps/web/public/samples/` (fuera de git por el `.gitignore`), así que se
+> pueden volver a usar: `Piso 5.ifc` de BricsCAD y `716-LCD-ME-ISUP-D-TEST.ifc` de ProStructures.
 >
-> **Ya está instrumentado:** el visor cuenta las clases del archivo antes de convertir, las
-> compara con las categorías cargadas y lo avisa en el panel de modelos —_"Elementos del
-> archivo que no se cargaron: N"_ con la lista de clases y su número—.
->
-> **El paso siguiente es leer ese aviso sobre el modelo real de 32,7 MB**: abrirlo y desplegar
-> su fila en el navegador de la derecha. Según lo que diga la lista:
->
-> - una clase concreta ausente → se añade a `importer.classes.elements` con la constante de
->   `web-ifc`, una línea;
-> - clases que sí están en el conjunto → es `web-ifc` con esas representaciones. Palancas por
->   orden de coste: `importer.webIfcSettings` (`MEMORY_LIMIT`, `CIRCLE_SEGMENTS`, tolerancias de
->   intersección), subir `web-ifc`, o convertir ese modelo con IfcOpenShell en la Fase 3.
->   **Ninguna se toca a ciegas.**
+> | Lo que se veía                                 | Lo que era                                                   |
+> | ---------------------------------------------- | ------------------------------------------------------------ |
+> | Clic en un pilar, se seleccionaba otro         | El rayo restaba dos veces el borde del lienzo — `F1.11`      |
+> | Faltaba la mitad del modelo de planta          | 433 `IfcProxy` que el conversor no procesa — `F1.10`         |
+> | El modelo quedaba mitad sólido, mitad fantasma | El estado pintado no se rehacía tras cada operación          |
+> | Al peso le faltaban los kilos                  | El archivo lo escribe como `IFCLABEL('579.84')`              |
+> | "7 puertas sin cargar" con 10 dibujadas        | `IfcDoorStyle` es un tipo, no una puerta: falso positivo mío |
 
-### Un error al girar que el usuario vio y no está reproducido
+### El aviso de geometría que falta: cómo se usa
 
-Combinando **ortográfica + vista fantasma + medición**, girar la cámara le produjo un error.
-**No está reproducido ni se conoce el mensaje.** Se corrigió por el camino la causa más
-probable —el repintado del resaltado se dispara en cada descanso de cámara y las llamadas se
-solapaban; ahora están serializadas— pero hasta ver la consola no se puede cerrar. **Pedirle
-el texto del error.**
+El visor cuenta las clases del archivo antes de convertir, las compara **por cantidad** con lo que el
+modelo cargó, y lo avisa en la fila del modelo con un `⚠` y el número. Desplegando la fila salen las
+clases y el detalle de cuántos de cuántos.
 
-Lo que sí se sabe del entorno: en una pestaña que no compone cuadros, `getComputedStyle`
-sobre una transición de CSS se queda congelado y los uniformes de la cámara pueden salir
-`NaN`, lo que produce `firstElem.toArray is not a function` desde three.js. Ese síntoma
-concreto era artefacto del entorno de pruebas, no del código.
+**Compara cantidades y no presencia** a propósito: si de quinientas tuberías llegaran trescientas, la
+clase aparecería entre las cargadas y una comparación por nombre no diría nada. Con modelos de Bentley
+ese es el caso que va a aparecer.
+
+Cuando aparezca una clase nueva:
+
+- si el conversor no la procesa, se añade a `importer.classes.elements` con su constante de `web-ifc`
+  — es una línea, y hay que ponerla **en los dos sitios**: `packages/viewer/src/converter.ts` y
+  `apps/web/src/convert.worker.ts`, porque el worker no puede importar el paquete del visor sin
+  arrastrarse three.js entero;
+- si la clase sí está en el conjunto, entonces es `web-ifc` con esas representaciones. Palancas por
+  orden de coste: `importer.webIfcSettings` (`MEMORY_LIMIT`, `CIRCLE_SEGMENTS`, tolerancias de
+  intersección de planos), subir la versión de `web-ifc`, o convertir ese modelo con IfcOpenShell en
+  la Fase 3. **Ninguna se toca a ciegas.**
+
+`elemento-sin-geometria.ifc` es el oráculo del aviso: un muro con geometría y una tubería sin
+representación, y el aviso tiene que señalar la tubería y nada más.
+
+### El error al girar, cerrado (2026-08-19)
+
+El usuario lo reprodujo y **no era una excepción**: era el modelo quedando **mitad sólido y mitad
+fantasma** al alternar proyección y aspecto. Fragments dibuja por niveles de detalle y la geometría
+que entra nueva llega con su material original, sin el resaltado. Se repintaba solo en vista fantasma
+y solo al descansar la cámara.
+
+Ahora **todo lo que cambia la pantalla pasa por un único `refresh()`** que deja el estado consistente.
+La misma causa producía el otro síntoma que parecía independiente: el violeta del elemento
+seleccionado desaparecía al orbitar, y por eso la selección parecía no funcionar.
 
 ### Lo que la prueba de uso dejó, ya cerrado
 
@@ -113,10 +132,19 @@ Con `F1.1` y `F1.2` cerradas, la aplicación hace lo que alguien espera de un vi
 Verificado de punta a punta sobre `Piso 5.ifc`: aislar `IFCDOOR (10)` deja exactamente las
 diez puertas en pantalla, y **Ver todo** devuelve el edificio.
 
-### `F0.6` ya se puede decidir: hay datos de un modelo grande
+### `F0.6` cerrada: la conversión corre en un worker
 
-Llegó un segundo modelo real de **32,7 MB** (`716-LCD-ME-ISUP-D-TEST.ifc`, con **839
-psets**), y con él la cifra que faltaba:
+**Los números que la decidieron.** Con el modelo grande la conversión tarda unos diez segundos, y en
+el hilo principal eran diez segundos de interfaz congelada. Ahora corre en un worker: mismo
+`web-ifc`, mismo WASM local, otro hilo del mismo navegador. **Sin backend y sin tocar el
+local-first**, así que la Fase 3 sigue siendo opcional para esto.
+
+El panel de modelos informa dónde convirtió cada uno, y `diag.html?modo=conversion` compara las dos
+rutas midiendo lo que importa: no cuánto tarda, sino **cuánto bloquea**. Ese modo detecta cuándo no
+puede medir —en una pestaña oculta el navegador limita los temporizadores a un segundo y todas las
+cifras salen iguales— y lo avisa en vez de mentir.
+
+Las cifras del modelo grande, medidas en la aplicación:
 
 | Modelo           | Conversión | Hasta verlo | Fragments            |
 | ---------------- | ---------- | ----------- | -------------------- |
@@ -131,6 +159,17 @@ mucho mayores o si se quiere convertir una vez y reutilizar el `.frag`, que es o
 encaja en la Fase 3.
 
 Queda pendiente escribirlo como decisión en el plan y medir cuánto mejora con el worker.
+
+### Estado al cierre de la sesión del 2026-08-19
+
+La aplicación hace, verificado sobre los dos modelos reales: abre varios IFC —la conversión en un
+worker, sin congelar la interfaz—, recorre el árbol, selecciona con la ficha de propiedades y **cada
+número con su unidad**, apaga y aísla el elemento seleccionado, corta por tres ejes, mide distancia
+—directa, en planta y desnivel—, ángulo, área y perpendicular, lista las mediciones para apagarlas
+una por una, guarda vistas con nombre que sobreviven a recargar, avisa cuando el archivo trae
+elementos que no se cargaron, y reparte la pantalla como Revit.
+
+**127 pruebas** en `bim-core`. Build, lint y formato verdes.
 
 ### Y después, en este orden
 

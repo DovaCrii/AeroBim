@@ -1,4 +1,5 @@
 import type { PickedItem, PropertyValue } from "@aerobim/viewer";
+import { IconEye, IconEyeOff, IconIsolate } from "./icons.js";
 
 /**
  * Lo que trae el elemento seleccionado.
@@ -13,11 +14,18 @@ import type { PickedItem, PropertyValue } from "@aerobim/viewer";
  */
 export function PropertiesPanel({
   item,
+  visible,
   onClose,
+  onToggleVisible,
+  onIsolate,
 }: {
   /** El elemento seleccionado, o `null` cuando no hay ninguno. */
   readonly item: PickedItem | null;
+  /** `false` cuando el elemento seleccionado está apagado. */
+  readonly visible: boolean;
   readonly onClose: () => void;
+  readonly onToggleVisible: (visible: boolean) => void;
+  readonly onIsolate: () => void;
 }) {
   // El panel **está siempre**, como en Revit: es un sitio fijo de la pantalla, y en cuanto se
   // selecciona algo se llena. Antes aparecía y desaparecía flotando sobre el modelo, lo que movía la
@@ -53,6 +61,33 @@ export function PropertiesPanel({
             {item.name ?? "Sin nombre"}
           </p>
         </div>
+        {/* Apagar y aislar **el elemento seleccionado**, que es donde uno los busca: en su ficha.
+            Antes solo se podía ocultar un grupo entero desde el árbol, y llegar a un elemento
+            concreto por ahí era imposible en una categoría de cientos. */}
+        <button
+          type="button"
+          onClick={() => onToggleVisible(!visible)}
+          className={[
+            "rounded p-1",
+            visible ? "text-white/50 hover:bg-white/10 hover:text-white" : "text-brand",
+          ].join(" ")}
+          aria-label={visible ? "Apagar este elemento" : "Encender este elemento"}
+          title={visible ? "Apagar este elemento" : "Encender este elemento"}
+          aria-pressed={!visible}
+        >
+          {visible ? <IconEye className="h-4 w-4" /> : <IconEyeOff className="h-4 w-4" />}
+        </button>
+
+        <button
+          type="button"
+          onClick={onIsolate}
+          className="rounded p-1 text-white/50 hover:bg-white/10 hover:text-white"
+          aria-label="Aislar este elemento"
+          title="Aislar: deja solo este elemento a la vista"
+        >
+          <IconIsolate className="h-4 w-4" />
+        </button>
+
         <button
           type="button"
           onClick={onClose}

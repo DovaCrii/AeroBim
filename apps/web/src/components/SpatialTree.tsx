@@ -2,6 +2,14 @@ import type { ModelTree, SpatialNode } from "@aerobim/viewer";
 import { useState } from "react";
 
 /**
+ * Hijos que un grupo lista de entrada, antes de ofrecer el resto.
+ *
+ * Una categoría con 470 elementos convierte el árbol en una lista que nadie recorre; treinta caben en
+ * pantalla. Los demás **existen** y están a un clic, que es lo que faltaba antes.
+ */
+const MAX_HIJOS_LISTADOS = 30;
+
+/**
  * Árbol espacial del modelo, con aislar y ocultar.
  *
  * Es lo primero que alguien intenta después de abrir un modelo: recorrer las plantas y
@@ -64,8 +72,19 @@ function Node({
   // Los dos primeros niveles abiertos: proyecto y sitio no aportan nada plegados, y así se
   // ve el edificio sin tener que hacer clic.
   const [open, setOpen] = useState(depth < 2);
+  /**
+   * `true` cuando este grupo muestra **todos** sus hijos.
+   *
+   * Un grupo de 470 elementos no se lista de entrada —convierte el árbol en una lista que nadie
+   * recorre— pero **sí se puede desplegar a mano**. Antes esos hijos ni existían en los datos y el
+   * árbol decía "clic en el modelo para verlos", que era un callejón sin salida.
+   */
+  const [todosLosHijos, setTodosLosHijos] = useState(false);
   const visible = !hidden.has(node.key);
-  const tieneHijos = node.children.length > 0 || node.hiddenChildren > 0;
+  const tieneHijos = node.children.length > 0;
+
+  const listados = todosLosHijos ? node.children : node.children.slice(0, MAX_HIJOS_LISTADOS);
+  const restantes = node.children.length - listados.length;
 
   return (
     <div>
@@ -116,7 +135,7 @@ function Node({
 
       {open && (
         <>
-          {node.children.map((hijo) => (
+          {listados.map((hijo) => (
             <Node
               key={hijo.key}
               node={hijo}
@@ -128,13 +147,15 @@ function Node({
             />
           ))}
 
-          {node.hiddenChildren > 0 && (
-            <p
-              className="py-1 text-xs text-white/30 italic"
+          {restantes > 0 && (
+            <button
+              type="button"
+              onClick={() => setTodosLosHijos(true)}
+              className="py-1 text-xs text-white/40 italic hover:text-white/80"
               style={{ paddingLeft: `${(depth + 1) * 0.75 + 1.75}rem` }}
             >
-              {node.hiddenChildren} elementos — clic en el modelo para verlos
-            </p>
+              ver los {restantes} elementos restantes
+            </button>
           )}
         </>
       )}
