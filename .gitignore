@@ -50,6 +50,9 @@ pointclouds/
 *.sqlite3
 *.db
 
+# Notas de trabajo con capturas del modelo real: no se versionan, igual que los IFC.
+obsidian/
+
 # Editores y sistema operativo
 .vscode/
 .idea/

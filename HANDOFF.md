@@ -5,9 +5,64 @@
 
 ## Cómo seguir (leer esto primero)
 
-**Rama de trabajo: `codex/fase-0-andamiaje`, con PR abierto y sin fusionar.** La Fase 0
-está **completa salvo `F0.6`**: el monorepo compila, 49 pruebas pasan, y un IFC de obra
-real abre y se ve en poco más de un segundo.
+**Rama de trabajo: `codex/fase-0-andamiaje`, con PR abierto y sin fusionar.**
+
+> ## ⚠️ Lo siguiente que hay que hacer: rediseñar la barra de herramientas
+>
+> **Es el pedido principal del usuario tras la primera prueba de uso (2026-08-19).** La
+> barra de abajo tiene **catorce botones en una fila** y no se entiende: hay dos botones
+> llamados "Planta" —uno es modo de navegación y el otro un corte—, no hay iconos, y los
+> grupos se separan solo con una línea fina.
+>
+> **Dirección acordada:** mirar cómo lo resuelve la competencia (Autodesk Viewer, Solibri,
+> BIMcollab suelen usar una **barra vertical de iconos a un lado**, con tooltip y grupos
+> plegables) y llevar las herramientas ahí. El espacio de abajo queda libre y desaparece la
+> ambigüedad de nombres.
+>
+> **Y en el panel lateral:** poder **ordenar, activar y desactivar** lo que está cargado.
+> Con dos modelos abiertos ya hace falta, y con varios proyectos será imprescindible.
+
+### Lo que la primera prueba de uso dejó como pendiente
+
+El usuario probó la aplicación y dejó sus notas con capturas en `obsidian/` (carpeta
+ignorada por git, tiene imágenes del modelo real). De ahí salió esta lista, ya filtrada:
+
+| #   | Observación                                                                                     | Estado                                               |
+| --- | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| 1   | **Cargar un segundo IFC daba error** `Aborted(both async and sync fetching of the wasm failed)` | ✅ **arreglado**                                     |
+| 2   | Al orbitar se seleccionaban elementos sin querer                                                | ✅ **arreglado**                                     |
+| 3   | El renderizado se ve plano, sin sombras ni realismo                                             | ✅ **mejorado**, falta comparar contra la referencia |
+| 4   | **La barra de abajo no se entiende** — ubicación y representación de las herramientas           | ⬜ **es lo siguiente**                               |
+| 5   | Al pasar el ratón sobre un elemento lo detecta **antes de hacer clic**                          | ⬜ ver nota abajo                                    |
+| 6   | La medición de distancia "no funciona"                                                          | 🟡 ver nota abajo                                    |
+| 7   | El modo fantasma se cae al mover la cámara                                                      | ⬜                                                   |
+| 8   | El panel lateral necesita ordenar / activar / desactivar lo cargado                             | ⬜                                                   |
+
+**Sobre el 5 y el 6, que están relacionados.** No hay ningún manejador de `hover` en el
+código, así que lo que el usuario percibía como "detecta sin clicar" era con toda
+probabilidad el **bug 2**: un arrastre mínimo terminaba en `click` y seleccionaba. Eso ya
+está corregido (se compara dónde se pulsó y dónde se soltó, con 4 px de margen). Por la
+misma razón la medición parecía no funcionar: los clics se consumían al orbitar. **Hay que
+confirmarlo con el usuario antes de dar el 5 y el 6 por cerrados** — y si el hover persiste,
+buscar un `Hoverer` activo, que `@thatopen/components-front` incluye.
+
+### El hallazgo que cambia el plan de las fases que quedan
+
+Se instaló **`@thatopen/components-front`** y trae hecho mucho de lo que se estaba
+construyendo a mano:
+
+| Ya existe                                                                       | Sustituye a                                             |
+| ------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| `PostproductionRenderer` + `PostproductionAspect.COLOR_PEN_SHADOWS`             | El render plano — **ya aplicado**                       |
+| `LengthMeasurement`, `AngleMeasurement`, `AreaMeasurement`, `VolumeMeasurement` | Las mediciones propias, y **traen marcadores visuales** |
+| `Highlighter`, `Outliner`                                                       | El resaltado manual con `highlight`                     |
+| `ClipEdges`, `ClipStyler`                                                       | Cortes con las aristas marcadas, como en BricsCAD       |
+| `GraphicVertexPicker`, `Marker`, `Mark`                                         | El ajuste a vértices sin señal visual                   |
+| `Hoverer`                                                                       | — (y conviene saber que existe, por el punto 5)         |
+
+**Antes de seguir tocando mediciones o resaltado, cambiarlos por estos componentes.** Las
+mediciones propias funcionan pero no dibujan marcadores, y esa falta de señal es justo lo
+que hizo pensar al usuario que no funcionaban.
 
 ### Lo que ya está cerrado con datos
 
@@ -38,13 +93,24 @@ Con `F1.1` y `F1.2` cerradas, la aplicación hace lo que alguien espera de un vi
 Verificado de punta a punta sobre `Piso 5.ifc`: aislar `IFCDOOR (10)` deja exactamente las
 diez puertas en pantalla, y **Ver todo** devuelve el edificio.
 
-### El siguiente paso
+### `F0.6` ya se puede decidir: hay datos de un modelo grande
 
-**`F0.6`: decidir dónde corre la conversión**, ahora que hay números. Con medio segundo
-por modelo en el navegador, la respuesta se inclina fuerte hacia dejarlo del lado del
-cliente y que el backend de la Fase 3 sea solo persistencia — pero conviene medir antes
-un modelo grande (>50 MB), porque la conversión ocurre en el hilo principal y ahí sí
-podría congelar la interfaz.
+Llegó un segundo modelo real de **32,7 MB** (`716-LCD-ME-ISUP-D-TEST.ifc`, con **839
+psets**), y con él la cifra que faltaba:
+
+| Modelo           | Conversión | Hasta verlo | Fragments            |
+| ---------------- | ---------- | ----------- | -------------------- |
+| Piso 5 (1,5 MB)  | 1,11 s     | 2,20 s      | 113 KB — 13,7× menos |
+| Grande (32,7 MB) | **9,53 s** | **9,82 s**  | 1,5 MB — 22,3× menos |
+
+**La conversión corre en el hilo principal, así que esos 9,5 segundos son 9,5 segundos de
+interfaz congelada.** Con eso, la respuesta a `F0.6` se inclina a **mover la conversión a un
+Web Worker** —sigue siendo del lado del cliente, respeta el local-first, y deja de bloquear
+la interfaz— antes que a montar un backend. Un servidor solo haría falta si aparecen modelos
+mucho mayores o si se quiere convertir una vez y reutilizar el `.frag`, que es otra cosa y
+encaja en la Fase 3.
+
+Queda pendiente escribirlo como decisión en el plan y medir cuánto mejora con el worker.
 
 ```bash
 npm run dev
@@ -57,9 +123,14 @@ interfaz** y compara la ruta directa contra la envoltura:
 
 ### Y después, en este orden
 
-1. **Fase 1 — lo que queda:** varios modelos a la vez (`F1.5`) y vistas guardadas (`F1.6`).
-   Con `F1.5` la Fase 1 queda cerrada, y es la que falta para coordinar de verdad: mirar dos
-   disciplinas juntas.
+1. **La barra de herramientas y el panel de modelos** — ver el aviso del principio. Es lo
+   que pidió el usuario y lo que decide si la herramienta se siente usable.
+2. **Cambiar mediciones y resaltado por los componentes de `components-front`** — ver la
+   tabla de arriba. Menos código propio y con señal visual.
+3. **`F1.6` vistas guardadas.** `F1.5` (varios modelos) **ya funciona**: dos modelos abiertos
+   a la vez, cada uno con su árbol y sus métricas. Falta pulirlo con la gestión del panel
+   lateral (punto 8) y marcarlo en el plan.
+4. **Mover la conversión a un Web Worker** (`F0.6`).
    - **`F1.2` tiene un cabo suelto honesto:** el código lee psets pero **no se ha podido
      verificar con un archivo que los traiga**, porque el modelo de prueba se exportó sin
      ellos. Hace falta un IFC con psets para cerrarlo de verdad.
@@ -70,13 +141,21 @@ interfaz** y compara la ruta directa contra la envoltura:
      `TechnicalDrawings` + `DxfExporter`, `Views`/`Viewpoints`, `Classifier`, `ItemsFinder`
      e `IDSSpecifications`. Varias fases del plan pueden ser integración en vez de
      construcción.
-2. **Fase 2 — nubes de puntos.** El as-built contra el modelo, que es la
+5. **Fase 2 — nubes de puntos.** El as-built contra el modelo, que es la
    comparación que hoy nadie puede hacer sin software de pago.
 
 ### Los modelos de prueba
 
 `Piso 5.ifc` es dato de la organización y `.gitignore` excluye todo `*.ifc`. Para repetir
 las mediciones hay que copiarlo a `apps/web/public/samples/piso-5.ifc`.
+
+**Hay dos modelos reales de la organización**, ninguno versionado. Para repetir las
+mediciones hay que copiarlos a `apps/web/public/samples/`:
+
+| Modelo                       | Tamaño  | Qué aporta                                                     |
+| ---------------------------- | ------- | -------------------------------------------------------------- |
+| `Piso 5.ifc`                 | 1,5 MB  | El de referencia. **Sin psets** (export con la casilla en Off) |
+| `716-LCD-ME-ISUP-D-TEST.ifc` | 32,7 MB | **839 psets reales** y el tamaño que hacía falta para `F0.6`   |
 
 **Sí se versionan dos fixtures sintéticos**, escritos a mano y sin dato alguno de un
 proyecto real:

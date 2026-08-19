@@ -11,6 +11,7 @@
   ],
   "scripts": {
     "dev": "npm run build:packages && npm run dev -w apps/web",
+    "dev:host": "npm run build:packages && npm run dev -w apps/web -- --host",
     "build:packages": "npm run build -w packages/bim-core && npm run build -w packages/viewer",
     "build": "npm run build:packages && npm run build -w apps/web",
     "test": "npm run test -w packages/bim-core",

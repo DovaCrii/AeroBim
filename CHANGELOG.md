@@ -50,6 +50,36 @@ informa metros plausibles. `F0.4` y `F0.5` quedan cumplidas.
 - **El tamaño del Fragments se reportaba como 0 B.** `core.load` transfiere el búfer al
   worker y lo deja con `byteLength = 0`; ahora se anota antes de cargar.
 
+### Corregido tras la primera prueba de uso (2026-08-19)
+
+- **Cargar un segundo IFC fallaba** con `Aborted(both async and sync fetching of the wasm
+failed)`. Se creaba un `IfcImporter` por carga, y el primero libera el WASM de `web-ifc`
+  —que vive en una variable de módulo— dejando al segundo sin nada que cargar. Ahora se
+  reutiliza. **Con eso `F1.5` pasa a funcionar**: dos modelos abiertos a la vez, cada uno con
+  su árbol y sus métricas.
+- **Al orbitar se seleccionaban elementos sin querer.** Un arrastre termina en `click`, así
+  que cada giro de cámara seleccionaba lo que hubiera bajo el cursor y, en modo medición,
+  consumía puntos. Ahora se compara dónde se pulsó con dónde se soltó, con 4 px de margen.
+
+### Cambiado — el render ya no es plano
+
+`SimpleScene` y `SimpleRenderer` dieron paso a **`ShadowedScene`** con
+**`PostproductionRenderer`** en modo `COLOR_PEN_SHADOWS`: sombras proyectadas, oclusión
+ambiental y **aristas dibujadas**. La referencia es BricsCAD, donde las líneas de los
+elementos están siempre presentes y son las que dejan leer el modelo; sin ellas todo era el
+mismo blanco plano.
+
+### Medido — un modelo de 32,7 MB, para `F0.6`
+
+| Modelo           | Conversión | Hasta verlo | Fragments            |
+| ---------------- | ---------- | ----------- | -------------------- |
+| Piso 5 (1,5 MB)  | 1,11 s     | 2,20 s      | 113 KB — 13,7× menos |
+| Grande (32,7 MB) | **9,53 s** | **9,82 s**  | 1,5 MB — 22,3× menos |
+
+La conversión corre en el hilo principal, así que esos 9,5 s son de interfaz congelada. La
+respuesta se inclina a un **Web Worker** antes que a un backend: sigue siendo cliente y
+respeta el local-first.
+
 ### Añadido — psets verificados, y el corte con captura (2026-08-19)
 
 - **Fixture `muro-con-psets.ifc`**, escrito a mano con un `Pset_WallCommon` y unas

@@ -23,9 +23,19 @@ type Status =
   | { readonly kind: "loading"; readonly name: string }
   | { readonly kind: "error"; readonly message: string };
 
+/**
+ * Cuánto puede moverse el ratón entre pulsar y soltar para que siga contando como clic.
+ *
+ * Nadie pulsa un botón sin mover el ratón un píxel o dos, y orbitar mueve decenas. Este
+ * margen separa las dos intenciones.
+ */
+const CLICK_TOLERANCE_PX = 4;
+
 export function App() {
   const canvasHost = useRef<HTMLDivElement>(null);
   const viewer = useRef<BimViewer | null>(null);
+  /** Dónde se pulsó el ratón, para distinguir un clic de un arrastre de cámara. */
+  const pressPoint = useRef<{ x: number; y: number } | null>(null);
   const [status, setStatus] = useState<Status>({ kind: "starting" });
   const [models, setModels] = useState<readonly LoadedModel[]>([]);
   const [dragging, setDragging] = useState(false);
@@ -102,6 +112,16 @@ export function App() {
     async (event: React.MouseEvent<HTMLDivElement>) => {
       const instance = viewer.current;
       if (!instance) return;
+
+      // **Un arrastre no es un clic.** Orbitar termina en un `click` sobre el lienzo, así
+      // que sin esta guarda cada giro de cámara seleccionaba lo que quedara bajo el cursor
+      // —o consumía un punto de medición— sin que nadie lo pidiera.
+      const inicio = pressPoint.current;
+      pressPoint.current = null;
+      if (inicio !== null) {
+        const recorrido = Math.hypot(event.clientX - inicio.x, event.clientY - inicio.y);
+        if (recorrido > CLICK_TOLERANCE_PX) return;
+      }
 
       try {
         if (measureMode !== null) {
@@ -237,6 +257,9 @@ export function App() {
           <div
             ref={canvasHost}
             className="min-h-0 min-w-0 flex-1"
+            onPointerDown={(event) => {
+              pressPoint.current = { x: event.clientX, y: event.clientY };
+            }}
             onClick={(event) => void onCanvasClick(event)}
             onDragOver={(event) => {
               event.preventDefault();

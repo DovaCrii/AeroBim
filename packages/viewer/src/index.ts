@@ -20,17 +20,29 @@ import {
   type Point3,
 } from "@aerobim/bim-core";
 import * as OBC from "@thatopen/components";
+import * as OBF from "@thatopen/components-front";
 import * as FRAGS from "@thatopen/fragments";
 import * as THREE from "three";
 
 /**
  * Mundo concreto que arma esta envoltura.
  *
- * La cámara es `OrthoPerspectiveCamera` y no `SimpleCamera`: trae la proyección
- * ortográfica —imprescindible para mirar un modelo como se mira un plano— y los modos de
- * navegación, sin costo para lo que ya funcionaba.
+ * Tres elecciones deliberadas frente a las versiones "Simple":
+ *
+ * - **`ShadowedScene`** proyecta sombras. Sin ellas un modelo se ve como una silueta plana:
+ *   todo el mismo blanco, sin profundidad, y cuesta distinguir un muro de una losa.
+ * - **`OrthoPerspectiveCamera`** trae la proyección ortográfica, que es como se lee un
+ *   plano, y los modos de navegación.
+ * - **`PostproductionRenderer`** añade oclusión ambiental y **aristas dibujadas**. Es lo que
+ *   separa un render de maqueta de uno que se entiende: en un visor de escritorio como
+ *   BricsCAD las líneas de los elementos están siempre ahí, y son las que dejan leer el
+ *   modelo.
  */
-type World = OBC.SimpleWorld<OBC.SimpleScene, OBC.OrthoPerspectiveCamera, OBC.SimpleRenderer>;
+type World = OBC.SimpleWorld<
+  OBC.ShadowedScene,
+  OBC.OrthoPerspectiveCamera,
+  OBF.PostproductionRenderer
+>;
 
 /** Cómo se proyecta la escena. La ortográfica es la de un plano: sin fuga de perspectiva. */
 export type Projection = "Perspective" | "Orthographic";
@@ -644,6 +656,8 @@ export class BimViewer {
   private measureMode: MeasureMode | null = null;
   /** Puntos de la medición en curso. Ver {@link addMeasurePoint}. */
   private measurePoints: THREE.Vector3[] = [];
+  /** Importador de IFC, reutilizado entre cargas. Ver {@link importer}. */
+  private ifcImporter: FRAGS.IfcImporter | null = null;
 
   private constructor(
     components: OBC.Components,
@@ -684,16 +698,26 @@ export class BimViewer {
 
     const worlds = components.get(OBC.Worlds);
     const world: World = worlds.create<
-      OBC.SimpleScene,
+      OBC.ShadowedScene,
       OBC.OrthoPerspectiveCamera,
-      OBC.SimpleRenderer
+      OBF.PostproductionRenderer
     >();
-    world.scene = new OBC.SimpleScene(components);
-    world.renderer = new OBC.SimpleRenderer(components, container);
+    world.scene = new OBC.ShadowedScene(components);
+    world.renderer = new OBF.PostproductionRenderer(components, container);
     world.camera = new OBC.OrthoPerspectiveCamera(components);
-    world.scene.setup();
+
+    world.scene.setup({
+      shadows: { cascade: 1, resolution: 2048 },
+    });
 
     components.init();
+
+    // Oclusión ambiental y aristas. `COLOR_PEN_SHADOWS` es color + líneas + sombras, que es
+    // la combinación con la que un modelo se lee: las aristas marcan dónde acaba cada
+    // elemento y la oclusión da profundidad a los rincones.
+    const { postproduction } = world.renderer;
+    postproduction.enabled = true;
+    postproduction.style = OBF.PostproductionAspect.COLOR_PEN_SHADOWS;
 
     const fragments = components.get(OBC.FragmentsManager);
     fragments.init(await OBC.FragmentsManager.getWorker());
@@ -756,11 +780,7 @@ export class BimViewer {
     let model: FRAGS.FragmentsModel;
     try {
       onStage("converting");
-      // Un importador por carga: no arrastra estado del modelo anterior, y el costo de
-      // inicializar el WASM otra vez son unas decenas de milisegundos.
-      const importer = new FRAGS.IfcImporter();
-      importer.wasm = { path: this.wasmPath, absolute: true };
-      const fragments = await importer.process({ bytes });
+      const fragments = await this.importer().process({ bytes });
 
       // El tamaño se anota **antes** de cargar: `core.load` transfiere el búfer al
       // worker, y un `ArrayBuffer` transferido queda con `byteLength` en 0. Leerlo
@@ -1144,6 +1164,24 @@ export class BimViewer {
     });
 
     return result?.point.clone() ?? null;
+  }
+
+  /**
+   * El importador de IFC, creado una sola vez.
+   *
+   * **Crear uno por carga rompe el segundo modelo.** El primer importador inicializa el
+   * WASM de `web-ifc`, que vive en una variable de módulo, y al terminar lo libera; el
+   * siguiente encuentra el módulo ya liberado y aborta con
+   * `both async and sync fetching of the wasm failed`. Reutilizarlo es lo que permite abrir
+   * más de un modelo, que es justo lo que la coordinación necesita.
+   */
+  private importer(): FRAGS.IfcImporter {
+    if (this.ifcImporter === null) {
+      const importer = new FRAGS.IfcImporter();
+      importer.wasm = { path: this.wasmPath, absolute: true };
+      this.ifcImporter = importer;
+    }
+    return this.ifcImporter;
   }
 
   /** Dibuja el trazo de la medición, reemplazando el anterior. */

@@ -40,14 +40,14 @@ principal y ahí sí podría congelar la interfaz.
 **Objetivo de salida:** un visor que abre un IFC real y lo muestra, con el
 monorepo compilando y el plan confirmado o corregido con datos.
 
-| #      | Tarea                                                                                                     | Estado       |
-| ------ | --------------------------------------------------------------------------------------------------------- | ------------ |
-| `F0.1` | Documentación de arranque: plan, MVP, arquitectura, referencias con licencias verificadas y marca         | ✅           |
-| `F0.2` | Repositorio creado y publicado, MIT, con la marca en la línea de la familia                               | ✅           |
-| `F0.3` | Monorepo npm: `apps/web` (React 19 + TS + Vite) y `packages/bim-core`, con build, lint y formato verdes   | ✅           |
-| `F0.4` | **PoC del visor**: cargar un IFC real y navegarlo — medir tiempo de carga y memoria                       | ✅ ver abajo |
-| `F0.5` | **Medir la conversión a Fragments** sobre el mismo modelo: tiempo de conversión y tamaño resultante       | ✅ medido    |
-| `F0.6` | Decidir dónde corre la conversión (navegador con WASM vs worker de backend) **con los números de `F0.5`** | ⬜           |
+| #      | Tarea                                                                                                     | Estado               |
+| ------ | --------------------------------------------------------------------------------------------------------- | -------------------- |
+| `F0.1` | Documentación de arranque: plan, MVP, arquitectura, referencias con licencias verificadas y marca         | ✅                   |
+| `F0.2` | Repositorio creado y publicado, MIT, con la marca en la línea de la familia                               | ✅                   |
+| `F0.3` | Monorepo npm: `apps/web` (React 19 + TS + Vite) y `packages/bim-core`, con build, lint y formato verdes   | ✅                   |
+| `F0.4` | **PoC del visor**: cargar un IFC real y navegarlo — medir tiempo de carga y memoria                       | ✅ ver abajo         |
+| `F0.5` | **Medir la conversión a Fragments** sobre el mismo modelo: tiempo de conversión y tamaño resultante       | ✅ medido            |
+| `F0.6` | Decidir dónde corre la conversión (navegador con WASM vs worker de backend) **con los números de `F0.5`** | 🟡 medido, ver abajo |
 
 **Criterio de aceptación:** un IFC de obra real abre en el navegador, se puede
 orbitar y seleccionar un elemento, y hay una cifra medida de cuánto costó.
@@ -163,6 +163,47 @@ rápido"— es el argumento central para elegir That Open. Si la conversión tom
 de lo que ahorra, o el archivo resultante es tan grande que no conviene guardarlo,
 la arquitectura cambia. Se mide.
 
+### `F0.6` con datos de un modelo grande (2026-08-19)
+
+Llegó un segundo modelo real de **32,7 MB** con **839 psets**, y con él la cifra que
+faltaba:
+
+| Modelo           | Conversión | Hasta verlo | Fragments            |
+| ---------------- | ---------- | ----------- | -------------------- |
+| Piso 5 (1,5 MB)  | 1,11 s     | 2,20 s      | 113 KB — 13,7× menos |
+| Grande (32,7 MB) | **9,53 s** | **9,82 s**  | 1,5 MB — 22,3× menos |
+
+**La conversión corre en el hilo principal, así que esos 9,5 s son 9,5 s de interfaz
+congelada.** La respuesta se inclina a **mover la conversión a un Web Worker**: sigue siendo
+del lado del cliente, respeta el local-first y deja de bloquear la interfaz. Un backend solo
+haría falta con modelos mucho mayores, o para convertir una vez y reutilizar el `.frag` —
+otra cosa, y encaja en la Fase 3.
+
+Falta implementarlo y medir cuánto mejora. Hasta entonces `F0.6` queda medido, no decidido.
+
+### La primera prueba de uso, y lo que dejó (2026-08-19)
+
+El usuario usó la aplicación y dejó notas con capturas. **La observación principal es que la
+barra de herramientas no se entiende**: catorce botones en fila, dos de ellos llamados
+"Planta" —uno es navegación y el otro un corte—, sin iconos. De ahí sale `F1.8`.
+
+Corregido en el momento:
+
+- **Cargar un segundo IFC fallaba** con `Aborted(both async and sync fetching of the wasm
+failed)`. La causa era propia: se creaba un `IfcImporter` por carga, y el primero libera el
+  WASM de `web-ifc` —que vive en una variable de módulo— dejando al segundo sin nada que
+  cargar. Ahora se reutiliza. **Con eso `F1.5` pasa a funcionar**: dos modelos abiertos a la
+  vez, cada uno con su árbol y sus métricas.
+- **Al orbitar se seleccionaban elementos sin querer.** Un arrastre termina en `click`, así
+  que cada giro de cámara seleccionaba lo que hubiera bajo el cursor. Ahora se compara dónde
+  se pulsó y dónde se soltó, con 4 px de margen. Muy probablemente esto explica también las
+  otras dos quejas —que "detectaba al pasar el ratón" y que la medición "no funcionaba"—,
+  porque los clics se consumían al orbitar; **queda por confirmar con el usuario**.
+- **El render se veía plano.** Se pasó a `ShadowedScene` con `PostproductionRenderer` en modo
+  `COLOR_PEN_SHADOWS`: sombras, oclusión ambiental y **aristas dibujadas**. La referencia es
+  BricsCAD, donde las líneas de los elementos están siempre presentes y son las que dejan
+  leer el modelo.
+
 ### Qué se decide con `F0.6`
 
 La conversión IFC → Fragments puede correr en dos lugares, y la diferencia manda
@@ -182,15 +223,16 @@ Se decide con los números de `F0.5`, no por preferencia.
 **Objetivo de salida:** alguien de oficina técnica revisa un modelo sin abrir
 software de escritorio ni pedir una licencia.
 
-| #      | Tarea                                                                                                                                 | Estado       |
-| ------ | ------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
-| `F1.1` | Árbol espacial navegable (proyecto → sitio → edificio → planta → elemento) con aislar y ocultar                                       | ✅ ver abajo |
-| `F1.2` | Panel de propiedades y **psets** del elemento seleccionado                                                                            | ✅ ver abajo |
-| `F1.3` | Planos de corte y secciones                                                                                                           | ✅ ver abajo |
-| `F1.4` | Mediciones: distancia, área y ángulo                                                                                                  | ✅ ver abajo |
-| `F1.5` | Cargar **varios modelos IFC a la vez** (arquitectura + estructura + instalaciones) y alternarlos                                      | ⬜           |
-| `F1.6` | Vistas guardadas: cámara, visibilidad y cortes, recuperables por nombre                                                               | ⬜           |
-| `F1.7` | **Modos de vista**: proyección perspectiva/ortográfica, navegación (órbita, planta, primera persona) y representación (sólido, malla) | ✅ ver abajo |
+| #      | Tarea                                                                                                                                 | Estado                  |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
+| `F1.1` | Árbol espacial navegable (proyecto → sitio → edificio → planta → elemento) con aislar y ocultar                                       | ✅ ver abajo            |
+| `F1.2` | Panel de propiedades y **psets** del elemento seleccionado                                                                            | ✅ ver abajo            |
+| `F1.3` | Planos de corte y secciones                                                                                                           | ✅ ver abajo            |
+| `F1.4` | Mediciones: distancia, área y ángulo                                                                                                  | ✅ ver abajo            |
+| `F1.5` | Cargar **varios modelos IFC a la vez** (arquitectura + estructura + instalaciones) y alternarlos                                      | 🟡 carga, falta gestión |
+| `F1.8` | **Barra de herramientas y panel de modelos** — reubicar y agrupar las herramientas; ordenar, activar y desactivar lo cargado          | ⬜ **prioridad**        |
+| `F1.6` | Vistas guardadas: cámara, visibilidad y cortes, recuperables por nombre                                                               | ⬜                      |
+| `F1.7` | **Modos de vista**: proyección perspectiva/ortográfica, navegación (órbita, planta, primera persona) y representación (sólido, malla) | ✅ ver abajo            |
 
 **Oráculo:** el mismo modelo abierto en **Bonsai/BlenderBIM** (o cualquier visor
 IFC de escritorio). El árbol, los psets y las mediciones deben coincidir — un
