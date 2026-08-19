@@ -270,6 +270,15 @@ export interface PropertyValue {
    * valor. La interfaz la muestra atenuada: es una ayuda de lectura, no un dato del modelo.
    */
   readonly unitInferred: boolean;
+  /**
+   * El tipo con el que el archivo declara el valor (`IFCLENGTHMEASURE`, `IFCREAL`, `IFCLABEL`…), o
+   * `null` si no lo declara.
+   *
+   * Se conserva porque **explica la unidad que se ve, y la que no se ve**: un número sin unidad al
+   * lado deja la duda de si el visor no supo o si el archivo no dijo, y este campo la responde. La
+   * interfaz lo pone en el tooltip de la fila.
+   */
+  readonly ifcType: string | null;
 }
 
 /**
@@ -319,12 +328,14 @@ const SELECTION_COLOR = 0x9b5de5;
 const SELECTION_CSS = "#9b5de5";
 
 /**
- * Gris de la rejilla del suelo.
+ * Cosas de la escena que se pueden apagar sin destruirlas.
  *
- * Apagado a propósito: la rejilla es una referencia, no un elemento del modelo, y con más contraste
- * compite con las aristas de la geometría —que son las que hay que leer—.
+ * Es lo que tienen en común la cota de una distancia, el relleno de un área y la etiqueta de un
+ * ángulo: los tres son objetos distintos de la librería y los tres se apagan igual.
  */
-const GRID_COLOR = 0x3a4a63;
+interface Ocultable {
+  visible: boolean;
+}
 
 /**
  * Ángulos de las vistas normalizadas: azimut y polar de camera-controls.
@@ -656,6 +667,7 @@ function propiedad(
     value,
     unit: unidad?.symbol ?? null,
     unitInferred: unidad?.inferred ?? false,
+    ifcType,
   };
 }
 
@@ -894,13 +906,29 @@ export class BimViewer {
   /** `true` si llegó otra petición de repintado mientras se atendía la anterior. */
   private highlightsPending = false;
   /**
-   * Las cotas dibujadas, en el orden en que se hicieron.
+   * Las mediciones tomadas, en orden, con lo que se dibuja de cada una.
    *
-   * Se lleva una lista propia porque las apagadas **se sacan de la lista de su medidor** —es la
-   * única forma de ocultar una cota concreta con esta librería, que solo permite ocultarlas por
-   * tipo— y hay que seguir sabiendo que existen para poder devolverlas.
+   * **Se guarda el dibujo, no solo el dato.** Al principio una medición se apagaba sacándola de la
+   * lista de su medidor, y eso la borraba de verdad: al volver a encenderla no reaparecía. Ahora se
+   * apaga poniendo su `visible` en `false`, que es el mecanismo que la librería sí soporta y que no
+   * destruye nada.
    */
-  private readonly drawn: { id: string; kind: MeasureMode; object: MeasureObject }[] = [];
+  private readonly drawn: {
+    id: string;
+    kind: MeasureMode;
+    object: MeasureObject;
+    /** Lo que se dibuja de esa medición: la cota, el relleno, la etiqueta. */
+    visuals: Ocultable[];
+    visible: boolean;
+  }[] = [];
+  /**
+   * Dibujos que llegaron antes de que su medición quedara registrada.
+   *
+   * El orden lo impone la librería: cuando una medición entra en su lista, **ella crea el dibujo
+   * primero** y solo después corren los demás avisos. Así que los dibujos esperan acá y
+   * {@link registrarCota} los recoge.
+   */
+  private visualesPendientes: Ocultable[] = [];
   /** Unidades declaradas por cada modelo, por identificador. */
   private readonly unitsByModel = new Map<string, IfcUnits>();
   /** Quien convierte los IFC. Ver {@link converter} y `converter.ts`. */
@@ -983,13 +1011,11 @@ export class BimViewer {
     // recentrar por turnos hasta llegar.
     world.camera.controls.dollyToCursor = true;
 
-    // **Rejilla en el suelo.** La traen Revit, BricsCAD y los modeladores de Bentley, y no es
-    // decoración: sin una referencia horizontal, un modelo flotando en negro no dice a qué altura
-    // está la cámara ni cuánto mide un tramo. Se desvanece con la distancia, que es lo apropiado en
-    // perspectiva.
-    const grid = components.get(OBC.Grids).create(world);
-    grid.config.color = new THREE.Color(GRID_COLOR);
-    grid.three.renderOrder = -1;
+    // **Sin rejilla en el suelo, a propósito.** Se probó la de That Open y estorba más de lo que
+    // ayuda: al arrancar, sin modelo, la cámara está lejos del origen y la rejilla llena la pantalla
+    // de una malla densa que tapa hasta el mensaje de "arrastra un archivo aquí". Una rejilla útil
+    // hay que dimensionarla contra el modelo —separación de líneas y alcance según su tamaño— y eso
+    // es una tarea, no una línea.
 
     const viewer = new BimViewer(
       components,
@@ -1017,11 +1043,15 @@ export class BimViewer {
     this.world.camera.controls.addEventListener("rest", () => {
       if (this.loading || this.modelCount === 0) return;
 
-      // **Por qué se repinta al descansar la cámara.** Mover la cámara hace que Fragments
-      // cambie el nivel de detalle, y la geometría que entra nueva llega con su material
-      // original: el resaltado se aplica a lo que había, no a lo que venga después. Por eso la
-      // vista fantasma "se caía" al mover — el modelo volvía a ser opaco por partes.
-      if (this.renderStyle === "wireframe") void this.applyHighlights();
+      // **Por qué se repinta al descansar la cámara.** Mover la cámara hace que Fragments cambie el
+      // nivel de detalle, y la geometría que entra nueva llega con su material original: el
+      // resaltado se aplica a lo que había, no a lo que venga después.
+      //
+      // Al principio esto solo se hacía en vista fantasma, y eso dejaba un fallo peor: **al orbitar
+      // se perdía el violeta del elemento seleccionado.** Quien clicaba una viga y giraba para
+      // verla ya no sabía cuál había elegido, y la selección parecía no funcionar. Se repinta
+      // siempre que haya algo pintado.
+      if (this.renderStyle === "wireframe" || this.selection !== null) void this.applyHighlights();
       else void this.fragments.core.update(true);
     });
 
@@ -1115,10 +1145,20 @@ export class BimViewer {
 
     this.aplicarAjuste(tool);
 
-    // Las etiquetas se crean con el estilo de la librería; se repintan al aparecer.
-    tool.labels.onItemAdded.add(estilarEtiqueta);
-    tool.lines.onItemAdded.add((line) => estilarEtiqueta(line.label));
-    tool.fills.onItemAdded.add((fill) => estilarEtiqueta(fill.label));
+    // Las etiquetas se crean con el estilo de la librería; se repintan al aparecer. Y de paso se
+    // anota cada dibujo, que es lo que después permite apagar una medición concreta sin borrarla.
+    tool.labels.onItemAdded.add((mark) => {
+      estilarEtiqueta(mark);
+      this.visualesPendientes.push(mark);
+    });
+    tool.lines.onItemAdded.add((line) => {
+      estilarEtiqueta(line.label);
+      this.visualesPendientes.push(line);
+    });
+    tool.fills.onItemAdded.add((fill) => {
+      estilarEtiqueta(fill.label);
+      this.visualesPendientes.push(fill);
+    });
   }
 
   /**
@@ -1185,21 +1225,21 @@ export class BimViewer {
    * Incluye las apagadas: una cota apagada sigue existiendo, y tiene que poder volver.
    */
   listMeasurements(): readonly DrawnMeasurement[] {
-    return this.drawn.map(({ id, kind, object }) => ({
+    return this.drawn.map(({ id, kind, object, visible }) => ({
       id,
       kind,
       label: this.etiquetaDe(kind, object),
-      visible: this.listaDe(kind).has(object),
+      visible,
     }));
   }
 
   /**
-   * Apaga o enciende una cota concreta.
+   * Apaga o enciende una medición concreta, sin borrarla.
    *
-   * **Se apaga sacándola de la lista de su medidor.** La librería solo permite ocultar las cotas
-   * por tipo —todas las distancias, todas las áreas—, así que para una sola se quita de la lista,
-   * lo que libera su dibujo, y al encenderla se vuelve a añadir el mismo objeto. Como es el mismo
-   * y no una copia, conserva su identificador y su valor.
+   * Se apaga poniendo en `false` el `visible` de lo que dibuja —la cota, el relleno, la etiqueta—,
+   * que es el mecanismo de la librería. **No se saca de su lista**: eso fue el primer intento y
+   * borraba la medición de verdad, porque al quitarla la librería libera su dibujo y al devolverla no
+   * reaparecía.
    */
   setMeasurementVisible(id: string, visible: boolean): void {
     this.assertAlive();
@@ -1207,9 +1247,9 @@ export class BimViewer {
     const entrada = this.drawn.find((cota) => cota.id === id);
     if (entrada === undefined) return;
 
-    const lista = this.listaDe(entrada.kind);
-    if (visible) lista.add(entrada.object);
-    else lista.delete(entrada.object);
+    entrada.visible = visible;
+    for (const visual of entrada.visuals) visual.visible = visible;
+    this.world.renderer?.update();
   }
 
   /** Borra una cota concreta, sin tocar las demás. */
@@ -1247,10 +1287,23 @@ export class BimViewer {
     return `${(object as OBF.Area).value.toFixed(2)} m²`;
   }
 
-  /** Registra una cota nueva, si no estaba ya —volver a encenderla la reañade a la lista—. */
+  /**
+   * Registra una medición nueva y recoge los dibujos que la librería acaba de crear para ella.
+   *
+   * Los dibujos llegan **antes** de este aviso: la librería los crea en su propio manejador, que se
+   * registró primero. Por eso esperan en {@link visualesPendientes} y se adjuntan acá.
+   */
   private registrarCota(kind: MeasureMode, object: MeasureObject): void {
-    if (this.drawn.some((cota) => cota.object === object)) return;
-    this.drawn.push({ id: object.id, kind, object });
+    const visuals = this.visualesPendientes;
+    this.visualesPendientes = [];
+
+    const existente = this.drawn.find((cota) => cota.object === object);
+    if (existente !== undefined) {
+      existente.visuals.push(...visuals);
+      return;
+    }
+
+    this.drawn.push({ id: object.id, kind, object, visuals, visible: true });
   }
 
   /** Avisa a quien escuche que hay una medición nueva, o que se borraron todas. */
@@ -1497,6 +1550,22 @@ export class BimViewer {
     }
   }
 
+  /**
+   * Redibuja dejando el estado pintado consistente.
+   *
+   * **Se llama después de cualquier cosa que cambie lo que hay en pantalla**: cambiar de proyección,
+   * ocultar, aislar, cortar, cerrar un modelo. La razón es que Fragments dibuja por niveles de
+   * detalle: cada refresco puede traer geometría nueva, y la nueva llega con su material original.
+   * Si solo se refrescara sin repintar, el modelo queda **mitad sólido y mitad fantasma** —lo que se
+   * vio al alternar proyección y aspecto— o pierde el violeta del elemento seleccionado.
+   *
+   * Cuando no hay nada pintado encima, un refresco simple basta y es más barato.
+   */
+  private async refresh(): Promise<void> {
+    if (this.renderStyle === "wireframe" || this.selection !== null) await this.applyHighlights();
+    else await this.fragments.core.update(true);
+  }
+
   /** Quita el resaltado de selección, dejando la vista fantasma si estaba puesta. */
   async clearSelection(): Promise<void> {
     this.assertAlive();
@@ -1529,7 +1598,9 @@ export class BimViewer {
     for (const [, model] of this.fragments.list) {
       model.useCamera(this.world.camera.three);
     }
-    await this.fragments.core.update(true);
+    // Y repintando: el cambio de cámara reordena los niveles de detalle, y la geometría que entra
+    // nueva llega sin el resaltado. Alternando proyección y aspecto se veía el modelo a medias.
+    await this.refresh();
   }
 
   /** Proyección actual. */
@@ -1825,7 +1896,7 @@ export class BimViewer {
     };
 
     clipper.createFromNormalAndCoplanarPoint(this.world, normales[axis], centro);
-    await this.fragments.core.update(true);
+    await this.refresh();
   }
 
   /**
@@ -1845,7 +1916,7 @@ export class BimViewer {
     const clipper = this.components.get(OBC.Clipper);
     clipper.deleteAll();
     clipper.enabled = false;
-    await this.fragments.core.update(true);
+    await this.refresh();
   }
 
   /**
@@ -1898,6 +1969,7 @@ export class BimViewer {
     this.tools.angle.list.clear();
     this.tools.area.list.clear();
     this.drawn.length = 0;
+    this.visualesPendientes = [];
     this.emitMeasurement(null);
   }
 
@@ -1914,7 +1986,7 @@ export class BimViewer {
     if (!model) return;
 
     await model.setVisible([...localIds], visible);
-    await this.fragments.core.update(true);
+    await this.refresh();
   }
 
   /**
@@ -1931,7 +2003,7 @@ export class BimViewer {
       await model.setVisible(undefined, false);
       if (id === modelId) await model.setVisible([...localIds], true);
     }
-    await this.fragments.core.update(true);
+    await this.refresh();
   }
 
   /**
@@ -1949,7 +2021,7 @@ export class BimViewer {
     if (!model) return;
 
     await model.setVisible(undefined, visible);
-    await this.fragments.core.update(true);
+    await this.refresh();
   }
 
   /**
@@ -1979,7 +2051,7 @@ export class BimViewer {
 
     this.unitsByModel.delete(modelId);
     this.modelCount = Math.max(0, this.modelCount - 1);
-    if (this.modelCount > 0) await this.fragments.core.update(true);
+    if (this.modelCount > 0) await this.refresh();
   }
 
   /** Vuelve a mostrar todo. */
@@ -1989,7 +2061,7 @@ export class BimViewer {
     for (const [, model] of this.fragments.list) {
       await model.setVisible(undefined, true);
     }
-    await this.fragments.core.update(true);
+    await this.refresh();
   }
 
   /**
@@ -2042,7 +2114,7 @@ export class BimViewer {
     const controls = this.world.camera.controls;
     void controls.fitToBox(box, false);
     controls.update(ONE_FRAME_S);
-    await this.fragments.core.update(true);
+    await this.refresh();
     return true;
   }
 

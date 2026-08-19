@@ -91,6 +91,9 @@ function ModelRow({
 }) {
   const [abierto, setAbierto] = useState(false);
 
+  // Cuántos elementos declara el archivo y no llegaron. Es la cifra que hay que ver de entrada.
+  const sinCargar = loaded.metrics.missingClasses.reduce((suma, clase) => suma + clase.count, 0);
+
   return (
     <article className="group rounded-md hover:bg-white/5">
       <div className="flex items-center gap-1 px-1 py-1">
@@ -138,6 +141,17 @@ function ModelRow({
         >
           <IconArrowDown className="h-3.5 w-3.5" />
         </button>
+
+        {/* El aviso de geometría que falta se ve **sin desplegar la fila**: era lo más importante
+            del panel y estaba escondido tras un clic que nadie tenía por qué dar. */}
+        {sinCargar > 0 && (
+          <span
+            className="shrink-0 rounded bg-amber-500/20 px-1 text-[10px] text-amber-300 tabular-nums"
+            title={`${sinCargar} elementos que el archivo declara y no se cargaron. Despliega la fila para ver de qué clases.`}
+          >
+            ⚠ {sinCargar}
+          </span>
+        )}
 
         <span className="shrink-0 text-white/30" aria-hidden="true">
           {abierto ? (

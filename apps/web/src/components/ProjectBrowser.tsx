@@ -68,7 +68,9 @@ export function ProjectBrowser({
 
       {cotas.length > 0 && (
         <Seccion
-          titulo={`Cotas dibujadas (${cotas.length})`}
+          // "Cotas dibujadas" era jerga y además decía menos de lo que la lista hace: acá están las
+          // mediciones tomadas, con su valor, y se pueden apagar o borrar una por una.
+          titulo={`Mediciones tomadas (${cotas.length})`}
           abierta={abiertas.has("cotas")}
           onAlternar={() => alternar("cotas")}
         >
@@ -165,8 +167,8 @@ function CotaEnLista({
         type="button"
         onClick={() => onToggle(cota.id, !cota.visible)}
         className={cota.visible ? "text-brand" : "text-white/30 hover:text-white/60"}
-        title={cota.visible ? "Apagar esta cota" : "Encender esta cota"}
-        aria-label={cota.visible ? "Apagar esta cota" : "Encender esta cota"}
+        title={cota.visible ? "Apagar esta medición" : "Encender esta medición"}
+        aria-label={cota.visible ? "Apagar esta medición" : "Encender esta medición"}
         aria-pressed={cota.visible}
       >
         {cota.visible ? <IconEye className="h-4 w-4" /> : <IconEyeOff className="h-4 w-4" />}
@@ -187,8 +189,8 @@ function CotaEnLista({
         type="button"
         onClick={() => onDelete(cota.id)}
         className="text-white/30 opacity-0 group-hover:opacity-100 hover:text-red-400"
-        title="Borrar esta cota"
-        aria-label="Borrar esta cota"
+        title="Borrar esta medición"
+        aria-label="Borrar esta medición"
       >
         <IconX className="h-3.5 w-3.5" />
       </button>

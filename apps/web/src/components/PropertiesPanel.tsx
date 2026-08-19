@@ -128,6 +128,10 @@ function PropertyRow({ property }: { readonly property: PropertyValue }) {
       value={property.value}
       unit={property.unit}
       unitInferred={property.unitInferred}
+      // El tipo con que el archivo declara el valor va en el tooltip: es lo que explica por qué un
+      // número lleva unidad o no la lleva. Un `IFCREAL` no dice de qué magnitud es; un `IFCLABEL`
+      // es texto aunque parezca un número.
+      ifcType={property.ifcType}
     />
   );
 }
@@ -137,6 +141,7 @@ function Row({
   value,
   unit = null,
   unitInferred = false,
+  ifcType = null,
   mono = false,
   muted = false,
 }: {
@@ -144,9 +149,17 @@ function Row({
   readonly value: string;
   readonly unit?: string | null;
   readonly unitInferred?: boolean;
+  readonly ifcType?: string | null;
   readonly mono?: boolean;
   readonly muted?: boolean;
 }) {
+  const conUnidad = unit === null ? value : `${value} ${unit}`;
+  const explicacion =
+    ifcType === null
+      ? conUnidad
+      : `${conUnidad}\nel archivo lo declara como ${ifcType}` +
+        (unit === null ? ", que no dice de qué magnitud es" : "");
+
   return (
     <div className="flex justify-between gap-3">
       <dt className="shrink-0 text-white/50">{label}</dt>
@@ -156,7 +169,7 @@ function Row({
           mono ? "font-mono select-all" : "",
           muted ? "text-white/40 italic" : "text-white/90",
         ].join(" ")}
-        title={unit === null ? value : `${value} ${unit}`}
+        title={explicacion}
       >
         {value}
         {unit !== null && (
