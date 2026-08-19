@@ -325,23 +325,33 @@ convertiría un modelo en milímetros en uno en metros.
 
 ### `F1.8` la barra de herramientas y el panel lateral (2026-08-19)
 
-La barra de abajo tenía catorce botones en fila, dos llamados "Planta" y ningún icono. Ahora:
+La barra de abajo tenía catorce botones en fila, dos llamados "Planta" y ningún icono. La
+distribución se rehízo **tomando como referencia Revit y los modeladores de Bentley**, que es de
+donde vienen quienes van a usar esto (petición del usuario, con capturas de OpenPlant y de Revit):
 
-- **Una columna fija de iconos a la izquierda**, uno por familia, que **se puede ampliar** para ver
-  el nombre de cada una escrito. Un icono solo es rápido para quien ya conoce la herramienta; el
-  nombre al lado es lo que la hace usable la primera vez.
-- **Un solo panel lateral** que comparten el árbol, los modelos y las herramientas. Antes el árbol
-  era una columna fija y los modelos flotaban tapando una esquina del modelo: entre los dos se
-  comían un tercio de la pantalla incluso sin usarse. Pulsar la herramienta abierta lo cierra y
-  deja el lienzo completo.
-- **Un punto en el icono** avisa de que la familia tiene algo activo: un corte puesto, la vista
-  fantasma, una medición en curso. Por eso se sabe dónde ir a deshacerlo.
-- La ambigüedad de nombres desaparece porque las opciones van escritas: "Desplazar en planta" está
-  en Navegación y "Corte horizontal" en Cortes.
+| Dónde         | Qué                                                                                    |
+| ------------- | -------------------------------------------------------------------------------------- |
+| **Arriba**    | Cinta con pestañas —Vista, Medición, Modelo— y grupos rotulados al pie                 |
+| **Izquierda** | Propiedades del elemento seleccionado, siempre presente                                |
+| **Derecha**   | Navegador del proyecto: estructura, modelos abiertos y cotas, plegables                |
+| **Centro**    | El modelo, sin nada flotando encima                                                    |
+| **Al pie**    | Barra de estado: qué hace el próximo clic, el resultado de la medida y qué hay abierto |
 
-**Referencia pendiente:** el usuario pide tomar la distribución de Bentley OpenPlant como base
-visual —cinta superior con grupos rotulados, rejilla en el entorno—. Queda como paso de diseño
-sobre esta estructura, no como otra reorganización.
+Las cuatro decisiones que resuelven el problema original:
+
+- **Cada herramienta lleva su nombre debajo del icono**, y cada grupo el nombre del grupo. Con
+  iconos solos hay que aprenderse la barra antes de poder usarla. La ambigüedad de "Planta"
+  desaparece: una es "Desplazar" en Navegación y la otra "Horizontal" en Cortes.
+- **Las pestañas mantienen la cinta en una fila.** Sin ellas serían veinte botones a la vez, que es
+  el mismo desorden de antes en horizontal.
+- **Nada flota sobre el modelo.** Las propiedades y los modelos vivían encima del lienzo tapando
+  justo la esquina que se quería ver; ahora son paneles fijos, y los dos se pliegan desde la cinta.
+- **El aviso de la herramienta está al pie**, en un sitio fijo, que es donde alguien que viene de
+  Revit ya mira para saber qué está haciendo la herramienta.
+
+**Pendiente de la referencia:** la rejilla del entorno y el fondo claro de esos programas. El fondo
+oscuro es el de la familia AeroBim y no se cambia sin decidirlo; la rejilla sí encaja y queda como
+mejora de la escena.
 
 ### `F1.5` la gestión de varios modelos (2026-08-19)
 

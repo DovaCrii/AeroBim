@@ -52,14 +52,8 @@ export function ModelsPanel({
 }) {
   return (
     // Vivía flotando sobre el modelo, arriba a la derecha, y tapaba justo la esquina que uno
-    // quiere ver. Ahora comparte el panel lateral con el árbol y las herramientas.
+    // quiere ver. Ahora es una sección del navegador del proyecto, que pone el título y el plegado.
     <div className="flex h-full min-h-0 flex-col">
-      <header className="border-b border-white/10 px-3 py-2">
-        <h2 className="text-xs font-semibold tracking-wide text-white/70 uppercase">
-          Modelos abiertos ({models.length})
-        </h2>
-      </header>
-
       <div className="min-h-0 flex-1 overflow-y-auto p-1.5">
         {models.map((loaded, index) => (
           <ModelRow

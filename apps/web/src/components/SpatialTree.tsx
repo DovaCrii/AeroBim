@@ -12,7 +12,6 @@ export function SpatialTree({
   hidden,
   onIsolate,
   onToggleVisible,
-  onShowAll,
 }: {
   readonly trees: readonly ModelTree[];
   /**
@@ -25,26 +24,11 @@ export function SpatialTree({
   readonly hidden: ReadonlySet<string>;
   readonly onIsolate: (modelId: string, localIds: readonly number[]) => void;
   readonly onToggleVisible: (node: SpatialNode, modelId: string, visible: boolean) => void;
-  readonly onShowAll: () => void;
 }) {
   return (
-    // El ancho y el borde los pone el panel lateral que lo contiene: este componente solo dibuja
-    // su contenido, y así el mismo sitio lo comparten el árbol, los modelos y las herramientas.
+    // Sin cabecera propia: el título y el plegado los pone la sección del navegador que lo contiene,
+    // y "Ver todo" vive en la cinta, con el resto de lo que cambia la visibilidad.
     <div className="flex h-full min-h-0 flex-col">
-      <header className="flex items-center gap-2 border-b border-white/10 px-3 py-2">
-        <h2 className="flex-1 text-xs font-semibold tracking-wide text-white/70 uppercase">
-          Estructura
-        </h2>
-        <button
-          type="button"
-          onClick={onShowAll}
-          className="rounded border border-white/15 px-2 py-0.5 text-xs text-white/70 hover:bg-white/10"
-          title="Volver a mostrar todo"
-        >
-          Ver todo
-        </button>
-      </header>
-
       <div className="min-h-0 flex-1 overflow-y-auto py-1">
         {trees.map((tree) => (
           <Node

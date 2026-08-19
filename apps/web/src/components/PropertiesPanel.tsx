@@ -15,15 +15,35 @@ export function PropertiesPanel({
   item,
   onClose,
 }: {
-  readonly item: PickedItem;
+  /** El elemento seleccionado, o `null` cuando no hay ninguno. */
+  readonly item: PickedItem | null;
   readonly onClose: () => void;
 }) {
+  // El panel **está siempre**, como en Revit: es un sitio fijo de la pantalla, y en cuanto se
+  // selecciona algo se llena. Antes aparecía y desaparecía flotando sobre el modelo, lo que movía la
+  // vista y tapaba justo la esquina que se estaba mirando.
+  if (item === null) {
+    return (
+      <div className="flex h-full min-h-0 flex-col">
+        <header className="border-b border-white/10 px-3 py-2">
+          <h2 className="text-[11px] font-semibold tracking-wide text-white/60 uppercase">
+            Propiedades
+          </h2>
+        </header>
+        <p className="p-3 text-xs leading-snug text-white/35">
+          Selecciona un elemento del modelo para ver su categoría, su GUID y sus propiedades, cada
+          número con la unidad que declara el archivo.
+        </p>
+      </div>
+    );
+  }
+
   const hayInferidas = [...item.attributes, ...item.groups.flatMap((g) => g.properties)].some(
     (propiedad) => propiedad.unitInferred,
   );
 
   return (
-    <aside className="absolute top-4 left-4 flex max-h-[calc(100%-2rem)] w-80 flex-col rounded-lg border border-white/10 bg-ink/90 backdrop-blur">
+    <div className="flex h-full min-h-0 flex-col">
       <header className="flex items-start gap-2 border-b border-white/10 p-3">
         <div className="min-w-0 flex-1">
           <p className="truncate text-xs font-semibold tracking-wide text-brand uppercase">
@@ -37,7 +57,8 @@ export function PropertiesPanel({
           type="button"
           onClick={onClose}
           className="rounded px-1.5 text-white/50 hover:bg-white/10 hover:text-white"
-          aria-label="Cerrar propiedades"
+          aria-label="Quitar la selección"
+          title="Quitar la selección"
         >
           ×
         </button>
@@ -95,7 +116,7 @@ export function PropertiesPanel({
           </p>
         )}
       </div>
-    </aside>
+    </div>
   );
 }
 

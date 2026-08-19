@@ -17,9 +17,11 @@ import {
 } from "@aerobim/viewer";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ModelsPanel } from "./components/ModelsPanel.js";
+import { ProjectBrowser } from "./components/ProjectBrowser.js";
 import { PropertiesPanel } from "./components/PropertiesPanel.js";
+import { Ribbon, type RibbonTab } from "./components/Ribbon.js";
 import { SpatialTree } from "./components/SpatialTree.js";
-import { ToolPanel, ToolRail, type PanelId } from "./components/ToolRail.js";
+import { StatusBar } from "./components/StatusBar.js";
 
 type Status =
   | { readonly kind: "starting" }
@@ -81,15 +83,15 @@ export function App() {
   /** Modelos apagados enteros, por identificador. Ver el panel de modelos. */
   const [hiddenModels, setHiddenModels] = useState<ReadonlySet<string>>(new Set());
   /**
-   * Qué muestra el panel lateral, o `null` si está cerrado.
+   * La pestaña abierta de la cinta.
    *
-   * **Uno a la vez, y en el mismo sitio.** Antes el árbol ocupaba una columna fija y los modelos
-   * flotaban sobre la esquina del modelo; entre los dos se comían un tercio de la pantalla incluso
-   * cuando no se estaban usando.
+   * **La distribución sigue a Revit y a los modeladores de Bentley**, que es de donde vienen quienes
+   * van a usar esto: cinta arriba con pestañas y grupos rotulados, propiedades a la izquierda,
+   * navegador del proyecto a la derecha, barra de estado al pie y el modelo en el centro.
    */
-  const [panel, setPanel] = useState<PanelId | null>(null);
-  /** `true` cuando la columna de herramientas muestra el nombre de cada una, no solo el icono. */
-  const [railExpanded, setRailExpanded] = useState(false);
+  const [tab, setTab] = useState<RibbonTab>("vista");
+  const [panelIzquierdo, setPanelIzquierdo] = useState(true);
+  const [panelDerecho, setPanelDerecho] = useState(true);
 
   useEffect(() => {
     const host = canvasHost.current;
@@ -140,9 +142,6 @@ export function App() {
       setModels((current) => [...current, loaded]);
       setTrees(await instance.getSpatialTrees());
       setStatus({ kind: "ready" });
-      // Al abrir el primer modelo se muestra su estructura: es lo primero que alguien quiere
-      // recorrer, y deja a la vista que el panel lateral existe.
-      setPanel((actual) => actual ?? "structure");
 
       // El árbol aparece recién ahora y estrecha el lienzo, así que el encuadre que hizo
       // `loadIfc` se queda corto y el modelo sale cortado. Se reencuadra una vez que el
@@ -399,71 +398,45 @@ export function App() {
         </div>
       </header>
 
-      <div className="flex min-h-0 flex-1 overflow-hidden">
-        <ToolRail
-          enabled={models.length > 0}
-          active={panel}
-          expanded={railExpanded}
-          projection={projection}
-          navigation={navigation}
-          style={style}
-          measureMode={measureMode}
-          hasSections={hasSections}
-          hasModels={models.length > 0}
-          measurementCount={measurementCount}
-          // Pulsar la herramienta abierta cierra el panel: es la forma de recuperar la pantalla
-          // entera sin buscar un botón de cerrar.
-          onSelect={(siguiente) => setPanel((actual) => (actual === siguiente ? null : siguiente))}
-          onToggleExpanded={() => setRailExpanded((actual) => !actual)}
-          onFrameAll={() => void viewer.current?.frameAll()}
-        />
+      <Ribbon
+        tab={tab}
+        enabled={models.length > 0}
+        projection={projection}
+        navigation={navigation}
+        style={style}
+        measureMode={measureMode}
+        snapMode={snapMode}
+        distanceMode={distanceMode}
+        hasSections={hasSections}
+        hasSelection={selected !== null}
+        measurementCount={measurementCount}
+        onTab={setTab}
+        onFrameAll={() => void viewer.current?.frameAll()}
+        onView={(view: StandardView) => void viewer.current?.frameAll(view)}
+        onFrameSelection={() => void viewer.current?.frameSelection()}
+        onProjection={onProjection}
+        onNavigation={onNavigation}
+        onStyle={onStyle}
+        onMeasureMode={onMeasureMode}
+        onSnapMode={onSnapMode}
+        onDistanceMode={onDistanceMode}
+        onFinishMeasurement={() => viewer.current?.finishMeasurement()}
+        onClearMeasurements={onClearMeasurements}
+        onSection={onSection}
+        onClearSections={onClearSections}
+        onShowAll={onShowAll}
+        onTogglePanel={(lado) => {
+          if (lado === "izquierda") setPanelIzquierdo((actual) => !actual);
+          else setPanelDerecho((actual) => !actual);
+        }}
+        panelIzquierdo={panelIzquierdo}
+        panelDerecho={panelDerecho}
+      />
 
-        {panel !== null && (
-          <aside className="w-72 shrink-0 border-r border-white/10 bg-ink/60">
-            {panel === "structure" ? (
-              <SpatialTree
-                trees={orderedTrees}
-                hidden={hidden}
-                onIsolate={onIsolateNode}
-                onToggleVisible={onToggleVisible}
-                onShowAll={onShowAll}
-              />
-            ) : panel === "models" ? (
-              <ModelsPanel
-                models={models}
-                hidden={hiddenModels}
-                onToggleVisible={onToggleModel}
-                onMove={onMoveModel}
-                onClose={onCloseModel}
-              />
-            ) : (
-              <ToolPanel
-                panel={panel}
-                projection={projection}
-                navigation={navigation}
-                style={style}
-                measureMode={measureMode}
-                snapMode={snapMode}
-                distanceMode={distanceMode}
-                drawn={drawn}
-                hasSections={hasSections}
-                hasSelection={selected !== null}
-                onView={(view: StandardView) => void viewer.current?.frameAll(view)}
-                onFrameSelection={() => void viewer.current?.frameSelection()}
-                onProjection={onProjection}
-                onNavigation={onNavigation}
-                onStyle={onStyle}
-                onMeasureMode={onMeasureMode}
-                onSnapMode={onSnapMode}
-                onDistanceMode={onDistanceMode}
-                onToggleMeasurement={onToggleMeasurement}
-                onDeleteMeasurement={onDeleteMeasurement}
-                onSection={onSection}
-                onClearSections={onClearSections}
-                onFinishMeasurement={() => viewer.current?.finishMeasurement()}
-                onClearMeasurements={onClearMeasurements}
-              />
-            )}
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        {panelIzquierdo && (
+          <aside className="w-72 shrink-0 border-r border-white/10 bg-ink/50">
+            <PropertiesPanel item={selected} onClose={closeProperties} />
           </aside>
         )}
 
@@ -504,26 +477,52 @@ export function App() {
               </p>
             </div>
           )}
-
-          {models.length > 0 && (
-            <div className="pointer-events-none absolute top-3 left-1/2 flex -translate-x-1/2 flex-col items-center gap-1">
-              {measureMode !== null ? (
-                <MeasureHud mode={measureMode} points={measurePoints} measurement={measurement} />
-              ) : (
-                <p className="rounded-md bg-ink/80 px-2.5 py-1 text-xs text-white/60">
-                  {selected === null
-                    ? "Clic en un elemento para ver sus propiedades · doble clic para acercarse"
-                    : `Seleccionado: ${selected.category ?? "elemento"}${
-                        selected.name === null ? "" : ` · ${selected.name}`
-                      } — doble clic para encuadrarlo`}
-                </p>
-              )}
-            </div>
-          )}
-
-          {selected !== null && <PropertiesPanel item={selected} onClose={closeProperties} />}
         </div>
+
+        {panelDerecho && (
+          <aside className="w-72 shrink-0 border-l border-white/10 bg-ink/50">
+            <ProjectBrowser
+              cotas={drawn}
+              onToggleMeasurement={onToggleMeasurement}
+              onDeleteMeasurement={onDeleteMeasurement}
+              estructura={
+                orderedTrees.length === 0 ? (
+                  <p className="p-3 text-xs text-white/35">Todavía no hay ningún modelo abierto.</p>
+                ) : (
+                  <SpatialTree
+                    trees={orderedTrees}
+                    hidden={hidden}
+                    onIsolate={onIsolateNode}
+                    onToggleVisible={onToggleVisible}
+                  />
+                )
+              }
+              modelos={
+                models.length === 0 ? (
+                  <p className="p-3 text-xs text-white/35">Ninguno.</p>
+                ) : (
+                  <ModelsPanel
+                    models={models}
+                    hidden={hiddenModels}
+                    onToggleVisible={onToggleModel}
+                    onMove={onMoveModel}
+                    onClose={onCloseModel}
+                  />
+                )
+              }
+            />
+          </aside>
+        )}
       </div>
+
+      <StatusBar
+        measureMode={measureMode}
+        measurePoints={measurePoints}
+        measurement={measurement}
+        selected={selected}
+        modelCount={models.length}
+        measurementCount={measurementCount}
+      />
     </div>
   );
 }
@@ -543,99 +542,6 @@ function StatusBadge({ status }: { readonly status: Status }) {
     );
   }
   return <span className="text-xs text-white/40">Listo</span>;
-}
-
-/**
- * El aviso de la medición: qué falta para completarla, y el resultado cuando ya está.
- *
- * **Las tres distancias van separadas y con su nombre.** Entre dos puntos de una rampa la directa,
- * la de planta y el desnivel son tres números distintos, y en obra se usa uno o otro según para
- * qué: la horizontal para replantear, el desnivel para una cota. Un solo número obliga a adivinar
- * cuál se está leyendo — ver `distancePartsM` en `bim-core`.
- */
-function MeasureHud({
-  mode,
-  points,
-  measurement,
-}: {
-  readonly mode: MeasureMode;
-  readonly points: number;
-  readonly measurement: Measurement | null;
-}) {
-  if (measurement === null) {
-    return (
-      <p className="rounded-md bg-ink/80 px-2.5 py-1 text-xs text-brand">
-        {instruccion(mode, points)}
-      </p>
-    );
-  }
-
-  if (measurement.mode === "distance") {
-    return (
-      <div className="flex items-center gap-3 rounded-md bg-ink/85 px-3 py-1.5 text-xs">
-        <Magnitud etiqueta="Directa" valor={`${measurement.distanceM.toFixed(3)} m`} destacada />
-        <Magnitud etiqueta="En planta" valor={`${measurement.horizontalM.toFixed(3)} m`} />
-        <Magnitud etiqueta="Desnivel" valor={`${measurement.verticalM.toFixed(3)} m`} />
-        <span className="text-white/40">clic para medir de nuevo</span>
-      </div>
-    );
-  }
-
-  if (measurement.mode === "angle") {
-    return (
-      <div className="flex items-center gap-3 rounded-md bg-ink/85 px-3 py-1.5 text-xs">
-        <Magnitud etiqueta="Ángulo" valor={`${measurement.angleDeg.toFixed(1)}°`} destacada />
-        <span className="text-white/40">clic para medir de nuevo</span>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex items-center gap-3 rounded-md bg-ink/85 px-3 py-1.5 text-xs">
-      <Magnitud etiqueta="Área" valor={`${measurement.areaM2.toFixed(2)} m²`} destacada />
-      <Magnitud etiqueta="Perímetro" valor={`${measurement.perimeterM.toFixed(2)} m`} />
-      <Magnitud etiqueta="Vértices" valor={String(measurement.vertices)} />
-    </div>
-  );
-}
-
-/** Una magnitud con su nombre encima, para que no haya que deducir qué es cada número. */
-function Magnitud({
-  etiqueta,
-  valor,
-  destacada = false,
-}: {
-  readonly etiqueta: string;
-  readonly valor: string;
-  readonly destacada?: boolean;
-}) {
-  return (
-    <span className="flex flex-col items-start leading-tight">
-      <span className="text-[10px] tracking-wide text-white/40 uppercase">{etiqueta}</span>
-      <span className={destacada ? "font-mono text-brand" : "font-mono text-white/80"}>
-        {valor}
-      </span>
-    </span>
-  );
-}
-
-/**
- * Qué falta para completar la medida.
- *
- * Cuenta los puntos ya puestos: un texto que no cambia después de cada clic no deja saber si el
- * clic entró, y eso es exactamente lo que hacía pensar que la medición no funcionaba.
- */
-function instruccion(mode: MeasureMode, points: number): string {
-  if (mode === "distance") {
-    return points === 0 ? "Clic en el primer punto" : "Clic en el segundo punto";
-  }
-  if (mode === "angle") {
-    if (points === 0) return "Clic en el primer punto";
-    if (points === 1) return "Clic en el vértice del ángulo";
-    return "Clic en el tercer punto";
-  }
-  if (points < 3) return `Contorno del área: ${points} de 3 puntos mínimos`;
-  return `Contorno del área: ${points} puntos — Enter o doble clic para cerrarlo`;
 }
 
 /** Mensaje legible sin exponer la traza cruda. */
