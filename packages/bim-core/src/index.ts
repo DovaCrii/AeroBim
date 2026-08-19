@@ -40,6 +40,8 @@ export { NO_IFC_UNITS, parseIfcUnits, type IfcUnitKind, type IfcUnits } from "./
 
 export {
   countIfcEntities,
+  emptyElementClasses,
+  isElementClass,
   missingElementClasses,
   type MissingClass,
 } from "./inspect/ifcClasses.js";

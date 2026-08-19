@@ -180,32 +180,49 @@ function ModelRow({
       )}
 
       {abierto && loaded.metrics.missingClasses.length > 0 && (
-        <FaltaGeometria clases={loaded.metrics.missingClasses} />
+        <FaltaGeometria
+          titulo="Elementos del archivo que no se cargaron"
+          explicacion="El archivo los declara y no están ni en el árbol. O su clase no está entre las que procesa el conversor, o su geometría no se pudo construir — comprobado: cuando no puede, descarta el elemento entero."
+          clases={loaded.metrics.missingClasses}
+        />
+      )}
+
+      {abierto && loaded.metrics.emptyClasses.length > 0 && (
+        <FaltaGeometria
+          titulo="Elementos cargados sin dibujar"
+          explicacion="Existen en el árbol y traen sus propiedades, pero no se dibujan. Es el caso raro: lo normal es que el conversor los descarte del todo."
+          clases={loaded.metrics.emptyClasses}
+        />
       )}
     </article>
   );
 }
 
 /**
- * Aviso de que el archivo trae clases de elemento que el visor no cargó.
+ * Aviso de geometría que no está en pantalla, en sus dos formas.
  *
  * **Es el aviso más importante de este panel.** Un visor que abre un modelo sin fallar y muestra la
- * mitad es peor que uno que falla: nadie sospecha del que no se queja. Esta lista dice qué clases
- * declara el archivo, cuántas hay de cada una y que no están en pantalla, para que la comparación
- * con otro visor no dependa de la memoria de nadie.
+ * mitad es peor que uno que falla: nadie sospecha del que no se queja. Y los dos casos —la clase que
+ * el conversor no procesa y el elemento cuya malla no se pudo generar— se ven igual en pantalla pero
+ * se arreglan de forma distinta, así que se informan por separado.
  */
-function FaltaGeometria({ clases }: { readonly clases: readonly MissingClass[] }) {
+function FaltaGeometria({
+  titulo,
+  explicacion,
+  clases,
+}: {
+  readonly titulo: string;
+  readonly explicacion: string;
+  readonly clases: readonly MissingClass[];
+}) {
   const total = clases.reduce((suma, clase) => suma + clase.count, 0);
 
   return (
     <section className="mx-2 mb-2 rounded-md border border-amber-500/30 bg-amber-500/5 p-2">
       <h4 className="text-[11px] font-semibold text-amber-300/90">
-        Falta geometría: {total.toLocaleString("es-CL")} elementos sin cargar
+        {titulo}: {total.toLocaleString("es-CL")}
       </h4>
-      <p className="mt-0.5 mb-1 text-[11px] leading-snug text-white/45">
-        El archivo declara estas clases y el visor no las trajo. Es una limitación del conversor, no
-        del archivo.
-      </p>
+      <p className="mt-0.5 mb-1 text-[11px] leading-snug text-white/45">{explicacion}</p>
       <ul className="space-y-0.5 text-[11px]">
         {clases.slice(0, 8).map((clase) => (
           <li key={clase.ifcClass} className="flex justify-between gap-2">

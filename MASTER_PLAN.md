@@ -263,11 +263,30 @@ lista de clases y su número. La comparación filtra geometría, relaciones, pro
 no son elementos; una clase desconocida se informa, porque en un diagnóstico un falso positivo se
 descarta leyendo su nombre y un falso negativo esconde justo lo que se busca.
 
-**Lo que falta:** leer ese aviso sobre el modelo real y, con la lista en mano, decidir el arreglo.
-Si son clases ausentes de `importer.classes.elements`, se añaden —es una línea por clase, con las
-constantes numéricas de `web-ifc`—. Si están en el conjunto y aun así no llegan, el problema es de
-`web-ifc` con esas representaciones geométricas (B-reps avanzados, barridos por trayectoria) y hay
-que medirlo antes de prometer nada.
+#### Lo que se averiguó del conversor, con un fixture propio (2026-08-19)
+
+Dos cosas concretas, y las dos cambian el diagnóstico:
+
+1. **El conjunto de clases del importador no es el problema.** Se leyó
+   `ifcClasses.elements` de `@thatopen/fragments`: son unas 140 clases e **incluyen** tubería,
+   fittings, segmentos de flujo, elementos de distribución, ensamblajes y el proxy genérico. Lo que
+   exporta un modelador de planta está ahí. La única exclusión deliberada visible es
+   `IFCOPENINGELEMENT`, comentada, que es correcta —un vano es un hueco, no un elemento—.
+2. **Cuando el conversor no puede construir la geometría de un elemento, descarta el elemento
+   entero.** No lo deja en el árbol sin dibujar: no lo importa. Verificado con
+   `elemento-sin-geometria.ifc`, un fixture con un muro con geometría y un `IFCPIPESEGMENT` sin
+   representación: el muro entra, la tubería **no aparece ni en el árbol ni entre las categorías**, y
+   el aviso del visor la señala.
+
+Por eso el aviso dice las dos causas posibles sin elegir una, y por eso el contador de "elementos
+cargados sin dibujar" existe pero casi siempre estará en cero: es el caso raro.
+
+**Lo que falta:** leer ese aviso sobre el modelo real de 32,7 MB. La lista de clases dirá si lo que
+falta es una clase concreta —entonces se añade al importador— o si son clases que sí están, y
+entonces el problema es de `web-ifc` con esas representaciones. En ese caso las palancas, por orden
+de coste: `importer.webIfcSettings` (`MEMORY_LIMIT`, `CIRCLE_SEGMENTS`, las tolerancias de
+intersección de planos), subir la versión de `web-ifc`, o convertir ese modelo con IfcOpenShell en la
+Fase 3. **Nada de eso se toca a ciegas.**
 
 ### `F1.4` las mediciones, rehechas con los componentes de la librería (2026-08-19)
 

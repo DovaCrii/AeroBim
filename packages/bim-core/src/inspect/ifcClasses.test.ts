@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { countIfcEntities, missingElementClasses } from "./ifcClasses.js";
+import {
+  countIfcEntities,
+  emptyElementClasses,
+  isElementClass,
+  missingElementClasses,
+} from "./ifcClasses.js";
 
 /**
  * El oráculo es el propio archivo: se escribe un IFC con clases conocidas y se comprueba que el
@@ -71,5 +76,54 @@ describe("missingElementClasses", () => {
   it("no señala nada cuando el visor cargó todo lo que había", () => {
     const cargadas = ["IFCBEAM", "IFCPIPESEGMENT", "IFCMECHANICALFASTENER"];
     expect(missingElementClasses(countIfcEntities(IFC), cargadas)).toEqual([]);
+  });
+});
+
+describe("isElementClass", () => {
+  it("reconoce como elemento lo que se dibuja", () => {
+    expect(isElementClass("IFCBEAM")).toBe(true);
+    expect(isElementClass("IFCPIPESEGMENT")).toBe(true);
+    expect(isElementClass("IFCBUILDINGELEMENTPROXY")).toBe(true);
+    // Una clase que no está en ninguna tabla se da por elemento, que es el lado seguro del error.
+    expect(isElementClass("IFCCLASEQUENOEXISTE")).toBe(true);
+  });
+
+  it("descarta lo que sostiene el modelo pero no se ve", () => {
+    expect(isElementClass("IFCCARTESIANPOINT")).toBe(false);
+    expect(isElementClass("IFCPROPERTYSET")).toBe(false);
+    expect(isElementClass("IFCBEAMTYPE")).toBe(false);
+    expect(isElementClass("IFCBUILDINGSTOREY")).toBe(false);
+    expect(isElementClass("NOEMPIEZAPORIFC")).toBe(false);
+  });
+});
+
+describe("emptyElementClasses", () => {
+  it("cuenta por clase los elementos que se cargaron sin geometría", () => {
+    // Es el otro caso de geometría que falta: el elemento existe, se puede seleccionar y tiene sus
+    // propiedades, pero no se dibuja porque el motor no pudo generar su malla.
+    const sinGeometria = [
+      "IFCPIPESEGMENT",
+      "IFCPIPESEGMENT",
+      "IFCBUILDINGELEMENTPROXY",
+      "IFCPIPESEGMENT",
+    ];
+
+    expect(emptyElementClasses(sinGeometria)).toEqual([
+      { ifcClass: "IFCPIPESEGMENT", count: 3 },
+      { ifcClass: "IFCBUILDINGELEMENTPROXY", count: 1 },
+    ]);
+  });
+
+  it("ignora lo que nunca tuvo geometría: psets, materiales, unidades y el armazón", () => {
+    const sinGeometria = [
+      "IFCPROPERTYSET",
+      "IFCMATERIAL",
+      "IFCSIUNIT",
+      "IFCBUILDINGSTOREY",
+      "IFCBEAMTYPE",
+      null,
+    ];
+
+    expect(emptyElementClasses(sinGeometria)).toEqual([]);
   });
 });

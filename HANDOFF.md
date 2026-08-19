@@ -15,23 +15,32 @@
 > tuberías, maquinaria—. No hay error ni aviso: el visor abre el modelo, informa 839
 > elementos con geometría y muestra la mitad.
 >
-> **Por qué no se notaba.** `IfcImporter` solo procesa las clases IFC que tiene en
-> `importer.classes.elements`. Una clase que no esté ahí **no entra ni al árbol**, así que
-> ningún contador interno la echa de menos. Un modelo de arquitectura no delata el problema;
-> una planta industrial sí.
+> **Por qué no se notaba.** Cuando el conversor no puede con un elemento **no lo deja en el
+> árbol sin dibujar: no lo importa**. Así que ningún contador interno lo echa de menos, y el
+> hueco solo se ve comparando contra el archivo. Verificado con un fixture propio,
+> `elemento-sin-geometria.ifc`.
+>
+> **Dos cosas ya descartadas o confirmadas:**
+>
+> - El conjunto de clases del importador (`ifcClasses.elements` de `@thatopen/fragments`) tiene
+>   unas 140 clases e **incluye** tubería, fittings, segmentos de flujo, elementos de
+>   distribución y el proxy genérico. Lo que exporta un modelador de planta está ahí, así que
+>   **probablemente no es la causa**.
+> - Un elemento sin geometría utilizable se descarta entero. Comprobado.
 >
 > **Ya está instrumentado:** el visor cuenta las clases del archivo antes de convertir, las
-> compara con las categorías cargadas y lo avisa en el panel de modelos —_"Falta geometría:
-> N elementos sin cargar"_ con la lista de clases y su número—.
+> compara con las categorías cargadas y lo avisa en el panel de modelos —_"Elementos del
+> archivo que no se cargaron: N"_ con la lista de clases y su número—.
 >
-> **El paso siguiente es leer ese aviso sobre el modelo real** (abrirlo, desplegar la fila
-> del modelo en el navegador de la derecha) y, con la lista de clases en mano, decidir:
+> **El paso siguiente es leer ese aviso sobre el modelo real de 32,7 MB**: abrirlo y desplegar
+> su fila en el navegador de la derecha. Según lo que diga la lista:
 >
-> - si son clases ausentes de `importer.classes.elements`, se añaden con las constantes
->   numéricas de `web-ifc` — una línea por clase;
-> - si están en el conjunto y aun así no llegan, el problema es de `web-ifc` con esas
->   representaciones (B-reps avanzados, barridos por trayectoria) y hay que medirlo antes de
->   prometer nada.
+> - una clase concreta ausente → se añade a `importer.classes.elements` con la constante de
+>   `web-ifc`, una línea;
+> - clases que sí están en el conjunto → es `web-ifc` con esas representaciones. Palancas por
+>   orden de coste: `importer.webIfcSettings` (`MEMORY_LIMIT`, `CIRCLE_SEGMENTS`, tolerancias de
+>   intersección), subir `web-ifc`, o convertir ese modelo con IfcOpenShell en la Fase 3.
+>   **Ninguna se toca a ciegas.**
 
 ### Un error al girar que el usuario vio y no está reproducido
 
@@ -182,13 +191,14 @@ interfaz** y separa un problema del visor de uno de integración. Modos: `clase`
 | `Piso 5.ifc`                 | 1,5 MB  | El de referencia. **Sin psets** (export con la casilla en Off) |
 | `716-LCD-ME-ISUP-D-TEST.ifc` | 32,7 MB | **839 psets reales** y el tamaño que hacía falta para `F0.6`   |
 
-**Sí se versionan dos fixtures sintéticos**, escritos a mano y sin dato alguno de un
+**Sí se versionan tres fixtures sintéticos**, escritos a mano y sin dato alguno de un
 proyecto real:
 
-| Fixture              | Para qué                                                                                                              |
-| -------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `muro-minimo.ifc`    | Probar el pipeline con 2 KB. Delata errores de unidades: el visor debe informar 4,0 × 3,0 × 0,2 m, no miles de metros |
-| `muro-con-psets.ifc` | Verificar la lectura de **psets y cantidades**, que el modelo real no trae                                            |
+| Fixture                      | Para qué                                                                                                              |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `muro-minimo.ifc`            | Probar el pipeline con 2 KB. Delata errores de unidades: el visor debe informar 4,0 × 3,0 × 0,2 m, no miles de metros |
+| `muro-con-psets.ifc`         | Verificar la lectura de **psets y cantidades**, que el modelo real no trae                                            |
+| `elemento-sin-geometria.ifc` | Un muro con geometría y una tubería sin representación: es el oráculo del aviso de geometría que falta (`F1.10`)      |
 
 ### Cómo obtener un IFC con psets desde BricsCAD
 

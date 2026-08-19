@@ -13,6 +13,7 @@
 import {
   countIfcEntities,
   distancePartsM,
+  emptyElementClasses,
   isIfcGuid,
   missingElementClasses,
   NO_IFC_UNITS,
@@ -160,6 +161,16 @@ export interface LoadMetrics {
    * contador interno lo echa de menos — el hueco solo se ve comparando con el archivo.
    */
   readonly missingClasses: readonly MissingClass[];
+  /**
+   * Clases de elemento que **sí se importaron y llegaron sin geometría**.
+   *
+   * Es el otro caso de geometría que falta, y hay que distinguirlos porque el arreglo es distinto:
+   * acá el elemento existe —está en el árbol, se selecciona, trae sus propiedades— y simplemente no
+   * se dibuja, porque el motor de geometría no pudo generar su malla. Eso apunta a `web-ifc` con
+   * representaciones que no soporta (B-reps avanzados, barridos por trayectoria), no al conjunto de
+   * clases del importador.
+   */
+  readonly emptyClasses: readonly MissingClass[];
 }
 
 export interface LoadedModel {
@@ -275,6 +286,14 @@ const SELECTION_COLOR = 0x9b5de5;
 
 /** El mismo violeta como color CSS, para las etiquetas de las mediciones. */
 const SELECTION_CSS = "#9b5de5";
+
+/**
+ * Gris de la rejilla del suelo.
+ *
+ * Apagado a propósito: la rejilla es una referencia, no un elemento del modelo, y con más contraste
+ * compite con las aristas de la geometría —que son las que hay que leer—.
+ */
+const GRID_COLOR = 0x3a4a63;
 
 /**
  * Ángulos de las vistas normalizadas: azimut y polar de camera-controls.
@@ -924,6 +943,14 @@ export class BimViewer {
     // recentrar por turnos hasta llegar.
     world.camera.controls.dollyToCursor = true;
 
+    // **Rejilla en el suelo.** La traen Revit, BricsCAD y los modeladores de Bentley, y no es
+    // decoración: sin una referencia horizontal, un modelo flotando en negro no dice a qué altura
+    // está la cámara ni cuánto mide un tramo. Se desvanece con la distancia, que es lo apropiado en
+    // perspectiva.
+    const grid = components.get(OBC.Grids).create(world);
+    grid.config.color = new THREE.Color(GRID_COLOR);
+    grid.three.renderOrder = -1;
+
     const viewer = new BimViewer(
       components,
       world,
@@ -1248,9 +1275,10 @@ export class BimViewer {
     const convertMs = performance.now() - startedAt;
 
     onStage("reading");
-    const [categories, itemsWithGeometry] = await Promise.all([
+    const [categories, itemsWithGeometry, emptyClasses] = await Promise.all([
       model.getCategories(),
       model.getItemsWithGeometry(),
+      this.classesWithoutGeometry(model),
     ]);
 
     onStage("drawing");
@@ -1277,8 +1305,41 @@ export class BimViewer {
         itemsWithGeometry: itemsWithGeometry.length,
         sizeM,
         missingClasses: missingElementClasses(clasesDelArchivo, categories),
+        emptyClasses,
       },
     };
+  }
+
+  /**
+   * Qué elementos entraron al modelo **sin geometría**, contados por clase.
+   *
+   * Se calcula restando: todos los identificadores del modelo menos los que tienen geometría, y de
+   * los que quedan se leen sus categorías. El filtro de `bim-core` descarta lo que nunca tuvo
+   * geometría —psets, materiales, unidades, tipos, el armazón espacial— para que la cuenta solo
+   * hable de elementos que deberían verse.
+   *
+   * Es la comprobación que faltaba: los contadores del visor decían "839 elementos con geometría" y
+   * no había forma de saber cuántos se habían quedado sin ella.
+   */
+  private async classesWithoutGeometry(
+    model: FRAGS.FragmentsModel,
+  ): Promise<readonly MissingClass[]> {
+    const [porCategoria, conGeometria] = await Promise.all([
+      // Una sola consulta devuelve los identificadores agrupados por categoría. Preguntar la
+      // categoría de cada elemento por separado costaría miles de idas y vueltas al worker.
+      model.getItemsOfCategories([/^IFC/]),
+      model.getItemsIdsWithGeometry(),
+    ]);
+
+    const tienen = new Set(conGeometria);
+    const categorias: string[] = [];
+    for (const [categoria, ids] of Object.entries(porCategoria)) {
+      for (const id of ids) {
+        if (!tienen.has(id)) categorias.push(categoria);
+      }
+    }
+
+    return emptyElementClasses(categorias);
   }
 
   /**

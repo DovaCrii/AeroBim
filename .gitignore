@@ -72,3 +72,4 @@ apps/web/public/wasm/
 # contienen dato alguno de un proyecto real. Cualquier otro .ifc queda fuera.
 !apps/web/public/samples/muro-minimo.ifc
 !apps/web/public/samples/muro-con-psets.ifc
+!apps/web/public/samples/elemento-sin-geometria.ifc

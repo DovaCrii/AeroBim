@@ -1,0 +1,64 @@
+ISO-10303-21;
+HEADER;
+FILE_DESCRIPTION(('ViewDefinition [CoordinationView]'),'2;1');
+FILE_NAME('elemento-sin-geometria.ifc','2026-08-19T00:00:00',('AeroBim'),('AeroBim'),'AeroBim fixture','AeroBim','');
+FILE_SCHEMA(('IFC2X3'));
+ENDSEC;
+DATA;
+/* Fixture del diagnostico de geometria que falta.
+
+   Trae dos elementos que el visor SI importa —las dos clases estan en el conjunto del
+   conversor— pero solo uno tiene representacion geometrica:
+
+     - IFCWALLSTANDARDCASE con su solido extruido: se dibuja.
+     - IFCPIPESEGMENT con Representation en $: entra al arbol, se puede seleccionar,
+       trae su nombre, y NO se dibuja.
+
+   El visor debe informar "Elementos cargados sin geometria: 1 — IFCPIPESEGMENT 1" y no
+   debe informar ninguna clase como no procesada, porque las dos se cargaron.
+
+   Es el caso que quedo abierto con el modelo de planta industrial de 32,7 MB, donde el
+   visor muestra la estructura y falta el resto. Un elemento sin representacion es la
+   version reproducible del mismo sintoma: existe en el modelo y no esta en pantalla.
+
+   Los GUID tienen 22 caracteres y empiezan por "0", asi que son GUID de IFC validos. */
+#1= IFCPERSON($,'AeroBim',$,$,$,$,$,$);
+#2= IFCORGANIZATION($,'AeroBim',$,$,$);
+#3= IFCPERSONANDORGANIZATION(#1,#2,$);
+#4= IFCAPPLICATION(#2,'0.1.0','AeroBim','AEROBIM');
+#5= IFCOWNERHISTORY(#3,#4,$,.ADDED.,$,$,$,0);
+#10= IFCCARTESIANPOINT((0.,0.,0.));
+#11= IFCDIRECTION((0.,0.,1.));
+#12= IFCDIRECTION((1.,0.,0.));
+#13= IFCAXIS2PLACEMENT3D(#10,#11,#12);
+#20= IFCSIUNIT(*,.LENGTHUNIT.,.MILLI.,.METRE.);
+#21= IFCSIUNIT(*,.AREAUNIT.,$,.SQUARE_METRE.);
+#22= IFCSIUNIT(*,.VOLUMEUNIT.,$,.CUBIC_METRE.);
+#23= IFCUNITASSIGNMENT((#20,#21,#22));
+#30= IFCGEOMETRICREPRESENTATIONCONTEXT($,'Model',3,1.E-05,#13,$);
+#40= IFCPROJECT('0EMPTYPROJECT000000000',#5,'AeroBim sin geometria',$,$,$,$,(#30),#23);
+#50= IFCLOCALPLACEMENT($,#13);
+#41= IFCSITE('0EMPTYSITE000000000000',#5,'Sitio',$,$,#50,$,$,.ELEMENT.,$,$,$,$,$);
+#51= IFCLOCALPLACEMENT(#50,#13);
+#42= IFCBUILDING('0EMPTYBUILDING00000000',#5,'Edificio',$,$,#51,$,$,.ELEMENT.,$,$,$);
+#52= IFCLOCALPLACEMENT(#51,#13);
+#43= IFCBUILDINGSTOREY('0EMPTYSTOREY000000000',#5,'Planta 1',$,$,#52,$,$,.ELEMENT.,0.);
+#53= IFCLOCALPLACEMENT(#52,#13);
+/* El muro, con geometria. */
+#60= IFCCARTESIANPOINT((0.,0.));
+#61= IFCAXIS2PLACEMENT2D(#60,$);
+#62= IFCRECTANGLEPROFILEDEF(.AREA.,'Muro',#61,4000.,200.);
+#63= IFCEXTRUDEDAREASOLID(#62,#13,#11,3000.);
+#64= IFCSHAPEREPRESENTATION(#30,'Body','SweptSolid',(#63));
+#65= IFCPRODUCTDEFINITIONSHAPE($,$,(#64));
+#70= IFCWALLSTANDARDCASE('0EMPTYWALL000000000000',#5,'Muro con geometria',$,$,#53,#65,'M-01');
+/* La tuberia, sin representacion: el septimo argumento va en $. */
+#54= IFCLOCALPLACEMENT(#52,#13);
+#80= IFCPIPESEGMENT('0EMPTYPIPE000000000000',#5,'Tuberia sin geometria',$,$,#54,$,'T-01');
+/* Estructura espacial. */
+#100= IFCRELAGGREGATES('0EMPTYAGG10000000000',#5,$,$,#40,(#41));
+#101= IFCRELAGGREGATES('0EMPTYAGG20000000000',#5,$,$,#41,(#42));
+#102= IFCRELAGGREGATES('0EMPTYAGG30000000000',#5,$,$,#42,(#43));
+#103= IFCRELCONTAINEDINSPATIALSTRUCTURE('0EMPTYCONTAINED000000',#5,$,$,(#70,#80),#43);
+ENDSEC;
+END-ISO-10303-21;

@@ -3,6 +3,7 @@ import {
   type DistanceMode,
   type DrawnMeasurement,
   type LoadedModel,
+  type LoadStage,
   type MeasureMode,
   type Measurement,
   type ModelTree,
@@ -26,8 +27,26 @@ import { StatusBar } from "./components/StatusBar.js";
 type Status =
   | { readonly kind: "starting" }
   | { readonly kind: "ready" }
-  | { readonly kind: "loading"; readonly name: string }
+  | { readonly kind: "loading"; readonly name: string; readonly stage: LoadStage }
   | { readonly kind: "error"; readonly message: string };
+
+/**
+ * Qué decir en cada etapa de la carga.
+ *
+ * **La conversión corre en el hilo principal y no se puede interrumpir:** con el modelo de 32 MB son
+ * casi diez segundos de interfaz congelada. No se puede evitar hasta que la conversión se mude a un
+ * worker (`F0.6`), pero sí se puede decir en qué va — que es la diferencia entre esperar y no saber
+ * si se colgó. Los avisos aparecen entre etapas, en los huecos en que el navegador puede pintar.
+ */
+const ETAPAS: Record<LoadStage, string> = {
+  converting: "convirtiendo la geometría",
+  loading: "cargando en la escena",
+  reading: "leyendo categorías y propiedades",
+  drawing: "dibujando",
+  framing: "encuadrando",
+  // `done` se ve un instante antes de que el estado pase a "Listo": mejor que no diga "listo…".
+  done: "terminando",
+};
 
 /**
  * Cuánto puede moverse el ratón entre pulsar y soltar para que siga contando como clic.
@@ -135,10 +154,12 @@ export function App() {
     const instance = viewer.current;
     if (!instance) return;
 
-    setStatus({ kind: "loading", name: file.name });
+    setStatus({ kind: "loading", name: file.name, stage: "converting" });
     try {
       const bytes = new Uint8Array(await file.arrayBuffer());
-      const loaded = await instance.loadIfc(bytes, file.name);
+      const loaded = await instance.loadIfc(bytes, file.name, (stage) => {
+        setStatus({ kind: "loading", name: file.name, stage });
+      });
       setModels((current) => [...current, loaded]);
       setTrees(await instance.getSpatialTrees());
       setStatus({ kind: "ready" });
@@ -532,7 +553,11 @@ function StatusBadge({ status }: { readonly status: Status }) {
     return <span className="text-xs text-white/50">Iniciando visor…</span>;
   }
   if (status.kind === "loading") {
-    return <span className="text-xs text-brand">Convirtiendo {status.name}…</span>;
+    return (
+      <span className="text-xs text-brand" title={`${status.name}: ${ETAPAS[status.stage]}`}>
+        {status.name} — {ETAPAS[status.stage]}…
+      </span>
+    );
   }
   if (status.kind === "error") {
     return (

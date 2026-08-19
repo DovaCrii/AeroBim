@@ -230,11 +230,36 @@ export interface MissingClass {
 }
 
 /**
+ * `true` si la clase es un elemento físico que **debería verse** en pantalla.
+ *
+ * Deja fuera lo que sostiene el modelo pero no se dibuja: geometría, relaciones, propiedades,
+ * unidades, actores, los tipos (`…TYPE`, que describen un elemento pero no son uno) y el armazón
+ * espacial. Lo que no reconoce lo da por elemento, que es el lado correcto del error.
+ */
+export function isElementClass(ifcClass: string): boolean {
+  const clase = ifcClass.trim().toUpperCase();
+  if (!clase.startsWith("IFC")) return false;
+  if (NO_SON_ELEMENTOS.has(clase)) return false;
+  // Un `…TYPE` es la definición de un tipo de elemento, no un elemento: no se dibuja.
+  if (clase.endsWith("TYPE")) return false;
+  return !ARMAZON_ESPACIAL.has(clase);
+}
+
+/** El armazón espacial: contiene elementos, pero no es geometría que alguien mire. */
+const ARMAZON_ESPACIAL = new Set([
+  "IFCPROJECT",
+  "IFCSITE",
+  "IFCBUILDING",
+  "IFCBUILDINGSTOREY",
+  "IFCSPATIALZONE",
+]);
+
+/**
  * Clases de elemento que el archivo declara y el visor **no** cargó.
  *
- * `loaded` son las categorías que el modelo convertido informa. Lo que quede fuera de esa lista,
- * no esté en {@link NO_SON_ELEMENTOS} y no sea un tipo (`…TYPE`, que describe un elemento pero no
- * es uno) es geometría que debería estar en pantalla y no está.
+ * `loaded` son las categorías que el modelo convertido informa. Lo que quede fuera de esa lista y
+ * sea un elemento físico ({@link isElementClass}) es geometría que debería estar en pantalla y no
+ * está — y además **no existe en el modelo**, así que no se puede ni seleccionar.
  *
  * Ordenadas de más a menos, porque lo que falta en cantidad es lo que se nota al mirar.
  */
@@ -246,15 +271,40 @@ export function missingElementClasses(
 
   const faltantes: MissingClass[] = [];
   for (const [ifcClass, count] of counts) {
-    if (!ifcClass.startsWith("IFC")) continue;
-    if (cargadas.has(ifcClass) || NO_SON_ELEMENTOS.has(ifcClass)) continue;
-    // Un `…TYPE` es la definición de un tipo de elemento, no un elemento: no se dibuja.
-    if (ifcClass.endsWith("TYPE")) continue;
-    // El armazón espacial y el proyecto tampoco son geometría que se echa de menos.
-    if (["IFCPROJECT", "IFCSITE", "IFCBUILDING", "IFCBUILDINGSTOREY"].includes(ifcClass)) continue;
-
+    if (cargadas.has(ifcClass) || !isElementClass(ifcClass)) continue;
     faltantes.push({ ifcClass, count });
   }
 
   return faltantes.sort((a, b) => b.count - a.count);
+}
+
+/**
+ * Cuenta por clase los elementos que el modelo cargó **sin geometría**.
+ *
+ * Es la otra mitad del diagnóstico, y separa dos causas que en pantalla se ven igual:
+ *
+ * - una clase que el importador **no procesa**: el elemento no existe en el modelo. Eso lo delata
+ *   {@link missingElementClasses}, comparando contra el archivo.
+ * - un elemento que **sí se importó y cuya geometría no se pudo generar**: está en el árbol, se
+ *   puede seleccionar, tiene sus propiedades, y no se dibuja. Eso es lo que cuenta esta función.
+ *
+ * La distinción decide el arreglo. La primera causa se resuelve añadiendo clases al importador; la
+ * segunda apunta al motor de geometría —`web-ifc` con B-reps avanzados o barridos por trayectoria—
+ * y no se arregla desde acá.
+ */
+export function emptyElementClasses(
+  categoriesWithoutGeometry: readonly (string | null)[],
+): readonly MissingClass[] {
+  const cuentas = new Map<string, number>();
+
+  for (const categoria of categoriesWithoutGeometry) {
+    if (categoria === null) continue;
+    const clase = categoria.toUpperCase();
+    if (!isElementClass(clase)) continue;
+    cuentas.set(clase, (cuentas.get(clase) ?? 0) + 1);
+  }
+
+  return [...cuentas]
+    .map(([ifcClass, count]) => ({ ifcClass, count }))
+    .sort((a, b) => b.count - a.count);
 }
