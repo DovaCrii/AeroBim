@@ -1,0 +1,67 @@
+ISO-10303-21;
+HEADER;
+FILE_DESCRIPTION(('ViewDefinition [CoordinationView]'),'2;1');
+FILE_NAME('muro-con-psets.ifc','2026-08-19T00:00:00',('AeroBim'),('AeroBim'),'AeroBim fixture','AeroBim','');
+FILE_SCHEMA(('IFC2X3'));
+ENDSEC;
+DATA;
+/* Fixture con PSETS y CANTIDADES, que es lo que el modelo de prueba real no trae: se
+   exporto con IfcExportBaseQuantities en Off. Sirve para verificar que el panel de
+   propiedades los lee de verdad, sin depender de un re-export.
+
+   El mismo muro de 4000 x 200 x 3000 mm que muro-minimo.ifc, mas:
+     - Pset_WallCommon con dos booleanos, un real y una etiqueta
+     - BaseQuantities con area, volumen y longitud
+   El visor debe mostrar esos siete valores agrupados en dos bloques.
+
+   Los GUID tienen 22 caracteres exactos y empiezan por "0", lo que garantiza que el
+   primer grupo cabe en un byte y por tanto que son GUID de IFC validos. */
+#1= IFCPERSON($,'AeroBim',$,$,$,$,$,$);
+#2= IFCORGANIZATION($,'AeroBim',$,$,$);
+#3= IFCPERSONANDORGANIZATION(#1,#2,$);
+#4= IFCAPPLICATION(#2,'0.1.0','AeroBim','AEROBIM');
+#5= IFCOWNERHISTORY(#3,#4,$,.ADDED.,$,$,$,0);
+#10= IFCCARTESIANPOINT((0.,0.,0.));
+#11= IFCDIRECTION((0.,0.,1.));
+#12= IFCDIRECTION((1.,0.,0.));
+#13= IFCAXIS2PLACEMENT3D(#10,#11,#12);
+#20= IFCSIUNIT(*,.LENGTHUNIT.,.MILLI.,.METRE.);
+#21= IFCSIUNIT(*,.AREAUNIT.,$,.SQUARE_METRE.);
+#22= IFCSIUNIT(*,.VOLUMEUNIT.,$,.CUBIC_METRE.);
+#23= IFCUNITASSIGNMENT((#20,#21,#22));
+#30= IFCGEOMETRICREPRESENTATIONCONTEXT($,'Model',3,1.E-05,#13,$);
+#40= IFCPROJECT('0PSETPROJECT0000000000',#5,'AeroBim psets',$,$,$,$,(#30),#23);
+#50= IFCLOCALPLACEMENT($,#13);
+#41= IFCSITE('0PSETSITE0000000000000',#5,'Sitio',$,$,#50,$,$,.ELEMENT.,$,$,$,$,$);
+#51= IFCLOCALPLACEMENT(#50,#13);
+#42= IFCBUILDING('0PSETBUILDING000000000',#5,'Edificio',$,$,#51,$,$,.ELEMENT.,$,$,$);
+#52= IFCLOCALPLACEMENT(#51,#13);
+#43= IFCBUILDINGSTOREY('0PSETSTOREY00000000000',#5,'Planta 1',$,$,#52,$,$,.ELEMENT.,0.);
+#53= IFCLOCALPLACEMENT(#52,#13);
+#60= IFCCARTESIANPOINT((0.,0.));
+#61= IFCAXIS2PLACEMENT2D(#60,$);
+#62= IFCRECTANGLEPROFILEDEF(.AREA.,'Muro',#61,4000.,200.);
+#63= IFCEXTRUDEDAREASOLID(#62,#13,#11,3000.);
+#64= IFCSHAPEREPRESENTATION(#30,'Body','SweptSolid',(#63));
+#65= IFCPRODUCTDEFINITIONSHAPE($,$,(#64));
+#70= IFCWALLSTANDARDCASE('0PSETWALL0000000000000',#5,'Muro con psets',$,$,#53,#65,'M-01');
+/* Pset_WallCommon: el conjunto de propiedades estandar de un muro. */
+#80= IFCPROPERTYSINGLEVALUE('LoadBearing',$,IFCBOOLEAN(.T.),$);
+#81= IFCPROPERTYSINGLEVALUE('IsExternal',$,IFCBOOLEAN(.F.),$);
+#82= IFCPROPERTYSINGLEVALUE('ThermalTransmittance',$,IFCREAL(0.35),$);
+#83= IFCPROPERTYSINGLEVALUE('FireRating',$,IFCLABEL('F-60'),$);
+#84= IFCPROPERTYSET('0PSETCOMMON00000000000',#5,'Pset_WallCommon',$,(#80,#81,#82,#83));
+#85= IFCRELDEFINESBYPROPERTIES('0PSETRELCOMMON00000000',#5,$,$,(#70),#84);
+/* BaseQuantities: las cantidades medidas del elemento. */
+#90= IFCQUANTITYAREA('NetSideArea',$,$,12.);
+#91= IFCQUANTITYVOLUME('NetVolume',$,$,2.4);
+#92= IFCQUANTITYLENGTH('Length',$,$,4000.);
+#93= IFCELEMENTQUANTITY('0PSETQUANTITY000000000',#5,'BaseQuantities',$,$,(#90,#91,#92));
+#94= IFCRELDEFINESBYPROPERTIES('0PSETRELQUANT000000000',#5,$,$,(#70),#93);
+/* Estructura espacial. */
+#100= IFCRELAGGREGATES('0PSETAGG10000000000000',#5,$,$,#40,(#41));
+#101= IFCRELAGGREGATES('0PSETAGG20000000000000',#5,$,$,#41,(#42));
+#102= IFCRELAGGREGATES('0PSETAGG30000000000000',#5,$,$,#42,(#43));
+#103= IFCRELCONTAINEDINSPATIALSTRUCTURE('0PSETCONTAINED00000000',#5,$,$,(#70),#43);
+ENDSEC;
+END-ISO-10303-21;

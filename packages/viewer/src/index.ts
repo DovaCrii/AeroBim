@@ -446,33 +446,64 @@ function atributosDe(item: FRAGS.ItemData, omitir: Set<string>): PropertyValue[]
   return propiedades;
 }
 
+/** Claves donde vive el valor de una propiedad o cantidad, según su tipo IFC. */
+const CLAVES_DE_VALOR = [
+  "NominalValue",
+  "Value",
+  "LengthValue",
+  "AreaValue",
+  "VolumeValue",
+  "CountValue",
+  "WeightValue",
+  "TimeValue",
+];
+
 /**
- * Propiedades de un `IfcPropertySet`, cuando el modelo trae psets.
+ * Relaciones cuyo contenido ya se leyó como propiedades del bloque.
  *
- * Cada propiedad cuelga de `HasProperties` con su nombre y un valor que, según el tipo
- * IFC, vive en una clave distinta.
+ * Descender por ellas produciría un grupo por cada propiedad —cuatro bloques
+ * `IFCPROPERTYSINGLEVALUE` repitiendo lo que el pset ya muestra— que es puro ruido.
+ */
+const RELACIONES_YA_LEIDAS = new Set(["HasProperties", "Quantities"]);
+
+/**
+ * Propiedades de un `IfcPropertySet` o de un `IfcElementQuantity`.
+ *
+ * Las dos formas se tratan igual porque para quien mira son lo mismo: una lista de nombres
+ * con su valor. Solo cambia la clave donde cuelgan —`HasProperties` en un pset,
+ * `Quantities` en las cantidades medidas— y en qué campo está el número.
  */
 function propiedadesDePset(pset: FRAGS.ItemData): PropertyValue[] {
-  const lista = pset["HasProperties"];
-  if (!Array.isArray(lista)) return [];
-
   const propiedades: PropertyValue[] = [];
-  for (const propiedad of lista) {
-    const name = nombreDe(propiedad);
-    if (name === null) continue;
 
-    for (const clave of ["NominalValue", "Value", "LengthValue", "AreaValue", "VolumeValue"]) {
-      const campo = propiedad[clave];
-      if (campo === undefined || !esAtributo(campo)) continue;
-      const value = textoDe(campo.value);
-      if (value !== null) {
-        propiedades.push({ name, value });
-        break;
+  for (const clave of RELACIONES_YA_LEIDAS) {
+    const lista = pset[clave];
+    if (!Array.isArray(lista)) continue;
+
+    for (const propiedad of lista) {
+      const name = nombreDe(propiedad);
+      if (name === null) continue;
+
+      for (const claveValor of CLAVES_DE_VALOR) {
+        const campo = propiedad[claveValor];
+        if (campo === undefined || !esAtributo(campo)) continue;
+        const value = textoDe(campo.value);
+        if (value !== null) {
+          propiedades.push({ name, value });
+          break;
+        }
       }
     }
   }
 
   return propiedades;
+}
+
+/** Identificador interno de un objeto, para poder reconocerlo entre los relacionados. */
+function localIdDe(item: FRAGS.ItemData): number | null {
+  const campo = item["_localId"];
+  if (campo === undefined || !esAtributo(campo)) return null;
+  return typeof campo.value === "number" ? campo.value : null;
 }
 
 /**
@@ -482,38 +513,60 @@ function propiedadesDePset(pset: FRAGS.ItemData): PropertyValue[] {
  * relaciones, que es lo que hace falta para llegar al material a través del tipo, y no
  * más: seguir el grafo de IFC sin límite lleva a listar medio modelo.
  */
-function grupoDe(relacionado: FRAGS.ItemData, claveRelacion: string): PropertyGroup[] {
+function grupoDe(
+  relacionado: FRAGS.ItemData,
+  claveRelacion: string,
+  localIdPropio: number,
+): PropertyGroup[] {
+  // Las relaciones de IFC son de doble sentido, así que entre los "relacionados" reaparece
+  // el propio elemento. Mostrarlo como un bloque más sería repetir la cabecera de la ficha.
+  if (localIdDe(relacionado) === localIdPropio) return [];
+
   const grupos: PropertyGroup[] = [];
   const categoria = categoriaDe(relacionado);
   const nombre = nombreDe(relacionado);
 
-  // Un pset real: sus propiedades están en `HasProperties`.
   const desdePset = propiedadesDePset(relacionado);
   const propias = desdePset.length > 0 ? desdePset : atributosDe(relacionado, new Set());
 
   if (propias.length > 0) {
-    // El encabezado dice qué es esto: "IFCBEAMTYPE · Concrete, Plain 510.29" es mucho más
-    // útil que "IsDefinedBy".
-    const encabezado = [categoria, nombre].filter((parte) => parte !== null).join(" · ");
-    grupos.push({ name: encabezado === "" ? claveRelacion : encabezado, properties: propias });
+    grupos.push({ name: encabezadoDe(categoria, nombre, claveRelacion), properties: propias });
   }
 
   for (const [clave, contenido] of Object.entries(relacionado)) {
-    if (!Array.isArray(contenido) || RELACIONES_IGNORADAS.has(clave)) continue;
+    if (!Array.isArray(contenido)) continue;
+    if (RELACIONES_IGNORADAS.has(clave) || RELACIONES_YA_LEIDAS.has(clave)) continue;
 
     for (const anidado of contenido) {
       if (typeof anidado !== "object" || anidado === null) continue;
+      if (localIdDe(anidado) === localIdPropio) continue;
+
       const propiedades = atributosDe(anidado, new Set());
       if (propiedades.length === 0) continue;
 
-      const sub = [categoriaDe(anidado), nombreDe(anidado)]
-        .filter((parte) => parte !== null)
-        .join(" · ");
-      grupos.push({ name: sub === "" ? clave : sub, properties: propiedades });
+      grupos.push({
+        name: encabezadoDe(categoriaDe(anidado), nombreDe(anidado), clave),
+        properties: propiedades,
+      });
     }
   }
 
   return grupos;
+}
+
+/**
+ * Título de un bloque de propiedades.
+ *
+ * Para un pset o unas cantidades basta su nombre —`Pset_WallCommon` ya dice todo— pero para
+ * un tipo o un material la categoría es la que informa: `IFCBEAMTYPE · Concrete, Plain`
+ * distingue el tipo de la viga del material del que está hecha.
+ */
+function encabezadoDe(categoria: string | null, nombre: string | null, respaldo: string): string {
+  const soloNombre = categoria === "IFCPROPERTYSET" || categoria === "IFCELEMENTQUANTITY";
+  if (soloNombre && nombre !== null) return nombre;
+
+  const partes = [categoria, nombre].filter((parte) => parte !== null);
+  return partes.length === 0 ? respaldo : partes.join(" · ");
 }
 
 /** Arma un {@link PickedItem} a partir de los datos crudos del modelo. */
@@ -531,7 +584,7 @@ function describeItem(
     if (!Array.isArray(contenido) || RELACIONES_IGNORADAS.has(clave)) continue;
     for (const relacionado of contenido) {
       if (typeof relacionado !== "object" || relacionado === null) continue;
-      groups.push(...grupoDe(relacionado, clave));
+      groups.push(...grupoDe(relacionado, clave, localId));
     }
   }
 

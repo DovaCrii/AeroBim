@@ -209,9 +209,9 @@ Se usa `createFromNormalAndCoplanarPoint` en vez de `create`, que coloca el plan
 apunte el cursor: un corte por el centro es predecible, y es lo que alguien espera al pulsar
 un botón llamado "corte horizontal".
 
-Verificado con el contador de planos: 0 → 1 → 2 → 3 al añadir los tres, y 0 al quitarlos.
-**El efecto visual del corte no se pudo capturar** (el panel de vista previa dejó de
-componer), así que consta que los planos se crean y se eliminan, no cómo se ve.
+Verificado de dos formas: con el contador de planos (0 → 1 → 2 → 3 al añadir los tres, y 0
+al quitarlos) y **con captura del corte aplicado sobre el modelo real**, donde se ve el
+plano con su manija de arrastre y el edificio seccionado mostrando el interior.
 
 **Mediciones, ahora las tres.** Distancia entre dos puntos, ángulo entre tres —el segundo es
 el vértice— y área de un contorno que **se recalcula con cada vértice**, así que se ve crecer
@@ -327,9 +327,31 @@ BCF. Así el dominio verificado contra el oráculo empieza a ganarse el sueldo.
   traía siete vigas hermanas. Esa relación se ignora, y el recorrido baja como máximo dos
   niveles: seguir el grafo sin límite lleva a listar medio modelo.
 
-> **Queda por verificar con un modelo que sí traiga psets.** El código los lee
-> (`HasProperties`, con las claves de valor habituales) pero eso **no se ha comprobado
-> contra un archivo real**, así que va anotado como tal y no como hecho.
+#### Los psets, ya verificados (2026-08-19)
+
+Como el modelo real se exportó sin ellos, se escribió a mano el fixture
+`muro-con-psets.ifc` con un `Pset_WallCommon` y unas `BaseQuantities`. **El panel los
+muestra completos**, y con los tipos IFC bien traducidos: los booleanos como "sí"/"no", el
+real como `0.35`, la etiqueta como `F-60`.
+
+| Bloque            | Contenido                                                                    |
+| ----------------- | ---------------------------------------------------------------------------- |
+| `Pset_WallCommon` | LoadBearing sí · IsExternal no · ThermalTransmittance 0.35 · FireRating F-60 |
+| `BaseQuantities`  | NetSideArea 12 · NetVolume 2.4 · Length 4000                                 |
+
+Corregido de paso un problema de presentación que solo se vio con psets de verdad: el panel
+mostraba **once bloques donde debía mostrar dos**. Las relaciones de IFC son de doble
+sentido, así que cada propiedad reaparecía como bloque propio y el elemento se listaba a sí
+mismo. Ahora las relaciones ya leídas (`HasProperties`, `Quantities`) no se recorren otra
+vez, y el propio elemento se excluye de sus relacionados.
+
+> **Pendiente honesto: las cantidades de longitud salen en las unidades del modelo.**
+> `Length 4000` son 4000 mm, pero el panel no lo dice porque **no sabe la unidad**: los
+> metadatos que expone Fragments traen esquema, nombres y CRS, y no `IfcUnitAssignment`.
+> Convertir exige leer las unidades del IFC crudo con `web-ifc` durante la carga y guardar
+> el factor — `bim-core` ya tiene `parseLengthUnit` y `toMeters` esperando para eso. Hasta
+> entonces el valor se muestra tal como está en el archivo, sin inventar una unidad. Las
+> áreas y volúmenes no tienen el problema: llegan en metros porque así los declara el IFC.
 
 **Objetivo de salida:** el levantamiento y el modelo en la misma escena, que es la
 comparación que nadie puede hacer hoy sin software de pago.

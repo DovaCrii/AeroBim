@@ -63,6 +63,7 @@ npm-debug.log*
 # WASM copiado de node_modules por apps/web/scripts/copy-wasm.mjs
 apps/web/public/wasm/
 
-# Excepcion: el fixture minimo si se versiona. Es sintetico, escrito a mano, y no
-# contiene dato alguno de un proyecto real. Cualquier otro .ifc queda fuera.
+# Excepcion: los fixtures sinteticos si se versionan. Estan escritos a mano y no
+# contienen dato alguno de un proyecto real. Cualquier otro .ifc queda fuera.
 !apps/web/public/samples/muro-minimo.ifc
+!apps/web/public/samples/muro-con-psets.ifc

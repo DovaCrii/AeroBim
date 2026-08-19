@@ -73,13 +73,35 @@ interfaz** y compara la ruta directa contra la envoltura:
 2. **Fase 2 — nubes de puntos.** El as-built contra el modelo, que es la
    comparación que hoy nadie puede hacer sin software de pago.
 
-### El modelo de prueba no está en el repositorio
+### Los modelos de prueba
 
-`Piso 5.ifc` es dato de la organización y `.gitignore` excluye todo `*.ifc`. Para
-repetir las mediciones hay que copiarlo a `apps/web/public/samples/piso-5.ifc`. Sí se
-versiona `muro-minimo.ifc`, un fixture sintético de 2 KB escrito a mano —un muro de
-4000 × 200 × 3000 mm— que sirve para probar el pipeline y de paso delata un error de
-unidades: el visor debe reportar 4,0 × 0,2 × 3,0 m, no miles de metros.
+`Piso 5.ifc` es dato de la organización y `.gitignore` excluye todo `*.ifc`. Para repetir
+las mediciones hay que copiarlo a `apps/web/public/samples/piso-5.ifc`.
+
+**Sí se versionan dos fixtures sintéticos**, escritos a mano y sin dato alguno de un
+proyecto real:
+
+| Fixture              | Para qué                                                                                                              |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `muro-minimo.ifc`    | Probar el pipeline con 2 KB. Delata errores de unidades: el visor debe informar 4,0 × 3,0 × 0,2 m, no miles de metros |
+| `muro-con-psets.ifc` | Verificar la lectura de **psets y cantidades**, que el modelo real no trae                                            |
+
+### Cómo obtener un IFC con psets desde BricsCAD
+
+El modelo de prueba no los trae, y no es un defecto del archivo: su propia cabecera lo
+declara. Si se abre el `.ifc` con un editor de texto, en `FILE_DESCRIPTION` aparece:
+
+```
+Option [IfcExportBaseQuantities: Off]
+```
+
+Esa es la opción a activar en el diálogo de exportación IFC de BricsCAD. **La forma de
+comprobar que quedó activada es el propio archivo**: al reexportar, esa línea debe decir
+`On`. Es más fiable que buscar el control en la interfaz, porque el archivo registra lo que
+de verdad se aplicó.
+
+Con los psets activados, el panel de propiedades los muestra sin cambiar nada del código —
+ya está verificado contra `muro-con-psets.ifc`.
 
 ## Alcance: ver y coordinar, nunca procesar ni modelar
 

@@ -50,6 +50,33 @@ informa metros plausibles. `F0.4` y `F0.5` quedan cumplidas.
 - **El tamaño del Fragments se reportaba como 0 B.** `core.load` transfiere el búfer al
   worker y lo deja con `byteLength = 0`; ahora se anota antes de cargar.
 
+### Añadido — psets verificados, y el corte con captura (2026-08-19)
+
+- **Fixture `muro-con-psets.ifc`**, escrito a mano con un `Pset_WallCommon` y unas
+  `BaseQuantities`. Cierra `F1.2` sin depender de un reexport: el panel muestra los siete
+  valores con sus tipos bien traducidos (booleanos como "sí"/"no", real `0.35`, etiqueta
+  `F-60`).
+- **El corte quedó verificado también en imagen**, sobre el modelo real: se ve el plano con
+  su manija de arrastre y el edificio seccionado mostrando el interior.
+
+### Corregido — el panel mostraba once bloques donde debía mostrar dos
+
+Solo se vio con psets de verdad. Las relaciones de IFC son de doble sentido, así que cada
+propiedad reaparecía como bloque propio y el elemento se listaba a sí mismo. Ahora las
+relaciones ya leídas (`HasProperties`, `Quantities`) no se recorren otra vez, el propio
+elemento se excluye de sus relacionados, y un pset se titula con su nombre en vez de
+`IFCPROPERTYSET · nombre`. De paso entraron las cantidades, que antes no se leían: viven en
+`Quantities`, no en `HasProperties`.
+
+### Pendiente conocido — las cantidades de longitud salen en las unidades del modelo
+
+`Length 4000` son 4000 mm, pero el panel no lo dice porque **no sabe la unidad**: los
+metadatos que expone Fragments traen esquema, nombres y CRS, no `IfcUnitAssignment`.
+Convertir exige leer las unidades del IFC crudo durante la carga; `bim-core` ya tiene
+`parseLengthUnit` y `toMeters` para eso. Hasta entonces el valor se muestra tal como está en
+el archivo, sin inventar una unidad. Áreas y volúmenes no tienen el problema: el IFC los
+declara en metros.
+
 ### Añadido — cortes y mediciones completas, `F1.3` y `F1.4` (2026-08-19)
 
 - **Cortes por tres ejes**, con el plano arrastrable y un botón para quitarlos. Verificado con

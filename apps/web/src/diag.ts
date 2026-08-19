@@ -172,9 +172,9 @@ export async function seleccion(container: HTMLElement, ifcUrl: string, log: Log
       log(`atributos (${item.attributes.length}):`);
       for (const a of item.attributes.slice(0, 12)) log(`  ${a.name} = ${a.value}`);
       log(`grupos (${item.groups.length}):`);
-      for (const g of item.groups.slice(0, 6)) {
+      for (const g of item.groups) {
         log(`  ${g.name}`);
-        for (const prop of g.properties.slice(0, 8)) log(`    ${prop.name} = ${prop.value}`);
+        for (const prop of g.properties.slice(0, 10)) log(`    ${prop.name} = ${prop.value}`);
       }
       if (encontrados >= 2) return;
     }
