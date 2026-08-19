@@ -24,6 +24,9 @@ import {
   type IfcUnits,
   type MissingClass,
   type Point3,
+  type SavedView,
+  type ViewNavigation,
+  type ViewProjection,
 } from "@aerobim/bim-core";
 import * as OBC from "@thatopen/components";
 import * as OBF from "@thatopen/components-front";
@@ -45,7 +48,14 @@ export type { ConvertLocation, Converter, ConvertRequest, ConvertResponse } from
  * importar el tipo del paquete de dominio para leer un campo que le entrega el visor sería
  * filtrar una dependencia sin motivo.
  */
-export type { IfcUnitKind, IfcUnits, MissingClass } from "@aerobim/bim-core";
+export type {
+  IfcUnitKind,
+  IfcUnits,
+  MissingClass,
+  SavedCamera,
+  SavedSection,
+  SavedView,
+} from "@aerobim/bim-core";
 
 /**
  * Mundo concreto que arma esta envoltura.
@@ -67,8 +77,13 @@ type World = OBC.SimpleWorld<
   OBF.PostproductionRenderer
 >;
 
-/** Cómo se proyecta la escena. La ortográfica es la de un plano: sin fuga de perspectiva. */
-export type Projection = "Perspective" | "Orthographic";
+/**
+ * Cómo se proyecta la escena. La ortográfica es la de un plano: sin fuga de perspectiva.
+ *
+ * **El tipo viene del dominio** porque una vista guardada lo persiste: si los nombres se separaran,
+ * una vista escrita por una versión no se podría leer con la siguiente.
+ */
+export type Projection = ViewProjection;
 
 /**
  * Cómo se navega la escena.
@@ -77,7 +92,7 @@ export type Projection = "Perspective" | "Orthographic";
  * - `Plan`: mirar de frente y desplazar, como sobre un plano.
  * - `FirstPerson`: recorrer el interior a la altura de los ojos.
  */
-export type NavigationMode = "Orbit" | "Plan" | "FirstPerson";
+export type NavigationMode = ViewNavigation;
 
 /** Cómo se dibujan los elementos. */
 export type RenderStyle = "solid" | "wireframe";
@@ -907,6 +922,8 @@ export class BimViewer {
   /** Modelos ya presentes en la escena. Ver {@link wireEvents}. */
   private modelCount = 0;
   private renderStyle: RenderStyle = "solid";
+  /** El modo de navegación actual: la cámara de That Open no lo devuelve, así que se recuerda. */
+  private navigationMode: NavigationMode = "Orbit";
   private measureMode: MeasureMode | null = null;
   private snapMode: SnapMode = "vertex";
   /**
@@ -1633,7 +1650,96 @@ export class BimViewer {
   /** Cambia el modo de navegación. */
   setNavigationMode(mode: NavigationMode): void {
     this.assertAlive();
+    this.navigationMode = mode;
     this.world.camera.set(mode);
+  }
+
+  /** Cómo se está navegando. Se recuerda acá porque la cámara de That Open no lo devuelve. */
+  get navigation(): NavigationMode {
+    return this.navigationMode;
+  }
+
+  /**
+   * Captura la vista actual: cámara, lo oculto y los cortes.
+   *
+   * **Guarda lo que se ve, no lo que hay.** Dos personas revisando el mismo modelo se pasan una vista
+   * para hablar de lo mismo, y para eso hacen falta las tres cosas: desde dónde se mira, qué está
+   * apagado y por dónde está cortado. Con solo la cámara, la vista del otro muestra otra cosa.
+   */
+  async captureView(name: string): Promise<SavedView> {
+    this.assertAlive();
+
+    const controls = this.world.camera.controls;
+    const posicion = controls.getPosition(new THREE.Vector3());
+    const objetivo = controls.getTarget(new THREE.Vector3());
+
+    const hiddenByModel: Record<string, readonly number[]> = {};
+    for (const [modelId, model] of this.fragments.list) {
+      const ocultos = await model.getItemsByVisibility(false);
+      if (ocultos.length > 0) hiddenByModel[modelId] = ocultos;
+    }
+
+    // La lista del `Clipper` es un mapa: cada entrada es [identificador, plano].
+    const sections = [...this.components.get(OBC.Clipper).list].map(([, plano]) => ({
+      normal: toPoint3(plano.normal),
+      origin: toPoint3(plano.origin),
+    }));
+
+    return {
+      id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+      name,
+      savedAt: new Date().toISOString(),
+      camera: {
+        position: toPoint3(posicion),
+        target: toPoint3(objetivo),
+        projection: this.projection,
+        navigation: this.navigationMode,
+      },
+      hiddenByModel,
+      sections,
+    };
+  }
+
+  /**
+   * Vuelve a una vista guardada.
+   *
+   * **Lo que no exista se ignora.** Una vista se guarda con unos modelos abiertos y se aplica con
+   * otros: si falta uno, se restaura lo que sí está en vez de fallar. Es lo que hace que una vista
+   * siga sirviendo cuando alguien cerró una disciplina.
+   *
+   * El orden importa: primero la proyección —que sustituye el objeto de cámara— y al final la
+   * posición, porque cambiar de proyección la pisaría.
+   */
+  async applyView(view: SavedView): Promise<void> {
+    this.assertAlive();
+
+    await this.setProjection(view.camera.projection);
+    this.setNavigationMode(view.camera.navigation);
+
+    for (const [modelId, model] of this.fragments.list) {
+      await model.setVisible(undefined, true);
+      const ocultos = view.hiddenByModel[modelId];
+      if (ocultos !== undefined && ocultos.length > 0) await model.setVisible([...ocultos], false);
+    }
+
+    const clipper = this.components.get(OBC.Clipper);
+    clipper.deleteAll();
+    clipper.enabled = view.sections.length > 0;
+    for (const corte of view.sections) {
+      clipper.createFromNormalAndCoplanarPoint(
+        this.world,
+        new THREE.Vector3(...corte.normal),
+        new THREE.Vector3(...corte.origin),
+      );
+    }
+
+    const controls = this.world.camera.controls;
+    const [px, py, pz] = view.camera.position;
+    const [tx, ty, tz] = view.camera.target;
+    void controls.setLookAt(px, py, pz, tx, ty, tz, false);
+    controls.update(ONE_FRAME_S);
+
+    await this.refresh();
   }
 
   /**

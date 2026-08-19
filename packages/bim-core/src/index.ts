@@ -49,6 +49,16 @@ export {
 } from "./inspect/ifcClasses.js";
 
 export {
+  parseSavedViews,
+  readSavedView,
+  type SavedCamera,
+  type SavedSection,
+  type SavedView,
+  type ViewNavigation,
+  type ViewProjection,
+} from "./views/savedView.js";
+
+export {
   isDimensionlessIfcType,
   quantityKindFromIfcType,
   quantityKindFromName,

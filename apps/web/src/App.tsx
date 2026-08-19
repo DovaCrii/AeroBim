@@ -11,11 +11,13 @@ import {
   type PickedItem,
   type Projection,
   type RenderStyle,
+  type SavedView,
   type SectionAxis,
   type SnapMode,
   type SpatialNode,
   type StandardView,
 } from "@aerobim/viewer";
+import { parseSavedViews } from "@aerobim/bim-core";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ModelsPanel } from "./components/ModelsPanel.js";
 import { ProjectBrowser } from "./components/ProjectBrowser.js";
@@ -38,6 +40,33 @@ type Status =
  * worker (`F0.6`), pero sí se puede decir en qué va — que es la diferencia entre esperar y no saber
  * si se colgó. Los avisos aparecen entre etapas, en los huecos en que el navegador puede pintar.
  */
+/**
+ * Dónde se guardan las vistas en este navegador.
+ *
+ * Lleva la versión en la clave: el día que la forma de una vista cambie, las viejas se quedan donde
+ * están sin estorbar a las nuevas. Leerlas es tolerante —ver `parseSavedViews` en `bim-core`— porque
+ * esto es almacenamiento de fuera: puede estar a medio escribir o editado a mano.
+ */
+const CLAVE_VISTAS = "aerobim.vistas.v1";
+
+/** Lee las vistas guardadas. Nunca lanza: si el almacenamiento no está, no hay vistas. */
+function leerVistas(): readonly SavedView[] {
+  try {
+    return parseSavedViews(localStorage.getItem(CLAVE_VISTAS) ?? "[]");
+  } catch {
+    return [];
+  }
+}
+
+/** Guarda las vistas. Un almacenamiento lleno o bloqueado no debe romper la aplicación. */
+function escribirVistas(vistas: readonly SavedView[]): void {
+  try {
+    localStorage.setItem(CLAVE_VISTAS, JSON.stringify(vistas));
+  } catch {
+    // Modo privado, cuota agotada o permisos: las vistas siguen en memoria esta sesión.
+  }
+}
+
 /**
  * El worker que convierte los IFC, uno para toda la aplicación.
  *
@@ -127,6 +156,8 @@ export function App() {
    * navegador del proyecto a la derecha, barra de estado al pie y el modelo en el centro.
    */
   const [tab, setTab] = useState<RibbonTab>("vista");
+  /** Las vistas guardadas. Se leen del navegador al arrancar y se escriben al cambiar. */
+  const [views, setViews] = useState<readonly SavedView[]>(leerVistas);
   const [panelIzquierdo, setPanelIzquierdo] = useState(true);
   const [panelDerecho, setPanelDerecho] = useState(true);
 
@@ -319,6 +350,43 @@ export function App() {
   const onClearMeasurements = useCallback(() => {
     viewer.current?.clearMeasurements();
     setDrawn([]);
+  }, []);
+
+  /** Guarda la vista actual con un nombre y la persiste. */
+  const onSaveView = useCallback((name: string) => {
+    const instance = viewer.current;
+    if (!instance) return;
+
+    void instance.captureView(name).then((vista) => {
+      setViews((actuales) => {
+        // Un nombre repetido reemplaza a la vista anterior: es lo que alguien espera al volver a
+        // guardar "Planta baja" después de ajustar la cámara.
+        const sinRepetida = actuales.filter((otra) => otra.name !== vista.name);
+        const siguientes = [...sinRepetida, vista];
+        escribirVistas(siguientes);
+        return siguientes;
+      });
+    });
+  }, []);
+
+  const onApplyView = useCallback((view: SavedView) => {
+    const instance = viewer.current;
+    if (!instance) return;
+
+    // La vista trae su propio estado de cámara y aspecto: la interfaz se sincroniza con él para que
+    // la cinta no siga diciendo lo de antes.
+    setProjection(view.camera.projection);
+    setNavigation(view.camera.navigation);
+    setHasSections(view.sections.length > 0);
+    void instance.applyView(view);
+  }, []);
+
+  const onDeleteView = useCallback((id: string) => {
+    setViews((actuales) => {
+      const siguientes = actuales.filter((vista) => vista.id !== id);
+      escribirVistas(siguientes);
+      return siguientes;
+    });
   }, []);
 
   const onSection = useCallback((axis: SectionAxis) => {
@@ -529,8 +597,13 @@ export function App() {
           <aside className="w-72 min-w-0 shrink border-l border-white/10 bg-ink/50">
             <ProjectBrowser
               cotas={drawn}
+              vistas={views}
+              puedeGuardarVista={models.length > 0}
               onToggleMeasurement={onToggleMeasurement}
               onDeleteMeasurement={onDeleteMeasurement}
+              onSaveView={onSaveView}
+              onApplyView={onApplyView}
+              onDeleteView={onDeleteView}
               estructura={
                 orderedTrees.length === 0 ? (
                   <p className="p-3 text-xs text-white/35">Todavía no hay ningún modelo abierto.</p>

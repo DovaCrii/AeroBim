@@ -230,7 +230,7 @@ software de escritorio ni pedir una licencia.
 | `F1.3`  | Planos de corte y secciones                                                                                                           | ✅ ver abajo |
 | `F1.4`  | Mediciones: distancia, área y ángulo                                                                                                  | ✅ ver abajo |
 | `F1.5`  | Cargar **varios modelos IFC a la vez** (arquitectura + estructura + instalaciones) y alternarlos                                      | ✅ ver abajo |
-| `F1.6`  | Vistas guardadas: cámara, visibilidad y cortes, recuperables por nombre                                                               | ⬜           |
+| `F1.6`  | Vistas guardadas: cámara, visibilidad y cortes, recuperables por nombre                                                               | ✅ ver abajo |
 | `F1.7`  | **Modos de vista**: proyección perspectiva/ortográfica, navegación (órbita, planta, primera persona) y representación (sólido, malla) | ✅ ver abajo |
 | `F1.8`  | **Barra de herramientas y panel de modelos** — reubicar y agrupar las herramientas; ordenar, activar y desactivar lo cargado          | ✅ ver abajo |
 | `F1.9`  | **Unidades de las propiedades** — cada número con la unidad que declara el archivo                                                    | ✅ ver abajo |
@@ -243,6 +243,31 @@ visor que muestra propiedades distintas a las del archivo es peor que no tenerlo
 
 `F1.5` no es un extra: la coordinación consiste precisamente en mirar dos
 disciplinas juntas. Un visor de un modelo por vez no coordina nada.
+
+### `F1.6` vistas guardadas (2026-08-19)
+
+Una vista guarda **las tres cosas**, y las tres hacen falta: desde dónde se mira, qué está apagado y
+por dónde está cortado. Con solo la cámara, la vista que le pasas a otro muestra algo distinto de lo
+que tú estabas viendo, que es justo lo contrario de para qué sirve.
+
+Se guardan por nombre en el navegador y **sobreviven a recargar la página** —verificado—. No van a un
+servidor: eso es Fase 3, y el pie de la sección lo dice para que nadie cuente con más de lo que hay.
+
+Dos decisiones que conviene tener escritas:
+
+- **La forma de una vista vive en `bim-core`, no en la interfaz.** En cuanto algo se persiste, su
+  forma es un contrato. Y su lectura es deliberadamente desconfiada: lo que sale del almacenamiento
+  del navegador puede estar a medio escribir, ser de una versión anterior o haber sido editado a mano,
+  así que `parseSavedViews` nunca lanza, descarta lo ilegible y conserva lo demás. Diez pruebas
+  cubren eso, incluido el JSON truncado.
+- **Lo oculto se guarda con identificadores de Fragments, no con GUID.** Sirve para una vista de
+  trabajo —el mismo archivo, la misma sesión— y **no servirá para un viewpoint de BCF**, que tiene que
+  ir por GUID porque los identificadores del motor cambian entre versiones del modelo. Queda dicho en
+  el tipo para no descubrirlo en la Fase 4.
+
+Al aplicar una vista, **lo que no exista se ignora**: si se guardó con tres modelos abiertos y ahora
+hay dos, se restaura lo que hay en vez de fallar. Y el orden importa — la proyección primero, porque
+sustituye el objeto de cámara y pisaría la posición si se hiciera después.
 
 ### `F1.11` el picker caía desviado, y era nuestro (2026-08-19)
 
