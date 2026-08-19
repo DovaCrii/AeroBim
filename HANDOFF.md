@@ -21,6 +21,16 @@ real abre y se ve en poco más de un segundo.
   real, generados por BricsCAD, sobreviven el round-trip sin una sola diferencia.
 - **`F0.3`**: monorepo con build, lint, formato y pruebas verdes.
 
+### Lo último que entró: selección con propiedades (`F1.2`)
+
+Un clic resuelve el elemento, lo resalta en violeta y abre su ficha con categoría, GUID
+—validado con `bim-core`—, tipo y material. Y la vista inicial ya es una isométrica en la
+que se reconoce la planta, más un botón **Encuadrar**.
+
+**Antes de una prueba con la oficina técnica falta `F1.1` (árbol espacial).** Con
+selección y propiedades ya se consulta el modelo, pero sin árbol no se puede navegar por
+plantas ni aislar una disciplina, y eso es lo primero que alguien intenta.
+
 ### El siguiente paso
 
 **`F0.6`: decidir dónde corre la conversión**, ahora que hay números. Con medio segundo
@@ -40,14 +50,12 @@ interfaz** y compara la ruta directa contra la envoltura:
 
 ### Y después, en este orden
 
-1. **Fase 1 — visor IFC usable.** Árbol espacial, propiedades y psets, cortes,
-   mediciones y varios modelos a la vez. Con eso ya hay algo que alguien de oficina
-   técnica usa en vez de pedir una licencia de escritorio.
-   - **Empezar por `F1.6` (vistas guardadas)**, porque arrastra un pendiente: la
-     orientación inicial de la cámara no se puede fijar. `setLookAt`, `moveTo` y
-     `rotateTo` no surten efecto —medido: la cámara se queda en `polar = 90°` y
-     `pos = (50, 50, 50)`— así que el modelo aparece visto de canto. Hay que entender qué
-     hace `SimpleCamera` con esos comandos antes de prometer controles de vista.
+1. **Fase 1 — visor IFC usable.** `F1.2` ya está; siguen el árbol espacial (`F1.1`),
+   cortes, mediciones y varios modelos a la vez.
+   - **`F1.1` es lo que falta para una prueba interna con valor.**
+   - **`F1.2` tiene un cabo suelto honesto:** el código lee psets pero **no se ha podido
+     verificar con un archivo que los traiga**, porque el modelo de prueba se exportó sin
+     ellos. Hace falta un IFC con psets para cerrarlo de verdad.
 2. **Fase 2 — nubes de puntos.** El as-built contra el modelo, que es la
    comparación que hoy nadie puede hacer sin software de pago.
 
@@ -153,6 +161,15 @@ una ventaja: lo que se aprenda de un lado sirve del otro.
 10. **El navegador embebido de desarrollo cachea las cabeceras de respuesta.** Después de
     cambiar COOP/COEP en `vite.config.ts`, `crossOriginIsolated` seguía en `true` aunque el
     servidor ya no las enviaba. Se fuerza con un parámetro de consulta distinto en la URL.
+11. **Con la cámara, el orden manda: encuadrar primero, rotar después.** `fitToBox`
+    recoloca la cámara y pisa los ángulos, así que un `rotateTo` previo se pierde. Y nada
+    se aplica hasta que alguien llama `controls.update(delta)`: los comandos registran el
+    objetivo, no mueven la cámara. Las dos cosas juntas hacían parecer que la cámara
+    ignoraba las órdenes.
+12. **Los datos de un elemento no están donde dice el estándar.** El GUID viene en `_guid`
+    y la categoría en `_category`. Y `IsDefinedBy` → tipo → `ObjectTypeOf` **cierra un
+    ciclo** que devuelve todos los elementos del mismo tipo, así que esa relación se ignora
+    y el recorrido se limita a dos niveles.
 
 ## Decisiones pendientes que solo el usuario puede tomar
 

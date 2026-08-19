@@ -50,12 +50,33 @@ informa metros plausibles. `F0.4` y `F0.5` quedan cumplidas.
 - **El tamaño del Fragments se reportaba como 0 B.** `core.load` transfiere el búfer al
   worker y lo deja con `byteLength = 0`; ahora se anota antes de cargar.
 
+### Añadido — selección con propiedades, `F1.2` (2026-08-19)
+
+- **Un clic sobre el modelo abre la ficha del elemento**: categoría, GUID, tipo y material,
+  con el elemento resaltado en el violeta de la marca. Sobre el modelo de prueba, clicar
+  una viga informa `IFCBEAM`, su tipo `Concrete, Plain 510.29` y su material.
+- **El GUID se valida con `bim-core` antes de mostrarlo.** Un GUID mal formado no sirve
+  como identidad, y es mejor detectarlo al seleccionar que al exportar un BCF.
+- **Vista inicial isométrica** y botón **Encuadrar**.
+
+Lo que el modelo real enseñó, y quedó en el código: el GUID vive en `_guid` (no en
+`GlobalId`), la categoría en `_category`, y las relaciones de IFC **tienen ciclos**
+—`IsDefinedBy` → tipo → `ObjectTypeOf` devuelve todos los elementos del mismo tipo—, así
+que esa relación se ignora y el recorrido se limita a dos niveles.
+
+### Corregido — la cámara no obedecía
+
+Eran dos causas encadenadas: camera-controls **solo mueve la cámara dentro de
+`update(delta)`**, y **`fitToBox` pisa los ángulos**, así que girar antes de encuadrar no
+dejaba rastro. Con el orden invertido —encuadrar primero, rotar después— y un `update`
+explícito, la vista inicial es la isométrica esperada.
+
 ### Pendiente conocido
 
-- **La orientación inicial de la cámara no se puede fijar.** `setLookAt`, `moveTo` y
-  `rotateTo` no surten efecto (medido: la cámara se queda en `polar = 90°` y
-  `pos = (50, 50, 50)`), así que el modelo aparece visto de canto. Se puede orbitar con el
-  ratón. Queda para `F1.6`, que necesita controles de vista de todos modos.
+- **Los psets no se han verificado contra un archivo real.** El código los lee, pero el
+  modelo de prueba se exportó sin ellos (`IfcExportBaseQuantities: Off` en su cabecera), así
+  que hace falta un IFC que los traiga para cerrar ese punto. Mientras tanto el panel
+  muestra tipo y material, que es la información que sí llega.
 
 ### Añadido — arranque del repositorio (2026-08-18)
 

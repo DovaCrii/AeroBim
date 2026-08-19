@@ -100,14 +100,21 @@ mensaje explícito en vez de colgarse.
 - **Bug corregido:** el tamaño del Fragments se leía después de `core.load`, que
   **transfiere el búfer al worker** y lo deja en `byteLength = 0`. Se anota antes.
 
-#### Pendiente menor, no bloqueante
+#### La cámara, resuelta (era el orden de dos llamadas)
 
-El encuadre inicial muestra el modelo **de canto** (una planta de 22 m se ve como una
-franja de 3 m de alto). Se intentó orientar la cámara con `setLookAt`, `moveTo` y
-`rotateTo`, y **ninguno surte efecto**: medida después de llamarlos, la cámara sigue en
-`polar = 90°` y `pos = (50, 50, 50)`, sus valores iniciales. Queda para `F1.6`, que
-necesita controles de vista (planta, alzado, isométrica) de todos modos. El modelo se ve
-y se orbita con el ratón.
+El encuadre inicial mostraba el modelo de canto y ningún comando de cámara parecía surtir
+efecto. Eran **dos cosas encadenadas**, y las dos valen registrarse:
+
+1. **camera-controls solo mueve la cámara dentro de `update(delta)`.** `rotateTo` y
+   `fitToBox` registran el objetivo al instante, pero si nadie llama `update` la cámara se
+   queda donde estaba. Se fuerza uno al terminar.
+2. **`fitToBox` pisa los ángulos.** Girar y luego encuadrar no deja rastro del giro; hay
+   que **encuadrar primero y rotar después**. Ese era el motivo de que la orientación
+   isométrica "no funcionara" — funcionaba, y el encuadre la borraba a continuación.
+
+Con el orden correcto la vista inicial es una isométrica en la que se reconoce la planta
+completa. Además quedó un botón **Encuadrar** en la interfaz, que un visor necesita de
+todos modos.
 
 ### Cómo se llegó hasta ahí (2026-08-19)
 
@@ -175,14 +182,14 @@ Se decide con los números de `F0.5`, no por preferencia.
 **Objetivo de salida:** alguien de oficina técnica revisa un modelo sin abrir
 software de escritorio ni pedir una licencia.
 
-| #      | Tarea                                                                                            | Estado |
-| ------ | ------------------------------------------------------------------------------------------------ | ------ |
-| `F1.1` | Árbol espacial navegable (proyecto → sitio → edificio → planta → elemento) con aislar y ocultar  | ⬜     |
-| `F1.2` | Panel de propiedades y **psets** del elemento seleccionado                                       | ⬜     |
-| `F1.3` | Planos de corte y secciones                                                                      | ⬜     |
-| `F1.4` | Mediciones: distancia, área y ángulo                                                             | ⬜     |
-| `F1.5` | Cargar **varios modelos IFC a la vez** (arquitectura + estructura + instalaciones) y alternarlos | ⬜     |
-| `F1.6` | Vistas guardadas: cámara, visibilidad y cortes, recuperables por nombre                          | ⬜     |
+| #      | Tarea                                                                                            | Estado       |
+| ------ | ------------------------------------------------------------------------------------------------ | ------------ |
+| `F1.1` | Árbol espacial navegable (proyecto → sitio → edificio → planta → elemento) con aislar y ocultar  | ⬜           |
+| `F1.2` | Panel de propiedades y **psets** del elemento seleccionado                                       | ✅ ver abajo |
+| `F1.3` | Planos de corte y secciones                                                                      | ⬜           |
+| `F1.4` | Mediciones: distancia, área y ángulo                                                             | ⬜           |
+| `F1.5` | Cargar **varios modelos IFC a la vez** (arquitectura + estructura + instalaciones) y alternarlos | ⬜           |
+| `F1.6` | Vistas guardadas: cámara, visibilidad y cortes, recuperables por nombre                          | ⬜           |
 
 **Oráculo:** el mismo modelo abierto en **Bonsai/BlenderBIM** (o cualquier visor
 IFC de escritorio). El árbol, los psets y las mediciones deben coincidir — un
@@ -191,9 +198,38 @@ visor que muestra propiedades distintas a las del archivo es peor que no tenerlo
 `F1.5` no es un extra: la coordinación consiste precisamente en mirar dos
 disciplinas juntas. Un visor de un modelo por vez no coordina nada.
 
----
+### `F1.2`: clic → propiedades, con el GUID validado (2026-08-19)
 
-## FASE 2 — Nubes de puntos
+Un clic sobre el modelo resuelve el elemento, lo resalta en violeta y abre su ficha. Sobre
+el modelo de prueba, clicar una viga devuelve:
+
+| Campo     | Valor                                                               |
+| --------- | ------------------------------------------------------------------- |
+| Categoría | `IFCBEAM`                                                           |
+| GUID      | `2sOaC0lzL6JhvIR8y_YCPM`                                            |
+| Tipo      | `IFCBEAMTYPE · Concrete, Plain 510.29`, con `PredefinedType = BEAM` |
+| Material  | `IFCMATERIAL · Concrete, Plain`                                     |
+
+**El GUID se valida con `bim-core` antes de mostrarlo**, en vez de confiar en el string:
+un GUID mal formado no sirve como identidad, y es mejor saberlo acá que al exportar un
+BCF. Así el dominio verificado contra el oráculo empieza a ganarse el sueldo.
+
+#### Lo que el modelo de prueba enseñó sobre los datos
+
+- **El GUID vive en `_guid`**, no en `GlobalId`, y la categoría en `_category`.
+- **Este modelo no trae psets.** Su cabecera lo dice: `IfcExportBaseQuantities: Off`. Es
+  una casilla del exportador, no un defecto del archivo, y **es el caso común**. Por eso
+  el panel no habla de "psets" sino de bloques de propiedades: donde no hay psets sí hay
+  tipo y material, que es justo lo que alguien busca al clicar una viga. Cuando el modelo
+  los traiga, aparecen en el mismo lugar.
+- **Las relaciones de IFC tienen ciclos.** `IsDefinedBy` lleva al tipo, y el tipo vuelve
+  por `ObjectTypeOf` a _todos_ los elementos que comparten ese tipo — clicar una viga
+  traía siete vigas hermanas. Esa relación se ignora, y el recorrido baja como máximo dos
+  niveles: seguir el grafo sin límite lleva a listar medio modelo.
+
+> **Queda por verificar con un modelo que sí traiga psets.** El código los lee
+> (`HasProperties`, con las claves de valor habituales) pero eso **no se ha comprobado
+> contra un archivo real**, así que va anotado como tal y no como hecho.
 
 **Objetivo de salida:** el levantamiento y el modelo en la misma escena, que es la
 comparación que nadie puede hacer hoy sin software de pago.

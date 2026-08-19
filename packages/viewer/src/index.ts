@@ -10,6 +10,7 @@
  * datos. Las reglas de dominio viven en `@aerobim/bim-core`.
  */
 
+import { isIfcGuid, type IfcGuid } from "@aerobim/bim-core";
 import * as OBC from "@thatopen/components";
 import * as FRAGS from "@thatopen/fragments";
 import * as THREE from "three";
@@ -62,7 +63,78 @@ export interface LoadedModel {
   readonly metrics: LoadMetrics;
 }
 
+/** Un par nombre/valor ya legible, listo para mostrar. */
+export interface PropertyValue {
+  readonly name: string;
+  readonly value: string;
+}
+
+/**
+ * Un bloque de propiedades relacionadas con el elemento.
+ *
+ * Ahí caen los psets de IFC cuando el modelo los trae, y también el **tipo** y el
+ * **material**, que llegan por las mismas relaciones. La distinción importa: un modelo
+ * exportado sin psets —bastante común, es una casilla en el exportador— igual tiene tipo
+ * y material, y esa información es justo la que alguien busca al clicar una viga.
+ */
+export interface PropertyGroup {
+  readonly name: string;
+  readonly properties: readonly PropertyValue[];
+}
+
+/** El elemento sobre el que se hizo clic. */
+export interface PickedItem {
+  readonly modelId: string;
+  /**
+   * Identificador interno de Fragments. **Sirve para hablar con el motor y nada más**:
+   * cambia entre versiones del modelo. Para identidad, {@link guid}.
+   */
+  readonly localId: number;
+  /**
+   * GUID de IFC, validado. `null` si el elemento no lo trae o no es válido.
+   *
+   * Es la identidad estable del elemento y la que viaja en un BCF — ver `AGENTS.md`.
+   */
+  readonly guid: IfcGuid | null;
+  readonly category: string | null;
+  readonly name: string | null;
+  /** Atributos directos del elemento. */
+  readonly attributes: readonly PropertyValue[];
+  /** Tipo, material y psets: todo lo que llega por relaciones. */
+  readonly groups: readonly PropertyGroup[];
+}
+
 const DEFAULT_WASM_PATH = "/wasm/";
+
+/** Ángulos de la vista isométrica: 45° alrededor del modelo, 60° desde la vertical. */
+const ISO_AZIMUTH = Math.PI / 4;
+const ISO_POLAR = Math.PI / 3;
+
+/** Un fotograma a 60 Hz, para forzar el avance de los controles de cámara. */
+const ONE_FRAME_S = 1 / 60;
+
+/** Violeta de la marca, para el elemento seleccionado. */
+const SELECTION_COLOR = 0x9b5de5;
+
+/**
+ * Espera al siguiente fotograma, con un plazo máximo.
+ *
+ * El respaldo por temporizador no es paranoia: `requestAnimationFrame` **no se dispara**
+ * en una pestaña en segundo plano, y sin él una carga iniciada ahí se quedaría esperando
+ * para siempre.
+ */
+function nextFrame(): Promise<void> {
+  return new Promise((resolve) => {
+    let listo = false;
+    const terminar = () => {
+      if (listo) return;
+      listo = true;
+      resolve();
+    };
+    requestAnimationFrame(terminar);
+    setTimeout(terminar, 100);
+  });
+}
 
 /**
  * Un visor por contenedor, reutilizado.
@@ -77,6 +149,197 @@ const DEFAULT_WASM_PATH = "/wasm/";
  * liberado.
  */
 const porContenedor = new Map<HTMLElement, Promise<BimViewer>>();
+
+/**
+ * Atributos que no se listan: salen en campos propios de {@link PickedItem} o son
+ * bookkeeping interno de Fragments, no información del modelo.
+ */
+const ATRIBUTOS_OCULTOS = new Set(["Name", "GlobalId", "_category", "_localId", "_guid"]);
+
+/**
+ * Relaciones que no vale la pena seguir.
+ *
+ * `ObjectTypeOf` es la vuelta del tipo hacia **todos los demás elementos que comparten
+ * ese tipo**: en el modelo de prueba, clicar una viga traía siete vigas hermanas. No es
+ * información del elemento y además cierra un ciclo.
+ */
+const RELACIONES_IGNORADAS = new Set(["ObjectTypeOf", "IsDecomposedBy", "ContainsElements"]);
+
+/** `true` si el valor es un atributo escalar y no una lista de elementos relacionados. */
+function esAtributo(valor: FRAGS.ItemAttribute | FRAGS.ItemData[]): valor is FRAGS.ItemAttribute {
+  return !Array.isArray(valor);
+}
+
+/**
+ * Texto legible de un atributo de IFC.
+ *
+ * Los valores llegan envueltos y con formas variadas: escalares, objetos con `value`
+ * anidado (el patrón de `IfcPropertySingleValue`), booleanos y números. Devuelve `null`
+ * cuando no hay nada que mostrar, para no llenar la tabla de "undefined".
+ */
+function textoDe(valor: unknown): string | null {
+  if (valor === null || valor === undefined || valor === "") return null;
+
+  if (typeof valor === "string") return valor;
+  if (typeof valor === "number") {
+    // Los decimales de un IFC traen ruido de coma flotante: 2.9800000000000004.
+    return Number.isInteger(valor) ? String(valor) : valor.toFixed(3).replace(/\.?0+$/, "");
+  }
+  if (typeof valor === "boolean") return valor ? "sí" : "no";
+
+  if (typeof valor === "object") {
+    const anidado = (valor as { value?: unknown }).value;
+    if (anidado !== undefined && anidado !== valor) return textoDe(anidado);
+  }
+
+  return null;
+}
+
+/** Nombre de un `ItemData`, para psets y propiedades. */
+function nombreDe(item: FRAGS.ItemData): string | null {
+  const campo = item["Name"];
+  return campo !== undefined && esAtributo(campo) ? textoDe(campo.value) : null;
+}
+
+/** Categoría IFC de un objeto (`IFCBEAMTYPE`, `IFCMATERIAL`, …). */
+function categoriaDe(item: FRAGS.ItemData): string | null {
+  const campo = item["_category"];
+  return campo !== undefined && esAtributo(campo) ? textoDe(campo.value) : null;
+}
+
+/** GUID de IFC validado contra el dominio, o `null` si no lo trae o no es válido. */
+function guidDe(item: FRAGS.ItemData): IfcGuid | null {
+  for (const clave of ["_guid", "GlobalId"]) {
+    const campo = item[clave];
+    if (campo === undefined || !esAtributo(campo)) continue;
+    const texto = textoDe(campo.value);
+    // Se valida con `bim-core` en vez de confiar en el string: un GUID mal formado no
+    // sirve como identidad, y es mejor saberlo acá que al exportar un BCF.
+    if (texto !== null && isIfcGuid(texto)) return texto;
+  }
+  return null;
+}
+
+/** Atributos escalares de un objeto, sin los internos. */
+function atributosDe(item: FRAGS.ItemData, omitir: Set<string>): PropertyValue[] {
+  const propiedades: PropertyValue[] = [];
+
+  for (const [clave, contenido] of Object.entries(item)) {
+    if (!esAtributo(contenido) || omitir.has(clave) || clave.startsWith("_")) continue;
+
+    // Una propiedad de pset guarda su valor aparte del nombre; un atributo normal lo trae
+    // directo. Se prueban las claves de valor conocidas antes de rendirse.
+    const texto = textoDe(contenido.value);
+    if (texto !== null) propiedades.push({ name: clave, value: texto });
+  }
+
+  return propiedades;
+}
+
+/**
+ * Propiedades de un `IfcPropertySet`, cuando el modelo trae psets.
+ *
+ * Cada propiedad cuelga de `HasProperties` con su nombre y un valor que, según el tipo
+ * IFC, vive en una clave distinta.
+ */
+function propiedadesDePset(pset: FRAGS.ItemData): PropertyValue[] {
+  const lista = pset["HasProperties"];
+  if (!Array.isArray(lista)) return [];
+
+  const propiedades: PropertyValue[] = [];
+  for (const propiedad of lista) {
+    const name = nombreDe(propiedad);
+    if (name === null) continue;
+
+    for (const clave of ["NominalValue", "Value", "LengthValue", "AreaValue", "VolumeValue"]) {
+      const campo = propiedad[clave];
+      if (campo === undefined || !esAtributo(campo)) continue;
+      const value = textoDe(campo.value);
+      if (value !== null) {
+        propiedades.push({ name, value });
+        break;
+      }
+    }
+  }
+
+  return propiedades;
+}
+
+/**
+ * Convierte un objeto relacionado en un bloque mostrable.
+ *
+ * Devuelve `null` si no aporta nada. Baja **un solo nivel más** por sus propias
+ * relaciones, que es lo que hace falta para llegar al material a través del tipo, y no
+ * más: seguir el grafo de IFC sin límite lleva a listar medio modelo.
+ */
+function grupoDe(relacionado: FRAGS.ItemData, claveRelacion: string): PropertyGroup[] {
+  const grupos: PropertyGroup[] = [];
+  const categoria = categoriaDe(relacionado);
+  const nombre = nombreDe(relacionado);
+
+  // Un pset real: sus propiedades están en `HasProperties`.
+  const desdePset = propiedadesDePset(relacionado);
+  const propias = desdePset.length > 0 ? desdePset : atributosDe(relacionado, new Set());
+
+  if (propias.length > 0) {
+    // El encabezado dice qué es esto: "IFCBEAMTYPE · Concrete, Plain 510.29" es mucho más
+    // útil que "IsDefinedBy".
+    const encabezado = [categoria, nombre].filter((parte) => parte !== null).join(" · ");
+    grupos.push({ name: encabezado === "" ? claveRelacion : encabezado, properties: propias });
+  }
+
+  for (const [clave, contenido] of Object.entries(relacionado)) {
+    if (!Array.isArray(contenido) || RELACIONES_IGNORADAS.has(clave)) continue;
+
+    for (const anidado of contenido) {
+      if (typeof anidado !== "object" || anidado === null) continue;
+      const propiedades = atributosDe(anidado, new Set());
+      if (propiedades.length === 0) continue;
+
+      const sub = [categoriaDe(anidado), nombreDe(anidado)]
+        .filter((parte) => parte !== null)
+        .join(" · ");
+      grupos.push({ name: sub === "" ? clave : sub, properties: propiedades });
+    }
+  }
+
+  return grupos;
+}
+
+/** Arma un {@link PickedItem} a partir de los datos crudos del modelo. */
+function describeItem(
+  modelId: string,
+  localId: number,
+  data: FRAGS.ItemData | undefined,
+): PickedItem {
+  if (!data) {
+    return { modelId, localId, guid: null, category: null, name: null, attributes: [], groups: [] };
+  }
+
+  const groups: PropertyGroup[] = [];
+  for (const [clave, contenido] of Object.entries(data)) {
+    if (!Array.isArray(contenido) || RELACIONES_IGNORADAS.has(clave)) continue;
+    for (const relacionado of contenido) {
+      if (typeof relacionado !== "object" || relacionado === null) continue;
+      groups.push(...grupoDe(relacionado, clave));
+    }
+  }
+
+  const nombrePropio = nombreDe(data);
+
+  return {
+    modelId,
+    localId,
+    guid: guidDe(data),
+    category: categoriaDe(data),
+    // Muchos elementos no tienen nombre propio —las vigas del modelo de prueba, por
+    // ejemplo— y el nombre útil es el de su tipo. Se toma prestado en vez de mostrar
+    // "sin nombre" cuando hay algo mejor a mano.
+    name: nombrePropio ?? groups.find((grupo) => grupo.name.includes("TYPE"))?.name ?? null,
+    attributes: atributosDe(data, ATRIBUTOS_OCULTOS),
+    groups,
+  };
+}
 
 /**
  * Falla temprano y con un mensaje útil si la página tiene aislamiento de origen.
@@ -275,6 +538,67 @@ export class BimViewer {
   }
 
   /**
+   * Qué elemento hay bajo un punto de la pantalla, con sus propiedades.
+   *
+   * Devuelve `null` si ahí no hay nada, que es la mitad de los clics en un visor y no es
+   * un error.
+   *
+   * Las coordenadas van en píxeles de la ventana (`clientX` / `clientY` de un evento de
+   * ratón); la conversión al espacio del lienzo ocurre acá, para que quien llame no tenga
+   * que saber dónde está el canvas.
+   */
+  async pickAt(clientX: number, clientY: number): Promise<PickedItem | null> {
+    this.assertAlive();
+
+    const canvas = this.world.renderer?.three.domElement;
+    if (!canvas) return null;
+
+    const rect = canvas.getBoundingClientRect();
+    const result = await this.fragments.raycast({
+      camera: this.world.camera.three,
+      mouse: new THREE.Vector2(clientX - rect.left, clientY - rect.top),
+      dom: canvas,
+    });
+    if (!result) return null;
+
+    const model = result.fragments;
+    const [data] = await model.getItemsData([result.localId], {
+      attributesDefault: true,
+      relations: {
+        IsDefinedBy: { attributes: true, relations: true },
+        DefinesOcurrence: { attributes: true, relations: false },
+        HasAssociations: { attributes: true, relations: false },
+      },
+    });
+
+    await this.highlight(model.modelId, result.localId);
+
+    return describeItem(model.modelId, result.localId, data);
+  }
+
+  /** Pinta el elemento seleccionado y apaga el resaltado anterior. */
+  private async highlight(modelId: string, localId: number): Promise<void> {
+    await this.fragments.resetHighlight();
+    await this.fragments.highlight(
+      {
+        color: new THREE.Color(SELECTION_COLOR),
+        renderedFaces: FRAGS.RenderedFaces.TWO,
+        opacity: 1,
+        transparent: false,
+      },
+      { [modelId]: new Set([localId]) },
+    );
+    await this.fragments.core.update(true);
+  }
+
+  /** Quita el resaltado de selección. */
+  async clearSelection(): Promise<void> {
+    this.assertAlive();
+    await this.fragments.resetHighlight();
+    await this.fragments.core.update(true);
+  }
+
+  /**
    * Cámara y controles de la escena.
    *
    * Se expone porque las vistas guardadas (`F1.6`) tienen que leer y restaurar la
@@ -282,6 +606,27 @@ export class BimViewer {
    */
   get camera(): OBC.SimpleCamera {
     return this.world.camera;
+  }
+
+  /**
+   * Encuadra todos los modelos de la escena en vista isométrica.
+   *
+   * Existe como acción a demanda porque un visor la necesita —uno se pierde orbitando y
+   * quiere volver— y porque el encuadre automático al cargar no siempre gana: algo del
+   * ciclo de vida de That Open reencuadra después, y con el botón el usuario recupera la
+   * vista en un clic sin que importe quién movió la cámara al final.
+   */
+  async frameAll(): Promise<void> {
+    this.assertAlive();
+
+    const union = new THREE.Box3();
+    for (const [, model] of this.fragments.list) {
+      const box = await this.boxOf(model);
+      if (box !== null) union.union(box);
+    }
+    if (union.isEmpty()) return;
+
+    this.applyFraming(union);
   }
 
   /**
@@ -300,28 +645,42 @@ export class BimViewer {
 
     const size = box.getSize(new THREE.Vector3());
 
-    // **Pendiente conocido (`F1.6`): la orientación inicial no se puede fijar desde acá.**
-    //
-    // El encuadre deja el modelo visto de canto —una planta de 22 m se ve como una franja
-    // de 3 m de alto— y lo natural sería girar a una vista isométrica antes de encuadrar.
-    // Se intentó con `setLookAt`, con `moveTo` y con `rotateTo`, y **ninguno surte efecto**:
-    // medido después de llamarlos, la cámara sigue en `polar=90°` y `pos=(50, 50, 50)`,
-    // que son sus valores iniciales. Algo en `SimpleCamera` de That Open no aplica estos
-    // comandos, y averiguar qué es trabajo de la Fase 1, que necesita controles de vista
-    // (planta, alzado, isométrica) de todos modos.
-    //
-    // Mientras tanto el modelo se ve y se puede orbitar con el ratón.
-    //
-    // El segundo argumento es `enableTransition`, y va en **false** a propósito.
-    //
-    // Con la transición activada, `fitToBox` devuelve una promesa que solo se resuelve
-    // cuando la animación de cámara termina, y esa animación avanza con
-    // `requestAnimationFrame`. Si la pestaña está en segundo plano, rAF no corre y el
-    // `await` no vuelve nunca. Encuadrar de golpe además es lo correcto acá: animar
-    // desde una cámara arbitraria hacia un modelo recién abierto no aporta nada.
-    await this.world.camera.controls.fitToBox(box, false);
+    // Se encuadra dos veces a propósito. Al terminar de cargar, el lienzo todavía puede
+    // estar cambiando de tamaño —aparece el panel de propiedades, el de métricas, el
+    // contenedor crece— y un encuadre calculado con la relación de aspecto anterior deja
+    // el modelo mal situado. El segundo pase, ya en el fotograma siguiente, lo corrige.
+    this.applyFraming(box);
+    await nextFrame();
+    this.applyFraming(box);
 
     return [size.x, size.y, size.z];
+  }
+
+  /**
+   * Orienta y encuadra la cámara sobre `box`.
+   *
+   * Todo va sin transición y con un `update` explícito al final, y las tres cosas
+   * importan:
+   *
+   * - **Vista isométrica primero.** `fitToBox` conserva la dirección en que mira la
+   *   cámara, y la inicial deja una planta de edificio vista de canto: 22 m de ancho por
+   *   3 m de alto, una franja en la que no se reconoce nada.
+   * - **Sin transición.** Con la animación activada, la promesa de `fitToBox` solo se
+   *   resuelve cuando termina, y la animación avanza con `requestAnimationFrame`: en una
+   *   pestaña de fondo no vuelve nunca. Además, animar desde una cámara arbitraria hacia
+   *   un modelo recién abierto no aporta nada.
+   * - **El `update` no es opcional.** camera-controls registra los ángulos y el objetivo
+   *   al instante, pero solo mueve la cámara dentro de `update(delta)`. Verificado: sin
+   *   esta llamada la posición se queda en `(50, 50, 50)`, su valor inicial.
+   */
+  private applyFraming(box: THREE.Box3): void {
+    const controls = this.world.camera.controls;
+    // El encuadre va **antes** del giro: `fitToBox` recoloca la cámara y con ello pisa los
+    // ángulos, así que girar primero no dejaba rastro. Rotar después conserva el objetivo y
+    // la distancia que el encuadre calculó.
+    void controls.fitToBox(box, false);
+    void controls.rotateTo(ISO_AZIMUTH, ISO_POLAR, false);
+    controls.update(ONE_FRAME_S);
   }
 
   /** Caja envolvente del modelo, preguntando primero a Fragments y cayendo a la escena. */

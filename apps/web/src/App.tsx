@@ -1,6 +1,7 @@
-import { BimViewer, type LoadedModel } from "@aerobim/viewer";
+import { BimViewer, type LoadedModel, type PickedItem } from "@aerobim/viewer";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { MetricsPanel } from "./components/MetricsPanel.js";
+import { PropertiesPanel } from "./components/PropertiesPanel.js";
 
 type Status =
   | { readonly kind: "starting" }
@@ -14,6 +15,7 @@ export function App() {
   const [status, setStatus] = useState<Status>({ kind: "starting" });
   const [models, setModels] = useState<readonly LoadedModel[]>([]);
   const [dragging, setDragging] = useState(false);
+  const [selected, setSelected] = useState<PickedItem | null>(null);
 
   useEffect(() => {
     const host = canvasHost.current;
@@ -67,6 +69,26 @@ export function App() {
     [openIfc],
   );
 
+  const onCanvasClick = useCallback(async (event: React.MouseEvent<HTMLDivElement>) => {
+    const instance = viewer.current;
+    if (!instance) return;
+
+    try {
+      // Un clic al vacío devuelve `null`, que es la mitad de los clics en un visor y no es
+      // un error: simplemente deselecciona.
+      const item = await instance.pickAt(event.clientX, event.clientY);
+      setSelected(item);
+      if (item === null) await instance.clearSelection();
+    } catch (error: unknown) {
+      setStatus({ kind: "error", message: describe(error) });
+    }
+  }, []);
+
+  const closeProperties = useCallback(() => {
+    setSelected(null);
+    void viewer.current?.clearSelection();
+  }, []);
+
   return (
     <div className="flex h-full w-full flex-col">
       <header className="flex items-center gap-3 border-b border-white/10 px-4 py-3">
@@ -78,6 +100,17 @@ export function App() {
 
         <div className="ml-auto flex items-center gap-3">
           <StatusBadge status={status} />
+
+          {models.length > 0 && (
+            <button
+              type="button"
+              onClick={() => void viewer.current?.frameAll()}
+              className="rounded-md border border-white/15 px-3 py-1.5 text-xs text-white/80 hover:bg-white/10"
+            >
+              Encuadrar
+            </button>
+          )}
+
           <label className="cursor-pointer rounded-md bg-brand px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">
             Abrir IFC
             <input
@@ -99,6 +132,7 @@ export function App() {
         <div
           ref={canvasHost}
           className="min-h-0 flex-1"
+          onClick={(event) => void onCanvasClick(event)}
           onDragOver={(event) => {
             event.preventDefault();
             setDragging(true);
@@ -118,6 +152,14 @@ export function App() {
             </p>
           </div>
         )}
+
+        {models.length > 0 && selected === null && (
+          <p className="pointer-events-none absolute bottom-4 left-4 text-xs text-white/40">
+            Haz clic en un elemento para ver sus propiedades
+          </p>
+        )}
+
+        {selected !== null && <PropertiesPanel item={selected} onClose={closeProperties} />}
 
         {models.length > 0 && <MetricsPanel models={models} />}
       </div>

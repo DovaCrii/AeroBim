@@ -30,9 +30,10 @@
       modelo, y si nuestra envoltura lo integra bien. La lógica vive en `src/diag.ts`
       para que los módulos se resuelvan igual que en la aplicación.
 
-      Uso:
-        /diag.html?modo=clase&ifc=/samples/muro-minimo.ifc
-        /diag.html?modo=manual&ifc=/samples/muro-minimo.ifc
+      Modos: `clase` (a través de la envoltura), `manual` (componentes de That Open
+      directos) y `camara` (por qué los comandos de cámara no surten efecto).
+
+      Uso: /diag.html?modo=clase&ifc=/samples/muro-minimo.ifc
     -->
     <div id="log">iniciando…</div>
     <div id="escena"></div>
@@ -53,7 +54,7 @@
 
       try {
         const diag = await import("/@fs/D:/I+D/AeroBim/apps/web/src/diag.ts");
-        const ejecutar = modo === "manual" ? diag.manual : diag.clase;
+        const ejecutar = diag[modo] ?? diag.clase;
         const espera = Number(params.get("espera") ?? "0");
         await ejecutar(document.getElementById("escena"), ifcUrl, linea, espera);
         linea("\nOK");
