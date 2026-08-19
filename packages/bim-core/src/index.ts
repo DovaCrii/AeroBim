@@ -19,8 +19,10 @@ export {
   distanceM,
   distancePartsM,
   perimeterM,
+  perpendicularToPlane,
   polygonAreaM2,
   type DistanceParts,
+  type PerpendicularFoot,
   type Point3,
 } from "./measure/geometry.js";
 

@@ -59,6 +59,7 @@ const ETIQUETA_MODO: Record<MeasureMode | "select", string> = {
   distance: "Medir distancia",
   angle: "Medir ángulo",
   area: "Medir área",
+  perpendicular: "Medir perpendicular",
 };
 
 /**
@@ -83,6 +84,18 @@ function Resultado({ measurement }: { readonly measurement: Measurement }) {
     return (
       <span className="shrink-0">
         <Magnitud etiqueta="Ángulo" valor={`${measurement.angleDeg.toFixed(1)}°`} destacada />
+      </span>
+    );
+  }
+
+  if (measurement.mode === "perpendicular") {
+    return (
+      <span className="shrink-0">
+        <Magnitud
+          etiqueta="Perpendicular"
+          valor={`${measurement.distanceM.toFixed(3)} m`}
+          destacada
+        />
       </span>
     );
   }
@@ -125,6 +138,11 @@ function Magnitud({
 function instruccion(mode: MeasureMode, points: number): string {
   if (mode === "distance") {
     return points === 0 ? "Clic en el primer punto" : "Clic en el segundo punto";
+  }
+  if (mode === "perpendicular") {
+    return points === 0
+      ? "Clic en la cara de referencia"
+      : "Clic en el punto: se mide en ángulo recto a esa cara";
   }
   if (mode === "angle") {
     if (points === 0) return "Clic en el primer punto";

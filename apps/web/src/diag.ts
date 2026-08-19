@@ -240,6 +240,79 @@ export async function medir(container: HTMLElement, ifcUrl: string, log: Log): P
   }
 }
 
+/**
+ * La perpendicular a una cara, de punta a punta.
+ *
+ * Existe porque **es la única medición que se puede comprobar sin interfaz**: las otras tres las
+ * dibuja `components-front`, cuyo ajuste lee píxeles de la escena y por tanto necesita un navegador
+ * que esté pintando. La perpendicular usa el rayo de la CPU, así que corre igual acá.
+ *
+ * Hace lo mismo que dos clics del usuario: busca un punto de la pantalla donde haya geometría, lo
+ * usa como cara de referencia, y luego mide desde otro punto. Informa el valor y si la cota quedó
+ * dibujada, que son las dos cosas que pueden fallar por separado.
+ */
+export async function perpendicular(
+  container: HTMLElement,
+  ifcUrl: string,
+  log: Log,
+): Promise<void> {
+  const viewer = await BimViewer.create(container);
+  const bytes = new Uint8Array(await (await fetch(ifcUrl)).arrayBuffer());
+  await viewer.loadIfc(bytes, ifcUrl);
+
+  const medidas: string[] = [];
+  const desuscribir = viewer.onMeasurement((medida) => {
+    if (medida?.mode === "perpendicular") medidas.push(`${medida.distanceM.toFixed(3)} m`);
+  });
+
+  const rect = container.getBoundingClientRect();
+  const enPantalla = (fx: number, fy: number) =>
+    [rect.left + rect.width * fx, rect.top + rect.height * fy] as const;
+
+  // Se buscan dos puntos donde el rayo toque geometría: a ciegas, la mitad de la pantalla es vacío.
+  const conGeometria: (readonly [number, number])[] = [];
+  for (const fx of [0.5, 0.4, 0.45, 0.35, 0.55, 0.3]) {
+    const [x, y] = enPantalla(fx, 0.5);
+    if ((await viewer.pickAt(x, y)) !== null) conGeometria.push([x, y]);
+    if (conGeometria.length === 2) break;
+  }
+  log(`puntos con geometria encontrados: ${conGeometria.length}`);
+  if (conGeometria.length < 2) {
+    log("no hay dos puntos con geometria: la camara no encuadra el modelo en este contenedor");
+    desuscribir();
+    return;
+  }
+
+  await viewer.clearSelection();
+  viewer.setMeasureMode("perpendicular");
+
+  const [caraReferencia, punto] = conGeometria as [
+    readonly [number, number],
+    readonly [number, number],
+  ];
+
+  const primero = await viewer.addMeasurePoint(...caraReferencia);
+  log(`clic 1 (cara de referencia) registrado: ${primero}`);
+
+  // Se vuelve a lanzar el rayo por los dos caminos justo antes del segundo clic: si `pickAt` toca y
+  // `snapAt` no, el problema es del ajuste; si ninguno toca, algo entre medias dejó el rayo ciego.
+  //
+  // **En un navegador que no pinta cuadros, acá los dos dan `false`** y no es un fallo del código:
+  // cada `core.update(true)` deja la geometría en un estado que el rayo no encuentra hasta que se
+  // dibuja un fotograma. Este modo solo dice la verdad en un navegador a la vista.
+  log(`antes del clic 2 — pickAt: ${(await viewer.pickAt(...punto)) !== null}`);
+  log(`antes del clic 2 — snapAt: ${(await viewer.snapAt(...punto)) !== null}`);
+
+  const segundo = await viewer.addMeasurePoint(...punto);
+  log(`clic 2 (punto medido) registrado: ${segundo}`);
+
+  log(`\nperpendicular medida: ${medidas.join(", ") || "ninguna"}`);
+  log(`cotas dibujadas: ${viewer.measurementCount}`);
+
+  desuscribir();
+  viewer.setMeasureMode(null);
+}
+
 /** Cortes: comprueba que los planos se crean y que se quitan. */
 export async function cortes(container: HTMLElement, ifcUrl: string, log: Log): Promise<void> {
   const viewer = await BimViewer.create(container);

@@ -67,6 +67,49 @@ export function distancePartsM(a: Point3, b: Point3): DistanceParts {
   };
 }
 
+/** El pie de una perpendicular sobre un plano, y la distancia hasta él. */
+export interface PerpendicularFoot {
+  /** Dónde cae la perpendicular sobre el plano, en metros. */
+  readonly footM: Point3;
+  /** Largo de la perpendicular, en metros. Siempre positivo. */
+  readonly distanceM: number;
+}
+
+/**
+ * La perpendicular desde un punto a un plano: dónde cae y cuánto mide.
+ *
+ * **Es la medida que se pide en obra cuando hay una cara de referencia:** la separación de un pilar
+ * al paramento, el espesor de un tabique, la holgura entre una tubería y una losa. Medir eso entre
+ * dos puntos elegidos a ojo da siempre un número mayor que el real, porque cualquier desvío del
+ * ángulo recto alarga la medida — y ese error nunca es a favor.
+ *
+ * El plano se da por un punto suyo y su normal, que es lo que devuelve el rayo al tocar una cara.
+ * Devuelve `null` si la normal no tiene dirección: sin plano no hay perpendicular, y un cero
+ * inventado ahí sería peor que no responder.
+ */
+export function perpendicularToPlane(
+  point: Point3,
+  planePoint: Point3,
+  planeNormal: Point3,
+): PerpendicularFoot | null {
+  const largo = length(planeNormal);
+  if (largo === 0) return null;
+
+  const unitaria: Point3 = [planeNormal[0] / largo, planeNormal[1] / largo, planeNormal[2] / largo];
+
+  // Distancia con signo del punto al plano: positiva del lado al que apunta la normal.
+  const conSigno = dot(subtract(point, planePoint), unitaria);
+
+  return {
+    footM: [
+      point[0] - conSigno * unitaria[0],
+      point[1] - conSigno * unitaria[1],
+      point[2] - conSigno * unitaria[2],
+    ],
+    distanceM: Math.abs(conSigno),
+  };
+}
+
 /**
  * Ángulo en grados que forman `a` y `c` vistos desde el vértice `b`.
  *

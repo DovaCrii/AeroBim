@@ -18,6 +18,7 @@ import {
   missingElementClasses,
   NO_IFC_UNITS,
   parseIfcUnits,
+  perpendicularToPlane,
   resolveUnitSymbol,
   type IfcGuid,
   type IfcUnits,
@@ -73,8 +74,14 @@ export type NavigationMode = "Orbit" | "Plan" | "FirstPerson";
 /** Cómo se dibujan los elementos. */
 export type RenderStyle = "solid" | "wireframe";
 
-/** Qué se está midiendo. */
-export type MeasureMode = "distance" | "angle" | "area";
+/**
+ * Qué se está midiendo.
+ *
+ * `perpendicular` no es de la librería: se implementa acá con el rayo propio y la geometría del
+ * dominio, porque `components-front` no la trae y es la medida que se pide cuando hay una cara de
+ * referencia. Ver {@link addMeasurePoint}.
+ */
+export type MeasureMode = "distance" | "angle" | "area" | "perpendicular";
 
 /**
  * Una medición terminada.
@@ -97,6 +104,11 @@ export type Measurement =
       readonly verticalM: number;
     }
   | { readonly mode: "angle"; readonly angleDeg: number }
+  | {
+      readonly mode: "perpendicular";
+      /** Largo de la perpendicular desde el punto hasta la cara de referencia. */
+      readonly distanceM: number;
+    }
   | {
       readonly mode: "area";
       readonly areaM2: number;
@@ -842,6 +854,12 @@ export class BimViewer {
   private renderStyle: RenderStyle = "solid";
   private measureMode: MeasureMode | null = null;
   private snapMode: SnapMode = "vertex";
+  /**
+   * La cara de referencia de una perpendicular en curso: un punto suyo y su normal.
+   *
+   * `null` mientras no se ha elegido ninguna. Ver {@link addMeasurePoint}.
+   */
+  private referencePlane: { readonly point: Point3; readonly normal: Point3 } | null = null;
   private readonly tools: MeasureTools;
   /** Quién escucha las mediciones terminadas. Ver {@link onMeasurement}. */
   private readonly measureListeners = new Set<(measurement: Measurement | null) => void>();
@@ -1080,18 +1098,25 @@ export class BimViewer {
     tool.fills.onItemAdded.add((fill) => estilarEtiqueta(fill.label));
   }
 
+  /**
+   * Las clases de ajuste del modo actual.
+   *
+   * El orden es la preferencia: primero vértice, luego arista y la cara como respaldo. Sin `FACE`,
+   * un clic en el medio de un muro no devuelve punto y medir se vuelve un juego de puntería contra
+   * las esquinas. Con el ajuste desactivado queda solo la cara, que es lo que hace falta para medir
+   * entre dos puntos cualesquiera de un paño.
+   */
+  private snappingClasses(): FRAGS.SnappingClass[] {
+    return this.snapMode === "vertex"
+      ? [FRAGS.SnappingClass.POINT, FRAGS.SnappingClass.LINE, FRAGS.SnappingClass.FACE]
+      : [FRAGS.SnappingClass.FACE];
+  }
+
   /** Traduce el modo de ajuste a las clases de la librería. */
   private aplicarAjuste(
     tool: OBF.LengthMeasurement | OBF.AngleMeasurement | OBF.AreaMeasurement,
   ): void {
-    // El orden es la preferencia: primero vértice, luego arista y la cara como respaldo. Sin
-    // `FACE`, un clic en el medio de un muro no devuelve punto y medir se vuelve un juego de
-    // puntería contra las esquinas. Con el ajuste desactivado queda solo la cara, que es lo que
-    // hace falta para medir entre dos puntos cualesquiera de un paño.
-    tool.snappings =
-      this.snapMode === "vertex"
-        ? [FRAGS.SnappingClass.POINT, FRAGS.SnappingClass.LINE, FRAGS.SnappingClass.FACE]
-        : [FRAGS.SnappingClass.FACE];
+    tool.snappings = this.snappingClasses();
   }
 
   /**
@@ -1568,9 +1593,21 @@ export class BimViewer {
     }
 
     this.measureMode = mode;
+    this.referencePlane = null;
+
     // Solo un medidor activo a la vez. Con dos escuchando el puntero, cada clic entraba en las
     // dos mediciones y salían cotas que nadie pidió.
-    this.tools.distance.enabled = mode === "distance";
+    //
+    // En modo perpendicular se enciende **el medidor de distancia igualmente**, aunque nunca se le
+    // pida crear nada: encendido es lo que dibuja el marcador de ajuste al mover el ratón, y así la
+    // perpendicular se apunta con la misma señal visual que las demás medidas.
+    //
+    // **Sin verificar que los dos conviven.** La perpendicular usa el rayo de la CPU y el marcador
+    // usa el selector gráfico de la librería, que lee píxeles de la escena. Que uno estorbe al otro
+    // no se pudo comprobar: en el navegador de pruebas ningún rayo funciona después de un par de
+    // refrescos, porque esa pestaña no pinta cuadros. Si la perpendicular deja de encontrar
+    // geometría en uso real, **lo primero que hay que probar es no encender el medidor acá.**
+    this.tools.distance.enabled = mode === "distance" || mode === "perpendicular";
     this.tools.angle.enabled = mode === "angle";
     this.tools.area.enabled = mode === "area";
     this.emitMeasurement(null);
@@ -1591,9 +1628,16 @@ export class BimViewer {
    * El resultado no vuelve por acá: llega por {@link onMeasurement} cuando la medición se
    * cierra, porque cuántos clics hacen falta depende de lo que se mida.
    */
-  async addMeasurePoint(): Promise<void> {
+  async addMeasurePoint(clientX?: number, clientY?: number): Promise<boolean> {
     this.assertAlive();
-    if (this.measureMode === null) return;
+    if (this.measureMode === null) return false;
+
+    // La perpendicular es propia y **sí necesita las coordenadas**: usa el rayo de la CPU, que a
+    // diferencia del ajuste de la librería devuelve también la normal de la cara tocada.
+    if (this.measureMode === "perpendicular") {
+      if (clientX === undefined || clientY === undefined) return false;
+      return this.addPerpendicularPoint(clientX, clientY);
+    }
 
     // **Un dibujado antes de leer.** El ajuste del medidor no usa el rayo de la CPU: lee los
     // píxeles de la escena dibujada para saber qué hay bajo el cursor. Mientras se orbita, la
@@ -1605,6 +1649,98 @@ export class BimViewer {
     if (this.measureMode === "distance") await this.tools.distance.create();
     else if (this.measureMode === "angle") await this.tools.angle.create();
     else if (this.measureMode === "area") await this.tools.area.create();
+
+    // Los medidores de la librería no informan si el clic cayó en el vacío, así que acá se da por
+    // registrado. Es lo que había antes de que existiera este valor de retorno.
+    return true;
+  }
+
+  /**
+   * Los dos clics de una perpendicular: primero la cara de referencia, luego el punto.
+   *
+   * **Se dibuja con el medidor de la librería aunque el cálculo sea propio:** una vez conocido el
+   * pie de la perpendicular, se añade la cota a su lista y ella se encarga de la línea, los extremos
+   * y la etiqueta. Así la perpendicular se ve igual que las demás medidas y aparece en la misma
+   * lista, sin duplicar el dibujo.
+   */
+  private async addPerpendicularPoint(clientX: number, clientY: number): Promise<boolean> {
+    // **El primer clic va sin ajuste y el segundo con él**, y la diferencia importa: con ajuste el
+    // rayo devuelve el vértice o la arista más cercana, que **no traen normal** —solo una cara la
+    // tiene— y sin normal no hay plano de referencia. Para el punto que se mide, en cambio, el
+    // ajuste es justo lo que se quiere.
+    if (this.referencePlane === null) {
+      const cara = await this.rayAt(clientX, clientY, false);
+      if (cara?.normal == null) return false;
+      this.referencePlane = { point: cara.point, normal: cara.normal };
+      return true;
+    }
+
+    // **Con respaldo sin ajuste.** El ajuste no siempre resuelve —depende de que los datos de
+    // vértices y aristas del trozo de modelo que se está mirando estén ya disponibles— y cuando no
+    // resuelve devuelve nada. Perder la medición por eso sería peor que medir el punto de la cara,
+    // que es exactamente donde se hizo clic.
+    const toque =
+      (await this.rayAt(clientX, clientY, true)) ?? (await this.rayAt(clientX, clientY, false));
+    if (toque === null) return false;
+
+    const perpendicular = perpendicularToPlane(
+      toque.point,
+      this.referencePlane.point,
+      this.referencePlane.normal,
+    );
+    this.referencePlane = null;
+    if (perpendicular === null) return false;
+
+    // Menos de un milímetro es el punto sobre la propia cara: no hay perpendicular que dibujar.
+    if (perpendicular.distanceM < 0.001) {
+      this.emitMeasurement({ mode: "perpendicular", distanceM: 0 });
+      return true;
+    }
+
+    const linea = new OBF.Line(
+      new THREE.Vector3(...toque.point),
+      new THREE.Vector3(...perpendicular.footM),
+    );
+    linea.units = "m";
+    linea.rounding = 3;
+    this.tools.distance.list.add(linea);
+
+    this.emitMeasurement({ mode: "perpendicular", distanceM: perpendicular.distanceM });
+    return true;
+  }
+
+  /**
+   * Qué hay bajo un punto de la pantalla: el punto tocado y, si la hay, la normal de la cara.
+   *
+   * Es el rayo de la CPU contra la geometría, no la lectura de píxeles de la librería. **Con ajuste
+   * devuelve el vértice o la arista más cercana y por tanto puede no traer normal**; sin ajuste
+   * devuelve el punto de la cara con su normal, que es lo que define un plano.
+   */
+  private async rayAt(
+    clientX: number,
+    clientY: number,
+    conAjuste: boolean,
+  ): Promise<{ point: Point3; normal: Point3 | null } | null> {
+    const canvas = this.world.renderer?.three.domElement;
+    if (!canvas) return null;
+
+    const rect = canvas.getBoundingClientRect();
+    const comun = {
+      camera: this.world.camera.three,
+      mouse: new THREE.Vector2(clientX - rect.left, clientY - rect.top),
+      dom: canvas,
+    };
+
+    const result = await this.fragments.raycast(
+      conAjuste ? { ...comun, snappingClasses: this.snappingClasses() } : comun,
+    );
+    if (!result) return null;
+
+    const normal = result.normal ?? null;
+    return {
+      point: toPoint3(result.point),
+      normal: normal === null ? null : toPoint3(normal),
+    };
   }
 
   /**

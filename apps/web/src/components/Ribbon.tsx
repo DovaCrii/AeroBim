@@ -23,6 +23,7 @@ import {
   IconOrbit,
   IconOrthographic,
   IconPan,
+  IconPerpendicular,
   IconPerspective,
   IconSectionHorizontal,
   IconSectionLongitudinal,
@@ -322,6 +323,14 @@ export function Ribbon({
                 active={measureMode === "area"}
                 disabled={!enabled}
                 onClick={() => onMeasureMode("area")}
+              />
+              <Boton
+                icon={<IconPerpendicular />}
+                label="Perpendicular"
+                hint="Primero una cara de referencia, luego el punto: da la distancia en ángulo recto"
+                active={measureMode === "perpendicular"}
+                disabled={!enabled}
+                onClick={() => onMeasureMode("perpendicular")}
               />
             </Grupo>
 

@@ -344,6 +344,19 @@ export function IconEdge(props: IconProps) {
   );
 }
 
+/** Perpendicular: la distancia en ángulo recto a una cara. */
+export function IconPerpendicular(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M3 20h18" />
+      <path d="M12 20V6" />
+      <path d="M12 16.5h3.5V20" />
+      <circle cx="12" cy="6" r="2" fill="currentColor" stroke="none" />
+      <path d="M5 20 3 22M9 20 7 22M13 20l-2 2M17 20l-2 2M21 20l-2 2" strokeWidth={1} />
+    </Svg>
+  );
+}
+
 /** Cerrar el contorno de un área. */
 export function IconClose(props: IconProps) {
   return (

@@ -4,6 +4,7 @@ import {
   distanceM,
   distancePartsM,
   perimeterM,
+  perpendicularToPlane,
   polygonAreaM2,
   type Point3,
 } from "./geometry.js";
@@ -62,6 +63,48 @@ describe("distancePartsM", () => {
     const a: Point3 = [1.5, -2.25, 0.75];
     const b: Point3 = [-3, 4.5, 8];
     expect(distancePartsM(a, b).directM).toBeCloseTo(distanceM(a, b), 12);
+  });
+});
+
+describe("perpendicularToPlane", () => {
+  it("mide la separación a un paramento vertical y dice dónde cae", () => {
+    // Plano x = 0 con normal en x; el punto está a 2,5 m de él.
+    expect(perpendicularToPlane([2.5, 1, 3], [0, 0, 0], [1, 0, 0])).toEqual({
+      footM: [0, 1, 3],
+      distanceM: 2.5,
+    });
+  });
+
+  it("da el mismo número desde los dos lados del plano", () => {
+    const arriba = perpendicularToPlane([0, 4, 0], [0, 0, 0], [0, 1, 0]);
+    const abajo = perpendicularToPlane([0, -4, 0], [0, 0, 0], [0, 1, 0]);
+    expect(arriba?.distanceM).toBe(4);
+    expect(abajo?.distanceM).toBe(4);
+  });
+
+  it("no le afecta el largo de la normal, solo su dirección", () => {
+    // Una normal sin normalizar es lo que devuelve un rayo cualquiera.
+    const conNormalLarga = perpendicularToPlane([3, 0, 0], [0, 0, 0], [10, 0, 0]);
+    expect(conNormalLarga).toEqual({ footM: [0, 0, 0], distanceM: 3 });
+  });
+
+  it("un punto sobre el plano da cero y el pie es el punto mismo", () => {
+    expect(perpendicularToPlane([1, 0, 5], [0, 0, 0], [0, 1, 0])).toEqual({
+      footM: [1, 0, 5],
+      distanceM: 0,
+    });
+  });
+
+  it("mide bien contra un plano inclinado", () => {
+    // Plano por el origen con normal (1,1,0): la distancia del punto (1,1,0) es √2.
+    const resultado = perpendicularToPlane([1, 1, 0], [0, 0, 0], [1, 1, 0]);
+    expect(resultado?.distanceM).toBeCloseTo(Math.SQRT2, 12);
+    expect(resultado?.footM[0]).toBeCloseTo(0, 12);
+    expect(resultado?.footM[1]).toBeCloseTo(0, 12);
+  });
+
+  it("devuelve null si la normal no tiene dirección: sin plano no hay perpendicular", () => {
+    expect(perpendicularToPlane([1, 2, 3], [0, 0, 0], [0, 0, 0])).toBeNull();
   });
 });
 

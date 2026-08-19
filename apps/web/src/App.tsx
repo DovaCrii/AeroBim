@@ -205,9 +205,12 @@ export function App() {
       try {
         if (measureMode !== null) {
           // El punto lo pone el medidor donde tenga el cursor ajustado, que es el que se está
-          // viendo marcado en pantalla.
-          await instance.addMeasurePoint();
-          setMeasurePoints((actual) => actual + 1);
+          // viendo marcado en pantalla. Las coordenadas solo las usa la perpendicular, que lanza su
+          // propio rayo para poder leer la normal de la cara.
+          // Solo cuenta el clic que registró: si cayó al vacío, el aviso sigue pidiendo lo mismo en
+          // vez de pasar al paso siguiente como si hubiera entrado.
+          const registrado = await instance.addMeasurePoint(event.clientX, event.clientY);
+          if (registrado) setMeasurePoints((actual) => actual + 1);
           return;
         }
 
