@@ -50,6 +50,38 @@ informa metros plausibles. `F0.4` y `F0.5` quedan cumplidas.
 - **El tamaño del Fragments se reportaba como 0 B.** `core.load` transfiere el búfer al
   worker y lo deja con `byteLength = 0`; ahora se anota antes de cargar.
 
+### Añadido — modos de vista y medición, `F1.7` y `F1.4` (2026-08-19)
+
+A pedido del usuario. Una barra bajo el modelo agrupa lo que cambia **cómo** se mira,
+separado del árbol, que cambia **qué** se mira:
+
+| Grupo          | Opciones                   | Verificado                                                   |
+| -------------- | -------------------------- | ------------------------------------------------------------ |
+| Proyección     | Perspectiva · Ortográfica  | La cámara pasa de `PerspectiveCamera` a `OrthographicCamera` |
+| Navegación     | Órbita · Planta · Interior | Los tres modos se activan sin error                          |
+| Representación | Sólido · Fantasma          | ✅                                                           |
+| Medir          | Distancia entre dos puntos | Midió 0,858 m sobre el modelo real                           |
+
+- **La cámara pasó a `OrthoPerspectiveCamera`.** La ortográfica es la que importa para una
+  oficina técnica: sin fuga, dos muros del mismo largo se ven del mismo largo.
+- **"Fantasma", no "wireframe", y a propósito.** Se logra con materiales translúcidos, no
+  dibujando aristas. Fragments tiene una representación de alambre (`CurrentLod.WIRES`) pero
+  la reserva para su nivel de detalle automático y no la expone. Llamarlo wireframe sería
+  vender otra cosa.
+- **La medición es propia.** Las anotaciones de That Open están atadas a los planos 2D, así
+  que medir en 3D usa el raycast con ajuste a vértice, arista y cara **en ese orden**. Sin la
+  cara como respaldo, medir es un juego de puntería contra las esquinas.
+- **Falta área y ángulo** para cerrar `F1.4`.
+
+### Corregido — dos copias de Three.js en la página
+
+El navegador avisaba "Multiple instances of Three.js being imported": los paquetes de That
+Open están fuera del pre-bundling y resolvían `three` por su ruta de archivo, mientras la
+aplicación usaba la copia pre-empaquetada. Dos copias son dos jerarquías de clases, y un
+`instanceof` puede fallar sobre un objeto que sí es de ese tipo — la clase de fallo que
+aparece meses después y no se entiende. `resolve.dedupe` no basta: hay que excluir `three`
+del pre-bundling.
+
 ### Añadido — árbol espacial, `F1.1` (2026-08-19)
 
 - **Panel de estructura** que recorre el modelo, con **aislar** en un clic, **ocultar** por

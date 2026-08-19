@@ -36,6 +36,18 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
 
   resolve: {
+    /**
+     * Una sola copia de Three.js en la página.
+     *
+     * Sin esto el navegador avisa "Multiple instances of Three.js being imported": los
+     * paquetes de That Open están fuera del pre-bundling y resuelven `three` por su ruta de
+     * archivo, mientras la aplicación usa la copia pre-empaquetada. Dos copias significan
+     * dos jerarquías de clases distintas, así que un `instanceof THREE.Mesh` puede fallar
+     * sobre un objeto que sí es un mesh — la clase de fallo que aparece meses después y no
+     * se entiende.
+     */
+    dedupe: ["three"],
+
     alias: [
       /**
        * `@thatopen/components` no declara `exports` en su `package.json` y su `main`
@@ -62,7 +74,12 @@ export default defineConfig({
     // - `@thatopen/fragments` expone su worker como subpath (`@thatopen/fragments/worker`)
     //   y lo instancia por referencia a su propio módulo. Empaquetado, esa referencia se
     //   rompe y el worker no responde. `@thatopen/components` lo arrastra.
-    exclude: ["web-ifc", "@thatopen/fragments", "@thatopen/components"],
+    // `three` se excluye por otra razón: los paquetes de That Open, al estar fuera del
+    // pre-bundling, lo resuelven por su ruta de archivo, mientras la aplicación usaba la
+    // copia pre-empaquetada. Dos rutas son **dos módulos distintos**, y el navegador avisa
+    // "Multiple instances of Three.js being imported". Con `resolve.dedupe` no basta: hay
+    // que sacarlo del pre-bundling para que todos carguen el mismo archivo.
+    exclude: ["web-ifc", "@thatopen/fragments", "@thatopen/components", "three"],
   },
 
   worker: {

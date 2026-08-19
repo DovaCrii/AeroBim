@@ -1,8 +1,18 @@
-import { BimViewer, type LoadedModel, type ModelTree, type PickedItem } from "@aerobim/viewer";
+import {
+  BimViewer,
+  type LoadedModel,
+  type Measurement,
+  type ModelTree,
+  type NavigationMode,
+  type PickedItem,
+  type Projection,
+  type RenderStyle,
+} from "@aerobim/viewer";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { MetricsPanel } from "./components/MetricsPanel.js";
 import { PropertiesPanel } from "./components/PropertiesPanel.js";
 import { SpatialTree } from "./components/SpatialTree.js";
+import { ViewToolbar } from "./components/ViewToolbar.js";
 
 type Status =
   | { readonly kind: "starting" }
@@ -18,6 +28,11 @@ export function App() {
   const [dragging, setDragging] = useState(false);
   const [selected, setSelected] = useState<PickedItem | null>(null);
   const [trees, setTrees] = useState<readonly ModelTree[]>([]);
+  const [projection, setProjection] = useState<Projection>("Perspective");
+  const [navigation, setNavigation] = useState<NavigationMode>("Orbit");
+  const [style, setStyle] = useState<RenderStyle>("solid");
+  const [measuring, setMeasuring] = useState(false);
+  const [measurement, setMeasurement] = useState<Measurement | null>(null);
 
   useEffect(() => {
     const host = canvasHost.current;
@@ -77,19 +92,56 @@ export function App() {
     [openIfc],
   );
 
-  const onCanvasClick = useCallback(async (event: React.MouseEvent<HTMLDivElement>) => {
-    const instance = viewer.current;
-    if (!instance) return;
+  const onCanvasClick = useCallback(
+    async (event: React.MouseEvent<HTMLDivElement>) => {
+      const instance = viewer.current;
+      if (!instance) return;
 
-    try {
-      // Un clic al vacío devuelve `null`, que es la mitad de los clics en un visor y no es
-      // un error: simplemente deselecciona.
-      const item = await instance.pickAt(event.clientX, event.clientY);
-      setSelected(item);
-      if (item === null) await instance.clearSelection();
-    } catch (error: unknown) {
-      setStatus({ kind: "error", message: describe(error) });
-    }
+      try {
+        if (measuring) {
+          // Devuelve `null` mientras espera el segundo punto, o si el clic cayó al vacío.
+          const resultado = await instance.addMeasurePoint(event.clientX, event.clientY);
+          if (resultado !== null) setMeasurement(resultado);
+          return;
+        }
+
+        // Un clic al vacío devuelve `null`, que es la mitad de los clics en un visor y no es
+        // un error: simplemente deselecciona.
+        const item = await instance.pickAt(event.clientX, event.clientY);
+        setSelected(item);
+        if (item === null) await instance.clearSelection();
+      } catch (error: unknown) {
+        setStatus({ kind: "error", message: describe(error) });
+      }
+    },
+    [measuring],
+  );
+
+  const onProjection = useCallback((next: Projection) => {
+    setProjection(next);
+    void viewer.current?.setProjection(next);
+  }, []);
+
+  const onNavigation = useCallback((next: NavigationMode) => {
+    setNavigation(next);
+    viewer.current?.setNavigationMode(next);
+  }, []);
+
+  const onStyle = useCallback((next: RenderStyle) => {
+    setStyle(next);
+    void viewer.current?.setRenderStyle(next);
+  }, []);
+
+  const onToggleMeasure = useCallback(() => {
+    setMeasuring((activo) => {
+      const siguiente = !activo;
+      if (!siguiente) {
+        // Al salir del modo se limpia: una cota abandonada a medias solo estorba.
+        viewer.current?.resetMeasurement();
+        setMeasurement(null);
+      }
+      return siguiente;
+    });
   }, []);
 
   const closeProperties = useCallback(() => {
@@ -186,15 +238,34 @@ export function App() {
             </div>
           )}
 
-          {models.length > 0 && selected === null && (
-            <p className="pointer-events-none absolute bottom-4 left-4 text-xs text-white/40">
-              Haz clic en un elemento para ver sus propiedades
+          {models.length > 0 && (
+            <p className="pointer-events-none absolute top-4 left-1/2 -translate-x-1/2 text-xs text-white/50">
+              {measuring
+                ? measurement !== null
+                  ? `Distancia: ${measurement.distanceM.toFixed(3)} m — clic para medir de nuevo`
+                  : "Clic en dos puntos del modelo para medir"
+                : selected === null
+                  ? "Haz clic en un elemento para ver sus propiedades"
+                  : ""}
             </p>
           )}
 
           {selected !== null && <PropertiesPanel item={selected} onClose={closeProperties} />}
 
           {models.length > 0 && <MetricsPanel models={models} />}
+
+          {models.length > 0 && (
+            <ViewToolbar
+              projection={projection}
+              navigation={navigation}
+              style={style}
+              measuring={measuring}
+              onProjection={onProjection}
+              onNavigation={onNavigation}
+              onStyle={onStyle}
+              onToggleMeasure={onToggleMeasure}
+            />
+          )}
         </div>
       </div>
     </div>

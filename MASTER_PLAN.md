@@ -182,14 +182,15 @@ Se decide con los números de `F0.5`, no por preferencia.
 **Objetivo de salida:** alguien de oficina técnica revisa un modelo sin abrir
 software de escritorio ni pedir una licencia.
 
-| #      | Tarea                                                                                            | Estado       |
-| ------ | ------------------------------------------------------------------------------------------------ | ------------ |
-| `F1.1` | Árbol espacial navegable (proyecto → sitio → edificio → planta → elemento) con aislar y ocultar  | ✅ ver abajo |
-| `F1.2` | Panel de propiedades y **psets** del elemento seleccionado                                       | ✅ ver abajo |
-| `F1.3` | Planos de corte y secciones                                                                      | ⬜           |
-| `F1.4` | Mediciones: distancia, área y ángulo                                                             | ⬜           |
-| `F1.5` | Cargar **varios modelos IFC a la vez** (arquitectura + estructura + instalaciones) y alternarlos | ⬜           |
-| `F1.6` | Vistas guardadas: cámara, visibilidad y cortes, recuperables por nombre                          | ⬜           |
+| #      | Tarea                                                                                                                                 | Estado       |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| `F1.1` | Árbol espacial navegable (proyecto → sitio → edificio → planta → elemento) con aislar y ocultar                                       | ✅ ver abajo |
+| `F1.2` | Panel de propiedades y **psets** del elemento seleccionado                                                                            | ✅ ver abajo |
+| `F1.3` | Planos de corte y secciones                                                                                                           | ⬜           |
+| `F1.4` | Mediciones: distancia, área y ángulo                                                                                                  | 🟡 distancia |
+| `F1.5` | Cargar **varios modelos IFC a la vez** (arquitectura + estructura + instalaciones) y alternarlos                                      | ⬜           |
+| `F1.6` | Vistas guardadas: cámara, visibilidad y cortes, recuperables por nombre                                                               | ⬜           |
+| `F1.7` | **Modos de vista**: proyección perspectiva/ortográfica, navegación (órbita, planta, primera persona) y representación (sólido, malla) | ✅ ver abajo |
 
 **Oráculo:** el mismo modelo abierto en **Bonsai/BlenderBIM** (o cualquier visor
 IFC de escritorio). El árbol, los psets y las mediciones deben coincidir — un
@@ -197,6 +198,39 @@ visor que muestra propiedades distintas a las del archivo es peor que no tenerlo
 
 `F1.5` no es un extra: la coordinación consiste precisamente en mirar dos
 disciplinas juntas. Un visor de un modelo por vez no coordina nada.
+
+### `F1.7`: modos de vista, y `F1.4`: medir distancias (2026-08-19)
+
+**Agregado a pedido del usuario.** Una barra bajo el modelo agrupa lo que cambia _cómo_ se
+mira, separado del árbol, que cambia _qué_ se mira. Los tres grupos son independientes: se
+puede estar en ortográfica, en modo planta y en vista fantasma a la vez.
+
+| Grupo              | Opciones                   | Verificado                                                                |
+| ------------------ | -------------------------- | ------------------------------------------------------------------------- |
+| **Proyección**     | Perspectiva · Ortográfica  | ✅ el objeto de cámara pasa de `PerspectiveCamera` a `OrthographicCamera` |
+| **Navegación**     | Órbita · Planta · Interior | ✅ los tres modos se activan sin error                                    |
+| **Representación** | Sólido · Fantasma          | ✅                                                                        |
+| **Medir**          | Distancia entre dos puntos | ✅ midió 0,858 m entre dos puntos del modelo real                         |
+
+La **ortográfica** es la que importa para una oficina técnica: sin fuga de perspectiva, dos
+muros del mismo largo se ven del mismo largo, que es cómo se lee un plano.
+
+#### Dos cosas dichas por su nombre
+
+- **"Fantasma", no "wireframe".** Se logra pintando los materiales translúcidos, no
+  dibujando aristas. Fragments **tiene** una representación de alambre (`CurrentLod.WIRES`)
+  pero la reserva para su nivel de detalle automático y no la expone para forzarla. Llamarlo
+  wireframe sería vender otra cosa; lo que hace —ver lo que hay detrás de un muro— es útil
+  igual.
+- **La medición es propia**, no de That Open. Sus anotaciones (`LinearAnnotations` y
+  compañía) están atadas a los planos técnicos 2D (`pickHandle` pide un `TechnicalDrawing`),
+  así que para medir en 3D se usa el raycast con ajuste a **vértice, arista y cara en ese
+  orden de preferencia**. Sin la cara como respaldo, medir se vuelve un juego de puntería
+  contra las esquinas.
+
+La distancia sale en metros porque la escena está en metros: el factor de unidades del IFC
+se aplicó al convertir, lo mismo que verifica la comprobación de dimensiones al cargar.
+**Faltan área y ángulo** para cerrar `F1.4`.
 
 ### `F1.1`: árbol espacial con aislar y ocultar (2026-08-19)
 
@@ -374,6 +408,40 @@ comprobado contra un punto de coordenada conocida en QGIS.
 > **Cesium ion queda fuera.** El runtime CesiumJS es Apache-2.0 y sí se usa; el
 > servicio ion (terreno y su _Design Tiler_ de IFC) es comercial. AeroBim sirve
 > terreno y ortofotos **propios**, que es justamente lo que la familia produce.
+
+---
+
+## FASE 7 — Planos 2D y entregables
+
+**Agregada el 2026-08-19 a pedido del usuario.** No estaba en el plan original, y entra
+porque para una oficina técnica un plano suele valer más que un modo de visualización: es
+lo que se imprime, se firma y se lleva a obra.
+
+**Objetivo de salida:** sacar del modelo un plano acotado que alguien pueda usar, sin
+volver a la herramienta de escritorio.
+
+| #      | Tarea                                                                                                | Estado |
+| ------ | ---------------------------------------------------------------------------------------------------- | ------ |
+| `F7.1` | Generar vistas 2D desde el modelo (plantas, alzados, secciones) con `TechnicalDrawings`              | ⬜     |
+| `F7.2` | Viewports y capas: qué se dibuja, con qué grosor y en qué capa (`DrawingViewports`, `DrawingLayers`) | ⬜     |
+| `F7.3` | Acotado y anotaciones sobre el plano: cotas lineales, ángulos, pendientes y llamadas                 | ⬜     |
+| `F7.4` | **Exportar a DXF** con `DxfExporter`, para que el plano siga su camino en CAD                        | ⬜     |
+| `F7.5` | Exportar a PDF imprimible, con formato y sello                                                       | ⬜     |
+
+**Oráculo:** el DXF exportado **abre en AutoCAD o BricsCAD** con sus capas y cotas
+intactas, y una distancia medida en el plano coincide con la del modelo. Un plano que solo
+se entiende dentro de AeroBim no es un entregable.
+
+> **Por qué esta fase es sobre todo integración.** `TechnicalDrawings`, `DrawingViewports`,
+> `DrawingLayers`, `DxfExporter` y la familia de anotaciones —lineales, de ángulo, de
+> pendiente, de llamada— **ya existen en `@thatopen/components`**. El trabajo es
+> ensamblarlas y darles interfaz, no construir un motor de dibujo. Conviene revisar qué
+> resuelven antes de escribir una línea.
+>
+> Ese descubrimiento vale para más fases: los cortes (`F1.3`) tienen `Clipper`, las vistas
+> guardadas (`F1.6`) tienen `Views` y `Viewpoints`, la validación IDS (`F3.5`) tiene
+> `IDSSpecifications`, y el BCF de la Fase 4 tiene `BCFTopics`. **Antes de construir, mirar
+> si ya está hecho.**
 
 ---
 

@@ -29,7 +29,10 @@ Con `F1.1` y `F1.2` cerradas, la aplicación hace lo que alguien espera de un vi
 - **recorre el árbol** del modelo, aísla una categoría con un clic y oculta lo que estorba;
 - **clic sobre un elemento** → categoría, GUID validado, tipo y material, con el elemento
   resaltado;
-- orbita con el ratón, y **Encuadrar** vuelve a la vista general.
+- orbita con el ratón, y **Encuadrar** vuelve a la vista general;
+- **cambia de proyección** (perspectiva ↔ ortográfica), de **modo de navegación** (órbita,
+  planta, interior) y de **representación** (sólido, fantasma);
+- **mide distancias** entre dos puntos, con ajuste a vértices y aristas.
 
 Verificado de punta a punta sobre `Piso 5.ifc`: aislar `IFCDOOR (10)` deja exactamente las
 diez puertas en pantalla, y **Ver todo** devuelve el edificio.
@@ -179,6 +182,18 @@ una ventaja: lo que se aprenda de un lado sirve del otro.
     y la categoría en `_category`. Y `IsDefinedBy` → tipo → `ObjectTypeOf` **cierra un
     ciclo** que devuelve todos los elementos del mismo tipo, así que esa relación se ignora
     y el recorrido se limita a dos niveles.
+13. **`three` va fuera del pre-bundling, o hay dos copias en la página.** Los paquetes de
+    That Open están excluidos y resuelven `three` por su ruta de archivo; la aplicación usaba
+    la copia pre-empaquetada. El navegador avisaba "Multiple instances of Three.js being
+    imported", y dos copias significan dos jerarquías de clases: un `instanceof THREE.Mesh`
+    puede fallar sobre un objeto que sí es un mesh. **`resolve.dedupe` no basta** — hay que
+    añadirlo a `optimizeDeps.exclude`.
+14. **`camera.fitToItems()` no resuelve.** Es la API propia de la cámara de That Open para
+    encuadrar, y su promesa se queda pendiente (llegó a colgar la propia herramienta de
+    diagnóstico). El encuadre se hace con `fitToBox` más un `update` explícito.
+15. **Al medir, el ajuste necesita la cara como respaldo.** Con solo vértice y arista, un
+    clic en el medio de un muro no devuelve punto y medir se vuelve un juego de puntería. El
+    orden `POINT, LINE, FACE` da preferencia al vértice sin rechazar la cara.
 
 ## Decisiones pendientes que solo el usuario puede tomar
 

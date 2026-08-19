@@ -15,8 +15,37 @@ import * as OBC from "@thatopen/components";
 import * as FRAGS from "@thatopen/fragments";
 import * as THREE from "three";
 
-/** Mundo concreto que arma esta envoltura. */
-type World = OBC.SimpleWorld<OBC.SimpleScene, OBC.SimpleCamera, OBC.SimpleRenderer>;
+/**
+ * Mundo concreto que arma esta envoltura.
+ *
+ * La cámara es `OrthoPerspectiveCamera` y no `SimpleCamera`: trae la proyección
+ * ortográfica —imprescindible para mirar un modelo como se mira un plano— y los modos de
+ * navegación, sin costo para lo que ya funcionaba.
+ */
+type World = OBC.SimpleWorld<OBC.SimpleScene, OBC.OrthoPerspectiveCamera, OBC.SimpleRenderer>;
+
+/** Cómo se proyecta la escena. La ortográfica es la de un plano: sin fuga de perspectiva. */
+export type Projection = "Perspective" | "Orthographic";
+
+/**
+ * Cómo se navega la escena.
+ *
+ * - `Orbit`: girar alrededor del modelo. Lo normal.
+ * - `Plan`: mirar de frente y desplazar, como sobre un plano.
+ * - `FirstPerson`: recorrer el interior a la altura de los ojos.
+ */
+export type NavigationMode = "Orbit" | "Plan" | "FirstPerson";
+
+/** Cómo se dibujan los elementos. */
+export type RenderStyle = "solid" | "wireframe";
+
+/** Una medición de distancia entre dos puntos de la escena. */
+export interface Measurement {
+  readonly start: THREE.Vector3;
+  readonly end: THREE.Vector3;
+  /** Distancia en metros. La escena está en metros; el IFC se convirtió al cargar. */
+  readonly distanceM: number;
+}
 
 export interface BimViewerOptions {
   /**
@@ -521,6 +550,10 @@ export class BimViewer {
   private loading = false;
   /** Modelos ya presentes en la escena. Ver {@link wireEvents}. */
   private modelCount = 0;
+  private renderStyle: RenderStyle = "solid";
+  private measurementLine: THREE.Line | null = null;
+  /** Primer punto de la medición en curso. Ver {@link addMeasurePoint}. */
+  private measureStart: THREE.Vector3 | null = null;
 
   private constructor(
     components: OBC.Components,
@@ -560,10 +593,14 @@ export class BimViewer {
     const components = new OBC.Components();
 
     const worlds = components.get(OBC.Worlds);
-    const world: World = worlds.create<OBC.SimpleScene, OBC.SimpleCamera, OBC.SimpleRenderer>();
+    const world: World = worlds.create<
+      OBC.SimpleScene,
+      OBC.OrthoPerspectiveCamera,
+      OBC.SimpleRenderer
+    >();
     world.scene = new OBC.SimpleScene(components);
     world.renderer = new OBC.SimpleRenderer(components, container);
-    world.camera = new OBC.SimpleCamera(components);
+    world.camera = new OBC.OrthoPerspectiveCamera(components);
     world.scene.setup();
 
     components.init();
@@ -749,8 +786,37 @@ export class BimViewer {
    * Se expone porque las vistas guardadas (`F1.6`) tienen que leer y restaurar la
    * posición de cámara, y los viewpoints de BCF (Fase 4) también.
    */
-  get camera(): OBC.SimpleCamera {
+  get camera(): OBC.OrthoPerspectiveCamera {
     return this.world.camera;
+  }
+
+  /**
+   * Cambia entre perspectiva y ortográfica.
+   *
+   * La ortográfica es la que sirve para leer un modelo como un plano: sin fuga, dos muros
+   * del mismo largo se ven del mismo largo. Es la vista con la que trabaja la oficina
+   * técnica.
+   */
+  async setProjection(projection: Projection): Promise<void> {
+    this.assertAlive();
+    await this.world.camera.projection.set(projection);
+    // Cambiar de proyección sustituye el objeto de cámara, así que hay que decírselo a los
+    // modelos: si no, siguen calculando el nivel de detalle con la cámara anterior.
+    for (const [, model] of this.fragments.list) {
+      model.useCamera(this.world.camera.three);
+    }
+    await this.fragments.core.update(true);
+  }
+
+  /** Proyección actual. */
+  get projection(): Projection {
+    return this.world.camera.projection.current;
+  }
+
+  /** Cambia el modo de navegación. */
+  setNavigationMode(mode: NavigationMode): void {
+    this.assertAlive();
+    this.world.camera.set(mode);
   }
 
   /**
@@ -791,6 +857,138 @@ export class BimViewer {
     }
 
     return trees;
+  }
+
+  /**
+   * Alterna entre sólido y malla.
+   *
+   * Se hace pintando los materiales de todos los modelos: el sólido se vuelve casi
+   * transparente y las aristas quedan a la vista. **No es un wireframe verdadero** —
+   * Fragments tiene una representación de alambre (`CurrentLod.WIRES`) pero la reserva para
+   * su nivel de detalle automático y no la expone para forzarla— y conviene llamarlo por su
+   * nombre: es una vista fantasma, útil para ver qué hay detrás de un muro.
+   */
+  async setRenderStyle(style: RenderStyle): Promise<void> {
+    this.assertAlive();
+
+    if (style === "solid") {
+      await this.fragments.resetHighlight();
+    } else {
+      await this.fragments.highlight({
+        color: new THREE.Color(0xffffff),
+        renderedFaces: FRAGS.RenderedFaces.TWO,
+        opacity: 0.15,
+        transparent: true,
+      });
+    }
+
+    this.renderStyle = style;
+    await this.fragments.core.update(true);
+  }
+
+  /** Estilo de representación actual. */
+  get style(): RenderStyle {
+    return this.renderStyle;
+  }
+
+  /**
+   * Suma un punto a la medición en curso.
+   *
+   * El primer clic fija el origen y devuelve `null`; el segundo cierra la medición, la
+   * dibuja y devuelve la distancia. Un clic al vacío no cuenta y también devuelve `null`.
+   *
+   * El ciclo vive acá y no en la interfaz a propósito: así quien la use no necesita tocar
+   * vectores de Three.js ni saber cómo se ajusta un punto a una arista.
+   */
+  async addMeasurePoint(clientX: number, clientY: number): Promise<Measurement | null> {
+    this.assertAlive();
+
+    const punto = await this.snapAt(clientX, clientY);
+    if (punto === null) return null;
+
+    if (this.measureStart === null) {
+      this.measureStart = punto;
+      this.clearMeasurements();
+      return null;
+    }
+
+    const medicion = this.drawMeasurement(this.measureStart, punto);
+    this.measureStart = null;
+    return medicion;
+  }
+
+  /** Descarta la medición en curso y la dibujada. */
+  resetMeasurement(): void {
+    this.measureStart = null;
+    this.clearMeasurements();
+  }
+
+  /**
+   * Punto exacto de la geometría bajo el cursor, con ajuste a vértices y aristas.
+   *
+   * Devuelve `null` si ahí no hay nada. El ajuste importa para medir: sin él, cada clic cae
+   * en un punto arbitrario de una cara y dos personas midiendo el mismo muro obtienen
+   * números distintos.
+   */
+  async snapAt(clientX: number, clientY: number): Promise<THREE.Vector3 | null> {
+    this.assertAlive();
+
+    const canvas = this.world.renderer?.three.domElement;
+    if (!canvas) return null;
+
+    const rect = canvas.getBoundingClientRect();
+    const result = await this.fragments.raycast({
+      camera: this.world.camera.three,
+      mouse: new THREE.Vector2(clientX - rect.left, clientY - rect.top),
+      dom: canvas,
+      // El orden es la preferencia: primero vértice, luego arista, y la cara como respaldo.
+      // Sin `FACE` un clic en el medio de un muro no devuelve nada, y medir se vuelve un
+      // juego de puntería contra las esquinas.
+      snappingClasses: [
+        FRAGS.SnappingClass.POINT,
+        FRAGS.SnappingClass.LINE,
+        FRAGS.SnappingClass.FACE,
+      ],
+    });
+
+    return result?.point.clone() ?? null;
+  }
+
+  /**
+   * Dibuja la medición entre dos puntos y devuelve la distancia en metros.
+   *
+   * La escena está en metros porque el factor de unidades del IFC se aplicó al convertir,
+   * así que la distancia de Three.js **es** la distancia real. Eso es exactamente lo que la
+   * comprobación de dimensiones del modelo verifica al cargar.
+   */
+  drawMeasurement(start: THREE.Vector3, end: THREE.Vector3): Measurement {
+    this.assertAlive();
+
+    this.clearMeasurements();
+
+    const geometry = new THREE.BufferGeometry().setFromPoints([start, end]);
+    const line = new THREE.Line(
+      geometry,
+      new THREE.LineBasicMaterial({ color: SELECTION_COLOR, depthTest: false }),
+    );
+    // Se dibuja por encima de la geometría: una cota escondida dentro de un muro no sirve.
+    line.renderOrder = 1;
+
+    this.measurementLine = line;
+    this.world.scene.three.add(line);
+
+    return { start, end, distanceM: start.distanceTo(end) };
+  }
+
+  /** Quita la medición dibujada. */
+  clearMeasurements(): void {
+    if (this.measurementLine === null) return;
+
+    this.world.scene.three.remove(this.measurementLine);
+    this.measurementLine.geometry.dispose();
+    // El material es propio de esta línea, así que se libera con ella.
+    (this.measurementLine.material as THREE.Material).dispose();
+    this.measurementLine = null;
   }
 
   /** Muestra u oculta un conjunto de elementos de un modelo. */

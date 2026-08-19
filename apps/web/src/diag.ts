@@ -97,12 +97,19 @@ export async function camara(container: HTMLElement, ifcUrl: string, log: Log): 
   log(`  camara del mundo === camara de los controles: ${viewer.camera.three === controls.camera}`);
   log(`  currentWorld asignado: ${viewer.camera.currentWorld !== null}`);
 
-  // `fitToItems` es la API propia de SimpleCamera. Si funciona, el encuadre a mano con
-  // `fitToBox` sobra.
-  await viewer.camera.fitToItems();
-  estado("tras fitToItems()");
-  controls.update(1 / 60);
-  estado("tras fitToItems() + update");
+  // `camera.fitToItems()` **no se llama acá aunque exista**: verificado el 2026-08-19, su
+  // promesa no resuelve en este entorno y dejaba colgada la propia herramienta de
+  // diagnóstico. El encuadre se hace con `fitToBox` más un `update` explícito, que sí es
+  // determinista.
+
+  // Proyección: el tipo del objeto de cámara es la evidencia objetiva de que cambió, que a
+  // ojo cuesta distinguir en un modelo pequeño.
+  const tipo = () => viewer.camera.three.type;
+  log(`\nproyeccion inicial: ${viewer.projection} · camara ${tipo()}`);
+  await viewer.setProjection("Orthographic");
+  log(`tras Orthographic: ${viewer.projection} · camara ${tipo()}`);
+  await viewer.setProjection("Perspective");
+  log(`tras Perspective: ${viewer.projection} · camara ${tipo()}`);
 }
 
 /**
@@ -193,6 +200,36 @@ export async function arbol(container: HTMLElement, ifcUrl: string, log: Log): P
       for (const hijo of nodo.children) imprimir(hijo, nivel + 1);
     };
     imprimir(tree.root, 0);
+  }
+}
+
+/**
+ * `pickAt` contra `snapAt` en los mismos puntos.
+ *
+ * Sirve para separar "el rayo no toca nada" de "el rayo toca pero el ajuste lo descarta":
+ * si `pickAt` devuelve elemento y `snapAt` no devuelve punto, el problema está en las
+ * clases de ajuste.
+ */
+export async function medir(container: HTMLElement, ifcUrl: string, log: Log): Promise<void> {
+  const viewer = await BimViewer.create(container);
+  const bytes = new Uint8Array(await (await fetch(ifcUrl)).arrayBuffer());
+  await viewer.loadIfc(bytes, ifcUrl);
+
+  const rect = container.getBoundingClientRect();
+  for (const [fx, fy] of [
+    [0.5, 0.5],
+    [0.4, 0.5],
+    [0.6, 0.5],
+    [0.45, 0.6],
+  ] as const) {
+    const x = rect.left + rect.width * fx;
+    const y = rect.top + rect.height * fy;
+    const item = await viewer.pickAt(x, y);
+    const punto = await viewer.snapAt(x, y);
+    log(
+      `(${(fx * 100).toFixed(0)}%, ${(fy * 100).toFixed(0)}%)  pickAt=${item?.category ?? "null"}  ` +
+        `snapAt=${punto ? `(${punto.x.toFixed(2)}, ${punto.y.toFixed(2)}, ${punto.z.toFixed(2)})` : "null"}`,
+    );
   }
 }
 
