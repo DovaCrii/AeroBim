@@ -1,4 +1,4 @@
-import type { PickedItem } from "@aerobim/viewer";
+import type { PickedItem, PropertyValue } from "@aerobim/viewer";
 
 /**
  * Lo que trae el elemento seleccionado.
@@ -6,6 +6,10 @@ import type { PickedItem } from "@aerobim/viewer";
  * Es la mitad del valor de un visor: sin esto se ve una forma, con esto se consulta el
  * modelo. Muestra la categoría, el GUID —la identidad estable, la que viaja en un BCF— y
  * los bloques de propiedades que llegan por relaciones: tipo, material y psets.
+ *
+ * **Cada número va con su unidad.** Antes salían pelados, y un `Length 8070.861` no dice si son
+ * milímetros, metros o pies: son tres órdenes de magnitud de diferencia y alguien iba a pedir
+ * material con ese número. La unidad sale del propio archivo — ver `ifcUnits.ts` en `bim-core`.
  */
 export function PropertiesPanel({
   item,
@@ -14,6 +18,10 @@ export function PropertiesPanel({
   readonly item: PickedItem;
   readonly onClose: () => void;
 }) {
+  const hayInferidas = [...item.attributes, ...item.groups.flatMap((g) => g.properties)].some(
+    (propiedad) => propiedad.unitInferred,
+  );
+
   return (
     <aside className="absolute top-4 left-4 flex max-h-[calc(100%-2rem)] w-80 flex-col rounded-lg border border-white/10 bg-ink/90 backdrop-blur">
       <header className="flex items-start gap-2 border-b border-white/10 p-3">
@@ -56,7 +64,7 @@ export function PropertiesPanel({
             <h3 className="mb-1 font-semibold text-white/70">Atributos</h3>
             <dl className="space-y-1">
               {item.attributes.map((attribute) => (
-                <Row key={attribute.name} label={attribute.name} value={attribute.value} />
+                <PropertyRow key={attribute.name} property={attribute} />
               ))}
             </dl>
           </section>
@@ -67,11 +75,7 @@ export function PropertiesPanel({
             <h3 className="mb-1 font-semibold text-white/70">{group.name}</h3>
             <dl className="space-y-1">
               {group.properties.map((property, propertyIndex) => (
-                <Row
-                  key={`${property.name}-${propertyIndex}`}
-                  label={property.name}
-                  value={property.value}
-                />
+                <PropertyRow key={`${property.name}-${propertyIndex}`} property={property} />
               ))}
             </dl>
           </section>
@@ -83,19 +87,42 @@ export function PropertiesPanel({
             casilla en el exportador, no un problema del modelo.
           </p>
         )}
+
+        {hayInferidas && (
+          <p className="border-t border-white/10 pt-2 text-[11px] leading-snug text-white/35">
+            Las unidades atenuadas se deducen del nombre de la propiedad: el archivo declara el
+            número sin decir de qué magnitud es.
+          </p>
+        )}
       </div>
     </aside>
+  );
+}
+
+/** Una propiedad con su unidad, cuando le corresponde alguna. */
+function PropertyRow({ property }: { readonly property: PropertyValue }) {
+  return (
+    <Row
+      label={property.name}
+      value={property.value}
+      unit={property.unit}
+      unitInferred={property.unitInferred}
+    />
   );
 }
 
 function Row({
   label,
   value,
+  unit = null,
+  unitInferred = false,
   mono = false,
   muted = false,
 }: {
   readonly label: string;
   readonly value: string;
+  readonly unit?: string | null;
+  readonly unitInferred?: boolean;
   readonly mono?: boolean;
   readonly muted?: boolean;
 }) {
@@ -108,9 +135,23 @@ function Row({
           mono ? "font-mono select-all" : "",
           muted ? "text-white/40 italic" : "text-white/90",
         ].join(" ")}
-        title={value}
+        title={unit === null ? value : `${value} ${unit}`}
       >
         {value}
+        {unit !== null && (
+          <span
+            // La unidad deducida se atenúa a propósito: es una ayuda de lectura, no un dato del
+            // archivo, y presentarla igual que una declarada la haría pasar por certeza.
+            className={unitInferred ? "text-white/35" : "text-white/55"}
+            title={
+              unitInferred
+                ? "Unidad deducida del nombre de la propiedad"
+                : "Unidad declarada por el modelo"
+            }
+          >
+            {` ${unit}`}
+          </span>
+        )}
       </dd>
     </div>
   );

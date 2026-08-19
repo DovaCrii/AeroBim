@@ -17,8 +17,10 @@ export {
 export {
   angleAtDeg,
   distanceM,
+  distancePartsM,
   perimeterM,
   polygonAreaM2,
+  type DistanceParts,
   type Point3,
 } from "./measure/geometry.js";
 
@@ -33,3 +35,21 @@ export {
   type LengthUnit,
   type SiPrefix,
 } from "./units/length.js";
+
+export { NO_IFC_UNITS, parseIfcUnits, type IfcUnitKind, type IfcUnits } from "./units/ifcUnits.js";
+
+export {
+  countIfcEntities,
+  missingElementClasses,
+  type MissingClass,
+} from "./inspect/ifcClasses.js";
+
+export {
+  isDimensionlessIfcType,
+  quantityKindFromIfcType,
+  quantityKindFromName,
+  resolveUnitSymbol,
+  unitSymbolFor,
+  type QuantityKind,
+  type ResolvedUnit,
+} from "./units/quantity.js";

@@ -169,12 +169,19 @@ export async function seleccion(container: HTMLElement, ifcUrl: string, log: Log
       log(`categoria: ${item.category ?? "sin categoria"}`);
       log(`nombre: ${item.name ?? "sin nombre"}`);
       log(`GUID: ${item.guid ?? "sin GUID valido"}`);
+      // La unidad va en el volcado, y con una marca cuando se deduce del nombre en vez de
+      // venir declarada: es la diferencia entre un dato del archivo y una ayuda de lectura.
+      const conUnidad = (prop: { value: string; unit: string | null; unitInferred: boolean }) =>
+        prop.unit === null
+          ? prop.value
+          : `${prop.value} ${prop.unit}${prop.unitInferred ? "?" : ""}`;
+
       log(`atributos (${item.attributes.length}):`);
-      for (const a of item.attributes.slice(0, 12)) log(`  ${a.name} = ${a.value}`);
+      for (const a of item.attributes.slice(0, 12)) log(`  ${a.name} = ${conUnidad(a)}`);
       log(`grupos (${item.groups.length}):`);
       for (const g of item.groups) {
         log(`  ${g.name}`);
-        for (const prop of g.properties.slice(0, 10)) log(`    ${prop.name} = ${prop.value}`);
+        for (const prop of g.properties.slice(0, 10)) log(`    ${prop.name} = ${conUnidad(prop)}`);
       }
       if (encontrados >= 2) return;
     }
@@ -263,6 +270,10 @@ export async function clase(container: HTMLElement, ifcUrl: string, log: Log): P
 
   const loaded = await viewer.loadIfc(bytes, ifcUrl, (etapa) => marca(`etapa ${etapa}`));
   log(`\n${JSON.stringify(loaded.metrics, null, 2)}`);
+
+  // Las unidades declaradas por el archivo. Es lo primero que hay que mirar si un número del
+  // panel de propiedades parece estar a escala equivocada.
+  log(`\nunidades declaradas: ${JSON.stringify(loaded.units)}`);
 
   // Estado de la cámara tras el encuadre: sirve para verificar que la vista isométrica
   // quedó aplicada, que a ojo es difícil de distinguir de un alzado.

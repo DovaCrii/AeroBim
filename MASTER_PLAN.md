@@ -223,16 +223,18 @@ Se decide con los números de `F0.5`, no por preferencia.
 **Objetivo de salida:** alguien de oficina técnica revisa un modelo sin abrir
 software de escritorio ni pedir una licencia.
 
-| #      | Tarea                                                                                                                                 | Estado                  |
-| ------ | ------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
-| `F1.1` | Árbol espacial navegable (proyecto → sitio → edificio → planta → elemento) con aislar y ocultar                                       | ✅ ver abajo            |
-| `F1.2` | Panel de propiedades y **psets** del elemento seleccionado                                                                            | ✅ ver abajo            |
-| `F1.3` | Planos de corte y secciones                                                                                                           | ✅ ver abajo            |
-| `F1.4` | Mediciones: distancia, área y ángulo                                                                                                  | ✅ ver abajo            |
-| `F1.5` | Cargar **varios modelos IFC a la vez** (arquitectura + estructura + instalaciones) y alternarlos                                      | 🟡 carga, falta gestión |
-| `F1.6` | Vistas guardadas: cámara, visibilidad y cortes, recuperables por nombre                                                               | ⬜                      |
-| `F1.7` | **Modos de vista**: proyección perspectiva/ortográfica, navegación (órbita, planta, primera persona) y representación (sólido, malla) | ✅ ver abajo            |
-| `F1.8` | **Barra de herramientas y panel de modelos** — reubicar y agrupar las herramientas; ordenar, activar y desactivar lo cargado          | ⬜ **lo siguiente**     |
+| #       | Tarea                                                                                                                                 | Estado                   |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| `F1.1`  | Árbol espacial navegable (proyecto → sitio → edificio → planta → elemento) con aislar y ocultar                                       | ✅ ver abajo             |
+| `F1.2`  | Panel de propiedades y **psets** del elemento seleccionado                                                                            | ✅ ver abajo             |
+| `F1.3`  | Planos de corte y secciones                                                                                                           | ✅ ver abajo             |
+| `F1.4`  | Mediciones: distancia, área y ángulo                                                                                                  | ✅ ver abajo             |
+| `F1.5`  | Cargar **varios modelos IFC a la vez** (arquitectura + estructura + instalaciones) y alternarlos                                      | ✅ ver abajo             |
+| `F1.6`  | Vistas guardadas: cámara, visibilidad y cortes, recuperables por nombre                                                               | ⬜                       |
+| `F1.7`  | **Modos de vista**: proyección perspectiva/ortográfica, navegación (órbita, planta, primera persona) y representación (sólido, malla) | ✅ ver abajo             |
+| `F1.8`  | **Barra de herramientas y panel de modelos** — reubicar y agrupar las herramientas; ordenar, activar y desactivar lo cargado          | ✅ ver abajo             |
+| `F1.9`  | **Unidades de las propiedades** — cada número con la unidad que declara el archivo                                                    | ✅ ver abajo             |
+| `F1.10` | **Geometría que no se carga** — el conversor deja fuera clases de elemento de modelos industriales                                    | 🟥 **el problema grave** |
 
 **Oráculo:** el mismo modelo abierto en **Bonsai/BlenderBIM** (o cualquier visor
 IFC de escritorio). El árbol, los psets y las mediciones deben coincidir — un
@@ -240,6 +242,113 @@ visor que muestra propiedades distintas a las del archivo es peor que no tenerlo
 
 `F1.5` no es un extra: la coordinación consiste precisamente en mirar dos
 disciplinas juntas. Un visor de un modelo por vez no coordina nada.
+
+### `F1.10` el problema grave: el conversor deja geometría fuera (2026-08-19)
+
+**El mismo IFC de 32,7 MB abierto en Bentley OpenPlant muestra mucho más que AeroBim.** En el visor
+aparece la estructura de acero —cerchas, columnas— y **falta el resto**: los grandes elementos
+curvos de la planta, tuberías y maquinaria. No hay error, no hay aviso: el visor abre el modelo,
+informa 839 elementos con geometría, y muestra la mitad.
+
+**Por qué no se notaba desde dentro.** `IfcImporter` procesa un conjunto conocido de clases IFC
+(`importer.classes.elements`). Una clase que no esté ahí no se importa, así que el elemento **no
+entra ni al árbol**: ningún contador del visor lo echa de menos. Un modelo de arquitectura no
+delata el problema porque sus clases son las esperadas; una planta industrial exportada desde un
+modelador de tuberías está llena de clases que no lo son.
+
+**Lo hecho:** el visor ahora **lo detecta y lo dice**. Antes de convertir, cuenta las clases que
+declara el archivo (`countIfcEntities` en `bim-core`), las compara con las categorías que el modelo
+cargado informa y avisa en el panel de modelos: _"Falta geometría: N elementos sin cargar"_ con la
+lista de clases y su número. La comparación filtra geometría, relaciones, propiedades y tipos, que
+no son elementos; una clase desconocida se informa, porque en un diagnóstico un falso positivo se
+descarta leyendo su nombre y un falso negativo esconde justo lo que se busca.
+
+**Lo que falta:** leer ese aviso sobre el modelo real y, con la lista en mano, decidir el arreglo.
+Si son clases ausentes de `importer.classes.elements`, se añaden —es una línea por clase, con las
+constantes numéricas de `web-ifc`—. Si están en el conjunto y aun así no llegan, el problema es de
+`web-ifc` con esas representaciones geométricas (B-reps avanzados, barridos por trayectoria) y hay
+que medirlo antes de prometer nada.
+
+### `F1.4` las mediciones, rehechas con los componentes de la librería (2026-08-19)
+
+Las propias calculaban bien y **no dibujaban nada**: ni el punto al que se ajustaba el cursor, ni los
+extremos, ni el valor. Sin esa señal, medir era hacer clics a ciegas — es literalmente lo que hizo
+pensar que la medición no funcionaba. Ahora son `LengthMeasurement`, `AngleMeasurement` y
+`AreaMeasurement` de `@thatopen/components-front`, que traen marcador de ajuste, cota y etiqueta.
+**Confirmado en el navegador del usuario**: cota dibujada, etiqueta con el valor y la lista contando
+las cotas.
+
+Cuatro cosas que hubo que corregir sobre lo que trae la librería:
+
+1. **El relleno de un área tapaba el modelo entero.** Su material viene con `depthTest` desactivado,
+   así que un área medida sobre el suelo se pintaba encima de todo y la pantalla quedaba violeta. Se
+   sustituye por uno que respeta la profundidad.
+2. **Las etiquetas venían azules**, con estilo escrito a mano en el elemento. Se repintan al
+   aparecer, y sin `pointer-events`, porque una cota en medio del camino se comía el clic siguiente.
+3. **Medir y seleccionar se pisaban.** Entrar a medir suelta la selección: un elemento violeta debajo
+   de las cotas estorba y deja la duda de si el clic va a seguir seleccionando.
+4. **El marcador de ajuste era un punto de 4 px** sobre un modelo de acero lleno de aristas. Ahora
+   es más grande, y el ajuste se puede apagar para medir en medio de un paño.
+
+Además, lo que la librería no da y en obra se pide: **la distancia se descompone en directa, en
+planta y desnivel** (`distancePartsM` en `bim-core`, probado contra la rampa 3-4-5). Entre dos puntos
+de una rampa son tres números distintos y se usa uno u otro según para qué; dar solo uno obliga a
+adivinar cuál se está leyendo.
+
+Y **las cotas se listan**: cada una se puede apagar sin borrarla o borrar sola. Se apaga sacándola de
+la lista de su medidor —la librería solo permite ocultarlas por tipo— y se devuelve el mismo objeto,
+así que conserva su identificador y su valor.
+
+### `F1.9` las unidades de las propiedades (2026-08-19)
+
+`Length 8070.861` no dice si son milímetros, metros o pies. Son tres órdenes de magnitud y alguien
+va a pedir material con ese número. Ahora cada valor va con su unidad, y de dos fuentes:
+
+1. **El tipo IFC del valor** (`IFCLENGTHMEASURE`, `IFCAREAMEASURE`…) más la unidad que el archivo
+   declara en `IfcUnitAssignment`. Es lo que dice el archivo y no se discute.
+2. **El nombre de la propiedad**, cuando el valor llega como número genérico. Los psets propios de
+   las herramientas guardan longitudes como `IFCREAL` —así vienen los perfiles de acero— y ahí el
+   nombre es lo único que queda. Se marca **atenuado** en la interfaz: una unidad deducida
+   presentada como certeza es peor que ninguna.
+
+**Fragments no conserva `IfcUnitAssignment`**: aplica el factor a la geometría y descarta la
+declaración. Por eso se lee del texto del archivo antes de convertir (`parseIfcUnits`).
+
+La inferencia por nombre es deliberadamente desconfiada: rechaza cualquier nombre con `/` o con
+`per` —`Weight/Length` es kg/m, no kg— y los que terminan en identificador, tipo o estado.
+Verificado sobre el modelo real: `Length 3520 mm`, `Volume 0.038 m³`, `Weight 300.116 kg` (85 kg/m
+× 3,52 m = 299 kg ✓), y `Density/Spec. Weight` sin unidad, que es lo correcto.
+
+**La masa cae al kilo cuando el archivo no la declara**, porque el estándar dice que sin declaración
+manda la unidad base del SI. Longitud, área y volumen **no** caen a metros: ahí el mismo atajo
+convertiría un modelo en milímetros en uno en metros.
+
+### `F1.8` la barra de herramientas y el panel lateral (2026-08-19)
+
+La barra de abajo tenía catorce botones en fila, dos llamados "Planta" y ningún icono. Ahora:
+
+- **Una columna fija de iconos a la izquierda**, uno por familia, que **se puede ampliar** para ver
+  el nombre de cada una escrito. Un icono solo es rápido para quien ya conoce la herramienta; el
+  nombre al lado es lo que la hace usable la primera vez.
+- **Un solo panel lateral** que comparten el árbol, los modelos y las herramientas. Antes el árbol
+  era una columna fija y los modelos flotaban tapando una esquina del modelo: entre los dos se
+  comían un tercio de la pantalla incluso sin usarse. Pulsar la herramienta abierta lo cierra y
+  deja el lienzo completo.
+- **Un punto en el icono** avisa de que la familia tiene algo activo: un corte puesto, la vista
+  fantasma, una medición en curso. Por eso se sabe dónde ir a deshacerlo.
+- La ambigüedad de nombres desaparece porque las opciones van escritas: "Desplazar en planta" está
+  en Navegación y "Corte horizontal" en Cortes.
+
+**Referencia pendiente:** el usuario pide tomar la distribución de Bentley OpenPlant como base
+visual —cinta superior con grupos rotulados, rejilla en el entorno—. Queda como paso de diseño
+sobre esta estructura, no como otra reorganización.
+
+### `F1.5` la gestión de varios modelos (2026-08-19)
+
+El panel de modelos permite **apagar, ordenar y cerrar** lo cargado. Apagar y cerrar son distintos y
+se comportan distinto: apagado el modelo sigue en memoria y vuelve al instante; cerrado se libera y
+hay que abrir el archivo otra vez. El botón de cerrar aparece solo al pasar por encima de la fila,
+porque cuesta volver a convertir.
 
 ### `F1.3` cortes y `F1.4` mediciones completas (2026-08-19)
 

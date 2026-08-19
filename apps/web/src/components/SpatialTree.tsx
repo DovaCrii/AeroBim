@@ -28,7 +28,9 @@ export function SpatialTree({
   readonly onShowAll: () => void;
 }) {
   return (
-    <aside className="flex w-72 shrink-0 flex-col border-r border-white/10 bg-ink/60">
+    // El ancho y el borde los pone el panel lateral que lo contiene: este componente solo dibuja
+    // su contenido, y así el mismo sitio lo comparten el árbol, los modelos y las herramientas.
+    <div className="flex h-full min-h-0 flex-col">
       <header className="flex items-center gap-2 border-b border-white/10 px-3 py-2">
         <h2 className="flex-1 text-xs font-semibold tracking-wide text-white/70 uppercase">
           Estructura
@@ -56,7 +58,7 @@ export function SpatialTree({
           />
         ))}
       </div>
-    </aside>
+    </div>
   );
 }
 

@@ -11,18 +11,31 @@
  */
 
 import {
-  angleAtDeg,
-  distanceM,
+  countIfcEntities,
+  distancePartsM,
   isIfcGuid,
-  perimeterM,
-  polygonAreaM2,
+  missingElementClasses,
+  NO_IFC_UNITS,
+  parseIfcUnits,
+  resolveUnitSymbol,
   type IfcGuid,
+  type IfcUnits,
+  type MissingClass,
   type Point3,
 } from "@aerobim/bim-core";
 import * as OBC from "@thatopen/components";
 import * as OBF from "@thatopen/components-front";
 import * as FRAGS from "@thatopen/fragments";
 import * as THREE from "three";
+
+/**
+ * Las unidades del modelo se reexportan desde acá.
+ *
+ * La aplicación las necesita para mostrarlas, y viajan en {@link LoadedModel}: obligarla a
+ * importar el tipo del paquete de dominio para leer un campo que le entrega el visor sería
+ * filtrar una dependencia sin motivo.
+ */
+export type { IfcUnitKind, IfcUnits, MissingClass } from "@aerobim/bim-core";
 
 /**
  * Mundo concreto que arma esta envoltura.
@@ -67,23 +80,39 @@ export type MeasureMode = "distance" | "angle" | "area";
  *
  * Las magnitudes están en metros y grados: la escena está en metros porque el factor de
  * unidades del IFC se aplicó al convertir.
+ *
+ * **No trae los puntos.** El dibujo —la línea, los extremos y la etiqueta con el número— lo
+ * hacen los componentes de `@thatopen/components-front` dentro de la escena, así que la
+ * interfaz no tiene que rehacerlo. Lo que sube es el valor, para poder mostrarlo también en el
+ * panel y para que sea copiable.
  */
 export type Measurement =
   | {
       readonly mode: "distance";
-      readonly points: readonly THREE.Vector3[];
+      /** En línea recta entre los dos puntos. */
       readonly distanceM: number;
+      /** Proyectada en planta, y el desnivel. Ver `distancePartsM` en `bim-core`. */
+      readonly horizontalM: number;
+      readonly verticalM: number;
     }
-  | { readonly mode: "angle"; readonly points: readonly THREE.Vector3[]; readonly angleDeg: number }
+  | { readonly mode: "angle"; readonly angleDeg: number }
   | {
       readonly mode: "area";
-      readonly points: readonly THREE.Vector3[];
       readonly areaM2: number;
       readonly perimeterM: number;
+      readonly vertices: number;
     };
 
 /** Ejes sobre los que se puede cortar el modelo. */
 export type SectionAxis = "horizontal" | "longitudinal" | "transversal";
+
+/**
+ * Vistas normalizadas, las que tiene cualquier visor de escritorio.
+ *
+ * Existen porque orbitar a mano hasta una planta o un alzado es incómodo y nunca queda recto,
+ * y porque comparar dos modelos exige mirarlos desde el mismo sitio.
+ */
+export type StandardView = "iso" | "top" | "front" | "side";
 
 export interface BimViewerOptions {
   /**
@@ -121,6 +150,16 @@ export interface LoadMetrics {
   readonly itemsWithGeometry: number;
   /** Dimensiones del modelo en metros, o `null` si no se pudo determinar. */
   readonly sizeM: readonly [number, number, number] | null;
+  /**
+   * Clases de elemento que el archivo declara y que **no llegaron a la escena**.
+   *
+   * Es el aviso de que el visor está mostrando menos de lo que el archivo trae. Pasa con modelos
+   * industriales: el importador de Fragments procesa un conjunto conocido de clases IFC, y una
+   * planta exportada desde un modelador de tuberías está llena de clases que un modelo de
+   * arquitectura no tiene. Cuando eso ocurre el elemento no entra ni al árbol, así que ningún
+   * contador interno lo echa de menos — el hueco solo se ve comparando con el archivo.
+   */
+  readonly missingClasses: readonly MissingClass[];
 }
 
 export interface LoadedModel {
@@ -128,6 +167,14 @@ export interface LoadedModel {
   readonly name: string;
   readonly model: FRAGS.FragmentsModel;
   readonly metrics: LoadMetrics;
+  /**
+   * Las unidades que el archivo declara, leídas del IFC antes de convertirlo.
+   *
+   * Fragments no las conserva —aplica el factor a la geometría y descarta la declaración— así
+   * que se leen del texto del archivo. Son las que la ficha de propiedades pone al lado de
+   * cada número.
+   */
+  readonly units: IfcUnits;
 }
 
 /**
@@ -169,6 +216,18 @@ export interface ModelTree {
 export interface PropertyValue {
   readonly name: string;
   readonly value: string;
+  /**
+   * Símbolo de la unidad, o `null` cuando no corresponde ninguna.
+   *
+   * `null` cubre tres casos que en pantalla se ven igual: el valor no es una medida, no se pudo
+   * deducir la magnitud, o el modelo no declaró esa unidad. Nunca se inventa un símbolo.
+   */
+  readonly unit: string | null;
+  /**
+   * `true` cuando la unidad se deduce del nombre porque el archivo no declara el tipo del
+   * valor. La interfaz la muestra atenuada: es una ayuda de lectura, no un dato del modelo.
+   */
+  readonly unitInferred: boolean;
 }
 
 /**
@@ -208,15 +267,94 @@ export interface PickedItem {
 
 const DEFAULT_WASM_PATH = "/wasm/";
 
-/** Ángulos de la vista isométrica: 45° alrededor del modelo, 60° desde la vertical. */
-const ISO_AZIMUTH = Math.PI / 4;
-const ISO_POLAR = Math.PI / 3;
-
 /** Un fotograma a 60 Hz, para forzar el avance de los controles de cámara. */
 const ONE_FRAME_S = 1 / 60;
 
-/** Violeta de la marca, para el elemento seleccionado. */
+/** Violeta de la marca, para el elemento seleccionado y para las cotas. */
 const SELECTION_COLOR = 0x9b5de5;
+
+/** El mismo violeta como color CSS, para las etiquetas de las mediciones. */
+const SELECTION_CSS = "#9b5de5";
+
+/**
+ * Ángulos de las vistas normalizadas: azimut y polar de camera-controls.
+ *
+ * El polar se mide desde la vertical, así que `0` es mirar desde arriba y `PI/2` es mirar de
+ * frente. No se usa exactamente `0` ni exactamente `PI/2`: en los extremos el vector de
+ * dirección queda paralelo al "arriba" de la cámara y la orientación se vuelve indeterminada,
+ * con lo que la vista aparece girada al azar. Un pelo de margen la deja estable.
+ */
+const VISTAS: Record<StandardView, readonly [azimuth: number, polar: number]> = {
+  iso: [Math.PI / 4, Math.PI / 3],
+  top: [0, 0.0001],
+  front: [0, Math.PI / 2 - 0.0001],
+  side: [Math.PI / 2, Math.PI / 2 - 0.0001],
+};
+
+/** Los tres medidores de `components-front`, cada uno con su tipo de resultado. */
+interface MeasureTools {
+  readonly distance: OBF.LengthMeasurement;
+  readonly angle: OBF.AngleMeasurement;
+  readonly area: OBF.AreaMeasurement;
+}
+
+/** Lo que mide cada herramienta, para poder guardar las cotas en una sola lista. */
+type MeasureObject = OBF.Line | OBF.Angle | OBF.Area;
+
+/**
+ * Una cota ya dibujada, para poder listarla, apagarla o borrarla una por una.
+ *
+ * Existe porque un modelo revisado termina con diez o quince cotas encima, y sin poder apagarlas
+ * de a una la única salida es borrarlas todas y volver a medir.
+ */
+export interface DrawnMeasurement {
+  readonly id: string;
+  readonly kind: MeasureMode;
+  /** El valor ya formateado, con su unidad: `2.050 m`, `88.4°`, `0.76 m²`. */
+  readonly label: string;
+  readonly visible: boolean;
+}
+
+/**
+ * Cómo se ajusta el cursor al medir.
+ *
+ * - `vertex`: al vértice o la arista más cercana, con la cara como respaldo. Es lo que se quiere
+ *   casi siempre: dos personas midiendo el mismo muro obtienen el mismo número.
+ * - `face`: donde caiga el cursor sobre la cara. Sirve para medir entre puntos que no son
+ *   esquinas —el centro de un paño, un punto cualquiera del suelo— donde el ajuste estorba porque
+ *   salta a la esquina más próxima.
+ */
+export type SnapMode = "vertex" | "face";
+
+/**
+ * Qué se mide con la herramienta de distancia.
+ *
+ * - `points`: entre dos puntos que se eligen.
+ * - `edge`: el largo de una arista completa, con un solo clic sobre ella.
+ */
+export type DistanceMode = "points" | "edge";
+
+/**
+ * Deja una etiqueta de medición con los colores de la aplicación.
+ *
+ * La librería las crea con fondo azul y sombra fuerte, escritos a mano en el estilo del
+ * elemento. Se repintan acá porque una cota azul sobre una línea violeta parece de otra
+ * herramienta, y porque el tamaño por defecto tapa el modelo.
+ */
+function estilarEtiqueta(mark: OBF.Mark): void {
+  const estilo = mark.three.element.style;
+  estilo.backgroundColor = SELECTION_CSS;
+  estilo.color = "#ffffff";
+  estilo.padding = "2px 6px";
+  estilo.borderRadius = "4px";
+  estilo.fontSize = "11px";
+  estilo.fontFamily = "inherit";
+  estilo.fontVariantNumeric = "tabular-nums";
+  estilo.boxShadow = "0 1px 4px rgba(0, 0, 0, 0.5)";
+  // La etiqueta no debe robar el clic: se mide clicando sobre el modelo, y una cota ya puesta
+  // en medio del camino dejaba el siguiente punto sin registrar.
+  estilo.pointerEvents = "none";
+}
 
 /**
  * Espera al siguiente fotograma, con un plazo máximo.
@@ -306,8 +444,8 @@ function nombreDe(item: FRAGS.ItemData): string | null {
 /**
  * Pasa un vector de la escena al punto del dominio.
  *
- * La geometría de las mediciones vive en `bim-core`, donde está probada contra casos
- * elementales sin necesitar un navegador. Acá solo se traduce el tipo.
+ * La geometría de las mediciones vive en `bim-core`, donde está probada contra casos elementales
+ * sin necesitar un navegador. Acá solo se traduce el tipo.
  */
 function toPoint3(v: THREE.Vector3): Point3 {
   return [v.x, v.y, v.z];
@@ -442,8 +580,37 @@ function guidDe(item: FRAGS.ItemData): IfcGuid | null {
   return null;
 }
 
+/**
+ * Arma un par nombre/valor con su unidad resuelta.
+ *
+ * La unidad sale del tipo IFC del valor cuando el archivo lo trae, y del nombre cuando no —ver
+ * `resolveUnitSymbol` en `bim-core`, donde está la regla y sus pruebas—. Solo se busca unidad
+ * para valores numéricos: un texto no lleva unidad ni aunque se llame `Length`.
+ */
+function propiedad(
+  name: string,
+  campo: FRAGS.ItemAttribute,
+  value: string,
+  units: IfcUnits,
+): PropertyValue {
+  const esNumero = typeof campo.value === "number";
+  // El tipo se comprueba en ejecución aunque Fragments lo declare `string`: es un dato que llega
+  // de la librería, y si alguna vez viniera un número, `resolveUnitSymbol` fallaría y se llevaría
+  // por delante la ficha de propiedades completa. Sin tipo, la unidad se deduce del nombre, que
+  // es el camino que ya se usa para los psets propios de las herramientas de modelado.
+  const ifcType = typeof campo.type === "string" ? campo.type : null;
+  const unidad = esNumero ? resolveUnitSymbol({ ifcType, name, units }) : null;
+
+  return {
+    name,
+    value,
+    unit: unidad?.symbol ?? null,
+    unitInferred: unidad?.inferred ?? false,
+  };
+}
+
 /** Atributos escalares de un objeto, sin los internos. */
-function atributosDe(item: FRAGS.ItemData, omitir: Set<string>): PropertyValue[] {
+function atributosDe(item: FRAGS.ItemData, omitir: Set<string>, units: IfcUnits): PropertyValue[] {
   const propiedades: PropertyValue[] = [];
 
   for (const [clave, contenido] of Object.entries(item)) {
@@ -452,7 +619,7 @@ function atributosDe(item: FRAGS.ItemData, omitir: Set<string>): PropertyValue[]
     // Una propiedad de pset guarda su valor aparte del nombre; un atributo normal lo trae
     // directo. Se prueban las claves de valor conocidas antes de rendirse.
     const texto = textoDe(contenido.value);
-    if (texto !== null) propiedades.push({ name: clave, value: texto });
+    if (texto !== null) propiedades.push(propiedad(clave, contenido, texto, units));
   }
 
   return propiedades;
@@ -485,23 +652,23 @@ const RELACIONES_YA_LEIDAS = new Set(["HasProperties", "Quantities"]);
  * con su valor. Solo cambia la clave donde cuelgan —`HasProperties` en un pset,
  * `Quantities` en las cantidades medidas— y en qué campo está el número.
  */
-function propiedadesDePset(pset: FRAGS.ItemData): PropertyValue[] {
+function propiedadesDePset(pset: FRAGS.ItemData, units: IfcUnits): PropertyValue[] {
   const propiedades: PropertyValue[] = [];
 
   for (const clave of RELACIONES_YA_LEIDAS) {
     const lista = pset[clave];
     if (!Array.isArray(lista)) continue;
 
-    for (const propiedad of lista) {
-      const name = nombreDe(propiedad);
+    for (const entrada of lista) {
+      const name = nombreDe(entrada);
       if (name === null) continue;
 
       for (const claveValor of CLAVES_DE_VALOR) {
-        const campo = propiedad[claveValor];
+        const campo = entrada[claveValor];
         if (campo === undefined || !esAtributo(campo)) continue;
         const value = textoDe(campo.value);
         if (value !== null) {
-          propiedades.push({ name, value });
+          propiedades.push(propiedad(name, campo, value, units));
           break;
         }
       }
@@ -529,6 +696,7 @@ function grupoDe(
   relacionado: FRAGS.ItemData,
   claveRelacion: string,
   localIdPropio: number,
+  units: IfcUnits,
 ): PropertyGroup[] {
   // Las relaciones de IFC son de doble sentido, así que entre los "relacionados" reaparece
   // el propio elemento. Mostrarlo como un bloque más sería repetir la cabecera de la ficha.
@@ -538,8 +706,8 @@ function grupoDe(
   const categoria = categoriaDe(relacionado);
   const nombre = nombreDe(relacionado);
 
-  const desdePset = propiedadesDePset(relacionado);
-  const propias = desdePset.length > 0 ? desdePset : atributosDe(relacionado, new Set());
+  const desdePset = propiedadesDePset(relacionado, units);
+  const propias = desdePset.length > 0 ? desdePset : atributosDe(relacionado, new Set(), units);
 
   if (propias.length > 0) {
     grupos.push({ name: encabezadoDe(categoria, nombre, claveRelacion), properties: propias });
@@ -553,7 +721,7 @@ function grupoDe(
       if (typeof anidado !== "object" || anidado === null) continue;
       if (localIdDe(anidado) === localIdPropio) continue;
 
-      const propiedades = atributosDe(anidado, new Set());
+      const propiedades = atributosDe(anidado, new Set(), units);
       if (propiedades.length === 0) continue;
 
       grupos.push({
@@ -586,6 +754,7 @@ function describeItem(
   modelId: string,
   localId: number,
   data: FRAGS.ItemData | undefined,
+  units: IfcUnits,
 ): PickedItem {
   if (!data) {
     return { modelId, localId, guid: null, category: null, name: null, attributes: [], groups: [] };
@@ -596,7 +765,7 @@ function describeItem(
     if (!Array.isArray(contenido) || RELACIONES_IGNORADAS.has(clave)) continue;
     for (const relacionado of contenido) {
       if (typeof relacionado !== "object" || relacionado === null) continue;
-      groups.push(...grupoDe(relacionado, clave, localId));
+      groups.push(...grupoDe(relacionado, clave, localId, units));
     }
   }
 
@@ -611,7 +780,7 @@ function describeItem(
     // ejemplo— y el nombre útil es el de su tipo. Se toma prestado en vez de mostrar
     // "sin nombre" cuando hay algo mejor a mano.
     name: nombrePropio ?? groups.find((grupo) => grupo.name.includes("TYPE"))?.name ?? null,
-    attributes: atributosDe(data, ATRIBUTOS_OCULTOS),
+    attributes: atributosDe(data, ATRIBUTOS_OCULTOS, units),
     groups,
   };
 }
@@ -652,10 +821,33 @@ export class BimViewer {
   /** Modelos ya presentes en la escena. Ver {@link wireEvents}. */
   private modelCount = 0;
   private renderStyle: RenderStyle = "solid";
-  private measurementLine: THREE.Line | null = null;
   private measureMode: MeasureMode | null = null;
-  /** Puntos de la medición en curso. Ver {@link addMeasurePoint}. */
-  private measurePoints: THREE.Vector3[] = [];
+  private snapMode: SnapMode = "vertex";
+  private readonly tools: MeasureTools;
+  /** Quién escucha las mediciones terminadas. Ver {@link onMeasurement}. */
+  private readonly measureListeners = new Set<(measurement: Measurement | null) => void>();
+  /**
+   * Qué elemento está seleccionado, para poder repintar el resaltado.
+   *
+   * Hace falta recordarlo porque el resaltado se aplica **en capas** —la vista fantasma pinta
+   * todo el modelo y la selección pinta un elemento encima— y cada vez que una capa cambia hay
+   * que rehacer las dos. Ver {@link applyHighlights}.
+   */
+  private selection: { readonly modelId: string; readonly localId: number } | null = null;
+  /** `true` mientras se repinta el resaltado. Ver {@link applyHighlights}. */
+  private applyingHighlights = false;
+  /** `true` si llegó otra petición de repintado mientras se atendía la anterior. */
+  private highlightsPending = false;
+  /**
+   * Las cotas dibujadas, en el orden en que se hicieron.
+   *
+   * Se lleva una lista propia porque las apagadas **se sacan de la lista de su medidor** —es la
+   * única forma de ocultar una cota concreta con esta librería, que solo permite ocultarlas por
+   * tipo— y hay que seguir sabiendo que existen para poder devolverlas.
+   */
+  private readonly drawn: { id: string; kind: MeasureMode; object: MeasureObject }[] = [];
+  /** Unidades declaradas por cada modelo, por identificador. */
+  private readonly unitsByModel = new Map<string, IfcUnits>();
   /** Importador de IFC, reutilizado entre cargas. Ver {@link importer}. */
   private ifcImporter: FRAGS.IfcImporter | null = null;
 
@@ -671,6 +863,11 @@ export class BimViewer {
     this.fragments = fragments;
     this.container = container;
     this.wasmPath = wasmPath;
+    this.tools = {
+      distance: components.get(OBF.LengthMeasurement),
+      angle: components.get(OBF.AngleMeasurement),
+      area: components.get(OBF.AreaMeasurement),
+    };
   }
 
   /**
@@ -722,6 +919,11 @@ export class BimViewer {
     const fragments = components.get(OBC.FragmentsManager);
     fragments.init(await OBC.FragmentsManager.getWorker());
 
+    // La rueda acerca hacia donde apunta el cursor y no hacia el centro de la pantalla. Es el
+    // gesto de cualquier visor de escritorio, y sin él acercarse a un detalle exige acercar y
+    // recentrar por turnos hasta llegar.
+    world.camera.controls.dollyToCursor = true;
+
     const viewer = new BimViewer(
       components,
       world,
@@ -730,6 +932,7 @@ export class BimViewer {
       options.wasmPath ?? DEFAULT_WASM_PATH,
     );
     viewer.wireEvents();
+    viewer.wireMeasureTools();
     return viewer;
   }
 
@@ -745,7 +948,13 @@ export class BimViewer {
     // el modelo se queda en la resolución con que entró.
     this.world.camera.controls.addEventListener("rest", () => {
       if (this.loading || this.modelCount === 0) return;
-      void this.fragments.core.update(true);
+
+      // **Por qué se repinta al descansar la cámara.** Mover la cámara hace que Fragments
+      // cambie el nivel de detalle, y la geometría que entra nueva llega con su material
+      // original: el resaltado se aplica a lo que había, no a lo que venga después. Por eso la
+      // vista fantasma "se caía" al mover — el modelo volvía a ser opaco por partes.
+      if (this.renderStyle === "wireframe") void this.applyHighlights();
+      else void this.fragments.core.update(true);
     });
 
     // Solo se cuelga el modelo de la escena. El refresco lo hace `loadIfc` cuando la
@@ -755,6 +964,235 @@ export class BimViewer {
       this.world.scene.three.add(model.object);
       this.modelCount += 1;
     });
+  }
+
+  /**
+   * Deja los tres medidores listos, con su mundo, sus colores y su ajuste.
+   *
+   * **Se usan los de `@thatopen/components-front` y no una implementación propia.** La versión
+   * a mano calculaba bien pero no dibujaba nada: ni el punto al que se ajustaba el cursor, ni
+   * los extremos, ni la etiqueta con el número. Sin esa señal, medir era hacer clics a ciegas —
+   * es literalmente lo que hizo pensar que la medición no funcionaba. Estos componentes traen
+   * el marcador de ajuste, la cota y el valor pegado a la línea.
+   */
+  private wireMeasureTools(): void {
+    this.prepararMedidor(this.tools.distance);
+    this.prepararMedidor(this.tools.angle);
+    this.prepararMedidor(this.tools.area);
+
+    // Las magnitudes de la escena están en metros y grados, porque el factor de unidades del
+    // IFC ya se aplicó al convertir. Tres decimales en longitud es el milímetro.
+    this.tools.distance.units = "m";
+    this.tools.angle.units = "deg";
+    this.tools.area.units = "m2";
+    this.tools.angle.rounding = 1;
+    this.tools.area.rounding = 2;
+
+    // El registro de cotas se alimenta acá, en el mismo sitio donde se emite el resultado: así una
+    // cota que vuelve a encenderse no se duplica en la lista.
+    this.tools.distance.list.onItemAdded.add((line) => this.registrarCota("distance", line));
+    this.tools.angle.list.onItemAdded.add((angle) => this.registrarCota("angle", angle));
+    this.tools.area.list.onItemAdded.add((area) => this.registrarCota("area", area));
+
+    this.tools.distance.list.onItemAdded.add((line) => {
+      // La descomposición se hace en el dominio, donde está probada contra la rampa 3-4-5, y no
+      // acá: es el número que alguien va a usar para replantear.
+      const partes = distancePartsM(toPoint3(line.start), toPoint3(line.end));
+      this.emitMeasurement({
+        mode: "distance",
+        // La directa se toma de la librería —es la que dibuja en la etiqueta— para que el panel
+        // y la cota de la escena no puedan discrepar por un redondeo.
+        distanceM: line.value,
+        horizontalM: partes.horizontalM,
+        verticalM: partes.verticalM,
+      });
+    });
+    this.tools.angle.list.onItemAdded.add((angle) => {
+      this.emitMeasurement({ mode: "angle", angleDeg: angle.value });
+    });
+    this.tools.area.list.onItemAdded.add((area) => {
+      this.emitMeasurement({
+        mode: "area",
+        areaM2: area.value,
+        perimeterM: area.perimeter,
+        vertices: area.points.size,
+      });
+    });
+  }
+
+  /** Ajuste, color y estado inicial de un medidor. */
+  private prepararMedidor(
+    tool: OBF.LengthMeasurement | OBF.AngleMeasurement | OBF.AreaMeasurement,
+  ): void {
+    tool.world = this.world;
+    tool.enabled = false;
+    tool.color = new THREE.Color(SELECTION_COLOR);
+    tool.rounding = 3;
+
+    // Marcador de ajuste más grande que el de la librería. Es un punto de 4 px sobre un modelo de
+    // acero lleno de aristas: hay que verlo para confiar en dónde va a caer el clic.
+    tool.pickerSize = 10;
+
+    // **La superficie de un área se dibuja respetando la profundidad.** El material de la librería
+    // viene con `depthTest` desactivado, así que un área medida sobre el suelo se pintaba **encima
+    // de todo el modelo** y la pantalla entera quedaba violeta. Con la prueba de profundidad el
+    // relleno se queda donde está, detrás de lo que tenga delante.
+    tool.fillsMaterial = new THREE.MeshLambertMaterial({
+      color: new THREE.Color(SELECTION_COLOR),
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.25,
+      depthTest: true,
+    });
+
+    this.aplicarAjuste(tool);
+
+    // Las etiquetas se crean con el estilo de la librería; se repintan al aparecer.
+    tool.labels.onItemAdded.add(estilarEtiqueta);
+    tool.lines.onItemAdded.add((line) => estilarEtiqueta(line.label));
+    tool.fills.onItemAdded.add((fill) => estilarEtiqueta(fill.label));
+  }
+
+  /** Traduce el modo de ajuste a las clases de la librería. */
+  private aplicarAjuste(
+    tool: OBF.LengthMeasurement | OBF.AngleMeasurement | OBF.AreaMeasurement,
+  ): void {
+    // El orden es la preferencia: primero vértice, luego arista y la cara como respaldo. Sin
+    // `FACE`, un clic en el medio de un muro no devuelve punto y medir se vuelve un juego de
+    // puntería contra las esquinas. Con el ajuste desactivado queda solo la cara, que es lo que
+    // hace falta para medir entre dos puntos cualesquiera de un paño.
+    tool.snappings =
+      this.snapMode === "vertex"
+        ? [FRAGS.SnappingClass.POINT, FRAGS.SnappingClass.LINE, FRAGS.SnappingClass.FACE]
+        : [FRAGS.SnappingClass.FACE];
+  }
+
+  /**
+   * Elige si el cursor se ajusta a vértices y aristas o cae libre sobre la cara.
+   *
+   * Las dos formas hacen falta y ninguna sirve para todo: sin ajuste no se puede medir una esquina
+   * con exactitud, y con ajuste no se puede poner un punto en medio de un paño porque salta a la
+   * esquina más cercana.
+   */
+  setSnapMode(mode: SnapMode): void {
+    this.assertAlive();
+
+    this.snapMode = mode;
+    this.aplicarAjuste(this.tools.distance);
+    this.aplicarAjuste(this.tools.angle);
+    this.aplicarAjuste(this.tools.area);
+  }
+
+  /** Cómo se ajusta el cursor al medir. */
+  get snapping(): SnapMode {
+    return this.snapMode;
+  }
+
+  /**
+   * Elige entre medir entre dos puntos o el largo de una arista completa.
+   *
+   * El modo arista resuelve de un clic lo que de otro modo son dos clics con puntería: se pasa el
+   * cursor por una viga y se mide su largo exacto, extremo a extremo.
+   */
+  setDistanceMode(mode: DistanceMode): void {
+    this.assertAlive();
+    this.tools.distance.mode = mode === "edge" ? "edge" : "free";
+  }
+
+  /** Qué mide la herramienta de distancia. */
+  get distanceMode(): DistanceMode {
+    return this.tools.distance.mode === "edge" ? "edge" : "points";
+  }
+
+  /**
+   * Las cotas dibujadas, en el orden en que se hicieron.
+   *
+   * Incluye las apagadas: una cota apagada sigue existiendo, y tiene que poder volver.
+   */
+  listMeasurements(): readonly DrawnMeasurement[] {
+    return this.drawn.map(({ id, kind, object }) => ({
+      id,
+      kind,
+      label: this.etiquetaDe(kind, object),
+      visible: this.listaDe(kind).has(object),
+    }));
+  }
+
+  /**
+   * Apaga o enciende una cota concreta.
+   *
+   * **Se apaga sacándola de la lista de su medidor.** La librería solo permite ocultar las cotas
+   * por tipo —todas las distancias, todas las áreas—, así que para una sola se quita de la lista,
+   * lo que libera su dibujo, y al encenderla se vuelve a añadir el mismo objeto. Como es el mismo
+   * y no una copia, conserva su identificador y su valor.
+   */
+  setMeasurementVisible(id: string, visible: boolean): void {
+    this.assertAlive();
+
+    const entrada = this.drawn.find((cota) => cota.id === id);
+    if (entrada === undefined) return;
+
+    const lista = this.listaDe(entrada.kind);
+    if (visible) lista.add(entrada.object);
+    else lista.delete(entrada.object);
+  }
+
+  /** Borra una cota concreta, sin tocar las demás. */
+  deleteMeasurement(id: string): void {
+    this.assertAlive();
+
+    const indice = this.drawn.findIndex((cota) => cota.id === id);
+    if (indice === -1) return;
+
+    const [entrada] = this.drawn.splice(indice, 1);
+    if (entrada !== undefined) this.listaDe(entrada.kind).delete(entrada.object);
+  }
+
+  /**
+   * La lista de cotas del medidor que corresponde a un tipo.
+   *
+   * El tipo se unifica con una conversión porque cada medidor declara su propia lista —de `Line`,
+   * de `Angle` o de `Area`— y acá se necesita tratarlas por igual. La conversión es segura: `kind`
+   * y el objeto vienen siempre del mismo registro, que los emparejó al crearlos.
+   */
+  private listaDe(kind: MeasureMode): FRAGS.DataSet<MeasureObject> {
+    const tool =
+      kind === "distance"
+        ? this.tools.distance
+        : kind === "angle"
+          ? this.tools.angle
+          : this.tools.area;
+    return tool.list as FRAGS.DataSet<MeasureObject>;
+  }
+
+  /** El valor de una cota, ya formateado con su unidad. */
+  private etiquetaDe(kind: MeasureMode, object: MeasureObject): string {
+    if (kind === "distance") return `${(object as OBF.Line).value.toFixed(3)} m`;
+    if (kind === "angle") return `${(object as OBF.Angle).value.toFixed(1)}°`;
+    return `${(object as OBF.Area).value.toFixed(2)} m²`;
+  }
+
+  /** Registra una cota nueva, si no estaba ya —volver a encenderla la reañade a la lista—. */
+  private registrarCota(kind: MeasureMode, object: MeasureObject): void {
+    if (this.drawn.some((cota) => cota.object === object)) return;
+    this.drawn.push({ id: object.id, kind, object });
+  }
+
+  /** Avisa a quien escuche que hay una medición nueva, o que se borraron todas. */
+  private emitMeasurement(measurement: Measurement | null): void {
+    for (const listener of this.measureListeners) listener(measurement);
+  }
+
+  /**
+   * Se suscribe a las mediciones terminadas. Devuelve la función para darse de baja.
+   *
+   * Es un `callback` y no un valor de retorno de {@link addMeasurePoint} porque una medición no
+   * termina cuando se hace un clic: la distancia se cierra en el segundo, el ángulo en el
+   * tercero y un área cuando quien mide decide cerrarla.
+   */
+  onMeasurement(listener: (measurement: Measurement | null) => void): () => void {
+    this.measureListeners.add(listener);
+    return () => this.measureListeners.delete(listener);
   }
 
   /**
@@ -775,6 +1213,16 @@ export class BimViewer {
 
     const startedAt = performance.now();
     this.loading = true;
+
+    // El archivo se lee como texto **antes** de convertir, para dos cosas que después ya no se
+    // pueden saber: las unidades que declara —Fragments aplica el factor a la geometría y descarta
+    // la declaración— y qué clases de elemento contiene, que es la única forma de detectar que el
+    // visor cargó menos de lo que el archivo trae. Se decodifica como `latin1` porque STEP es ASCII
+    // con escapes propios y esa decodificación nunca falla; son dos pasadas sobre el archivo, nada
+    // al lado de los segundos que cuesta la conversión.
+    const texto = new TextDecoder("latin1").decode(bytes);
+    const units = parseIfcUnits(texto);
+    const clasesDelArchivo = countIfcEntities(texto);
 
     let fragByteLength: number;
     let model: FRAGS.FragmentsModel;
@@ -813,10 +1261,13 @@ export class BimViewer {
     const displayMs = performance.now() - startedAt;
     onStage("done");
 
+    this.unitsByModel.set(model.modelId, units);
+
     return {
       id: model.modelId,
       name,
       model,
+      units,
       metrics: {
         ifcBytes: bytes.byteLength,
         fragBytes: fragByteLength,
@@ -825,6 +1276,7 @@ export class BimViewer {
         categoryCount: categories.length,
         itemsWithGeometry: itemsWithGeometry.length,
         sizeM,
+        missingClasses: missingElementClasses(clasesDelArchivo, categories),
       },
     };
   }
@@ -863,31 +1315,78 @@ export class BimViewer {
       },
     });
 
-    await this.highlight(model.modelId, result.localId);
+    this.selection = { modelId: model.modelId, localId: result.localId };
+    await this.applyHighlights();
 
-    return describeItem(model.modelId, result.localId, data);
-  }
-
-  /** Pinta el elemento seleccionado y apaga el resaltado anterior. */
-  private async highlight(modelId: string, localId: number): Promise<void> {
-    await this.fragments.resetHighlight();
-    await this.fragments.highlight(
-      {
-        color: new THREE.Color(SELECTION_COLOR),
-        renderedFaces: FRAGS.RenderedFaces.TWO,
-        opacity: 1,
-        transparent: false,
-      },
-      { [modelId]: new Set([localId]) },
+    return describeItem(
+      model.modelId,
+      result.localId,
+      data,
+      this.unitsByModel.get(model.modelId) ?? NO_IFC_UNITS,
     );
-    await this.fragments.core.update(true);
   }
 
-  /** Quita el resaltado de selección. */
+  /**
+   * Repinta las dos capas de resaltado: la vista fantasma y la selección.
+   *
+   * **Van juntas porque `resetHighlight` borra todo.** Antes cada una se aplicaba por su lado, y
+   * seleccionar un elemento apagaba la vista fantasma sin motivo aparente. El orden importa: el
+   * fantasma primero, sobre el modelo entero, y la selección después, para que el elemento
+   * elegido quede opaco por encima de lo translúcido.
+   */
+  private async applyHighlights(): Promise<void> {
+    // **No se puede repintar dos veces a la vez.** Esto lo dispara también el descanso de la
+    // cámara, así que girando llegan varias peticiones seguidas; sin esta guarda, el
+    // `resetHighlight` de una entra entre el reset y el highlight de la anterior y el modelo
+    // queda a medio pintar —o el worker recibe dos tandas cruzadas y falla—. La última petición
+    // no se pierde: se atiende al terminar la que estaba en curso.
+    if (this.applyingHighlights) {
+      this.highlightsPending = true;
+      return;
+    }
+
+    this.applyingHighlights = true;
+    try {
+      do {
+        this.highlightsPending = false;
+
+        await this.fragments.resetHighlight();
+
+        if (this.renderStyle === "wireframe") {
+          await this.fragments.highlight({
+            color: new THREE.Color(0xffffff),
+            renderedFaces: FRAGS.RenderedFaces.TWO,
+            // Translúcido pero todavía legible: con 0,15 el modelo se volvía una silueta y no se
+            // distinguía una viga de una losa, que es justo lo que se viene a mirar detrás.
+            opacity: 0.3,
+            transparent: true,
+          });
+        }
+
+        if (this.selection !== null) {
+          await this.fragments.highlight(
+            {
+              color: new THREE.Color(SELECTION_COLOR),
+              renderedFaces: FRAGS.RenderedFaces.TWO,
+              opacity: 1,
+              transparent: false,
+            },
+            { [this.selection.modelId]: new Set([this.selection.localId]) },
+          );
+        }
+
+        await this.fragments.core.update(true);
+      } while (this.highlightsPending);
+    } finally {
+      this.applyingHighlights = false;
+    }
+  }
+
+  /** Quita el resaltado de selección, dejando la vista fantasma si estaba puesta. */
   async clearSelection(): Promise<void> {
     this.assertAlive();
-    await this.fragments.resetHighlight();
-    await this.fragments.core.update(true);
+    this.selection = null;
+    await this.applyHighlights();
   }
 
   /**
@@ -981,19 +1480,8 @@ export class BimViewer {
   async setRenderStyle(style: RenderStyle): Promise<void> {
     this.assertAlive();
 
-    if (style === "solid") {
-      await this.fragments.resetHighlight();
-    } else {
-      await this.fragments.highlight({
-        color: new THREE.Color(0xffffff),
-        renderedFaces: FRAGS.RenderedFaces.TWO,
-        opacity: 0.15,
-        transparent: true,
-      });
-    }
-
     this.renderStyle = style;
-    await this.fragments.core.update(true);
+    await this.applyHighlights();
   }
 
   /** Estilo de representación actual. */
@@ -1009,74 +1497,73 @@ export class BimViewer {
    */
   setMeasureMode(mode: MeasureMode | null): void {
     this.assertAlive();
+
+    // **Medir y seleccionar no se mezclan.** Al entrar a medir se suelta la selección: un elemento
+    // pintado de violeta debajo de las cotas estorba para ver lo que se está midiendo, y deja la
+    // duda de si el clic va a seguir seleccionando.
+    if (mode !== null && this.selection !== null) {
+      this.selection = null;
+      void this.applyHighlights();
+    }
+
     this.measureMode = mode;
-    this.resetMeasurement();
+    // Solo un medidor activo a la vez. Con dos escuchando el puntero, cada clic entraba en las
+    // dos mediciones y salían cotas que nadie pidió.
+    this.tools.distance.enabled = mode === "distance";
+    this.tools.angle.enabled = mode === "angle";
+    this.tools.area.enabled = mode === "area";
+    this.emitMeasurement(null);
+  }
+
+  /** Qué se está midiendo, o `null` si no se está midiendo. */
+  get measuring(): MeasureMode | null {
+    return this.measureMode;
   }
 
   /**
-   * Suma un punto a la medición en curso y devuelve el resultado cuando ya hay bastantes.
+   * Suma un punto a la medición en curso, donde esté el cursor.
    *
-   * Cuántos hacen falta depende del modo: dos para una distancia, tres para un ángulo, y a
-   * partir de tres el área **se recalcula con cada vértice nuevo**, así que se ve crecer
-   * mientras se recorre el contorno.
+   * **No recibe coordenadas** porque el medidor sigue el puntero por su cuenta: dibuja el
+   * marcador de ajuste mientras el ratón se mueve, y ese mismo punto es el que fija el clic. Si
+   * la interfaz le pasara las suyas, el punto medido podría no ser el que se estaba viendo.
    *
-   * Devuelve `null` mientras faltan puntos, y también si el clic cayó al vacío. El ciclo
-   * vive acá y no en la interfaz a propósito: quien la use no necesita tocar vectores de
-   * Three.js ni saber cómo se ajusta un punto a una arista.
+   * El resultado no vuelve por acá: llega por {@link onMeasurement} cuando la medición se
+   * cierra, porque cuántos clics hacen falta depende de lo que se mida.
    */
-  async addMeasurePoint(clientX: number, clientY: number): Promise<Measurement | null> {
+  async addMeasurePoint(): Promise<void> {
     this.assertAlive();
-    if (this.measureMode === null) return null;
+    if (this.measureMode === null) return;
 
-    const punto = await this.snapAt(clientX, clientY);
-    if (punto === null) return null;
+    // **Un dibujado antes de leer.** El ajuste del medidor no usa el rayo de la CPU: lee los
+    // píxeles de la escena dibujada para saber qué hay bajo el cursor. Mientras se orbita, la
+    // librería suspende esas lecturas, así que al soltar el ratón el último fotograma puede no
+    // corresponder a la cámara actual y el punto saldría de donde estaba antes de mover. Un
+    // dibujado explícito acá cuesta milisegundos y garantiza que se mide lo que se está viendo.
+    this.world.renderer?.update();
 
-    this.measurePoints.push(punto);
-    const puntos = this.measurePoints;
-
-    if (this.measureMode === "distance") {
-      if (puntos.length < 2) return null;
-      const [a, b] = [puntos[0]!, puntos[1]!];
-      this.drawPolyline([a, b]);
-      this.measurePoints = [];
-      return {
-        mode: "distance",
-        points: [a, b],
-        distanceM: distanceM(toPoint3(a), toPoint3(b)),
-      };
-    }
-
-    if (this.measureMode === "angle") {
-      if (puntos.length < 3) return null;
-      const [a, b, c] = [puntos[0]!, puntos[1]!, puntos[2]!];
-      this.drawPolyline([a, b, c]);
-      this.measurePoints = [];
-      return {
-        mode: "angle",
-        points: [a, b, c],
-        angleDeg: angleAtDeg(toPoint3(a), toPoint3(b), toPoint3(c)),
-      };
-    }
-
-    // Área: el contorno sigue abierto, así que se acumula y se recalcula con cada vértice.
-    if (puntos.length < 3) {
-      this.drawPolyline(puntos);
-      return null;
-    }
-    this.drawPolyline([...puntos, puntos[0]!]);
-    const contorno = puntos.map(toPoint3);
-    return {
-      mode: "area",
-      points: [...puntos],
-      areaM2: polygonAreaM2(contorno),
-      perimeterM: perimeterM([...contorno, contorno[0]!]),
-    };
+    if (this.measureMode === "distance") await this.tools.distance.create();
+    else if (this.measureMode === "angle") await this.tools.angle.create();
+    else if (this.measureMode === "area") await this.tools.area.create();
   }
 
-  /** Descarta la medición en curso y la dibujada. */
-  resetMeasurement(): void {
-    this.measurePoints = [];
-    this.clearMeasurements();
+  /**
+   * Cierra la medición en curso.
+   *
+   * Solo el área lo necesita: un contorno no tiene un número fijo de vértices, así que hay que
+   * decir cuándo terminó. La distancia y el ángulo se cierran solos al completar sus puntos.
+   */
+  finishMeasurement(): void {
+    this.assertAlive();
+    if (this.measureMode === "area") this.tools.area.endCreation();
+  }
+
+  /** Descarta la medición a medias, sin borrar las ya terminadas. */
+  cancelMeasurement(): void {
+    this.assertAlive();
+    this.tools.distance.cancelCreation();
+    this.tools.angle.cancelCreation();
+    this.tools.area.cancelCreation();
+    this.emitMeasurement(null);
   }
 
   /**
@@ -1184,31 +1671,21 @@ export class BimViewer {
     return this.ifcImporter;
   }
 
-  /** Dibuja el trazo de la medición, reemplazando el anterior. */
-  private drawPolyline(points: readonly THREE.Vector3[]): void {
-    this.clearMeasurements();
-    if (points.length < 2) return;
+  /** Borra todas las mediciones dibujadas, de los tres tipos. */
+  clearMeasurements(): void {
+    this.assertAlive();
 
-    const line = new THREE.Line(
-      new THREE.BufferGeometry().setFromPoints([...points]),
-      new THREE.LineBasicMaterial({ color: SELECTION_COLOR, depthTest: false }),
-    );
-    // Se dibuja por encima de la geometría: una cota escondida dentro de un muro no sirve.
-    line.renderOrder = 1;
-
-    this.measurementLine = line;
-    this.world.scene.three.add(line);
+    this.cancelMeasurement();
+    this.tools.distance.list.clear();
+    this.tools.angle.list.clear();
+    this.tools.area.list.clear();
+    this.drawn.length = 0;
+    this.emitMeasurement(null);
   }
 
-  /** Quita la medición dibujada. */
-  clearMeasurements(): void {
-    if (this.measurementLine === null) return;
-
-    this.world.scene.three.remove(this.measurementLine);
-    this.measurementLine.geometry.dispose();
-    // El material es propio de esta línea, así que se libera con ella.
-    (this.measurementLine.material as THREE.Material).dispose();
-    this.measurementLine = null;
+  /** Cuántas mediciones hay dibujadas ahora mismo, de cualquier tipo. */
+  get measurementCount(): number {
+    return this.tools.distance.list.size + this.tools.angle.list.size + this.tools.area.list.size;
   }
 
   /** Muestra u oculta un conjunto de elementos de un modelo. */
@@ -1239,6 +1716,54 @@ export class BimViewer {
     await this.fragments.core.update(true);
   }
 
+  /**
+   * Muestra u oculta un modelo entero.
+   *
+   * Es lo que hace falta para coordinar de verdad: con arquitectura y estructura abiertas a la
+   * vez, la operación más frecuente es apagar una para mirar la otra. Se apaga la visibilidad
+   * de sus elementos y **el modelo sigue cargado**, así que volver a encenderlo es instantáneo
+   * y no cuesta otra conversión.
+   */
+  async setModelVisible(modelId: string, visible: boolean): Promise<void> {
+    this.assertAlive();
+
+    const model = this.fragments.list.get(modelId);
+    if (!model) return;
+
+    await model.setVisible(undefined, visible);
+    await this.fragments.core.update(true);
+  }
+
+  /**
+   * Cierra un modelo: lo saca de la escena y libera su memoria.
+   *
+   * **Es distinto de apagarlo.** Apagado sigue cargado y volver a encenderlo es inmediato;
+   * cerrado hay que abrir el archivo otra vez y pagar la conversión de nuevo. Existe porque en
+   * una revisión se van abriendo modelos para comparar y la escena termina con disciplinas que
+   * ya no hacen falta, cada una ocupando memoria del navegador.
+   *
+   * El objeto de la escena se quita **a mano y después** de liberar el modelo: quien lo colgó
+   * fue esta envoltura, en `wireEvents`, así que sacarlo también le toca a ella.
+   */
+  async closeModel(modelId: string): Promise<void> {
+    this.assertAlive();
+
+    const model = this.fragments.list.get(modelId);
+    if (!model) return;
+
+    // Una selección que apunte a este modelo queda huérfana, y repintar el resaltado sobre un
+    // modelo liberado falla.
+    if (this.selection?.modelId === modelId) this.selection = null;
+
+    const objeto = model.object;
+    await this.fragments.core.disposeModel(modelId);
+    this.world.scene.three.remove(objeto);
+
+    this.unitsByModel.delete(modelId);
+    this.modelCount = Math.max(0, this.modelCount - 1);
+    if (this.modelCount > 0) await this.fragments.core.update(true);
+  }
+
   /** Vuelve a mostrar todo. */
   async showAll(): Promise<void> {
     this.assertAlive();
@@ -1257,7 +1782,7 @@ export class BimViewer {
    * ciclo de vida de That Open reencuadra después, y con el botón el usuario recupera la
    * vista en un clic sin que importe quién movió la cámara al final.
    */
-  async frameAll(): Promise<void> {
+  async frameAll(view: StandardView = "iso"): Promise<void> {
     this.assertAlive();
 
     const union = new THREE.Box3();
@@ -1267,7 +1792,40 @@ export class BimViewer {
     }
     if (union.isEmpty()) return;
 
-    this.applyFraming(union);
+    this.applyFraming(union, view);
+  }
+
+  /**
+   * Encuadra el elemento seleccionado, o todo el modelo si no hay ninguno.
+   *
+   * Es el gesto que uno espera del doble clic en cualquier visor: ir a lo que interesa sin
+   * orbitar a ciegas. Devuelve `false` si no había nada seleccionado, para que la interfaz
+   * pueda decir por qué no pasó nada.
+   */
+  async frameSelection(): Promise<boolean> {
+    this.assertAlive();
+
+    if (this.selection === null) return false;
+
+    const model = this.fragments.list.get(this.selection.modelId);
+    if (!model) return false;
+
+    const box = await model.getMergedBox([this.selection.localId]);
+    if (box.isEmpty()) return false;
+
+    // Un elemento delgado —una placa, un perfil— encuadrado justo queda pegado a los bordes de
+    // la pantalla y no se entiende dónde está. Un margen proporcional a su tamaño deja ver algo
+    // del contexto sin perder el elemento.
+    const holgura = box.getSize(new THREE.Vector3()).length() * 0.25;
+    box.expandByScalar(Math.max(holgura, 0.2));
+
+    // Se conserva la orientación actual de la cámara: quien hace doble clic quiere acercarse a
+    // un elemento, no cambiar el punto de vista desde el que estaba mirando.
+    const controls = this.world.camera.controls;
+    void controls.fitToBox(box, false);
+    controls.update(ONE_FRAME_S);
+    await this.fragments.core.update(true);
+    return true;
   }
 
   /**
@@ -1314,13 +1872,14 @@ export class BimViewer {
    *   al instante, pero solo mueve la cámara dentro de `update(delta)`. Verificado: sin
    *   esta llamada la posición se queda en `(50, 50, 50)`, su valor inicial.
    */
-  private applyFraming(box: THREE.Box3): void {
+  private applyFraming(box: THREE.Box3, view: StandardView = "iso"): void {
     const controls = this.world.camera.controls;
+    const [azimuth, polar] = VISTAS[view];
     // El encuadre va **antes** del giro: `fitToBox` recoloca la cámara y con ello pisa los
     // ángulos, así que girar primero no dejaba rastro. Rotar después conserva el objetivo y
     // la distancia que el encuadre calculó.
     void controls.fitToBox(box, false);
-    void controls.rotateTo(ISO_AZIMUTH, ISO_POLAR, false);
+    void controls.rotateTo(azimuth, polar, false);
     controls.update(ONE_FRAME_S);
   }
 

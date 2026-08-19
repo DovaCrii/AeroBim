@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { angleAtDeg, distanceM, perimeterM, polygonAreaM2, type Point3 } from "./geometry.js";
+import {
+  angleAtDeg,
+  distanceM,
+  distancePartsM,
+  perimeterM,
+  polygonAreaM2,
+  type Point3,
+} from "./geometry.js";
 
 /**
  * El oráculo de estas pruebas es la geometría elemental: cuadrados de lado conocido,
@@ -18,6 +25,43 @@ describe("distanceM", () => {
 
   it("la distancia de un punto a sí mismo es cero", () => {
     expect(distanceM([7, -2, 3], [7, -2, 3])).toBe(0);
+  });
+});
+
+describe("distancePartsM", () => {
+  it("separa la rampa: 3 de avance, 4 de subida, 5 en línea recta", () => {
+    // Y es la vertical, así que la subida va en la segunda coordenada.
+    expect(distancePartsM([0, 0, 0], [3, 4, 0])).toEqual({
+      directM: 5,
+      horizontalM: 3,
+      verticalM: 4,
+    });
+  });
+
+  it("en horizontal las tres coinciden salvo la vertical, que es cero", () => {
+    const partes = distancePartsM([1, 2, 3], [4, 2, 7]);
+    expect(partes.directM).toBeCloseTo(5, 12);
+    expect(partes.horizontalM).toBeCloseTo(5, 12);
+    expect(partes.verticalM).toBe(0);
+  });
+
+  it("en vertical la horizontal es cero y el desnivel es toda la distancia", () => {
+    expect(distancePartsM([2, 10, -5], [2, 3, -5])).toEqual({
+      directM: 7,
+      horizontalM: 0,
+      verticalM: 7,
+    });
+  });
+
+  it("el desnivel no tiene signo: da igual desde qué punto se mida", () => {
+    expect(distancePartsM([0, 5, 0], [0, 0, 0]).verticalM).toBe(5);
+    expect(distancePartsM([0, 0, 0], [0, 5, 0]).verticalM).toBe(5);
+  });
+
+  it("coincide con distanceM en la componente directa", () => {
+    const a: Point3 = [1.5, -2.25, 0.75];
+    const b: Point3 = [-3, 4.5, 8];
+    expect(distancePartsM(a, b).directM).toBeCloseTo(distanceM(a, b), 12);
   });
 });
 

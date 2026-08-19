@@ -58,6 +58,8 @@ obsidian/
 .idea/
 .DS_Store
 Thumbs.db
+# Configuracion local de agentes: la ruta del servidor de desarrollo es propia de cada equipo.
+.claude/
 
 # Registros
 *.log

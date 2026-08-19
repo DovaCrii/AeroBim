@@ -34,6 +34,40 @@ export function distanceM(a: Point3, b: Point3): number {
 }
 
 /**
+ * Las tres distancias que hay entre dos puntos.
+ *
+ * En obra no se usa la misma: la **directa** es la que mide una huincha tirada entre los dos
+ * puntos, la **horizontal** es la que aparece en una planta —la proyección sobre el suelo, la que
+ * sirve para replantear— y la **vertical** es el desnivel. Entre dos puntos de una rampa las tres
+ * son distintas, y dar solo una obliga a adivinar cuál se está mirando: por eso el visor las
+ * muestra juntas y con su nombre.
+ */
+export interface DistanceParts {
+  /** En línea recta entre los dos puntos, en metros. */
+  readonly directM: number;
+  /** Proyectada sobre el plano horizontal, en metros. Es la distancia "de planta". */
+  readonly horizontalM: number;
+  /** Diferencia de cota, en metros. Siempre positiva: es un desnivel, no una dirección. */
+  readonly verticalM: number;
+}
+
+/**
+ * Descompone la distancia entre dos puntos en directa, horizontal y vertical.
+ *
+ * **La vertical es el eje Y.** La escena del visor es Y arriba: la conversión de IFC —que trae Z
+ * arriba— la reorienta al cargar. Si algún día esa convención cambiara, este es el único lugar del
+ * dominio que hay que revisar, y por eso está dicho acá y no repartido por la interfaz.
+ */
+export function distancePartsM(a: Point3, b: Point3): DistanceParts {
+  const [dx, dy, dz] = subtract(a, b);
+  return {
+    directM: Math.sqrt(dx * dx + dy * dy + dz * dz),
+    horizontalM: Math.sqrt(dx * dx + dz * dz),
+    verticalM: Math.abs(dy),
+  };
+}
+
+/**
  * Ángulo en grados que forman `a` y `c` vistos desde el vértice `b`.
  *
  * Devuelve `0` si alguno de los dos lados tiene largo cero: sin dirección no hay ángulo, y
