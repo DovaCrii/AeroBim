@@ -89,6 +89,12 @@ const NO_SON_ELEMENTOS = new Set([
   "IFCFACEBASEDSURFACEMODEL",
   "IFCGEOMETRICCURVESET",
   "IFCGEOMETRICSET",
+  // Curvas indexadas y ejes de rejilla: los delató el IFC4 de OpenBuildings del usuario
+  // (`716-LCD-ME-ISUP-D-TEST00.ifc`), que informaba 112 `IFCINDEXEDPOLYCURVE` y 12 `IFCGRIDAXIS`
+  // como "elementos que no se cargaron". Ninguno es un elemento: la primera es el trazado de un
+  // perfil y el segundo es un eje de la rejilla, que vive dentro de su `IfcGrid`.
+  "IFCINDEXEDPOLYCURVE",
+  "IFCGRIDAXIS",
   "IFCMAPPEDITEM",
   "IFCREPRESENTATIONMAP",
   "IFCSHAPEREPRESENTATION",
@@ -190,6 +196,7 @@ const NO_SON_ELEMENTOS = new Set([
   "IFCPERSON",
   "IFCORGANIZATION",
   "IFCPERSONANDORGANIZATION",
+  "IFCACTORROLE",
   "IFCAPPLICATION",
   "IFCPOSTALADDRESS",
   "IFCTELECOMADDRESS",

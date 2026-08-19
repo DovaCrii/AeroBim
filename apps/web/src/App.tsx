@@ -3,12 +3,15 @@ import {
   type DistanceMode,
   type DrawnMeasurement,
   type LoadedModel,
+  type LoadedPlan,
   type LoadStage,
   type MeasureMode,
   type Measurement,
   type ModelTree,
   type NavigationMode,
   type PickedItem,
+  type PlanHit,
+  type PlanTransform,
   type Projection,
   type RenderStyle,
   type SavedView,
@@ -20,11 +23,26 @@ import {
 import { parseSavedViews } from "@aerobim/bim-core";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ModelsPanel } from "./components/ModelsPanel.js";
+import { PlansPanel } from "./components/PlansPanel.js";
 import { ProjectBrowser } from "./components/ProjectBrowser.js";
-import { PropertiesPanel } from "./components/PropertiesPanel.js";
+import { Resizer } from "./components/Resizer.js";
+import { Plan2DCard, PropertiesPanel } from "./components/PropertiesPanel.js";
 import { Ribbon, type RibbonTab } from "./components/Ribbon.js";
 import { SpatialTree } from "./components/SpatialTree.js";
 import { StatusBar } from "./components/StatusBar.js";
+import { ViewCube } from "./components/ViewCube.js";
+
+/**
+ * Lo que la interfaz da por oculto, en las tres listas que pinta.
+ *
+ * Se guarda entero antes de aislar para poder devolverlo al salir: son los conjuntos que leen los
+ * ojos del árbol, los del panel de modelos y el de la ficha del elemento.
+ */
+interface HiddenState {
+  readonly hidden: ReadonlySet<string>;
+  readonly hiddenModels: ReadonlySet<string>;
+  readonly hiddenElements: ReadonlySet<string>;
+}
 
 type Status =
   | { readonly kind: "starting" }
@@ -48,6 +66,38 @@ type Status =
  * esto es almacenamiento de fuera: puede estar a medio escribir o editado a mano.
  */
 const CLAVE_VISTAS = "aerobim.vistas.v1";
+
+/** Dónde se recuerda si la cinta quedó plegada. */
+const CLAVE_CINTA = "aerobim.cinta.plegada.v1";
+
+/** Dónde se recuerdan los anchos de los paneles laterales. */
+const CLAVE_PANELES = "aerobim.paneles.ancho.v1";
+
+/** Cuánto puede medir un panel lateral: ni tan angosto que no quepa un nombre, ni media pantalla. */
+const ANCHO_PANEL = { minimo: 200, maximo: 620 } as const;
+
+/** Lee el ancho guardado de un panel. Cualquier cosa rara devuelve el de fábrica. */
+function leerAncho(lado: "izquierda" | "derecha", porDefecto: number): number {
+  try {
+    const guardado: unknown = JSON.parse(localStorage.getItem(CLAVE_PANELES) ?? "[]");
+    if (!Array.isArray(guardado)) return porDefecto;
+
+    const valor = guardado[lado === "izquierda" ? 0 : 1];
+    if (typeof valor !== "number" || !Number.isFinite(valor)) return porDefecto;
+    return Math.min(ANCHO_PANEL.maximo, Math.max(ANCHO_PANEL.minimo, valor));
+  } catch {
+    return porDefecto;
+  }
+}
+
+/** Lee la preferencia de la cinta. Sin almacenamiento, la cinta se muestra desplegada. */
+function leerCintaPlegada(): boolean {
+  try {
+    return localStorage.getItem(CLAVE_CINTA) === "1";
+  } catch {
+    return false;
+  }
+}
 
 /** Lee las vistas guardadas. Nunca lanza: si el almacenamiento no está, no hay vistas. */
 function leerVistas(): readonly SavedView[] {
@@ -156,6 +206,35 @@ export function App() {
    */
   const [hiddenElements, setHiddenElements] = useState<ReadonlySet<string>>(new Set());
   /**
+   * Lo que los iconos decían **antes** de cada aislamiento, uno por cada uno sin deshacer.
+   *
+   * El visor lleva su propia pila con lo que estaba oculto de verdad; esta lleva lo que la interfaz
+   * mostraba, que es otra cosa: el árbol y el panel de modelos pintan sus ojos con estos conjuntos.
+   * Al salir del aislamiento hay que devolver las dos, o los iconos mienten sobre lo que se ve.
+   */
+  const [isolations, setIsolations] = useState<readonly HiddenState[]>([]);
+  /** Los planos 2D cargados, en el orden en que se abrieron. */
+  const [plans, setPlans] = useState<readonly LoadedPlan[]>([]);
+  /**
+   * El elemento 2D seleccionado: la línea del plano sobre la que se hizo clic.
+   *
+   * Va aparte del elemento del modelo porque **no son lo mismo y no tienen los mismos datos**: un
+   * trazo del CAD no tiene GUID ni psets, tiene capa, color y largo. Mezclarlos en una sola ficha
+   * obligaría a inventar campos vacíos en cada una.
+   */
+  const [selectedPlan, setSelectedPlan] = useState<PlanHit | null>(null);
+  /** Planos apagados enteros, por identificador. */
+  const [hiddenPlans, setHiddenPlans] = useState<ReadonlySet<string>>(new Set());
+  /** Capas de plano apagadas, como `plano:capa`. */
+  const [hiddenPlanLayers, setHiddenPlanLayers] = useState<ReadonlySet<string>>(new Set());
+  /**
+   * La última vista normalizada aplicada, para que el cubo diga hacia dónde se mira.
+   *
+   * Se borra en cuanto alguien orbita a mano: seguir marcando "Planta" con la cámara en cualquier
+   * otro sitio sería el cubo mintiendo, que es peor que un cubo sin nada marcado.
+   */
+  const [standardView, setStandardView] = useState<StandardView | null>("iso");
+  /**
    * La pestaña abierta de la cinta.
    *
    * **La distribución sigue a Revit y a los modeladores de Bentley**, que es de donde vienen quienes
@@ -167,6 +246,38 @@ export function App() {
   const [views, setViews] = useState<readonly SavedView[]>(leerVistas);
   const [panelIzquierdo, setPanelIzquierdo] = useState(true);
   const [panelDerecho, setPanelDerecho] = useState(true);
+  /**
+   * `true` con la cinta plegada.
+   *
+   * Se recuerda en el navegador porque es una preferencia de trabajo, no un estado de la sesión:
+   * quien trabaja en una pantalla chica la pliega una vez y no quiere volver a hacerlo cada día.
+   */
+  const [ribbonCollapsed, setRibbonCollapsed] = useState(leerCintaPlegada);
+  /**
+   * El ancho de cada panel lateral, en píxeles, arrastrable por su borde.
+   *
+   * **Un ancho fijo obliga a una elección que cambia cada diez minutos**: revisando las capas de un
+   * plano hace falta panel, midiendo hace falta lienzo. Se recuerdan en el navegador porque son una
+   * preferencia de trabajo, no un estado de la sesión.
+   */
+  const [anchoIzquierdo, setAnchoIzquierdo] = useState(() => leerAncho("izquierda", 288));
+  const [anchoDerecho, setAnchoDerecho] = useState(() => leerAncho("derecha", 288));
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(CLAVE_CINTA, ribbonCollapsed ? "1" : "0");
+    } catch {
+      // Modo privado o cuota agotada: la preferencia vale para esta sesión y ya.
+    }
+  }, [ribbonCollapsed]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(CLAVE_PANELES, JSON.stringify([anchoIzquierdo, anchoDerecho]));
+    } catch {
+      // Igual que arriba: sin almacenamiento, los anchos duran lo que la pestaña.
+    }
+  }, [anchoIzquierdo, anchoDerecho]);
 
   useEffect(() => {
     const host = canvasHost.current;
@@ -188,6 +299,12 @@ export function App() {
           // Una medición cerrada —o descartada— deja el contador a cero para la siguiente.
           setMeasurePoints(0);
         });
+        // **En desarrollo el visor queda a mano desde la consola.** Es lo que permite comprobar
+        // una selección o una carga sin ojos —`window.aerobim.pickPlan(x, y)`— y es la misma idea
+        // que `diag.html`, pero dentro de la aplicación de verdad. En producción no existe.
+        if (import.meta.env.DEV) {
+          (globalThis as unknown as { aerobim?: BimViewer }).aerobim = instance;
+        }
         setStatus({ kind: "ready" });
       })
       .catch((error: unknown) => {
@@ -204,6 +321,24 @@ export function App() {
       cancelled = true;
       desuscribir?.();
     };
+  }, []);
+
+  const openDxf = useCallback(async (file: File) => {
+    const instance = viewer.current;
+    if (!instance) return;
+
+    setStatus({ kind: "loading", name: file.name, stage: "reading" });
+    try {
+      // Un DXF es texto, y grande: se lee entero porque el lector necesita las secciones de
+      // bloques y tablas antes de poder dibujar la primera línea.
+      const texto = await file.text();
+      const plano = await instance.loadPlan(texto, file.name);
+      setPlans((actuales) => [...actuales, plano]);
+      setStatus({ kind: "ready" });
+      requestAnimationFrame(() => instance.framePlan(plano.id, "top"));
+    } catch (error: unknown) {
+      setStatus({ kind: "error", message: describe(error) });
+    }
   }, []);
 
   const openIfc = useCallback(async (file: File) => {
@@ -229,14 +364,26 @@ export function App() {
     }
   }, []);
 
+  /**
+   * Abre un archivo, sea un modelo o un plano.
+   *
+   * **La extensión decide**, y acá es lo correcto: son dos formatos que no se parecen en nada y se
+   * sueltan en el mismo sitio. Un `.dxf` entra como plano de referencia; cualquier otra cosa se
+   * intenta como IFC, que es lo que la aplicación abre.
+   */
+  const openFile = useCallback(
+    (file: File) => (file.name.toLowerCase().endsWith(".dxf") ? openDxf(file) : openIfc(file)),
+    [openDxf, openIfc],
+  );
+
   const onDrop = useCallback(
     (event: React.DragEvent<HTMLDivElement>) => {
       event.preventDefault();
       setDragging(false);
       const file = event.dataTransfer.files.item(0);
-      if (file) void openIfc(file);
+      if (file) void openFile(file);
     },
-    [openIfc],
+    [openFile],
   );
 
   const onCanvasClick = useCallback(
@@ -273,8 +420,19 @@ export function App() {
         // Un clic al vacío devuelve `null`, que es la mitad de los clics en un visor y no es
         // un error: simplemente deselecciona.
         const item = await instance.pickAt(event.clientX, event.clientY);
-        setSelected(item);
-        if (item === null) await instance.clearSelection();
+        if (item !== null) {
+          setSelected(item);
+          setSelectedPlan(null);
+          return;
+        }
+
+        // **El modelo tiene preferencia y el plano recoge lo que caiga fuera.** Así un plano
+        // tendido bajo la losa no roba la selección del elemento que está encima, y a la vez se
+        // puede clicar una línea del plano —que es lo que hace falta para revisarlo.
+        const enPlano = instance.pickPlan(event.clientX, event.clientY);
+        setSelectedPlan(enPlano);
+        setSelected(null);
+        await instance.clearSelection();
       } catch (error: unknown) {
         setStatus({ kind: "error", message: describe(error) });
       } finally {
@@ -385,6 +543,9 @@ export function App() {
     setProjection(view.camera.projection);
     setNavigation(view.camera.navigation);
     setHasSections(view.sections.length > 0);
+    // Una vista dice qué se ve, entero: lo aislado antes deja de ser un paso que deshacer, porque
+    // lo de antes ya no es lo que hay. El visor vacía su pila por lo mismo.
+    setIsolations([]);
     void instance.applyView(view);
   }, []);
 
@@ -394,6 +555,53 @@ export function App() {
       escribirVistas(siguientes);
       return siguientes;
     });
+  }, []);
+
+  const onTogglePlan = useCallback((id: string, visible: boolean) => {
+    setHiddenPlans((actual) => {
+      const siguiente = new Set(actual);
+      if (visible) siguiente.delete(id);
+      else siguiente.add(id);
+      return siguiente;
+    });
+    void viewer.current?.setPlanVisible(id, visible);
+  }, []);
+
+  const onTogglePlanLayer = useCallback((id: string, layer: string, visible: boolean) => {
+    setHiddenPlanLayers((actual) => {
+      const siguiente = new Set(actual);
+      const clave = `${id}:${layer}`;
+      if (visible) siguiente.delete(clave);
+      else siguiente.add(clave);
+      return siguiente;
+    });
+    void viewer.current?.setPlanLayerVisible(id, layer, visible);
+  }, []);
+
+  /**
+   * Mueve, escala o gira un plano.
+   *
+   * El estado de la interfaz se actualiza con **lo que devuelve el visor**, no con lo que se pidió:
+   * es el visor quien tiene la colocación buena, y si el plano ya no estuviera, la ficha no debe
+   * quedarse mostrando un ajuste que no se aplicó a nada.
+   */
+  const onPlanTransform = useCallback((id: string, cambios: Partial<PlanTransform>) => {
+    void viewer.current?.setPlanTransform(id, cambios).then((transform) => {
+      if (transform === null || transform === undefined) return;
+      setPlans((actuales) =>
+        actuales.map((plan) => (plan.id === id ? { ...plan, transform } : plan)),
+      );
+    });
+  }, []);
+
+  const onClosePlan = useCallback((id: string) => {
+    setPlans((actuales) => actuales.filter((plan) => plan.id !== id));
+    setHiddenPlans((actual) => {
+      const siguiente = new Set(actual);
+      siguiente.delete(id);
+      return siguiente;
+    });
+    void viewer.current?.removePlan(id);
   }, []);
 
   const onSection = useCallback((axis: SectionAxis) => {
@@ -421,17 +629,68 @@ export function App() {
     void viewer.current?.setVisible(modelId, node.localIds, visible);
   }, []);
 
+  /**
+   * Enciende **todo lo que hay**, modelos y planos.
+   *
+   * Los planos entran acá porque para quien mira la pantalla son parte de lo mismo: si "Ver todo"
+   * dejara un plano apagado, el botón estaría mintiendo por un detalle de implementación.
+   */
   const onShowAll = useCallback(() => {
     setHidden(new Set());
     setHiddenModels(new Set());
     setHiddenElements(new Set());
+    setIsolations([]);
     void viewer.current?.showAll();
-  }, []);
+
+    for (const plan of plans) {
+      void viewer.current?.setPlanVisible(plan.id, true);
+      for (const capa of plan.layers) {
+        void viewer.current?.setPlanLayerVisible(plan.id, capa.name, true);
+      }
+    }
+    setHiddenPlans(new Set());
+    setHiddenPlanLayers(new Set());
+  }, [plans]);
+
+  /**
+   * Sale del último aislamiento **volviendo a lo de antes**, que no es lo mismo que "Ver todo".
+   *
+   * La diferencia es la que pidió el usuario: al aislar un pilar para mirarlo, salir tiene que
+   * devolver el modelo tal como estaba —con la planta que se había apagado todavía apagada—, no
+   * encenderlo entero. Aislar dentro de un aislamiento se deshace de a un paso.
+   */
+  const onUndoIsolate = useCallback(() => {
+    const previo = isolations.at(-1);
+    if (previo === undefined) return;
+
+    setIsolations((actuales) => actuales.slice(0, -1));
+    setHidden(previo.hidden);
+    setHiddenModels(previo.hiddenModels);
+    setHiddenElements(previo.hiddenElements);
+    void viewer.current?.undoIsolation();
+  }, [isolations]);
 
   /** La clave con la que se recuerda un elemento apagado. */
   const claveDe = (item: PickedItem) => `${item.modelId}:${item.localId}`;
 
   const selectionVisible = selected === null || !hiddenElements.has(claveDe(selected));
+
+  /** `true` mientras se está mirando algo aislado, con el resto del modelo apagado por eso. */
+  const isolated = isolations.length > 0;
+  /**
+   * `true` si hay **algo** fuera de la vista, aislado o apagado a mano.
+   *
+   * Es lo que decide que la barra de estado avise. Sin ese aviso, aislar desde la ficha y luego
+   * cambiar de pestaña dejaba media pantalla apagada sin nada que dijera por qué ni cómo volver:
+   * "Ver todo" vivía solo en la pestaña Modelo.
+   */
+  const hasHidden =
+    isolated ||
+    hidden.size > 0 ||
+    hiddenModels.size > 0 ||
+    hiddenElements.size > 0 ||
+    hiddenPlans.size > 0 ||
+    hiddenPlanLayers.size > 0;
 
   /** Apaga o enciende **el elemento seleccionado**, que es lo que se pidió tener a un botón. */
   const onToggleSelectionVisible = useCallback(() => {
@@ -450,25 +709,36 @@ export function App() {
     void instance.setVisible(selected.modelId, [selected.localId], encender);
   }, [selected, hiddenElements]);
 
+  /**
+   * Entra en un aislamiento, sea de un elemento o de un nodo del árbol.
+   *
+   * Aislar deja todo lo demás oculto, así que los iconos del árbol y los del panel de modelos
+   * dejarían de decir la verdad: se limpian, y el estado que mostraban queda apuntado en la pila
+   * para poder devolverlo al salir. Ver {@link onUndoIsolate}.
+   */
+  const isolate = useCallback(
+    (modelId: string, localIds: readonly number[]) => {
+      setIsolations((actuales) => [...actuales, { hidden, hiddenModels, hiddenElements }]);
+      setHidden(new Set());
+      setHiddenModels(new Set());
+      setHiddenElements(new Set());
+      void viewer.current?.isolate(modelId, localIds);
+    },
+    [hidden, hiddenModels, hiddenElements],
+  );
+
   /** Aislar el elemento seleccionado: lo mismo que aislar un nodo del árbol, con un solo id. */
   const onIsolateSelection = useCallback(() => {
     if (selected === null) return;
+    isolate(selected.modelId, [selected.localId]);
+  }, [selected, isolate]);
 
-    setHidden(new Set());
-    setHiddenModels(new Set());
-    setHiddenElements(new Set());
-    void viewer.current?.isolate(selected.modelId, [selected.localId]);
-  }, [selected]);
-
-  const onIsolateNode = useCallback((modelId: string, localIds: readonly number[]) => {
-    // Aislar deja todo lo demás oculto, así que los iconos del árbol y los del panel de
-    // modelos dejarían de decir la verdad. Se limpian: el estado que se muestra es "nada
-    // oculto a mano".
-    setHidden(new Set());
-    setHiddenModels(new Set());
-    setHiddenElements(new Set());
-    void viewer.current?.isolate(modelId, localIds);
-  }, []);
+  const onIsolateNode = useCallback(
+    (modelId: string, localIds: readonly number[]) => {
+      isolate(modelId, localIds);
+    },
+    [isolate],
+  );
 
   const onToggleModel = useCallback((modelId: string, visible: boolean) => {
     setHiddenModels((actual) => {
@@ -522,34 +792,37 @@ export function App() {
 
   return (
     <div className="flex h-full w-full flex-col">
-      <header className="flex items-center gap-3 border-b border-white/10 px-4 py-3">
-        <img src="/aerobim-mark.svg" alt="" className="h-8 w-auto" />
-        <div>
-          <h1 className="text-sm font-semibold">AeroBim</h1>
-          <p className="text-xs text-white/50">Visor y coordinador BIM</p>
-        </div>
-
-        <div className="ml-auto flex items-center gap-3">
-          <StatusBadge status={status} />
-
-          <label className="cursor-pointer rounded-md bg-brand px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">
-            Abrir IFC
-            <input
-              type="file"
-              accept=".ifc"
-              className="hidden"
-              disabled={status.kind !== "ready"}
-              onChange={(event) => {
-                const file = event.target.files?.item(0);
-                if (file) void openIfc(file);
-                event.target.value = "";
-              }}
-            />
-          </label>
-        </div>
-      </header>
-
       <Ribbon
+        brand={
+          <span className="flex items-center gap-2" title="AeroBim — visor y coordinador BIM">
+            <img src="/aerobim-mark.svg" alt="" className="h-6 w-auto" />
+            <span className="text-sm font-semibold">AeroBim</span>
+          </span>
+        }
+        actions={
+          <>
+            <StatusBadge status={status} />
+            {/* **Abrir es uno solo para todo lo que la aplicación sabe leer.** Antes decía
+                "Abrir IFC" y un plano no tenía por dónde entrar; ahora el mismo botón —y el mismo
+                arrastrar y soltar— toma el modelo y el plano, y es la extensión la que decide. */}
+            <label className="cursor-pointer rounded-md bg-brand px-3 py-1 text-xs font-medium text-white hover:opacity-90">
+              Abrir
+              <input
+                type="file"
+                accept=".ifc,.dxf"
+                className="hidden"
+                disabled={status.kind !== "ready"}
+                onChange={(event) => {
+                  const file = event.target.files?.item(0);
+                  if (file) void openFile(file);
+                  event.target.value = "";
+                }}
+              />
+            </label>
+          </>
+        }
+        collapsed={ribbonCollapsed}
+        onToggleCollapse={() => setRibbonCollapsed((actual) => !actual)}
         tab={tab}
         enabled={models.length > 0}
         projection={projection}
@@ -561,12 +834,21 @@ export function App() {
         hasSections={hasSections}
         hasSelection={selected !== null}
         selectionVisible={selectionVisible}
+        isolated={isolated}
+        hasHidden={hasHidden}
         measurementCount={measurementCount}
         onTab={setTab}
         onToggleSelectionVisible={onToggleSelectionVisible}
         onIsolateSelection={onIsolateSelection}
-        onFrameAll={() => void viewer.current?.frameAll()}
-        onView={(view: StandardView) => void viewer.current?.frameAll(view)}
+        onUndoIsolate={onUndoIsolate}
+        onFrameAll={() => {
+          setStandardView("iso");
+          void viewer.current?.frameAll();
+        }}
+        onView={(view: StandardView) => {
+          setStandardView(view);
+          void viewer.current?.frameAll(view);
+        }}
         onFrameSelection={() => void viewer.current?.frameSelection()}
         onProjection={onProjection}
         onNavigation={onNavigation}
@@ -589,18 +871,39 @@ export function App() {
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
         {panelIzquierdo && (
-          // **Los paneles cede n antes que el modelo.** Con `shrink-0` y una ventana estrecha —412 px
+          // **Los paneles ceden antes que el modelo.** Con `shrink-0` y una ventana estrecha —412 px
           // en una prueba— los dos paneles se comían el ancho entero y el lienzo quedaba en cero: el
           // modelo desaparecía sin explicación. Ahora se encogen y el lienzo tiene mínimo garantizado.
-          <aside className="w-72 min-w-0 shrink border-r border-white/10 bg-ink/50">
-            <PropertiesPanel
-              item={selected}
-              visible={selectionVisible}
-              onClose={closeProperties}
-              onToggleVisible={onToggleSelectionVisible}
-              onIsolate={onIsolateSelection}
-            />
+          <aside
+            style={{ width: anchoIzquierdo }}
+            className="min-w-0 shrink border-r border-white/10 bg-ink/50"
+          >
+            {selectedPlan !== null && selected === null ? (
+              <Plan2DCard hit={selectedPlan} onClose={() => setSelectedPlan(null)} />
+            ) : (
+              <PropertiesPanel
+                item={selected}
+                visible={selectionVisible}
+                isolated={isolated}
+                onClose={closeProperties}
+                onToggleVisible={onToggleSelectionVisible}
+                onIsolate={onIsolateSelection}
+                onUndoIsolate={onUndoIsolate}
+              />
+            )}
           </aside>
+        )}
+
+        {panelIzquierdo && (
+          <Resizer
+            orientacion="vertical"
+            ayuda="Arrastra para cambiar el ancho del panel de propiedades"
+            onArrastrar={(delta) =>
+              setAnchoIzquierdo((actual) =>
+                Math.min(ANCHO_PANEL.maximo, Math.max(ANCHO_PANEL.minimo, actual + delta)),
+              )
+            }
+          />
         )}
 
         {/* El lienzo nunca baja de 240 px: es lo que impide que los paneles lo dejen en cero. */}
@@ -619,6 +922,9 @@ export function App() {
             ].join(" ")}
             onPointerDown={(event) => {
               pressPoint.current = { x: event.clientX, y: event.clientY };
+              // Orbitar deja de ser una vista normalizada: el cubo no debe seguir diciendo
+              // "Planta" con la cámara en cualquier otro sitio.
+              setStandardView(null);
             }}
             onClick={(event) => void onCanvasClick(event)}
             onDoubleClick={onCanvasDoubleClick}
@@ -630,22 +936,51 @@ export function App() {
             onDrop={onDrop}
           />
 
+          <ViewCube
+            view={standardView}
+            disabled={models.length === 0 && plans.length === 0}
+            onView={(view) => {
+              setStandardView(view);
+              void viewer.current?.frameAll(view);
+            }}
+          />
+
           {dragging && (
             <div className="pointer-events-none absolute inset-4 rounded-lg border-2 border-dashed border-brand/70" />
           )}
 
-          {models.length === 0 && status.kind !== "loading" && (
+          {models.length === 0 && plans.length === 0 && status.kind !== "loading" && (
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
               <p className="text-sm text-white/40">
-                Arrastra un archivo IFC aqui, o usa <span className="text-white/70">Abrir IFC</span>
+                Arrastra un <span className="text-white/70">IFC</span> o un{" "}
+                <span className="text-white/70">DXF</span> aquí, o usa{" "}
+                <span className="text-white/70">Abrir</span>
               </p>
             </div>
           )}
         </div>
 
         {panelDerecho && (
-          <aside className="w-72 min-w-0 shrink border-l border-white/10 bg-ink/50">
+          <Resizer
+            orientacion="vertical"
+            ayuda="Arrastra para cambiar el ancho del navegador"
+            // Este tirador está a la **izquierda** del panel: arrastrarlo hacia la izquierda lo
+            // agranda, y por eso el incremento va restado.
+            onArrastrar={(delta) =>
+              setAnchoDerecho((actual) =>
+                Math.min(ANCHO_PANEL.maximo, Math.max(ANCHO_PANEL.minimo, actual - delta)),
+              )
+            }
+          />
+        )}
+
+        {panelDerecho && (
+          <aside
+            style={{ width: anchoDerecho }}
+            className="min-w-0 shrink border-l border-white/10 bg-ink/50"
+          >
             <ProjectBrowser
+              planCount={plans.length}
               cotas={drawn}
               vistas={views}
               puedeGuardarVista={models.length > 0}
@@ -665,6 +1000,21 @@ export function App() {
                     onToggleVisible={onToggleVisible}
                   />
                 )
+              }
+              planos={
+                <PlansPanel
+                  plans={plans}
+                  hiddenPlans={hiddenPlans}
+                  hiddenLayers={hiddenPlanLayers}
+                  onTogglePlan={onTogglePlan}
+                  onToggleLayer={onTogglePlanLayer}
+                  onTransform={onPlanTransform}
+                  onFrame={(id) => {
+                    setStandardView("top");
+                    viewer.current?.framePlan(id, "top");
+                  }}
+                  onClose={onClosePlan}
+                />
               }
               modelos={
                 models.length === 0 ? (
@@ -691,6 +1041,10 @@ export function App() {
         selected={selected}
         modelCount={models.length}
         measurementCount={measurementCount}
+        isolated={isolated}
+        hasHidden={hasHidden}
+        onUndoIsolate={onUndoIsolate}
+        onShowAll={onShowAll}
       />
     </div>
   );

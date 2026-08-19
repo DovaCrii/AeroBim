@@ -39,6 +39,10 @@ import {
   type ConvertLocation,
   type Converter,
 } from "./converter.js";
+import { PlanOverlay, type LoadedPlan, type PlanHit, type PlanTransform } from "./plan.js";
+
+export type { LoadedPlan, PlanHit, PlanTransform } from "./plan.js";
+export type { DxfLayer } from "@aerobim/bim-core";
 
 export type { ConvertLocation, Converter, ConvertRequest, ConvertResponse } from "./converter.js";
 
@@ -150,6 +154,14 @@ export type SectionAxis = "horizontal" | "longitudinal" | "transversal";
  * y porque comparar dos modelos exige mirarlos desde el mismo sitio.
  */
 export type StandardView = "iso" | "top" | "front" | "side";
+
+/**
+ * Qué está oculto en cada modelo: identificadores locales de Fragments.
+ *
+ * Es la misma forma que guarda una vista (`SavedView.hiddenByModel`), y a propósito: lo que sirve
+ * para restaurar una vista sirve para deshacer un aislamiento.
+ */
+export type VisibilitySnapshot = Readonly<Record<string, readonly number[]>>;
 
 export interface BimViewerOptions {
   /**
@@ -921,7 +933,7 @@ function grupoDe(
   const desdePset = propiedadesDePset(relacionado, units);
   const propias = desdePset.length > 0 ? desdePset : atributosDe(relacionado, new Set(), units);
 
-  if (propias.length > 0) {
+  if (aporta(categoria, propias)) {
     grupos.push({ name: encabezadoDe(categoria, nombre, claveRelacion), properties: propias });
   }
 
@@ -933,17 +945,42 @@ function grupoDe(
       if (typeof anidado !== "object" || anidado === null) continue;
       if (localIdDe(anidado) === localIdPropio) continue;
 
-      const propiedades = atributosDe(anidado, new Set(), units);
-      if (propiedades.length === 0) continue;
+      // **Un pset colgado del tipo también es un pset**, y hasta ahora este nivel solo leía
+      // atributos: los psets del tipo salían como bloques con una sola línea, su propio nombre.
+      // El IFC4 de OpenBuildings del usuario mostraba quince seguidos —`Pset_BeamCommon`,
+      // `ObjectLEED`, `StructuralQuantities`…— antes de los mismos psets con sus valores.
+      const categoriaAnidada = categoriaDe(anidado);
+      const desdePsetAnidado = propiedadesDePset(anidado, units);
+      const propiedades =
+        desdePsetAnidado.length > 0 ? desdePsetAnidado : atributosDe(anidado, new Set(), units);
+      if (!aporta(categoriaAnidada, propiedades)) continue;
 
       grupos.push({
-        name: encabezadoDe(categoriaDe(anidado), nombreDe(anidado), clave),
+        name: encabezadoDe(categoriaAnidada, nombreDe(anidado), clave),
         properties: propiedades,
       });
     }
   }
 
   return grupos;
+}
+
+/**
+ * `true` si el bloque dice algo que no esté ya en su título.
+ *
+ * **Un pset vacío no es un pset.** Cuando el archivo declara el conjunto y no llegan sus
+ * propiedades, lo único que queda es su nombre —y el nombre ya es el título del bloque—, así que
+ * mostrarlo es repetir una palabra y hacer creer que hay datos donde no los hay. Con un tipo o un
+ * material es al revés: `IFCMATERIAL · Iron` con solo su nombre **sí** informa de qué está hecho el
+ * elemento, y por eso el filtro se limita a los conjuntos de propiedades y cantidades.
+ */
+function aporta(categoria: string | null, propiedades: readonly PropertyValue[]): boolean {
+  if (propiedades.length === 0) return false;
+
+  const esConjunto = categoria === "IFCPROPERTYSET" || categoria === "IFCELEMENTQUANTITY";
+  if (!esConjunto) return true;
+
+  return !(propiedades.length === 1 && propiedades[0]?.name === "Name");
 }
 
 /**
@@ -1043,6 +1080,12 @@ export class BimViewer {
    */
   private referencePlane: { readonly point: Point3; readonly normal: Point3 } | null = null;
   private readonly tools: MeasureTools;
+  /**
+   * Los planos 2D dibujados en la escena. Ver {@link loadPlan}.
+   *
+   * Se crea siempre, aunque no haya ningún plano: no cuesta nada y evita el `null` en cada uso.
+   */
+  private readonly plans: PlanOverlay;
   /** Quién escucha las mediciones terminadas. Ver {@link onMeasurement}. */
   private readonly measureListeners = new Set<(measurement: Measurement | null) => void>();
   /**
@@ -1092,6 +1135,15 @@ export class BimViewer {
   /** Dibujos propios que esperan a que su medición quede registrada. Ver {@link registrarCota}. */
   private propiosPendientes: THREE.Object3D[] = [];
   /**
+   * Lo que estaba oculto **antes** de cada aislamiento, uno por cada uno sin deshacer.
+   *
+   * Es lo que hace que aislar sea un paso reversible en vez de un camino de ida: al salir se
+   * vuelve a lo que había —con lo que se había apagado a mano todavía apagado—, y no a todo
+   * encendido, que es lo que hace {@link showAll}. Aislar dentro de un aislamiento apila otro
+   * nivel, así que se sale de a uno. Ver {@link undoIsolation}.
+   */
+  private readonly visibilityStack: VisibilitySnapshot[] = [];
+  /**
    * La marca de la cara de referencia mientras se mide una perpendicular.
    *
    * Vive fuera del registro de mediciones porque no pertenece a ninguna: es de la medición **a
@@ -1124,6 +1176,7 @@ export class BimViewer {
       angle: components.get(OBF.AngleMeasurement),
       area: components.get(OBF.AreaMeasurement),
     };
+    this.plans = new PlanOverlay(world.scene.three);
   }
 
   /**
@@ -1834,11 +1887,7 @@ export class BimViewer {
     const posicion = controls.getPosition(new THREE.Vector3());
     const objetivo = controls.getTarget(new THREE.Vector3());
 
-    const hiddenByModel: Record<string, readonly number[]> = {};
-    for (const [modelId, model] of this.fragments.list) {
-      const ocultos = await model.getItemsByVisibility(false);
-      if (ocultos.length > 0) hiddenByModel[modelId] = ocultos;
-    }
+    const hiddenByModel = await this.captureVisibility();
 
     // La lista del `Clipper` es un mapa: cada entrada es [identificador, plano].
     const sections = [...this.components.get(OBC.Clipper).list].map(([, plano]) => ({
@@ -1877,11 +1926,10 @@ export class BimViewer {
     await this.setProjection(view.camera.projection);
     this.setNavigationMode(view.camera.navigation);
 
-    for (const [modelId, model] of this.fragments.list) {
-      await model.setVisible(undefined, true);
-      const ocultos = view.hiddenByModel[modelId];
-      if (ocultos !== undefined && ocultos.length > 0) await model.setVisible([...ocultos], false);
-    }
+    // Una vista dice qué se ve, entera: los aislamientos anteriores dejan de tener sentido como
+    // pasos que deshacer, porque lo que había antes ya no es lo que hay.
+    this.visibilityStack.length = 0;
+    await this.applyVisibility(view.hiddenByModel);
 
     const clipper = this.components.get(OBC.Clipper);
     clipper.deleteAll();
@@ -2330,12 +2378,69 @@ export class BimViewer {
   async isolate(modelId: string, localIds: readonly number[]): Promise<void> {
     this.assertAlive();
 
+    // Lo de antes se guarda **antes** de tocar nada: es lo que permite salir del aislamiento sin
+    // encender lo que ya estaba apagado a mano. Ver {@link undoIsolation}.
+    this.visibilityStack.push(await this.captureVisibility());
+
     for (const [id, model] of this.fragments.list) {
       // `undefined` afecta a todos los elementos del modelo.
       await model.setVisible(undefined, false);
       if (id === modelId) await model.setVisible([...localIds], true);
     }
     await this.refresh();
+  }
+
+  /** Qué está oculto ahora mismo, por modelo. */
+  async captureVisibility(): Promise<VisibilitySnapshot> {
+    this.assertAlive();
+
+    const hiddenByModel: Record<string, readonly number[]> = {};
+    for (const [modelId, model] of this.fragments.list) {
+      const ocultos = await model.getItemsByVisibility(false);
+      if (ocultos.length > 0) hiddenByModel[modelId] = ocultos;
+    }
+    return hiddenByModel;
+  }
+
+  /**
+   * Deja la visibilidad exactamente como dice la instantánea.
+   *
+   * Los modelos que no aparezcan quedan enteros a la vista: una instantánea tomada con otros
+   * modelos abiertos sigue sirviendo, igual que una vista guardada.
+   */
+  async applyVisibility(snapshot: VisibilitySnapshot): Promise<void> {
+    this.assertAlive();
+
+    for (const [modelId, model] of this.fragments.list) {
+      await model.setVisible(undefined, true);
+      const ocultos = snapshot[modelId];
+      if (ocultos !== undefined && ocultos.length > 0) await model.setVisible([...ocultos], false);
+    }
+    await this.refresh();
+  }
+
+  /** Cuántos aislamientos hay sin deshacer. Cero significa que no se está mirando nada aislado. */
+  get isolationDepth(): number {
+    return this.visibilityStack.length;
+  }
+
+  /**
+   * Sale del último aislamiento y **vuelve a lo que había antes**, no a todo encendido.
+   *
+   * Es la operación que faltaba: aislar dejaba el resto del modelo apagado sin más camino de vuelta
+   * que "Ver todo", que además enciende lo que uno había apagado a propósito. Acá el paso se
+   * deshace: si antes de aislar había una planta apagada, sigue apagada.
+   *
+   * Devuelve `false` si no había ningún aislamiento que deshacer.
+   */
+  async undoIsolation(): Promise<boolean> {
+    this.assertAlive();
+
+    const previa = this.visibilityStack.pop();
+    if (previa === undefined) return false;
+
+    await this.applyVisibility(previa);
+    return true;
   }
 
   /**
@@ -2386,10 +2491,126 @@ export class BimViewer {
     if (this.modelCount > 0) await this.refresh();
   }
 
-  /** Vuelve a mostrar todo. */
+  /**
+   * Carga un plano 2D (DXF) y lo deja bajo el modelo, a escala.
+   *
+   * **Se coloca centrado sobre el modelo y a la cota de su base**, que es de donde uno parte para
+   * ajustar: el CAD y el IFC casi nunca comparten origen, y arrancar en el origen del dibujo lo
+   * dejaría a decenas de metros, fuera de la pantalla. Sin modelo abierto, va al origen.
+   *
+   * La escala se propone midiendo el dibujo y **se puede cambiar**: ver `suggestMetresPerUnit` en
+   * `bim-core` y {@link setPlanTransform}.
+   */
+  async loadPlan(text: string, name: string): Promise<LoadedPlan> {
+    this.assertAlive();
+
+    const union = new THREE.Box3();
+    for (const [, model] of this.fragments.list) {
+      const caja = await this.boxOf(model);
+      if (caja !== null) union.union(caja);
+    }
+
+    const centro = union.isEmpty()
+      ? { xM: 0, zM: 0, elevationM: 0 }
+      : {
+          xM: (union.min.x + union.max.x) / 2,
+          zM: (union.min.z + union.max.z) / 2,
+          // A ras de la base del modelo, que es donde va un plano de planta.
+          elevationM: union.min.y,
+        };
+
+    const plano = this.plans.add(text, name, centro);
+    await this.refresh();
+    return plano;
+  }
+
+  /** Cambia la colocación de un plano: escala, cota, desplazamiento, giro o reflejo. */
+  async setPlanTransform(
+    id: string,
+    cambios: Partial<PlanTransform>,
+  ): Promise<PlanTransform | null> {
+    this.assertAlive();
+
+    const resultado = this.plans.setTransform(id, cambios);
+    await this.refresh();
+    return resultado;
+  }
+
+  /** Enciende o apaga una capa del plano. */
+  async setPlanLayerVisible(id: string, layer: string, visible: boolean): Promise<void> {
+    this.assertAlive();
+
+    this.plans.setLayerVisible(id, layer, visible);
+    await this.refresh();
+  }
+
+  /** Enciende o apaga el plano entero. */
+  async setPlanVisible(id: string, visible: boolean): Promise<void> {
+    this.assertAlive();
+
+    this.plans.setVisible(id, visible);
+    await this.refresh();
+  }
+
+  /** Cierra un plano: lo saca de la escena y libera su geometría. */
+  async removePlan(id: string): Promise<void> {
+    this.assertAlive();
+
+    this.plans.remove(id);
+    await this.refresh();
+  }
+
+  /**
+   * Qué elemento 2D hay bajo el cursor.
+   *
+   * **Es la selección del plano, no la del modelo**: devuelve la capa, el plano y el largo del
+   * tramo tocado. Se llama cuando el clic sobre el modelo no encontró nada, así que un plano bajo
+   * una losa no roba la selección del elemento que está encima.
+   */
+  pickPlan(clientX: number, clientY: number): PlanHit | null {
+    this.assertAlive();
+
+    const canvas = this.world.renderer?.three.domElement;
+    if (!canvas || this.plans.count === 0) return null;
+
+    // El rectángulo se resta **una sola vez** y aquí sí toca hacerlo: a diferencia del picker de
+    // Fragments, `Raycaster` espera coordenadas normalizadas. Ver la nota de `F1.11`.
+    const rect = canvas.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return null;
+
+    const ndc = new THREE.Vector2(
+      ((clientX - rect.left) / rect.width) * 2 - 1,
+      -((clientY - rect.top) / rect.height) * 2 + 1,
+    );
+
+    const rayo = new THREE.Raycaster();
+    const camara = this.world.camera.three;
+    rayo.setFromCamera(ndc, camara);
+    return this.plans.pick(rayo, camara);
+  }
+
+  /** Encuadra un plano, en planta por defecto. Devuelve `false` si ese plano ya no está. */
+  framePlan(id: string, view: StandardView = "top"): boolean {
+    this.assertAlive();
+
+    const caja = this.plans.boxOf(id);
+    if (caja === null) return false;
+
+    this.applyFraming(caja, view);
+    return true;
+  }
+
+  /**
+   * Vuelve a mostrar todo, incluido lo que se había apagado a mano.
+   *
+   * Es la vuelta a cero, y por eso deja la pila de aislamientos vacía: después de esto no queda
+   * ningún paso que deshacer. Para salir de un aislamiento **sin** encender el resto, ver
+   * {@link undoIsolation}.
+   */
   async showAll(): Promise<void> {
     this.assertAlive();
 
+    this.visibilityStack.length = 0;
     for (const [, model] of this.fragments.list) {
       await model.setVisible(undefined, true);
     }
@@ -2412,6 +2633,12 @@ export class BimViewer {
       const box = await this.boxOf(model);
       if (box !== null) union.union(box);
     }
+    // **Los planos también cuentan.** Sin esto, con solo un DXF abierto no había nada que encuadrar
+    // y los botones de vista —y el cubo— no hacían nada: parecían rotos y solo estaban mirando al
+    // conjunto equivocado.
+    const cajaPlanos = this.plans.boxAll();
+    if (cajaPlanos !== null) union.union(cajaPlanos);
+
     if (union.isEmpty()) return;
 
     this.applyFraming(union, view);

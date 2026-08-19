@@ -1,4 +1,5 @@
 import type { MeasureMode, Measurement, PickedItem } from "@aerobim/viewer";
+import { IconEye, IconIsolate } from "./icons.js";
 
 /**
  * La barra de estado del pie, como la de cualquier software de escritorio.
@@ -18,6 +19,10 @@ export function StatusBar({
   selected,
   modelCount,
   measurementCount,
+  isolated,
+  hasHidden,
+  onUndoIsolate,
+  onShowAll,
 }: {
   readonly measureMode: MeasureMode | null;
   /** Puntos ya puestos en la medición en curso: dice qué falta. */
@@ -26,6 +31,14 @@ export function StatusBar({
   readonly selected: PickedItem | null;
   readonly modelCount: number;
   readonly measurementCount: number;
+  /** `true` mientras se mira algo aislado: el resto del modelo está apagado por eso. */
+  readonly isolated: boolean;
+  /** `true` si hay algo fuera de la vista, aislado o apagado a mano. */
+  readonly hasHidden: boolean;
+  /** Sale del último aislamiento y vuelve a lo que había antes de aislar. */
+  readonly onUndoIsolate: () => void;
+  /** Enciende todo, incluido lo que se había apagado a mano. */
+  readonly onShowAll: () => void;
 }) {
   return (
     <footer className="flex h-7 shrink-0 items-center gap-4 border-t border-white/10 bg-ink/60 px-3 text-[11px]">
@@ -46,11 +59,67 @@ export function StatusBar({
 
       {measurement !== null && <Resultado measurement={measurement} />}
 
+      {hasHidden && (
+        <Visibilidad isolated={isolated} onUndoIsolate={onUndoIsolate} onShowAll={onShowAll} />
+      )}
+
       <span className="shrink-0 text-white/30">
         {modelCount === 1 ? "1 modelo" : `${modelCount} modelos`}
         {measurementCount > 0 && ` · ${measurementCount} cotas`}
       </span>
     </footer>
+  );
+}
+
+/**
+ * El aviso de que no se está viendo el modelo entero, con la vuelta a un clic.
+ *
+ * **Está en la barra de estado y no en la cinta a propósito.** La barra se ve en las tres pestañas,
+ * y aislar se hace desde la ficha del elemento o desde el árbol, que están abiertos en cualquiera de
+ * ellas: con el botón solo en la pestaña Modelo, aislar desde la pestaña Vista dejaba media pantalla
+ * apagada sin nada que dijera por qué ni cómo volver.
+ *
+ * **Las dos salidas son distintas y por eso son dos botones.** "Salir" deshace el aislamiento y
+ * devuelve lo de antes —lo que se había apagado a mano sigue apagado—; "Ver todo" enciende el modelo
+ * entero. Con una sola, salir de un aislamiento obligaba a rehacer a mano lo que ya estaba apagado.
+ */
+function Visibilidad({
+  isolated,
+  onUndoIsolate,
+  onShowAll,
+}: {
+  readonly isolated: boolean;
+  readonly onUndoIsolate: () => void;
+  readonly onShowAll: () => void;
+}) {
+  return (
+    <span className="flex shrink-0 items-center gap-2">
+      <span className="flex items-center gap-1 text-brand">
+        <IconIsolate className="h-3.5 w-3.5" />
+        {isolated ? "Vista aislada" : "Hay elementos ocultos"}
+      </span>
+
+      {isolated && (
+        <button
+          type="button"
+          onClick={onUndoIsolate}
+          className="rounded border border-brand/40 px-1.5 py-0.5 text-brand hover:bg-brand/15"
+          title="Sale del aislamiento y vuelve a como estaba el modelo antes de aislar"
+        >
+          Salir del aislamiento
+        </button>
+      )}
+
+      <button
+        type="button"
+        onClick={onShowAll}
+        className="flex items-center gap-1 rounded border border-white/15 px-1.5 py-0.5 text-white/60 hover:bg-white/10 hover:text-white"
+        title="Enciende todo el modelo, incluido lo que se apagó a mano"
+      >
+        <IconEye className="h-3.5 w-3.5" />
+        Ver todo
+      </button>
+    </span>
   );
 }
 

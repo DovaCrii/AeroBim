@@ -35,6 +35,27 @@ principal y ahí sí podría congelar la interfaz.
 
 ---
 
+## La interfaz, y con qué regla crece
+
+**La estructura está escrita en [docs/UX.md](docs/UX.md)** (2026-08-19, a pedido del usuario). Lo
+que hay que saber para planificar encima:
+
+- **Una barra arriba, no dos.** Marca, pestañas, estado y `Abrir` en la misma fila: de 196 px a
+  **90 px**, y a **34 px** plegando la cinta al volver a pulsar su pestaña. Se recuerda.
+- **Los laterales se mueven**: ancho por su borde y **alto de cada sección** por su separador.
+- **El navegador de la derecha es la lista de todo lo abierto**, una sección por fuente:
+  estructura, modelos, **planos 2D**, vistas, mediciones — y ahí entrarán nubes, BCF e
+  interferencias sin rediseñar nada.
+- **Cubo de vistas** arriba a la derecha, como AutoCAD: dice hacia dónde se mira y cambia la vista
+  de un clic. Verificado moviendo la cámara con solo un plano cargado.
+- **`Abrir` es uno solo** para todo lo que la aplicación sabe leer; la extensión decide.
+
+**Regla para crecer:** una capacidad nueva es _una sección del navegador_ y, como mucho, _un grupo
+en una pestaña existente_. Una pestaña nueva solo se abre para un modo de trabajo entero —coordinar
+no es medir—, nunca para un botón.
+
+---
+
 ## FASE 0 — Andamiaje y prueba de concepto
 
 **Objetivo de salida:** un visor que abre un IFC real y lo muestra, con el
@@ -776,14 +797,76 @@ comprobado contra un punto de coordenada conocida en QGIS.
 
 ---
 
-## FASE 7 — Planos 2D y entregables
+## FASE 7 — Planos 2D: los que llegan y los que salen
 
 **Agregada el 2026-08-19 a pedido del usuario.** No estaba en el plan original, y entra
 porque para una oficina técnica un plano suele valer más que un modo de visualización: es
 lo que se imprime, se firma y se lleva a obra.
 
+**Tiene dos direcciones, y la de entrada se pidió después y va primero** (2026-08-19):
+cargar el plano 2D que ya existe —el DXF del proyecto— y **cruzarlo con el IFC**. Es lo que
+hoy obliga a tener el CAD y el visor BIM abiertos a la vez para responder una pregunta
+simple: lo que dice el plano, ¿está modelado, y dónde?
+
+**Objetivo de entrada:** ver el plano bajo el modelo, a escala y en su sitio, con sus capas
+encendibles una por una, y poder comparar.
+
 **Objetivo de salida:** sacar del modelo un plano acotado que alguien pueda usar, sin
 volver a la herramienta de escritorio.
+
+### La mitad de entrada: cargar el plano y cruzarlo con el modelo
+
+| #       | Tarea                                                                                        | Estado |
+| ------- | -------------------------------------------------------------------------------------------- | ------ |
+| `F7.6`  | **Leer un DXF**: capas, unidades, colores, textos, líneas, polilíneas, arcos y bloques       | ✅     |
+| `F7.7`  | **Dibujarlo en la escena** a una cota, con los colores reales del CAD y sus rótulos          | ✅     |
+| `F7.8`  | **Alinear plano y modelo**: unidad, cota, desplazamiento, giro y reflejo                     | 🟡     |
+| `F7.9`  | **Panel de capas del plano**: encender y apagar cada una                                     | ✅     |
+| `F7.10` | **Seleccionar en 2D**: clic en un trazo → su capa, su plano y el largo del tramo             | ✅     |
+| `F7.11` | **Herramientas CAD de revisión**: snap a extremo, medio e intersección, y medir plano↔modelo | ⬜     |
+| `F7.12` | **Cruzar**: el plano en planta con el modelo cortado a esa altura, lado a lado               | ⬜     |
+
+**Lo que quedó hecho el 2026-08-19**, verificado sobre el DXF real en el navegador: el lector
+(`packages/bim-core/src/plans/dxf.ts`, 13 pruebas) resuelve el archivo del usuario en **36 ms**
+—5.608 polilíneas y 59.136 puntos— y decide que son milímetros aunque la cabecera diga
+centímetros; el visor lo dibuja **por color y no por capa** (un plano de remodelación lleva lo
+nuevo y lo que se demuele en la misma capa con colores distintos), pone los rótulos tumbados sobre
+el plano, y un clic sobre un trazo devuelve su capa y el largo del tramo — comprobado: `0-MUROS`,
+0,060 m, en (8,113, 0, −14,913).
+
+**Lo que falta de `F7.8`** es el gesto, no los números: hoy se ajusta escribiendo unidad, cota, X,
+Z, giro y reflejo, y falta **"este punto del plano va aquí en el modelo"**, con dos clics. Los
+números quedan igual: son la red de seguridad cuando el gesto no basta.
+
+**Oráculo de entrada:** el `ACAD-Piso 5_Base.dxf` del usuario cae sobre `Piso 5.ifc` y **los
+muros coinciden**: la capa `0-MUROS` se superpone a los `IfcWall` del modelo, con la misma
+longitud medida en los dos.
+
+**Lo que ya se sabe del archivo real** (medido sobre `ACAD-Piso 5_Base.dxf`, 1,5 MB):
+
+| Qué           | Qué trae                                                                                   |
+| ------------- | ------------------------------------------------------------------------------------------ |
+| Versión       | `AC1032` (AutoCAD 2018), ASCII                                                             |
+| Entidades     | 1.480 `LWPOLYLINE`, 496 `INSERT`, 380 `MTEXT`, 21 `HATCH`, 12 `DIMENSION`, 10 `CIRCLE`     |
+| Capas         | `0-MUROS`, `0-TABIQUES`, `0-R-NUEVO`, `0-R-DEMUELE`, `0-EJES`, `AA - COTAS`, `0-AREA UTIL` |
+| Bloques       | 24, entre ellos `EJES` y mobiliario (`escritorio120x60`…)                                  |
+| **Unidades**  | La cabecera declara `$INSUNITS=5` (**centímetros**) y las coordenadas dicen otra cosa      |
+| **Extensión** | `$EXTMIN`/`$EXTMAX` **sin calcular** (`1e20` y `0`): no sirven para encuadrar              |
+
+> **Las unidades de un DXF no se creen, se comprueban.** `0-MUROS` mide 20.023 unidades de
+> ancho y el piso del IFC mide 21,8 m: son milímetros, no los centímetros que declara la
+> cabecera. Por eso la carga **propone** un factor y deja cambiarlo, en vez de aplicar
+> `$INSUNITS` a ciegas. Es el mismo problema que ya costó una sesión con las unidades de los
+> psets, y la misma respuesta: mostrar el número y de dónde sale.
+>
+> **`$EXTMIN` viene sin calcular**, así que el encuadre se hace con la extensión real de lo
+> dibujado y no con lo que dice la cabecera.
+>
+> **Es un plano de remodelación**: `0-R-NUEVO` y `0-R-DEMUELE` son lo que se construye y lo
+> que se bota. Cruzar esas dos capas con el modelo es justo la pregunta que el usuario
+> quiere poder responder, y por eso las capas se encienden una por una y no en bloque.
+
+### La mitad de salida: generar el plano desde el modelo
 
 | #      | Tarea                                                                                                | Estado |
 | ------ | ---------------------------------------------------------------------------------------------------- | ------ |

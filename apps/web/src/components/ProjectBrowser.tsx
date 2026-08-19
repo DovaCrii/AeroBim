@@ -1,5 +1,6 @@
 import type { DrawnMeasurement, SavedView } from "@aerobim/viewer";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { Resizer } from "./Resizer.js";
 import {
   IconAngle,
   IconArea,
@@ -26,6 +27,8 @@ import {
 export function ProjectBrowser({
   estructura,
   modelos,
+  planos,
+  planCount,
   cotas,
   vistas,
   puedeGuardarVista,
@@ -37,6 +40,9 @@ export function ProjectBrowser({
 }: {
   readonly estructura: React.ReactNode;
   readonly modelos: React.ReactNode;
+  /** Los planos 2D cargados, con sus capas y su ajuste. */
+  readonly planos: React.ReactNode;
+  readonly planCount: number;
   /** Las cotas dibujadas. La sección aparece sola cuando hay alguna. */
   readonly cotas: readonly DrawnMeasurement[];
   /** Las vistas guardadas, en el orden en que se guardaron. */
@@ -50,8 +56,16 @@ export function ProjectBrowser({
   readonly onDeleteView: (id: string) => void;
 }) {
   const [abiertas, setAbiertas] = useState<ReadonlySet<string>>(
-    new Set(["estructura", "modelos", "cotas", "vistas"]),
+    new Set(["estructura", "modelos", "planos", "cotas", "vistas"]),
   );
+  /**
+   * El alto que se le fijó a mano a cada sección, en píxeles.
+   *
+   * Las que no están aquí se reparten lo que sobre, que es lo que hacían todas antes. Fijar una
+   * sección es lo que permite, por ejemplo, dejar las capas de un plano grandes mientras el árbol
+   * se queda en dos líneas — y al revés diez minutos después.
+   */
+  const [altos, setAltos] = useState<Readonly<Record<string, number>>>({});
 
   const alternar = (clave: string) =>
     setAbiertas((actual) => {
@@ -61,12 +75,21 @@ export function ProjectBrowser({
       return siguiente;
     });
 
+  /** Mueve el borde inferior de una sección. El alto de partida es el que tiene en pantalla. */
+  const redimensionar = (clave: string, delta: number, actualEnPantalla: number) =>
+    setAltos((actuales) => ({
+      ...actuales,
+      [clave]: Math.max(ALTO_MINIMO, (actuales[clave] ?? actualEnPantalla) + delta),
+    }));
+
   return (
     <div className="flex h-full min-h-0 flex-col">
       <Seccion
         titulo="Estructura del modelo"
         abierta={abiertas.has("estructura")}
         onAlternar={() => alternar("estructura")}
+        alto={altos["estructura"] ?? null}
+        onRedimensionar={(delta, actual) => redimensionar("estructura", delta, actual)}
       >
         {estructura}
       </Seccion>
@@ -75,14 +98,32 @@ export function ProjectBrowser({
         titulo="Modelos abiertos"
         abierta={abiertas.has("modelos")}
         onAlternar={() => alternar("modelos")}
+        alto={altos["modelos"] ?? null}
+        onRedimensionar={(delta, actual) => redimensionar("modelos", delta, actual)}
       >
         {modelos}
+      </Seccion>
+
+      {/* **Los planos 2D van junto a los modelos, no en otra pestaña.** Son otra fuente del mismo
+          proyecto —lo que hay abierto— y la comparación entre el plano y el modelo se hace
+          encendiendo y apagando de los dos, que es un solo gesto si están a la misma altura. Las
+          nubes de puntos entrarán aquí mismo cuando llegue su fase. */}
+      <Seccion
+        titulo={`Planos 2D (${planCount})`}
+        abierta={abiertas.has("planos")}
+        onAlternar={() => alternar("planos")}
+        alto={altos["planos"] ?? null}
+        onRedimensionar={(delta, actual) => redimensionar("planos", delta, actual)}
+      >
+        {planos}
       </Seccion>
 
       <Seccion
         titulo={`Vistas guardadas (${vistas.length})`}
         abierta={abiertas.has("vistas")}
         onAlternar={() => alternar("vistas")}
+        alto={altos["vistas"] ?? null}
+        onRedimensionar={(delta, actual) => redimensionar("vistas", delta, actual)}
       >
         <Vistas
           vistas={vistas}
@@ -100,6 +141,8 @@ export function ProjectBrowser({
           titulo={`Mediciones tomadas (${cotas.length})`}
           abierta={abiertas.has("cotas")}
           onAlternar={() => alternar("cotas")}
+          alto={altos["cotas"] ?? null}
+          onRedimensionar={(delta, actual) => redimensionar("cotas", delta, actual)}
         >
           <ul className="p-1">
             {cotas.map((cota) => (
@@ -227,6 +270,9 @@ function Vistas({
   );
 }
 
+/** Lo mínimo que puede medir una sección: por debajo no cabe ni una fila. */
+const ALTO_MINIMO = 56;
+
 /**
  * Una sección plegable del navegador.
  *
@@ -237,18 +283,30 @@ function Seccion({
   titulo,
   abierta,
   onAlternar,
+  alto,
+  onRedimensionar,
   children,
 }: {
   readonly titulo: string;
   readonly abierta: boolean;
   readonly onAlternar: () => void;
+  /** Alto fijado a mano, o `null` para repartirse lo que sobra con las demás. */
+  readonly alto?: number | null;
+  /** Llega el incremento del arrastre y el alto que la sección tenía en pantalla. */
+  readonly onRedimensionar?: (delta: number, altoActual: number) => void;
   readonly children: React.ReactNode;
 }) {
+  const propia = useRef<HTMLElement | null>(null);
+
   return (
     <section
+      ref={propia}
+      // Con alto fijado la sección no se estira ni se encoge; sin él se reparte el hueco, que es
+      // como se comportaban todas antes de poder arrastrarlas.
+      style={abierta && alto != null ? { height: alto, flex: "none" } : undefined}
       className={[
         "flex min-h-0 flex-col border-b border-white/10",
-        abierta ? "flex-1" : "shrink-0",
+        abierta && alto == null ? "flex-1" : "shrink-0",
       ].join(" ")}
     >
       <button
@@ -270,6 +328,16 @@ function Seccion({
       </button>
 
       {abierta && <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>}
+
+      {abierta && onRedimensionar !== undefined && (
+        <Resizer
+          orientacion="horizontal"
+          ayuda={`Arrastra para cambiar el alto de "${titulo}"`}
+          onArrastrar={(delta) =>
+            onRedimensionar(delta, propia.current?.getBoundingClientRect().height ?? 0)
+          }
+        />
+      )}
     </section>
   );
 }

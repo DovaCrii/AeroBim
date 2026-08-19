@@ -9,7 +9,7 @@
 [![Licencia: MIT](https://img.shields.io/badge/licencia-MIT-9B5DE5.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/typescript-5.x-1B2A4A.svg)](https://www.typescriptlang.org/)
 [![Three.js](https://img.shields.io/badge/three.js-r170+-1B2A4A.svg)](https://threejs.org/)
-[![Estado](https://img.shields.io/badge/estado-fase%200%20·%20andamiaje-9B5DE5.svg)](#estado-actual)
+[![Estado](https://img.shields.io/badge/estado-fase%201%20completa%20·%20planos%202D%20en%20marcha-9B5DE5.svg)](#estado-actual)
 
 Aplicaciones hermanas: **[AeroControl](https://github.com/DovaCrii/AeroControl)** (flota y cumplimiento) · **[AeroPlanner](https://github.com/DovaCrii/AeroPlanner)** (planificación de misiones) · **[AeroLink](https://github.com/DovaCrii/AeroLink)** (telemetría y evidencia) — funcionan por separado, se comunican cuando conviene
 
@@ -33,13 +33,14 @@ dron y quieren contrastar lo construido contra lo modelado.
 
 ## Qué resuelve
 
-| Capacidad           | Qué hace                                                                            |
-| ------------------- | ----------------------------------------------------------------------------------- |
-| **Visor IFC**       | Abre modelos IFC 2x3/4/4x3 en el navegador, con árbol espacial, propiedades y psets |
-| **Nubes de puntos** | Carga el levantamiento (LAS/LAZ) en la misma escena que el modelo                   |
-| **Coordinación**    | Temas de observación con viewpoints, importables y exportables como BCF 2.1/3.0     |
-| **Interferencias**  | Detección de clashes entre grupos de elementos, con resultado navegable             |
-| **Geo + BIM**       | El modelo georreferenciado sobre la ortofoto y el terreno del propio vuelo          |
+| Capacidad           | Qué hace                                                                              |
+| ------------------- | ------------------------------------------------------------------------------------- |
+| **Visor IFC**       | Abre modelos IFC 2x3/4/4x3 en el navegador, con árbol espacial, propiedades y psets   |
+| **Planos 2D**       | Carga el DXF del proyecto bajo el modelo, con sus capas y colores, y deja compararlos |
+| **Nubes de puntos** | Carga el levantamiento (LAS/LAZ) en la misma escena que el modelo                     |
+| **Coordinación**    | Temas de observación con viewpoints, importables y exportables como BCF 2.1/3.0       |
+| **Interferencias**  | Detección de clashes entre grupos de elementos, con resultado navegable               |
+| **Geo + BIM**       | El modelo georreferenciado sobre la ortofoto y el terreno del propio vuelo            |
 
 Ninguna de esas piezas se construye de cero: cada una tiene una base
 open-source verificada en [docs/REFERENCES.md](docs/REFERENCES.md).
@@ -63,11 +64,25 @@ aquí.
 
 ## Estado actual
 
-**Fase 0 — andamiaje.** El repositorio trae el plan, la arquitectura, el estudio
-de alternativas open-source con licencias verificadas y la marca. **Todavía no
-hay código de aplicación**: la primera prueba de concepto del visor es la tarea
-`F0.4` de [MASTER_PLAN.md](MASTER_PLAN.md), que es la fuente de verdad de qué
-sigue.
+**Fase 1 completa, y la mitad de entrada de la Fase 7 en marcha** (2026-08-19). La
+aplicación abre modelos IFC reales y planos DXF del mismo proyecto, en el mismo
+espacio. Medido sobre los archivos de la organización, no sobre ejemplos:
+
+| Lo que hace                                                                    | Comprobado con                                         |
+| ------------------------------------------------------------------------------ | ------------------------------------------------------ |
+| Abre varios IFC, con la conversión en un worker                                | 23,6 MB de OpenBuildings en **2,2 s**, 1.316 elementos |
+| Árbol espacial, propiedades y psets **con su unidad**                          | `Qto_BeamBaseQuantities` con m², m³ y mm               |
+| Apagar, aislar y **salir del aislamiento** volviendo a lo de antes             | Sobre modelo cargado, en el navegador                  |
+| Mide distancia, ángulo, área y perpendicular; corta por tres ejes              | Fase 1                                                 |
+| Vistas guardadas: cámara, visibilidad y cortes                                 | Sobreviven a recargar                                  |
+| **Carga un DXF** con sus capas, colores y rótulos, y lo ajusta sobre el modelo | `ACAD-Piso 5_Base.dxf`: 5.608 trazos en **36 ms**      |
+| **Clic en un trazo del plano** → capa, plano de origen y largo del tramo       | `0-MUROS`, 0,060 m                                     |
+| Avisa cuando el archivo trae elementos que no se cargaron                      | Delató 433 `IfcProxy` en un modelo real                |
+
+**140 pruebas** en `packages/bim-core`; build, lint y formato en verde.
+[MASTER_PLAN.md](MASTER_PLAN.md) es la fuente de verdad de lo que sigue, y
+[docs/UX.md](docs/UX.md) explica cómo está repartida la pantalla y con qué regla
+crece.
 
 Se parte con una decisión ya tomada y documentada: **That Open Company**
 (MIT/MPL-2.0) para el visor, no xeokit — que es técnicamente superior pero AGPL, y
@@ -82,6 +97,7 @@ razonamiento está en [docs/REFERENCES.md](docs/REFERENCES.md).
 | [HANDOFF.md](HANDOFF.md)                                           | Punto exacto de retome                                             |
 | [AGENTS.md](AGENTS.md)                                             | Convenciones obligatorias antes de tocar código                    |
 | [docs/MVP.md](docs/MVP.md)                                         | Qué entra en la primera versión y qué queda fuera, con el motivo   |
+| [docs/UX.md](docs/UX.md)                                           | Cómo se reparte la pantalla, por qué, y con qué regla crece        |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)                       | Paquetes, límites entre capas y flujo de datos                     |
 | [docs/REFERENCES.md](docs/REFERENCES.md)                           | Cada proyecto de referencia, su licencia y qué se toma de él       |
 | [docs/INTEGRATION_AEROPLANNER.md](docs/INTEGRATION_AEROPLANNER.md) | Contrato con AeroPlanner: qué cruza la frontera y qué no           |

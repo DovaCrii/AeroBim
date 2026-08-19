@@ -1,5 +1,78 @@
-import type { PickedItem, PropertyValue } from "@aerobim/viewer";
+import type { PickedItem, PlanHit, PropertyValue } from "@aerobim/viewer";
 import { IconEye, IconEyeOff, IconIsolate } from "./icons.js";
+
+/**
+ * La ficha de un elemento 2D del plano.
+ *
+ * **Un trazo del CAD no es un elemento BIM y no se le pueden pedir los mismos datos**: no tiene
+ * GUID ni psets, tiene capa, plano de origen, largo y dónde está. Mezclarlo con la ficha del modelo
+ * obligaría a llenar de "—" media pantalla; separarlo deja claro qué se está mirando.
+ */
+export function Plan2DCard({
+  hit,
+  onClose,
+}: {
+  readonly hit: PlanHit;
+  readonly onClose: () => void;
+}) {
+  const [x, y, z] = hit.point;
+
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      <header className="flex items-start gap-2 border-b border-white/10 p-3">
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-xs font-semibold tracking-wide text-brand uppercase">
+            Elemento 2D
+          </p>
+          <p className="truncate text-sm" title={hit.layer}>
+            {hit.layer}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded px-1.5 text-white/50 hover:bg-white/10 hover:text-white"
+          aria-label="Quitar la selección"
+          title="Quitar la selección"
+        >
+          ×
+        </button>
+      </header>
+
+      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3 text-xs">
+        <section>
+          <h3 className="mb-1 font-semibold text-white/70">Origen</h3>
+          <dl className="space-y-1">
+            <Row label="Plano" value={hit.planName} />
+            <Row label="Capa" value={hit.layer} />
+          </dl>
+        </section>
+
+        <section>
+          <h3 className="mb-1 font-semibold text-white/70">Geometría</h3>
+          <dl className="space-y-1">
+            <Row
+              label="Largo del tramo"
+              value={hit.segmentLengthM === null ? "—" : `${hit.segmentLengthM.toFixed(3)} m`}
+              mono
+              muted={hit.segmentLengthM === null}
+            />
+            {/* El punto va en coordenadas de la escena, que son las mismas del modelo: es lo que
+                permite comparar dónde cae el trazo del plano y dónde el elemento modelado. */}
+            <Row label="X" value={`${x.toFixed(3)} m`} mono />
+            <Row label="Altura" value={`${y.toFixed(3)} m`} mono />
+            <Row label="Z" value={`${z.toFixed(3)} m`} mono />
+          </dl>
+        </section>
+
+        <p className="border-t border-white/10 pt-2 text-[11px] leading-snug text-white/35">
+          Un plano CAD no trae más datos que estos: lo que sabe del elemento es su capa y su
+          geometría. Lo demás —tipo, material, cantidades— vive en el modelo IFC.
+        </p>
+      </div>
+    </div>
+  );
+}
 
 /**
  * Lo que trae el elemento seleccionado.
@@ -15,17 +88,23 @@ import { IconEye, IconEyeOff, IconIsolate } from "./icons.js";
 export function PropertiesPanel({
   item,
   visible,
+  isolated,
   onClose,
   onToggleVisible,
   onIsolate,
+  onUndoIsolate,
 }: {
   /** El elemento seleccionado, o `null` cuando no hay ninguno. */
   readonly item: PickedItem | null;
   /** `false` cuando el elemento seleccionado está apagado. */
   readonly visible: boolean;
+  /** `true` mientras se mira algo aislado: el botón de aislar pasa a ser el de salir. */
+  readonly isolated: boolean;
   readonly onClose: () => void;
   readonly onToggleVisible: (visible: boolean) => void;
   readonly onIsolate: () => void;
+  /** Sale del aislamiento y devuelve el modelo a como estaba antes de aislar. */
+  readonly onUndoIsolate: () => void;
 }) {
   // El panel **está siempre**, como en Revit: es un sitio fijo de la pantalla, y en cuanto se
   // selecciona algo se llena. Antes aparecía y desaparecía flotando sobre el modelo, lo que movía la
@@ -78,12 +157,26 @@ export function PropertiesPanel({
           {visible ? <IconEye className="h-4 w-4" /> : <IconEyeOff className="h-4 w-4" />}
         </button>
 
+        {/* El mismo botón entra y sale del aislamiento, que es donde uno lo busca: se aísla desde
+            acá, así que acá tiene que estar la vuelta. Y salir **no es** "Ver todo": devuelve el
+            modelo a como estaba antes de aislar, con lo que se había apagado a mano todavía
+            apagado. */}
         <button
           type="button"
-          onClick={onIsolate}
-          className="rounded p-1 text-white/50 hover:bg-white/10 hover:text-white"
-          aria-label="Aislar este elemento"
-          title="Aislar: deja solo este elemento a la vista"
+          onClick={isolated ? onUndoIsolate : onIsolate}
+          className={[
+            "rounded p-1",
+            isolated
+              ? "bg-brand/15 text-brand"
+              : "text-white/50 hover:bg-white/10 hover:text-white",
+          ].join(" ")}
+          aria-label={isolated ? "Salir del aislamiento" : "Aislar este elemento"}
+          aria-pressed={isolated}
+          title={
+            isolated
+              ? "Salir del aislamiento: vuelve a como estaba el modelo antes de aislar"
+              : "Aislar: deja solo este elemento a la vista"
+          }
         >
           <IconIsolate className="h-4 w-4" />
         </button>

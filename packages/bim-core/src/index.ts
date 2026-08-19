@@ -49,6 +49,17 @@ export {
 } from "./inspect/ifcClasses.js";
 
 export {
+  parseDxf,
+  suggestMetresPerUnit,
+  type DxfBounds,
+  type DxfDeclaredUnits,
+  type DxfDrawing,
+  type DxfLayer,
+  type DxfPolyline,
+  type DxfText,
+} from "./plans/dxf.js";
+
+export {
   parseSavedViews,
   readSavedView,
   type SavedCamera,

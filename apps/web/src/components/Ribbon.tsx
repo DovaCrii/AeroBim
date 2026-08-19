@@ -11,6 +11,8 @@ import type {
 import {
   IconAngle,
   IconArea,
+  IconChevronDown,
+  IconChevronUp,
   IconClose,
   IconCursor,
   IconDistance,
@@ -36,6 +38,7 @@ import {
   IconSolid,
   IconTrash,
   IconTree,
+  IconUnisolate,
   IconViewFront,
   IconViewIso,
   IconViewSide,
@@ -82,10 +85,13 @@ export function Ribbon({
   hasSections,
   hasSelection,
   selectionVisible,
+  isolated,
+  hasHidden,
   measurementCount,
   onTab,
   onToggleSelectionVisible,
   onIsolateSelection,
+  onUndoIsolate,
   onFrameAll,
   onView,
   onFrameSelection,
@@ -103,6 +109,10 @@ export function Ribbon({
   onTogglePanel,
   panelIzquierdo,
   panelDerecho,
+  collapsed,
+  onToggleCollapse,
+  brand,
+  actions,
 }: {
   readonly tab: RibbonTab;
   /** `false` mientras no hay modelo: las herramientas se ven, pero no hay dónde aplicarlas. */
@@ -117,10 +127,16 @@ export function Ribbon({
   readonly hasSelection: boolean;
   /** `false` cuando el elemento seleccionado está apagado. */
   readonly selectionVisible: boolean;
+  /** `true` mientras se mira algo aislado, con el resto del modelo apagado por eso. */
+  readonly isolated: boolean;
+  /** `true` si hay algo fuera de la vista, aislado o apagado a mano. */
+  readonly hasHidden: boolean;
   readonly measurementCount: number;
   readonly onTab: (tab: RibbonTab) => void;
   readonly onToggleSelectionVisible: () => void;
   readonly onIsolateSelection: () => void;
+  /** Sale del último aislamiento y devuelve el modelo a como estaba antes de aislar. */
+  readonly onUndoIsolate: () => void;
   readonly onFrameAll: () => void;
   readonly onView: (view: StandardView) => void;
   readonly onFrameSelection: () => void;
@@ -138,19 +154,44 @@ export function Ribbon({
   readonly onTogglePanel: (lado: "izquierda" | "derecha") => void;
   readonly panelIzquierdo: boolean;
   readonly panelDerecho: boolean;
+  /** `true` con la cinta plegada: solo la fila de pestañas, y el lienzo entero para el modelo. */
+  readonly collapsed: boolean;
+  readonly onToggleCollapse: () => void;
+  /** La marca de la aplicación, a la izquierda de las pestañas. */
+  readonly brand?: React.ReactNode;
+  /** Estado y acciones de archivo, a la derecha: es la barra de la aplicación, no otra fila. */
+  readonly actions?: React.ReactNode;
 }) {
   return (
     <div className="shrink-0 border-b border-white/10 bg-ink/40">
+      {/* **Una sola fila arriba**: marca, pestañas y acciones. Antes eran dos —la cabecera de la
+          aplicación y la fila de pestañas— y entre las dos se comían medio dedo de pantalla sin
+          decir nada que no cupiera en una. */}
       <div className="flex items-center gap-1 border-b border-white/10 px-2">
+        {brand !== undefined && <div className="mr-2 flex shrink-0 items-center">{brand}</div>}
+
         {(["vista", "medir", "modelo"] as const).map((cual) => (
           <button
             key={cual}
             type="button"
-            onClick={() => onTab(cual)}
-            aria-pressed={tab === cual}
+            onClick={() => {
+              // Volver a pulsar la pestaña abierta pliega la cinta, como en Revit y en Office: es
+              // el gesto que ya conoce quien viene de ahí, y deja el lienzo entero para el modelo.
+              if (cual === tab) onToggleCollapse();
+              else {
+                onTab(cual);
+                if (collapsed) onToggleCollapse();
+              }
+            }}
+            aria-pressed={tab === cual && !collapsed}
+            title={
+              cual === tab
+                ? `${TITULOS_PESTAÑA[cual]} — clic para ${collapsed ? "desplegar" : "plegar"} la cinta`
+                : TITULOS_PESTAÑA[cual]
+            }
             className={[
               "border-b-2 px-3 py-1.5 text-xs transition-colors",
-              tab === cual
+              tab === cual && !collapsed
                 ? "border-brand text-white"
                 : "border-transparent text-white/50 hover:text-white/80",
             ].join(" ")}
@@ -159,9 +200,11 @@ export function Ribbon({
           </button>
         ))}
 
-        {/* Los dos paneles se pliegan desde acá: cuando se quiere ver el modelo grande, se
-            recuperan de un clic sin buscar el borde de la pantalla. */}
-        <div className="ml-auto flex items-center gap-1 py-1">
+        <div className="ml-auto flex items-center gap-2 py-1">
+          {actions}
+
+          {/* Los dos paneles se pliegan desde acá: cuando se quiere ver el modelo grande, se
+              recuperan de un clic sin buscar el borde de la pantalla. */}
           <PanelToggle
             label="Propiedades"
             side="izquierda"
@@ -174,10 +217,24 @@ export function Ribbon({
             open={panelDerecho}
             onClick={() => onTogglePanel("derecha")}
           />
+          <button
+            type="button"
+            onClick={onToggleCollapse}
+            aria-pressed={collapsed}
+            title={collapsed ? "Desplegar la cinta" : "Plegar la cinta y ver el modelo entero"}
+            aria-label={collapsed ? "Desplegar la cinta" : "Plegar la cinta"}
+            className="rounded px-1 py-1 text-white/40 hover:bg-white/10 hover:text-white"
+          >
+            {collapsed ? (
+              <IconChevronDown className="h-3.5 w-3.5" />
+            ) : (
+              <IconChevronUp className="h-3.5 w-3.5" />
+            )}
+          </button>
         </div>
       </div>
 
-      <div className="flex items-stretch overflow-x-auto px-1 py-1">
+      <div className={collapsed ? "hidden" : "flex items-stretch overflow-x-auto px-1 py-0.5"}>
         {tab === "vista" && (
           <>
             <Grupo label="Encuadre">
@@ -461,10 +518,26 @@ export function Ribbon({
                 disabled={!hasSelection}
                 onClick={onIsolateSelection}
               />
+              {/* Salir y "Ver todo" no son lo mismo, y por eso son dos botones: salir deshace el
+                  aislamiento y devuelve lo de antes —lo apagado a mano sigue apagado—, mientras que
+                  "Ver todo" enciende el modelo entero. */}
+              <Boton
+                icon={<IconUnisolate />}
+                label="Salir"
+                hint={
+                  isolated
+                    ? "Sale del aislamiento y vuelve a como estaba el modelo antes de aislar"
+                    : "No hay ningún aislamiento del que salir"
+                }
+                active={isolated}
+                disabled={!isolated}
+                onClick={onUndoIsolate}
+              />
               <Boton
                 icon={<IconTree />}
                 label="Ver todo"
-                hint="Vuelve a mostrar lo que se aisló u ocultó"
+                hint="Enciende todo el modelo, incluido lo que se apagó a mano"
+                active={hasHidden}
                 disabled={!enabled}
                 onClick={onShowAll}
               />
@@ -502,9 +575,7 @@ function Grupo({
       className="flex shrink-0 flex-col border-r border-white/10 px-2 last:border-r-0"
     >
       <div className="flex flex-1 items-start gap-0.5">{children}</div>
-      <p className="pt-0.5 text-center text-[10px] tracking-wide text-white/30 uppercase">
-        {label}
-      </p>
+      <p className="text-center text-[9px] tracking-wide text-white/30 uppercase">{label}</p>
     </section>
   );
 }
@@ -538,7 +609,10 @@ function Boton({
       title={`${label} — ${hint}`}
       aria-pressed={active}
       className={[
-        "flex w-16 flex-col items-center gap-0.5 rounded px-1 py-1 transition-colors",
+        // **Más estrecho y más bajo que antes.** La cinta ocupaba 110 px de alto en una pantalla
+        // donde lo que importa es el modelo; con el icono a 18 px y el nombre pegado debajo se
+        // queda en poco más de la mitad sin perder el nombre, que es lo que la hace legible.
+        "flex w-14 flex-col items-center gap-px rounded px-0.5 py-1 transition-colors",
         disabled
           ? "text-white/20"
           : active
@@ -546,8 +620,15 @@ function Boton({
             : "text-white/70 hover:bg-white/10 hover:text-white",
       ].join(" ")}
     >
-      <span className={active && !disabled ? "text-brand" : ""}>{icon}</span>
-      <span className="w-full text-center text-[10px] leading-tight break-words">{label}</span>
+      <span
+        className={[
+          "[&>svg]:h-[18px] [&>svg]:w-[18px]",
+          active && !disabled ? "text-brand" : "",
+        ].join(" ")}
+      >
+        {icon}
+      </span>
+      <span className="w-full text-center text-[9px] leading-tight break-words">{label}</span>
     </button>
   );
 }

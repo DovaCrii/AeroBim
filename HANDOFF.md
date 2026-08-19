@@ -7,7 +7,53 @@
 
 **Rama de trabajo: `codex/fase-0-andamiaje`, con PR abierto y sin fusionar.**
 
-> ## ⚠️ Lo siguiente: confirmar la perpendicular y abrir la Fase 2
+> ## ⚠️ Lo siguiente: el plano 2D sobre el modelo (`F7.6`–`F7.10`)
+>
+> **El frente cambió el 2026-08-19 a pedido del usuario:** antes que las nubes de puntos va
+> **cargar el plano DXF del proyecto y cruzarlo con el IFC**. La mitad de entrada de la Fase 7 está
+> abierta en `MASTER_PLAN.md` con el archivo real ya radiografiado.
+>
+> **Lo que ya está hecho:** el lector de DXF (`packages/bim-core/src/plans/dxf.ts`, 11 pruebas)
+> lee capas, unidades, líneas, polilíneas —con `bulge`—, arcos, círculos y bloques desarmados.
+> Sobre el plano real del usuario: **36 ms, 5.608 polilíneas, 59.136 puntos**, y decide que son
+> milímetros aunque el archivo declare centímetros.
+>
+> **El plano ya se ve, se ajusta y se puede clicar** (`F7.6`, `F7.7`, `F7.9` y `F7.10` cerradas):
+> se dibuja con los **colores reales del CAD** —por color de entidad, no por capa, que es lo que
+> separa lo nuevo de lo que se demuele—, con sus **rótulos** tumbados sobre el plano, cada capa se
+> enciende y apaga, y un clic sobre un trazo devuelve su capa, su plano y el largo del tramo.
+>
+> **Lo que falta:** alinear por dos puntos (`F7.8` — hoy el ajuste es numérico: unidad, cota, X, Z,
+> giro y reflejo), **herramientas CAD de revisión** (`F7.11`: snap a extremo, medio e intersección,
+> y medir del plano al modelo) y el cruce lado a lado (`F7.12`). El DXF y el IFC4 nuevo están en
+> `apps/web/public/samples/` (fuera de git).
+>
+> **La interfaz se rehízo a pedido del usuario** y está escrita en [docs/UX.md](docs/UX.md): una
+> sola barra arriba —de 196 px a 90, y a 34 plegada—, paneles laterales con ancho y alto de sección
+> arrastrables, **cubo de vistas** como el de AutoCAD, y `Abrir` uno solo para IFC y DXF.
+>
+> **En desarrollo el visor queda en `window.aerobim`**, que es lo que permite comprobar una
+> selección sin ojos: `window.aerobim.pickPlan(x, y)` devuelve el trazo bajo esas coordenadas de
+> pantalla. En producción no existe.
+>
+> **Salir del aislamiento ya no es "Ver todo".** Aislar apila lo que estaba oculto y salir lo
+> devuelve —lo apagado a mano sigue apagado—; el aviso y las dos salidas viven en la barra de
+> estado, que se ve en las tres pestañas. Verificado en el navegador sobre un modelo cargado.
+>
+> ### El IFC4 de OpenBuildings (`716-LCD-ME-ISUP-D-TEST00.ifc`), revisado
+>
+> | Lo que se veía                               | Lo que era                                                                                        |
+> | -------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+> | "125 elementos no cargados"                  | Falso positivo: `IFCINDEXEDPOLYCURVE`, `IFCGRIDAXIS`, `IFCACTORROLE` no son elementos — corregido |
+> | 15 bloques de propiedades con solo su nombre | Los psets **del tipo** se leían como atributos: ahora se expanden, y un pset vacío no se muestra  |
+> | `UnitWeight = 40.1 g`                        | El archivo declara la masa en **gramos** y el dato es kg/m: sale marcado como "(deducida)"        |
+>
+> Lo demás lee bien: 1.316 elementos, 1.311 con geometría, 27 categorías, 2,2 s de conversión en
+> el worker, 3,7 MB de Fragments, y las cantidades con sus unidades. Queda abierto que el
+> **`IfcGrid` no se dibuja** — y es justo lo que serviría para alinear el DXF con el modelo,
+> porque el plano trae su capa `0-EJES`.
+>
+> ## Lo anterior: confirmar la perpendicular y abrir la Fase 2
 >
 > **La Fase 1 está completa** y `F0.6` cerrada. Lo que queda antes de la Fase 2 son dos
 > confirmaciones del usuario y una idea suya que quedó a medio camino:

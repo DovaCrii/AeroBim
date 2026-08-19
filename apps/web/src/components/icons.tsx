@@ -393,6 +393,26 @@ export function IconIsolate(props: IconProps) {
   );
 }
 
+/**
+ * Salir del aislamiento: el mismo cuerpo, y el resto **volviendo**.
+ *
+ * Es el icono de aislar leído al revés: los cuerpos de alrededor ya no están de trazo cortado —han
+ * vuelto— y las flechas hacia adentro dicen de dónde. Con el mismo icono para entrar y salir, los
+ * dos botones de la cinta serían el mismo dibujo dos veces.
+ */
+export function IconUnisolate(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <rect x="9" y="9" width="6" height="6" rx="1" />
+      <rect x="2.5" y="2.5" width="5" height="5" rx="1" />
+      <rect x="16.5" y="2.5" width="5" height="5" rx="1" />
+      <rect x="2.5" y="16.5" width="5" height="5" rx="1" />
+      <rect x="16.5" y="16.5" width="5" height="5" rx="1" />
+      <path d="M12 3.5v3.2M12 20.5v-3.2M3.5 12h3.2M20.5 12h-3.2" />
+    </Svg>
+  );
+}
+
 /** Cerrar: la cruz. */
 export function IconX(props: IconProps) {
   return (
@@ -447,6 +467,15 @@ export function IconChevronDown(props: IconProps) {
   return (
     <Svg {...props}>
       <path d="M6 9.5 12 15.5 18 9.5" />
+    </Svg>
+  );
+}
+
+/** Plegar la cinta hacia arriba. */
+export function IconChevronUp(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M6 14.5 12 8.5 18 14.5" />
     </Svg>
   );
 }
