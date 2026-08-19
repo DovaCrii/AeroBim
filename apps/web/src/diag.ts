@@ -73,4 +73,14 @@ export async function clase(container: HTMLElement, ifcUrl: string, log: Log): P
 
   const loaded = await viewer.loadIfc(bytes, ifcUrl, (etapa) => marca(`etapa ${etapa}`));
   log(`\n${JSON.stringify(loaded.metrics, null, 2)}`);
+
+  // Estado de la cámara tras el encuadre: sirve para verificar que la vista isométrica
+  // quedó aplicada, que a ojo es difícil de distinguir de un alzado.
+  const controls = viewer.camera.controls;
+  const posicion = viewer.camera.three.position;
+  log(
+    `\ncamara: azimuth=${((controls.azimuthAngle * 180) / Math.PI).toFixed(1)}° ` +
+      `polar=${((controls.polarAngle * 180) / Math.PI).toFixed(1)}° ` +
+      `pos=(${posicion.x.toFixed(1)}, ${posicion.y.toFixed(1)}, ${posicion.z.toFixed(1)})`,
+  );
 }

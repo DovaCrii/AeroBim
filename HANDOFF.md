@@ -5,52 +5,50 @@
 
 ## Cómo seguir (leer esto primero)
 
-**Rama de trabajo: `codex/fase-0-andamiaje`, con PR abierto y sin fusionar.** El
-monorepo compila, 49 pruebas pasan, y el stack quedó validado con cifras sobre un
-modelo real. Falta cerrar una cosa, y es la importante.
+**Rama de trabajo: `codex/fase-0-andamiaje`, con PR abierto y sin fusionar.** La Fase 0
+está **completa salvo `F0.6`**: el monorepo compila, 49 pruebas pasan, y un IFC de obra
+real abre y se ve en poco más de un segundo.
 
-### El siguiente paso, y está acotado
+### Lo que ya está cerrado con datos
 
-**Reemplazar `IfcLoader.load` por `FRAGS.IfcImporter` + carga del `.frag`.**
+- **`F0.4`**: `Piso 5.ifc` (1,52 MB, IFC2X3 de BricsCAD) abre en la aplicación en **0,6 a
+  1,2 s** según la carga del equipo, con 548 elementos y 15 categorías. Las dimensiones
+  que informa —21,8 × 3,0 × 22,7 m— confirman que el factor de unidades del IFC se aplica
+  (el modelo viene en milímetros).
+- **`F0.5`**: el Fragments pesa **113 KB** frente a 1,52 MB del IFC, **13,7× menos**. La
+  promesa de Fragments se cumple.
+- **El GUID de IFC está verificado contra un oráculo externo**: los 579 GUID del modelo
+  real, generados por BricsCAD, sobreviven el round-trip sin una sola diferencia.
+- **`F0.3`**: monorepo con build, lint, formato y pruebas verdes.
 
-`IfcLoader.load` —la capa de conveniencia de `@thatopen/components`— **no completa de
-forma reproducible y no emite ningún error**: la interfaz se queda en "convirtiendo",
-con la consola y la red limpias. Está documentado en detalle en
-[MASTER_PLAN.md](MASTER_PLAN.md) → _Estado de `F0.4`_, con la lista de lo que se
-descartó midiendo (WASM, worker, aislamiento de origen, React, tamaño del modelo,
-resolución de módulos, duplicación de dependencias).
+### El siguiente paso
 
-La vía alternativa **ya está medida y funciona**: `FRAGS.IfcImporter` convirtió el
-modelo real en **643 ms**. Es menos magia y más control, y encaja con `F0.6`, que de
-todos modos exige separar "convertir" de "mostrar".
-
-Herramienta para trabajar en esto: `apps/web/public/diag.html`, que ejecuta el
-pipeline **sin la interfaz** y compara ambos caminos.
+**`F0.6`: decidir dónde corre la conversión**, ahora que hay números. Con medio segundo
+por modelo en el navegador, la respuesta se inclina fuerte hacia dejarlo del lado del
+cliente y que el backend de la Fase 3 sea solo persistencia — pero conviene medir antes
+un modelo grande (>50 MB), porque la conversión ocurre en el hilo principal y ahí sí
+podría congelar la interfaz.
 
 ```bash
 npm run dev
 ```
 
-Luego `http://localhost:5173/diag.html?modo=manual&ifc=/samples/muro-minimo.ifc`.
+Herramienta de medición: `apps/web/public/diag.html`, que ejecuta el pipeline **sin la
+interfaz** y compara la ruta directa contra la envoltura:
 
-### Lo que ya está cerrado con datos
-
-- **El stack sirve.** El IFC real (1,52 MB, IFC2X3 de BricsCAD) parsea en **24 ms** y
-  convierte a Fragments en **643 ms**, con un `.frag` de 113 KB — **13,7× más chico**.
-  La promesa de Fragments se cumple, así que `F0.5` está lista.
-- **El GUID de IFC está verificado contra un oráculo externo**: los 579 GUID del
-  modelo real, generados por BricsCAD, sobreviven el round-trip sin una sola
-  diferencia.
-- **`F0.3`**: monorepo con build, lint, formato y pruebas verdes.
+`http://localhost:5173/diag.html?modo=clase&ifc=/samples/muro-minimo.ifc`
 
 ### Y después, en este orden
 
-1. **`F0.6`** — decidir dónde corre la conversión con los números ya medidos. Define
-   si el backend de la Fase 3 es opcional u obligatorio.
-2. **Fase 1 — visor IFC usable.** Árbol espacial, propiedades y psets, cortes,
+1. **Fase 1 — visor IFC usable.** Árbol espacial, propiedades y psets, cortes,
    mediciones y varios modelos a la vez. Con eso ya hay algo que alguien de oficina
    técnica usa en vez de pedir una licencia de escritorio.
-3. **Fase 2 — nubes de puntos.** El as-built contra el modelo, que es la
+   - **Empezar por `F1.6` (vistas guardadas)**, porque arrastra un pendiente: la
+     orientación inicial de la cámara no se puede fijar. `setLookAt`, `moveTo` y
+     `rotateTo` no surten efecto —medido: la cámara se queda en `polar = 90°` y
+     `pos = (50, 50, 50)`— así que el modelo aparece visto de canto. Hay que entender qué
+     hace `SimpleCamera` con esos comandos antes de prometer controles de vista.
+2. **Fase 2 — nubes de puntos.** El as-built contra el modelo, que es la
    comparación que hoy nadie puede hacer sin software de pago.
 
 ### El modelo de prueba no está en el repositorio
@@ -120,14 +118,16 @@ una ventaja: lo que se aprenda de un lado sirve del otro.
 
 ## Trampas ya pagadas (no reaprenderlas)
 
-1. **El despliegue necesita las cabeceras COOP/COEP.** Sin
-   `Cross-Origin-Opener-Policy: same-origin` y
-   `Cross-Origin-Embedder-Policy: require-corp`, `crossOriginIsolated` queda en `false`,
-   no existe `SharedArrayBuffer` y el WASM multihilo de `web-ifc` no puede usarse. Están
-   en `vite.config.ts` para `server` y `preview`; **producción también las necesita**.
+1. **El despliegue NO debe servir COOP/COEP.** Es la trampa más cara de este repositorio
+   y es contraintuitiva. `Cross-Origin-Opener-Policy` y `Cross-Origin-Embedder-Policy`
+   ponen `crossOriginIsolated` en `true`, y con eso `web-ifc` elige su WASM **multihilo**,
+   que no funciona empaquetado: los workers de pthreads arrancan con una URL `undefined`,
+   mueren con `Unexpected token '<'`, y la conversión se queda esperando **sin emitir
+   error**. El visor comprueba esto al arrancar y falla con un mensaje explícito, pero es
+   mejor no llegar ahí. El modo monohilo rinde de sobra: medio segundo para 1,5 MB.
 2. **`@thatopen/components` no declara `exports`** y su `main` apunta a un `.cjs`. Hay
-   un alias en `vite.config.ts` que fuerza el ESM. No es la causa del cuelgue de `F0.4`,
-   pero apuntar al ESM es lo correcto.
+   un alias en `vite.config.ts` que fuerza el ESM. No era la causa del cuelgue, pero
+   apuntar al ESM es lo correcto.
 3. **El WASM de `web-ifc` se sirve local**, copiado por `apps/web/scripts/copy-wasm.mjs`
    en cada `dev` y `build`. Los archivos no se versionan. That Open los bajaría de un
    CDN, y eso rompe el local-first.
@@ -144,6 +144,15 @@ una ventaja: lo que se aprenda de un lado sirve del otro.
 7. **Los cambios en `packages/` no llegan solos a la aplicación.** `apps/web` consume
    `dist`, así que hay que correr `npm run build:packages` (el script `dev` de la raíz ya
    lo hace).
+8. **El tamaño del Fragments se lee antes de cargarlo.** `core.load` transfiere el búfer al
+   worker, y un `ArrayBuffer` transferido queda con `byteLength = 0`. Leerlo después
+   reportaba "0 B" para todos los modelos.
+9. **En un pipeline con workers, revisar la red antes que la consola.** Lo que delató el
+   cuelgue de `F0.4` fue una tanda de `GET /undefined` en el registro de peticiones; la
+   consola de la página estaba limpia.
+10. **El navegador embebido de desarrollo cachea las cabeceras de respuesta.** Después de
+    cambiar COOP/COEP en `vite.config.ts`, `crossOriginIsolated` seguía en `true` aunque el
+    servidor ya no las enviaba. Se fuerza con un parámetro de consulta distinto en la URL.
 
 ## Decisiones pendientes que solo el usuario puede tomar
 

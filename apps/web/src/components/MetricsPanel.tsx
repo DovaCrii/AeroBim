@@ -1,4 +1,4 @@
-import type { LoadedModel } from "@aerobim/viewer";
+import type { LoadedModel, LoadMetrics } from "@aerobim/viewer";
 
 /**
  * Panel de medición para `F0.4` y `F0.5`: qué costó abrir cada modelo.
@@ -25,6 +25,10 @@ export function MetricsPanel({ models }: { readonly models: readonly LoadedModel
           </p>
           <dl className="space-y-1 text-xs">
             <Row label="Tamaño del IFC" value={formatBytes(loaded.metrics.ifcBytes)} />
+            <Row
+              label="Fragments"
+              value={`${formatBytes(loaded.metrics.fragBytes)} · ${formatRatio(loaded.metrics)}`}
+            />
             <Row label="Conversión" value={formatMs(loaded.metrics.convertMs)} />
             <Row label="Hasta verlo" value={formatMs(loaded.metrics.displayMs)} />
             <Row label="Categorías IFC" value={String(loaded.metrics.categoryCount)} />
@@ -58,6 +62,12 @@ function formatBytes(bytes: number): string {
 
 function formatMs(ms: number): string {
   return ms < 1000 ? `${ms.toFixed(0)} ms` : `${(ms / 1000).toFixed(2)} s`;
+}
+
+/** Cuánto más chico quedó el Fragments que el IFC: el argumento de `F0.5`, a la vista. */
+function formatRatio({ ifcBytes, fragBytes }: LoadMetrics): string {
+  if (fragBytes <= 0) return "sin dato";
+  return `${(ifcBytes / fragBytes).toFixed(1)}× menos`;
 }
 
 /** Dimensiones en metros. `null` cuando no se pudo determinar: no se inventa un valor. */

@@ -42,6 +42,13 @@ peor que no tener visor — alguien tomará una decisión de obra con ese dato.
 8. **Los repositorios hermanos son de solo lectura desde aquí.** AeroPlanner está
    en su MVP y AeroControl en pausa de estabilización. Cualquier cambio allá entra
    por el `MASTER_PLAN.md` de ese repositorio.
+9. **El despliegue no sirve `Cross-Origin-Opener-Policy` ni
+   `Cross-Origin-Embedder-Policy`.** No es una preferencia: con aislamiento de origen,
+   `web-ifc` elige su WASM multihilo, que no funciona empaquetado, y la conversión se
+   queda esperando **sin emitir ningún error**. El visor falla al arrancar con un mensaje
+   explícito si detecta `crossOriginIsolated`, y esa comprobación no se quita. Si algún
+   día el multihilo se arregla upstream, se revisa entonces; hasta ahí, el monohilo abre
+   un IFC de 1,5 MB en medio segundo.
 
 ## Precedencia documental
 

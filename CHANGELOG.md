@@ -24,23 +24,38 @@ Este proyecto sigue [versionado semántico](https://semver.org/lang/es/).
 - **Fixture** `muro-minimo.ifc`: un IFC2X3 sintético de 2 KB en milímetros, que además
   delata errores de conversión de unidades.
 
-### Medido sobre un modelo real (IFC2X3 de BricsCAD, 1,52 MB)
+### Medido sobre un modelo real (IFC2X3 de BricsCAD, 1,52 MB, en milímetros)
 
-| Qué                    | Resultado                    |
-| ---------------------- | ---------------------------- |
-| Parseo con `web-ifc`   | 24 ms                        |
-| Conversión a Fragments | 643 ms                       |
-| Tamaño del `.frag`     | 113 KB — **13,7× más chico** |
+| Qué                    | Resultado                                  |
+| ---------------------- | ------------------------------------------ |
+| Abrir y ver el modelo  | **0,6 a 1,2 s** en la aplicación           |
+| Tamaño del `.frag`     | 113 KB — **13,7× más chico** que el IFC    |
+| Contenido reconocido   | 548 elementos con geometría, 15 categorías |
+| Dimensiones informadas | 21,8 × 3,0 × 22,7 m                        |
 
-Con eso `F0.5` queda cumplida y la promesa de Fragments confirmada.
+Las dimensiones son la comprobación de unidades: el modelo viene en milímetros y el visor
+informa metros plausibles. `F0.4` y `F0.5` quedan cumplidas.
+
+### Corregido
+
+- **La conversión no terminaba nunca, y sin emitir error.** La causa era el aislamiento de
+  origen: con `crossOriginIsolated` en `true`, `web-ifc` elige su WASM **multihilo**, que
+  no funciona empaquetado —los workers de pthreads arrancan con una URL `undefined` y
+  mueren con `Unexpected token '<'`—. Se quitaron las cabeceras COOP/COEP, que además
+  habían sido agregadas creyendo que hacían falta: eran justo lo que activaba el camino
+  roto. El visor ahora **falla al arrancar con un mensaje explícito** si detecta
+  aislamiento de origen, en vez de colgarse.
+- **`IfcLoader.load` quedó fuera** en favor de `FRAGS.IfcImporter` + `core.load`: dos pasos
+  explícitos, medibles por separado, y alineados con `F0.6`.
+- **El tamaño del Fragments se reportaba como 0 B.** `core.load` transfiere el búfer al
+  worker y lo deja con `byteLength = 0`; ahora se anota antes de cargar.
 
 ### Pendiente conocido
 
-- **`F0.4` sigue abierta.** `IfcLoader.load` de `@thatopen/components` no completa de
-  forma reproducible y no emite error alguno. Se descartaron midiendo: el WASM, el
-  worker, el aislamiento de origen, React, el tamaño del modelo, el pre-bundling, la
-  resolución del módulo y la duplicación de dependencias. La vía alternativa —convertir
-  con `IfcImporter` y cargar el `.frag`— ya está medida y es el siguiente paso.
+- **La orientación inicial de la cámara no se puede fijar.** `setLookAt`, `moveTo` y
+  `rotateTo` no surten efecto (medido: la cámara se queda en `polar = 90°` y
+  `pos = (50, 50, 50)`), así que el modelo aparece visto de canto. Se puede orbitar con el
+  ratón. Queda para `F1.6`, que necesita controles de vista de todos modos.
 
 ### Añadido — arranque del repositorio (2026-08-18)
 

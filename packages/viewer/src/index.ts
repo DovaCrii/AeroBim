@@ -11,7 +11,7 @@
  */
 
 import * as OBC from "@thatopen/components";
-import type * as FRAGS from "@thatopen/fragments";
+import * as FRAGS from "@thatopen/fragments";
 import * as THREE from "three";
 
 /** Mundo concreto que arma esta envoltura. */
@@ -35,13 +35,15 @@ export interface BimViewerOptions {
  * una carga que no termina — que en este pipeline es información difícil de obtener,
  * porque un worker que deja de responder no emite error alguno.
  */
-export type LoadStage = "converting" | "reading" | "drawing" | "framing" | "done";
+export type LoadStage = "converting" | "loading" | "reading" | "drawing" | "framing" | "done";
 
-/** Lo que costó abrir un modelo. La respuesta a `F0.4` sale de acá. */
+/** Lo que costó abrir un modelo. La respuesta a `F0.4` y `F0.5` sale de acá. */
 export interface LoadMetrics {
   /** Tamaño del IFC de entrada. */
   readonly ifcBytes: number;
-  /** Milisegundos de `IfcLoader.load`: parseo del IFC y conversión a Fragments. */
+  /** Tamaño del Fragments resultante. Comparado con `ifcBytes` da el factor de ahorro. */
+  readonly fragBytes: number;
+  /** Milisegundos de la conversión IFC → Fragments. */
   readonly convertMs: number;
   /** Milisegundos hasta que la escena quedó dibujada y encuadrada. */
   readonly displayMs: number;
@@ -76,12 +78,36 @@ const DEFAULT_WASM_PATH = "/wasm/";
  */
 const porContenedor = new Map<HTMLElement, Promise<BimViewer>>();
 
+/**
+ * Falla temprano y con un mensaje útil si la página tiene aislamiento de origen.
+ *
+ * `web-ifc` elige su WASM multihilo cuando `crossOriginIsolated` es `true`, y esa
+ * variante **no funciona empaquetada**: Emscripten lanza los workers de pthreads con una
+ * URL `undefined`, el navegador recibe el `index.html` en su lugar y el worker muere con
+ * `Unexpected token '<'`. La promesa de conversión nunca se rechaza, así que sin esta
+ * comprobación el síntoma es una interfaz esperando para siempre, con la consola limpia.
+ *
+ * `IfcImporter` no expone el `forceSingleThread` de `IfcAPI.Init`, así que la única
+ * palanca es no servir las cabeceras COOP/COEP. Un error explícito al arrancar es
+ * infinitamente preferible a un cuelgue silencioso al abrir el primer modelo.
+ */
+function assertNotCrossOriginIsolated(): void {
+  if (typeof globalThis.crossOriginIsolated === "boolean" && globalThis.crossOriginIsolated) {
+    throw new Error(
+      "BimViewer: la pagina tiene aislamiento de origen (crossOriginIsolated=true), y en " +
+        "ese modo web-ifc usa un WASM multihilo que no funciona empaquetado: la conversion " +
+        "se queda esperando sin emitir error. Quitar las cabeceras Cross-Origin-Opener-Policy " +
+        "y Cross-Origin-Embedder-Policy del servidor.",
+    );
+  }
+}
+
 export class BimViewer {
   private readonly components: OBC.Components;
   private readonly world: World;
   private readonly fragments: OBC.FragmentsManager;
-  private readonly ifcLoader: OBC.IfcLoader;
   private readonly container: HTMLElement;
+  private readonly wasmPath: string;
   private disposed = false;
   /** `true` mientras hay una conversión en curso. Ver {@link wireEvents}. */
   private loading = false;
@@ -92,14 +118,14 @@ export class BimViewer {
     components: OBC.Components,
     world: World,
     fragments: OBC.FragmentsManager,
-    ifcLoader: OBC.IfcLoader,
     container: HTMLElement,
+    wasmPath: string,
   ) {
     this.components = components;
     this.world = world;
     this.fragments = fragments;
-    this.ifcLoader = ifcLoader;
     this.container = container;
+    this.wasmPath = wasmPath;
   }
 
   /**
@@ -121,6 +147,8 @@ export class BimViewer {
     container: HTMLElement,
     options: BimViewerOptions,
   ): Promise<BimViewer> {
+    assertNotCrossOriginIsolated();
+
     const components = new OBC.Components();
 
     const worlds = components.get(OBC.Worlds);
@@ -135,13 +163,13 @@ export class BimViewer {
     const fragments = components.get(OBC.FragmentsManager);
     fragments.init(await OBC.FragmentsManager.getWorker());
 
-    const ifcLoader = components.get(OBC.IfcLoader);
-    await ifcLoader.setup({
-      autoSetWasm: false,
-      wasm: { path: options.wasmPath ?? DEFAULT_WASM_PATH, absolute: true },
-    });
-
-    const viewer = new BimViewer(components, world, fragments, ifcLoader, container);
+    const viewer = new BimViewer(
+      components,
+      world,
+      fragments,
+      container,
+      options.wasmPath ?? DEFAULT_WASM_PATH,
+    );
     viewer.wireEvents();
     return viewer;
   }
@@ -149,11 +177,9 @@ export class BimViewer {
   /**
    * Conecta los eventos de la escena.
    *
-   * Las guardas (`loading`, `modelCount`) son **medidas defensivas**: Fragments atiende
-   * al worker en serie, así que no se le piden refrescos mientras convierte ni antes de
-   * que exista un modelo. Se agregaron investigando el cuelgue de `F0.4` y **no son su
-   * causa** — el síntoma persiste con y sin ellas. Se conservan porque pedir trabajo a
-   * un worker ocupado o vacío no tiene sentido, no porque arreglen ese problema.
+   * Las guardas (`loading`, `modelCount`) evitan pedirle trabajo al worker mientras
+   * convierte o cuando todavía no hay nada que dibujar. Fragments lo atiende en serie,
+   * así que un refresco a destiempo solo puede estorbar.
    */
   private wireEvents(): void {
     // Fragments dibuja por niveles según la cámara: sin refrescar al terminar de mover,
@@ -164,7 +190,7 @@ export class BimViewer {
     });
 
     // Solo se cuelga el modelo de la escena. El refresco lo hace `loadIfc` cuando la
-    // conversión ya terminó, que es el único momento en que es seguro pedirlo.
+    // carga ya terminó, que es el único momento en que es seguro pedirlo.
     this.fragments.list.onItemSet.add(({ value: model }) => {
       model.useCamera(this.world.camera.three);
       this.world.scene.three.add(model.object);
@@ -173,11 +199,13 @@ export class BimViewer {
   }
 
   /**
-   * Convierte un IFC a Fragments, lo agrega a la escena y devuelve lo que costó.
+   * Convierte un IFC a Fragments, lo carga en la escena y devuelve lo que costó.
    *
-   * `coordinate` va en `true`: alinea varios modelos entre sí usando su
-   * georreferenciación, que es lo que permite ver arquitectura y estructura juntas
-   * en el mismo lugar.
+   * **Se usa `IfcImporter` y `core.load` en vez de `IfcLoader.load`**, que es el atajo
+   * que ofrece `@thatopen/components`. Ese atajo no completaba de forma reproducible y
+   * no emitía ningún error (ver `MASTER_PLAN.md` → _Estado de `F0.4`_); esta ruta hace
+   * los dos pasos explícitos, se puede medir por separado y encaja con `F0.6`, que de
+   * todos modos exige poder convertir en un lugar y mostrar en otro.
    */
   async loadIfc(
     bytes: Uint8Array,
@@ -188,13 +216,30 @@ export class BimViewer {
 
     const startedAt = performance.now();
     this.loading = true;
+
+    let fragByteLength: number;
     let model: FRAGS.FragmentsModel;
-    onStage("converting");
     try {
-      model = await this.ifcLoader.load(bytes, true, name);
+      onStage("converting");
+      // Un importador por carga: no arrastra estado del modelo anterior, y el costo de
+      // inicializar el WASM otra vez son unas decenas de milisegundos.
+      const importer = new FRAGS.IfcImporter();
+      importer.wasm = { path: this.wasmPath, absolute: true };
+      const fragments = await importer.process({ bytes });
+
+      // El tamaño se anota **antes** de cargar: `core.load` transfiere el búfer al
+      // worker, y un `ArrayBuffer` transferido queda con `byteLength` en 0. Leerlo
+      // después reportaba "0 B" para todos los modelos.
+      fragByteLength = fragments.byteLength;
+
+      onStage("loading");
+      model = await this.fragments.core.load(fragments, {
+        modelId: name,
+        camera: this.world.camera.three,
+      });
     } finally {
-      // Se libera el guardia incluso si la conversión falla; si no, el visor se queda
-      // sin refrescos para siempre después de un IFC roto.
+      // Se libera el guardia incluso si falla; si no, el visor se queda sin refrescos
+      // para siempre después de un IFC roto.
       this.loading = false;
     }
     const convertMs = performance.now() - startedAt;
@@ -219,6 +264,7 @@ export class BimViewer {
       model,
       metrics: {
         ifcBytes: bytes.byteLength,
+        fragBytes: fragByteLength,
         convertMs,
         displayMs,
         categoryCount: categories.length,
@@ -226,6 +272,16 @@ export class BimViewer {
         sizeM,
       },
     };
+  }
+
+  /**
+   * Cámara y controles de la escena.
+   *
+   * Se expone porque las vistas guardadas (`F1.6`) tienen que leer y restaurar la
+   * posición de cámara, y los viewpoints de BCF (Fase 4) también.
+   */
+  get camera(): OBC.SimpleCamera {
+    return this.world.camera;
   }
 
   /**
@@ -242,6 +298,20 @@ export class BimViewer {
     const box = await this.boxOf(model);
     if (box === null || box.isEmpty()) return null;
 
+    const size = box.getSize(new THREE.Vector3());
+
+    // **Pendiente conocido (`F1.6`): la orientación inicial no se puede fijar desde acá.**
+    //
+    // El encuadre deja el modelo visto de canto —una planta de 22 m se ve como una franja
+    // de 3 m de alto— y lo natural sería girar a una vista isométrica antes de encuadrar.
+    // Se intentó con `setLookAt`, con `moveTo` y con `rotateTo`, y **ninguno surte efecto**:
+    // medido después de llamarlos, la cámara sigue en `polar=90°` y `pos=(50, 50, 50)`,
+    // que son sus valores iniciales. Algo en `SimpleCamera` de That Open no aplica estos
+    // comandos, y averiguar qué es trabajo de la Fase 1, que necesita controles de vista
+    // (planta, alzado, isométrica) de todos modos.
+    //
+    // Mientras tanto el modelo se ve y se puede orbitar con el ratón.
+    //
     // El segundo argumento es `enableTransition`, y va en **false** a propósito.
     //
     // Con la transición activada, `fitToBox` devuelve una promesa que solo se resuelve
@@ -251,7 +321,6 @@ export class BimViewer {
     // desde una cámara arbitraria hacia un modelo recién abierto no aporta nada.
     await this.world.camera.controls.fitToBox(box, false);
 
-    const size = box.getSize(new THREE.Vector3());
     return [size.x, size.y, size.z];
   }
 

@@ -13,14 +13,20 @@
 
 ## Por dónde se empieza
 
-El monorepo está armado y el stack quedó validado con cifras sobre un modelo real:
-el IFC parsea en 24 ms y convierte a Fragments en 643 ms, con un archivo 13,7 veces
-más chico. **La premisa técnica se sostiene.**
+**La Fase 0 está completa salvo `F0.6`.** Un IFC de obra real —1,52 MB, exportado por
+BricsCAD— abre en la aplicación y se ve en **poco más de un segundo**, con el Fragments
+pesando 13,7 veces menos que el IFC. La premisa técnica del stack está confirmada con
+cifras, no con promesas de documentación.
 
-**Lo que queda abierto es `F0.4`**, y es la prioridad: `IfcLoader.load` —la capa de
-conveniencia de `@thatopen/components`— no completa de forma reproducible y no emite
-ningún error. La vía alternativa ya está medida: convertir con `FRAGS.IfcImporter` y
-cargar el `.frag`. Detalle completo en _Estado de `F0.4`_, más abajo.
+**Lo que sigue es `F0.6`:** decidir dónde corre la conversión. Con medio segundo por
+modelo en el navegador la respuesta se inclina a dejarla del lado del cliente, pero
+conviene medir antes un modelo grande (>50 MB), porque la conversión ocurre en el hilo
+principal y ahí sí podría congelar la interfaz.
+
+> **La trampa que más cara salió, para no repetirla:** el despliegue **no debe servir**
+> las cabeceras COOP/COEP. Con aislamiento de origen, `web-ifc` elige su WASM multihilo,
+> que no funciona empaquetado, y la conversión se queda esperando **sin emitir error**.
+> Detalle en _`F0.4` cerrada_, más abajo.
 
 > **AeroBim es el frente activo de la familia** (decisión del usuario, 2026-08-19).
 > AeroPlanner y AeroLink quedan en pausa; AeroControl sigue en uso, tal como está.
@@ -39,61 +45,96 @@ monorepo compilando y el plan confirmado o corregido con datos.
 | `F0.1` | Documentación de arranque: plan, MVP, arquitectura, referencias con licencias verificadas y marca         | ✅           |
 | `F0.2` | Repositorio creado y publicado, MIT, con la marca en la línea de la familia                               | ✅           |
 | `F0.3` | Monorepo npm: `apps/web` (React 19 + TS + Vite) y `packages/bim-core`, con build, lint y formato verdes   | ✅           |
-| `F0.4` | **PoC del visor**: cargar un IFC real y navegarlo — medir tiempo de carga y memoria                       | 🟡 ver abajo |
+| `F0.4` | **PoC del visor**: cargar un IFC real y navegarlo — medir tiempo de carga y memoria                       | ✅ ver abajo |
 | `F0.5` | **Medir la conversión a Fragments** sobre el mismo modelo: tiempo de conversión y tamaño resultante       | ✅ medido    |
 | `F0.6` | Decidir dónde corre la conversión (navegador con WASM vs worker de backend) **con los números de `F0.5`** | ⬜           |
 
 **Criterio de aceptación:** un IFC de obra real abre en el navegador, se puede
 orbitar y seleccionar un elemento, y hay una cifra medida de cuánto costó.
 
-### Estado de `F0.4`: el stack sirve, la integración no está cerrada (2026-08-19)
+### `F0.4` cerrada: el modelo real abre en poco más de un segundo (2026-08-19)
+
+**Un IFC de obra real abre, se ve y se puede orbitar.** Medido en la aplicación, no en un
+banco de pruebas:
+
+| Qué                                      | Resultado                                 |
+| ---------------------------------------- | ----------------------------------------- |
+| Conversión IFC → Fragments               | **0,5 a 1,1 s** según la carga del equipo |
+| Hasta verlo en pantalla                  | **0,6 a 1,2 s**                           |
+| Tamaño del Fragments                     | **113 KB** frente a 1,52 MB — 13,7× menos |
+| Categorías IFC / elementos con geometría | 15 / 548                                  |
+| Dimensiones que reporta el visor         | 21,8 × 3,0 × 22,7 m                       |
+
+Las dimensiones son la comprobación de unidades: el modelo declara **milímetros**, y el
+visor informa metros plausibles para una planta de edificio. Si el factor de unidades no
+se aplicara, diría 21.750 × 2.980 × 22.729 m.
+
+#### La causa del cuelgue: el aislamiento de origen
+
+`web-ifc` elige su WASM así:
+
+```js
+if (self.crossOriginIsolated && !forceSingleThread) usar web-ifc-mt.wasm  // multihilo
+else                                               usar web-ifc.wasm     // monohilo
+```
+
+Su variante **multihilo no funciona empaquetada**: Emscripten arranca los workers de
+pthreads con `new Worker(pthreadMainJs)` y ahí `pthreadMainJs` queda `undefined`. El
+navegador pide `/undefined`, recibe el `index.html` y el worker muere con
+`Unexpected token '<'`. La promesa de conversión **nunca se rechaza**, así que el síntoma
+es una interfaz esperando para siempre con la consola limpia.
+
+**La ironía está registrada a propósito:** las cabeceras COOP/COEP se habían agregado
+creyendo que hacían falta para el WASM multihilo. Eran justo lo que activaba el camino
+roto. Quitarlas es lo que cerró la fase.
+
+`IfcImporter` no expone el `forceSingleThread` de `IfcAPI.Init`, así que la única palanca
+es **no servir esas cabeceras**. El visor ahora lo comprueba al arrancar y falla con un
+mensaje explícito en vez de colgarse.
+
+#### Lo que además cambió
+
+- **`IfcLoader.load` quedó fuera.** El visor usa `FRAGS.IfcImporter` para convertir y
+  `core.load` para mostrar: dos pasos explícitos, medibles por separado, y alineados con
+  `F0.6`, que exige poder convertir en un lugar y mostrar en otro.
+- **Bug corregido:** el tamaño del Fragments se leía después de `core.load`, que
+  **transfiere el búfer al worker** y lo deja en `byteLength = 0`. Se anota antes.
+
+#### Pendiente menor, no bloqueante
+
+El encuadre inicial muestra el modelo **de canto** (una planta de 22 m se ve como una
+franja de 3 m de alto). Se intentó orientar la cámara con `setLookAt`, `moveTo` y
+`rotateTo`, y **ninguno surte efecto**: medida después de llamarlos, la cámara sigue en
+`polar = 90°` y `pos = (50, 50, 50)`, sus valores iniciales. Queda para `F1.6`, que
+necesita controles de vista (planta, alzado, isométrica) de todos modos. El modelo se ve
+y se orbita con el ratón.
+
+### Cómo se llegó hasta ahí (2026-08-19)
 
 **El modelo de prueba es real:** `Piso 5.ifc`, IFC2X3 exportado por BricsCAD BIM
 26.2, 1,52 MB y 32.836 líneas, en milímetros, con geometría BREP
 (532 `IfcFacetedBrep`) y 470 `IfcBuildingElementProxy`.
 
-**Lo que quedó medido y funcionando:**
+Medido por separado durante el diagnóstico, que sirve de referencia para comparar cuando
+aparezcan modelos más grandes:
 
-| Qué                                                 | Resultado                            |
-| --------------------------------------------------- | ------------------------------------ |
-| Parseo del IFC con `web-ifc` (WASM, hilo principal) | **24 ms** (init del WASM: 34 ms)     |
-| Conversión a Fragments con `FRAGS.IfcImporter`      | **643 ms**                           |
-| Tamaño del `.frag` resultante                       | **113 KB**, frente a 1,52 MB del IFC |
-| Elementos con geometría / categorías IFC del modelo | 548 / 15                             |
-| `IfcLoader.load` en una corrida que sí completó     | ~975 ms; todo listo en 2,17 s        |
+| Qué                                                 | Resultado                        |
+| --------------------------------------------------- | -------------------------------- |
+| Parseo del IFC con `web-ifc` (sin construir escena) | **24 ms** (init del WASM: 34 ms) |
+| Conversión a Fragments con `FRAGS.IfcImporter`      | **643 ms**                       |
+| Elementos con geometría / categorías IFC            | 548 / 15                         |
 
-Eso **confirma la premisa de Fragments**: la conversión cuesta menos de un segundo y
-el archivo queda **13,7 veces más chico** que el IFC. Con esas cifras, `F0.5` se da
-por cumplida.
+El cuelgue costó encontrarlo porque **no emite ningún error** y porque casi todo lo
+sospechoso resultó inocente. Se descartaron midiendo, antes de dar con el aislamiento de
+origen: el WASM (parsea en 24 ms), el worker de Fragments (arranca sin error, y darle uno
+propio a cada visor no cambia nada), React (cuelga igual sin interfaz), el tamaño del
+modelo (cuelga con un fixture de 2 KB), una carrera de arranque (4 s de espera con
+`initialized` en `true`), el pre-bundling y la resolución del módulo, y la duplicación de
+dependencias.
 
-**Lo que falta y por qué `F0.4` no está cerrada:** el pipeline de `IfcLoader.load`
-(la capa de `@thatopen/components`) **no completa de forma reproducible**. En la
-mayoría de las corridas no resuelve nunca la promesa y **no emite ningún error**:
-consola limpia, red limpia, la interfaz se queda en "convirtiendo". Se descartaron,
-midiendo:
-
-- **el WASM** — `web-ifc` parsea el mismo archivo en 24 ms;
-- **el aislamiento de origen** — con las cabeceras COOP/COEP puestas,
-  `crossOriginIsolated` es `true` y `SharedArrayBuffer` existe;
-- **el worker** — arranca sin error, y darle a cada visor su propio blob URL no cambia
-  el síntoma;
-- **el tamaño del modelo** — cuelga igual con un fixture de 2 KB;
-- **React** — cuelga igual en `public/diag.html`, sin interfaz ni ciclo de vida de
-  componentes;
-- **una carrera de arranque** — con `initialized` en `true` y 4 s de espera, igual;
-- **el pre-bundling y la resolución del módulo** — con y sin `optimizeDeps.exclude`, y
-  con y sin alias al ESM, igual;
-- **duplicación de dependencias** — hay una sola copia de cada paquete.
-
-**El siguiente paso es acotado y prometedor:** saltarse esa capa. `FRAGS.IfcImporter`
-—que sí convierte de forma reproducible en 643 ms— más `FragmentsModels.load` del
-`.frag` resultante, en vez de `IfcLoader.load`. Es menos magia y más control, y encaja
-mejor con `F0.6`, que de todos modos exige separar "convertir" de "mostrar".
-
-> **Honestidad sobre el andamiaje:** `apps/web` monta el visor, sirve el WASM local y
-> muestra el panel de métricas, y `packages/bim-core` está verificado contra un oráculo
-> externo (ver abajo). Lo que **no** se puede afirmar todavía es que un IFC real se abra
-> y se navegue de forma confiable. Hasta entonces `F0.4` sigue abierta.
+**Lo que finalmente lo delató fue el registro de red**, no la consola de la página: una
+tanda de `GET /undefined` que solo aparecía al inspeccionar las peticiones. La lección
+para la próxima: en un pipeline con workers, revisar la red antes que la consola.
 
 ### El oráculo del GUID ya está cerrado
 
@@ -294,7 +335,8 @@ No entran sin que el usuario lo pida explícitamente:
 | Riesgo                                                         | Impacto                                                        | Estado                                                                                                                                                               |
 | -------------------------------------------------------------- | -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Un IFC de obra real no abre con rendimiento aceptable          | Invalida el stack elegido antes de construir encima            | ✅ **Descartado con cifras** — parsea en 24 ms y convierte en 643 ms, y el `.frag` pesa 13,7× menos                                                                  |
-| `IfcLoader.load` no completa y no emite error                  | Bloquea `F0.4`: el visor no abre modelos de forma confiable    | **Abierto y es la prioridad.** Descartados WASM, worker, aislamiento, React, tamaño y resolución de módulos. Vía alternativa: `IfcImporter` + carga del `.frag`      |
+| `IfcLoader.load` no completa y no emite error                  | Bloquea `F0.4`: el visor no abre modelos de forma confiable    | ✅ **Cerrado.** Era el aislamiento de origen activando el WASM multihilo, que no funciona empaquetado. Se quitaron COOP/COEP y se pasó a `IfcImporter` + `core.load` |
+| Servir COOP/COEP en producción rompe el visor en silencio      | Vuelve el cuelgue sin error, y ya costó encontrarlo una vez    | Mitigado — el visor **falla al arrancar con un mensaje explícito** si detecta `crossOriginIsolated`. Queda como requisito de despliegue en `AGENTS.md`               |
 | That Open rompe la API entre versiones mayores                 | Migración no planificada a mitad de una fase                   | Abierto — fijar versiones alineadas de `three`, `web-ifc` y `@thatopen/fragments`. Ya se topó con que `@thatopen/components` no declara `exports` y su `main` es CJS |
 | Potree tiene mantenimiento lento                               | La Fase 2 queda sobre una base que avanza poco                 | Abierto — el wrapper `potree-core` sí está activo; alternativa es 3D Tiles vía Cesium (`F6.4`)                                                                       |
 | La alineación nube ↔ modelo resulta más difícil de lo previsto | `F2.4` mide desviaciones sin sentido                           | Abierto — `F2.2` se resuelve antes de prometer mediciones                                                                                                            |

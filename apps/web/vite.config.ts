@@ -8,17 +8,29 @@ const here = dirname(fileURLToPath(import.meta.url));
 const enRaiz = (ruta: string) => resolve(here, "../../node_modules", ruta);
 
 /**
- * Aislamiento de origen: sin esto el WASM multihilo no puede usarse.
+ * **NO servir `Cross-Origin-Opener-Policy` ni `Cross-Origin-Embedder-Policy`.**
  *
- * `web-ifc-mt.wasm` necesita `SharedArrayBuffer`, y el navegador solo lo expone en un
- * contexto con aislamiento de origen. Con estas dos cabeceras `crossOriginIsolated`
- * pasa a `true` — verificado. El despliegue de producción tiene que servir las mismas
- * dos cabeceras.
+ * Parece contraintuitivo —el aislamiento de origen habilita `SharedArrayBuffer` y con él
+ * el WASM multihilo, que sería más rápido— pero rompe el visor. `web-ifc` decide así:
+ *
+ * ```js
+ * if (self.crossOriginIsolated && !forceSingleThread) usar web-ifc-mt.wasm
+ * else                                               usar web-ifc.wasm
+ * ```
+ *
+ * Y su variante multihilo **no funciona empaquetada**: Emscripten arranca los workers de
+ * pthreads con `new Worker(pthreadMainJs)`, donde `pthreadMainJs` queda `undefined`. El
+ * navegador pide `/undefined`, recibe el `index.html`, y falla con
+ * `Unexpected token '<'` dentro del worker — la promesa de conversión no se rechaza
+ * nunca, así que la interfaz se queda esperando sin un solo error visible.
+ *
+ * `IfcImporter` no expone el flag `forceSingleThread` de `IfcAPI.Init`, así que **la única
+ * palanca es dejar `crossOriginIsolated` en `false`**. El modo monohilo rinde de sobra:
+ * 24 ms de parseo y 643 ms de conversión sobre un IFC de 1,5 MB.
+ *
+ * El visor comprueba esto al arrancar y falla con un mensaje explícito en vez de
+ * colgarse — ver `packages/viewer`.
  */
-const crossOriginIsolation = {
-  "Cross-Origin-Opener-Policy": "same-origin",
-  "Cross-Origin-Embedder-Policy": "require-corp",
-};
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
@@ -44,19 +56,16 @@ export default defineConfig({
   },
 
   optimizeDeps: {
-    // web-ifc carga su WASM por ruta y no sobrevive el pre-bundling.
-    exclude: ["web-ifc"],
+    // Ninguno sobrevive el pre-bundling:
+    //
+    // - `web-ifc` carga su WASM por ruta.
+    // - `@thatopen/fragments` expone su worker como subpath (`@thatopen/fragments/worker`)
+    //   y lo instancia por referencia a su propio módulo. Empaquetado, esa referencia se
+    //   rompe y el worker no responde. `@thatopen/components` lo arrastra.
+    exclude: ["web-ifc", "@thatopen/fragments", "@thatopen/components"],
   },
 
   worker: {
     format: "es",
-  },
-
-  server: {
-    headers: crossOriginIsolation,
-  },
-
-  preview: {
-    headers: crossOriginIsolation,
   },
 });
