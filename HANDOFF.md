@@ -7,62 +7,73 @@
 
 **Rama de trabajo: `codex/fase-0-andamiaje`, con PR abierto y sin fusionar.**
 
-> ## ⚠️ Lo siguiente que hay que hacer: rediseñar la barra de herramientas
+> ## ⚠️ Lo siguiente: la geometría que el conversor deja fuera (`F1.10`)
 >
-> **Es el pedido principal del usuario tras la primera prueba de uso (2026-08-19).** La
-> barra de abajo tiene **catorce botones en una fila** y no se entiende: hay dos botones
-> llamados "Planta" —uno es modo de navegación y el otro un corte—, no hay iconos, y los
-> grupos se separan solo con una línea fina.
+> **Es el problema más grave que hay abierto, y es de fidelidad.** El mismo IFC de 32,7 MB
+> abierto en **Bentley OpenPlant** muestra mucho más que AeroBim: en el visor aparece la
+> estructura de acero y **falta el resto** —los grandes elementos curvos de la planta,
+> tuberías, maquinaria—. No hay error ni aviso: el visor abre el modelo, informa 839
+> elementos con geometría y muestra la mitad.
 >
-> **Dirección acordada:** mirar cómo lo resuelve la competencia (Autodesk Viewer, Solibri,
-> BIMcollab suelen usar una **barra vertical de iconos a un lado**, con tooltip y grupos
-> plegables) y llevar las herramientas ahí. El espacio de abajo queda libre y desaparece la
-> ambigüedad de nombres.
+> **Por qué no se notaba.** `IfcImporter` solo procesa las clases IFC que tiene en
+> `importer.classes.elements`. Una clase que no esté ahí **no entra ni al árbol**, así que
+> ningún contador interno la echa de menos. Un modelo de arquitectura no delata el problema;
+> una planta industrial sí.
 >
-> **Y en el panel lateral:** poder **ordenar, activar y desactivar** lo que está cargado.
-> Con dos modelos abiertos ya hace falta, y con varios proyectos será imprescindible.
+> **Ya está instrumentado:** el visor cuenta las clases del archivo antes de convertir, las
+> compara con las categorías cargadas y lo avisa en el panel de modelos —_"Falta geometría:
+> N elementos sin cargar"_ con la lista de clases y su número—.
+>
+> **El paso siguiente es leer ese aviso sobre el modelo real** (abrirlo, desplegar la fila
+> del modelo en el navegador de la derecha) y, con la lista de clases en mano, decidir:
+>
+> - si son clases ausentes de `importer.classes.elements`, se añaden con las constantes
+>   numéricas de `web-ifc` — una línea por clase;
+> - si están en el conjunto y aun así no llegan, el problema es de `web-ifc` con esas
+>   representaciones (B-reps avanzados, barridos por trayectoria) y hay que medirlo antes de
+>   prometer nada.
 
-### Lo que la primera prueba de uso dejó como pendiente
+### Un error al girar que el usuario vio y no está reproducido
 
-El usuario probó la aplicación y dejó sus notas con capturas en `obsidian/` (carpeta
-ignorada por git, tiene imágenes del modelo real). De ahí salió esta lista, ya filtrada:
+Combinando **ortográfica + vista fantasma + medición**, girar la cámara le produjo un error.
+**No está reproducido ni se conoce el mensaje.** Se corrigió por el camino la causa más
+probable —el repintado del resaltado se dispara en cada descanso de cámara y las llamadas se
+solapaban; ahora están serializadas— pero hasta ver la consola no se puede cerrar. **Pedirle
+el texto del error.**
 
-| #   | Observación                                                                                     | Estado                                               |
-| --- | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
-| 1   | **Cargar un segundo IFC daba error** `Aborted(both async and sync fetching of the wasm failed)` | ✅ **arreglado**                                     |
-| 2   | Al orbitar se seleccionaban elementos sin querer                                                | ✅ **arreglado**                                     |
-| 3   | El renderizado se ve plano, sin sombras ni realismo                                             | ✅ **mejorado**, falta comparar contra la referencia |
-| 4   | **La barra de abajo no se entiende** — ubicación y representación de las herramientas           | ⬜ **es lo siguiente**                               |
-| 5   | Al pasar el ratón sobre un elemento lo detecta **antes de hacer clic**                          | ⬜ ver nota abajo                                    |
-| 6   | La medición de distancia "no funciona"                                                          | 🟡 ver nota abajo                                    |
-| 7   | El modo fantasma se cae al mover la cámara                                                      | ⬜                                                   |
-| 8   | El panel lateral necesita ordenar / activar / desactivar lo cargado                             | ⬜                                                   |
+Lo que sí se sabe del entorno: en una pestaña que no compone cuadros, `getComputedStyle`
+sobre una transición de CSS se queda congelado y los uniformes de la cámara pueden salir
+`NaN`, lo que produce `firstElem.toArray is not a function` desde three.js. Ese síntoma
+concreto era artefacto del entorno de pruebas, no del código.
 
-**Sobre el 5 y el 6, que están relacionados.** No hay ningún manejador de `hover` en el
-código, así que lo que el usuario percibía como "detecta sin clicar" era con toda
-probabilidad el **bug 2**: un arrastre mínimo terminaba en `click` y seleccionaba. Eso ya
-está corregido (se compara dónde se pulsó y dónde se soltó, con 4 px de margen). Por la
-misma razón la medición parecía no funcionar: los clics se consumían al orbitar. **Hay que
-confirmarlo con el usuario antes de dar el 5 y el 6 por cerrados** — y si el hover persiste,
-buscar un `Hoverer` activo, que `@thatopen/components-front` incluye.
+### Lo que la prueba de uso dejó, ya cerrado
 
-### El hallazgo que cambia el plan de las fases que quedan
+| #   | Observación                                                                                     | Estado                                                    |
+| --- | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| 1   | **Cargar un segundo IFC daba error** `Aborted(both async and sync fetching of the wasm failed)` | ✅ arreglado (un solo `IfcImporter`)                      |
+| 2   | Al orbitar se seleccionaban elementos sin querer                                                | ✅ arreglado (margen de clic, ahora 8 px)                 |
+| 3   | El renderizado se ve plano                                                                      | ✅ `ShadowedScene` + `COLOR_PEN_SHADOWS`                  |
+| 4   | **La barra de abajo no se entiende**                                                            | ✅ cinta arriba, tipo Revit — ver `F1.8`                  |
+| 5   | Al pasar el ratón detecta antes de hacer clic                                                   | ✅ era el 2; además ahora el cursor dice qué hará el clic |
+| 6   | La medición "no funciona"                                                                       | ✅ eran los marcadores que faltaban — ver `F1.4`          |
+| 7   | El modo fantasma se cae al mover la cámara                                                      | ✅ se repinta al descansar la cámara, y es más legible    |
+| 8   | El panel lateral necesita ordenar / activar / desactivar lo cargado                             | ✅ y además **cerrar** modelos — ver `F1.5`               |
+| 9   | Faltan las unidades de los elementos IFC                                                        | ✅ verificado sobre el modelo real — ver `F1.9`           |
+| 10  | El relleno del área pintaba de violeta toda la pantalla                                         | ✅ era `depthTest` desactivado en el material del relleno |
+| 11  | Medir y seleccionar se pisaban                                                                  | ✅ entrar a medir suelta la selección                     |
 
-Se instaló **`@thatopen/components-front`** y trae hecho mucho de lo que se estaba
-construyendo a mano:
+### Lo que `@thatopen/components-front` ya trae, y qué se está usando
 
-| Ya existe                                                                       | Sustituye a                                             |
-| ------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| `PostproductionRenderer` + `PostproductionAspect.COLOR_PEN_SHADOWS`             | El render plano — **ya aplicado**                       |
-| `LengthMeasurement`, `AngleMeasurement`, `AreaMeasurement`, `VolumeMeasurement` | Las mediciones propias, y **traen marcadores visuales** |
-| `Highlighter`, `Outliner`                                                       | El resaltado manual con `highlight`                     |
-| `ClipEdges`, `ClipStyler`                                                       | Cortes con las aristas marcadas, como en BricsCAD       |
-| `GraphicVertexPicker`, `Marker`, `Mark`                                         | El ajuste a vértices sin señal visual                   |
-| `Hoverer`                                                                       | — (y conviene saber que existe, por el punto 5)         |
-
-**Antes de seguir tocando mediciones o resaltado, cambiarlos por estos componentes.** Las
-mediciones propias funcionan pero no dibujan marcadores, y esa falta de señal es justo lo
-que hizo pensar al usuario que no funcionaban.
+| Componente                                                 | Estado                                                       |
+| ---------------------------------------------------------- | ------------------------------------------------------------ |
+| `PostproductionRenderer` + `COLOR_PEN_SHADOWS`             | **en uso** — sombras, oclusión y aristas dibujadas           |
+| `LengthMeasurement`, `AngleMeasurement`, `AreaMeasurement` | **en uso** — con marcador de ajuste, cota y etiqueta         |
+| `GraphicVertexPicker`, `Mark`                              | **en uso** a través de los medidores                         |
+| `Highlighter`, `Outliner`                                  | sin usar: el resaltado propio va en capas y ya se controla   |
+| `ClipEdges`, `ClipStyler`                                  | sin usar — cortes con las aristas marcadas, como en BricsCAD |
+| `Hoverer`                                                  | sin usar — resaltar al pasar el ratón, si se pide            |
+| `Views`, `Viewpoints`                                      | sin usar — son la base de `F1.6`                             |
+| `VolumeMeasurement`                                        | sin usar — cuarta herramienta de medición si hace falta      |
 
 ### Lo que ya está cerrado con datos
 
@@ -114,16 +125,34 @@ Queda pendiente escribirlo como decisión en el plan y medir cuánto mejora con 
 
 ### Y después, en este orden
 
-1. **`F1.8` — la barra de herramientas y el panel de modelos.** Ver el aviso del principio.
-   Es lo que pidió el usuario y lo que decide si la herramienta se siente usable.
-2. **Cambiar mediciones y resaltado por los componentes de `components-front`.** Ver la
-   tabla de arriba: menos código propio y con señal visual, que es justo lo que falta.
-3. **Confirmar con el usuario los puntos 5, 6 y 7** de la tabla de la prueba: si el hover y
-   la medición quedaron resueltos por el arreglo del arrastre, y arreglar el modo fantasma.
-4. **`F1.6` vistas guardadas**, con `Views` y `Viewpoints` de la librería.
-5. **Mover la conversión a un Web Worker** (`F0.6`), y medir cuánto baja el bloqueo.
-6. **Fase 2 — nubes de puntos.** El as-built contra el modelo, la comparación que hoy nadie
+1. **`F1.10` — la geometría que falta.** Ver el aviso del principio. Es lo único que hace que
+   el visor mienta sobre el modelo, y por eso va antes que cualquier mejora.
+2. **El error al girar**, con el mensaje que dé la consola del usuario.
+3. **Herramientas de medición que se pidieron y no están:** perpendicular, y más tipos de
+   cota. Existe `VolumeMeasurement` en la librería; perpendicular hay que ver si sale de
+   `LinearAnnotationsTool`, que trae modos de proyección.
+4. **De la referencia de Revit y Bentley, lo que falta:** la rejilla del entorno. El fondo
+   claro de esos programas **no** se copia sin decidirlo: el oscuro es el de la familia.
+5. **`F1.6` vistas guardadas**, con `Views` y `Viewpoints` de la librería.
+6. **Mover la conversión a un Web Worker** (`F0.6`), y medir cuánto baja el bloqueo.
+7. **Fase 2 — nubes de puntos.** El as-built contra el modelo, la comparación que hoy nadie
    puede hacer sin software de pago.
+
+### Cómo está repartida la pantalla
+
+Distribución tomada de Revit y de los modeladores de Bentley, a pedido del usuario:
+
+| Dónde     | Componente                       | Qué hay                                        |
+| --------- | -------------------------------- | ---------------------------------------------- |
+| Arriba    | `components/Ribbon.tsx`          | Pestañas Vista · Medición · Modelo, con grupos |
+| Izquierda | `components/PropertiesPanel.tsx` | Propiedades, con las unidades de cada número   |
+| Derecha   | `components/ProjectBrowser.tsx`  | Estructura, modelos abiertos y cotas dibujadas |
+| Centro    | el lienzo                        | El modelo, sin nada flotando encima            |
+| Al pie    | `components/StatusBar.tsx`       | Modo, qué falta para medir, resultado y conteo |
+
+Los iconos son propios (`components/icons.tsx`), dibujados a mano: un corte longitudinal o
+una vista fantasma no existen en ninguna librería de iconos genérica, y con los genéricos
+vuelve el problema original de herramientas que no se distinguen.
 
 ### Cómo levantar y cómo medir
 
@@ -195,8 +224,9 @@ corregir.**
 ## Estado al 2026-08-19
 
 - **Build:** `npm install && npm run build` verde en los tres paquetes (Node 26).
-- **Pruebas:** **67** en `packages/bim-core` — los vectores de GUID reales de BricsCAD y la
-  geometría de las mediciones contra casos elementales.
+- **Pruebas:** **100** en `packages/bim-core` — los vectores de GUID reales de BricsCAD, la
+  geometría de las mediciones contra casos elementales, la lectura de unidades del IFC y el
+  conteo de clases que delata la geometría que no se carga.
 - **Código:** monorepo armado — `packages/bim-core` (dominio puro), `packages/viewer`
   (envoltura de That Open, con `components` + `components-front` + `fragments`) y
   `apps/web` (React 19 + Vite 8 + Tailwind 4).
