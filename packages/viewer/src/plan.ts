@@ -78,6 +78,12 @@ export interface LoadedPlan {
   readonly vertexCount: number;
   /** Cuántos rótulos se dibujaron. */
   readonly labelCount: number;
+  /** Cuántos textos trae el archivo, dibujados o no. */
+  readonly textCount: number;
+  /** El alto con el que se dibujaron, en metros. `0` si se arrancó sin ellos. */
+  readonly labelHeightM: number;
+  /** El alto que le corresponde a este plano por su tamaño, para poder ofrecerlo. */
+  readonly suggestedLabelHeightM: number;
 }
 
 /**
@@ -189,14 +195,26 @@ function patronLegible(
 const LIMITE_ETIQUETAS = 3000;
 
 /**
- * Cuánto mide una letra de rótulo en la escena, en metros.
+ * Cuánto mide una letra de rótulo, **en proporción al tamaño del plano**.
  *
  * **El alto del archivo no sirve para decidirlo.** Los planos anotativos escriben la altura de
  * papel —en el plano real del usuario, un centímetro de modelo— y esos rótulos no se ven; otros
- * escriben altura de modelo y tapan el dibujo. Se dibuja todo a la misma altura y la interfaz la
- * cambia: 15 cm se lee acercándose a un recinto y no ahoga la planta completa.
+ * escriben altura de modelo y tapan el dibujo entero. Tampoco sirve una medida fija: quince
+ * centímetros son razonables en una planta de cincuenta metros y enormes en el detalle de un baño.
+ *
+ * Se toma una fracción del lado mayor del dibujo, acotada por arriba y por abajo. El resultado se
+ * puede cambiar desde la interfaz, que es donde esta decisión termina de tomarse.
  */
-const ALTO_ETIQUETA_M = 0.15;
+const ETIQUETA = { fraccion: 0.004, minimaM: 0.06, maximaM: 0.3 } as const;
+
+/**
+ * A partir de cuántos rótulos el plano se dibuja **sin ellos**.
+ *
+ * Un plano de oficinas trae cientos: dibujados todos a la vez sobre una planta completa no se lee
+ * ninguno y tapan el dibujo, que es justo lo que se venía a mirar. Se cargan igual y el selector de
+ * la ficha los enciende cuando hacen falta.
+ */
+const ETIQUETAS_DEMASIADAS = 150;
 
 /** El lado del atlas de rótulos, en píxeles. Uno por capa, no uno por texto. */
 const ATLAS_PX = 2048;
@@ -267,6 +285,21 @@ export class PlanOverlay {
     const capas = new Map<string, THREE.Group>();
     const centrado = centroDe(dibujo);
     let etiquetasPuestas = 0;
+
+    // El alto de los rótulos sale del tamaño del propio plano, y **con muchos se arranca sin
+    // ellos**: cientos de textos sobre una planta completa no se leen y tapan el dibujo.
+    const ladoM =
+      dibujo.bounds === null
+        ? 0
+        : Math.max(
+            dibujo.bounds.maxX - dibujo.bounds.minX,
+            dibujo.bounds.maxY - dibujo.bounds.minY,
+          ) * unidades.metresPerUnit;
+    const altoSugerido = Math.min(
+      ETIQUETA.maximaM,
+      Math.max(ETIQUETA.minimaM, ladoM * ETIQUETA.fraccion),
+    );
+    const altoEtiqueta = dibujo.texts.length > ETIQUETAS_DEMASIADAS ? 0 : altoSugerido;
 
     for (const capa of dibujo.layers) {
       const grupoCapa = new THREE.Group();
@@ -360,7 +393,7 @@ export class PlanOverlay {
         capa,
         centrado,
         unidades.metresPerUnit,
-        ALTO_ETIQUETA_M,
+        altoEtiqueta,
         LIMITE_ETIQUETAS - etiquetasPuestas,
       );
 
@@ -385,7 +418,7 @@ export class PlanOverlay {
       capas,
       dibujo,
       centro: centrado,
-      labelHeightM: ALTO_ETIQUETA_M,
+      labelHeightM: altoEtiqueta,
       transform,
     };
     aplicar(plano);
@@ -406,6 +439,9 @@ export class PlanOverlay {
       sizeUnits: [ancho, alto],
       vertexCount: dibujo.polylines.reduce((n, p) => n + p.points.length / 2, 0),
       labelCount: etiquetasPuestas,
+      labelHeightM: altoEtiqueta,
+      suggestedLabelHeightM: altoSugerido,
+      textCount: dibujo.texts.length,
     };
   }
 
@@ -964,9 +1000,12 @@ function atlasDeEtiquetas(
   lienzo.height = Math.min(ATLAS_PX, Math.ceil(utiles.length / 2) * fila + fila);
   pincel.font = `600 ${letra}px system-ui, "Segoe UI", sans-serif`;
   pincel.textBaseline = "middle";
-  pincel.lineWidth = letra * 0.18;
+  // **Un contorno fino, no una placa.** Con el trazo grueso y opaco de la primera versión, un
+  // rótulo corto se veía como un rectángulo negro sobre el dibujo, y varios juntos tapaban la
+  // planta. Lo justo para despegar la letra de las líneas que tiene detrás.
+  pincel.lineWidth = letra * 0.08;
   pincel.lineJoin = "round";
-  pincel.strokeStyle = "rgba(6, 10, 20, 0.9)";
+  pincel.strokeStyle = "rgba(6, 10, 20, 0.55)";
 
   const posiciones: number[] = [];
   const uvs: number[] = [];

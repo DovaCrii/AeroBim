@@ -111,8 +111,10 @@ function PlanoEnLista({
   // La escala se corrige solo si se pide: en un plano cuya unidad ya es correcta, ajustarla con dos
   // clics imprecisos estropea lo que estaba bien.
   const [ajustarEscala, setAjustarEscala] = useState(false);
+  /** El alto que el visor calculó para este plano por su tamaño. */
+  const sugerido = Number(plan.suggestedLabelHeightM.toFixed(3));
   /** El alto de los rótulos, en metros. Arranca en el que puso el visor al cargar. */
-  const [alturaRotulo, setAlturaRotulo] = useState(0.15);
+  const [alturaRotulo, setAlturaRotulo] = useState(plan.labelHeightM === 0 ? 0 : sugerido);
   const t = plan.transform;
   const sinDibujar = Object.entries(plan.skipped);
   const anchoM = plan.sizeUnits[0] * t.metresPerUnit;
@@ -222,23 +224,35 @@ function PlanoEnLista({
               altura de papel —un centímetro de modelo— y esos textos no se ven; otro escribe altura
               de modelo y tapa el dibujo entero. Se elige acá, y "ocultos" es una opción de verdad:
               con cuatrocientos rótulos, a veces lo que hace falta es el dibujo limpio. */}
-          <div className="flex items-center gap-2">
-            <label className="w-16 shrink-0 text-[11px] text-white/45">Rótulos</label>
-            <select
-              value={String(alturaRotulo)}
-              onChange={(e) => {
-                const alto = Number(e.target.value);
-                setAlturaRotulo(alto);
-                onLabelHeight(plan.id, alto);
-              }}
-              className="min-w-0 flex-1 rounded border border-white/15 bg-black/20 px-1.5 py-0.5 text-[11px] text-white/85"
-            >
-              <option value="0">ocultos</option>
-              <option value="0.08">pequeños (8 cm)</option>
-              <option value="0.15">normales (15 cm)</option>
-              <option value="0.3">grandes (30 cm)</option>
-              <option value="0.6">enormes (60 cm)</option>
-            </select>
+          <div>
+            <div className="flex items-center gap-2">
+              <label className="w-16 shrink-0 text-[11px] text-white/45">Rótulos</label>
+              <select
+                value={String(alturaRotulo)}
+                onChange={(e) => {
+                  const alto = Number(e.target.value);
+                  setAlturaRotulo(alto);
+                  onLabelHeight(plan.id, alto);
+                }}
+                className="min-w-0 flex-1 rounded border border-white/15 bg-black/20 px-1.5 py-0.5 text-[11px] text-white/85"
+              >
+                <option value="0">ocultos</option>
+                <option value={String(sugerido)}>
+                  a la medida del plano ({(sugerido * 100).toFixed(0)} cm)
+                </option>
+                <option value="0.08">pequeños (8 cm)</option>
+                <option value="0.15">medianos (15 cm)</option>
+                <option value="0.3">grandes (30 cm)</option>
+              </select>
+            </div>
+            {plan.textCount > 0 && (
+              // Con cientos de rótulos el plano arranca sin ellos: dibujados todos sobre una planta
+              // completa no se lee ninguno. Se dice, para que nadie los dé por perdidos.
+              <p className="pt-1 text-[10px] leading-snug text-white/30">
+                {plan.textCount.toLocaleString("es-CL")} textos en el archivo
+                {plan.labelHeightM === 0 && " — apagados de entrada porque son muchos"}
+              </p>
+            )}
           </div>
 
           <Numero
