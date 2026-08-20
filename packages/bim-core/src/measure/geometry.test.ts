@@ -6,6 +6,7 @@ import {
   perimeterM,
   perpendicularToPlane,
   polygonAreaM2,
+  segmentIntersection,
   type Point3,
 } from "./geometry.js";
 
@@ -14,6 +15,27 @@ import {
  * triángulos rectángulos con lados enteros, ángulos rectos. Son comprobables a mano, que es
  * justo lo que hace falta en cálculos cuyo resultado alguien va a usar para pedir material.
  */
+
+describe("segmentIntersection", () => {
+  it("encuentra el cruce de dos tramos que sí se cruzan", () => {
+    expect(segmentIntersection([0, 0], [10, 0], [5, -5], [5, 5])).toEqual([5, 0]);
+  });
+
+  it("no inventa la esquina de dos muros que no llegan a tocarse", () => {
+    // Las rectas se cortarían en (5, 0), pero el segundo tramo se queda dos metros más arriba.
+    expect(segmentIntersection([0, 0], [10, 0], [5, 2], [5, 5])).toBeNull();
+  });
+
+  it("dos tramos paralelos no tienen **un** punto de cruce", () => {
+    expect(segmentIntersection([0, 0], [10, 0], [0, 3], [10, 3])).toBeNull();
+    // Colineales: hay infinitos puntos comunes, que no es lo mismo que uno.
+    expect(segmentIntersection([0, 0], [10, 0], [5, 0], [15, 0])).toBeNull();
+  });
+
+  it("acepta el cruce justo en un extremo, que es la esquina de dos muros", () => {
+    expect(segmentIntersection([0, 0], [10, 0], [10, 0], [10, 8])).toEqual([10, 0]);
+  });
+});
 
 describe("distanceM", () => {
   it("mide el 3-4-5 de siempre", () => {

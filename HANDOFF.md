@@ -58,9 +58,14 @@
 > pares construidos: 0 mm de error en los dos puntos, y la escala pasa de 0,001 a 0,002 cuando el
 > destino mide el doble.
 >
-> **Ajuste y medición sobre el plano** (`F7.11`, a medias): el cursor se engancha a extremos y
-> puntos medios de los trazos, y midiendo distancia la cota toma esos puntos. Se apaga desde
-> Medición → Ajuste del cursor → **Al plano**.
+> **Ajuste y medición sobre el plano** (`F7.11`, cerrada): el cursor se engancha al **cruce de dos
+> trazos**, a los extremos y a los puntos medios, y midiendo distancia la cota toma esos puntos. Se
+> apaga desde Medición → Ajuste del cursor → **Al plano**. 3,4 ms por clic sobre el plano real.
+>
+> **Trampa nueva, y cara: encuadrar algo plano dejaba la cámara en `NaN`.** Un plano 2D es una caja
+> sin grosor y `fitToBox` con un lado en cero devuelve una posición imposible: pantalla negra, el
+> rayo sin encontrar nada y ningún botón que lo arregle. `applyFraming` ahora engorda los lados
+> degenerados unos centímetros. Le pasaba igual a un elemento plano encuadrado solo.
 >
 > **La interfaz se rehízo a pedido del usuario** y está escrita en [docs/UX.md](docs/UX.md): una
 > sola barra arriba —de 196 px a 90, y a 34 plegada—, paneles laterales con ancho y alto de sección

@@ -17,6 +17,7 @@
 
 import {
   parseDxf,
+  segmentIntersection,
   suggestMetresPerUnit,
   type DxfDrawing,
   type DxfHatch,
@@ -199,6 +200,14 @@ const ALTO_ETIQUETA_M = 0.15;
 
 /** El lado del atlas de rótulos, en píxeles. Uno por capa, no uno por texto. */
 const ATLAS_PX = 2048;
+
+/**
+ * Cuántos trazos se miran como mucho al buscar cruces bajo el cursor.
+ *
+ * Los cruces se calculan de dos en dos, así que el coste crece con el cuadrado: con un tope bajo,
+ * un clic sobre una zona densa —una trama de rayado, un mobiliario— sigue costando lo que un clic.
+ */
+const LIMITE_CRUCES = 60;
 
 /** Lo que se guarda de cada plano dibujado. */
 interface PlanoDibujado {
@@ -562,6 +571,68 @@ export class PlanOverlay {
     };
     aplicar(plano);
     return plano.transform;
+  }
+
+  /**
+   * Los cruces de trazos que hay cerca de un punto, en coordenadas de la escena.
+   *
+   * **La intersección es la referencia que más se usa revisando un plano**: la esquina de dos
+   * muros, el cruce de dos ejes, el encuentro de un tabique con una fachada. Casi nunca hay un
+   * vértice ahí —cada trazo sigue de largo— así que sin calcularla no hay a qué engancharse.
+   *
+   * Se buscan solo los trazos que pasan cerca y se cruzan entre sí de dos en dos. Con un radio de
+   * unos centímetros son un puñado de segmentos, y el coste es de un clic, no de cada fotograma.
+   */
+  intersectionsNear(id: string, punto: THREE.Vector3, radioM: number): readonly THREE.Vector3[] {
+    const plano = this.planos.get(id);
+    if (plano === undefined) return [];
+
+    const escala = plano.transform.metresPerUnit || 1;
+    const radio = radioM / escala;
+    const local = plano.grupo.worldToLocal(punto.clone());
+
+    const cercanos: { ax: number; az: number; bx: number; bz: number }[] = [];
+    for (const grupoCapa of plano.capas.values()) {
+      if (!grupoCapa.visible) continue;
+
+      for (const objeto of grupoCapa.children) {
+        if (!objeto.visible || !(objeto instanceof THREE.LineSegments)) continue;
+
+        const posiciones = objeto.geometry.getAttribute("position");
+        for (let i = 0; i + 1 < posiciones.count; i += 2) {
+          const ax = posiciones.getX(i);
+          const az = posiciones.getZ(i);
+          const bx = posiciones.getX(i + 1);
+          const bz = posiciones.getZ(i + 1);
+
+          // Descarte barato por caja: el segmento tiene que rozar el entorno del cursor.
+          if (Math.min(ax, bx) - radio > local.x || Math.max(ax, bx) + radio < local.x) continue;
+          if (Math.min(az, bz) - radio > local.z || Math.max(az, bz) + radio < local.z) continue;
+
+          cercanos.push({ ax, az, bx, bz });
+          if (cercanos.length >= LIMITE_CRUCES) break;
+        }
+      }
+    }
+
+    const cruces: THREE.Vector3[] = [];
+    for (let i = 0; i < cercanos.length; i++) {
+      for (let j = i + 1; j < cercanos.length; j++) {
+        const uno = cercanos[i]!;
+        const otro = cercanos[j]!;
+        const cruce = segmentIntersection(
+          [uno.ax, uno.az],
+          [uno.bx, uno.bz],
+          [otro.ax, otro.az],
+          [otro.bx, otro.bz],
+        );
+        if (cruce === null) continue;
+        if (Math.hypot(cruce[0] - local.x, cruce[1] - local.z) > radio) continue;
+
+        cruces.push(plano.grupo.localToWorld(new THREE.Vector3(cruce[0], 0, cruce[1])));
+      }
+    }
+    return cruces;
   }
 
   /** La caja de todos los planos juntos, para poder encuadrarlos con el modelo. */

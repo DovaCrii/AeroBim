@@ -21,6 +21,7 @@ export {
   perimeterM,
   perpendicularToPlane,
   polygonAreaM2,
+  segmentIntersection,
   type DistanceParts,
   type PerpendicularFoot,
   type Point3,

@@ -50,7 +50,7 @@ export type { LoadedPlan, PlanHit, PlanTransform } from "./plan.js";
  * **punto medio** y el punto **sobre la línea** cuando no hay ninguno de los otros cerca.
  */
 export interface PlanSnap {
-  readonly kind: "endpoint" | "midpoint" | "edge";
+  readonly kind: "endpoint" | "midpoint" | "intersection" | "edge";
   /** El punto enganchado, en metros de la escena. */
   readonly point: readonly [number, number, number];
   readonly layer: string;
@@ -392,6 +392,33 @@ const SELECTION_CSS = "#9b5de5";
  */
 function mouseFor(clientX: number, clientY: number): THREE.Vector2 {
   return new THREE.Vector2(clientX, clientY);
+}
+
+/**
+ * La misma caja, pero nunca plana del todo.
+ *
+ * **Encuadrar una caja sin grosor deja la cámara en `NaN`**, y con eso la vista muere: no se dibuja
+ * nada, el rayo no encuentra nada y ningún botón la recupera, porque todos parten de donde está la
+ * cámara. Pasa con un plano 2D —que es exactamente plano— y con un elemento sin espesor, como una
+ * losa vista sola.
+ *
+ * Se le da un grosor mínimo a los lados degenerados. Son centímetros sobre decenas de metros: no
+ * cambia el encuadre que se ve, y quita el caso que rompe la aritmética de la cámara.
+ */
+function conGrosor(box: THREE.Box3): THREE.Box3 {
+  const tamano = box.getSize(new THREE.Vector3());
+  const minimo = Math.max(0.01, Math.max(tamano.x, tamano.y, tamano.z) * 0.001);
+  if (tamano.x >= minimo && tamano.y >= minimo && tamano.z >= minimo) return box;
+
+  return box
+    .clone()
+    .expandByVector(
+      new THREE.Vector3(
+        tamano.x < minimo ? minimo : 0,
+        tamano.y < minimo ? minimo : 0,
+        tamano.z < minimo ? minimo : 0,
+      ),
+    );
 }
 
 /**
@@ -2717,9 +2744,10 @@ export class BimViewer {
   /**
    * A qué punto del plano se engancharía un clic aquí.
    *
-   * **Es el ajuste de un CAD, con las tres referencias que se usan revisando**: el **extremo** de un
-   * trazo, su **punto medio** y, si no hay ninguno cerca, el punto **sobre la línea**. Sin ajuste,
-   * medir sobre un plano es un juego de puntería y los números salen con el error del pulso.
+   * **Es el ajuste de un CAD, con las referencias que se usan revisando**: el **cruce** de dos
+   * trazos —la esquina de dos muros, el encuentro de dos ejes—, el **extremo** de un trazo, su
+   * **punto medio** y, si no hay ninguno cerca, el punto **sobre la línea**. Sin ajuste, medir
+   * sobre un plano es un juego de puntería y los números salen con el error del pulso.
    *
    * La tolerancia crece con la distancia a la cámara: enganchar cuesta lo mismo de cerca que de
    * lejos, que es lo que hace que se sienta como un CAD y no como una lotería.
@@ -2743,7 +2771,15 @@ export class BimViewer {
     // mirado entero, 20 cm no engancha nada; mirando un detalle, engancharía el trazo de al lado.
     const tolerancia = this.world.camera.three.position.distanceTo(punto) * 0.02;
 
+    // **La intersección va con los demás candidatos y gana por cercanía**, no por preferencia: en
+    // la esquina de dos muros el cruce y el extremo caen casi en el mismo sitio, y forzar uno de
+    // los dos daría un enganche que salta de sitio según qué trazo tocó el rayo.
+    const cruces = this.plans
+      .intersectionsNear(hit.planId, punto, tolerancia)
+      .map((cruce) => ({ kind: "intersection" as const, punto: cruce }));
+
     const candidatos = [
+      ...cruces,
       { kind: "endpoint" as const, punto: a },
       { kind: "endpoint" as const, punto: b },
       { kind: "midpoint" as const, punto: medio },
@@ -2949,7 +2985,7 @@ export class BimViewer {
     // El encuadre va **antes** del giro: `fitToBox` recoloca la cámara y con ello pisa los
     // ángulos, así que girar primero no dejaba rastro. Rotar después conserva el objetivo y
     // la distancia que el encuadre calculó.
-    void controls.fitToBox(box, false);
+    void controls.fitToBox(conGrosor(box), false);
     void controls.rotateTo(azimuth, polar, false);
     controls.update(ONE_FRAME_S);
   }

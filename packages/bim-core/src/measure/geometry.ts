@@ -34,6 +34,38 @@ export function distanceM(a: Point3, b: Point3): number {
 }
 
 /**
+ * Dónde se cruzan dos segmentos en el plano, o `null` si no se cruzan.
+ *
+ * **Es el cruce dentro de los dos tramos, no el de sus rectas prolongadas.** En un plano, dos muros
+ * que apuntan al mismo sitio sin llegar a tocarse no tienen esquina: ofrecer ese punto como
+ * referencia de ajuste sería inventar geometría que el dibujo no tiene.
+ *
+ * Vive en el dominio puro porque es aritmética y se prueba en Node. La usa el ajuste del visor para
+ * enganchar en el cruce de dos trazos, que es la referencia que más se usa revisando un plano.
+ */
+export function segmentIntersection(
+  a1: readonly [number, number],
+  a2: readonly [number, number],
+  b1: readonly [number, number],
+  b2: readonly [number, number],
+): readonly [number, number] | null {
+  const r = [a2[0] - a1[0], a2[1] - a1[1]] as const;
+  const s = [b2[0] - b1[0], b2[1] - b1[1]] as const;
+
+  const denominador = r[0] * s[1] - r[1] * s[0];
+  // Paralelos o degenerados: no hay **un** punto de cruce, hay ninguno o infinitos.
+  if (Math.abs(denominador) < 1e-12) return null;
+
+  const dx = b1[0] - a1[0];
+  const dy = b1[1] - a1[1];
+  const t = (dx * s[1] - dy * s[0]) / denominador;
+  const u = (dx * r[1] - dy * r[0]) / denominador;
+  if (t < 0 || t > 1 || u < 0 || u > 1) return null;
+
+  return [a1[0] + t * r[0], a1[1] + t * r[1]];
+}
+
+/**
  * Las tres distancias que hay entre dos puntos.
  *
  * En obra no se usa la misma: la **directa** es la que mide una huincha tirada entre los dos

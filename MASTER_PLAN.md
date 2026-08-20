@@ -816,16 +816,16 @@ volver a la herramienta de escritorio.
 
 ### La mitad de entrada: cargar el plano y cruzarlo con el modelo
 
-| #       | Tarea                                                                                    | Estado |
-| ------- | ---------------------------------------------------------------------------------------- | ------ |
-| `F7.6`  | **Leer un DXF**: capas, unidades, colores, textos, líneas, polilíneas, arcos y bloques   | ✅     |
-| `F7.7`  | **Dibujarlo en la escena** a una cota, con los colores reales del CAD y sus rótulos      | ✅     |
-| `F7.8`  | **Calzar plano y modelo**: por dos pares de puntos, y a mano con unidad, cota y giro     | ✅     |
-| `F7.9`  | **Panel de capas del plano**: encender y apagar cada una                                 | ✅     |
-| `F7.10` | **Seleccionar en 2D**: clic en un trazo → su capa, su plano y el largo del tramo         | ✅     |
-| `F7.11` | **Herramientas CAD de revisión**: ajuste a extremo y punto medio, y medir sobre el plano | 🟡     |
-| `F7.12` | **Cruzar**: modo 2D, y cortar el modelo a la altura del plano desde su ficha             | ✅     |
-| `F7.13` | **Fidelidad del CAD**: paleta ACI, tipos de línea, rellenos, anchos y rótulos            | ✅     |
+| #       | Tarea                                                                                  | Estado |
+| ------- | -------------------------------------------------------------------------------------- | ------ |
+| `F7.6`  | **Leer un DXF**: capas, unidades, colores, textos, líneas, polilíneas, arcos y bloques | ✅     |
+| `F7.7`  | **Dibujarlo en la escena** a una cota, con los colores reales del CAD y sus rótulos    | ✅     |
+| `F7.8`  | **Calzar plano y modelo**: por dos pares de puntos, y a mano con unidad, cota y giro   | ✅     |
+| `F7.9`  | **Panel de capas del plano**: encender y apagar cada una                               | ✅     |
+| `F7.10` | **Seleccionar en 2D**: clic en un trazo → su capa, su plano y el largo del tramo       | ✅     |
+| `F7.11` | **Herramientas CAD**: ajuste a extremo, punto medio y cruce, y medir sobre el plano    | ✅     |
+| `F7.12` | **Cruzar**: modo 2D, y cortar el modelo a la altura del plano desde su ficha           | ✅     |
+| `F7.13` | **Fidelidad del CAD**: paleta ACI, tipos de línea, rellenos, anchos y rótulos          | ✅     |
 
 **Lo que quedó hecho el 2026-08-19**, verificado sobre el DXF real en el navegador: el lector
 (`packages/bim-core/src/plans/dxf.ts`, 13 pruebas) resuelve el archivo del usuario en **36 ms**
@@ -851,10 +851,23 @@ doble de largo la unidad pasa de 0,001 a 0,002 m, otra vez con 0 mm de error.
 > con dos clics imprecisos estropea lo que estaba bien. Cuando se aplica, la unidad deja de ser una
 > de la lista y el selector lo dice — "a medida (0,002 m por unidad)".
 
-**Lo que hay de `F7.11`**: el cursor se engancha a los **extremos** y a los **puntos medios** de los
-trazos, y midiendo distancia esos son los puntos que toma la cota. Falta la **intersección** de dos
-trazos, medir del plano al modelo en un mismo gesto, y marcar sobre el plano. El ajuste al plano se
-apaga desde la cinta: midiendo el modelo con un plano debajo, engancharse al CAD falsea la medida.
+**`F7.11` cerrada**: el cursor se engancha al **cruce de dos trazos** —la esquina de dos muros, el
+encuentro de dos ejes—, a los **extremos** y a los **puntos medios**, y midiendo distancia esos son
+los puntos que toma la cota. El ajuste al plano se apaga desde la cinta: midiendo el modelo con un
+plano debajo, engancharse al CAD falsea la medida.
+
+El cruce se calcula en el clic, no por adelantado: se miran los trazos que pasan cerca del cursor y
+se cruzan de dos en dos, con un tope de sesenta para que una zona densa siga costando lo que un
+clic. Medido sobre el plano real: **3,4 ms por clic**, y de 28 clics sobre tabiques salieron 2
+cruces, 5 extremos, 1 punto medio y 20 sobre la línea. La aritmética del cruce vive en el dominio
+puro (`segmentIntersection`, con sus pruebas): **no inventa la esquina de dos muros que no llegan a
+tocarse**, que es lo que haría cortando las rectas prolongadas.
+
+> **Encuadrar un plano dejaba la cámara en `NaN`.** Un plano 2D es una caja **sin grosor**, y
+> `fitToBox` con un lado en cero devuelve una posición imposible: la vista se queda negra, el rayo
+> no encuentra nada y ningún botón la recupera, porque todos parten de donde está la cámara. Ahora
+> el encuadre le da unos centímetros de grosor a los lados degenerados — no cambia lo que se ve y
+> quita el caso que rompe la aritmética. Le pasaba también a un elemento plano encuadrado solo.
 
 ### Lo que faltaba para que el plano se vea completo (2026-08-19)
 
