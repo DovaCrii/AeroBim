@@ -33,6 +33,17 @@
 > edificio— y **cambiar la unidad reencuadra**. Antes, pasar a metros hacía el plano mil veces más
 > grande, se iba de la pantalla y parecía que se había borrado.
 >
+> **Cargar un IFC después de trabajar en 2D ya no tumba la pestaña.** Era la memoria de vídeo: un
+> rótulo, una textura, cuatrocientas texturas. Ahora van en **un atlas por capa** —tres texturas
+> para el plano real— y el tamaño de los rótulos se elige en su ficha (ocultos, 8, 15, 30, 60 cm).
+>
+> **Modo 2D** (Vista → Trabajo): apaga los modelos, cámara en planta y ortográfica. Vuelve a
+> pulsarlo y el modelo regresa. La decisión de fondo: **una sola ventana**, porque cruzar plano y
+> modelo es lo que se viene a hacer; el modo resuelve el "quiero ver solo el plano".
+>
+> **Rellenos**: se leen los `HATCH` —macizos como cara, rayados como contorno— y los `SOLID` y
+> `3DFACE`, que es con lo que muchos CAD pintan muros y pilares.
+>
 > **Y el CAD se ve como el CAD**: paleta ACI calculada con su regla real, tipos de línea de la tabla
 > `LTYPE` —con el patrón llevado a una medida legible, porque `LTSCALE` deja rayas de dos milésimas
 > de milímetro— y rótulos con alto mínimo de 35 cm, letra a 96 px y contorno oscuro detrás.

@@ -67,6 +67,25 @@ comparación cuesta dos clics de ida y dos de vuelta; en la misma columna cuesta
 Cada sección se pliega y **se le puede fijar el alto**; las que no tienen alto fijo se reparten lo
 que sobra. Así siete secciones conviven sin que ninguna empuje a las demás fuera de la pantalla.
 
+### 2D y 3D: una sola ventana, con un modo para cada trabajo
+
+La pregunta se planteó como "¿dos instancias, una para el CAD y otra para el modelo?", y la
+respuesta es **una sola**: lo que trae a alguien aquí es cruzar los dos —lo que dice el plano, ¿está
+modelado?—, y eso no se puede hacer con dos ventanas.
+
+Lo que sí hace falta es poder **mirar solo el plano**, porque revisar un CAD con el modelo encima es
+imposible. Para eso está **Modo 2D** (pestaña Vista, grupo Trabajo): apaga los modelos, pone la
+cámara en planta y la proyección en ortográfica —que es como se mira un plano— y vuelve a pulsarlo
+para recuperar el modelo. **No cierra nada**: los modelos quedan apagados y "Ver todo" también los
+devuelve.
+
+| Trabajo                 | Cómo se hace                                                      |
+| ----------------------- | ----------------------------------------------------------------- |
+| Revisar el plano        | **Modo 2D**: el CAD solo, en planta y ortográfica                 |
+| Comparar plano y modelo | Los dos encendidos; se apagan capas del plano y elementos del IFC |
+| Calzar el plano         | "Calzar con 2 puntos" en la ficha del plano                       |
+| Medir sobre el plano    | Medición → distancia, con **Al plano** encendido                  |
+
 ### Centro: el cubo de vistas
 
 Está donde lo pone AutoCAD —arriba a la derecha— y hace las dos cosas que hace el de AutoCAD:

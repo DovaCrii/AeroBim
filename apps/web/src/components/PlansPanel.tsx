@@ -23,6 +23,7 @@ export function PlansPanel({
   onToggleLayer,
   onTransform,
   onAlign,
+  onLabelHeight,
   onFrame,
   onClose,
 }: {
@@ -30,6 +31,8 @@ export function PlansPanel({
   /** El plano que se está calzando a puntos, si hay alguno. */
   readonly aligningPlanId: string | null;
   readonly onAlign: (id: string, ajustarEscala: boolean) => void;
+  /** Cambia el alto de los rotulos de un plano, en metros. Cero los apaga. */
+  readonly onLabelHeight: (id: string, metros: number) => void;
   /** Planos apagados enteros, por identificador. */
   readonly hiddenPlans: ReadonlySet<string>;
   /** Capas apagadas, como `plano:capa`. */
@@ -62,6 +65,7 @@ export function PlansPanel({
           onToggleLayer={onToggleLayer}
           onTransform={onTransform}
           onAlign={onAlign}
+          onLabelHeight={onLabelHeight}
           onFrame={onFrame}
           onClose={onClose}
         />
@@ -79,6 +83,7 @@ function PlanoEnLista({
   onToggleLayer,
   onTransform,
   onAlign,
+  onLabelHeight,
   onFrame,
   onClose,
 }: {
@@ -87,6 +92,8 @@ function PlanoEnLista({
   readonly hiddenLayers: ReadonlySet<string>;
   readonly alineando: boolean;
   readonly onAlign: (id: string, ajustarEscala: boolean) => void;
+  /** Cambia el alto de los rotulos de un plano, en metros. Cero los apaga. */
+  readonly onLabelHeight: (id: string, metros: number) => void;
   readonly onTogglePlan: (id: string, visible: boolean) => void;
   readonly onToggleLayer: (id: string, layer: string, visible: boolean) => void;
   readonly onTransform: (id: string, cambios: Partial<PlanTransform>) => void;
@@ -97,6 +104,8 @@ function PlanoEnLista({
   // La escala se corrige solo si se pide: en un plano cuya unidad ya es correcta, ajustarla con dos
   // clics imprecisos estropea lo que estaba bien.
   const [ajustarEscala, setAjustarEscala] = useState(false);
+  /** El alto de los rótulos, en metros. Arranca en el que puso el visor al cargar. */
+  const [alturaRotulo, setAlturaRotulo] = useState(0.15);
   const t = plan.transform;
   const sinDibujar = Object.entries(plan.skipped);
   const anchoM = plan.sizeUnits[0] * t.metresPerUnit;
@@ -200,6 +209,29 @@ function PlanoEnLista({
             )}
 
             <p className="pt-1 text-[10px] leading-snug text-white/30">{plan.units.reason}</p>
+          </div>
+
+          {/* **El tamaño del rótulo no puede salir del archivo.** Un plano anotativo escribe la
+              altura de papel —un centímetro de modelo— y esos textos no se ven; otro escribe altura
+              de modelo y tapa el dibujo entero. Se elige acá, y "ocultos" es una opción de verdad:
+              con cuatrocientos rótulos, a veces lo que hace falta es el dibujo limpio. */}
+          <div className="flex items-center gap-2">
+            <label className="w-16 shrink-0 text-[11px] text-white/45">Rótulos</label>
+            <select
+              value={String(alturaRotulo)}
+              onChange={(e) => {
+                const alto = Number(e.target.value);
+                setAlturaRotulo(alto);
+                onLabelHeight(plan.id, alto);
+              }}
+              className="min-w-0 flex-1 rounded border border-white/15 bg-black/20 px-1.5 py-0.5 text-[11px] text-white/85"
+            >
+              <option value="0">ocultos</option>
+              <option value="0.08">pequeños (8 cm)</option>
+              <option value="0.15">normales (15 cm)</option>
+              <option value="0.3">grandes (30 cm)</option>
+              <option value="0.6">enormes (60 cm)</option>
+            </select>
           </div>
 
           <Numero

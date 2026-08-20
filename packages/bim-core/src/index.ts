@@ -54,6 +54,7 @@ export {
   type DxfBounds,
   type DxfDeclaredUnits,
   type DxfDrawing,
+  type DxfHatch,
   type DxfLayer,
   type DxfPolyline,
   type DxfText,

@@ -247,6 +247,8 @@ export function App() {
    * modelo con un plano debajo, engancharse al CAD sin querer falsea la medida.
    */
   const [planSnap, setPlanSnap] = useState(true);
+  /** `true` en modo 2D: los modelos apagados, la cámara en planta y proyección ortográfica. */
+  const [modo2D, setModo2D] = useState(false);
   /**
    * La alineación de un plano en curso, si la hay.
    *
@@ -689,6 +691,46 @@ export function App() {
     void viewer.current?.removePlan(id);
   }, []);
 
+  /**
+   * Entra y sale del **modo 2D**: el plano solo, mirado desde arriba.
+   *
+   * **Es la respuesta a "¿en la misma ventana o en dos?".** En la misma, porque la pregunta que
+   * trae a alguien acá —lo que dice el plano, ¿está modelado?— se responde cruzando los dos; pero
+   * revisar el CAD con el modelo encima es imposible, así que hay un modo que apaga los modelos,
+   * pone la cámara en planta y la proyección ortográfica, que es como se mira un plano.
+   *
+   * No borra nada: los modelos quedan **apagados**, y salir del modo —o "Ver todo"— los devuelve.
+   */
+  const onModo2D = useCallback(
+    (activar: boolean) => {
+      const instance = viewer.current;
+      if (instance === null) return;
+
+      setModo2D(activar);
+      if (activar) {
+        setHiddenModels(new Set(models.map((modelo) => modelo.id)));
+        for (const modelo of models) void instance.setModelVisible(modelo.id, false);
+        setProjection("Orthographic");
+        void instance.setProjection("Orthographic");
+        setNavigation("Plan");
+        instance.setNavigationMode("Plan");
+        setStandardView("top");
+        void instance.frameAll("top");
+        return;
+      }
+
+      setHiddenModels(new Set());
+      for (const modelo of models) void instance.setModelVisible(modelo.id, true);
+      setProjection("Perspective");
+      void instance.setProjection("Perspective");
+      setNavigation("Orbit");
+      instance.setNavigationMode("Orbit");
+      setStandardView("iso");
+      void instance.frameAll("iso");
+    },
+    [models],
+  );
+
   const onSection = useCallback((axis: SectionAxis) => {
     setHasSections(true);
     void viewer.current?.addSection(axis);
@@ -922,6 +964,8 @@ export function App() {
         isolated={isolated}
         hasHidden={hasHidden}
         hasPlans={plans.length > 0}
+        modo2D={modo2D}
+        onModo2D={onModo2D}
         planSnap={planSnap}
         onPlanSnap={(activo) => {
           setPlanSnap(activo);
@@ -1098,6 +1142,9 @@ export function App() {
                   hiddenPlans={hiddenPlans}
                   hiddenLayers={hiddenPlanLayers}
                   aligningPlanId={aligning?.planId ?? null}
+                  onLabelHeight={(id, metros) =>
+                    void viewer.current?.setPlanLabelHeight(id, metros)
+                  }
                   onAlign={(id, ajustarEscala) => {
                     const plan = plans.find((uno) => uno.id === id);
                     if (plan === undefined) return;

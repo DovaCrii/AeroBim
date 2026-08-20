@@ -856,6 +856,21 @@ trazos, y midiendo distancia esos son los puntos que toma la cota. Falta la **in
 trazos, medir del plano al modelo en un mismo gesto, y marcar sobre el plano. El ajuste al plano se
 apaga desde la cinta: midiendo el modelo con un plano debajo, engancharse al CAD falsea la medida.
 
+### Cargar un IFC después de trabajar en 2D tumbaba la pestaña (2026-08-19)
+
+**Era la memoria de vídeo, y la culpa era de los rótulos.** Cada texto del plano se dibujaba en su
+propio lienzo y subía su propia textura: cuatrocientas texturas de hasta 4096 px por un plano
+corriente. Con eso ya cargado, abrir un IFC de veinte megas dejaba la pestaña sin memoria y se caía
+todo.
+
+Ahora los rótulos de cada capa van en **un solo atlas** y **una sola malla**: siete texturas para el
+plano entero en vez de cuatrocientas, y una pasada de dibujo por capa. Comprobado en el navegador:
+el plano, un IFC de 1,5 MB y otro de 23,6 MB conviven sin un solo error en consola.
+
+De paso, el tamaño de los rótulos **se elige** —ocultos, 8, 15, 30 o 60 cm— porque no se puede
+deducir del archivo: un plano anotativo escribe alturas de papel (un centímetro de modelo, invisible)
+y otro escribe alturas de modelo (que tapan el dibujo).
+
 ### `F7.13`: que el plano se vea como en el CAD (2026-08-19)
 
 Tres cosas que el usuario vio de inmediato al poner su plano al lado de AutoCAD:

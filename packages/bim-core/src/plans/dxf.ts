@@ -61,6 +61,28 @@ export interface DxfText {
   readonly colorIndex: number | null;
 }
 
+/**
+ * Un relleno del plano: el macizo de un muro, una zona sombreada, un área marcada.
+ *
+ * **Sin los rellenos, un plano de arquitectura no se reconoce.** Los muros se dibujan como
+ * contorno más relleno macizo, y con solo el contorno lo que se ve es una maraña de líneas: la
+ * comparación con el modelo deja de ser inmediata, que es justo lo que se venía a hacer.
+ */
+export interface DxfHatch {
+  readonly layer: string;
+  readonly colorIndex: number | null;
+  /** `true` si es un relleno macizo; `false` si es un rayado, que se dibuja solo con su contorno. */
+  readonly solid: boolean;
+  /**
+   * Los contornos, cada uno como `[x0, y0, x1, y1, …]` y cerrado.
+   *
+   * El primero suele ser el borde exterior y los demás, huecos. Quién es quién lo decide el visor
+   * por área, que es lo que acierta en un plano real sin implementar la aritmética de contornos
+   * completa del estándar.
+   */
+  readonly loops: readonly (readonly number[])[];
+}
+
 /** Una capa del dibujo, con su color de AutoCAD (índice ACI) cuando lo declara. */
 export interface DxfLayer {
   readonly name: string;
@@ -90,6 +112,8 @@ export interface DxfDrawing {
   readonly polylines: readonly DxfPolyline[];
   /** Los textos del plano, con su sitio y su tamaño. */
   readonly texts: readonly DxfText[];
+  /** Los rellenos: los macizos de los muros y las zonas sombreadas. */
+  readonly hatches: readonly DxfHatch[];
   readonly layers: readonly DxfLayer[];
   /** La extensión **real** de lo dibujado. `null` si no se pudo dibujar nada. */
   readonly bounds: DxfBounds | null;
@@ -148,17 +172,19 @@ export function parseDxf(text: string): DxfDrawing {
 
   const polylines: DxfPolyline[] = [];
   const texts: DxfText[] = [];
+  const hatches: DxfHatch[] = [];
   const skipped: Record<string, number> = {};
   const entidades = entidadesDe(pares, indiceDeSeccion(pares, "ENTITIES"));
   const estilo = { colores, tiposPorCapa, patrones, escalaGlobal };
   for (const entidad of entidades) {
-    dibujar(entidad, bloques, { polylines, texts, estilo }, skipped, IDENTIDAD, 0);
+    dibujar(entidad, bloques, { polylines, texts, hatches, estilo }, skipped, IDENTIDAD, 0);
   }
 
   return {
     polylines,
     texts,
-    layers: capasDe(polylines, texts, colores),
+    hatches,
+    layers: capasDe(polylines, texts, hatches, colores),
     bounds: extension(polylines, texts),
     declaredUnits,
     skipped,
@@ -509,6 +535,7 @@ function dibujar(
   salida: {
     readonly polylines: DxfPolyline[];
     readonly texts: DxfText[];
+    readonly hatches: DxfHatch[];
     readonly estilo: Estilo;
   },
   omitidas: Record<string, number>,
@@ -598,6 +625,53 @@ function dibujar(
       return;
     }
 
+    // Un `SOLID` es un triángulo o un cuadrilátero macizo, y en un plano de CAD es media
+    // información: con él se pintan los muros cortados, los pilares y los rellenos de detalle.
+    // `3DFACE` tiene los mismos cuatro puntos y en un plano se usa igual.
+    case "SOLID":
+    case "3DFACE": {
+      const esquinas: number[] = [];
+      // **El orden de los puntos de un `SOLID` no es el del contorno**: el estándar los numera en
+      // zigzag, así que el tercero y el cuarto van cruzados. Dibujarlos en su orden crudo da un
+      // reloj de arena en vez de un cuadrilátero.
+      for (const [cx, cy] of [
+        [10, 20],
+        [11, 21],
+        [13, 23],
+        [12, 22],
+      ] as const) {
+        const x = numero(entidad, cx);
+        const y = numero(entidad, cy);
+        if (x === null || y === null) continue;
+        const [px, py] = aplicar(t, x, y);
+        esquinas.push(px, py);
+      }
+      if (esquinas.length < 6) {
+        cuenta(omitidas, entidad.type);
+        return;
+      }
+      salida.hatches.push({ layer, colorIndex, solid: true, loops: [esquinas] });
+      return;
+    }
+
+    case "HATCH": {
+      const loops = contornosDeRelleno(entidad, t);
+      if (loops.length === 0) {
+        cuenta(omitidas, "HATCH");
+        return;
+      }
+      salida.hatches.push({
+        layer,
+        colorIndex,
+        // El nombre del patrón dice si es macizo; un rayado se dibuja solo con su contorno, que es
+        // lo que se distingue a la escala de un plano.
+        solid:
+          (valor(entidad, 2) ?? "").toUpperCase() === "SOLID" || (numero(entidad, 70) ?? 0) === 1,
+        loops,
+      });
+      return;
+    }
+
     case "INSERT": {
       const nombre = valor(entidad, 2);
       const bloque = nombre === undefined ? undefined : bloques.get(nombre);
@@ -652,6 +726,101 @@ function cuenta(registro: Record<string, number>, clave: string): void {
  * que es la aproximación correcta salvo para bloques con color propio, algo que un plano de
  * arquitectura casi nunca usa.
  */
+/**
+ * Los contornos de un `HATCH`, ya transformados y cerrados.
+ *
+ * **Es la parte más enrevesada del formato** y por eso se lee con una máquina de estados sobre los
+ * pares en orden, no buscando códigos sueltos: dentro de un relleno, el código 10 significa una
+ * cosa en un contorno de polilínea, otra en una arista y otra más en un punto semilla. Se leen los
+ * dos casos que dibujan un plano —contorno de polilínea y aristas de línea o de arco— y se corta al
+ * llegar a los objetos de origen o a los datos de degradado, que es donde los códigos se reciclan.
+ */
+function contornosDeRelleno(entidad: Entidad, t: Transformacion): readonly (readonly number[])[] {
+  const contornos: number[][] = [];
+  let actual: number[] | null = null;
+  let esPolilinea = false;
+  let vertice: { x: number | null; bulge: number } = { x: null, bulge: 0 };
+  let arista: Record<number, number> = {};
+  let tipoArista = 0;
+
+  const punto = (x: number, y: number) => {
+    const [px, py] = aplicar(t, x, y);
+    actual?.push(px, py);
+  };
+
+  const cerrarContorno = () => {
+    if (actual !== null && actual.length >= 6) contornos.push(actual);
+    actual = null;
+  };
+
+  const cerrarArista = () => {
+    if (actual === null) return;
+    if (tipoArista === 1 && arista[10] !== undefined && arista[20] !== undefined) {
+      punto(arista[10], arista[20]);
+      if (arista[11] !== undefined && arista[21] !== undefined) punto(arista[11], arista[21]);
+    }
+    if (
+      tipoArista === 2 &&
+      arista[10] !== undefined &&
+      arista[20] !== undefined &&
+      arista[40] !== undefined
+    ) {
+      // Un arco del contorno se convierte en tramos, igual que en la geometría suelta: sin esto,
+      // un muro curvo se rellenaría con la cuerda y el macizo se saldría del muro.
+      for (const [x, y] of arco(
+        arista[10],
+        arista[20],
+        arista[40],
+        arista[50] ?? 0,
+        arista[51] ?? 360,
+      )) {
+        punto(x, y);
+      }
+    }
+    arista = {};
+    tipoArista = 0;
+  };
+
+  for (const { code, value } of entidad.pares) {
+    const n = Number(value);
+
+    // A partir de acá los códigos son de los objetos de origen, las semillas o el degradado, y
+    // volverían a leerse como si fueran geometría.
+    if (code === 97 || code === 98 || code >= 450) {
+      cerrarArista();
+      cerrarContorno();
+      break;
+    }
+
+    if (code === 92) {
+      cerrarArista();
+      cerrarContorno();
+      actual = [];
+      esPolilinea = (n & 2) === 2;
+      vertice = { x: null, bulge: 0 };
+      continue;
+    }
+    if (actual === null) continue;
+
+    if (esPolilinea) {
+      if (code === 10) vertice = { x: n, bulge: 0 };
+      else if (code === 20 && vertice.x !== null) punto(vertice.x, n);
+      continue;
+    }
+
+    if (code === 72) {
+      cerrarArista();
+      tipoArista = n;
+      continue;
+    }
+    if ([10, 20, 11, 21, 40, 50, 51].includes(code)) arista[code] = n;
+  }
+
+  cerrarArista();
+  cerrarContorno();
+  return contornos;
+}
+
 /** Lo que hace falta para saber de qué color y con qué trazo se dibuja cada entidad. */
 interface Estilo {
   readonly colores: ReadonlyMap<string, number>;
@@ -838,13 +1007,15 @@ function numero(entidad: Entidad, code: number): number | null {
 function capasDe(
   polylines: readonly DxfPolyline[],
   texts: readonly DxfText[],
+  hatches: readonly DxfHatch[],
   colores: ReadonlyMap<string, number>,
 ): readonly DxfLayer[] {
   const cuentas = new Map<string, number>();
   for (const linea of polylines) cuentas.set(linea.layer, (cuentas.get(linea.layer) ?? 0) + 1);
-  // Los textos cuentan como contenido de su capa: una capa que solo trae rótulos existe, y
-  // apagarla tiene que apagarlos.
+  // Los textos y los rellenos cuentan como contenido de su capa: una capa que solo trae rótulos
+  // existe, y apagarla tiene que apagarlos.
   for (const texto of texts) cuentas.set(texto.layer, (cuentas.get(texto.layer) ?? 0) + 1);
+  for (const relleno of hatches) cuentas.set(relleno.layer, (cuentas.get(relleno.layer) ?? 0) + 1);
 
   return [...cuentas]
     .map(([name, count]) => ({ name, count, colorIndex: colores.get(name) ?? null }))

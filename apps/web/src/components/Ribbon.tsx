@@ -30,6 +30,7 @@ import {
   IconPan,
   IconPerpendicular,
   IconPerspective,
+  IconPlan2D,
   IconSectionHorizontal,
   IconSectionLongitudinal,
   IconSectionTransversal,
@@ -89,6 +90,8 @@ export function Ribbon({
   isolated,
   hasHidden,
   hasPlans,
+  modo2D,
+  onModo2D,
   planSnap,
   onPlanSnap,
   measurementCount,
@@ -137,6 +140,9 @@ export function Ribbon({
   readonly hasHidden: boolean;
   /** `true` con al menos un plano 2D cargado. */
   readonly hasPlans: boolean;
+  /** `true` en modo 2D: el plano solo, en planta y ortográfica, con los modelos apagados. */
+  readonly modo2D: boolean;
+  readonly onModo2D: (activar: boolean) => void;
   /** `true` si medir se engancha a los trazos del plano. */
   readonly planSnap: boolean;
   readonly onPlanSnap: (enabled: boolean) => void;
@@ -264,6 +270,24 @@ export function Ribbon({
                 }
                 disabled={!enabled || !hasSelection}
                 onClick={onFrameSelection}
+              />
+            </Grupo>
+
+            {/* **El modo 2D no es una vista más**: apaga los modelos y deja el plano solo, en
+                planta y en ortográfica. Va aquí, junto al encuadre, porque es lo primero que se
+                busca cuando se viene a revisar un CAD y no el modelo. */}
+            <Grupo label="Trabajo">
+              <Boton
+                icon={<IconPlan2D />}
+                label="Modo 2D"
+                hint={
+                  hasPlans
+                    ? "Deja el plano solo, en planta y ortográfica. Vuelve a pulsarlo para recuperar el modelo"
+                    : "No hay ningún plano 2D cargado"
+                }
+                active={modo2D}
+                disabled={!hasPlans}
+                onClick={() => onModo2D(!modo2D)}
               />
             </Grupo>
 

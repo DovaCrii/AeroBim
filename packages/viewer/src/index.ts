@@ -2627,6 +2627,20 @@ export class BimViewer {
     return resultado;
   }
 
+  /**
+   * Cambia el alto de los rótulos de un plano, en metros. Con `0` se apagan.
+   *
+   * El tamaño no puede salir del archivo: los planos anotativos escriben altura de papel y esos
+   * rótulos no se ven; otros escriben altura de modelo y tapan el dibujo. Ver
+   * {@link PlanOverlay.setLabelHeight}.
+   */
+  async setPlanLabelHeight(id: string, metros: number): Promise<void> {
+    this.assertAlive();
+
+    this.plans.setLabelHeight(id, metros);
+    await this.refresh();
+  }
+
   /** Enciende o apaga una capa del plano. */
   async setPlanLayerVisible(id: string, layer: string, visible: boolean): Promise<void> {
     this.assertAlive();

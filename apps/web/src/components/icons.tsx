@@ -430,6 +430,22 @@ export function IconSnapPlan(props: IconProps) {
   );
 }
 
+/**
+ * Modo 2D: la hoja del plano vista de frente, con su cuadrícula.
+ *
+ * Se distingue de la vista en planta —que es el cubo mirado desde arriba— en que aquí no hay cubo:
+ * es el dibujo, sin modelo detrás, que es exactamente lo que hace el modo.
+ */
+export function IconPlan2D(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <rect x="3.5" y="4.5" width="17" height="15" rx="1" />
+      <path d="M3.5 9h17M9 4.5v15" />
+      <rect x="11.5" y="11.5" width="6" height="5" rx="0.5" fill="currentColor" fillOpacity={0.3} />
+    </Svg>
+  );
+}
+
 /** Cerrar: la cruz. */
 export function IconX(props: IconProps) {
   return (

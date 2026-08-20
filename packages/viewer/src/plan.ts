@@ -19,6 +19,7 @@ import {
   parseDxf,
   suggestMetresPerUnit,
   type DxfDrawing,
+  type DxfHatch,
   type DxfLayer,
   type DxfPolyline,
   type DxfText,
@@ -187,13 +188,17 @@ function patronLegible(
 const LIMITE_ETIQUETAS = 3000;
 
 /**
- * Lo mínimo que puede medir una letra en la escena, en metros.
+ * Cuánto mide una letra de rótulo en la escena, en metros.
  *
- * Un plano en milímetros trae rótulos de 2,5 unidades: dos milímetros y medio de escena, que no se
- * leen ni pegándose. Subirlos a esta altura los hace legibles sin desfigurar el plano — un rótulo
- * de verdad grande conserva su tamaño.
+ * **El alto del archivo no sirve para decidirlo.** Los planos anotativos escriben la altura de
+ * papel —en el plano real del usuario, un centímetro de modelo— y esos rótulos no se ven; otros
+ * escriben altura de modelo y tapan el dibujo. Se dibuja todo a la misma altura y la interfaz la
+ * cambia: 15 cm se lee acercándose a un recinto y no ahoga la planta completa.
  */
-const ALTO_MINIMO_ETIQUETA_M = 0.35;
+const ALTO_ETIQUETA_M = 0.15;
+
+/** El lado del atlas de rótulos, en píxeles. Uno por capa, no uno por texto. */
+const ATLAS_PX = 2048;
 
 /** Lo que se guarda de cada plano dibujado. */
 interface PlanoDibujado {
@@ -202,6 +207,18 @@ interface PlanoDibujado {
   readonly grupo: THREE.Group;
   /** Un grupo por capa, para poder apagarlas una por una. */
   readonly capas: Map<string, THREE.Group>;
+  /**
+   * El dibujo leído, tal cual.
+   *
+   * Se conserva para poder **rehacer los rótulos** cuando cambia su tamaño: van horneados en una
+   * malla con sus posiciones absolutas, así que no se pueden escalar sin sacarlos de su sitio.
+   * Ocupa unos megas de memoria normal —no de vídeo— y ahorra volver a leer el archivo.
+   */
+  readonly dibujo: DxfDrawing;
+  /** El centro del dibujo, alrededor del cual gira el plano. */
+  readonly centro: readonly [number, number];
+  /** Alto de los rótulos en metros; `0` los apaga. */
+  labelHeightM: number;
   transform: PlanTransform;
 }
 
@@ -288,15 +305,22 @@ export class PlanOverlay {
         grupoCapa.add(linea);
       }
 
-      for (const texto of dibujo.texts) {
-        if (texto.layer !== capa.name) continue;
-        if (etiquetasPuestas >= LIMITE_ETIQUETAS) break;
+      for (const relleno of dibujo.hatches) {
+        if (relleno.layer !== capa.name) continue;
 
-        const malla = etiqueta(texto, centrado, capa.colorIndex, unidades.metresPerUnit);
-        if (malla === null) continue;
-        grupoCapa.add(malla);
-        etiquetasPuestas++;
+        const malla = mallaDeRelleno(relleno, centrado, capa.colorIndex);
+        if (malla !== null) grupoCapa.add(malla);
       }
+
+      etiquetasPuestas += ponerRotulos(
+        grupoCapa,
+        dibujo,
+        capa,
+        centrado,
+        unidades.metresPerUnit,
+        ALTO_ETIQUETA_M,
+        LIMITE_ETIQUETAS - etiquetasPuestas,
+      );
 
       if (grupoCapa.children.length === 0) continue;
       capas.set(capa.name, grupoCapa);
@@ -312,7 +336,16 @@ export class PlanOverlay {
       mirrored: false,
     };
 
-    const plano: PlanoDibujado = { id, name, grupo, capas, transform };
+    const plano: PlanoDibujado = {
+      id,
+      name,
+      grupo,
+      capas,
+      dibujo,
+      centro: centrado,
+      labelHeightM: ALTO_ETIQUETA_M,
+      transform,
+    };
     aplicar(plano);
     this.escena.add(grupo);
     this.planos.set(id, plano);
@@ -342,6 +375,43 @@ export class PlanOverlay {
     plano.transform = { ...plano.transform, ...cambios };
     aplicar(plano);
     return plano.transform;
+  }
+
+  /**
+   * Cambia el alto de los rótulos del plano, en metros. Con `0` se apagan.
+   *
+   * **Se rehacen, no se escalan.** Los rótulos van horneados en una malla con sus posiciones
+   * absolutas —es lo que permite dibujarlos todos de una pasada—, así que escalarlos los sacaría de
+   * su sitio. Rehacer el atlas de una capa cuesta unos milisegundos.
+   */
+  setLabelHeight(id: string, metros: number): number | null {
+    const plano = this.planos.get(id);
+    if (plano === undefined) return null;
+
+    plano.labelHeightM = Math.max(0, metros);
+
+    let puestos = 0;
+    for (const [nombre, grupoCapa] of plano.capas) {
+      for (const viejo of grupoCapa.children.filter((hijo) => hijo.name === "rotulos")) {
+        grupoCapa.remove(viejo);
+        liberar(viejo);
+      }
+      if (plano.labelHeightM === 0) continue;
+
+      const capa = plano.dibujo.layers.find((una) => una.name === nombre);
+      if (capa === undefined) continue;
+
+      puestos += ponerRotulos(
+        grupoCapa,
+        plano.dibujo,
+        capa,
+        plano.centro,
+        plano.transform.metresPerUnit,
+        plano.labelHeightM,
+        LIMITE_ETIQUETAS - puestos,
+      );
+    }
+    return puestos;
   }
 
   /** Enciende o apaga una capa del plano. */
@@ -612,71 +682,154 @@ function empujarSegmentos(
   }
 }
 
+/** Cuelga de la capa los rótulos que le tocan y devuelve cuántos entraron. */
+function ponerRotulos(
+  grupoCapa: THREE.Group,
+  dibujo: DxfDrawing,
+  capa: DxfLayer,
+  centro: readonly [number, number],
+  metrosPorUnidad: number,
+  altoM: number,
+  cupo: number,
+): number {
+  if (cupo <= 0 || altoM <= 0) return 0;
+
+  const suyos = dibujo.texts.filter((texto) => texto.layer === capa.name).slice(0, cupo);
+  if (suyos.length === 0) return 0;
+
+  const rotulos = atlasDeEtiquetas(suyos, centro, capa.colorIndex, metrosPorUnidad, altoM);
+  if (rotulos === null) return 0;
+
+  grupoCapa.add(rotulos.malla);
+  return rotulos.cuantos;
+}
+
+/** Suelta la geometría, el material y la textura de un objeto que sale de la escena. */
+function liberar(objeto: THREE.Object3D): void {
+  const conGeometria = objeto as Partial<THREE.Mesh>;
+  conGeometria.geometry?.dispose();
+
+  const material = conGeometria.material;
+  for (const uno of Array.isArray(material) ? material : material ? [material] : []) {
+    (uno as THREE.MeshBasicMaterial).map?.dispose();
+    uno.dispose();
+  }
+}
+
 /**
- * Un rótulo del plano, dibujado en un lienzo y pegado sobre su sitio.
+ * Todos los rótulos de una capa, en **una sola malla con una sola textura**.
  *
- * **Tumbado en el plano, no de cara a la cámara.** Un texto que gira para mirar al observador se
- * lee siempre, pero en planta se ve torcido respecto al dibujo y deja de parecer parte del plano;
- * en un CAD el texto vive en el plano y así es como se espera verlo.
+ * **Por qué un atlas y no un rótulo por objeto.** La primera versión creaba una textura por texto:
+ * con los cuatrocientos rótulos de un plano corriente eso son cuatrocientas texturas, y al abrir
+ * después un IFC de veinte megas la pestaña se quedaba sin memoria de vídeo y se caía todo. Con un
+ * atlas por capa son siete texturas para el plano entero, y una sola malla que se dibuja de una
+ * pasada.
  *
- * La textura se dibuja al doble del tamaño que ocupa en pantalla para que no se vea borrosa al
- * acercarse, y el fondo queda transparente: es un rótulo sobre el modelo, no una etiqueta pegada.
+ * **Tumbados en el plano, no de cara a la cámara.** Un texto que gira para mirar al observador se
+ * lee siempre, pero en planta se ve torcido respecto al dibujo y deja de parecer parte del plano.
+ *
+ * El alto es **el mismo para todos** y lo decide la interfaz, no el archivo: los planos anotativos
+ * traen alturas de papel —un centímetro de modelo— que no se ven, y los que traen alturas de modelo
+ * tapan el dibujo. Ver {@link ALTO_ETIQUETA_M} y `setLabelHeight`.
  */
-function etiqueta(
-  texto: DxfText,
+function atlasDeEtiquetas(
+  textos: readonly DxfText[],
   [cx, cy]: readonly [number, number],
   colorCapa: number | null,
   metrosPorUnidad: number,
-): THREE.Mesh | null {
-  const contenido = texto.text.slice(0, 120);
-  if (contenido === "" || texto.height <= 0) return null;
+  altoM: number,
+): { readonly malla: THREE.Mesh; readonly cuantos: number } | null {
+  const utiles = textos.filter((texto) => texto.text !== "");
+  if (utiles.length === 0) return null;
 
   const lienzo = document.createElement("canvas");
-  // **Se dibuja grande y se encoge al colocarlo.** Con 32 px por letra el rótulo salía borroso en
-  // cuanto uno se acercaba: la textura se estira y el texto pierde el filo justo cuando se quiere
-  // leer. A 96 px la letra aguanta el acercamiento y sigue costando poca memoria.
-  const pixelesPorLetra = 96;
-  const margen = pixelesPorLetra * 0.35;
-  lienzo.width = Math.min(
-    4096,
-    Math.max(128, Math.ceil(contenido.length * pixelesPorLetra * 0.62 + margen * 2)),
-  );
-  lienzo.height = Math.ceil(pixelesPorLetra * 1.6);
-
   const pincel = lienzo.getContext("2d");
   if (pincel === null) return null;
 
-  const color = new THREE.Color(colorDeCapa(texto.colorIndex ?? colorCapa));
-  pincel.font = `600 ${pixelesPorLetra}px system-ui, "Segoe UI", sans-serif`;
-  pincel.textAlign = "center";
+  const fila = 64;
+  const letra = 40;
+  lienzo.width = ATLAS_PX;
+  lienzo.height = Math.min(ATLAS_PX, Math.ceil(utiles.length / 2) * fila + fila);
+  pincel.font = `600 ${letra}px system-ui, "Segoe UI", sans-serif`;
   pincel.textBaseline = "middle";
-  // **Un contorno oscuro detrás de la letra.** Un rótulo del CAD cae encima del propio dibujo y de
-  // la geometría del modelo; sin ese respaldo, el texto se confunde con las líneas que tiene detrás
-  // y hay que adivinarlo. Es lo mismo que hace cualquier visor que dibuja texto sobre el modelo.
-  pincel.lineWidth = pixelesPorLetra * 0.16;
+  pincel.lineWidth = letra * 0.18;
   pincel.lineJoin = "round";
-  pincel.strokeStyle = "rgba(6, 10, 20, 0.85)";
-  pincel.strokeText(contenido, lienzo.width / 2, lienzo.height / 2);
-  pincel.fillStyle = `#${color.getHexString()}`;
-  pincel.fillText(contenido, lienzo.width / 2, lienzo.height / 2);
+  pincel.strokeStyle = "rgba(6, 10, 20, 0.9)";
+
+  const posiciones: number[] = [];
+  const uvs: number[] = [];
+  const indices: number[] = [];
+  const alto = altoM / metrosPorUnidad;
+
+  let x = 0;
+  let y = 0;
+  let cuantos = 0;
+
+  for (const texto of utiles) {
+    const contenido = texto.text.slice(0, 60);
+    const ancho = Math.ceil(pincel.measureText(contenido).width) + letra;
+    if (ancho > lienzo.width) continue;
+
+    if (x + ancho > lienzo.width) {
+      x = 0;
+      y += fila;
+    }
+    if (y + fila > lienzo.height) break;
+
+    // El color va **dentro** del atlas: así una sola malla lleva rótulos de colores distintos sin
+    // un material por color.
+    pincel.fillStyle = `#${new THREE.Color(colorDeCapa(texto.colorIndex ?? colorCapa)).getHexString()}`;
+    pincel.strokeText(contenido, x + letra / 2, y + fila / 2);
+    pincel.fillText(contenido, x + letra / 2, y + fila / 2);
+
+    const anchoMundo = (alto * ancho) / fila;
+    const media = anchoMundo / 2;
+    const medioAlto = alto / 2;
+    const angulo = (texto.rotationDeg * Math.PI) / 180;
+    const cos = Math.cos(angulo);
+    const sen = Math.sin(angulo);
+    const px = texto.x - cx;
+    const py = texto.y - cy;
+
+    // Las cuatro esquinas, con el giro del texto ya aplicado: se hornea acá porque la malla es una
+    // sola y no puede girar por rótulo.
+    const esquina = (dx: number, dy: number) => {
+      posiciones.push(px + dx * cos - dy * sen, 0, -(py + dx * sen + dy * cos));
+    };
+    esquina(-media, -medioAlto);
+    esquina(media, -medioAlto);
+    esquina(media, medioAlto);
+    esquina(-media, medioAlto);
+
+    const u0 = x / lienzo.width;
+    const u1 = (x + ancho) / lienzo.width;
+    // La textura se lee de abajo arriba, al revés que el lienzo.
+    const v0 = 1 - (y + fila) / lienzo.height;
+    const v1 = 1 - y / lienzo.height;
+    uvs.push(u0, v0, u1, v0, u1, v1, u0, v1);
+
+    const base = cuantos * 4;
+    indices.push(base, base + 1, base + 2, base, base + 2, base + 3);
+
+    x += ancho;
+    cuantos++;
+  }
+
+  if (cuantos === 0) return null;
 
   const textura = new THREE.CanvasTexture(lienzo);
   textura.colorSpace = THREE.SRGBColorSpace;
   textura.minFilter = THREE.LinearMipmapLinearFilter;
   textura.magFilter = THREE.LinearFilter;
   textura.anisotropy = 4;
-  textura.generateMipmaps = true;
 
-  // **Un mínimo legible.** El alto del texto viene en unidades del dibujo, y con el plano en
-  // milímetros un rótulo de 2,5 unidades mide dos milímetros y medio: existe y no se ve. Se sube
-  // hasta `ALTO_MINIMO_ETIQUETA_M` en metros de la escena, que es la altura a la que una letra se
-  // lee sin tener que pegarse al plano. Los rótulos que ya son grandes no se tocan.
-  const altoM = Math.max(texto.height * metrosPorUnidad, ALTO_MINIMO_ETIQUETA_M);
-  const alto = altoM / metrosPorUnidad;
-  const ancho = (alto * lienzo.width) / lienzo.height;
+  const geometria = new THREE.BufferGeometry();
+  geometria.setAttribute("position", new THREE.Float32BufferAttribute(posiciones, 3));
+  geometria.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
+  geometria.setIndex(indices);
 
   const malla = new THREE.Mesh(
-    new THREE.PlaneGeometry(ancho, alto),
+    geometria,
     new THREE.MeshBasicMaterial({
       map: textura,
       transparent: true,
@@ -684,13 +837,90 @@ function etiqueta(
       side: THREE.DoubleSide,
     }),
   );
+  malla.name = "rotulos";
+  // Los rótulos se dibujan **encima** de los trazos: compartiendo plano con las líneas, parpadean
+  // contra ellas al orbitar.
+  malla.renderOrder = 2;
+  malla.frustumCulled = false;
+  return { malla, cuantos };
+}
 
-  malla.position.set(texto.x - cx, 0, -(texto.y - cy));
-  malla.rotateX(-Math.PI / 2);
-  malla.rotateZ((texto.rotationDeg * Math.PI) / 180);
-  // El rótulo se dibuja **encima** de los trazos: si comparte plano con las líneas, la tarjeta
-  // parpadea contra ellas al orbitar. Medio milímetro de escena basta y no se nota.
-  malla.renderOrder = 1;
+/**
+ * Un relleno del plano, como cara plana.
+ *
+ * **Los macizos son la mitad del dibujo.** Un plano de arquitectura dibuja los muros con contorno y
+ * relleno; con solo el contorno, lo que se ve es una maraña de líneas y la comparación con el
+ * modelo deja de ser inmediata.
+ *
+ * De los contornos, el de **más área** se toma como borde y los demás como huecos: es lo que
+ * acierta en un plano real sin implementar la aritmética de contornos del estándar. Un rayado —no
+ * macizo— se dibuja solo con su borde, que a la escala de un plano es lo que se distingue.
+ */
+function mallaDeRelleno(
+  relleno: DxfHatch,
+  [cx, cy]: readonly [number, number],
+  colorCapa: number | null,
+): THREE.Object3D | null {
+  const contornos = relleno.loops
+    .map((puntos) => {
+      const planos: THREE.Vector2[] = [];
+      for (let i = 0; i + 1 < puntos.length; i += 2) {
+        planos.push(new THREE.Vector2(puntos[i]! - cx, -(puntos[i + 1]! - cy)));
+      }
+      return planos;
+    })
+    .filter((puntos) => puntos.length >= 3)
+    .sort(
+      (uno, otro) => Math.abs(THREE.ShapeUtils.area(otro)) - Math.abs(THREE.ShapeUtils.area(uno)),
+    );
+
+  const borde = contornos[0];
+  if (borde === undefined) return null;
+
+  const color = colorDeCapa(relleno.colorIndex ?? colorCapa);
+
+  if (!relleno.solid) {
+    // Un rayado: solo su borde, en la misma línea que el resto del plano.
+    const puntos: number[] = [];
+    for (const contorno of contornos) {
+      for (let i = 0; i < contorno.length; i++) {
+        const a = contorno[i]!;
+        const b = contorno[(i + 1) % contorno.length]!;
+        puntos.push(a.x, 0, a.y, b.x, 0, b.y);
+      }
+    }
+    const geometria = new THREE.BufferGeometry();
+    geometria.setAttribute("position", new THREE.Float32BufferAttribute(puntos, 3));
+    const linea = new THREE.LineSegments(
+      geometria,
+      new THREE.LineBasicMaterial({ color, depthWrite: false, transparent: true, opacity: 0.5 }),
+    );
+    linea.frustumCulled = false;
+    return linea;
+  }
+
+  const forma = new THREE.Shape(borde);
+  for (const hueco of contornos.slice(1)) forma.holes.push(new THREE.Path(hueco));
+
+  const geometria = new THREE.ShapeGeometry(forma);
+  // `ShapeGeometry` dibuja en XY y el plano vive en XZ: se tumba, igual que los rótulos.
+  geometria.rotateX(-Math.PI / 2);
+  // Y se sube un pelo para que no pelee contra las líneas del propio contorno.
+  geometria.translate(0, 0.0005, 0);
+
+  const malla = new THREE.Mesh(
+    geometria,
+    new THREE.MeshBasicMaterial({
+      color,
+      // Translúcido a propósito: el relleno no puede tapar ni el modelo que hay debajo ni las
+      // líneas del propio plano, que son las que se miden.
+      transparent: true,
+      opacity: 0.35,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    }),
+  );
+  malla.renderOrder = 0;
   malla.frustumCulled = false;
   return malla;
 }
