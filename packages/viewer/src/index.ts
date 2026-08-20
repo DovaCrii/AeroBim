@@ -41,7 +41,10 @@ import {
   type ConvertLocation,
   type Converter,
 } from "./converter.js";
+import { DrawingMaker, type DrawingView, type GeneratedDrawing } from "./drawings.js";
 import { GridOverlay } from "./grid.js";
+
+export type { DrawingView, GeneratedDrawing } from "./drawings.js";
 import { PlanOverlay, type LoadedPlan, type PlanHit, type PlanTransform } from "./plan.js";
 
 export type { IfcGridAxis } from "@aerobim/bim-core";
@@ -1141,6 +1144,8 @@ export class BimViewer {
   private readonly plans: PlanOverlay;
   /** Los ejes de replanteo de los modelos abiertos. Ver {@link loadIfc} y {@link setGridVisible}. */
   private readonly grids: GridOverlay;
+  /** Los planos generados desde el modelo. Ver {@link createDrawing}. */
+  private readonly drawings: DrawingMaker;
   /** Quién escucha las mediciones terminadas. Ver {@link onMeasurement}. */
   private readonly measureListeners = new Set<(measurement: Measurement | null) => void>();
   /**
@@ -1242,6 +1247,7 @@ export class BimViewer {
     };
     this.plans = new PlanOverlay(world.scene.three);
     this.grids = new GridOverlay(world.scene.three);
+    this.drawings = new DrawingMaker(components);
   }
 
   /**
@@ -2859,6 +2865,68 @@ export class BimViewer {
 
     const toque = await this.rayAt(clientX, clientY, true);
     return toque?.point ?? null;
+  }
+
+  /**
+   * Genera un plano **desde el modelo**: proyecta sus aristas y arma el dibujo.
+   *
+   * Se proyecta lo que está a la vista, no todo lo cargado: apagar una disciplina antes de generar
+   * es la forma natural de decidir qué entra en el plano, y es lo que ya se hace para mirar.
+   *
+   * Devuelve `null` si no había nada que proyectar. Puede tardar: la proyección recorre la
+   * geometría y descarta lo tapado, así que el aviso de avance no es un adorno.
+   */
+  async createDrawing(
+    view: DrawingView,
+    onProgress?: (mensaje: string, avance?: number) => void,
+  ): Promise<GeneratedDrawing | null> {
+    this.assertAlive();
+
+    const modelIdMap: Record<string, Set<number>> = {};
+    for (const [modelId, model] of this.fragments.list) {
+      const visibles = await model.getItemsByVisibility(true);
+      if (visibles.length > 0) modelIdMap[modelId] = new Set(visibles);
+    }
+    if (Object.keys(modelIdMap).length === 0) return null;
+
+    const plano = await this.drawings.create(this.world, modelIdMap, view, onProgress);
+    await this.refresh();
+    return plano;
+  }
+
+  /**
+   * Serializa un plano generado a DXF, listo para abrir en el CAD.
+   *
+   * Con papel sale en milímetros y colocado en la hoja; sin papel, en unidades del mundo. La
+   * interfaz ofrece papel porque lo que se pide es un plano imprimible.
+   */
+  exportDrawingDxf(
+    id: string,
+    paper?: { widthMm: number; heightMm: number; margin: number },
+  ): string | null {
+    this.assertAlive();
+    return this.drawings.exportDxf(id, paper);
+  }
+
+  /** Enciende o apaga las aristas ocultas de un plano generado. */
+  async setDrawingHiddenVisible(id: string, visible: boolean): Promise<void> {
+    this.assertAlive();
+    this.drawings.setHiddenVisible(id, visible);
+    await this.refresh();
+  }
+
+  /** Enciende o apaga un plano generado en la vista 3D. */
+  async setDrawingVisible(id: string, visible: boolean): Promise<void> {
+    this.assertAlive();
+    this.drawings.setVisible(id, visible);
+    await this.refresh();
+  }
+
+  /** Cierra un plano generado. */
+  async removeDrawing(id: string): Promise<void> {
+    this.assertAlive();
+    this.drawings.remove(id);
+    await this.refresh();
   }
 
   /** Enciende o apaga los ejes de replanteo de todos los modelos. */

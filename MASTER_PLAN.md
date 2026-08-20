@@ -980,15 +980,36 @@ longitud medida en los dos.
 
 | #      | Tarea                                                                                                | Estado |
 | ------ | ---------------------------------------------------------------------------------------------------- | ------ |
-| `F7.1` | Generar vistas 2D desde el modelo (plantas, alzados, secciones) con `TechnicalDrawings`              | ⬜     |
+| `F7.1` | Generar vistas 2D desde el modelo (planta, alzados) proyectando sus aristas                          | 🟡     |
 | `F7.2` | Viewports y capas: qué se dibuja, con qué grosor y en qué capa (`DrawingViewports`, `DrawingLayers`) | ⬜     |
 | `F7.3` | Acotado y anotaciones sobre el plano: cotas lineales, ángulos, pendientes y llamadas                 | ⬜     |
-| `F7.4` | **Exportar a DXF** con `DxfExporter`, para que el plano siga su camino en CAD                        | ⬜     |
+| `F7.4` | **Exportar a DXF** con `DxfExporter`, en A3 y milímetros, listo para el CAD                          | 🟡     |
 | `F7.5` | Exportar a PDF imprimible, con formato y sello                                                       | ⬜     |
 
 **Oráculo:** el DXF exportado **abre en AutoCAD o BricsCAD** con sus capas y cotas
 intactas, y una distancia medida en el plano coincide con la del modelo. Un plano que solo
 se entiende dentro de AeroBim no es un entregable.
+
+### Lo armado el 2026-08-19, y qué falta confirmar
+
+**`F7.1` y `F7.4` están montadas y sin confirmar en pantalla.** El panel "Planos generados" del
+navegador ofrece **planta, frontal y lateral**: proyecta las aristas de lo que está encendido —esa
+es la selección, no hay diálogo aparte—, arma el dibujo con su viewport, y lo exporta a **DXF en A3
+y milímetros**, que es lo que se pide cuando alguien quiere un plano imprimible. Las aristas ocultas
+se generan y se dejan apagadas, porque en un plano de arquitectura son la mitad del ruido.
+
+**El ensamblaje es de la librería**, como decía la nota de esta fase: `EdgeProjector` proyecta,
+`TechnicalDrawing` sostiene el dibujo y sus viewports, `DxfExporter` serializa. Lo propio es qué se
+proyecta, con qué nombre, en qué papel y con qué avisos.
+
+> **No se pudo verificar en el navegador de pruebas**, y esta vez el motivo es claro: `EdgeProjector`
+> usa el renderizador para descartar lo tapado, y en un panel que no compone fotogramas la
+> proyección **no arranca** — ni siquiera emite su primer aviso de avance. Es la misma limitación de
+> siempre, y ahora afecta a una función entera. Por eso la interfaz muestra el avance y ofrece
+> **"Dejar de esperar"**: si la proyección se queda quieta, la aplicación vuelve.
+>
+> **Lo que hay que confirmar en un navegador de verdad**: que la planta sale con las aristas del
+> modelo, cuánto tarda con el IFC de 23,6 MB, y que el DXF abre en AutoCAD con su escala.
 
 > **Por qué esta fase es sobre todo integración.** `TechnicalDrawings`, `DrawingViewports`,
 > `DrawingLayers`, `DxfExporter` y la familia de anotaciones —lineales, de ángulo, de

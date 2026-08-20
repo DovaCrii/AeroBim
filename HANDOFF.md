@@ -62,6 +62,18 @@
 > trazos**, a los extremos y a los puntos medios, y midiendo distancia la cota toma esos puntos. Se
 > apaga desde Medición → Ajuste del cursor → **Al plano**. 3,4 ms por clic sobre el plano real.
 >
+> ## Lo primero al abrir la aplicación: confirmar los planos generados
+>
+> **`F7.1` y `F7.4` están montadas y sin confirmar en pantalla.** En el navegador del proyecto,
+> sección **Planos generados**: planta, frontal y lateral, y **Exportar a DXF (A3)**. Proyecta lo
+> que está encendido, así que apagar una disciplina antes es la forma de decidir qué sale.
+>
+> **No se pudo verificar aquí**: `EdgeProjector` usa el renderizador para descartar lo tapado y en
+> un panel que no compone fotogramas la proyección ni arranca. Hay que mirar tres cosas en un
+> navegador de verdad: que la planta salga con las aristas del modelo, cuánto tarda con el IFC de
+> 23,6 MB, y que el DXF abra en AutoCAD con su escala. Si se queda quieta, el panel tiene
+> **"Dejar de esperar"**.
+>
 > **Los ejes de replanteo ya se dibujan** (Vista → Trabajo → **Ejes**). El conversor deja el
 > `IfcGrid` sin geometría, así que se leen del propio archivo con `parseIfcGrids` en `bim-core`:
 > 12 ejes en 72 ms sobre el IFC4 de OpenBuildings, con su burbuja en los dos extremos. Con eso, el

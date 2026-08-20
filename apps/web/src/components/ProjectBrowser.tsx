@@ -29,6 +29,8 @@ export function ProjectBrowser({
   modelos,
   planos,
   planCount,
+  generados,
+  drawingCount,
   cotas,
   vistas,
   puedeGuardarVista,
@@ -43,6 +45,9 @@ export function ProjectBrowser({
   /** Los planos 2D cargados, con sus capas y su ajuste. */
   readonly planos: React.ReactNode;
   readonly planCount: number;
+  /** Los planos generados desde el modelo, con su exportación. */
+  readonly generados: React.ReactNode;
+  readonly drawingCount: number;
   /** Las cotas dibujadas. La sección aparece sola cuando hay alguna. */
   readonly cotas: readonly DrawnMeasurement[];
   /** Las vistas guardadas, en el orden en que se guardaron. */
@@ -56,7 +61,7 @@ export function ProjectBrowser({
   readonly onDeleteView: (id: string) => void;
 }) {
   const [abiertas, setAbiertas] = useState<ReadonlySet<string>>(
-    new Set(["estructura", "modelos", "planos", "cotas", "vistas"]),
+    new Set(["estructura", "modelos", "planos", "generados", "cotas", "vistas"]),
   );
   /**
    * El alto que se le fijó a mano a cada sección, en píxeles.
@@ -116,6 +121,18 @@ export function ProjectBrowser({
         onRedimensionar={(delta, actual) => redimensionar("planos", delta, actual)}
       >
         {planos}
+      </Seccion>
+
+      {/* Los planos que **salen** del modelo, justo debajo de los que **entran**: son las dos
+          direcciones del mismo trabajo y se consultan en la misma columna. */}
+      <Seccion
+        titulo={`Planos generados (${drawingCount})`}
+        abierta={abiertas.has("generados")}
+        onAlternar={() => alternar("generados")}
+        alto={altos["generados"] ?? null}
+        onRedimensionar={(delta, actual) => redimensionar("generados", delta, actual)}
+      >
+        {generados}
       </Seccion>
 
       <Seccion

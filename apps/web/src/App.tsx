@@ -1,7 +1,9 @@
 import {
   BimViewer,
   type DistanceMode,
+  type DrawingView,
   type DrawnMeasurement,
+  type GeneratedDrawing,
   type LoadedModel,
   type LoadedPlan,
   type LoadStage,
@@ -22,6 +24,7 @@ import {
 } from "@aerobim/viewer";
 import { parseSavedViews } from "@aerobim/bim-core";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { DrawingsPanel } from "./components/DrawingsPanel.js";
 import { ModelsPanel } from "./components/ModelsPanel.js";
 import { PlansPanel } from "./components/PlansPanel.js";
 import { ProjectBrowser } from "./components/ProjectBrowser.js";
@@ -251,6 +254,16 @@ export function App() {
   const [modo2D, setModo2D] = useState(false);
   /** `true` con los ejes de replanteo del modelo a la vista. */
   const [gridVisible, setGridVisible] = useState(true);
+  /** Los planos generados desde el modelo, en el orden en que se hicieron. */
+  const [drawings, setDrawings] = useState<readonly GeneratedDrawing[]>([]);
+  const [hiddenDrawings, setHiddenDrawings] = useState<ReadonlySet<string>>(new Set());
+  /**
+   * En qué va la proyección, o `null` si no se está generando ninguna.
+   *
+   * Proyectar las aristas de un modelo entero tarda, y sin este aviso la aplicación parece colgada
+   * — que es exactamente lo que ya pasó con la conversión de los IFC grandes.
+   */
+  const [generating, setGenerating] = useState<string | null>(null);
   /**
    * La alineación de un plano en curso, si la hay.
    *
@@ -733,6 +746,60 @@ export function App() {
     [models],
   );
 
+  /**
+   * Genera un plano desde el modelo y lo añade a la lista.
+   *
+   * **Lo que entra en el plano es lo que está encendido**, así que no hay diálogo de selección:
+   * apagar una disciplina antes de generar es la misma decisión que ya se toma para mirar.
+   */
+  const onGenerateDrawing = useCallback(async (view: DrawingView) => {
+    const instance = viewer.current;
+    if (instance === null) return;
+
+    setGenerating("Proyectando las aristas del modelo…");
+    try {
+      const plano = await instance.createDrawing(view, (mensaje, avance) => {
+        setGenerating(
+          avance === undefined ? mensaje : `${mensaje} — ${Math.round(avance * 100)} %`,
+        );
+      });
+      if (plano === null) {
+        setStatus({ kind: "error", message: "No hay nada encendido que proyectar." });
+        return;
+      }
+      setDrawings((actuales) => [...actuales, plano]);
+    } catch (error: unknown) {
+      setStatus({ kind: "error", message: describe(error) });
+    } finally {
+      setGenerating(null);
+    }
+  }, []);
+
+  /**
+   * Descarga un plano generado como DXF.
+   *
+   * En **A3 y en milímetros**: lo que se pide al exportar es un plano imprimible, y un DXF en
+   * unidades de mundo obliga a escalarlo a mano en el CAD.
+   */
+  const onExportDrawing = useCallback(
+    (id: string) => {
+      const dxf = viewer.current?.exportDrawingDxf(id, {
+        widthMm: 420,
+        heightMm: 297,
+        margin: 10,
+      });
+      if (dxf === null || dxf === undefined) return;
+
+      const plano = drawings.find((uno) => uno.id === id);
+      const enlace = document.createElement("a");
+      enlace.href = URL.createObjectURL(new Blob([dxf], { type: "application/dxf" }));
+      enlace.download = `${plano?.name ?? "plano"}.dxf`;
+      enlace.click();
+      URL.revokeObjectURL(enlace.href);
+    },
+    [drawings],
+  );
+
   const onSection = useCallback((axis: SectionAxis) => {
     setHasSections(true);
     void viewer.current?.addSection(axis);
@@ -1124,6 +1191,33 @@ export function App() {
           >
             <ProjectBrowser
               planCount={plans.length}
+              drawingCount={drawings.length}
+              generados={
+                <DrawingsPanel
+                  drawings={drawings}
+                  hidden={hiddenDrawings}
+                  generating={generating}
+                  onGenerate={(vista) => void onGenerateDrawing(vista)}
+                  onCancel={() => setGenerating(null)}
+                  onToggle={(id, visible) => {
+                    setHiddenDrawings((actual) => {
+                      const siguiente = new Set(actual);
+                      if (visible) siguiente.delete(id);
+                      else siguiente.add(id);
+                      return siguiente;
+                    });
+                    void viewer.current?.setDrawingVisible(id, visible);
+                  }}
+                  onToggleHidden={(id, visible) =>
+                    void viewer.current?.setDrawingHiddenVisible(id, visible)
+                  }
+                  onExport={onExportDrawing}
+                  onClose={(id) => {
+                    setDrawings((actuales) => actuales.filter((uno) => uno.id !== id));
+                    void viewer.current?.removeDrawing(id);
+                  }}
+                />
+              }
               cotas={drawn}
               vistas={views}
               puedeGuardarVista={models.length > 0}
