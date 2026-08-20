@@ -97,6 +97,11 @@ export class DrawingMaker {
     const drawing = this.components.get(OBC.TechnicalDrawings).create(world);
     const id = `plano-generado-${this.siguiente++}`;
 
+    // **Nace apagado en la vista 3D.** El dibujo se coloca en el plano de proyección, o sea encima
+    // del modelo: encendido de entrada, lo que se ve es una maraña de líneas superpuestas a la
+    // geometría y la escena parece rota. Se enciende desde su ficha, cuando se quiere mirar.
+    drawing.three.visible = false;
+
     const lineas = new THREE.LineSegments(
       proyeccion.visible,
       new THREE.LineBasicMaterial({ color: 0xe8e8ef }),
@@ -154,6 +159,15 @@ export class DrawingMaker {
   setVisible(id: string, visible: boolean): void {
     const plano = this.planos.get(id);
     if (plano !== undefined) plano.drawing.three.visible = visible;
+  }
+
+  /** La caja que ocupa un plano generado, para poder encuadrarlo al encenderlo. */
+  boxOf(id: string): THREE.Box3 | null {
+    const plano = this.planos.get(id);
+    if (plano === undefined) return null;
+
+    const caja = new THREE.Box3().setFromObject(plano.drawing.three);
+    return caja.isEmpty() ? null : caja;
   }
 
   /**

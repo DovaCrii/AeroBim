@@ -1895,8 +1895,40 @@ export class BimViewer {
    * Cuando no hay nada pintado encima, un refresco simple basta y es más barato.
    */
   private async refresh(): Promise<void> {
+    this.sanearCamara();
     if (this.renderStyle === "wireframe" || this.selection !== null) await this.applyHighlights();
     else await this.fragments.core.update(true);
+  }
+
+  /**
+   * Repara la cámara cuando su aritmética se ha ido a `NaN`.
+   *
+   * **Un lienzo de altura cero envenena la cámara para siempre.** La relación de aspecto se calcula
+   * dividiendo por el alto, y con el alto en cero queda `NaN`: a partir de ahí la matriz de
+   * proyección es `NaN`, encuadrar devuelve una posición imposible, el rayo no encuentra nada y
+   * **ningún botón la recupera**, porque todos parten de donde está la cámara. Pasa de verdad: un
+   * panel plegado al arrancar, una ventana reducida a nada, una pestaña que se abre oculta.
+   *
+   * Se comprueba antes de cada refresco, que es barato, y se devuelve a un estado utilizable.
+   */
+  private sanearCamara(): void {
+    const camara = this.world.camera.three;
+    const lienzo = this.world.renderer?.three.domElement;
+
+    const perspectiva = camara as THREE.PerspectiveCamera;
+    if (perspectiva.isPerspectiveCamera === true && !Number.isFinite(perspectiva.aspect)) {
+      const ancho = lienzo?.clientWidth ?? 0;
+      const alto = lienzo?.clientHeight ?? 0;
+      perspectiva.aspect = ancho > 0 && alto > 0 ? ancho / alto : 1;
+      perspectiva.updateProjectionMatrix();
+    }
+
+    if (!Number.isFinite(camara.position.x + camara.position.y + camara.position.z)) {
+      // Sin sitio conocido al que volver, la posición inicial: es la que tenía la escena vacía y
+      // desde ahí cualquier encuadre vuelve a funcionar.
+      this.world.camera.controls.setLookAt(50, 50, 50, 0, 0, 0, false);
+      this.world.camera.controls.update(ONE_FRAME_S);
+    }
   }
 
   /** Quita el resaltado de selección, dejando la vista fantasma si estaba puesta. */
@@ -2915,10 +2947,20 @@ export class BimViewer {
     await this.refresh();
   }
 
-  /** Enciende o apaga un plano generado en la vista 3D. */
+  /**
+   * Enciende o apaga un plano generado en la vista 3D.
+   *
+   * **Encenderlo lleva la cámara a él.** El dibujo se coloca en el plano de proyección —encima del
+   * modelo— así que aparecer sin más lo deja mezclado con la geometría y parece que algo se rompió.
+   */
   async setDrawingVisible(id: string, visible: boolean): Promise<void> {
     this.assertAlive();
+
     this.drawings.setVisible(id, visible);
+    if (visible) {
+      const caja = this.drawings.boxOf(id);
+      if (caja !== null) this.applyFraming(caja, "top");
+    }
     await this.refresh();
   }
 

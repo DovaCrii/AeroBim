@@ -752,28 +752,41 @@ export function App() {
    * **Lo que entra en el plano es lo que está encendido**, así que no hay diálogo de selección:
    * apagar una disciplina antes de generar es la misma decisión que ya se toma para mirar.
    */
-  const onGenerateDrawing = useCallback(async (view: DrawingView) => {
-    const instance = viewer.current;
-    if (instance === null) return;
+  const onGenerateDrawing = useCallback(
+    async (view: DrawingView) => {
+      const instance = viewer.current;
+      if (instance === null) return;
 
-    setGenerating("Proyectando las aristas del modelo…");
-    try {
-      const plano = await instance.createDrawing(view, (mensaje, avance) => {
-        setGenerating(
-          avance === undefined ? mensaje : `${mensaje} — ${Math.round(avance * 100)} %`,
-        );
-      });
-      if (plano === null) {
-        setStatus({ kind: "error", message: "No hay nada encendido que proyectar." });
-        return;
+      setGenerating("Proyectando las aristas del modelo…");
+      try {
+        const plano = await instance.createDrawing(view, (mensaje, avance) => {
+          setGenerating(
+            avance === undefined ? mensaje : `${mensaje} — ${Math.round(avance * 100)} %`,
+          );
+        });
+        if (plano === null) {
+          setStatus({
+            kind: "error",
+            // El caso más común es haber entrado en Modo 2D, que apaga los modelos: decirlo ahorra
+            // el rato de mirar la pantalla sin entender por qué no sale nada.
+            message: modo2D
+              ? "No hay nada que proyectar: el Modo 2D tiene los modelos apagados."
+              : "No hay nada encendido que proyectar.",
+          });
+          return;
+        }
+        // Nace apagado en la vista 3D —el dibujo cae encima del modelo—, así que la lista arranca
+        // marcándolo como tal: encenderlo es un clic en su ojo.
+        setDrawings((actuales) => [...actuales, plano]);
+        setHiddenDrawings((actual) => new Set(actual).add(plano.id));
+      } catch (error: unknown) {
+        setStatus({ kind: "error", message: describe(error) });
+      } finally {
+        setGenerating(null);
       }
-      setDrawings((actuales) => [...actuales, plano]);
-    } catch (error: unknown) {
-      setStatus({ kind: "error", message: describe(error) });
-    } finally {
-      setGenerating(null);
-    }
-  }, []);
+    },
+    [modo2D],
+  );
 
   /**
    * Descarga un plano generado como DXF.
