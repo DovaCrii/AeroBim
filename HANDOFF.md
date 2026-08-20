@@ -37,6 +37,12 @@
 > `LTYPE` —con el patrón llevado a una medida legible, porque `LTSCALE` deja rayas de dos milésimas
 > de milímetro— y rótulos con alto mínimo de 35 cm, letra a 96 px y contorno oscuro detrás.
 >
+> **Calzar el plano con dos puntos** (`F7.8`, cerrada): en la ficha del plano, "Calzar con 2
+> puntos" pide un punto del plano, su equivalente en el modelo, y otro par. Sale el giro, el
+> desplazamiento, la cota y —si se marca la casilla— la escala. `Esc` cancela. Comprobado con dos
+> pares construidos: 0 mm de error en los dos puntos, y la escala pasa de 0,001 a 0,002 cuando el
+> destino mide el doble.
+>
 > **Ajuste y medición sobre el plano** (`F7.11`, a medias): el cursor se engancha a extremos y
 > puntos medios de los trazos, y midiendo distancia la cota toma esos puntos. Se apaga desde
 > Medición → Ajuste del cursor → **Al plano**.

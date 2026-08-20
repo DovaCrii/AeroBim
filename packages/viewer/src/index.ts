@@ -2730,6 +2730,41 @@ export class BimViewer {
     return { kind: "edge", point: hit.point, layer: hit.layer, planId: hit.planId };
   }
 
+  /**
+   * Calza un plano sobre el modelo con dos pares de puntos: giro, escala y desplazamiento.
+   *
+   * Ver {@link PlanOverlay.align}. Devuelve la colocación que quedó, o `null` si el plano ya no
+   * está o si los dos puntos de un lado coinciden — dos clics en el mismo sitio no dan dirección.
+   */
+  async alignPlan(
+    id: string,
+    puntos: {
+      readonly planoA: Point3;
+      readonly modeloA: Point3;
+      readonly planoB: Point3;
+      readonly modeloB: Point3;
+    },
+    ajustarEscala: boolean,
+  ): Promise<PlanTransform | null> {
+    this.assertAlive();
+
+    const resultado = this.plans.align(id, puntos, ajustarEscala);
+    await this.refresh();
+    return resultado;
+  }
+
+  /**
+   * El punto del **modelo** bajo el cursor, con el ajuste del medidor puesto.
+   *
+   * Es la otra mitad de alinear por dos puntos: uno se señala en el CAD y el otro en el IFC.
+   */
+  async pointOnModel(clientX: number, clientY: number): Promise<Point3 | null> {
+    this.assertAlive();
+
+    const toque = await this.rayAt(clientX, clientY, true);
+    return toque?.point ?? null;
+  }
+
   /** Enciende o apaga el ajuste al plano mientras se mide. */
   setPlanSnapEnabled(enabled: boolean): void {
     this.assertAlive();

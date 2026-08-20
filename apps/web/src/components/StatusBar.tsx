@@ -21,6 +21,7 @@ export function StatusBar({
   measurementCount,
   isolated,
   hasHidden,
+  aligning,
   onUndoIsolate,
   onShowAll,
 }: {
@@ -35,6 +36,8 @@ export function StatusBar({
   readonly isolated: boolean;
   /** `true` si hay algo fuera de la vista, aislado o apagado a mano. */
   readonly hasHidden: boolean;
+  /** El calce de un plano en curso: su nombre y cuántos puntos van puestos. */
+  readonly aligning: { readonly planName: string; readonly placed: number } | null;
   /** Sale del último aislamiento y vuelve a lo que había antes de aislar. */
   readonly onUndoIsolate: () => void;
   /** Enciende todo, incluido lo que se había apagado a mano. */
@@ -48,13 +51,15 @@ export function StatusBar({
       </span>
 
       <span className="min-w-0 flex-1 truncate text-brand">
-        {measureMode !== null
-          ? instruccion(measureMode, measurePoints)
-          : selected === null
-            ? "Clic en un elemento para ver sus propiedades · doble clic para acercarse"
-            : `${selected.category ?? "Elemento"}${
-                selected.name === null ? "" : ` · ${selected.name}`
-              } — doble clic para encuadrarlo`}
+        {aligning !== null
+          ? instruccionDeCalce(aligning.planName, aligning.placed)
+          : measureMode !== null
+            ? instruccion(measureMode, measurePoints)
+            : selected === null
+              ? "Clic en un elemento para ver sus propiedades · doble clic para acercarse"
+              : `${selected.category ?? "Elemento"}${
+                  selected.name === null ? "" : ` · ${selected.name}`
+                } — doble clic para encuadrarlo`}
       </span>
 
       {measurement !== null && <Resultado measurement={measurement} />}
@@ -204,6 +209,23 @@ function Magnitud({
  * Cuenta los puntos ya puestos: un texto que no cambia después de cada clic no deja saber si el clic
  * entró, y eso es exactamente lo que hacía pensar que la medición no funcionaba.
  */
+/**
+ * Qué hay que señalar en cada paso del calce.
+ *
+ * Los cuatro clics van alternos y **no se distinguen solos**: sin este aviso, nadie sabe si el
+ * siguiente clic va sobre el plano o sobre el modelo, y un punto puesto en el sitio equivocado
+ * calza el plano en cualquier parte.
+ */
+function instruccionDeCalce(planName: string, puestos: number): string {
+  const pasos = [
+    `Calzando ${planName}: clic en un punto reconocible **del plano**`,
+    "Ahora el mismo punto **en el modelo**",
+    "Segundo punto **del plano**, lo más lejos posible del primero",
+    "Y su equivalente **en el modelo**: con este se calza",
+  ];
+  return `${pasos[puestos] ?? pasos[0]!} · Esc para salir`.replace(/\*\*/g, "");
+}
+
 function instruccion(mode: MeasureMode, points: number): string {
   if (mode === "distance") {
     return points === 0 ? "Clic en el primer punto" : "Clic en el segundo punto";

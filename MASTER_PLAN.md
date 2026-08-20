@@ -820,7 +820,7 @@ volver a la herramienta de escritorio.
 | ------- | ---------------------------------------------------------------------------------------- | ------ |
 | `F7.6`  | **Leer un DXF**: capas, unidades, colores, textos, líneas, polilíneas, arcos y bloques   | ✅     |
 | `F7.7`  | **Dibujarlo en la escena** a una cota, con los colores reales del CAD y sus rótulos      | ✅     |
-| `F7.8`  | **Alinear plano y modelo**: unidad, cota, desplazamiento, giro y reflejo                 | 🟡     |
+| `F7.8`  | **Calzar plano y modelo**: por dos pares de puntos, y a mano con unidad, cota y giro     | ✅     |
 | `F7.9`  | **Panel de capas del plano**: encender y apagar cada una                                 | ✅     |
 | `F7.10` | **Seleccionar en 2D**: clic en un trazo → su capa, su plano y el largo del tramo         | ✅     |
 | `F7.11` | **Herramientas CAD de revisión**: ajuste a extremo y punto medio, y medir sobre el plano | 🟡     |
@@ -835,9 +835,21 @@ nuevo y lo que se demuele en la misma capa con colores distintos), pone los rót
 el plano, y un clic sobre un trazo devuelve su capa y el largo del tramo — comprobado: `0-MUROS`,
 0,060 m, en (8,113, 0, −14,913).
 
-**Lo que falta de `F7.8`** es el gesto, no los números: hoy se ajusta escribiendo unidad, cota, X,
-Z, giro y reflejo, y falta **"este punto del plano va aquí en el modelo"**, con dos clics. Los
-números quedan igual: son la red de seguridad cuando el gesto no basta.
+**`F7.8` cerrada con el gesto** (2026-08-19). **Calzar con 2 puntos**: se señala un punto
+reconocible del plano, su equivalente en el modelo, y otro par más. De ahí salen el **giro**, el
+**desplazamiento**, la **cota** —la del punto del modelo— y, si se pide, la **escala**. Los números
+siguen ahí: son la red de seguridad cuando el gesto no basta.
+
+Comprobado en el navegador con dos pares construidos a propósito: con un giro de 90° los dos puntos
+del plano caen sobre sus destinos con **0 mm de error**, y pidiendo escala sobre un destino del
+doble de largo la unidad pasa de 0,001 a 0,002 m, otra vez con 0 mm de error.
+
+> **Dos pares y no uno**: con un par solo se puede mover el plano, no orientarlo. La dirección entre
+> los dos puntos dice cuánto girar y su largo cuánto escalar.
+>
+> **La escala solo si se pide**, con su casilla: en un plano cuya unidad ya es correcta, corregirla
+> con dos clics imprecisos estropea lo que estaba bien. Cuando se aplica, la unidad deja de ser una
+> de la lista y el selector lo dice — "a medida (0,002 m por unidad)".
 
 **Lo que hay de `F7.11`**: el cursor se engancha a los **extremos** y a los **puntos medios** de los
 trazos, y midiendo distancia esos son los puntos que toma la cota. Falta la **intersección** de dos

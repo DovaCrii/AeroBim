@@ -18,13 +18,18 @@ export function PlansPanel({
   plans,
   hiddenPlans,
   hiddenLayers,
+  aligningPlanId,
   onTogglePlan,
   onToggleLayer,
   onTransform,
+  onAlign,
   onFrame,
   onClose,
 }: {
   readonly plans: readonly LoadedPlan[];
+  /** El plano que se está calzando a puntos, si hay alguno. */
+  readonly aligningPlanId: string | null;
+  readonly onAlign: (id: string, ajustarEscala: boolean) => void;
   /** Planos apagados enteros, por identificador. */
   readonly hiddenPlans: ReadonlySet<string>;
   /** Capas apagadas, como `plano:capa`. */
@@ -52,9 +57,11 @@ export function PlansPanel({
           plan={plan}
           visible={!hiddenPlans.has(plan.id)}
           hiddenLayers={hiddenLayers}
+          alineando={aligningPlanId === plan.id}
           onTogglePlan={onTogglePlan}
           onToggleLayer={onToggleLayer}
           onTransform={onTransform}
+          onAlign={onAlign}
           onFrame={onFrame}
           onClose={onClose}
         />
@@ -67,15 +74,19 @@ function PlanoEnLista({
   plan,
   visible,
   hiddenLayers,
+  alineando,
   onTogglePlan,
   onToggleLayer,
   onTransform,
+  onAlign,
   onFrame,
   onClose,
 }: {
   readonly plan: LoadedPlan;
   readonly visible: boolean;
   readonly hiddenLayers: ReadonlySet<string>;
+  readonly alineando: boolean;
+  readonly onAlign: (id: string, ajustarEscala: boolean) => void;
   readonly onTogglePlan: (id: string, visible: boolean) => void;
   readonly onToggleLayer: (id: string, layer: string, visible: boolean) => void;
   readonly onTransform: (id: string, cambios: Partial<PlanTransform>) => void;
@@ -83,6 +94,9 @@ function PlanoEnLista({
   readonly onClose: (id: string) => void;
 }) {
   const [abierto, setAbierto] = useState(true);
+  // La escala se corrige solo si se pide: en un plano cuya unidad ya es correcta, ajustarla con dos
+  // clics imprecisos estropea lo que estaba bien.
+  const [ajustarEscala, setAjustarEscala] = useState(false);
   const t = plan.transform;
   const sinDibujar = Object.entries(plan.skipped);
   const anchoM = plan.sizeUnits[0] * t.metresPerUnit;
@@ -150,6 +164,14 @@ function PlanoEnLista({
                     {unidad.nombre}
                   </option>
                 ))}
+                {/* Calzar con dos puntos puede dejar una escala que no es ninguna unidad conocida
+                    —y es un resultado legítimo, salido de medir sobre el modelo—. Sin esta opción
+                    el selector se quedaría en blanco y parecería roto. */}
+                {!UNIDADES.some((unidad) => unidad.metros === t.metresPerUnit) && (
+                  <option value={String(t.metresPerUnit)}>
+                    a medida ({t.metresPerUnit.toPrecision(4)} m por unidad)
+                  </option>
+                )}
               </select>
             </div>
 
@@ -224,6 +246,34 @@ function PlanoEnLista({
                 reflejadas. Sin esta casilla el ajuste entra en un bucle sin salida. */}
             Reflejar (si el plano sale en espejo)
           </label>
+
+          {/* **Calzar señalando, no escribiendo.** Los números de arriba son la red de seguridad;
+              esto es el gesto: dos puntos del plano y sus dos equivalentes en el modelo, y el
+              plano cae girado, escalado y en su sitio de una vez. */}
+          <div className="rounded border border-white/10 p-1.5">
+            <button
+              type="button"
+              onClick={() => onAlign(plan.id, ajustarEscala)}
+              disabled={alineando}
+              className={[
+                "w-full rounded px-2 py-1 text-[11px] font-medium",
+                alineando
+                  ? "bg-brand/20 text-brand"
+                  : "bg-brand text-white hover:opacity-90 disabled:opacity-40",
+              ].join(" ")}
+            >
+              {alineando ? "Señalando puntos… (Esc para salir)" : "Calzar con 2 puntos"}
+            </button>
+            <label className="mt-1 flex items-center gap-2 text-[10px] text-white/50">
+              <input
+                type="checkbox"
+                checked={ajustarEscala}
+                onChange={(e) => setAjustarEscala(e.target.checked)}
+                className="accent-brand"
+              />
+              Corregir también la escala con la distancia entre los dos puntos
+            </label>
+          </div>
 
           <div>
             <p className="pb-1 text-[10px] tracking-wide text-white/35 uppercase">

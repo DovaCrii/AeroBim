@@ -387,6 +387,80 @@ export class PlanOverlay {
     return caja.isEmpty() ? null : caja;
   }
 
+  /**
+   * Calza el plano sobre el modelo con **dos pares de puntos**.
+   *
+   * Es el gesto que sustituye a escribir números: se señala un punto del plano y el punto del
+   * modelo que le corresponde, y otro par más. Con eso salen las tres cosas que hacen falta —el
+   * **giro**, la **escala** y el **desplazamiento**— y el plano cae en su sitio.
+   *
+   * **Por qué dos pares y no uno.** Con un par solo se puede mover el plano, no orientarlo: la
+   * dirección entre dos puntos es lo que dice cuánto hay que girar, y su largo, cuánto hay que
+   * escalar. Un par basta cuando el plano ya está orientado, y para eso está el ajuste numérico.
+   *
+   * La escala se aplica solo si se pide: en un plano cuya unidad ya es correcta, corregirla por dos
+   * clics imprecisos empeora lo que estaba bien. Cuando se aplica, la unidad deja de ser una de las
+   * de la lista y pasa a ser la medida que hizo calzar los dos puntos, que es un dato legítimo y la
+   * interfaz lo dice.
+   */
+  align(
+    id: string,
+    puntos: {
+      readonly planoA: readonly [number, number, number];
+      readonly modeloA: readonly [number, number, number];
+      readonly planoB: readonly [number, number, number];
+      readonly modeloB: readonly [number, number, number];
+    },
+    ajustarEscala: boolean,
+  ): PlanTransform | null {
+    const plano = this.planos.get(id);
+    if (plano === undefined) return null;
+
+    const pA = new THREE.Vector3(...puntos.planoA);
+    const pB = new THREE.Vector3(...puntos.planoB);
+    const qA = new THREE.Vector3(...puntos.modeloA);
+    const qB = new THREE.Vector3(...puntos.modeloB);
+
+    // Todo se resuelve **en planta**: un plano es horizontal y la altura la fija el punto del
+    // modelo. Mezclar la componente vertical en el giro daría una rotación que el plano no puede
+    // tener.
+    // Un punto que no es un punto no calza nada, y aplicado dejaría la colocación en `NaN`: el
+    // plano desaparecería sin decir por qué y no habría forma de volver.
+    for (const punto of [pA, pB, qA, qB]) {
+      if (!Number.isFinite(punto.x) || !Number.isFinite(punto.y) || !Number.isFinite(punto.z)) {
+        return null;
+      }
+    }
+
+    const enPlano = new THREE.Vector2(pB.x - pA.x, pB.z - pA.z);
+    const enModelo = new THREE.Vector2(qB.x - qA.x, qB.z - qA.z);
+    if (enPlano.length() < 1e-6 || enModelo.length() < 1e-6) return null;
+
+    const giro = enModelo.angle() - enPlano.angle();
+    const factor = ajustarEscala ? enModelo.length() / enPlano.length() : 1;
+
+    // Dónde queda el primer punto del plano después de girar y escalar alrededor del origen del
+    // grupo: de ahí sale el desplazamiento que lo lleva exactamente sobre el del modelo.
+    const desdeOrigen = pA.clone().sub(plano.grupo.position).multiplyScalar(factor);
+    // El giro de la escena es alrededor de Y y el ángulo se mide en el plano XZ, donde el sentido
+    // es el contrario: por eso entra negado.
+    desdeOrigen.applyAxisAngle(new THREE.Vector3(0, 1, 0), -giro);
+
+    const destino = qA.clone().sub(desdeOrigen);
+    const grados = (-giro * 180) / Math.PI;
+
+    plano.transform = {
+      ...plano.transform,
+      metresPerUnit: plano.transform.metresPerUnit * factor,
+      rotationDeg: plano.transform.rotationDeg + grados,
+      offsetXM: destino.x,
+      offsetZM: destino.z,
+      elevationM: destino.y,
+    };
+    aplicar(plano);
+    return plano.transform;
+  }
+
   /** La caja de todos los planos juntos, para poder encuadrarlos con el modelo. */
   boxAll(): THREE.Box3 | null {
     const union = new THREE.Box3();

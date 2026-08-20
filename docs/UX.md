@@ -115,8 +115,8 @@ trabajo entero —coordinar no es medir—, y nunca para un solo botón.
 - **Herramientas CAD de revisión** (`F7.11`): snap a extremo/medio/intersección sobre el plano,
   medir del plano al modelo, y marcar sobre el plano. Hoy se puede seleccionar un trazo y leer su
   largo, que es el primer paso.
-- **Alinear por dos puntos** (`F7.8`): hoy el ajuste es numérico —unidad, cota, X, Z, giro,
-  reflejo—; falta el gesto de "este punto del plano va aquí en el modelo".
+- **Intersección de dos trazos** como punto de ajuste, y medir del plano al modelo en un mismo
+  gesto. El extremo y el punto medio ya enganchan.
 - **Llevar la selección al árbol**: seleccionar en el modelo y que el árbol se despliegue hasta el
   elemento.
 - **Textos del plano en 3D**: se dibujan tumbados sobre el plano y con su color; queda pendiente

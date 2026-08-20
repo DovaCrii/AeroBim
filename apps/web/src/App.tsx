@@ -44,6 +44,23 @@ interface HiddenState {
   readonly hiddenElements: ReadonlySet<string>;
 }
 
+/**
+ * Una alineación de plano a medias: qué plano, qué puntos van puestos y con qué escala.
+ *
+ * Los puntos se guardan en el orden en que se piden —plano, modelo, plano, modelo—, así que
+ * cuántos hay dice en qué paso va el gesto y qué hay que pedir en el siguiente clic.
+ */
+interface Alignment {
+  readonly planId: string;
+  readonly planName: string;
+  readonly points: readonly Point3[];
+  /** `true` si además de girar y mover hay que corregir la escala del plano. */
+  readonly adjustScale: boolean;
+}
+
+/** Un punto de la escena, en metros. */
+type Point3 = readonly [number, number, number];
+
 type Status =
   | { readonly kind: "starting" }
   | { readonly kind: "ready" }
@@ -230,6 +247,14 @@ export function App() {
    * modelo con un plano debajo, engancharse al CAD sin querer falsea la medida.
    */
   const [planSnap, setPlanSnap] = useState(true);
+  /**
+   * La alineación de un plano en curso, si la hay.
+   *
+   * Son cuatro clics alternos —punto del plano, su punto en el modelo, y otro par— y hay que
+   * recordar por cuál va y los que ya se pusieron. Vive en la interfaz y no en el visor porque es
+   * un flujo de pantalla: el visor solo sabe calzar cuando ya están los cuatro.
+   */
+  const [aligning, setAligning] = useState<Alignment | null>(null);
   /** Planos apagados enteros, por identificador. */
   const [hiddenPlans, setHiddenPlans] = useState<ReadonlySet<string>>(new Set());
   /** Capas de plano apagadas, como `plano:capa`. */
@@ -413,6 +438,39 @@ export function App() {
       clickInFlight.current = true;
 
       try {
+        // **Alinear se come el clic**, y antes que nada: mientras se están señalando los cuatro
+        // puntos, seleccionar o medir sería justo lo que no se quiere.
+        if (aligning !== null) {
+          const enPlano = aligning.points.length % 2 === 0;
+          const punto = enPlano
+            ? viewer.current?.snapOnPlan(event.clientX, event.clientY)?.point
+            : ((await instance.pointOnModel(event.clientX, event.clientY)) ?? undefined);
+
+          // Un clic al vacío no cuenta: el aviso sigue pidiendo lo mismo en vez de saltarse un
+          // paso y dejar la alineación calzada con un punto que nadie eligió.
+          if (punto === undefined) return;
+
+          const puestos = [...aligning.points, punto];
+          if (puestos.length < 4) {
+            setAligning({ ...aligning, points: puestos });
+            return;
+          }
+
+          const [planoA, modeloA, planoB, modeloB] = puestos as [Point3, Point3, Point3, Point3];
+          const transform = await instance.alignPlan(
+            aligning.planId,
+            { planoA, modeloA, planoB, modeloB },
+            aligning.adjustScale,
+          );
+          if (transform !== null) {
+            setPlans((actuales) =>
+              actuales.map((plan) => (plan.id === aligning.planId ? { ...plan, transform } : plan)),
+            );
+          }
+          setAligning(null);
+          return;
+        }
+
         if (measureMode !== null) {
           // El punto lo pone el medidor donde tenga el cursor ajustado, que es el que se está
           // viendo marcado en pantalla. Las coordenadas solo las usa la perpendicular, que lanza su
@@ -446,7 +504,7 @@ export function App() {
         clickInFlight.current = false;
       }
     },
-    [measureMode],
+    [measureMode, aligning],
   );
 
   /** Doble clic: cierra el contorno si se está midiendo un área, y si no encuadra el elemento. */
@@ -457,6 +515,17 @@ export function App() {
     if (measureMode === "area") instance.finishMeasurement();
     else void instance.frameSelection();
   }, [measureMode]);
+
+  // Escape cancela una alineación a medias. Es un gesto de cuatro clics y hay que poder salirse
+  // sin dejar el plano movido a la mitad: la tecla es la que espera cualquiera que venga de un CAD.
+  useEffect(() => {
+    if (aligning === null) return;
+    const alPulsar = (evento: KeyboardEvent) => {
+      if (evento.key === "Escape") setAligning(null);
+    };
+    window.addEventListener("keydown", alPulsar);
+    return () => window.removeEventListener("keydown", alPulsar);
+  }, [aligning]);
 
   // Enter cierra el contorno de un área. Un contorno no tiene un número fijo de vértices, así
   // que alguien tiene que decir cuándo terminó, y buscar el botón con el ratón interrumpe.
@@ -1028,6 +1097,19 @@ export function App() {
                   plans={plans}
                   hiddenPlans={hiddenPlans}
                   hiddenLayers={hiddenPlanLayers}
+                  aligningPlanId={aligning?.planId ?? null}
+                  onAlign={(id, ajustarEscala) => {
+                    const plan = plans.find((uno) => uno.id === id);
+                    if (plan === undefined) return;
+                    // Calzar y medir a la vez no tiene sentido y se pisarían los clics.
+                    onMeasureMode(null);
+                    setAligning({
+                      planId: id,
+                      planName: plan.name,
+                      points: [],
+                      adjustScale: ajustarEscala,
+                    });
+                  }}
                   onTogglePlan={onTogglePlan}
                   onToggleLayer={onTogglePlanLayer}
                   onTransform={onPlanTransform}
@@ -1065,6 +1147,9 @@ export function App() {
         measurementCount={measurementCount}
         isolated={isolated}
         hasHidden={hasHidden}
+        aligning={
+          aligning === null ? null : { planName: aligning.planName, placed: aligning.points.length }
+        }
         onUndoIsolate={onUndoIsolate}
         onShowAll={onShowAll}
       />
