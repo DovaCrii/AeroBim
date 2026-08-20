@@ -223,6 +223,13 @@ export function App() {
    * obligaría a inventar campos vacíos en cada una.
    */
   const [selectedPlan, setSelectedPlan] = useState<PlanHit | null>(null);
+  /**
+   * `true` si medir se engancha a los trazos del plano.
+   *
+   * Encendido por defecto —es lo que hace útil medir sobre un plano—, y apagable porque midiendo el
+   * modelo con un plano debajo, engancharse al CAD sin querer falsea la medida.
+   */
+  const [planSnap, setPlanSnap] = useState(true);
   /** Planos apagados enteros, por identificador. */
   const [hiddenPlans, setHiddenPlans] = useState<ReadonlySet<string>>(new Set());
   /** Capas de plano apagadas, como `plano:capa`. */
@@ -591,6 +598,15 @@ export function App() {
       setPlans((actuales) =>
         actuales.map((plan) => (plan.id === id ? { ...plan, transform } : plan)),
       );
+
+      // **Cambiar la unidad reencuadra.** Pasar de milímetros a metros hace el plano mil veces más
+      // grande y lo saca de la pantalla: sin esto, el plano "desaparecía" y no había forma de
+      // saber que seguía ahí, mil veces más lejos. Solo pasa con la unidad; mover o girar unos
+      // metros no debe robarle la cámara a quien está mirando otra cosa.
+      if (cambios.metresPerUnit !== undefined) {
+        setStandardView("top");
+        viewer.current?.framePlan(id, "top");
+      }
     });
   }, []);
 
@@ -836,6 +852,12 @@ export function App() {
         selectionVisible={selectionVisible}
         isolated={isolated}
         hasHidden={hasHidden}
+        hasPlans={plans.length > 0}
+        planSnap={planSnap}
+        onPlanSnap={(activo) => {
+          setPlanSnap(activo);
+          viewer.current?.setPlanSnapEnabled(activo);
+        }}
         measurementCount={measurementCount}
         onTab={setTab}
         onToggleSelectionVisible={onToggleSelectionVisible}

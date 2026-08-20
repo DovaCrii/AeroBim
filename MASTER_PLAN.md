@@ -816,15 +816,16 @@ volver a la herramienta de escritorio.
 
 ### La mitad de entrada: cargar el plano y cruzarlo con el modelo
 
-| #       | Tarea                                                                                        | Estado |
-| ------- | -------------------------------------------------------------------------------------------- | ------ |
-| `F7.6`  | **Leer un DXF**: capas, unidades, colores, textos, líneas, polilíneas, arcos y bloques       | ✅     |
-| `F7.7`  | **Dibujarlo en la escena** a una cota, con los colores reales del CAD y sus rótulos          | ✅     |
-| `F7.8`  | **Alinear plano y modelo**: unidad, cota, desplazamiento, giro y reflejo                     | 🟡     |
-| `F7.9`  | **Panel de capas del plano**: encender y apagar cada una                                     | ✅     |
-| `F7.10` | **Seleccionar en 2D**: clic en un trazo → su capa, su plano y el largo del tramo             | ✅     |
-| `F7.11` | **Herramientas CAD de revisión**: snap a extremo, medio e intersección, y medir plano↔modelo | ⬜     |
-| `F7.12` | **Cruzar**: el plano en planta con el modelo cortado a esa altura, lado a lado               | ⬜     |
+| #       | Tarea                                                                                    | Estado |
+| ------- | ---------------------------------------------------------------------------------------- | ------ |
+| `F7.6`  | **Leer un DXF**: capas, unidades, colores, textos, líneas, polilíneas, arcos y bloques   | ✅     |
+| `F7.7`  | **Dibujarlo en la escena** a una cota, con los colores reales del CAD y sus rótulos      | ✅     |
+| `F7.8`  | **Alinear plano y modelo**: unidad, cota, desplazamiento, giro y reflejo                 | 🟡     |
+| `F7.9`  | **Panel de capas del plano**: encender y apagar cada una                                 | ✅     |
+| `F7.10` | **Seleccionar en 2D**: clic en un trazo → su capa, su plano y el largo del tramo         | ✅     |
+| `F7.11` | **Herramientas CAD de revisión**: ajuste a extremo y punto medio, y medir sobre el plano | 🟡     |
+| `F7.13` | **Fidelidad del CAD**: paleta ACI real, tipos de línea y rótulos legibles                | ✅     |
+| `F7.12` | **Cruzar**: el plano en planta con el modelo cortado a esa altura, lado a lado           | ⬜     |
 
 **Lo que quedó hecho el 2026-08-19**, verificado sobre el DXF real en el navegador: el lector
 (`packages/bim-core/src/plans/dxf.ts`, 13 pruebas) resuelve el archivo del usuario en **36 ms**
@@ -837,6 +838,31 @@ el plano, y un clic sobre un trazo devuelve su capa y el largo del tramo — com
 **Lo que falta de `F7.8`** es el gesto, no los números: hoy se ajusta escribiendo unidad, cota, X,
 Z, giro y reflejo, y falta **"este punto del plano va aquí en el modelo"**, con dos clics. Los
 números quedan igual: son la red de seguridad cuando el gesto no basta.
+
+**Lo que hay de `F7.11`**: el cursor se engancha a los **extremos** y a los **puntos medios** de los
+trazos, y midiendo distancia esos son los puntos que toma la cota. Falta la **intersección** de dos
+trazos, medir del plano al modelo en un mismo gesto, y marcar sobre el plano. El ajuste al plano se
+apaga desde la cinta: midiendo el modelo con un plano debajo, engancharse al CAD falsea la medida.
+
+### `F7.13`: que el plano se vea como en el CAD (2026-08-19)
+
+Tres cosas que el usuario vio de inmediato al poner su plano al lado de AutoCAD:
+
+| Lo que se veía                        | Lo que era                                                                              |
+| ------------------------------------- | --------------------------------------------------------------------------------------- |
+| Los colores no eran los del CAD       | La paleta ACI del 10 al 249 estaba aproximada a ojo; ahora se calcula con su regla real |
+| Las líneas discontinuas salían llenas | No se leía la tabla `LTYPE` ni el tipo de línea de la capa                              |
+| Los rótulos, diminutos y borrosos     | Textura de 32 px y el alto del CAD tal cual: 2,5 mm de escena                           |
+
+> **El tamaño del patrón de un tipo de línea no sirve tal cual.** Los patrones se definen en
+> unidades de papel y se escalan con `LTSCALE`, que en cada oficina vale otra cosa: en el plano real
+> salen rayas de **dos milésimas de milímetro** —la línea parpadea o desaparece— junto a otras de
+> decenas de metros, que se ven llenas. El visor conserva la proporción entre raya y espacio y lleva
+> la raya a una medida legible. Es lo que hace a mano cualquiera que trae un CAD a un modelo.
+>
+> **Y el rótulo tiene un alto mínimo en la escena.** Con el plano en milímetros, un texto de 2,5
+> unidades existe y no se ve. Se sube a 35 cm de escena, con la letra dibujada a 96 px y un
+> contorno oscuro detrás para que se lea sobre el dibujo y sobre el modelo.
 
 **Oráculo de entrada:** el `ACAD-Piso 5_Base.dxf` del usuario cae sobre `Piso 5.ifc` y **los
 muros coinciden**: la capa `0-MUROS` se superpone a los `IfcWall` del modelo, con la misma

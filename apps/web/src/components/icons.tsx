@@ -413,6 +413,23 @@ export function IconUnisolate(props: IconProps) {
   );
 }
 
+/**
+ * Ajuste al plano 2D: la marca de enganche sobre un trazo tendido.
+ *
+ * Se distingue del ajuste a vértices del modelo en que el trazo va horizontal —como se ve un plano
+ * en planta— y la marca es el cuadrado de "punto de referencia" que usan los CAD.
+ */
+export function IconSnapPlan(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M3 16h18" />
+      <path d="M7 16v3M17 16v3" />
+      <rect x="9" y="5.5" width="6" height="6" rx="0.5" />
+      <path d="M12 11.5V16" strokeDasharray="2 2" />
+    </Svg>
+  );
+}
+
 /** Cerrar: la cruz. */
 export function IconX(props: IconProps) {
   return (

@@ -85,6 +85,8 @@ function PlanoEnLista({
   const [abierto, setAbierto] = useState(true);
   const t = plan.transform;
   const sinDibujar = Object.entries(plan.skipped);
+  const anchoM = plan.sizeUnits[0] * t.metresPerUnit;
+  const altoM = plan.sizeUnits[1] * t.metresPerUnit;
 
   return (
     <li className="mb-1 rounded-md border border-white/10">
@@ -143,13 +145,38 @@ function PlanoEnLista({
                 onChange={(e) => onTransform(plan.id, { metresPerUnit: Number(e.target.value) })}
                 className="min-w-0 flex-1 rounded border border-white/15 bg-black/20 px-1.5 py-0.5 text-[11px] text-white/85"
               >
-                <option value="0.001">milímetros</option>
-                <option value="0.01">centímetros</option>
-                <option value="1">metros</option>
-                <option value="0.3048">pies</option>
-                <option value="0.0254">pulgadas</option>
+                {UNIDADES.map((unidad) => (
+                  <option key={unidad.metros} value={String(unidad.metros)}>
+                    {unidad.nombre}
+                  </option>
+                ))}
               </select>
             </div>
+
+            {/* **El tamaño manda sobre la etiqueta de la unidad.** Es el número con el que alguien
+                decide si acertó: una planta mide decenas de metros, no decenas de kilómetros. Va
+                justo debajo del selector y cambia con él, así que elegir mal se ve al instante en
+                vez de descubrirse cuando el plano desaparece de la pantalla. */}
+            <p className="pt-1 text-[11px] text-white/70">
+              Con esta unidad el plano mide{" "}
+              <span className={tamanoCreible(anchoM, altoM) ? "text-brand" : "text-amber-400"}>
+                {formato(anchoM)} × {formato(altoM)}
+              </span>
+              {!tamanoCreible(anchoM, altoM) && (
+                <span className="text-amber-400"> — eso no es tamaño de edificio</span>
+              )}
+            </p>
+
+            {t.metresPerUnit !== plan.units.metresPerUnit && (
+              <button
+                type="button"
+                onClick={() => onTransform(plan.id, { metresPerUnit: plan.units.metresPerUnit })}
+                className="mt-1 rounded border border-brand/40 px-1.5 py-0.5 text-[10px] text-brand hover:bg-brand/15"
+              >
+                Volver a {plan.units.unitName}, la unidad que se dedujo
+              </button>
+            )}
+
             <p className="pt-1 text-[10px] leading-snug text-white/30">{plan.units.reason}</p>
           </div>
 
@@ -255,6 +282,34 @@ function PlanoEnLista({
       )}
     </li>
   );
+}
+
+/** Las unidades entre las que se elige, con cuántos metros mide cada una. */
+const UNIDADES = [
+  { nombre: "milímetros", metros: 0.001 },
+  { nombre: "centímetros", metros: 0.01 },
+  { nombre: "metros", metros: 1 },
+  { nombre: "pies", metros: 0.3048 },
+  { nombre: "pulgadas", metros: 0.0254 },
+] as const;
+
+/**
+ * `true` si el plano, con la unidad puesta, tiene tamaño de edificio.
+ *
+ * Es el mismo criterio con el que se propone la unidad al abrir el archivo, y sirve para lo mismo:
+ * un plano de 48 kilómetros de lado no es un plano mal dibujado, es una unidad mal elegida.
+ */
+function tamanoCreible(anchoM: number, altoM: number): boolean {
+  const lado = Math.max(anchoM, altoM);
+  return lado >= 2 && lado <= 500;
+}
+
+/** Metros con una cifra, o kilómetros cuando la cifra deja de decir nada. */
+function formato(metros: number): string {
+  if (!Number.isFinite(metros)) return "—";
+  if (Math.abs(metros) >= 10000) return `${(metros / 1000).toFixed(1)} km`;
+  if (Math.abs(metros) < 0.1) return `${(metros * 1000).toFixed(0)} mm`;
+  return `${metros.toFixed(1)} m`;
 }
 
 /** Un número con su nombre y su unidad, del ancho de una fila del panel. */

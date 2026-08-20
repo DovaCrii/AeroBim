@@ -34,7 +34,7 @@ describe("parseDxf", () => {
     );
 
     expect(plano.polylines).toEqual([
-      { layer: "0-MUROS", points: [0, 0, 3000, 4000], closed: false, colorIndex: null },
+      { layer: "0-MUROS", points: [0, 0, 3000, 4000], closed: false, colorIndex: null, dash: null },
     ]);
     expect(plano.declaredUnits).toEqual({ code: 4, name: "milímetros", metresPerUnit: 0.001 });
     expect(plano.bounds).toEqual({ minX: 0, minY: 0, maxX: 3000, maxY: 4000 });
@@ -187,6 +187,56 @@ describe("parseDxf", () => {
     // Un texto también ocupa sitio en el plano: cuenta para la extensión y para su capa.
     expect(plano.bounds).toEqual({ minX: 0, minY: 0, maxX: 1000, maxY: 2000 });
     expect(plano.layers.map((c) => c.name).sort()).toEqual(["0-EJES", "AA - COTAS"]);
+  });
+
+  it("resuelve el trazo discontinuo: patrón de la capa, escalado por `$LTSCALE`", () => {
+    const plano = parseDxf(
+      dxf(
+        [0, "SECTION"],
+        [2, "HEADER"],
+        [9, "$LTSCALE"],
+        [40, "2"],
+        [0, "ENDSEC"],
+        [0, "SECTION"],
+        [2, "TABLES"],
+        // Trazo y punto: raya de 12, espacio de 3, punto y otro espacio de 3.
+        [0, "LTYPE"],
+        [2, "DASHDOT"],
+        [49, "12"],
+        [49, "-3"],
+        [49, "0"],
+        [49, "-3"],
+        [0, "LTYPE"],
+        [2, "CONTINUOUS"],
+        [0, "LAYER"],
+        [2, "0-EJES"],
+        [6, "DASHDOT"],
+        [0, "LAYER"],
+        [2, "0-MUROS"],
+        [6, "CONTINUOUS"],
+        [0, "ENDSEC"],
+        [0, "SECTION"],
+        [2, "ENTITIES"],
+        [0, "LINE"],
+        [8, "0-EJES"],
+        [10, "0"],
+        [20, "0"],
+        [11, "100"],
+        [21, "0"],
+        [0, "LINE"],
+        [8, "0-MUROS"],
+        [10, "0"],
+        [20, "0"],
+        [11, "100"],
+        [21, "0"],
+        [0, "ENDSEC"],
+      ),
+    );
+
+    // Raya media = 12 (la única positiva), espacio medio = 3, y las dos por `$LTSCALE` = 2.
+    expect(plano.polylines[0]?.dash).toEqual([24, 6]);
+    // Una capa continua no lleva patrón, aunque el archivo declare la tabla.
+    expect(plano.polylines[1]?.dash).toBeNull();
   });
 
   it("resuelve el color: el propio de la entidad manda, y si no, el de su capa", () => {

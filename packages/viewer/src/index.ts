@@ -42,6 +42,20 @@ import {
 import { PlanOverlay, type LoadedPlan, type PlanHit, type PlanTransform } from "./plan.js";
 
 export type { LoadedPlan, PlanHit, PlanTransform } from "./plan.js";
+
+/**
+ * A qué se enganchó el cursor sobre un plano.
+ *
+ * Las tres referencias de un CAD, en el orden en que se prefieren: el **extremo** de un trazo, su
+ * **punto medio** y el punto **sobre la línea** cuando no hay ninguno de los otros cerca.
+ */
+export interface PlanSnap {
+  readonly kind: "endpoint" | "midpoint" | "edge";
+  /** El punto enganchado, en metros de la escena. */
+  readonly point: readonly [number, number, number];
+  readonly layer: string;
+  readonly planId: string;
+}
 export type { DxfLayer } from "@aerobim/bim-core";
 
 export type { ConvertLocation, Converter, ConvertRequest, ConvertResponse } from "./converter.js";
@@ -1144,6 +1158,15 @@ export class BimViewer {
    */
   private readonly visibilityStack: VisibilitySnapshot[] = [];
   /**
+   * El primer punto de una medición tomada **sobre el plano 2D**, si hay una a medias.
+   *
+   * Vive aparte de los medidores de la librería porque los puntos no salen de ellos: salen del
+   * ajuste propio a los trazos del CAD. Ver {@link addPlanMeasurePoint}.
+   */
+  private planMeasureStart: THREE.Vector3 | null = null;
+  /** `true` si medir se engancha a los trazos del plano. Se puede apagar desde la cinta. */
+  private planSnapEnabled = true;
+  /**
    * La marca de la cara de referencia mientras se mide una perpendicular.
    *
    * Vive fuera del registro de mediciones porque no pertenece a ninguna: es de la medición **a
@@ -2077,6 +2100,17 @@ export class BimViewer {
       return this.addPerpendicularPoint(clientX, clientY);
     }
 
+    // **El plano tiene la primera palabra al medir distancias.** El ajuste de la librería trabaja
+    // sobre la geometría del modelo y no ve los trazos del CAD, así que sin esto medir sobre un
+    // plano es imposible: el clic cae al vacío o se engancha al muro que hay debajo. Solo actúa si
+    // el cursor está de verdad sobre un trazo; si no, sigue el camino de siempre.
+    if (this.measureMode === "distance" && this.planSnapEnabled) {
+      if (clientX !== undefined && clientY !== undefined) {
+        const enganche = this.snapOnPlan(clientX, clientY);
+        if (enganche !== null) return this.addPlanMeasurePoint(enganche);
+      }
+    }
+
     // **Un dibujado antes de leer.** El ajuste del medidor no usa el rayo de la CPU: lee los
     // píxeles de la escena dibujada para saber qué hay bajo el cursor. Mientras se orbita, la
     // librería suspende esas lecturas, así que al soltar el ratón el último fotograma puede no
@@ -2170,6 +2204,63 @@ export class BimViewer {
     this.emitMeasurement({ mode: "perpendicular", distanceM: perpendicular.distanceM });
     this.world.renderer?.update();
     return true;
+  }
+
+  /**
+   * Los dos clics de una medición sobre el plano.
+   *
+   * **La cota la dibuja el medidor de la librería aunque los puntos sean propios**, igual que la
+   * perpendicular: así una medida tomada sobre el plano se ve como las demás, aparece en la misma
+   * lista y se apaga y se borra igual. Lo único propio es de dónde salen los dos puntos.
+   */
+  private addPlanMeasurePoint(enganche: PlanSnap): boolean {
+    const punto = new THREE.Vector3(...enganche.point);
+
+    if (this.planMeasureStart === null) {
+      this.planMeasureStart = punto;
+
+      // El primer punto tiene que verse, o no hay forma de saber si el clic entró ni dónde quedó
+      // enganchado. Se marca con la misma cruz de la perpendicular, mirando hacia arriba porque un
+      // plano es horizontal.
+      const marca = marcaDeReferencia(
+        punto,
+        new THREE.Vector3(0, 1, 0),
+        this.world.camera.three.position.distanceTo(punto),
+        SELECTION_COLOR,
+      );
+      this.marcaReferencia = marca;
+      this.world.scene.three.add(marca);
+      this.world.renderer?.update();
+      return true;
+    }
+
+    const inicio = this.planMeasureStart;
+    this.planMeasureStart = null;
+    this.quitarMarcaDeReferencia();
+
+    const partes = distancePartsM([inicio.x, inicio.y, inicio.z], [punto.x, punto.y, punto.z]);
+    if (partes.directM < 0.0005) return true;
+
+    const linea = new OBF.Line(inicio, punto);
+    linea.units = "m";
+    linea.rounding = 3;
+    this.tools.distance.list.add(linea);
+
+    this.emitMeasurement({
+      mode: "distance",
+      distanceM: partes.directM,
+      horizontalM: partes.horizontalM,
+      verticalM: partes.verticalM,
+    });
+    this.world.renderer?.update();
+    return true;
+  }
+
+  /** Olvida una medición sobre el plano a medias y borra su marca. */
+  private descartarMedicionEnPlano(): void {
+    if (this.planMeasureStart === null) return;
+    this.planMeasureStart = null;
+    this.quitarMarcaDeReferencia();
   }
 
   /** Quita la marca de la cara de referencia, si había alguna. */
@@ -2587,6 +2678,68 @@ export class BimViewer {
     const camara = this.world.camera.three;
     rayo.setFromCamera(ndc, camara);
     return this.plans.pick(rayo, camara);
+  }
+
+  /**
+   * A qué punto del plano se engancharía un clic aquí.
+   *
+   * **Es el ajuste de un CAD, con las tres referencias que se usan revisando**: el **extremo** de un
+   * trazo, su **punto medio** y, si no hay ninguno cerca, el punto **sobre la línea**. Sin ajuste,
+   * medir sobre un plano es un juego de puntería y los números salen con el error del pulso.
+   *
+   * La tolerancia crece con la distancia a la cámara: enganchar cuesta lo mismo de cerca que de
+   * lejos, que es lo que hace que se sienta como un CAD y no como una lotería.
+   */
+  snapOnPlan(clientX: number, clientY: number): PlanSnap | null {
+    this.assertAlive();
+
+    const hit = this.pickPlan(clientX, clientY);
+    if (hit === null) return null;
+
+    const punto = new THREE.Vector3(...hit.point);
+    if (hit.segmentStartM === null || hit.segmentEndM === null) {
+      return { kind: "edge", point: hit.point, layer: hit.layer, planId: hit.planId };
+    }
+
+    const a = new THREE.Vector3(...hit.segmentStartM);
+    const b = new THREE.Vector3(...hit.segmentEndM);
+    const medio = a.clone().add(b).multiplyScalar(0.5);
+
+    // La tolerancia es un porcentaje de lo que se ve, no una medida fija: en un plano de 50 m
+    // mirado entero, 20 cm no engancha nada; mirando un detalle, engancharía el trazo de al lado.
+    const tolerancia = this.world.camera.three.position.distanceTo(punto) * 0.02;
+
+    const candidatos = [
+      { kind: "endpoint" as const, punto: a },
+      { kind: "endpoint" as const, punto: b },
+      { kind: "midpoint" as const, punto: medio },
+    ]
+      .map((candidato) => ({ ...candidato, distancia: candidato.punto.distanceTo(punto) }))
+      .sort((uno, otro) => uno.distancia - otro.distancia);
+
+    const mejor = candidatos[0];
+    if (mejor !== undefined && mejor.distancia <= tolerancia) {
+      return {
+        kind: mejor.kind,
+        point: [mejor.punto.x, mejor.punto.y, mejor.punto.z],
+        layer: hit.layer,
+        planId: hit.planId,
+      };
+    }
+
+    return { kind: "edge", point: hit.point, layer: hit.layer, planId: hit.planId };
+  }
+
+  /** Enciende o apaga el ajuste al plano mientras se mide. */
+  setPlanSnapEnabled(enabled: boolean): void {
+    this.assertAlive();
+    this.planSnapEnabled = enabled;
+    if (!enabled) this.descartarMedicionEnPlano();
+  }
+
+  /** `true` si medir se engancha a los trazos del plano. */
+  get planSnap(): boolean {
+    return this.planSnapEnabled;
   }
 
   /** Encuadra un plano, en planta por defecto. Devuelve `false` si ese plano ya no está. */

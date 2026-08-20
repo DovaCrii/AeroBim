@@ -31,6 +31,15 @@ export interface DxfPolyline {
    * porque separa lo que se construye de lo que se demuele.
    */
   readonly colorIndex: number | null;
+  /**
+   * El patrón de trazo, como `[raya, espacio]` en unidades del dibujo, o `null` si es continua.
+   *
+   * **En un plano, la línea discontinua es información**: separa lo que está por encima del corte,
+   * los ejes, lo oculto y lo que se demuele. Dibujarlo todo continuo hace que un plano de
+   * remodelación mienta. Se resume el patrón del CAD —que puede tener varios tramos— en una raya y
+   * un espacio, que es lo que se puede dibujar en una línea de WebGL y lo que se lee igual.
+   */
+  readonly dash: readonly [number, number] | null;
 }
 
 /**
@@ -132,15 +141,18 @@ export function parseDxf(text: string): DxfDrawing {
   const pares = tokenizar(text);
 
   const declaredUnits = leerUnidades(pares);
-  const colores = leerColoresDeCapa(pares);
+  const { colores, tiposDeLinea: tiposPorCapa } = leerTablaDeCapas(pares);
+  const patrones = leerPatronesDeLinea(pares);
+  const escalaGlobal = numeroDeCabecera(pares, "$LTSCALE") ?? 1;
   const bloques = leerBloques(pares);
 
   const polylines: DxfPolyline[] = [];
   const texts: DxfText[] = [];
   const skipped: Record<string, number> = {};
   const entidades = entidadesDe(pares, indiceDeSeccion(pares, "ENTITIES"));
+  const estilo = { colores, tiposPorCapa, patrones, escalaGlobal };
   for (const entidad of entidades) {
-    dibujar(entidad, bloques, { polylines, texts, colores }, skipped, IDENTIDAD, 0);
+    dibujar(entidad, bloques, { polylines, texts, estilo }, skipped, IDENTIDAD, 0);
   }
 
   return {
@@ -291,11 +303,21 @@ function leerUnidades(pares: readonly Par[]): DxfDeclaredUnits {
   return { code: 0, name: "sin unidades declaradas", metresPerUnit: null };
 }
 
-/** El color de cada capa, de la tabla `LAYER`. Es lo que hace que el plano se lea como en el CAD. */
-function leerColoresDeCapa(pares: readonly Par[]): ReadonlyMap<string, number> {
+/**
+ * La tabla de capas: el color y el tipo de línea de cada una.
+ *
+ * Es lo que hace que el plano se lea como en el CAD, porque casi todo en un plano dice "por capa":
+ * sin esta tabla, el color y el trazo de la inmensa mayoría de las entidades se quedan sin
+ * resolver.
+ */
+function leerTablaDeCapas(pares: readonly Par[]): {
+  readonly colores: ReadonlyMap<string, number>;
+  readonly tiposDeLinea: ReadonlyMap<string, string>;
+} {
   const colores = new Map<string, number>();
+  const tiposDeLinea = new Map<string, string>();
   const inicio = indiceDeSeccion(pares, "TABLES");
-  if (inicio < 0) return colores;
+  if (inicio < 0) return { colores, tiposDeLinea };
 
   let nombre: string | null = null;
   let dentro = false;
@@ -311,8 +333,74 @@ function leerColoresDeCapa(pares: readonly Par[]): ReadonlyMap<string, number> {
     if (code === 2) nombre = value;
     // El color negativo es la convención de AutoCAD para una capa apagada: importa el color, no el signo.
     if (code === 62 && nombre !== null) colores.set(nombre, Math.abs(Number(value)));
+    if (code === 6 && nombre !== null) tiposDeLinea.set(nombre, value.toUpperCase());
   }
-  return colores;
+  return { colores, tiposDeLinea };
+}
+
+/**
+ * Los patrones de trazo declarados en la tabla `LTYPE`, resumidos a `[raya, espacio]`.
+ *
+ * El CAD describe el patrón como una lista de tramos con signo: positivo es raya, negativo es
+ * espacio y cero es punto. WebGL solo sabe dibujar una raya y un espacio, así que se promedia cada
+ * grupo — un trazo y punto sale como raya media y espacio medio, y a la vista sigue siendo
+ * discontinuo, que es lo que hay que distinguir de una línea llena.
+ */
+function leerPatronesDeLinea(
+  pares: readonly Par[],
+): ReadonlyMap<string, readonly [number, number]> {
+  const patrones = new Map<string, readonly [number, number]>();
+  const inicio = indiceDeSeccion(pares, "TABLES");
+  if (inicio < 0) return patrones;
+
+  let nombre: string | null = null;
+  let tramos: number[] = [];
+  let dentro = false;
+
+  const guardar = () => {
+    if (nombre === null) return;
+    const rayas = tramos.filter((t) => t > 0);
+    const espacios = tramos.filter((t) => t < 0).map(Math.abs);
+    // Sin espacios no hay discontinuidad: es una línea llena aunque declare patrón.
+    if (espacios.length === 0) return;
+
+    const media = (lista: readonly number[], respaldo: number) =>
+      lista.length === 0 ? respaldo : lista.reduce((a, b) => a + b, 0) / lista.length;
+    const espacio = media(espacios, 1);
+    // Un patrón de solo puntos —todos los tramos en cero— se dibuja con una raya corta, o no se
+    // vería nada en absoluto.
+    patrones.set(nombre.toUpperCase(), [media(rayas, espacio / 2), espacio]);
+  };
+
+  for (let i = inicio; i < pares.length; i++) {
+    const { code, value } = pares[i]!;
+    if (code === 0) {
+      guardar();
+      if (value === "ENDSEC") break;
+      dentro = value === "LTYPE";
+      nombre = null;
+      tramos = [];
+      continue;
+    }
+    if (!dentro) continue;
+    if (code === 2) nombre = value;
+    if (code === 49) {
+      const tramo = Number(value);
+      if (Number.isFinite(tramo)) tramos.push(tramo);
+    }
+  }
+  return patrones;
+}
+
+/** Un valor numérico de la cabecera, como `$LTSCALE`. */
+function numeroDeCabecera(pares: readonly Par[], clave: string): number | null {
+  for (let i = 0; i + 1 < pares.length; i++) {
+    if (pares[i]!.code === 9 && pares[i]!.value === clave) {
+      const n = Number(pares[i + 1]!.value);
+      return Number.isFinite(n) ? n : null;
+    }
+  }
+  return null;
 }
 
 /** Una entidad cruda: su tipo y sus pares, en orden. */
@@ -421,14 +509,15 @@ function dibujar(
   salida: {
     readonly polylines: DxfPolyline[];
     readonly texts: DxfText[];
-    readonly colores: ReadonlyMap<string, number>;
+    readonly estilo: Estilo;
   },
   omitidas: Record<string, number>,
   t: Transformacion,
   profundidad: number,
 ): void {
   const layer = valor(entidad, 8) ?? "0";
-  const colorIndex = colorDe(entidad, layer, salida.colores);
+  const colorIndex = colorDe(entidad, layer, salida.estilo.colores);
+  const dash = trazoDe(entidad, layer, salida.estilo, t);
 
   const anadir = (puntos: readonly (readonly [number, number])[], closed: boolean) => {
     if (puntos.length < 2) return;
@@ -437,7 +526,7 @@ function dibujar(
       const [px, py] = aplicar(t, x, y);
       planos.push(px, py);
     }
-    salida.polylines.push({ layer, points: planos, closed, colorIndex });
+    salida.polylines.push({ layer, points: planos, closed, colorIndex, dash });
   };
 
   switch (entidad.type) {
@@ -563,6 +652,46 @@ function cuenta(registro: Record<string, number>, clave: string): void {
  * que es la aproximación correcta salvo para bloques con color propio, algo que un plano de
  * arquitectura casi nunca usa.
  */
+/** Lo que hace falta para saber de qué color y con qué trazo se dibuja cada entidad. */
+interface Estilo {
+  readonly colores: ReadonlyMap<string, number>;
+  readonly tiposPorCapa: ReadonlyMap<string, string>;
+  readonly patrones: ReadonlyMap<string, readonly [number, number]>;
+  /** `$LTSCALE`: multiplica el patrón de todo el dibujo. */
+  readonly escalaGlobal: number;
+}
+
+/**
+ * El patrón de trazo de una entidad, ya resuelto y escalado.
+ *
+ * Manda el tipo de línea propio si lo trae; si dice "por capa" —lo habitual— manda el de su capa.
+ * El tamaño del patrón se multiplica por `$LTSCALE`, por la escala propia de la entidad (código 48)
+ * y por la del bloque que la contenga: un patrón sin escalar dentro de un bloque a la mitad se
+ * vería con el doble de raya que el resto del plano.
+ */
+function trazoDe(
+  entidad: Entidad,
+  layer: string,
+  estilo: Estilo,
+  t: Transformacion,
+): readonly [number, number] | null {
+  const propio = valor(entidad, 6)?.toUpperCase();
+  const nombre =
+    propio === undefined || propio === "BYLAYER" || propio === "BYBLOCK"
+      ? estilo.tiposPorCapa.get(layer)
+      : propio;
+  if (nombre === undefined || nombre === "CONTINUOUS") return null;
+
+  const patron = estilo.patrones.get(nombre);
+  if (patron === undefined) return null;
+
+  const escalaBloque = Math.abs(t.escalaX) || 1;
+  const escala = estilo.escalaGlobal * (numero(entidad, 48) ?? 1) * escalaBloque;
+  if (!Number.isFinite(escala) || escala <= 0) return patron;
+
+  return [patron[0] * escala, patron[1] * escala];
+}
+
 function colorDe(
   entidad: Entidad,
   layer: string,

@@ -34,6 +34,7 @@ import {
   IconSectionLongitudinal,
   IconSectionTransversal,
   IconSnapFree,
+  IconSnapPlan,
   IconSnapVertex,
   IconSolid,
   IconTrash,
@@ -87,6 +88,9 @@ export function Ribbon({
   selectionVisible,
   isolated,
   hasHidden,
+  hasPlans,
+  planSnap,
+  onPlanSnap,
   measurementCount,
   onTab,
   onToggleSelectionVisible,
@@ -131,6 +135,11 @@ export function Ribbon({
   readonly isolated: boolean;
   /** `true` si hay algo fuera de la vista, aislado o apagado a mano. */
   readonly hasHidden: boolean;
+  /** `true` con al menos un plano 2D cargado. */
+  readonly hasPlans: boolean;
+  /** `true` si medir se engancha a los trazos del plano. */
+  readonly planSnap: boolean;
+  readonly onPlanSnap: (enabled: boolean) => void;
   readonly measurementCount: number;
   readonly onTab: (tab: RibbonTab) => void;
   readonly onToggleSelectionVisible: () => void;
@@ -417,6 +426,21 @@ export function Ribbon({
                 active={snapMode === "face"}
                 disabled={!enabled}
                 onClick={() => onSnapMode("face")}
+              />
+              {/* El ajuste del modelo y el del plano son dos cosas distintas y se apagan por
+                  separado: midiendo el modelo con un plano debajo, engancharse al CAD sin querer
+                  falsea la medida. */}
+              <Boton
+                icon={<IconSnapPlan />}
+                label="Al plano"
+                hint={
+                  hasPlans
+                    ? "Se engancha a los extremos y puntos medios de los trazos del plano 2D"
+                    : "No hay ningún plano 2D cargado"
+                }
+                active={planSnap}
+                disabled={!hasPlans}
+                onClick={() => onPlanSnap(!planSnap)}
               />
             </Grupo>
 

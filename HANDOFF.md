@@ -28,6 +28,19 @@
 > y medir del plano al modelo) y el cruce lado a lado (`F7.12`). El DXF y el IFC4 nuevo están en
 > `apps/web/public/samples/` (fuera de git).
 >
+> **Las unidades del plano, resueltas donde se decidían mal** (2026-08-19): el panel dice **cuánto
+> mide el plano con la unidad puesta** —"52,6 m × 49,6 m", en ámbar y con aviso si no es tamaño de
+> edificio— y **cambiar la unidad reencuadra**. Antes, pasar a metros hacía el plano mil veces más
+> grande, se iba de la pantalla y parecía que se había borrado.
+>
+> **Y el CAD se ve como el CAD**: paleta ACI calculada con su regla real, tipos de línea de la tabla
+> `LTYPE` —con el patrón llevado a una medida legible, porque `LTSCALE` deja rayas de dos milésimas
+> de milímetro— y rótulos con alto mínimo de 35 cm, letra a 96 px y contorno oscuro detrás.
+>
+> **Ajuste y medición sobre el plano** (`F7.11`, a medias): el cursor se engancha a extremos y
+> puntos medios de los trazos, y midiendo distancia la cota toma esos puntos. Se apaga desde
+> Medición → Ajuste del cursor → **Al plano**.
+>
 > **La interfaz se rehízo a pedido del usuario** y está escrita en [docs/UX.md](docs/UX.md): una
 > sola barra arriba —de 196 px a 90, y a 34 plegada—, paneles laterales con ancho y alto de sección
 > arrastrables, **cubo de vistas** como el de AutoCAD, y `Abrir` uno solo para IFC y DXF.

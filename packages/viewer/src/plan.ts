@@ -63,9 +63,19 @@ export interface LoadedPlan {
   };
   /** Entidades del DXF que no se dibujan, por tipo: textos, rellenos, cotas del CAD. */
   readonly skipped: Readonly<Record<string, number>>;
-  /** Cuánto mide el plano ya escalado, en metros. */
+  /** Cuánto mide el plano ya escalado, en metros, con la unidad propuesta. */
   readonly sizeM: readonly [number, number];
+  /**
+   * Cuánto mide en **unidades del dibujo**, sin convertir.
+   *
+   * Es lo que permite a la interfaz decir cuánto mediría con cada unidad **sin volver a leer el
+   * archivo**: multiplicar y mostrar. Sin este dato, cambiar la unidad es un salto a ciegas, que es
+   * justo donde el plano se iba de la pantalla sin explicación.
+   */
+  readonly sizeUnits: readonly [number, number];
   readonly vertexCount: number;
+  /** Cuántos rótulos se dibujaron. */
+  readonly labelCount: number;
 }
 
 /**
@@ -90,40 +100,81 @@ const ACI_BASICOS: Readonly<Record<number, number>> = {
 };
 
 /**
- * El color real de un índice de AutoCAD.
+ * El color **real** de un índice de AutoCAD, calculado con la regla de la paleta ACI.
  *
- * **Reproduce la paleta ACI, no una aproximación de fantasía.** El plano de remodelación del
- * usuario usa el color para decir qué se construye y qué se demuele; con tonos inventados, esa
- * información se pierde justo en el archivo donde más importa.
+ * La paleta no es una rueda de fantasía y no vale aproximarla: el plano de remodelación usa el
+ * color para decir qué se construye y qué se demuele, y un tono inventado convierte esa
+ * información en decoración. La regla, comprobada contra la tabla oficial:
  *
- * La rueda va del 10 al 249: **24 tonos** de 15 grados y, dentro de cada uno, cinco niveles de
- * claridad en dos saturaciones. Los grises finales (250-255) son una rampa de negro a casi blanco.
+ * - **1 a 9**: los colores fijos (rojo, amarillo, verde, cian, azul, magenta, el "por defecto" y
+ *   dos grises).
+ * - **10 a 249**: `24 tonos × 10 variantes`. El tono avanza de 15 en 15 grados; las variantes van
+ *   en cinco niveles de claridad —255, 165, 127, 76 y 38— y cada nivel tiene su versión **pálida**,
+ *   que sube los componentes apagados hasta la mitad del nivel. Así el 11 es `(255,127,127)` y el
+ *   21 es `(255,159,127)`, exactamente como en AutoCAD.
+ * - **250 a 255**: la rampa de grises.
  */
 function aciAColor(colorIndex: number): number {
   const basico = ACI_BASICOS[colorIndex];
   if (basico !== undefined) return basico;
 
   if (colorIndex >= 250 && colorIndex <= 255) {
-    const gris = [0x333333, 0x505050, 0x696969, 0x828282, 0xbebebe, 0xffffff][colorIndex - 250]!;
-    return gris;
+    return [0x333333, 0x505050, 0x696969, 0x828282, 0xbebebe, 0xffffff][colorIndex - 250]!;
   }
 
   if (colorIndex < 10 || colorIndex > 249) return ACI_BASICOS[7]!;
 
   const indice = colorIndex - 10;
-  const tono = Math.floor(indice / 10) * 15;
+  const grados = Math.floor(indice / 10) * 15;
   const variante = indice % 10;
-  // Pares (claridad, saturación) de la paleta: los impares son la versión desaturada del par
-  // anterior, que es lo que hace que 11, 13, 15… se vean "lavados" en AutoCAD.
-  const claridad = [1, 1, 0.8, 0.8, 0.62, 0.62, 0.45, 0.45, 0.3, 0.3][variante]!;
-  const saturacion = variante % 2 === 0 ? 1 : 0.5;
+  const nivel = [255, 165, 127, 76, 38][Math.floor(variante / 2)]!;
+  const palida = variante % 2 === 1;
 
-  return new THREE.Color().setHSL(tono / 360, saturacion, claridad / 2 + 0.06).getHex();
+  // El tono puro, con saturación y valor al máximo: los componentes salen en 0…1.
+  const base = new THREE.Color().setHSL(grados / 360, 1, 0.5);
+
+  const componente = (fraccion: number) => {
+    const lleno = fraccion * nivel;
+    // La versión pálida levanta lo apagado hasta la mitad del nivel, que es lo que hace que los
+    // impares de la paleta se vean lavados en vez de simplemente más oscuros.
+    return Math.round(palida ? lleno + (1 - fraccion) * (nivel / 2) : lleno);
+  };
+
+  return (componente(base.r) << 16) | (componente(base.g) << 8) | componente(base.b);
 }
 
 /** El color con el que se dibuja algo del plano; sin índice, el del "por defecto". */
 function colorDeCapa(colorIndex: number | null): number {
   return colorIndex === null ? ACI_BASICOS[7]! : aciAColor(colorIndex);
+}
+
+/** Entre qué medidas, en metros de la escena, una raya se ve como raya y no como otra cosa. */
+const RAYA_M = { minima: 0.04, maxima: 3, objetivo: 0.15 } as const;
+
+/**
+ * Ajusta el patrón de trazo para que se vea, sin dejar de ser discontinuo.
+ *
+ * **El tamaño del patrón de un DXF casi nunca sirve tal cual.** Los tipos de línea se definen en
+ * unidades de papel y se escalan con `LTSCALE`, un número que en cada oficina vale otra cosa: en el
+ * plano real del usuario salen rayas de dos milésimas de milímetro, que no se dibujan —la línea
+ * queda parpadeando o desaparece— y también las hay de decenas de metros, que se ven llenas.
+ *
+ * Se conserva **la proporción entre raya y espacio**, que es lo que distingue un trazo y punto de
+ * un trazo largo, y se lleva la raya a una medida legible en la escena. Es lo mismo que hace a mano
+ * cualquiera que trae un plano a un modelo: tocar `LTSCALE` hasta que se vea.
+ */
+function patronLegible(
+  dash: readonly [number, number],
+  metrosPorUnidad: number,
+): readonly [number, number] | null {
+  const rayaM = dash[0] * metrosPorUnidad;
+  const espacioM = dash[1] * metrosPorUnidad;
+  if (!Number.isFinite(rayaM) || !Number.isFinite(espacioM) || espacioM <= 0) return null;
+
+  if (rayaM >= RAYA_M.minima && rayaM <= RAYA_M.maxima) return dash;
+
+  const factor = RAYA_M.objetivo / Math.max(rayaM, 1e-9);
+  return [dash[0] * factor, dash[1] * factor];
 }
 
 /**
@@ -134,6 +185,15 @@ function colorDeCapa(colorIndex: number | null): number {
  * cientos de textos— entran enteros.
  */
 const LIMITE_ETIQUETAS = 3000;
+
+/**
+ * Lo mínimo que puede medir una letra en la escena, en metros.
+ *
+ * Un plano en milímetros trae rótulos de 2,5 unidades: dos milímetros y medio de escena, que no se
+ * leen ni pegándose. Subirlos a esta altura los hace legibles sin desfigurar el plano — un rótulo
+ * de verdad grande conserva su tamaño.
+ */
+const ALTO_MINIMO_ETIQUETA_M = 0.35;
 
 /** Lo que se guarda de cada plano dibujado. */
 interface PlanoDibujado {
@@ -186,33 +246,44 @@ export class PlanOverlay {
       const grupoCapa = new THREE.Group();
       grupoCapa.name = `capa:${capa.name}`;
 
-      // **Un dibujo por color, no uno por capa.** El color puede venir de la entidad y no de su
-      // capa, y en un plano de remodelación eso *es* la información: lo nuevo y lo que se demuele
-      // conviven en la misma capa con colores distintos.
-      const porColor = new Map<number, number[]>();
+      // **Un dibujo por color y por trazo, no uno por capa.** El color puede venir de la entidad y
+      // no de su capa, y en un plano de remodelación eso *es* la información: lo nuevo y lo que se
+      // demuele conviven en la misma capa con colores distintos. Con el trazo pasa igual: la línea
+      // discontinua distingue un eje o lo que se bota de un muro que se queda.
+      const porEstilo = new Map<
+        string,
+        { color: number; dash: readonly [number, number] | null; puntos: number[] }
+      >();
       for (const linea of dibujo.polylines) {
         if (linea.layer !== capa.name) continue;
 
         const color = colorDeCapa(linea.colorIndex ?? capa.colorIndex);
-        const destino = porColor.get(color) ?? [];
-        empujarSegmentos(linea, centrado, destino);
-        porColor.set(color, destino);
+        const dash = linea.dash;
+        const clave = `${color}|${dash === null ? "llena" : `${dash[0]}:${dash[1]}`}`;
+        const grupo = porEstilo.get(clave) ?? { color, dash, puntos: [] };
+        empujarSegmentos(linea, centrado, grupo.puntos);
+        porEstilo.set(clave, grupo);
       }
 
-      for (const [color, posiciones] of porColor) {
-        if (posiciones.length === 0) continue;
+      for (const { color, dash, puntos } of porEstilo.values()) {
+        if (puntos.length === 0) continue;
 
         const geometria = new THREE.BufferGeometry();
-        geometria.setAttribute("position", new THREE.Float32BufferAttribute(posiciones, 3));
-        const material = new THREE.LineBasicMaterial({
-          color,
-          // El plano va **debajo** del modelo y no debe taparlo, pero tampoco desaparecer bajo la
-          // losa: se dibuja sin escribir profundidad, así que se ve a través sin pelearse con ella.
-          depthWrite: false,
-          transparent: true,
-          opacity: 0.9,
-        });
+        geometria.setAttribute("position", new THREE.Float32BufferAttribute(puntos, 3));
+
+        // El plano va **debajo** del modelo y no debe taparlo, pero tampoco desaparecer bajo la
+        // losa: se dibuja sin escribir profundidad, así que se ve a través sin pelearse con ella.
+        const comun = { color, depthWrite: false, transparent: true, opacity: 0.9 };
+        const patron = dash === null ? null : patronLegible(dash, unidades.metresPerUnit);
+        const material =
+          patron === null
+            ? new THREE.LineBasicMaterial(comun)
+            : new THREE.LineDashedMaterial({ ...comun, dashSize: patron[0], gapSize: patron[1] });
+
         const linea = new THREE.LineSegments(geometria, material);
+        // Una línea discontinua necesita saber cuánto lleva recorrido en cada vértice; sin esto se
+        // dibuja llena y el patrón no aparece por ninguna parte.
+        if (patron !== null) linea.computeLineDistances();
         linea.frustumCulled = false;
         grupoCapa.add(linea);
       }
@@ -221,7 +292,7 @@ export class PlanOverlay {
         if (texto.layer !== capa.name) continue;
         if (etiquetasPuestas >= LIMITE_ETIQUETAS) break;
 
-        const malla = etiqueta(texto, centrado, capa.colorIndex);
+        const malla = etiqueta(texto, centrado, capa.colorIndex, unidades.metresPerUnit);
         if (malla === null) continue;
         grupoCapa.add(malla);
         etiquetasPuestas++;
@@ -257,7 +328,9 @@ export class PlanOverlay {
       units: unidades,
       skipped: dibujo.skipped,
       sizeM: [ancho * unidades.metresPerUnit, alto * unidades.metresPerUnit],
+      sizeUnits: [ancho, alto],
       vertexCount: dibujo.polylines.reduce((n, p) => n + p.points.length / 2, 0),
+      labelCount: etiquetasPuestas,
     };
   }
 
@@ -353,6 +426,11 @@ export class PlanOverlay {
           if (impacto === undefined) continue;
           if (mejor !== null && impacto.distance >= mejor.distancia) continue;
 
+          // El índice del vértice dice qué segmento se tocó: con él salen sus dos extremos, que
+          // son el largo del trazo y —lo que más importa para revisar— los puntos a los que se
+          // engancha una medición.
+          const tramo = extremosDelSegmento(objeto, impacto.index ?? null);
+
           mejor = {
             distancia: impacto.distance,
             hit: {
@@ -360,9 +438,9 @@ export class PlanOverlay {
               planName: plano.name,
               layer: nombreCapa,
               point: [impacto.point.x, impacto.point.y, impacto.point.z],
-              // El índice del vértice dice qué segmento se tocó: con él se mide su largo, que es
-              // el dato que alguien busca al clicar una línea de un plano.
-              segmentLengthM: largoDelSegmento(objeto, impacto.index ?? null, escalaMundo),
+              segmentStartM: tramo === null ? null : tramo.a,
+              segmentEndM: tramo === null ? null : tramo.b,
+              segmentLengthM: tramo === null ? null : tramo.largoM,
             },
           };
         }
@@ -384,30 +462,48 @@ export interface PlanHit {
   readonly layer: string;
   /** Dónde cayó el clic, en coordenadas de la escena. */
   readonly point: readonly [number, number, number];
+  /** Los dos extremos del tramo tocado, en metros de la escena. Son los puntos de ajuste. */
+  readonly segmentStartM: readonly [number, number, number] | null;
+  readonly segmentEndM: readonly [number, number, number] | null;
   /** El largo del tramo tocado, en metros. `null` si no se pudo determinar. */
   readonly segmentLengthM: number | null;
 }
 
-/** El largo del segmento tocado, ya en metros de la escena. */
-function largoDelSegmento(
+/**
+ * Los extremos del segmento tocado, **en coordenadas de la escena**.
+ *
+ * Se devuelven en mundo y no en las del dibujo porque es donde sirven: ahí se mide, ahí se compara
+ * con el modelo y ahí se engancha una cota. La escala del plano ya está aplicada, así que la
+ * distancia entre los dos es directamente metros.
+ */
+function extremosDelSegmento(
   objeto: THREE.LineSegments,
   indice: number | null,
-  metrosPorUnidad: number,
-): number | null {
+): {
+  readonly a: readonly [number, number, number];
+  readonly b: readonly [number, number, number];
+  readonly largoM: number;
+} | null {
   if (indice === null) return null;
 
   const posiciones = objeto.geometry.getAttribute("position");
   // Los segmentos van de dos en dos: el índice que devuelve el rayo es el del primer vértice.
-  const a = indice - (indice % 2);
-  const b = a + 1;
-  if (b >= posiciones.count) return null;
+  const i = indice - (indice % 2);
+  if (i + 1 >= posiciones.count) return null;
 
-  const largo = Math.hypot(
-    posiciones.getX(b) - posiciones.getX(a),
-    posiciones.getY(b) - posiciones.getY(a),
-    posiciones.getZ(b) - posiciones.getZ(a),
-  );
-  return largo * metrosPorUnidad;
+  objeto.updateWorldMatrix(true, false);
+  const a = new THREE.Vector3(
+    posiciones.getX(i),
+    posiciones.getY(i),
+    posiciones.getZ(i),
+  ).applyMatrix4(objeto.matrixWorld);
+  const b = new THREE.Vector3(
+    posiciones.getX(i + 1),
+    posiciones.getY(i + 1),
+    posiciones.getZ(i + 1),
+  ).applyMatrix4(objeto.matrixWorld);
+
+  return { a: [a.x, a.y, a.z], b: [b.x, b.y, b.z], largoM: a.distanceTo(b) };
 }
 
 /** El centro de la extensión del dibujo: es el punto alrededor del cual gira el plano. */
@@ -456,31 +552,55 @@ function etiqueta(
   texto: DxfText,
   [cx, cy]: readonly [number, number],
   colorCapa: number | null,
+  metrosPorUnidad: number,
 ): THREE.Mesh | null {
   const contenido = texto.text.slice(0, 120);
   if (contenido === "" || texto.height <= 0) return null;
 
   const lienzo = document.createElement("canvas");
-  const pixelesPorLetra = 32;
-  lienzo.width = Math.min(2048, Math.max(64, Math.ceil(contenido.length * pixelesPorLetra * 0.62)));
-  lienzo.height = pixelesPorLetra * 2;
+  // **Se dibuja grande y se encoge al colocarlo.** Con 32 px por letra el rótulo salía borroso en
+  // cuanto uno se acercaba: la textura se estira y el texto pierde el filo justo cuando se quiere
+  // leer. A 96 px la letra aguanta el acercamiento y sigue costando poca memoria.
+  const pixelesPorLetra = 96;
+  const margen = pixelesPorLetra * 0.35;
+  lienzo.width = Math.min(
+    4096,
+    Math.max(128, Math.ceil(contenido.length * pixelesPorLetra * 0.62 + margen * 2)),
+  );
+  lienzo.height = Math.ceil(pixelesPorLetra * 1.6);
 
   const pincel = lienzo.getContext("2d");
   if (pincel === null) return null;
 
   const color = new THREE.Color(colorDeCapa(texto.colorIndex ?? colorCapa));
-  pincel.font = `${pixelesPorLetra}px system-ui, sans-serif`;
+  pincel.font = `600 ${pixelesPorLetra}px system-ui, "Segoe UI", sans-serif`;
   pincel.textAlign = "center";
   pincel.textBaseline = "middle";
+  // **Un contorno oscuro detrás de la letra.** Un rótulo del CAD cae encima del propio dibujo y de
+  // la geometría del modelo; sin ese respaldo, el texto se confunde con las líneas que tiene detrás
+  // y hay que adivinarlo. Es lo mismo que hace cualquier visor que dibuja texto sobre el modelo.
+  pincel.lineWidth = pixelesPorLetra * 0.16;
+  pincel.lineJoin = "round";
+  pincel.strokeStyle = "rgba(6, 10, 20, 0.85)";
+  pincel.strokeText(contenido, lienzo.width / 2, lienzo.height / 2);
   pincel.fillStyle = `#${color.getHexString()}`;
   pincel.fillText(contenido, lienzo.width / 2, lienzo.height / 2);
 
   const textura = new THREE.CanvasTexture(lienzo);
   textura.colorSpace = THREE.SRGBColorSpace;
-  textura.minFilter = THREE.LinearFilter;
+  textura.minFilter = THREE.LinearMipmapLinearFilter;
+  textura.magFilter = THREE.LinearFilter;
+  textura.anisotropy = 4;
+  textura.generateMipmaps = true;
 
-  const alto = texto.height;
+  // **Un mínimo legible.** El alto del texto viene en unidades del dibujo, y con el plano en
+  // milímetros un rótulo de 2,5 unidades mide dos milímetros y medio: existe y no se ve. Se sube
+  // hasta `ALTO_MINIMO_ETIQUETA_M` en metros de la escena, que es la altura a la que una letra se
+  // lee sin tener que pegarse al plano. Los rótulos que ya son grandes no se tocan.
+  const altoM = Math.max(texto.height * metrosPorUnidad, ALTO_MINIMO_ETIQUETA_M);
+  const alto = altoM / metrosPorUnidad;
   const ancho = (alto * lienzo.width) / lienzo.height;
+
   const malla = new THREE.Mesh(
     new THREE.PlaneGeometry(ancho, alto),
     new THREE.MeshBasicMaterial({
@@ -494,6 +614,9 @@ function etiqueta(
   malla.position.set(texto.x - cx, 0, -(texto.y - cy));
   malla.rotateX(-Math.PI / 2);
   malla.rotateZ((texto.rotationDeg * Math.PI) / 180);
+  // El rótulo se dibuja **encima** de los trazos: si comparte plano con las líneas, la tarjeta
+  // parpadea contra ellas al orbitar. Medio milímetro de escena basta y no se nota.
+  malla.renderOrder = 1;
   malla.frustumCulled = false;
   return malla;
 }
