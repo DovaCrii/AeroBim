@@ -27,6 +27,7 @@ import {
   type DxfText,
 } from "@aerobim/bim-core";
 import * as THREE from "three";
+import { mantenerTamanoEnPantalla, materialDeMarcas, tocarMarcas } from "./etiquetas.js";
 
 /**
  * Cómo se coloca el plano respecto al modelo.
@@ -170,14 +171,6 @@ const ATLAS_PX = 2048;
  * anotación de un CAD.
  */
 const ALTO_ETIQUETA_PX = 16;
-
-/**
- * Hasta cuánto se deja estirar o encoger un rótulo respecto a su tamaño de dibujo.
- *
- * Sin tope, alejándose mucho los rótulos se comerían el plano y acercándose desaparecerían. Los
- * límites conservan la idea —legible a cualquier distancia— sin llegar al absurdo.
- */
-const FACTOR_ETIQUETA = { minimo: 0.25, maximo: 12 } as const;
 
 /**
  * Cuántos trazos se miran como mucho al buscar cruces bajo el cursor.
@@ -909,85 +902,6 @@ function ponerRotulos(
 }
 
 /**
- * El material de los rótulos: la textura del atlas, con el tamaño puesto por el vértice.
- *
- * Cada esquina se aparta de su centro lo que diga `factor`, así que **el rótulo crece y encoge
- * alrededor de su ancla** sin tocar la geometría ni rehacer nada por fotograma. Un material
- * corriente no puede hacerlo: escalaría la malla entera y los rótulos se irían de sitio.
- */
-function materialDeRotulos(textura: THREE.Texture): THREE.ShaderMaterial {
-  return new THREE.ShaderMaterial({
-    uniforms: { mapa: { value: textura }, factor: { value: 1 } },
-    vertexShader: `
-      attribute vec2 corner;
-      uniform float factor;
-      varying vec2 vUv;
-      void main() {
-        vUv = uv;
-        vec3 sitio = position + vec3(corner.x * factor, 0.0, corner.y * factor);
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(sitio, 1.0);
-      }
-    `,
-    fragmentShader: `
-      uniform sampler2D mapa;
-      varying vec2 vUv;
-      void main() {
-        vec4 color = texture2D(mapa, vUv);
-        if (color.a < 0.02) discard;
-        gl_FragColor = color;
-      }
-    `,
-    transparent: true,
-    depthWrite: false,
-    side: THREE.DoubleSide,
-  });
-}
-
-/**
- * El impacto del rayo contra los rótulos, contra sus cajas y no contra la geometría.
- *
- * La geometría tiene las cuatro esquinas de cada rótulo en el mismo punto —el tamaño lo pone el
- * material— así que un rayo normal no tocaría nada. Se resuelve donde corresponde: cortando el
- * plano del dibujo y mirando en qué caja cae, con el mismo factor que se está dibujando.
- */
-function tocarRotulos(
-  malla: THREE.Mesh,
-  material: THREE.ShaderMaterial,
-  rayo: THREE.Raycaster,
-  impactos: THREE.Intersection[],
-): void {
-  const datos = malla.userData as {
-    etiquetas?: readonly { x: number; z: number; media: number; medioAlto: number }[];
-  };
-  const etiquetas = datos.etiquetas;
-  if (etiquetas === undefined || etiquetas.length === 0) return;
-
-  const inversa = new THREE.Matrix4().copy(malla.matrixWorld).invert();
-  const local = new THREE.Ray().copy(rayo.ray).applyMatrix4(inversa);
-  // El dibujo vive en el plano y = 0 de su propio sistema.
-  if (Math.abs(local.direction.y) < 1e-9) return;
-
-  const t = -local.origin.y / local.direction.y;
-  if (t < 0) return;
-
-  const punto = local.origin.clone().addScaledVector(local.direction, t);
-  const factor = (material.uniforms["factor"]?.value as number | undefined) ?? 1;
-
-  for (const etiqueta of etiquetas) {
-    if (Math.abs(punto.x - etiqueta.x) > etiqueta.media * factor) continue;
-    if (Math.abs(punto.z - etiqueta.z) > etiqueta.medioAlto * factor) continue;
-
-    const mundo = punto.clone().applyMatrix4(malla.matrixWorld);
-    impactos.push({
-      distance: rayo.ray.origin.distanceTo(mundo),
-      point: mundo,
-      object: malla,
-    });
-    return;
-  }
-}
-
-/**
  * Qué rótulo del atlas cayó bajo el clic.
  *
  * Todos comparten malla, así que el rayo devuelve la malla y no el rótulo: se resuelve por el
@@ -1144,50 +1058,17 @@ function atlasDeEtiquetas(
   geometria.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
   geometria.setIndex(indices);
 
-  const material = materialDeRotulos(textura);
+  const material = materialDeMarcas(textura);
   const malla = new THREE.Mesh(geometria, material);
   malla.name = "rotulos";
   // Los rótulos comparten malla, así que el rayo no puede decir cuál se tocó: se guardan sus
   // centros y su texto para resolverlo por cercanía. Ver {@link rotuloEn}.
   malla.userData = { tipo: "rotulos", etiquetas: centros, altoBase: alto };
 
-  /**
-   * **El rótulo se dibuja del mismo tamaño mire uno de donde mire.**
-   *
-   * Con el texto a su tamaño de dibujo, una etiqueta de veinte centímetros en una planta de veinte
-   * metros ocupa diez píxeles: existe y no se lee, que es exactamente lo que se veía. Antes de cada
-   * fotograma se calcula cuánto mide un píxel en el mundo a esa distancia y se estira el rótulo
-   * hasta {@link ALTO_ETIQUETA_PX}. Es lo que hace la anotación de un CAD, y por eso al acercarse
-   * el texto no crece sin fin: se queda legible.
-   */
-  malla.onBeforeRender = (renderer, _escena, camara) => {
-    const alturaPx = renderer.getSize(new THREE.Vector2()).y || 1;
-    const escalaMundo = malla.getWorldScale(new THREE.Vector3()).y || 1;
-
-    let metrosPorPixel: number;
-    if ((camara as THREE.OrthographicCamera).isOrthographicCamera === true) {
-      const orto = camara as THREE.OrthographicCamera;
-      metrosPorPixel = (orto.top - orto.bottom) / (orto.zoom || 1) / alturaPx;
-    } else {
-      const perspectiva = camara as THREE.PerspectiveCamera;
-      const distancia = perspectiva.position.distanceTo(
-        malla.getWorldPosition(new THREE.Vector3()),
-      );
-      metrosPorPixel =
-        (2 * distancia * Math.tan(((perspectiva.fov || 60) * Math.PI) / 360)) / alturaPx;
-    }
-
-    const deseadoM = ALTO_ETIQUETA_PX * metrosPorPixel;
-    const baseM = alto * escalaMundo;
-    material.uniforms["factor"]!.value = Math.min(
-      FACTOR_ETIQUETA.maximo,
-      Math.max(FACTOR_ETIQUETA.minimo, baseM === 0 ? 1 : deseadoM / baseM),
-    );
-  };
-
-  // El rayo no puede usar la geometría —sus cuatro esquinas están en el mismo punto y el tamaño lo
-  // pone el material—, así que el impacto se calcula contra las cajas de los rótulos.
-  malla.raycast = (rayo, impactos) => tocarRotulos(malla, material, rayo, impactos);
+  // **El rótulo se dibuja del mismo tamaño mire uno de donde mire**, y el rayo lo encuentra contra
+  // su caja y no contra la geometría, que no tiene tamaño propio. Ver `etiquetas.ts`.
+  mantenerTamanoEnPantalla(malla, material, alto, ALTO_ETIQUETA_PX);
+  malla.raycast = (rayo, impactos) => tocarMarcas(malla, material, centros, rayo, impactos);
   // Los rótulos se dibujan **encima** de los trazos: compartiendo plano con las líneas, parpadean
   // contra ellas al orbitar.
   malla.renderOrder = 2;
