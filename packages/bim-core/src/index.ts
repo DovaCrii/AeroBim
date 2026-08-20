@@ -52,6 +52,8 @@ export {
 } from "./inspect/ifcClasses.js";
 
 export {
+  aciColor,
+  aciColorHex,
   parseDxf,
   suggestMetresPerUnit,
   type DxfBounds,

@@ -1,3 +1,4 @@
+import { aciColorHex } from "@aerobim/bim-core";
 import type { LoadedPlan, PlanTransform } from "@aerobim/viewer";
 import { useState } from "react";
 import { IconEye, IconEyeOff, IconFrameAll, IconX } from "./icons.js";
@@ -365,7 +366,9 @@ function PlanoEnLista({
                     </button>
                     <span
                       className="h-2.5 w-2.5 shrink-0 rounded-[2px]"
-                      style={{ backgroundColor: colorDeCapa(capa.colorIndex) }}
+                      // La misma paleta que dibuja la escena: con una copia aquí, la leyenda
+                      // pintaba de verde una capa que en el plano salía violeta.
+                      style={{ backgroundColor: aciColorHex(capa.colorIndex) }}
                       aria-hidden="true"
                     />
                     <span
@@ -459,26 +462,4 @@ function Numero({
       <span className="w-3 shrink-0 text-[10px] text-white/30">{sufijo}</span>
     </div>
   );
-}
-
-/**
- * El mismo color con el que se dibuja la capa en la escena.
- *
- * Está duplicado a propósito y en pocas líneas: el visor no expone su tabla, y una muestra de color
- * que no coincida con lo dibujado es peor que no tener muestra.
- */
-function colorDeCapa(colorIndex: number | null): string {
-  const ACI: Record<number, string> = {
-    1: "#ff5555",
-    2: "#ffe066",
-    3: "#8ce99a",
-    4: "#66d9e8",
-    5: "#74a8ff",
-    6: "#f783ac",
-    7: "#d0d0d8",
-    8: "#9090a0",
-    9: "#c0c0cc",
-  };
-  if (colorIndex === null) return ACI[7]!;
-  return ACI[colorIndex] ?? `hsl(${((colorIndex * 47) % 360).toFixed(0)} 55% 68%)`;
 }

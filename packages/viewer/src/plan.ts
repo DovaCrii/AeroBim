@@ -16,6 +16,7 @@
  */
 
 import {
+  aciColor,
   parseDxf,
   segmentIntersection,
   suggestMetresPerUnit,
@@ -87,73 +88,14 @@ export interface LoadedPlan {
 }
 
 /**
- * Los siete colores fijos de AutoCAD, los que se ven en cualquier plano.
+ * El color con el que se dibuja algo del plano; sin índice, el del "por defecto".
  *
- * Del 10 al 249 la paleta es una rueda de 24 tonos con diez variantes cada uno, y esa parte se
- * calcula: ver {@link aciAColor}. Los grises del 250 al 255 son una rampa aparte.
+ * **La paleta vive en el dominio**, no aquí: la comparten la escena y la leyenda del panel, y
+ * cuando había una copia en cada sitio la lista mentía sobre el dibujo. Ver `aciColor` en
+ * `bim-core`.
  */
-const ACI_BASICOS: Readonly<Record<number, number>> = {
-  1: 0xff0000,
-  2: 0xffff00,
-  3: 0x00ff00,
-  4: 0x00ffff,
-  5: 0x0000ff,
-  6: 0xff00ff,
-  // **El 7 es el color "por defecto" y depende del fondo**: negro sobre papel, blanco sobre una
-  // pantalla oscura. Acá el fondo es oscuro, así que va claro — pintarlo negro sería dibujar un
-  // plano invisible, que es exactamente el error clásico al llevar un DXF a un visor.
-  7: 0xe8e8ef,
-  8: 0x808080,
-  9: 0xc0c0c0,
-};
-
-/**
- * El color **real** de un índice de AutoCAD, calculado con la regla de la paleta ACI.
- *
- * La paleta no es una rueda de fantasía y no vale aproximarla: el plano de remodelación usa el
- * color para decir qué se construye y qué se demuele, y un tono inventado convierte esa
- * información en decoración. La regla, comprobada contra la tabla oficial:
- *
- * - **1 a 9**: los colores fijos (rojo, amarillo, verde, cian, azul, magenta, el "por defecto" y
- *   dos grises).
- * - **10 a 249**: `24 tonos × 10 variantes`. El tono avanza de 15 en 15 grados; las variantes van
- *   en cinco niveles de claridad —255, 165, 127, 76 y 38— y cada nivel tiene su versión **pálida**,
- *   que sube los componentes apagados hasta la mitad del nivel. Así el 11 es `(255,127,127)` y el
- *   21 es `(255,159,127)`, exactamente como en AutoCAD.
- * - **250 a 255**: la rampa de grises.
- */
-function aciAColor(colorIndex: number): number {
-  const basico = ACI_BASICOS[colorIndex];
-  if (basico !== undefined) return basico;
-
-  if (colorIndex >= 250 && colorIndex <= 255) {
-    return [0x333333, 0x505050, 0x696969, 0x828282, 0xbebebe, 0xffffff][colorIndex - 250]!;
-  }
-
-  if (colorIndex < 10 || colorIndex > 249) return ACI_BASICOS[7]!;
-
-  const indice = colorIndex - 10;
-  const grados = Math.floor(indice / 10) * 15;
-  const variante = indice % 10;
-  const nivel = [255, 165, 127, 76, 38][Math.floor(variante / 2)]!;
-  const palida = variante % 2 === 1;
-
-  // El tono puro, con saturación y valor al máximo: los componentes salen en 0…1.
-  const base = new THREE.Color().setHSL(grados / 360, 1, 0.5);
-
-  const componente = (fraccion: number) => {
-    const lleno = fraccion * nivel;
-    // La versión pálida levanta lo apagado hasta la mitad del nivel, que es lo que hace que los
-    // impares de la paleta se vean lavados en vez de simplemente más oscuros.
-    return Math.round(palida ? lleno + (1 - fraccion) * (nivel / 2) : lleno);
-  };
-
-  return (componente(base.r) << 16) | (componente(base.g) << 8) | componente(base.b);
-}
-
-/** El color con el que se dibuja algo del plano; sin índice, el del "por defecto". */
 function colorDeCapa(colorIndex: number | null): number {
-  return colorIndex === null ? ACI_BASICOS[7]! : aciAColor(colorIndex);
+  return aciColor(colorIndex);
 }
 
 /** Entre qué medidas, en metros de la escena, una raya se ve como raya y no como otra cosa. */

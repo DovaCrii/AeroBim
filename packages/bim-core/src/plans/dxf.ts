@@ -91,6 +91,90 @@ export interface DxfHatch {
   readonly loops: readonly (readonly number[])[];
 }
 
+/**
+ * Los siete colores fijos de AutoCAD, los que se ven en cualquier plano.
+ *
+ * Del 10 al 249 la paleta se calcula: ver {@link aciColor}. Los grises del 250 al 255 son una rampa
+ * aparte.
+ */
+const ACI_BASICOS: Readonly<Record<number, number>> = {
+  1: 0xff0000,
+  2: 0xffff00,
+  3: 0x00ff00,
+  4: 0x00ffff,
+  5: 0x0000ff,
+  6: 0xff00ff,
+  // **El 7 es el color "por defecto" y depende del fondo**: negro sobre papel, blanco sobre una
+  // pantalla oscura. Acá el fondo es oscuro, así que va claro — pintarlo negro sería dibujar un
+  // plano invisible, que es el error clásico al llevar un DXF a un visor.
+  7: 0xe8e8ef,
+  8: 0x808080,
+  9: 0xc0c0c0,
+};
+
+/**
+ * El color **real** de un índice de AutoCAD, como entero `0xRRGGBB`.
+ *
+ * **Vive en el dominio y no en el visor porque lo usan los dos**: la escena para dibujar y el panel
+ * para su muestra de color. Con una copia en cada sitio pasó lo que tenía que pasar — la capa
+ * `0-AREA UTIL` (índice 201) se dibujaba violeta y la leyenda la pintaba verde, así que la lista
+ * mentía sobre el propio dibujo.
+ *
+ * La regla de la paleta, comprobada contra la tabla oficial:
+ *
+ * - **1 a 9**: los colores fijos.
+ * - **10 a 249**: `24 tonos × 10 variantes`. El tono avanza de 15 en 15 grados; las variantes van
+ *   en cinco niveles de claridad —255, 165, 127, 76 y 38— y cada nivel tiene su versión **pálida**,
+ *   que sube los componentes apagados hasta la mitad del nivel. Así el 11 es `(255,127,127)` y el
+ *   21 es `(255,159,127)`, exactamente como en AutoCAD.
+ * - **250 a 255**: la rampa de grises.
+ */
+export function aciColor(colorIndex: number | null): number {
+  if (colorIndex === null) return ACI_BASICOS[7]!;
+
+  const basico = ACI_BASICOS[colorIndex];
+  if (basico !== undefined) return basico;
+
+  if (colorIndex >= 250 && colorIndex <= 255) {
+    return [0x333333, 0x505050, 0x696969, 0x828282, 0xbebebe, 0xffffff][colorIndex - 250]!;
+  }
+  if (colorIndex < 10 || colorIndex > 249) return ACI_BASICOS[7]!;
+
+  const indice = colorIndex - 10;
+  const grados = Math.floor(indice / 10) * 15;
+  const variante = indice % 10;
+  const nivel = [255, 165, 127, 76, 38][Math.floor(variante / 2)]!;
+  const palida = variante % 2 === 1;
+
+  const [r, g, b] = tonoPuro(grados);
+  const componente = (fraccion: number) => {
+    const lleno = fraccion * nivel;
+    // La versión pálida levanta lo apagado hasta la mitad del nivel: es lo que hace que los impares
+    // de la paleta se vean lavados en vez de simplemente más oscuros.
+    return Math.round(palida ? lleno + (1 - fraccion) * (nivel / 2) : lleno);
+  };
+
+  return (componente(r) << 16) | (componente(g) << 8) | componente(b);
+}
+
+/** El mismo color, como `#rrggbb`, que es lo que necesita el CSS de la leyenda. */
+export function aciColorHex(colorIndex: number | null): string {
+  return `#${aciColor(colorIndex).toString(16).padStart(6, "0")}`;
+}
+
+/** El tono puro de un ángulo del círculo cromático, con saturación y valor al máximo. */
+function tonoPuro(grados: number): readonly [number, number, number] {
+  const sector = (grados % 360) / 60;
+  const x = 1 - Math.abs((sector % 2) - 1);
+
+  if (sector < 1) return [1, x, 0];
+  if (sector < 2) return [x, 1, 0];
+  if (sector < 3) return [0, 1, x];
+  if (sector < 4) return [0, x, 1];
+  if (sector < 5) return [x, 0, 1];
+  return [1, 0, x];
+}
+
 /** Una capa del dibujo, con su color de AutoCAD (índice ACI) cuando lo declara. */
 export interface DxfLayer {
   readonly name: string;

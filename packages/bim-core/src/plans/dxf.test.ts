@@ -1,5 +1,44 @@
 import { describe, expect, it } from "vitest";
-import { parseDxf, suggestMetresPerUnit } from "./dxf.js";
+import { aciColor, aciColorHex, parseDxf, suggestMetresPerUnit } from "./dxf.js";
+
+/**
+ * El oráculo de la paleta es la tabla oficial de AutoCAD. Los valores de abajo están copiados de
+ * ahí, y son los que separan un plano que se lee como en el CAD de uno con colores inventados.
+ */
+describe("aciColor", () => {
+  it("clava los colores fijos, con el 7 claro porque el fondo es oscuro", () => {
+    expect(aciColor(1)).toBe(0xff0000);
+    expect(aciColor(4)).toBe(0x00ffff);
+    expect(aciColor(6)).toBe(0xff00ff);
+    expect(aciColorHex(7)).toBe("#e8e8ef");
+  });
+
+  it("calcula la rueda del 10 al 249 como la tabla oficial", () => {
+    // Rojo puro y su versión pálida; el 20 y el 21 son el mismo par un tono más allá.
+    expect(aciColor(10)).toBe(0xff0000);
+    expect(aciColor(11)).toBe(0xff8080);
+    expect(aciColor(20)).toBe(0xff4000);
+    expect(aciColor(21)).toBe(0xff9f80);
+    // Un nivel más oscuro del mismo tono.
+    expect(aciColor(12)).toBe(0xa50000);
+  });
+
+  it("el 201 es violeta, no verde — la capa que delató la leyenda", () => {
+    const violeta = aciColor(201);
+    const rojo = (violeta >> 16) & 0xff;
+    const verde = (violeta >> 8) & 0xff;
+    const azul = violeta & 0xff;
+
+    expect(azul).toBeGreaterThan(verde);
+    expect(rojo).toBeGreaterThan(verde);
+  });
+
+  it("los grises finales son una rampa, y lo desconocido cae en el color por defecto", () => {
+    expect(aciColor(255)).toBe(0xffffff);
+    expect(aciColor(0)).toBe(aciColor(7));
+    expect(aciColor(null)).toBe(aciColor(7));
+  });
+});
 
 /** Escribe un DXF mínimo a partir de pares (código, valor), que es como está escrito el formato. */
 function dxf(...pares: readonly (readonly [number | string, string])[]): string {
