@@ -319,42 +319,57 @@ export function suggestMetresPerUnit(drawing: DxfDrawing): {
     };
   }
 
-  const candidatas = [
-    ["milímetros", 0.001],
-    ["centímetros", 0.01],
-    ["metros", 1],
-    ["pies", 0.3048],
-    ["pulgadas", 0.0254],
-  ] as const;
+  // **Dos medidas, no una.** El tamaño total puede estar dominado por el marco de la lámina o por
+  // una entidad suelta lejísimos, y entonces engaña: en un plano real del usuario, el dibujo entero
+  // medía 48 m —tamaño creíble— mientras la planta de verdad ocupaba dos metros. El **trazo más
+  // largo** no se deja engañar: en un plano de edificio es una fachada, un muro o un eje.
+  const trazo = trazoMayor(drawing);
 
-  for (const [minimo, maximo] of [
-    [3, 120],
-    [2, 500],
-  ] as const) {
-    const cabe = (metros: number) => lado * metros >= minimo && lado * metros <= maximo;
+  const candidatas: readonly (readonly [string, number, boolean])[] = [
+    ...(declarada.metresPerUnit === null
+      ? []
+      : ([[declarada.name, declarada.metresPerUnit, true]] as const)),
+    ["milímetros", 0.001, false],
+    ["centímetros", 0.01, false],
+    ["metros", 1, false],
+    ["pies", 0.3048, false],
+    ["pulgadas", 0.0254, false],
+  ];
 
-    if (declarada.metresPerUnit !== null && cabe(declarada.metresPerUnit)) {
+  let mejor: { nombre: string; metros: number; declarada: boolean; puntos: number } | null = null;
+  for (const [nombre, metros, esDeclarada] of candidatas) {
+    const totalOk = lado * metros >= 3 && lado * metros <= 600;
+    const trazoOk = trazo === null || (trazo * metros >= 3 && trazo * metros <= 120);
+    const puntos = (totalOk ? 1 : 0) + (trazoOk ? 1 : 0);
+
+    if (puntos === 0) continue;
+    if (mejor === null || puntos > mejor.puntos) {
+      mejor = { nombre, metros, declarada: esDeclarada, puntos };
+    }
+  }
+
+  if (mejor !== null) {
+    const medidaTrazo = trazo === null ? null : medida(trazo, mejor.metros);
+    if (mejor.declarada) {
       return {
-        metresPerUnit: declarada.metresPerUnit,
-        unitName: declarada.name,
+        metresPerUnit: mejor.metros,
+        unitName: mejor.nombre,
         declared: true,
-        reason: `El archivo declara ${declarada.name} y el plano mide ${medida(lado, declarada.metresPerUnit)}, que es tamaño de edificio.`,
+        reason: `El archivo declara ${mejor.nombre}: el plano mide ${medida(lado, mejor.metros)} y su trazo más largo ${medidaTrazo ?? "—"}, que es tamaño de edificio.`,
       };
     }
 
-    for (const [nombre, metros] of candidatas) {
-      if (!cabe(metros)) continue;
-      const declaradoDice =
-        declarada.metresPerUnit === null
-          ? "El archivo no declara unidades"
-          : `El archivo declara ${declarada.name}, y con eso el plano mediría ${medida(lado, declarada.metresPerUnit)}`;
-      return {
-        metresPerUnit: metros,
-        unitName: nombre,
-        declared: false,
-        reason: `${declaradoDice}. Midiendo el dibujo son ${nombre}: ${medida(lado, metros)} de lado.`,
-      };
-    }
+    const declaradoDice =
+      declarada.metresPerUnit === null
+        ? "El archivo no declara unidades"
+        : `El archivo declara ${declarada.name}, y con eso el trazo más largo mediría ${trazo === null ? medida(lado, declarada.metresPerUnit) : medida(trazo, declarada.metresPerUnit)}`;
+
+    return {
+      metresPerUnit: mejor.metros,
+      unitName: mejor.nombre,
+      declared: false,
+      reason: `${declaradoDice}. Midiendo el dibujo son ${mejor.nombre}: ${medida(lado, mejor.metros)} de lado y ${medidaTrazo ?? "—"} el trazo más largo.`,
+    };
   }
 
   return {
@@ -364,6 +379,33 @@ export function suggestMetresPerUnit(drawing: DxfDrawing): {
     reason:
       "Ninguna unidad habitual deja el plano en un tamaño de edificio: hay que decirla a mano.",
   };
+}
+
+/**
+ * Cuánto mide el trazo más largo del dibujo, en unidades.
+ *
+ * Es la medida que no engaña al deducir la unidad: el marco de la lámina o una entidad perdida a
+ * kilómetros inflan la extensión total, pero **la línea más larga de un plano de edificio es una
+ * fachada, un muro o un eje** — entre tres y cien metros, nunca dos.
+ */
+function trazoMayor(drawing: DxfDrawing): number | null {
+  let mayor = 0;
+  for (const linea of drawing.polylines) {
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    for (let i = 0; i + 1 < linea.points.length; i += 2) {
+      const x = linea.points[i]!;
+      const y = linea.points[i + 1]!;
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+    }
+    if (Number.isFinite(minX)) mayor = Math.max(mayor, maxX - minX, maxY - minY);
+  }
+  return mayor > 0 ? mayor : null;
 }
 
 /** El lado mayor de la extensión, en unidades del dibujo. */

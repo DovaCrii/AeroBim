@@ -963,6 +963,22 @@ longitud medida en los dos.
 | **Unidades**  | La cabecera declara `$INSUNITS=5` (**centímetros**) y las coordenadas dicen otra cosa      |
 | **Extensión** | `$EXTMIN`/`$EXTMAX` **sin calcular** (`1e20` y `0`): no sirven para encuadrar              |
 
+> **Y el tamaño total tampoco basta para deducirlas** (2026-08-19, con el segundo plano real). El
+> `ACAD-Piso 5_Base1.dxf` declara **metros**, mide 48 unidades de lado —tamaño creíble en
+> milímetros— y sin embargo está en **centímetros**: lo que infla la extensión es el marco de la
+> lámina, mientras la planta de verdad ocupaba dos metros mal contados. Con la unidad equivocada,
+> todo lo que se calcula a partir del plano sale mal: el tamaño de los rótulos, el patrón de los
+> trazos y, sobre todo, el calce con el modelo.
+>
+> La medida que no engaña es **el trazo más largo**: en un plano de edificio es una fachada, un muro
+> o un eje, y mide entre tres y cien metros, nunca dos. Se puntúan las dos —extensión total y trazo
+> mayor— y gana la unidad que cumple las dos. Con eso, `Base1` sale en centímetros y `Base` sigue en
+> milímetros, cada uno con su edificio a tamaño de edificio.
+>
+> **Y el encuadre cuenta solo lo encendido**: con el marco de la lámina apagado, encuadrar el plano
+> lleva al edificio (19,9 m de ancho, contra los 21,8 m del IFC) en vez de dejarlo como un sello en
+> una esquina de 480 metros.
+
 > **Las unidades de un DXF no se creen, se comprueban.** `0-MUROS` mide 20.023 unidades de
 > ancho y el piso del IFC mide 21,8 m: son milímetros, no los centímetros que declara la
 > cabecera. Por eso la carga **propone** un factor y deja cambiarlo, en vez de aplicar

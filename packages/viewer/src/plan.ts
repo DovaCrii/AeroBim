@@ -468,12 +468,26 @@ export class PlanOverlay {
     this.planos.delete(id);
   }
 
-  /** La caja que ocupa un plano ya colocado, para poder encuadrarlo. */
+  /**
+   * La caja que ocupa un plano ya colocado, **contando solo lo encendido**.
+   *
+   * Que lo apagado no cuente es lo que convierte las capas en una herramienta de encuadre: un DXF
+   * suele traer el marco de la lámina y las viñetas en una capa aparte —en el plano real del
+   * usuario, esa capa mide 480 m frente a los 20 m del edificio—, y con ella encendida encuadrar
+   * deja la planta como un sello en una esquina. Apagarla y encuadrar lleva al edificio.
+   */
   boxOf(id: string): THREE.Box3 | null {
     const plano = this.planos.get(id);
     if (plano === undefined) return null;
 
-    const caja = new THREE.Box3().setFromObject(plano.grupo);
+    const caja = new THREE.Box3();
+    for (const grupoCapa of plano.capas.values()) {
+      if (!grupoCapa.visible) continue;
+
+      for (const objeto of grupoCapa.children) {
+        if (objeto.visible) caja.expandByObject(objeto);
+      }
+    }
     return caja.isEmpty() ? null : caja;
   }
 
@@ -613,12 +627,14 @@ export class PlanOverlay {
     return cruces;
   }
 
-  /** La caja de todos los planos juntos, para poder encuadrarlos con el modelo. */
+  /** La caja de todos los planos juntos, contando solo lo encendido. Ver {@link boxOf}. */
   boxAll(): THREE.Box3 | null {
     const union = new THREE.Box3();
-    for (const plano of this.planos.values()) {
+    for (const [id, plano] of this.planos) {
       if (!plano.grupo.visible) continue;
-      union.union(new THREE.Box3().setFromObject(plano.grupo));
+
+      const caja = this.boxOf(id);
+      if (caja !== null) union.union(caja);
     }
     return union.isEmpty() ? null : union;
   }

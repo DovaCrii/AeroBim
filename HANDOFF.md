@@ -28,6 +28,15 @@
 > y medir del plano al modelo) y el cruce lado a lado (`F7.12`). El DXF y el IFC4 nuevo están en
 > `apps/web/public/samples/` (fuera de git).
 >
+> **La unidad se deduce con dos medidas, no con una** (2026-08-19). El segundo plano real del
+> usuario —`ACAD-Piso 5_Base1.dxf`— declara metros, mide 48 unidades de lado y está en
+> **centímetros**: lo que infla la extensión es el marco de la lámina. La medida que no engaña es
+> **el trazo más largo**, que en un plano de edificio es una fachada o un eje. Y el **encuadre
+> cuenta solo lo encendido**: apagando la capa del marco, encuadrar lleva al edificio.
+>
+> **La leyenda de capas usaba otra paleta que el dibujo** y pintaba de verde una capa violeta. La
+> paleta ACI vive ahora en `bim-core` (`aciColor`) y la usan los dos.
+>
 > **Las unidades del plano, resueltas donde se decidían mal** (2026-08-19): el panel dice **cuánto
 > mide el plano con la unidad puesta** —"52,6 m × 49,6 m", en ámbar y con aviso si no es tamaño de
 > edificio— y **cambiar la unidad reencuadra**. Antes, pasar a metros hacía el plano mil veces más
