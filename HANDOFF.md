@@ -41,8 +41,12 @@
 > pulsarlo y el modelo regresa. La decisión de fondo: **una sola ventana**, porque cruzar plano y
 > modelo es lo que se viene a hacer; el modo resuelve el "quiero ver solo el plano".
 >
-> **Rellenos**: se leen los `HATCH` —macizos como cara, rayados como contorno— y los `SOLID` y
-> `3DFACE`, que es con lo que muchos CAD pintan muros y pilares.
+> **Rellenos**: se leen los `HATCH` —macizos como cara, rayados como contorno—, los `SOLID` y
+> `3DFACE`, y las **polilíneas con ancho**, que es como se dibuja un muro en buena parte de los
+> planos. Y todo eso **se puede clicar**: un relleno dice su capa, un rótulo dice lo que dice.
+>
+> **Cortar el modelo a la altura del plano** está en la ficha del plano (`F7.12`): pone el corte
+> 1,20 m sobre su cota, que es donde corta un plano de planta.
 >
 > **Y el CAD se ve como el CAD**: paleta ACI calculada con su regla real, tipos de línea de la tabla
 > `LTYPE` —con el patrón llevado a una medida legible, porque `LTSCALE` deja rayas de dos milésimas

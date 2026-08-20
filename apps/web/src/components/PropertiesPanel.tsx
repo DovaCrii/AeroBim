@@ -8,6 +8,13 @@ import { IconEye, IconEyeOff, IconIsolate } from "./icons.js";
  * GUID ni psets, tiene capa, plano de origen, largo y dónde está. Mezclarlo con la ficha del modelo
  * obligaría a llenar de "—" media pantalla; separarlo deja claro qué se está mirando.
  */
+/** Cómo se llama en la ficha lo que se tocó del plano. */
+const ETIQUETA_2D: Record<"line" | "fill" | "text", string> = {
+  line: "Trazo 2D",
+  fill: "Relleno 2D",
+  text: "Rótulo 2D",
+};
+
 export function Plan2DCard({
   hit,
   onClose,
@@ -22,10 +29,10 @@ export function Plan2DCard({
       <header className="flex items-start gap-2 border-b border-white/10 p-3">
         <div className="min-w-0 flex-1">
           <p className="truncate text-xs font-semibold tracking-wide text-brand uppercase">
-            Elemento 2D
+            {ETIQUETA_2D[hit.kind]}
           </p>
-          <p className="truncate text-sm" title={hit.layer}>
-            {hit.layer}
+          <p className="truncate text-sm" title={hit.text ?? hit.layer}>
+            {hit.text ?? hit.layer}
           </p>
         </div>
         <button
@@ -51,10 +58,17 @@ export function Plan2DCard({
         <section>
           <h3 className="mb-1 font-semibold text-white/70">Geometría</h3>
           <dl className="space-y-1">
+            {hit.text !== null && <Row label="Texto" value={hit.text} />}
             <Row
               label="Largo del tramo"
-              value={hit.segmentLengthM === null ? "—" : `${hit.segmentLengthM.toFixed(3)} m`}
-              mono
+              value={
+                hit.segmentLengthM === null
+                  ? hit.kind === "line"
+                    ? "—"
+                    : "no aplica"
+                  : `${hit.segmentLengthM.toFixed(3)} m`
+              }
+              mono={hit.segmentLengthM !== null}
               muted={hit.segmentLengthM === null}
             />
             {/* El punto va en coordenadas de la escena, que son las mismas del modelo: es lo que

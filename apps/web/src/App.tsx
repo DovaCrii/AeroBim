@@ -1145,6 +1145,10 @@ export function App() {
                   onLabelHeight={(id, metros) =>
                     void viewer.current?.setPlanLabelHeight(id, metros)
                   }
+                  onSectionAtPlan={(_id, alturaM) => {
+                    setHasSections(true);
+                    void viewer.current?.sectionAtHeight(alturaM);
+                  }}
                   onAlign={(id, ajustarEscala) => {
                     const plan = plans.find((uno) => uno.id === id);
                     if (plan === undefined) return;

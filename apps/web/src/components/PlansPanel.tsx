@@ -24,6 +24,7 @@ export function PlansPanel({
   onTransform,
   onAlign,
   onLabelHeight,
+  onSectionAtPlan,
   onFrame,
   onClose,
 }: {
@@ -33,6 +34,8 @@ export function PlansPanel({
   readonly onAlign: (id: string, ajustarEscala: boolean) => void;
   /** Cambia el alto de los rotulos de un plano, en metros. Cero los apaga. */
   readonly onLabelHeight: (id: string, metros: number) => void;
+  /** Pone un corte horizontal a esa altura, para comparar el modelo con el plano. */
+  readonly onSectionAtPlan: (id: string, alturaM: number) => void;
   /** Planos apagados enteros, por identificador. */
   readonly hiddenPlans: ReadonlySet<string>;
   /** Capas apagadas, como `plano:capa`. */
@@ -66,6 +69,7 @@ export function PlansPanel({
           onTransform={onTransform}
           onAlign={onAlign}
           onLabelHeight={onLabelHeight}
+          onSectionAtPlan={onSectionAtPlan}
           onFrame={onFrame}
           onClose={onClose}
         />
@@ -84,6 +88,7 @@ function PlanoEnLista({
   onTransform,
   onAlign,
   onLabelHeight,
+  onSectionAtPlan,
   onFrame,
   onClose,
 }: {
@@ -94,6 +99,8 @@ function PlanoEnLista({
   readonly onAlign: (id: string, ajustarEscala: boolean) => void;
   /** Cambia el alto de los rotulos de un plano, en metros. Cero los apaga. */
   readonly onLabelHeight: (id: string, metros: number) => void;
+  /** Pone un corte horizontal a esa altura, para comparar el modelo con el plano. */
+  readonly onSectionAtPlan: (id: string, alturaM: number) => void;
   readonly onTogglePlan: (id: string, visible: boolean) => void;
   readonly onToggleLayer: (id: string, layer: string, visible: boolean) => void;
   readonly onTransform: (id: string, cambios: Partial<PlanTransform>) => void;
@@ -305,6 +312,18 @@ function PlanoEnLista({
               />
               Corregir también la escala con la distancia entre los dos puntos
             </label>
+
+            {/* **Cortar el modelo a la altura del plano** es lo que cierra la comparación: un DXF de
+                planta es una sección a la altura de las ventanas, y con el edificio entero encima
+                no se ve si los muros coinciden. */}
+            <button
+              type="button"
+              onClick={() => onSectionAtPlan(plan.id, t.elevationM + 1.2)}
+              className="mt-1 w-full rounded border border-white/15 px-2 py-1 text-[10px] text-white/70 hover:bg-white/10 hover:text-white"
+              title="Pone un corte horizontal 1,20 m sobre la cota del plano, que es donde corta un plano de planta"
+            >
+              Cortar el modelo a la altura del plano
+            </button>
           </div>
 
           <div>

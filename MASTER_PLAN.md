@@ -824,8 +824,8 @@ volver a la herramienta de escritorio.
 | `F7.9`  | **Panel de capas del plano**: encender y apagar cada una                                 | ✅     |
 | `F7.10` | **Seleccionar en 2D**: clic en un trazo → su capa, su plano y el largo del tramo         | ✅     |
 | `F7.11` | **Herramientas CAD de revisión**: ajuste a extremo y punto medio, y medir sobre el plano | 🟡     |
-| `F7.13` | **Fidelidad del CAD**: paleta ACI real, tipos de línea y rótulos legibles                | ✅     |
-| `F7.12` | **Cruzar**: el plano en planta con el modelo cortado a esa altura, lado a lado           | ⬜     |
+| `F7.12` | **Cruzar**: modo 2D, y cortar el modelo a la altura del plano desde su ficha             | ✅     |
+| `F7.13` | **Fidelidad del CAD**: paleta ACI, tipos de línea, rellenos, anchos y rótulos            | ✅     |
 
 **Lo que quedó hecho el 2026-08-19**, verificado sobre el DXF real en el navegador: el lector
 (`packages/bim-core/src/plans/dxf.ts`, 13 pruebas) resuelve el archivo del usuario en **36 ms**
@@ -855,6 +855,33 @@ doble de largo la unidad pasa de 0,001 a 0,002 m, otra vez con 0 mm de error.
 trazos, y midiendo distancia esos son los puntos que toma la cota. Falta la **intersección** de dos
 trazos, medir del plano al modelo en un mismo gesto, y marcar sobre el plano. El ajuste al plano se
 apaga desde la cinta: midiendo el modelo con un plano debajo, engancharse al CAD falsea la medida.
+
+### Lo que faltaba para que el plano se vea completo (2026-08-19)
+
+Comparando la pantalla con AutoCAD, lo que quedaba fuera eran **los macizos**. Un plano de
+arquitectura los dibuja de tres maneras distintas y ahora se leen las tres:
+
+| Cómo lo dibuja el CAD   | Qué se hace                                                       |
+| ----------------------- | ----------------------------------------------------------------- |
+| `HATCH` macizo          | Cara translúcida, con los contornos interiores como huecos        |
+| `HATCH` de rayado       | Solo su contorno — a la escala de un plano es lo que se distingue |
+| `SOLID` y `3DFACE`      | Cara: son cuatro puntos, con el tercero y el cuarto cruzados      |
+| Polilínea **con ancho** | Banda maciza a los dos lados del eje, con el eje dibujado encima  |
+
+> **El ancho de una polilínea no es una línea gruesa, es un macizo.** Es como se dibuja un muro en
+> buena parte de los planos, y trazándolo fino el plano se ve vacío justo donde tenía que verse
+> lleno. Las uniones van a tope, sin inglete: la diferencia son milímetros en la esquina de un muro.
+
+**Y ahora se puede clicar todo lo que se ve**, no solo las líneas: un relleno dice su capa y un
+rótulo, lo que dice. La comparación se hacía con el ojo puesto en los macizos y no había forma de
+preguntarles nada.
+
+> **Cómo se decide qué se clicó, con todo en el mismo plano.** No puede ser por distancia a la
+> cámara —un rótulo y el trazo que tiene debajo están a la misma—, sino por **cuánto se desvió el
+> rayo**: una cara solo acierta si la atraviesa, y una línea acierta dentro de su margen de
+> centímetros. Con la distancia mandaba siempre la línea y los rótulos eran inclicables; con el
+> desvío, cuarenta de cuarenta rótulos se seleccionan y cinco de seis clics sobre una línea siguen
+> dando la línea.
 
 ### Cargar un IFC después de trabajar en 2D tumbaba la pestaña (2026-08-19)
 

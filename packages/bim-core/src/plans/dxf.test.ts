@@ -34,7 +34,14 @@ describe("parseDxf", () => {
     );
 
     expect(plano.polylines).toEqual([
-      { layer: "0-MUROS", points: [0, 0, 3000, 4000], closed: false, colorIndex: null, dash: null },
+      {
+        layer: "0-MUROS",
+        points: [0, 0, 3000, 4000],
+        closed: false,
+        colorIndex: null,
+        dash: null,
+        width: null,
+      },
     ]);
     expect(plano.declaredUnits).toEqual({ code: 4, name: "milímetros", metresPerUnit: 0.001 });
     expect(plano.bounds).toEqual({ minX: 0, minY: 0, maxX: 3000, maxY: 4000 });
@@ -237,6 +244,56 @@ describe("parseDxf", () => {
     expect(plano.polylines[0]?.dash).toEqual([24, 6]);
     // Una capa continua no lleva patrón, aunque el archivo declare la tabla.
     expect(plano.polylines[1]?.dash).toBeNull();
+  });
+
+  it("lee el ancho de una polilínea: un muro dibujado con banda no es una línea fina", () => {
+    const conAncho = (codigo: number, valor: string) =>
+      parseDxf(
+        dxf(
+          [0, "SECTION"],
+          [2, "ENTITIES"],
+          [0, "LWPOLYLINE"],
+          [8, "0-MUROS"],
+          [70, "0"],
+          [codigo, valor],
+          [10, "0"],
+          [20, "0"],
+          [10, "1000"],
+          [20, "0"],
+          [0, "ENDSEC"],
+        ),
+      ).polylines[0]?.width;
+
+    // 43 es el ancho constante de toda la polilínea.
+    expect(conAncho(43, "150")).toBe(150);
+    // 40 y 41 son el inicial y el final: se resumen en su media, que es lo que se dibuja.
+    expect(conAncho(40, "200")).toBe(200);
+    expect(conAncho(43, "0")).toBeNull();
+  });
+
+  it("lee un relleno macizo de un `SOLID`, con sus esquinas en orden de contorno", () => {
+    const plano = parseDxf(
+      dxf(
+        [0, "SECTION"],
+        [2, "ENTITIES"],
+        [0, "SOLID"],
+        [8, "0-MUROS"],
+        [10, "0"],
+        [20, "0"],
+        [11, "10"],
+        [21, "0"],
+        // En el estándar el tercero y el cuarto van cruzados: el contorno correcto es 1-2-4-3.
+        [12, "0"],
+        [22, "5"],
+        [13, "10"],
+        [23, "5"],
+        [0, "ENDSEC"],
+      ),
+    );
+
+    expect(plano.hatches).toEqual([
+      { layer: "0-MUROS", colorIndex: null, solid: true, loops: [[0, 0, 10, 0, 10, 5, 0, 5]] },
+    ]);
   });
 
   it("resuelve el color: el propio de la entidad manda, y si no, el de su capa", () => {

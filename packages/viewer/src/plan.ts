@@ -271,15 +271,48 @@ export class PlanOverlay {
         string,
         { color: number; dash: readonly [number, number] | null; puntos: number[] }
       >();
+      // Las polilíneas **con ancho** no son líneas gruesas: son macizos, y van a su propia malla.
+      const bandas = new Map<number, number[]>();
+
       for (const linea of dibujo.polylines) {
         if (linea.layer !== capa.name) continue;
 
         const color = colorDeCapa(linea.colorIndex ?? capa.colorIndex);
+
+        if (linea.width !== null && linea.width > 0) {
+          const destino = bandas.get(color) ?? [];
+          empujarBanda(linea, centrado, linea.width, destino);
+          bandas.set(color, destino);
+        }
+
+        // El eje se dibuja igual, en fino: es lo que se engancha al medir y lo que marca el borde
+        // donde dos macizos se tocan.
         const dash = linea.dash;
         const clave = `${color}|${dash === null ? "llena" : `${dash[0]}:${dash[1]}`}`;
         const grupo = porEstilo.get(clave) ?? { color, dash, puntos: [] };
         empujarSegmentos(linea, centrado, grupo.puntos);
         porEstilo.set(clave, grupo);
+      }
+
+      for (const [color, posiciones] of bandas) {
+        if (posiciones.length === 0) continue;
+
+        const geometria = new THREE.BufferGeometry();
+        geometria.setAttribute("position", new THREE.Float32BufferAttribute(posiciones, 3));
+        const malla = new THREE.Mesh(
+          geometria,
+          new THREE.MeshBasicMaterial({
+            color,
+            transparent: true,
+            opacity: 0.4,
+            depthWrite: false,
+            side: THREE.DoubleSide,
+          }),
+        );
+        malla.userData = { tipo: "banda", capa: capa.name };
+        malla.renderOrder = 0;
+        malla.frustumCulled = false;
+        grupoCapa.add(malla);
       }
 
       for (const { color, dash, puntos } of porEstilo.values()) {
@@ -550,7 +583,12 @@ export class PlanOverlay {
    * de cerca que de lejos, que es lo que hace un CAD.
    */
   pick(rayo: THREE.Raycaster, camara: THREE.Camera): PlanHit | null {
-    let mejor: { hit: PlanHit; distancia: number } | null = null;
+    // **La comparación no puede ser por distancia a la cámara**: todo el plano es coplanar, así que
+    // un trazo y el rótulo que tiene encima están a la misma distancia. Se compara por **cuán lejos
+    // pasó el rayo**: una cara solo acierta si el rayo la atraviesa —error cero— y una línea acierta
+    // dentro de su margen. Sin esto ganaba siempre la línea, porque su margen es de centímetros, y
+    // los rótulos y los rellenos no había forma de clicarlos.
+    let mejor: { hit: PlanHit; distancia: number; error: number } | null = null;
 
     for (const plano of this.planos.values()) {
       if (!plano.grupo.visible) continue;
@@ -559,7 +597,13 @@ export class PlanOverlay {
         if (!grupoCapa.visible) continue;
 
         for (const objeto of grupoCapa.children) {
-          if (!(objeto instanceof THREE.LineSegments)) continue;
+          // Lo apagado no se puede clicar: apagar una capa y que siga enganchando sería mentir
+          // sobre lo que se está mirando.
+          if (!objeto.visible) continue;
+
+          const esLinea = objeto instanceof THREE.LineSegments;
+          const esMalla = objeto instanceof THREE.Mesh;
+          if (!esLinea && !esMalla) continue;
 
           const escalaMundo = plano.transform.metresPerUnit;
           const distanciaCamara = camara.position.distanceTo(plano.grupo.position);
@@ -568,7 +612,39 @@ export class PlanOverlay {
           const impactos = rayo.intersectObject(objeto, false);
           const impacto = impactos[0];
           if (impacto === undefined) continue;
-          if (mejor !== null && impacto.distance >= mejor.distancia) continue;
+
+          // **El error se mide, no se pregunta.** `distanceToRay` no está en todas las versiones y
+          // viene en unidades locales; la distancia del rayo al punto devuelto dice lo mismo, en
+          // metros y siempre: cero cuando el rayo atraviesa una cara, y lo que se desvió cuando
+          // enganchó una línea por su margen.
+          const error = rayo.ray.distanceToPoint(impacto.point);
+          const gana =
+            mejor === null ||
+            error < mejor.error - 1e-6 ||
+            (Math.abs(error - mejor.error) <= 1e-6 && impacto.distance < mejor.distancia);
+          if (!gana) continue;
+
+          // **Un relleno o un rótulo también son elementos del plano.** Antes solo se podían clicar
+          // las líneas, y en un plano con los muros macizos eso deja fuera justo lo que se ve.
+          if (esMalla) {
+            const datos = objeto.userData as { tipo?: string };
+            mejor = {
+              distancia: impacto.distance,
+              error,
+              hit: {
+                planId: plano.id,
+                planName: plano.name,
+                layer: nombreCapa,
+                kind: datos.tipo === "rotulos" ? "text" : "fill",
+                text: datos.tipo === "rotulos" ? rotuloEn(objeto, impacto.point) : null,
+                point: [impacto.point.x, impacto.point.y, impacto.point.z],
+                segmentStartM: null,
+                segmentEndM: null,
+                segmentLengthM: null,
+              },
+            };
+            continue;
+          }
 
           // El índice del vértice dice qué segmento se tocó: con él salen sus dos extremos, que
           // son el largo del trazo y —lo que más importa para revisar— los puntos a los que se
@@ -577,10 +653,13 @@ export class PlanOverlay {
 
           mejor = {
             distancia: impacto.distance,
+            error,
             hit: {
               planId: plano.id,
               planName: plano.name,
               layer: nombreCapa,
+              kind: "line",
+              text: null,
               point: [impacto.point.x, impacto.point.y, impacto.point.z],
               segmentStartM: tramo === null ? null : tramo.a,
               segmentEndM: tramo === null ? null : tramo.b,
@@ -604,6 +683,10 @@ export interface PlanHit {
   readonly planId: string;
   readonly planName: string;
   readonly layer: string;
+  /** Qué se tocó: un trazo, un relleno o un rótulo. */
+  readonly kind: "line" | "fill" | "text";
+  /** Lo que dice el rótulo, cuando se tocó uno. */
+  readonly text: string | null;
   /** Dónde cayó el clic, en coordenadas de la escena. */
   readonly point: readonly [number, number, number];
   /** Los dos extremos del tramo tocado, en metros de la escena. Son los puntos de ajuste. */
@@ -682,6 +765,44 @@ function empujarSegmentos(
   }
 }
 
+/**
+ * Convierte una polilínea con ancho en la banda maciza que dibuja el CAD.
+ *
+ * Cada tramo se engorda a los dos lados por su perpendicular y sale como dos triángulos. **Las
+ * uniones van a tope**, sin inglete: en un plano de obra la diferencia son milímetros en la esquina
+ * de un muro, y el inglete exige resolver casos degenerados —tramos casi paralelos, retrocesos— que
+ * no cambian nada de lo que se viene a comparar.
+ */
+function empujarBanda(
+  linea: DxfPolyline,
+  [cx, cy]: readonly [number, number],
+  ancho: number,
+  salida: number[],
+): void {
+  const puntos = linea.points;
+  const total = puntos.length / 2;
+  const tramos = linea.closed ? total : total - 1;
+  const medio = ancho / 2;
+
+  for (let i = 0; i < tramos; i++) {
+    const a = i * 2;
+    const b = ((i + 1) % total) * 2;
+    const ax = puntos[a]! - cx;
+    const az = -(puntos[a + 1]! - cy);
+    const bx = puntos[b]! - cx;
+    const bz = -(puntos[b + 1]! - cy);
+
+    const largo = Math.hypot(bx - ax, bz - az);
+    if (largo < 1e-9) continue;
+
+    const nx = (-(bz - az) / largo) * medio;
+    const nz = ((bx - ax) / largo) * medio;
+
+    salida.push(ax + nx, 0, az + nz, bx + nx, 0, bz + nz, bx - nx, 0, bz - nz);
+    salida.push(ax + nx, 0, az + nz, bx - nx, 0, bz - nz, ax - nx, 0, az - nz);
+  }
+}
+
 /** Cuelga de la capa los rótulos que le tocan y devuelve cuántos entraron. */
 function ponerRotulos(
   grupoCapa: THREE.Group,
@@ -702,6 +823,26 @@ function ponerRotulos(
 
   grupoCapa.add(rotulos.malla);
   return rotulos.cuantos;
+}
+
+/**
+ * Qué rótulo del atlas cayó bajo el clic.
+ *
+ * Todos comparten malla, así que el rayo devuelve la malla y no el rótulo: se resuelve por el
+ * centro más cercano al punto tocado, ya en coordenadas locales del plano.
+ */
+function rotuloEn(malla: THREE.Mesh, punto: THREE.Vector3): string | null {
+  const datos = malla.userData as { etiquetas?: readonly { x: number; z: number; text: string }[] };
+  const etiquetas = datos.etiquetas;
+  if (etiquetas === undefined || etiquetas.length === 0) return null;
+
+  const local = malla.worldToLocal(punto.clone());
+  let mejor: { text: string; distancia: number } | null = null;
+  for (const etiqueta of etiquetas) {
+    const distancia = Math.hypot(etiqueta.x - local.x, etiqueta.z - local.z);
+    if (mejor === null || distancia < mejor.distancia) mejor = { text: etiqueta.text, distancia };
+  }
+  return mejor?.text ?? null;
 }
 
 /** Suelta la geometría, el material y la textura de un objeto que sale de la escena. */
@@ -759,6 +900,8 @@ function atlasDeEtiquetas(
   const posiciones: number[] = [];
   const uvs: number[] = [];
   const indices: number[] = [];
+  /** El centro de cada rótulo y lo que dice: es lo que permite clicarlo. */
+  const centros: { x: number; z: number; text: string }[] = [];
   const alto = altoM / metrosPorUnidad;
 
   let x = 0;
@@ -810,6 +953,7 @@ function atlasDeEtiquetas(
 
     const base = cuantos * 4;
     indices.push(base, base + 1, base + 2, base, base + 2, base + 3);
+    centros.push({ x: px, z: -py, text: contenido });
 
     x += ancho;
     cuantos++;
@@ -838,6 +982,9 @@ function atlasDeEtiquetas(
     }),
   );
   malla.name = "rotulos";
+  // Los rótulos comparten malla, así que el rayo no puede decir cuál se tocó: se guardan sus
+  // centros y su texto para resolverlo por cercanía. Ver {@link rotuloEn}.
+  malla.userData = { tipo: "rotulos", etiquetas: centros };
   // Los rótulos se dibujan **encima** de los trazos: compartiendo plano con las líneas, parpadean
   // contra ellas al orbitar.
   malla.renderOrder = 2;

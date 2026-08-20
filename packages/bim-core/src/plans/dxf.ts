@@ -40,6 +40,14 @@ export interface DxfPolyline {
    * un espacio, que es lo que se puede dibujar en una línea de WebGL y lo que se lee igual.
    */
   readonly dash: readonly [number, number] | null;
+  /**
+   * El ancho del trazo en unidades del dibujo, o `null` si es una línea sin grosor.
+   *
+   * **Una polilínea con ancho no es una línea gruesa: es un macizo.** Es como se dibujan los muros
+   * en buena parte de los planos de CAD, y trazándola como línea fina el plano se ve vacío justo
+   * donde tenía que verse lleno.
+   */
+  readonly width: number | null;
 }
 
 /**
@@ -546,14 +554,18 @@ function dibujar(
   const colorIndex = colorDe(entidad, layer, salida.estilo.colores);
   const dash = trazoDe(entidad, layer, salida.estilo, t);
 
-  const anadir = (puntos: readonly (readonly [number, number])[], closed: boolean) => {
+  const anadir = (
+    puntos: readonly (readonly [number, number])[],
+    closed: boolean,
+    width: number | null = null,
+  ) => {
     if (puntos.length < 2) return;
     const planos: number[] = [];
     for (const [x, y] of puntos) {
       const [px, py] = aplicar(t, x, y);
       planos.push(px, py);
     }
-    salida.polylines.push({ layer, points: planos, closed, colorIndex, dash });
+    salida.polylines.push({ layer, points: planos, closed, colorIndex, dash, width });
   };
 
   switch (entidad.type) {
@@ -601,7 +613,22 @@ function dibujar(
     case "LWPOLYLINE": {
       const vertices = verticesDe(entidad);
       const cerrada = (numero(entidad, 70) ?? 0) % 2 === 1;
-      anadir(desarrollar(vertices, cerrada), cerrada);
+      // El ancho puede venir constante para toda la polilínea (43) o por vértice (40 y 41). Se
+      // resume en uno solo: dibujar una banda que se estrecha es un lujo que no cambia lo que se
+      // está comparando, y no tenerla en cuenta sí, porque el muro se ve hueco.
+      const constante = numero(entidad, 43);
+      const anchos = [numero(entidad, 40), numero(entidad, 41)].filter(
+        (uno): uno is number => uno !== null && uno > 0,
+      );
+      const ancho =
+        constante !== null && constante > 0
+          ? constante
+          : anchos.length > 0
+            ? anchos.reduce((a, b) => a + b, 0) / anchos.length
+            : null;
+
+      const escala = Math.abs(t.escalaX) || 1;
+      anadir(desarrollar(vertices, cerrada), cerrada, ancho === null ? null : ancho * escala);
       return;
     }
 

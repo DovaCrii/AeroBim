@@ -2364,6 +2364,26 @@ export class BimViewer {
   }
 
   /**
+   * Corta el modelo **a una altura concreta**, en metros de la escena.
+   *
+   * Es lo que hace falta para comparar de verdad un plano con el modelo: un DXF de planta es una
+   * sección a la altura de las ventanas, y con el edificio entero encima no se ve si los muros
+   * coinciden. Cortando a esa misma cota, las dos cosas dicen lo mismo y la comparación es directa.
+   */
+  async sectionAtHeight(alturaM: number): Promise<void> {
+    this.assertAlive();
+
+    const clipper = this.components.get(OBC.Clipper);
+    clipper.enabled = true;
+    clipper.createFromNormalAndCoplanarPoint(
+      this.world,
+      new THREE.Vector3(0, 1, 0),
+      new THREE.Vector3(0, alturaM, 0),
+    );
+    await this.refresh();
+  }
+
+  /**
    * Cuántos planos de corte hay activos.
    *
    * Se expone para poder comprobar que un corte se creó de verdad. A ojo cuesta distinguir
