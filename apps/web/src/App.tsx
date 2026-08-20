@@ -249,6 +249,8 @@ export function App() {
   const [planSnap, setPlanSnap] = useState(true);
   /** `true` en modo 2D: los modelos apagados, la cámara en planta y proyección ortográfica. */
   const [modo2D, setModo2D] = useState(false);
+  /** `true` con los ejes de replanteo del modelo a la vista. */
+  const [gridVisible, setGridVisible] = useState(true);
   /**
    * La alineación de un plano en curso, si la hay.
    *
@@ -966,6 +968,12 @@ export function App() {
         hasPlans={plans.length > 0}
         modo2D={modo2D}
         onModo2D={onModo2D}
+        gridAxisCount={models.reduce((total, modelo) => total + modelo.gridAxes.length, 0)}
+        gridVisible={gridVisible}
+        onGridVisible={(visible) => {
+          setGridVisible(visible);
+          void viewer.current?.setGridVisible(visible);
+        }}
         planSnap={planSnap}
         onPlanSnap={(activo) => {
           setPlanSnap(activo);

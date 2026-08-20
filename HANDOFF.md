@@ -62,6 +62,11 @@
 > trazos**, a los extremos y a los puntos medios, y midiendo distancia la cota toma esos puntos. Se
 > apaga desde Medición → Ajuste del cursor → **Al plano**. 3,4 ms por clic sobre el plano real.
 >
+> **Los ejes de replanteo ya se dibujan** (Vista → Trabajo → **Ejes**). El conversor deja el
+> `IfcGrid` sin geometría, así que se leen del propio archivo con `parseIfcGrids` en `bim-core`:
+> 12 ejes en 72 ms sobre el IFC4 de OpenBuildings, con su burbuja en los dos extremos. Con eso, el
+> par de puntos para calzar un plano ya no hay que buscarlo a ojo.
+>
 > **Trampa nueva, y cara: encuadrar algo plano dejaba la cámara en `NaN`.** Un plano 2D es una caja
 > sin grosor y `fitToBox` con un lado en cero devuelve una posición imposible: pantalla negra, el
 > rayo sin encontrar nada y ningún botón que lo arregle. `applyFraming` ahora engorda los lados

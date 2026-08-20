@@ -446,6 +446,22 @@ export function IconPlan2D(props: IconProps) {
   );
 }
 
+/**
+ * Ejes de replanteo: dos líneas de eje cruzándose, con su burbuja.
+ *
+ * Es el dibujo con el que aparecen en cualquier plano —la línea de trazos y el círculo con la
+ * letra—, así que se reconoce sin leer el nombre.
+ */
+export function IconGrid(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M8 3.5v17M3.5 15h17" strokeDasharray="3 2" />
+      <circle cx="8" cy="5" r="2.6" />
+      <circle cx="19" cy="15" r="2.6" />
+    </Svg>
+  );
+}
+
 /** Cerrar: la cruz. */
 export function IconX(props: IconProps) {
   return (

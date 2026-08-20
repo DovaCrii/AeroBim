@@ -24,6 +24,7 @@ import {
   IconFrameAll,
   IconFrameSelection,
   IconGhost,
+  IconGrid,
   IconLayers,
   IconOrbit,
   IconOrthographic,
@@ -92,6 +93,9 @@ export function Ribbon({
   hasPlans,
   modo2D,
   onModo2D,
+  gridAxisCount,
+  gridVisible,
+  onGridVisible,
   planSnap,
   onPlanSnap,
   measurementCount,
@@ -143,6 +147,10 @@ export function Ribbon({
   /** `true` en modo 2D: el plano solo, en planta y ortográfica, con los modelos apagados. */
   readonly modo2D: boolean;
   readonly onModo2D: (activar: boolean) => void;
+  /** Cuántos ejes de replanteo trae el modelo. Cero deshabilita el botón. */
+  readonly gridAxisCount: number;
+  readonly gridVisible: boolean;
+  readonly onGridVisible: (visible: boolean) => void;
   /** `true` si medir se engancha a los trazos del plano. */
   readonly planSnap: boolean;
   readonly onPlanSnap: (enabled: boolean) => void;
@@ -288,6 +296,20 @@ export function Ribbon({
                 active={modo2D}
                 disabled={!hasPlans}
                 onClick={() => onModo2D(!modo2D)}
+              />
+              {/* Los ejes del modelo: con lo que se habla en obra, y el ancla para calzar un plano
+                  CAD —que trae su propia capa de ejes— sobre el IFC. */}
+              <Boton
+                icon={<IconGrid />}
+                label="Ejes"
+                hint={
+                  gridAxisCount > 0
+                    ? `Los ${gridAxisCount} ejes de replanteo del modelo, con su burbuja`
+                    : "El modelo no trae ejes de replanteo"
+                }
+                active={gridVisible && gridAxisCount > 0}
+                disabled={gridAxisCount === 0}
+                onClick={() => onGridVisible(!gridVisible)}
               />
             </Grupo>
 

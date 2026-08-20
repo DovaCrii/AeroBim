@@ -869,6 +869,23 @@ tocarse**, que es lo que haría cortando las rectas prolongadas.
 > el encuadre le da unos centímetros de grosor a los lados degenerados — no cambia lo que se ve y
 > quita el caso que rompe la aritmética. Le pasaba también a un elemento plano encuadrado solo.
 
+### Los ejes de replanteo, dibujados (2026-08-19)
+
+El `IfcGrid` **se cargaba y no se dibujaba**: Fragments lo trata como un producto sin geometría, así
+que salía en el árbol y en ninguna otra parte. Era el último pendiente de la revisión del IFC4 de
+OpenBuildings, y el que más falta hacía: los ejes son con lo que se habla en obra —"el pilar del eje
+C con el 4"— y son **el ancla natural para calzar un plano CAD**, que trae su propia capa de ejes.
+
+Se leen **del propio archivo** (`packages/bim-core/src/inspect/ifcGrid.ts`, 5 pruebas): se indexan
+las entidades por identificador y se siguen las pocas referencias que llevan del `IfcGrid` a sus
+coordenadas, en las dos formas que aparecen —`IfcIndexedPolyCurve` de IFC4 y la `IfcPolyline`
+clásica—, aplicando la colocación de la rejilla y el factor de unidades. Sobre el modelo real:
+**12 ejes en 72 ms**, de la A a la H y del 1 al 4; en pantalla, la línea de trazos con su burbuja en
+los dos extremos. Se encienden y apagan en Vista → Trabajo → **Ejes**.
+
+Lo que no se puede trazar se cuenta, como en todo lo demás: una `IfcLine` es una recta infinita y
+dibujarla exigiría inventar hasta dónde llega.
+
 ### Lo que faltaba para que el plano se vea completo (2026-08-19)
 
 Comparando la pantalla con AutoCAD, lo que quedaba fuera eran **los macizos**. Un plano de

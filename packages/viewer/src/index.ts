@@ -13,6 +13,7 @@
 import {
   countIfcEntities,
   distancePartsM,
+  parseIfcGrids,
   emptyElementClasses,
   isIfcGuid,
   looksNumeric,
@@ -21,6 +22,7 @@ import {
   parseIfcUnits,
   perpendicularToPlane,
   resolveUnitSymbol,
+  type IfcGridAxis,
   type IfcGuid,
   type IfcUnits,
   type MissingClass,
@@ -39,7 +41,10 @@ import {
   type ConvertLocation,
   type Converter,
 } from "./converter.js";
+import { GridOverlay } from "./grid.js";
 import { PlanOverlay, type LoadedPlan, type PlanHit, type PlanTransform } from "./plan.js";
+
+export type { IfcGridAxis } from "@aerobim/bim-core";
 
 export type { LoadedPlan, PlanHit, PlanTransform } from "./plan.js";
 
@@ -259,6 +264,13 @@ export interface LoadedModel {
    * cada número.
    */
   readonly units: IfcUnits;
+  /**
+   * Los ejes de replanteo que trae el archivo, ya en metros.
+   *
+   * Van con el modelo porque son suyos, y porque la interfaz los necesita para poder decir cuántos
+   * hay y para encenderlos y apagarlos.
+   */
+  readonly gridAxes: readonly IfcGridAxis[];
 }
 
 /**
@@ -1127,6 +1139,8 @@ export class BimViewer {
    * Se crea siempre, aunque no haya ningún plano: no cuesta nada y evita el `null` en cada uso.
    */
   private readonly plans: PlanOverlay;
+  /** Los ejes de replanteo de los modelos abiertos. Ver {@link loadIfc} y {@link setGridVisible}. */
+  private readonly grids: GridOverlay;
   /** Quién escucha las mediciones terminadas. Ver {@link onMeasurement}. */
   private readonly measureListeners = new Set<(measurement: Measurement | null) => void>();
   /**
@@ -1227,6 +1241,7 @@ export class BimViewer {
       area: components.get(OBF.AreaMeasurement),
     };
     this.plans = new PlanOverlay(world.scene.three);
+    this.grids = new GridOverlay(world.scene.three);
   }
 
   /**
@@ -1677,11 +1692,20 @@ export class BimViewer {
 
     this.unitsByModel.set(model.modelId, units);
 
+    // **Los ejes de replanteo se leen del archivo, no del conversor**, que los deja sin geometría.
+    // Se dibujan a la base del modelo, que es donde se leen: ver `ifcGrid` en `bim-core`.
+    const rejilla = parseIfcGrids(texto);
+    if (rejilla.axes.length > 0) {
+      const caja = await this.boxOf(model);
+      this.grids.add(model.modelId, rejilla.axes, caja?.min.y ?? 0);
+    }
+
     return {
       id: model.modelId,
       name,
       model,
       units,
+      gridAxes: rejilla.axes,
       metrics: {
         ifcBytes,
         fragBytes: fragByteLength,
@@ -2620,6 +2644,8 @@ export class BimViewer {
     // modelo liberado falla.
     if (this.selection?.modelId === modelId) this.selection = null;
 
+    this.grids.remove(modelId);
+
     const objeto = model.object;
     await this.fragments.core.disposeModel(modelId);
     this.world.scene.three.remove(objeto);
@@ -2833,6 +2859,24 @@ export class BimViewer {
 
     const toque = await this.rayAt(clientX, clientY, true);
     return toque?.point ?? null;
+  }
+
+  /** Enciende o apaga los ejes de replanteo de todos los modelos. */
+  async setGridVisible(visible: boolean): Promise<void> {
+    this.assertAlive();
+
+    this.grids.setVisible(visible);
+    await this.refresh();
+  }
+
+  /** `true` si los ejes de replanteo están encendidos. */
+  get gridVisible(): boolean {
+    return this.grids.shown;
+  }
+
+  /** Cuántos ejes de replanteo hay dibujados, sumando todos los modelos. */
+  get gridAxisCount(): number {
+    return this.grids.count;
   }
 
   /** Enciende o apaga el ajuste al plano mientras se mide. */

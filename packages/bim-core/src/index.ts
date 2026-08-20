@@ -41,6 +41,8 @@ export {
 
 export { NO_IFC_UNITS, parseIfcUnits, type IfcUnitKind, type IfcUnits } from "./units/ifcUnits.js";
 
+export { NO_GRIDS, parseIfcGrids, type IfcGridAxis, type IfcGrids } from "./inspect/ifcGrid.js";
+
 export {
   countIfcEntities,
   emptyElementClasses,
