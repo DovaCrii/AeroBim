@@ -597,11 +597,220 @@ export async function medir(container: HTMLElement, ifcUrl: string, log: Log): P
 }
 
 /**
+ * Las cuatro mediciones, de punta a punta y sin interfaz.
+ *
+ * **Esto se puede escribir desde el 2026-08-26 y antes no.** Hasta entonces la distancia, el
+ * ángulo y el área las colocaba `components-front`, cuyo ajuste **lee píxeles de la escena
+ * dibujada**: no había forma de comprobarlas en un entorno que no compone fotogramas, que es
+ * justamente donde estaban fallando. Ahora las cuatro pasan por el rayo de la CPU, así que las
+ * cuatro se pueden ejercitar acá.
+ *
+ * Cada una se comprueba en tres cosas distintas, que fallan por separado: que **el clic al vacío
+ * se diga** (`false`), que **el valor** salga de las funciones probadas del dominio, y que **la
+ * cota quede dibujada** en la lista.
+ *
+ * Uso: `/diag.html?modo=medidas&ifc=/samples/Piso%205.ifc`
+ */
+export async function medidas(container: HTMLElement, ifcUrl: string, log: Log): Promise<void> {
+  const viewer = await BimViewer.create(container);
+  const bytes = new Uint8Array(await (await fetch(ifcUrl)).arrayBuffer());
+  await viewer.loadIfc(bytes, ifcUrl);
+
+  const rect = container.getBoundingClientRect();
+  const punto = (fx: number, fy: number) =>
+    [rect.left + rect.width * fx, rect.top + rect.height * fy] as const;
+
+  /**
+   * **Una medida por carga de página, y no es una comodidad.**
+   *
+   * `fragments.raycast` se degrada con el uso en un panel que no compone fotogramas: medido, las
+   * mismas quince coordenadas dan quince puntos, luego seis, luego ninguno, y en la práctica el
+   * presupuesto son dos o tres llamadas por carga. Es la limitación que `HANDOFF.md` ya tenía
+   * anotada —«ningún rayo encuentra geometría después de un par de refrescos»— y no un defecto del
+   * visor: en un navegador de verdad el rayo responde.
+   *
+   * Así que cada medida se ejercita en su propia carga, con el rayo fresco:
+   *
+   * ```
+   * /diag.html?modo=medidas&medida=distancia&ifc=/samples/Piso%205.ifc
+   * /diag.html?modo=medidas&medida=angulo&ifc=...
+   * /diag.html?modo=medidas&medida=area&ifc=...
+   * /diag.html?modo=medidas&medida=perpendicular&ifc=...
+   * /diag.html?modo=medidas&medida=vacio&ifc=...      ← esta no necesita rayo
+   * ```
+   */
+  const cual = new URLSearchParams(globalThis.location?.search ?? "").get("medida") ?? "distancia";
+
+  const clic = async (fx: number, fy: number) => {
+    const [x, y] = punto(fx, fy);
+    return await viewer.addMeasurePoint(x, y);
+  };
+
+  let ultimo: Record<string, unknown> | null = null;
+  viewer.onMeasurement((resultado) => {
+    ultimo = resultado as Record<string, unknown> | null;
+  });
+
+  const informar = (que: string, entraron: number, pedidos: number, cotas: number) => {
+    if (entraron < pedidos) {
+      log(`  ${entraron} de ${pedidos} clics encontraron geometria — el rayo ya no responde aqui`);
+      return;
+    }
+    log(`  resultado: ${JSON.stringify(ultimo)}`);
+    log(`  cotas dibujadas: ${cotas} ${cotas === 1 ? "(bien)" : "(MAL)"}`);
+    if (ultimo === null) log(`  ${que}: NO EMITIO RESULTADO (mal)`);
+  };
+
+  // Cuatro puntos repartidos sobre el centro del lienzo, que es donde queda el modelo tras
+  // encuadrar. Se reusan para las cuatro medidas: lo que se comprueba es el mecanismo.
+  const cuatro = [
+    [0.42, 0.45],
+    [0.58, 0.45],
+    [0.58, 0.58],
+    [0.42, 0.58],
+  ] as const;
+
+  log(`medida = ${cual}`);
+  let antes = viewer.measurementCount;
+  let entraron = 0;
+
+  // **El ángulo y el área se ejercitan por coordenadas del mundo, no por clics.** El rayo se agota
+  // en un par de llamadas en este panel y ellos piden tres y cuatro puntos: por el clic no hay
+  // forma de llegar al final. Los puntos son un triángulo rectángulo y un cuadrado de 4 m de lado,
+  // elegidos porque su ángulo y su área **se saben de antemano**: 90° y 16 m². Una prueba que
+  // acepta cualquier número no comprueba nada.
+  const ANGULO_RECTO = [
+    [0, 0, 0],
+    [4, 0, 0],
+    [4, 0, 3],
+  ] as const;
+  const CUADRADO = [
+    [0, 0, 0],
+    [4, 0, 0],
+    [4, 0, 4],
+    [0, 0, 4],
+  ] as const;
+
+  if (cual === "distancia") {
+    log("\ndistancia (2 clics):");
+    viewer.setMeasureMode("distance");
+    ultimo = null;
+    antes = viewer.measurementCount;
+    entraron = 0;
+    for (const [fx, fy] of cuatro.slice(0, 2)) if (await clic(fx, fy)) entraron += 1;
+    informar("distancia", entraron, 2, viewer.measurementCount - antes);
+  }
+
+  if (cual === "angulo") {
+    log("\nangulo (3 puntos, un triangulo rectangulo: tiene que dar 90 grados):");
+    viewer.setMeasureMode("angle");
+    ultimo = null;
+    antes = viewer.measurementCount;
+    // El vértice va en medio, que es el orden que pide la barra de estado.
+    const [a, vertice, c] = ANGULO_RECTO;
+    for (const p of [a, vertice, c]) viewer.addMeasurePointAt(p);
+    log(`  resultado: ${JSON.stringify(ultimo)}`);
+    const grados = (ultimo as { angleDeg?: number } | null)?.angleDeg;
+    log(
+      `  angulo: ${grados?.toFixed(2) ?? "sin resultado"} — ` +
+        `${grados !== undefined && Math.abs(grados - 90) < 0.01 ? "90 grados (bien)" : "NO SON 90 (mal)"}`,
+    );
+    log(`  cotas dibujadas: ${viewer.measurementCount - antes}`);
+  }
+
+  if (cual === "area") {
+    log("\narea (contorno de 4 puntos, un cuadrado de 4 m: 16 m2 y 16 m de perimetro):");
+    viewer.setMeasureMode("area");
+    ultimo = null;
+    antes = viewer.measurementCount;
+
+    for (const p of CUADRADO.slice(0, 2)) viewer.addMeasurePointAt(p);
+    // **Con dos vertices no se cierra**, y eso es lo que hay que comprobar: un area de dos puntos
+    // vale cero y su perimetro es el doble del segmento — un numero que existe y no dice nada.
+    log(
+      `  con ${viewer.areaPointCount} vertices, cerrar -> ${
+        viewer.finishMeasurement() ? "CERRO (mal)" : "no cierra (bien)"
+      }`,
+    );
+    for (const p of CUADRADO.slice(2, 4)) viewer.addMeasurePointAt(p);
+    log(`  vertices puestos: ${viewer.areaPointCount}`);
+    log(`  cerrar -> ${viewer.finishMeasurement() ? "cierra (bien)" : "NO CIERRA (mal)"}`);
+    log(`  resultado: ${JSON.stringify(ultimo)}`);
+    const medida = ultimo as { areaM2?: number; perimeterM?: number; vertices?: number } | null;
+    log(
+      `  area ${medida?.areaM2?.toFixed(2) ?? "?"} m2 · perimetro ${medida?.perimeterM?.toFixed(2) ?? "?"} m · ` +
+        `${medida?.vertices ?? "?"} vertices — ` +
+        `${
+          medida?.areaM2 !== undefined &&
+          Math.abs(medida.areaM2 - 16) < 0.01 &&
+          medida.perimeterM !== undefined &&
+          Math.abs(medida.perimeterM - 16) < 0.01
+            ? "16 y 16 (bien)"
+            : "NO CUADRA (mal)"
+        }`,
+    );
+    log(`  cotas dibujadas: ${viewer.measurementCount - antes}`);
+  }
+
+  if (cual === "perpendicular") {
+    // **La perpendicular no se puede ejercitar por coordenadas**, y no es una omisión: su primer
+    // punto no es un punto, es una **cara** —hace falta la normal para tener plano de referencia—
+    // y eso no viaja como una terna de números. Depende del rayo, con el presupuesto que haya.
+    // Su comprobación propia está en `?modo=perpendicular`, que la mide con un solo par de clics.
+    log("\nperpendicular (2 clics, depende del rayo — ver tambien ?modo=perpendicular):");
+    viewer.setMeasureMode("perpendicular");
+    ultimo = null;
+    antes = viewer.measurementCount;
+    entraron = 0;
+    for (const [fx, fy] of cuatro.slice(0, 2)) if (await clic(fx, fy)) entraron += 1;
+    informar("perpendicular", entraron, 2, viewer.measurementCount - antes);
+
+    // **Lo que no depende del rayo va al final**, y es la mitad que antes se callaba: un clic donde
+    // no hay geometria tiene que devolver `false` en los cuatro modos. Esto no se degrada, porque la
+    // respuesta correcta es justamente "no hay nada".
+  }
+
+  if (cual === "vacio") {
+    log("\nel clic al vacio, en los cuatro modos:");
+    for (const modo of ["distance", "angle", "area", "perpendicular"] as const) {
+      viewer.setMeasureMode(modo);
+      const registrado = await clic(0.02, 0.02);
+      log(`  ${modo} -> ${registrado ? "REGISTRADO (mal)" : "no cuenta (bien)"}`);
+    }
+
+    // Por coordenadas del mundo, no por clic: acá el rayo ya está agotado y lo que se comprueba
+    // es que cancelar **suelte los puntos**, no que el rayo los encuentre.
+    log("\ncancelar deja el contorno a cero:");
+    viewer.setMeasureMode("area");
+    for (const p of CUADRADO.slice(0, 3)) viewer.addMeasurePointAt(p);
+    const antesDeCancelar = viewer.areaPointCount;
+    viewer.cancelMeasurement();
+    log(
+      `  vertices antes ${antesDeCancelar}, despues ${viewer.areaPointCount} — ` +
+        `${antesDeCancelar === 3 && viewer.areaPointCount === 0 ? "bien" : "MAL"}`,
+    );
+
+    // Y **cambiar de modo también los suelta**: quedarse con los vértices de un área a medias al
+    // pasar a medir una distancia mezclaría dos medidas en una.
+    viewer.setMeasureMode("area");
+    for (const p of CUADRADO.slice(0, 2)) viewer.addMeasurePointAt(p);
+    const antesDeCambiar = viewer.areaPointCount;
+    viewer.setMeasureMode("distance");
+    viewer.setMeasureMode("area");
+    log(
+      `  al cambiar de modo: antes ${antesDeCambiar}, despues ${viewer.areaPointCount} — ` +
+        `${antesDeCambiar === 2 && viewer.areaPointCount === 0 ? "bien" : "MAL"}`,
+    );
+  }
+
+  log(`\ntotal de cotas en la lista: ${viewer.measurementCount}`);
+}
+
+/**
  * La perpendicular a una cara, de punta a punta.
  *
- * Existe porque **es la única medición que se puede comprobar sin interfaz**: las otras tres las
- * dibuja `components-front`, cuyo ajuste lee píxeles de la escena y por tanto necesita un navegador
- * que esté pintando. La perpendicular usa el rayo de la CPU, así que corre igual acá.
+ * Se conserva aparte de {@link medidas} porque comprueba algo que ninguna otra medición tiene: que
+ * el primer clic devuelva **la normal de la cara**, que es lo que define el plano de referencia.
  *
  * Hace lo mismo que dos clics del usuario: busca un punto de la pantalla donde haya geometría, lo
  * usa como cara de referencia, y luego mide desde otro punto. Informa el valor y si la cota quedó

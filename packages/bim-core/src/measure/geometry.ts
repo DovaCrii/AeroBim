@@ -161,13 +161,30 @@ export function angleAtDeg(a: Point3, b: Point3, c: Point3): number {
   return (Math.acos(coseno) * 180) / Math.PI;
 }
 
-/** Largo total de una polilínea, en metros. */
+/** Largo total de una polilínea **abierta**, en metros. Para un contorno, {@link closedPerimeterM}. */
 export function perimeterM(points: readonly Point3[]): number {
   let total = 0;
   for (let i = 1; i < points.length; i += 1) {
     total += distanceM(points[i]!, points[i - 1]!);
   }
   return total;
+}
+
+/**
+ * Perímetro de un contorno **cerrado**, en metros: incluye el tramo de vuelta al primer vértice.
+ *
+ * **Es una función aparte de `perimeterM` y no un parámetro suyo**, porque la confusión entre las
+ * dos ya costó un número equivocado en pantalla: al medir un área, el perímetro salía como el largo
+ * de la polilínea abierta y le faltaba un lado —12 m en un cuadrado de 4 m, que debería dar 16—.
+ * Un nombre que dice «cerrado» no se puede usar por descuido para lo otro.
+ *
+ * Con menos de tres vértices no hay contorno que cerrar y se devuelve el largo abierto: dos puntos
+ * son un segmento, y decir que su perímetro es el doble sería inventar un lado que nadie dibujó.
+ */
+export function closedPerimeterM(points: readonly Point3[]): number {
+  const abierto = perimeterM(points);
+  if (points.length < 3) return abierto;
+  return abierto + distanceM(points[points.length - 1]!, points[0]!);
 }
 
 /**

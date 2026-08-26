@@ -5,6 +5,32 @@ Este proyecto sigue [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Corregido — Las cuatro mediciones pasan por el rayo propio (2026-08-26)
+
+El arreglo de la medición de distancia dejó dicho que el ángulo y el área seguían con el medidor de
+la librería y **seguían sin informar del clic al vacío**. Ya no: las cuatro entran por el mismo
+sitio, y las cuatro devuelven `false` cuando el clic no encontró geometría.
+
+Lo que se gana no es solo consistencia: **es poder comprobarlas.** El ajuste de la librería lee
+píxeles de la escena dibujada, así que las tres medidas que dependían de él no se podían ejercitar
+en un entorno que no compone fotogramas — justo donde el usuario decía que no funcionaban.
+
+Para probarlas hizo falta una entrada que además hacía falta por otro motivo:
+**`addMeasurePointAt(punto)`**, que suma un punto por su coordenada del mundo. Restaurar una
+medición guardada —o abrir el punto de vista de un BCF— son coordenadas, no clics; y el rayo, en el
+panel de pruebas, se agota en un par de llamadas, así que por el clic no había forma de completar un
+ángulo (tres puntos) ni un área (cuatro).
+
+Comprobado con figuras de medida conocida: distancia **7,702 m** sobre el modelo, ángulo de un
+triángulo rectángulo **90,00°**, cuadrado de 4 m **16,00 m²** y **16,00 m** de perímetro, cada uno
+con su cota dibujada; un área de dos vértices no cierra; cancelar y cambiar de modo dejan el
+contorno en cero.
+
+**Y el oráculo encontró un defecto en la primera pasada**: el perímetro del cuadrado salía **12 m en
+vez de 16**. Al portar el área tomé `perimeterM`, que es —y así lo documenta— el largo de una
+polilínea **abierta**. Ahora el dominio tiene `closedPerimeterM` como función aparte, con cuatro
+pruebas. Con un contorno cualquiera ese número habría pasado inadvertido.
+
 ### Corregido — Las sombras estaban montadas y apagadas (`F1.16`, 2026-08-26)
 
 Lo reportó el usuario: «no está renderizando con mejor información de sombras o realista». Y
@@ -189,8 +215,8 @@ Comprobado en el navegador con `Piso 5.ifc` y `ACAD-Piso 5_Base.dxf` cargados a 
 vacío devuelve `false`, dos clics sobre el modelo dan **13,066 m** (13,064 en planta, 0,179 de
 desnivel), y del plano al modelo **8,948 m**. Sin errores en consola.
 
-El ángulo y el área siguen con el medidor de la librería y siguen sin informar del clic vacío. Va
-dicho en el código: son las dos que quedan.
+El ángulo y el área quedaron con el medidor de la librería —«las dos que quedan»—, y se cerraron el
+mismo día: ver más arriba.
 
 ### Buscado y no encontrado — la preselección al pasar el ratón (`F1.12`, 2026-08-26)
 

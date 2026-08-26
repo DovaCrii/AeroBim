@@ -11,6 +11,7 @@
  */
 
 import {
+  angleAtDeg,
   countIfcEntities,
   distancePartsM,
   parseIfcGrids,
@@ -20,7 +21,9 @@ import {
   missingElementClasses,
   NO_IFC_UNITS,
   parseIfcUnits,
+  closedPerimeterM,
   perpendicularToPlane,
+  polygonAreaM2,
   resolveUnitSymbol,
   type IfcGridAxis,
   type IfcGuid,
@@ -1299,6 +1302,17 @@ export class BimViewer {
   private highlightsPending = false;
   /** `true` mientras se atiende un repintado disparado por geometría nueva. */
   private repintandoPorVista = false;
+  /**
+   * Los puntos que llevan puestos el ángulo y el área en curso.
+   *
+   * **Son propios desde el 2026-08-26**, como ya lo eran los de la distancia: el ajuste de los
+   * medidores de la librería lee píxeles de la escena dibujada y no informa cuando no resuelve,
+   * así que un clic al vacío se veía igual que uno que entró. Ver {@link addMeasurePoint}.
+   */
+  private puntosDeAngulo: THREE.Vector3[] = [];
+  private puntosDeArea: THREE.Vector3[] = [];
+  /** Las marcas de los puntos ya puestos, para poder quitarlas al cerrar o al cancelar. */
+  private marcasDeMedicion: THREE.Object3D[] = [];
   /**
    * Las mallas a las que la vista fantasma les cambió el material, con el que tenían.
    *
@@ -2683,6 +2697,15 @@ export class BimViewer {
     this.referencePlane = null;
     this.quitarMarcaDeReferencia();
 
+    // **Cambiar de modo suelta los puntos a medias**, y no es cosmético: quedarse con los dos
+    // vértices de un área al pasar a medir una distancia mezcla dos medidas en una, y el número
+    // que sale no es de ninguna de las dos. Antes esto lo hacía la librería por dentro; desde que
+    // los puntos son propios hay que hacerlo acá.
+    this.planMeasureStart = null;
+    this.puntosDeAngulo = [];
+    this.puntosDeArea = [];
+    this.quitarMarcasDeMedicion();
+
     // Solo un medidor activo a la vez. Con dos escuchando el puntero, cada clic entraba en las
     // dos mediciones y salían cotas que nadie pidió.
     //
@@ -2745,34 +2768,134 @@ export class BimViewer {
     //
     // Y de paso resuelve lo que `docs/UX.md` tenía pedido: **medir del plano al modelo en un mismo
     // gesto**, porque los dos puntos entran por el mismo sitio.
-    if (this.measureMode === "distance") {
-      if (clientX === undefined || clientY === undefined) return false;
+    //
+    // **Las tres medidas pasan por aquí desde el 2026-08-26.** El ángulo y el área se quedaron con
+    // el medidor de la librería en el primer arreglo, con la nota de que eran «las dos que quedan»;
+    // esto las cierra. Tenían el mismo defecto y la misma mitad silenciosa: `create()` no colocaba
+    // nada cuando la lectura de píxeles no resolvía, y esta función devolvía `true` igual.
+    if (clientX === undefined || clientY === undefined) return false;
 
-      // El plano tiene la primera palabra: su ajuste ve los trazos del CAD, que el del modelo no.
-      if (this.planSnapEnabled) {
-        const enganche = this.snapOnPlan(clientX, clientY);
-        if (enganche !== null) return this.addDistancePoint(new THREE.Vector3(...enganche.point));
-      }
+    const punto = await this.puntoDeMedicion(clientX, clientY);
+    if (punto === null) return false;
 
-      const punto = await this.snapAt(clientX, clientY);
-      if (punto === null) return false;
-      return this.addDistancePoint(punto);
+    if (this.measureMode === "distance") return this.addDistancePoint(punto);
+    if (this.measureMode === "angle") return this.addAnglePoint(punto);
+    return this.addAreaPoint(punto);
+  }
+
+  /**
+   * Suma un punto a la medición en curso **por su coordenada del mundo**, sin pasar por el rayo.
+   *
+   * Es el mismo camino que {@link addMeasurePoint} una vez que sabe dónde está el punto: las dos
+   * acaban en el mismo sitio, y lo único que cambia es de dónde sale la coordenada.
+   *
+   * **Existe por dos motivos y ninguno es de conveniencia.**
+   *
+   * 1. **Restaurar una medición y abrir un punto de vista de coordinación.** Una medida guardada
+   *    —o la que viene dentro de un BCF— son coordenadas, no clics: sin esta entrada habría que
+   *    simular un ratón sobre una cámara concreta, que es exactamente lo que no se puede hacer.
+   * 2. **Poder comprobar las cuatro medidas.** El ajuste por rayo necesita un navegador que
+   *    componga fotogramas, y en el entorno de pruebas se agota en un par de llamadas: el ángulo
+   *    pide tres puntos y el área cuatro, así que sin esto **no hay forma de ejercitarlas**. Con
+   *    esto, el mecanismo se prueba entero y lo único que queda fuera es el rayo, que tiene su
+   *    propia comprobación.
+   *
+   * Devuelve `false` si no se está midiendo. **No puede fallar por «no hay geometría»**, que es
+   * justamente la diferencia con el clic: acá el punto lo pone quien llama.
+   */
+  addMeasurePointAt(punto: Point3): boolean {
+    this.assertAlive();
+    if (this.measureMode === null) return false;
+    // La perpendicular no entra por acá: su primer punto no es un punto, es una **cara** —hace
+    // falta la normal—, y eso no se puede pasar como una coordenada.
+    if (this.measureMode === "perpendicular") return false;
+
+    const vector = new THREE.Vector3(...punto);
+    if (this.measureMode === "distance") return this.addDistancePoint(vector);
+    if (this.measureMode === "angle") return this.addAnglePoint(vector);
+    return this.addAreaPoint(vector);
+  }
+
+  /**
+   * El punto que hay bajo el cursor para medir, con el ajuste que corresponda.
+   *
+   * **El plano tiene la primera palabra**: su ajuste ve los trazos del CAD, que el del modelo no.
+   * Si no engancha en el plano, va el rayo propio contra la geometría. Devuelve `null` cuando no
+   * hay nada, que es lo que permite decirlo en vez de callarlo.
+   */
+  private async puntoDeMedicion(clientX: number, clientY: number): Promise<THREE.Vector3 | null> {
+    if (this.planSnapEnabled) {
+      const enganche = this.snapOnPlan(clientX, clientY);
+      if (enganche !== null) return new THREE.Vector3(...enganche.point);
     }
+    return await this.snapAt(clientX, clientY);
+  }
 
-    // **Un dibujado antes de leer.** El ajuste del medidor no usa el rayo de la CPU: lee los
-    // píxeles de la escena dibujada para saber qué hay bajo el cursor. Mientras se orbita, la
-    // librería suspende esas lecturas, así que al soltar el ratón el último fotograma puede no
-    // corresponder a la cámara actual y el punto saldría de donde estaba antes de mover. Un
-    // dibujado explícito acá cuesta milisegundos y garantiza que se mide lo que se está viendo.
+  /**
+   * Los tres clics de un ángulo: dos extremos y el vértice en medio.
+   *
+   * El orden es el que ya pedía la barra de estado —primer punto, vértice, tercer punto—, así que
+   * el segundo clic es el del vértice. **Cada punto se marca al entrar**: sin eso, tres clics
+   * seguidos sin nada en pantalla no dejan saber cuál de ellos contó.
+   */
+  private addAnglePoint(punto: THREE.Vector3): boolean {
+    this.puntosDeAngulo.push(punto);
+    this.marcarPuntoDeMedicion(punto);
+
+    if (this.puntosDeAngulo.length < 3) return true;
+
+    const [inicio, vertice, fin] = this.puntosDeAngulo as [
+      THREE.Vector3,
+      THREE.Vector3,
+      THREE.Vector3,
+    ];
+    this.puntosDeAngulo = [];
+    this.quitarMarcasDeMedicion();
+
+    const grados = angleAtDeg(toPoint3(inicio), toPoint3(vertice), toPoint3(fin));
+
+    const angulo = new OBF.Angle(inicio, vertice, fin);
+    angulo.units = "deg";
+    angulo.rounding = 1;
+    this.tools.angle.list.add(angulo);
+
+    this.emitMeasurement({ mode: "angle", angleDeg: grados });
     this.world.renderer?.update();
-
-    if (this.measureMode === "angle") await this.tools.angle.create();
-    else if (this.measureMode === "area") await this.tools.area.create();
-
-    // El ángulo y el área siguen con el medidor de la librería, y **siguen sin informar** si el
-    // clic cayó en el vacío. Se deja dicho: son las dos que quedan por pasar al rayo propio, y
-    // hacerlo ahora sería cambiar tres cosas para arreglar una.
     return true;
+  }
+
+  /**
+   * Un vértice del contorno de un área.
+   *
+   * **El área no se cierra sola**: un contorno no tiene un número fijo de vértices, así que se
+   * cierra con Enter o con doble clic — ver {@link finishMeasurement}. Lo que hace este método es
+   * acumular y marcar, para que se vea por dónde va el contorno mientras se dibuja.
+   */
+  private addAreaPoint(punto: THREE.Vector3): boolean {
+    this.puntosDeArea.push(punto);
+    this.marcarPuntoDeMedicion(punto);
+    this.world.renderer?.update();
+    return true;
+  }
+
+  /** Marca un punto de una medición en curso, para que se vea que el clic entró y dónde. */
+  private marcarPuntoDeMedicion(punto: THREE.Vector3): void {
+    const marca = marcaDeReferencia(
+      punto,
+      new THREE.Vector3(0, 1, 0),
+      this.world.camera.three.position.distanceTo(punto),
+      SELECTION_COLOR,
+    );
+    this.marcasDeMedicion.push(marca);
+    this.world.scene.three.add(marca);
+    this.world.renderer?.update();
+  }
+
+  /** Quita las marcas de los puntos de una medición en curso. */
+  private quitarMarcasDeMedicion(): void {
+    for (const marca of this.marcasDeMedicion) liberarDibujo(marca);
+    this.marcasDeMedicion = [];
+    this.world.renderer?.update();
   }
 
   /**
@@ -2961,10 +3084,46 @@ export class BimViewer {
    *
    * Solo el área lo necesita: un contorno no tiene un número fijo de vértices, así que hay que
    * decir cuándo terminó. La distancia y el ángulo se cierran solos al completar sus puntos.
+   *
+   * **Tres puntos es el mínimo y se dice.** Con dos, el área es cero y el perímetro es el doble
+   * del segmento: un resultado que existe y no significa nada. Antes esto lo decidía la librería
+   * por dentro; ahora se devuelve `false` y la interfaz puede seguir pidiendo vértices.
    */
-  finishMeasurement(): void {
+  finishMeasurement(): boolean {
     this.assertAlive();
-    if (this.measureMode === "area") this.tools.area.endCreation();
+    if (this.measureMode !== "area") return false;
+    if (this.puntosDeArea.length < 3) return false;
+
+    const puntos = this.puntosDeArea;
+    this.puntosDeArea = [];
+    this.quitarMarcasDeMedicion();
+
+    const comoPuntos = puntos.map(toPoint3);
+    const area = new OBF.Area(puntos);
+    area.units = "m2";
+    area.rounding = 2;
+    this.tools.area.list.add(area);
+
+    this.emitMeasurement({
+      mode: "area",
+      // **El área y el perímetro salen del dominio, no de la librería.** Son las mismas
+      // funciones que tienen sus pruebas en `bim-core`, y así el número que se lee en pantalla
+      // es el que está probado.
+      //
+      // **Y el perímetro es el `closed`**, no el de la polilínea: un contorno incluye el tramo de
+      // vuelta al primer vértice. Con el otro, un cuadrado de 4 m daba 12 m en vez de 16 — se vio
+      // porque el oráculo era una figura de medida conocida.
+      areaM2: polygonAreaM2(comoPuntos),
+      perimeterM: closedPerimeterM(comoPuntos),
+      vertices: puntos.length,
+    });
+    this.world.renderer?.update();
+    return true;
+  }
+
+  /** Cuántos vértices lleva puestos el contorno de un área a medias. */
+  get areaPointCount(): number {
+    return this.puntosDeArea.length;
   }
 
   /** Descarta la medición a medias, sin borrar las ya terminadas. */
@@ -2973,6 +3132,11 @@ export class BimViewer {
     this.tools.distance.cancelCreation();
     this.tools.angle.cancelCreation();
     this.tools.area.cancelCreation();
+    // Los puntos propios de las tres medidas, con sus marcas.
+    this.planMeasureStart = null;
+    this.puntosDeAngulo = [];
+    this.puntosDeArea = [];
+    this.quitarMarcasDeMedicion();
     // La perpendicular a medias también se descarta, con su marca de referencia.
     this.referencePlane = null;
     this.quitarMarcaDeReferencia();

@@ -33,13 +33,16 @@
       Modos: `clase` (a través de la envoltura), `manual` (componentes de That Open
       directos), `camara` (por qué los comandos de cámara no surten efecto),
       `plano` (informe de fidelidad de un DXF: qué se leyó, qué se dibujó y qué no),
-      `fantasma` (cuánto del modelo está pintado de translúcido, moviendo la cámara) y
-      `sombras` (si las sombras están puestas de verdad, pieza por pieza).
+      `fantasma` (cuánto del modelo está pintado de translúcido, moviendo la cámara),
+      `sombras` (si las sombras están puestas de verdad, pieza por pieza) y
+      `medidas` (las cuatro mediciones, una por carga: `&medida=distancia|angulo|area|
+      perpendicular|vacio`).
 
       Uso: /diag.html?modo=clase&ifc=/samples/muro-minimo.ifc
            /diag.html?modo=plano&dxf=/samples/fidelidad-2d.dxf
            /diag.html?modo=fantasma&ifc=/samples/Piso%205.ifc
            /diag.html?modo=sombras&ifc=/samples/Piso%205.ifc
+           /diag.html?modo=medidas&medida=area&ifc=/samples/Piso%205.ifc
     -->
     <div id="log">iniciando…</div>
     <div id="escena"></div>

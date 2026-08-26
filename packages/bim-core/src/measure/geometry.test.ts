@@ -3,6 +3,7 @@ import {
   angleAtDeg,
   distanceM,
   distancePartsM,
+  closedPerimeterM,
   perimeterM,
   perpendicularToPlane,
   polygonAreaM2,
@@ -171,6 +172,47 @@ describe("perimeterM", () => {
 
   it("un solo punto no tiene perímetro", () => {
     expect(perimeterM([[1, 2, 3]])).toBe(0);
+  });
+});
+
+describe("closedPerimeterM", () => {
+  /**
+   * **Es la prueba que faltaba y que ya costó un número equivocado.** Al pasar la medición de área
+   * al cálculo propio, el perímetro se tomó de `perimeterM` —que es el largo de una polilínea
+   * abierta— y en un cuadrado de 4 m salió 12 en vez de 16: le faltaba el lado de vuelta.
+   */
+  it("cierra el contorno: un cuadrado de 4 m mide 16 m", () => {
+    expect(
+      closedPerimeterM([
+        [0, 0, 0],
+        [4, 0, 0],
+        [4, 0, 4],
+        [0, 0, 4],
+      ]),
+    ).toBeCloseTo(16, 12);
+  });
+
+  it("el triángulo 3-4-5 mide 12 m", () => {
+    expect(
+      closedPerimeterM([
+        [0, 0, 0],
+        [3, 0, 0],
+        [3, 4, 0],
+      ]),
+    ).toBeCloseTo(12, 12);
+  });
+
+  it("dos puntos son un segmento, no un contorno: no se inventa el lado de vuelta", () => {
+    expect(
+      closedPerimeterM([
+        [0, 0, 0],
+        [3, 0, 0],
+      ]),
+    ).toBeCloseTo(3, 12);
+  });
+
+  it("un solo punto no tiene perímetro", () => {
+    expect(closedPerimeterM([[1, 2, 3]])).toBe(0);
   });
 });
 

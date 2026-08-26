@@ -312,9 +312,51 @@ y el otro a un vértice del modelo.
 | Dos clics sobre el modelo      | Una cota: **13,066 m**, con 13,064 en planta y 0,179 de desnivel |
 | Del plano al modelo            | Una cota: **8,948 m**                                            |
 
-> **El ángulo y el área siguen con el medidor de la librería, y siguen sin informar** si el clic
-> cayó en el vacío. Va dicho en el código: son las dos que quedan por pasar al rayo propio, y
-> hacerlo ahora sería cambiar tres cosas para arreglar una.
+> **El ángulo y el área quedaron con el medidor de la librería**, con la nota de que eran «las dos
+> que quedan». **Cerradas el mismo día**, más abajo.
+
+### Las cuatro mediciones pasan por el rayo propio (2026-08-26)
+
+El arreglo de `F1.14` dejó dicho que el ángulo y el área seguían con el medidor de la librería y
+seguían sin informar del clic al vacío. Ya no: las cuatro entran por el mismo sitio.
+
+**Lo que se gana no es solo consistencia, es poder comprobarlas.** El ajuste de la librería lee
+píxeles de la escena dibujada, así que las tres medidas que dependían de él **no se podían ejercitar
+en un entorno que no compone fotogramas** — que es exactamente donde el usuario decía que no
+funcionaban. El comentario de `diag.ts` lo daba por perdido: _«es la única medición que se puede
+comprobar sin interfaz»_, hablando de la perpendicular. Ahora hay un modo `medidas` que las prueba.
+
+**Y para poder probarlas hizo falta una entrada nueva que además hacía falta por otro motivo.**
+`addMeasurePointAt(punto)` suma un punto **por su coordenada del mundo**, sin rayo. Existe porque
+restaurar una medición guardada —o abrir el punto de vista de un BCF— son coordenadas, no clics; y
+porque el rayo, en este panel, **se agota en un par de llamadas**: el ángulo pide tres puntos y el
+área cuatro, así que por el clic no había forma de llegar al final. Medido: las mismas quince
+coordenadas dan quince puntos, luego seis, luego ninguno. Es la limitación que `HANDOFF.md` ya tenía
+anotada, no un defecto del visor.
+
+**Comprobado, con figuras de medida conocida** —una prueba que acepta cualquier número no comprueba
+nada—:
+
+| Qué                                      | Resultado                                            |
+| ---------------------------------------- | ---------------------------------------------------- |
+| Clic al vacío en los **cuatro** modos    | `false` en los cuatro — antes solo la distancia      |
+| Distancia, dos clics sobre el modelo     | **7,702 m**, con su cota dibujada                    |
+| Ángulo, un triángulo rectángulo          | **90,00°** exactos, con su cota                      |
+| Área, un cuadrado de 4 m                 | **16,00 m²** y **16,00 m** de perímetro, con su cota |
+| Área con dos vértices, al cerrar         | No cierra: un área de dos puntos no significa nada   |
+| Cancelar con tres vértices puestos       | Quedan 0                                             |
+| Cambiar de modo con dos vértices puestos | Quedan 0                                             |
+
+> **Y el oráculo se ganó el sueldo en la primera pasada.** El perímetro del cuadrado salió **12 m
+> en vez de 16**: al portar el área tomé `perimeterM`, que es —y así lo dice— el largo de una
+> polilínea **abierta**, y le faltaba el lado de vuelta. Con un contorno cualquiera el número habría
+> pasado inadvertido. Ahora el dominio tiene `closedPerimeterM` **como función aparte y no como un
+> parámetro**, porque un nombre que dice «cerrado» no se usa por descuido para lo otro; con sus
+> cuatro pruebas, incluida la que dice que dos puntos son un segmento y no un contorno.
+>
+> **Lo que sigue sin poder comprobarse acá es la perpendicular**, y es inherente: su primer punto no
+> es un punto, es una **cara** —hace falta la normal— y eso no viaja como una terna de números.
+> Depende del rayo, con el presupuesto que haya. Tiene su propio modo, `?modo=perpendicular`.
 
 ### `F1.15` cerrada: el fantasma no se caía al mover, nunca estuvo entero (2026-08-26)
 

@@ -18,6 +18,7 @@ export {
   angleAtDeg,
   distanceM,
   distancePartsM,
+  closedPerimeterM,
   perimeterM,
   perpendicularToPlane,
   polygonAreaM2,
