@@ -257,7 +257,7 @@ software de escritorio ni pedir una licencia.
 | `F1.9`  | **Unidades de las propiedades** — cada número con la unidad que declara el archivo                                                    | ✅ ver abajo |
 | `F1.10` | **Geometría que no se carga** — el conversor dejaba fuera `IfcProxy`: 433 elementos de 1.274                                          | ✅ ver abajo |
 | `F1.11` | **El picker caía desviado** el ancho del panel izquierdo: se seleccionaba otro elemento                                               | ✅ ver abajo |
-| `F1.12` | **Preselección al pasar el cursor** — se selecciona sin clicar y el usuario lo llama «poco práctico»                                  | ⬜ ver abajo |
+| `F1.12` | **Preselección al pasar el cursor** — se selecciona sin clicar y el usuario lo llama «poco práctico»                                  | ✅ ver abajo |
 | `F1.13` | **El panel de abajo no se entiende** — reubicar y agrupar las herramientas, mirando cómo lo resuelven Revit y AutoCAD                 | ❓ ver abajo |
 | `F1.14` | **La medición de distancia no funciona** en uso real, con el modelo del usuario                                                       | ✅ ver abajo |
 | `F1.15` | **El modo fantasma se cae al mover** la cámara                                                                                        | ✅ ver abajo |
@@ -269,14 +269,28 @@ software de escritorio ni pedir una licencia.
 Son cinco cosas, dichas con sus palabras, y ninguna es cosmética — todas son sobre _cómo se
 navega y se revisa_, que es lo que llamó «lo esencial»:
 
-- **`F1.12`** «al acercar el mouse sin clickear selecciona solo elementos, lo cual es poco
-  práctico». **Buscado y no está en nuestro código** (2026-08-26): `pickAt` se llama solo desde
-  `onClick`, y no hay un solo `addEventListener` de movimiento del ratón en todo
-  `packages/viewer` —lo único que escucha el puntero son los controles de cámara y los medidores
-  de la librería cuando están encendidos—. El único candidato es el **marcador de ajuste** de
-  `LengthMeasurement`: un punto de 10 px **del mismo violeta que la selección** que sigue al
-  cursor y salta a los vértices mientras se está en modo medición. Antes de cambiar el
-  comportamiento de la selección hay que confirmar con el usuario si eso es lo que vio.
+### `F1.12`: nada selecciona al pasar el cursor, y el sospechoso era un color (2026-08-26)
+
+«Al acercar el mouse sin clickear selecciona solo elementos, lo cual es poco práctico.»
+
+**Buscado, y no hay nada en el código que seleccione al pasar el cursor**: `pickAt` se llama solo
+desde `onClick`, y no hay un solo `addEventListener` de movimiento del ratón en todo
+`packages/viewer` —lo único que escucha el puntero son los controles de cámara y los medidores de la
+librería cuando están encendidos—.
+
+**Lo que sí sigue al cursor es el marcador de ajuste del medidor**, y venía con el borde en
+`rgb(122, 75, 209)` a 10 px: un punto violeta, del mismo tono que «esto está seleccionado», saltando
+de vértice en vértice. Eso se lee como una selección, y era el único candidato.
+
+**Arreglado sin tocar comportamiento**: el marcador pasa a `#ffd43b`, amarillo, que es la convención
+de AutoCAD y de BricsCAD para las marcas de referencia — nadie las confunde con una selección. El
+ajuste engancha exactamente donde enganchaba. Comprobado en el navegador y no supuesto: las cuatro
+clases de ajuste —base, cara, vértice y arista— devuelven `#ffd43b`, y la comprobación va en el modo
+`medidas` del diagnóstico **porque son estáticos de la librería**: si una versión nueva les cambia
+el nombre, el recolorado dejaría de aplicarse en silencio.
+
+> **Si el usuario sigue viendo que «selecciona solo»**, entonces no era esto y hace falta saber dos
+> cosas: qué pestaña estaba activa y qué se resaltaba. No hay más candidatos en el código.
 
 ### `F1.14` cerrada: la medición no fallaba, mentía (2026-08-26)
 

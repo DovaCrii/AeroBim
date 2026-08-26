@@ -440,6 +440,22 @@ const SELECTION_COLOR = 0x9b5de5;
 const SELECTION_CSS = "#9b5de5";
 
 /**
+ * El color del marcador de ajuste, **deliberadamente distinto del violeta de la selección**.
+ *
+ * Es lo que se investigó de `F1.12` —«al acercar el mouse sin clickear selecciona solo
+ * elementos»—. En el código no hay nada que seleccione al pasar el cursor: `pickAt` se llama solo
+ * desde el clic y no hay un `addEventListener` de movimiento en todo el paquete. Lo que sí sigue al
+ * cursor es el **marcador de ajuste** del medidor, y venía con el borde en `rgb(122, 75, 209)` —un
+ * violeta del mismo tono que el elemento seleccionado— y a 10 px. Un punto violeta que salta de
+ * vértice en vértice, del mismo color que «esto está seleccionado», se lee como una selección.
+ *
+ * **Amarillo porque es la convención del CAD**: en AutoCAD y en BricsCAD las marcas de referencia
+ * son amarillo verdoso, y nadie las confunde con una selección. El cambio es de color, no de
+ * comportamiento: el ajuste engancha donde enganchaba.
+ */
+const SNAP_CSS = "#ffd43b";
+
+/**
  * Opacidad de la vista fantasma.
  *
  * Translúcido pero todavía legible: con 0,15 el modelo se volvía una silueta y no se distinguía una
@@ -518,6 +534,27 @@ function encenderSombras(world: World): void {
     if ((luz as THREE.AmbientLight).isAmbientLight) luz.intensity = LUZ_AMBIENTE;
     else if (luz.castShadow) luz.intensity = LUZ_DIRECCIONAL;
   });
+}
+
+/**
+ * Pinta de amarillo las marcas de ajuste del medidor, en vez del violeta que traen.
+ *
+ * **Toca estáticos de la librería, y por eso está aislado en una función con su nombre.** Los
+ * estilos del marcador son `static` de `GraphicVertexPicker` —de la clase, no de la instancia—, así
+ * que se ponen una vez al crear el mundo. Se conserva la **forma** de cada clase de ajuste, que es
+ * información útil y ya venía distinguida: círculo para la cara, cuadrado para el vértice y para la
+ * arista. Lo único que cambia es el color, para que no se confunda con la selección (`F1.12`).
+ */
+function recolorearMarcadorDeAjuste(): void {
+  const picker = OBF.GraphicVertexPicker;
+  picker.baseSnappingStyle = { ...picker.baseSnappingStyle, borderColor: SNAP_CSS };
+
+  // Las claves son del enumerado de Fragments, así que se recorren tal como están en el objeto:
+  // enumerarlas a mano las dejaría atrás en cuanto la librería añada una clase de ajuste.
+  const porClase = picker.snappingStyles as Record<string, Partial<CSSStyleDeclaration>>;
+  for (const clase of Object.keys(porClase)) {
+    porClase[clase] = { ...porClase[clase], borderColor: SNAP_CSS };
+  }
 }
 
 function esFantasma(material: THREE.Material): boolean {
@@ -1476,6 +1513,11 @@ export class BimViewer {
     // el resto sin hacer: medido con `diag.html?modo=sombras`, el mapa de sombras del
     // renderizador venía **apagado**, así que no se calculaba ninguna. Ver {@link ajustarLuces}.
     encenderSombras(world);
+
+    // **El marcador de ajuste, en amarillo y no en violeta.** Va acá y no en `prepararMedidor`
+    // porque los estilos son estáticos de `GraphicVertexPicker`: son de la clase, no de cada
+    // medidor, así que ponerlos tres veces sería decir lo mismo tres veces. Ver {@link SNAP_CSS}.
+    recolorearMarcadorDeAjuste();
 
     // Oclusión ambiental y aristas. `COLOR_PEN_SHADOWS` es color + líneas + sombras, que es
     // la combinación con la que un modelo se lee: las aristas marcan dónde acaba cada

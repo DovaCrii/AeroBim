@@ -5,6 +5,20 @@ Este proyecto sigue [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Corregido — El marcador de ajuste era del mismo violeta que la selección (`F1.12`, 2026-08-26)
+
+«Al acercar el mouse sin clickear selecciona solo elementos, lo cual es poco práctico.» **No hay
+nada en el código que seleccione al pasar el cursor** —`pickAt` se llama solo desde `onClick` y no
+hay un solo escuchador de movimiento del ratón en el paquete del visor—, pero sí había un
+sospechoso: el marcador de ajuste del medidor venía con el borde en `rgb(122, 75, 209)` a 10 px. Un
+punto violeta, del mismo tono que «esto está seleccionado», saltando de vértice en vértice.
+
+Pasa a `#ffd43b`, que es la convención de AutoCAD y BricsCAD para las marcas de referencia. **El
+cambio es de color, no de comportamiento**: el ajuste engancha donde enganchaba. Comprobado en el
+navegador: las cuatro clases de ajuste devuelven `#ffd43b`, y la comprobación queda en el
+diagnóstico porque son estáticos de la librería — si una versión nueva les cambia el nombre, el
+recolorado dejaría de aplicarse en silencio.
+
 ### Corregido — Las cuatro mediciones pasan por el rayo propio (2026-08-26)
 
 El arreglo de la medición de distancia dejó dicho que el ángulo y el área seguían con el medidor de

@@ -10,6 +10,7 @@
  */
 
 import * as OBC from "@thatopen/components";
+import * as OBF from "@thatopen/components-front";
 import { parseDxf, suggestMetresPerUnit } from "@aerobim/bim-core";
 import { BimViewer } from "@aerobim/viewer";
 
@@ -671,6 +672,29 @@ export async function medidas(container: HTMLElement, ifcUrl: string, log: Log):
   ] as const;
 
   log(`medida = ${cual}`);
+
+  // **El color del marcador de ajuste, comprobado y no supuesto** (`F1.12`). Venía en el mismo
+  // violeta que la selección, y un punto violeta que salta de vértice en vértice se lee como una
+  // selección. Se comprueba acá porque es un estático de la librería: si una versión nueva cambia
+  // el nombre de la propiedad, el recolorado deja de aplicarse **en silencio**.
+  const estilos = (
+    OBF as unknown as {
+      GraphicVertexPicker: {
+        baseSnappingStyle: { borderColor?: string };
+        snappingStyles: Record<string, { borderColor?: string }>;
+      };
+    }
+  ).GraphicVertexPicker;
+  const colores = [
+    estilos.baseSnappingStyle.borderColor,
+    ...Object.values(estilos.snappingStyles).map((uno) => uno.borderColor),
+  ];
+  const violeta = colores.filter((c) => /122, *75, *209|9b5de5/i.test(c ?? ""));
+  log(
+    `marcador de ajuste: ${colores.join(", ")} — ` +
+      `${violeta.length === 0 ? "ninguno es el violeta de la seleccion (bien)" : "TODAVIA VIOLETA (mal)"}`,
+  );
+
   let antes = viewer.measurementCount;
   let entraron = 0;
 
