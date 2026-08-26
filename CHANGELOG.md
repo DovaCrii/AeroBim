@@ -5,6 +5,28 @@ Este proyecto sigue [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Comprobado — El exportador a DXF **no dependía del proyector** (`F7.4`, 2026-08-26)
+
+`F7.1` y `F7.4` llevaban meses las dos en 🟡 «por el mismo motivo», y no era el mismo: proyectar las
+aristas necesita un navegador que componga fotogramas, pero **exportar recibe un dibujo con su
+viewport y lo serializa**. Separadas, `F7.4` sí se puede confirmar.
+
+Se le arma un dibujo de **medidas conocidas** —un rectángulo de 10 × 6 m— y el oráculo es doble: que
+**nuestro propio lector de DXF** lo lea, y que las medidas sean las que se pusieron.
+
+| Qué                              | Resultado                                                      |
+| -------------------------------- | -------------------------------------------------------------- |
+| Sin papel, en unidades del mundo | **11,00 × 7,00** — el rectángulo más su margen de 0,5 por lado |
+| En A3 y milímetros               | **420,00 × 297,00 mm**, el 100 % del ancho del papel           |
+| Lo lee nuestro lector            | 8 y 16 trazos, **nada sin dibujar** en los dos casos           |
+
+La segunda fila es la que importa: 10 m son 10 000 mm, así que un exportador que pusiera el dibujo
+tal cual no cabría en la hoja. Que la extensión sea exactamente la del A3 dice que **se escala al
+papel**, que es lo que hace falta para imprimirlo.
+
+Lo que sigue sin confirmarse: que **AutoCAD** lo abra —que nuestro lector lo lea es evidencia
+independiente, no la misma afirmación— y que un dibujo **proyectado** exporte igual, que es `F7.1`.
+
 ### Añadido — El modelo cumple o no el requisito del proyecto (`F3.5`, 2026-08-26)
 
 Es lo que el plan llamaba **«lo que separa un visor de una herramienta de control»**: revisar a mano

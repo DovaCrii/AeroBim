@@ -11,6 +11,7 @@
 
 import * as OBC from "@thatopen/components";
 import * as OBF from "@thatopen/components-front";
+import * as THREE from "three";
 import { parseDxf, suggestMetresPerUnit } from "@aerobim/bim-core";
 import { BimViewer } from "@aerobim/viewer";
 import { createPdfiumEngine } from "@embedpdf/engines/pdfium-direct-engine";
@@ -355,6 +356,142 @@ export async function fantasma(container: HTMLElement, ifcUrl: string, log: Log)
     );
     await viewer.clearSelection();
   }
+}
+
+/**
+ * El **exportador a DXF**, comprobado sin el proyector: `F7.4`.
+ *
+ * **Es una descomposición que no se había hecho, y cambia lo que se puede afirmar.** `F7.1`
+ * —proyectar las aristas del modelo— necesita un navegador que componga fotogramas y no se puede
+ * confirmar aquí. Pero **`F7.4` es el exportador**, y ese no depende del proyector: recibe un dibujo
+ * con su viewport y lo serializa. Así que se le arma un dibujo de **medidas conocidas** y se
+ * comprueba lo suyo.
+ *
+ * El oráculo es doble y no hace falta creerle a nadie:
+ *
+ * 1. **Nuestro propio lector de DXF lo lee.** Si el exportador escribe algo que no es un DXF,
+ *    `parseDxf` lo dice: cero trazos, o entidades sin dibujar.
+ * 2. **Las medidas son las que se pusieron.** Un rectángulo de 10 × 6 m tiene que salir de 10 × 6
+ *    sin papel, y **caber en el A3 en milímetros** con papel. Un exportador que se equivoca de
+ *    unidad da un número mil veces mayor, y eso se ve.
+ *
+ * Uso: `/diag.html?modo=dxf`
+ */
+export async function dxf(container: HTMLElement, _url: string, log: Log): Promise<void> {
+  const components = new OBC.Components();
+  const world = components
+    .get(OBC.Worlds)
+    .create<OBC.SimpleScene, OBC.SimpleCamera, OBC.SimpleRenderer>();
+  world.scene = new OBC.SimpleScene(components);
+  world.renderer = new OBC.SimpleRenderer(components, container);
+  world.camera = new OBC.SimpleCamera(components);
+  world.scene.setup();
+  components.init();
+
+  // Un rectángulo de 10 × 6 m en el plano XZ, que es donde el generador coloca sus dibujos, más
+  // una diagonal. Cinco segmentos, y las medidas se saben de antemano.
+  const ANCHO = 10;
+  const ALTO = 6;
+  const esquinas: [number, number][] = [
+    [0, 0],
+    [ANCHO, 0],
+    [ANCHO, ALTO],
+    [0, ALTO],
+  ];
+  const puntos: number[] = [];
+  for (let i = 0; i < esquinas.length; i += 1) {
+    const [x1, z1] = esquinas[i]!;
+    const [x2, z2] = esquinas[(i + 1) % esquinas.length]!;
+    puntos.push(x1, 0, z1, x2, 0, z2);
+  }
+  puntos.push(0, 0, 0, ANCHO, 0, ALTO);
+  const SEGMENTOS = puntos.length / 6;
+
+  const geometria = new THREE.BufferGeometry();
+  geometria.setAttribute("position", new THREE.Float32BufferAttribute(puntos, 3));
+
+  const drawing = components.get(OBC.TechnicalDrawings).create(world);
+  const lineas = new THREE.LineSegments(
+    geometria,
+    new THREE.LineBasicMaterial({ color: 0xe8e8ef }),
+  );
+  // La capa 1 es la que dibujan las cámaras del plano, igual que en `drawings.ts`: sin esto la
+  // geometría existe y el plano sale en blanco.
+  lineas.layers.set(1);
+  drawing.three.add(lineas);
+
+  const margen = 0.5;
+  const viewport = drawing.viewports.create({
+    left: -margen,
+    right: ANCHO + margen,
+    top: ALTO + margen,
+    bottom: -margen,
+  });
+
+  log(`dibujo armado a mano: ${SEGMENTOS} segmentos, rectangulo de ${ANCHO} x ${ALTO} m`);
+
+  const exportador = components.get(OBC.DxfManager).exporter;
+  const entrada = [{ drawing, viewports: [{ viewport }] }];
+
+  const casos = [
+    { nombre: "sin papel (unidades del mundo)", papel: undefined, esperado: [ANCHO, ALTO] },
+    {
+      nombre: "en A3 y milimetros",
+      papel: { widthMm: 420, heightMm: 297, margin: 10 },
+      esperado: null,
+    },
+  ] as const;
+
+  for (const caso of casos) {
+    log(`\n${caso.nombre}:`);
+    const texto =
+      caso.papel === undefined
+        ? exportador.export(entrada)
+        : exportador.export(entrada, caso.papel);
+    if (typeof texto !== "string" || texto.length === 0) {
+      log("  **el exportador no devolvio texto**");
+      continue;
+    }
+    log(`  ${Math.round(texto.length / 1024)} KB`);
+
+    const leido = parseDxf(texto);
+    const omitidas = Object.entries(leido.skipped);
+    log(
+      `  nuestro lector: ${leido.polylines.length} trazos, ${leido.texts.length} textos, ` +
+        `sin dibujar: ${omitidas.length === 0 ? "nada" : omitidas.map(([t, n]) => `${t}=${n}`).join(" ")}`,
+    );
+    if (leido.polylines.length === 0) {
+      log("  **EL DXF ESTA VACIO** — el exportador escribio algo que no lleva geometria");
+      continue;
+    }
+
+    if (leido.bounds === null) {
+      log("  **sin extension legible**");
+      continue;
+    }
+    const ancho = leido.bounds.maxX - leido.bounds.minX;
+    const alto = leido.bounds.maxY - leido.bounds.minY;
+    log(`  extension: ${ancho.toFixed(2)} x ${alto.toFixed(2)}`);
+
+    if (caso.esperado !== null) {
+      const [ex, ey] = caso.esperado;
+      // Con el margen del viewport, la extension puede ser algo mayor que el rectangulo; lo que no
+      // puede es ser otra magnitud.
+      const bien = ancho >= ex - 0.01 && ancho <= ex + 2 && alto >= ey - 0.01 && alto <= ey + 2;
+      log(`  esperado ~${ex} x ${ey} — ${bien ? "cuadra (bien)" : "NO CUADRA (mal)"}`);
+    } else {
+      const cabe = ancho <= 420 && alto <= 297;
+      // Y en milimetros: 10 m son 10.000 mm, asi que el dibujo tiene que estar **escalado al
+      // papel**, no puesto tal cual. Si saliera con 10.000 de ancho, no cabria.
+      log(`  cabe en el A3 (420 x 297 mm) — ${cabe ? "si (bien)" : "NO (mal)"}`);
+      log(`  y ocupa el papel: ${((ancho / 420) * 100).toFixed(0)} % del ancho`);
+    }
+  }
+
+  log(
+    "\nveredicto: esto comprueba **`F7.4`, el exportador**, no `F7.1`. La proyeccion de aristas\n" +
+      "  necesita un navegador que componga fotogramas y tiene su propio modo, `?modo=planos`.",
+  );
 }
 
 /**

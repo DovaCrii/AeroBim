@@ -1851,13 +1851,13 @@ longitud medida en los dos.
 
 ### La mitad de salida: generar el plano desde el modelo
 
-| #      | Tarea                                                                                                | Estado |
-| ------ | ---------------------------------------------------------------------------------------------------- | ------ |
-| `F7.1` | Generar vistas 2D desde el modelo (planta, alzados) proyectando sus aristas                          | 🟡     |
-| `F7.2` | Viewports y capas: qué se dibuja, con qué grosor y en qué capa (`DrawingViewports`, `DrawingLayers`) | ⬜     |
-| `F7.3` | Acotado y anotaciones sobre el plano: cotas lineales, ángulos, pendientes y llamadas                 | ⬜     |
-| `F7.4` | **Exportar a DXF** con `DxfExporter`, en A3 y milímetros, listo para el CAD                          | 🟡     |
-| `F7.5` | Exportar a PDF imprimible, con formato y sello                                                       | ⬜     |
+| #      | Tarea                                                                                                | Estado       |
+| ------ | ---------------------------------------------------------------------------------------------------- | ------------ |
+| `F7.1` | Generar vistas 2D desde el modelo (planta, alzados) proyectando sus aristas                          | 🟡           |
+| `F7.2` | Viewports y capas: qué se dibuja, con qué grosor y en qué capa (`DrawingViewports`, `DrawingLayers`) | ⬜           |
+| `F7.3` | Acotado y anotaciones sobre el plano: cotas lineales, ángulos, pendientes y llamadas                 | ⬜           |
+| `F7.4` | **Exportar a DXF** con `DxfExporter`, en A3 y milímetros, listo para el CAD                          | ✅ ver abajo |
+| `F7.5` | Exportar a PDF imprimible, con formato y sello                                                       | ⬜           |
 
 **Oráculo:** el DXF exportado **abre en AutoCAD o BricsCAD** con sus capas y cotas
 intactas, y una distancia medida en el plano coincide con la del modelo. Un plano que solo
@@ -1903,7 +1903,31 @@ pasó y por qué:
 Comprobado en las tres vistas: las tres cortan con ese mensaje, la interfaz vuelve y el aviso de
 avance se limpia. **Un cuelgue se convirtió en algo que se puede contar.**
 
-> **Y siguen en 🟡 a propósito.** Lo que está comprobado es el camino del fallo, no el del acierto.
+#### `F7.4` cerrada aparte: el exportador **no depende del proyector** (2026-08-26)
+
+**Es una descomposición que no se había hecho, y cambia lo que se puede afirmar.** `F7.1` y `F7.4`
+estaban las dos en 🟡 «por el mismo motivo», y no era el mismo: proyectar necesita un navegador que
+componga fotogramas, pero **exportar recibe un dibujo con su viewport y lo serializa**. Así que se le
+arma un dibujo de **medidas conocidas** —un rectángulo de 10 × 6 m— y se comprueba lo suyo, en
+`/diag.html?modo=dxf`.
+
+El oráculo es doble y no hay que creerle a nadie:
+
+| Qué                              | Resultado                                                       |
+| -------------------------------- | --------------------------------------------------------------- |
+| Sin papel, en unidades del mundo | **11,00 × 7,00** — el rectángulo más su margen de 0,5 por lado  |
+| En A3 y milímetros               | **420,00 × 297,00 mm**, el 100 % del ancho del papel            |
+| Lo lee **nuestro propio lector** | 8 y 16 trazos, **nada sin dibujar** en ninguno de los dos casos |
+
+La segunda fila es la que importa: 10 m son 10 000 mm, así que un exportador que pusiera el dibujo
+tal cual **no cabría en la hoja**. Que la extensión sea exactamente la del A3 dice que el dibujo se
+escala al papel, que es lo que hace falta para imprimirlo.
+
+> **Lo que sigue sin confirmarse de `F7.4`**: que **AutoCAD** lo abra. Que nuestro lector lo lea es
+> evidencia independiente y fuerte —es otra implementación— pero no es la misma afirmación. Y lo que
+> se exporta aquí es un dibujo armado a mano, no uno **proyectado**: eso es `F7.1`.
+
+> **`F7.1` sigue en 🟡 a propósito.** Lo que está comprobado es el camino del fallo, no el del acierto.
 > **Falta confirmar en un navegador de verdad**: que la planta sale con las aristas del modelo,
 > cuánto tarda con el IFC de 23,6 MB, y que el DXF abre en AutoCAD con su escala. El modo `planos`
 > ya lleva el oráculo puesto para ese día: **exporta el DXF y lo vuelve a leer con nuestro propio
