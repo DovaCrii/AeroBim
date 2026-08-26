@@ -33,14 +33,17 @@ dron y quieren contrastar lo construido contra lo modelado.
 
 ## Qué resuelve
 
-| Capacidad           | Qué hace                                                                              |
-| ------------------- | ------------------------------------------------------------------------------------- |
-| **Visor IFC**       | Abre modelos IFC 2x3/4/4x3 en el navegador, con árbol espacial, propiedades y psets   |
-| **Planos 2D**       | Carga el DXF del proyecto bajo el modelo, con sus capas y colores, y deja compararlos |
-| **Nubes de puntos** | Carga el levantamiento (LAS/LAZ) en la misma escena que el modelo                     |
-| **Coordinación**    | Temas de observación con viewpoints, importables y exportables como BCF 2.1/3.0       |
-| **Interferencias**  | Detección de clashes entre grupos de elementos, con resultado navegable               |
-| **Geo + BIM**       | El modelo georreferenciado sobre la ortofoto y el terreno del propio vuelo            |
+| Capacidad              | Qué hace                                                                              |
+| ---------------------- | ------------------------------------------------------------------------------------- |
+| **Visor IFC**          | Abre modelos IFC 2x3/4/4x3 en el navegador, con árbol espacial, propiedades y psets   |
+| **Planos 2D**          | Carga el DXF del proyecto bajo el modelo, con sus capas y colores, y deja compararlos |
+| **Portal**             | Credenciales, roles y módulos por etapa de trabajo: cada uno abre lo que le toca      |
+| **Control documental** | Entregables, revisiones con código ISO 19650, transmittals y avance físico            |
+| **Seguimiento**        | Observaciones y actividades con responsable y vencimiento, y aviso por correo         |
+| **Nubes de puntos**    | Carga el levantamiento (LAS/LAZ) en la misma escena que el modelo                     |
+| **Coordinación**       | Temas de observación con viewpoints, importables y exportables como BCF 2.1/3.0       |
+| **Interferencias**     | Detección de clashes entre grupos de elementos, con resultado navegable               |
+| **Geo + BIM**          | El modelo georreferenciado sobre la ortofoto y el terreno del propio vuelo            |
 
 Ninguna de esas piezas se construye de cero: cada una tiene una base
 open-source verificada en [docs/REFERENCES.md](docs/REFERENCES.md).
@@ -80,9 +83,20 @@ espacio. Medido sobre los archivos de la organización, no sobre ejemplos:
 | **Clic en un trazo del plano** → capa, plano de origen y largo del tramo             | `0-MUROS`, 0,71 m — el largo exacto del segmento              |
 | Avisa cuando el archivo trae elementos que no se cargaron                            | Delató 433 `IfcProxy` en un modelo real                       |
 
-**182 pruebas** en `packages/bim-core`; build, lint y formato en verde. La fidelidad del plano se
-comprueba sin necesitar un archivo de cliente:
-`/diag.html?modo=plano&dxf=/samples/fidelidad-2d.dxf`.
+**Y desde el 2026-08-26 hay una puerta y un registro** (`services/api`, Django 6): portal de
+ingreso con roles, control documental con el vocabulario de ISO 19650, y aviso por correo a
+quien le toca. Comprobado con el servidor corriendo: un `Mandante` ve el registro y **no** la
+administración —pedir esa URL a mano devuelve 403—, un ejecutable renombrado a `.pdf` se
+rechaza, y el nombre del archivo del cliente nunca llega al disco.
+
+```powershell
+pwsh services/api/scripts/setup.ps1   # dependencias, migraciones y roles
+pwsh services/api/scripts/verify.ps1  # el gate: check, pytest, ruff, bandit, pip-audit
+```
+
+**182 pruebas** en `packages/bim-core` y **122** en `services/api` (92 % de cobertura); build,
+lint y formato en verde. La fidelidad del plano se comprueba sin necesitar un archivo de
+cliente: `/diag.html?modo=plano&dxf=/samples/fidelidad-2d.dxf`.
 [MASTER_PLAN.md](MASTER_PLAN.md) es la fuente de verdad de lo que sigue, y
 [docs/UX.md](docs/UX.md) explica cómo está repartida la pantalla y con qué regla
 crece.
