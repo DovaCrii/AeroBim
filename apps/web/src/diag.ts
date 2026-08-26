@@ -355,6 +355,61 @@ export async function fantasma(container: HTMLElement, ifcUrl: string, log: Log)
 }
 
 /**
+ * Si las sombras están puestas de verdad, para `F1.16`.
+ *
+ * El usuario lo dijo así: **"no está renderizando con mejor información de sombras o realista"**.
+ * Y la maquinaria está montada —`ShadowedScene`, `setup({shadows})`, postproducción
+ * `COLOR_PEN_SHADOWS`—, o sea que el código dice que sí. Este modo pregunta pieza por pieza, que
+ * es la única forma de separar "está apagado" de "está encendido y no llega a las mallas".
+ *
+ * Uso: `/diag.html?modo=sombras&ifc=/samples/Piso%205.ifc`
+ */
+export async function sombras(container: HTMLElement, ifcUrl: string, log: Log): Promise<void> {
+  const viewer = await BimViewer.create(container);
+  const bytes = new Uint8Array(await (await fetch(ifcUrl)).arrayBuffer());
+  await viewer.loadIfc(bytes, ifcUrl);
+
+  const informe = (etiqueta: string) => {
+    const a = viewer.shadowAudit;
+    log(`\n${etiqueta}:`);
+    log(`  mapa de sombras del renderizador: ${a.shadowMap ? "encendido" : "APAGADO"}`);
+    log(`  postproduccion: ${a.postproduction ? "encendida" : "apagada"}`);
+    log(`  lado mayor del modelo: ${a.modelSpanM.toFixed(1)} m`);
+    log(`  luces: ${a.lights}, de ellas proyectando: ${a.lightsCasting}`);
+    for (const luz of a.lightsDetail) log(`    ${luz}`);
+    log(`  mallas dibujadas: ${a.meshes}`);
+    log(`    proyectan sombra: ${a.casting}`);
+    log(`    reciben sombra:   ${a.receiving}`);
+    return a;
+  };
+
+  informe("recien cargado");
+
+  // Se mueve la cámara para que Fragments traiga otro nivel de detalle: si las banderas se
+  // ponen una sola vez al cargar, la geometría que entra después llega sin ellas.
+  const controls = viewer.camera.controls;
+  await controls.rotateTo(Math.PI / 5, Math.PI / 3, false);
+  await controls.dolly(8, false);
+  controls.update(1 / 60);
+  (controls as unknown as { dispatchEvent: (e: { type: string }) => void }).dispatchEvent({
+    type: "rest",
+  });
+  await new Promise((listo) => setTimeout(listo, 2000));
+  const despues = informe("tras mover la camara");
+
+  log("");
+  if (!despues.shadowMap) log("veredicto: el renderizador no tiene sombras encendidas.");
+  else if (despues.lightsCasting === 0) log("veredicto: ninguna luz proyecta sombra.");
+  else if (despues.casting === 0)
+    log(
+      "veredicto: todo esta encendido y **ninguna malla proyecta sombra** — las banderas no llegan a la geometria.",
+    );
+  else if (despues.casting < despues.meshes)
+    log(`veredicto: solo ${despues.casting} de ${despues.meshes} mallas proyectan sombra.`);
+  else log("veredicto: las sombras estan puestas en todo lo que se dibuja.");
+}
+
+/**
  * Qué devuelve un clic sobre el modelo.
  *
  * Lanza varios rayos en una rejilla sobre el lienzo, porque el primer punto que se elija a

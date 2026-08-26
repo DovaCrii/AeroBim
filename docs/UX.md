@@ -146,10 +146,11 @@ trabajo entero —coordinar no es medir—, y nunca para un solo botón.
   plano real van arriba a la izquierda). Queda pendiente decidir si además se pueden apagar por
   separado de su capa.
 - **Las cinco cosas que el usuario pidió el 2026-08-19** y que ahora están en `MASTER_PLAN.md`
-  como `F1.12` a `F1.16`. Quedan tres: la **preselección al pasar el cursor** sin clicar —«poco
-  práctico», y se cruza con el picking del plano—, el **panel de abajo que no se entiende** (la
-  referencia declarada arriba, AutoCAD y Revit, es justo la que hay que mirar) y las **sombras del
-  renderizado**. La **medición de distancia** y el **modo fantasma** están cerradas.
+  como `F1.12` a `F1.16`. Quedan dos, y las dos esperando que el usuario diga qué vio: la
+  **preselección al pasar el cursor** sin clicar —el único candidato en el código es el marcador de
+  ajuste del medidor, del mismo violeta que la selección— y el **panel de abajo que no se
+  entiende**, cuyo ticket pide palabra por palabra lo mismo que `F1.8`, que está cerrada. La
+  **medición de distancia**, el **modo fantasma** y las **sombras** están cerradas.
 - **La vista fantasma conserva el color de cada elemento** (2026-08-26). Antes blanqueaba el modelo
   entero, porque la pintaba el resaltado de la librería; ahora se pinta por cuenta propia al 30 %
   de opacidad sobre el color que ya tenía cada cosa. Mirando detrás de un muro se sigue

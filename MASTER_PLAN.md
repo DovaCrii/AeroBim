@@ -258,10 +258,10 @@ software de escritorio ni pedir una licencia.
 | `F1.10` | **Geometría que no se carga** — el conversor dejaba fuera `IfcProxy`: 433 elementos de 1.274                                          | ✅ ver abajo |
 | `F1.11` | **El picker caía desviado** el ancho del panel izquierdo: se seleccionaba otro elemento                                               | ✅ ver abajo |
 | `F1.12` | **Preselección al pasar el cursor** — se selecciona sin clicar y el usuario lo llama «poco práctico»                                  | ⬜ ver abajo |
-| `F1.13` | **El panel de abajo no se entiende** — reubicar y agrupar las herramientas, mirando cómo lo resuelven Revit y AutoCAD                 | ⬜ ver abajo |
+| `F1.13` | **El panel de abajo no se entiende** — reubicar y agrupar las herramientas, mirando cómo lo resuelven Revit y AutoCAD                 | ❓ ver abajo |
 | `F1.14` | **La medición de distancia no funciona** en uso real, con el modelo del usuario                                                       | ✅ ver abajo |
 | `F1.15` | **El modo fantasma se cae al mover** la cámara                                                                                        | ✅ ver abajo |
-| `F1.16` | **El renderizado no da profundidad** — sin sombras creíbles, el modelo se lee peor de lo que debería                                  | ⬜ ver abajo |
+| `F1.16` | **El renderizado no da profundidad** — sin sombras creíbles, el modelo se lee peor de lo que debería                                  | ✅ ver abajo |
 
 ### Lo que el usuario pidió el 2026-08-19 y no estaba en ningún tablero
 
@@ -380,15 +380,79 @@ es lo que hacía la librería: mirando detrás de un muro se sigue distinguiendo
 > seleccionado se leía como «el fantasma se tragó la selección» y no era verdad. Queda dicho en
 > `diag.ts`: si la selección dentro del fantasma da problemas, hay que mirar la pantalla.
 
-- **`F1.13`** «abajo no se entienden bien, debe ser un panel mejor implementado; revisar cómo la
-  competencia lo utiliza». La referencia declarada en `docs/UX.md` ya es AutoCAD y Revit.
 - **`F1.14`** «las opciones de medida de distancia no está funcionando». `F1.4` está cerrada con
   33 pruebas de geometría, así que **es la interacción, no la aritmética** — y encaja con lo que
   `HANDOFF.md` ya decía de la perpendicular: en el navegador de pruebas ningún rayo encuentra
   geometría después de un par de refrescos.
-- **`F1.16`** «no está renderizando con mejor información de sombras o realista». Ojo con la
-  interacción con el plano 2D: la postproducción **se apaga en Modo 2D** a propósito (`F7.16`),
-  porque sobre un dibujo de líneas lava los colores.
+
+### `F1.16` cerrada: las sombras estaban montadas y apagadas (2026-08-26)
+
+**Es el mismo caso que `F7.13`**: el código dice sombras y la pantalla dice que no. La escena se
+crea con `ShadowedScene`, con `setup({shadows: {cascade: 1, resolution: 2048}})` y con la
+postproducción en `COLOR_PEN_SHADOWS`, así que leyendo el código estaba hecho. Medido con
+`diag.html?modo=sombras` sobre `Piso 5.ifc`, **había cuatro cosas mal a la vez**:
+
+| Qué                                      | Antes                                      | Ahora              |
+| ---------------------------------------- | ------------------------------------------ | ------------------ |
+| Mapa de sombras del renderizador         | **apagado**                                | encendido, suave   |
+| Recuadro de sombra de la luz direccional | **10 × 10 m**, con el modelo midiendo 40,5 | 65 × 65 m          |
+| Mallas que proyectan sombra              | **0 de 8**, y **0 de 15** al mover         | 8 de 8, y 15 de 15 |
+| Mallas que reciben sombra                | **0**                                      | todas              |
+| Luz ambiental                            | 1,50                                       | 0,45               |
+| Luz direccional                          | 1,50                                       | 2,20               |
+
+Las cuatro tienen su explicación y ninguna se habría encontrado leyendo:
+
+1. **`setup({shadows})` crea la luz que proyecta y deja el mapa de sombras del renderizador
+   apagado.** Sin él no se calcula ninguna sombra, haga lo que haga el resto.
+2. **La cámara de sombra de una luz direccional es ortográfica y trae un recuadro pequeño de
+   fábrica.** Con el edificio fuera de él no se dibuja _ni una_ sombra aunque todo lo demás esté
+   bien. Ahora se ajusta al modelo con holgura —la sombra cae **fuera** de la planta, así que un
+   recuadro justo la corta— y se rehace por cada modelo que entra.
+3. **Three.js exige `castShadow` y `receiveShadow` por objeto**, y las mallas del modelo las crea
+   el worker de Fragments _después_ del `setup`. Se ponen al cargar **y en cada aviso de
+   `onViewUpdated`**, que es el mismo enganche que arregló el modo fantasma: sin eso, media planta
+   deja de proyectar al girar la cámara.
+4. **La luz ambiental venía a 1,50, igual que la direccional.** Un término ambiente tan fuerte
+   iguala todas las caras y el modelo se ve plano — y esa es la mitad de «no da profundidad» que no
+   tiene nada que ver con las sombras proyectadas. Baja a 0,45 y la direccional sube a 2,20 para
+   que el total no oscurezca.
+
+Y una más, que también habría dejado el modelo sin sombras y es difícil de ver: **la luz apunta a
+donde diga su `target`**, y el de fábrica está en el origen. Un IFC de obra viene en coordenadas de
+proyecto, a cientos de metros del origen: la luz lo iluminaba de canto. Ahora el `target` va al
+centro del modelo.
+
+Comprobado también con el IFC real de 23,6 MB: 71,5 m de lado, recuadro de 114 × 114 m, y **87 de
+87** mallas proyectando y recibiendo. Y sin romper lo de antes: el modo fantasma sigue al 100 % y el
+informe de fidelidad del plano no cambia una cifra.
+
+> **Lo que no se puede afirmar desde aquí.** El panel del navegador de este entorno **no compone
+> fotogramas**, así que no se puede mirar el resultado. Lo que se afirma es que **las cinco
+> condiciones que Three.js exige están puestas y medidas**, donde antes cuatro no lo estaban. Que
+> la sombra guste —dirección de la luz, dureza del borde— es una decisión de aspecto que pide una
+> pantalla. La postproducción sigue apagándose en Modo 2D a propósito (`F7.16`): sobre un dibujo de
+> líneas lava los colores.
+
+### `F1.13`: la premisa está vencida, y hay que preguntar (2026-08-26)
+
+**Buscado, y lo que el ticket describe ya no existe así.** Dos hallazgos:
+
+- **`F1.13` pide lo mismo que `F1.8`, palabra por palabra** —«reubicar y agrupar las
+  herramientas»—, y `F1.8` está cerrada. El comentario de `components/Ribbon.tsx` nombra el defecto
+  que se arregló y coincide con la queja: _«catorce botones en fila, dos llamados "Planta", sin
+  nombres»_. Hoy cada herramienta lleva su nombre debajo del icono y cada bloque el nombre de su
+  grupo, que es la convención de Revit y BricsCAD — la referencia que el propio ticket pide mirar.
+- **Y el pie de hoy no tiene herramientas**: `components/StatusBar.tsx` son 27 px con el modo
+  activo, qué hace el próximo clic, el resultado de la medición con **cada magnitud por su nombre**
+  y el estado de visibilidad. Los dos únicos botones son las dos salidas del aislamiento, y están
+  ahí por una razón escrita: aislar se hace desde la ficha o desde el árbol, y el camino de vuelta
+  tiene que verse desde cualquier pestaña.
+
+Las dos cosas pasaron **el mismo día** que la nota (2026-08-19), así que lo más probable es que el
+ticket describa la pantalla de antes del rediseño. **Rediseñar el pie a ciegas sería inventar un
+problema**, y por eso queda en `❓`: falta que el usuario diga si lo que no se entiende sigue ahí y
+qué es exactamente.
 
 **Oráculo:** el mismo modelo abierto en **Bonsai/BlenderBIM** (o cualquier visor
 IFC de escritorio). El árbol, los psets y las mediciones deben coincidir — un

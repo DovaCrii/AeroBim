@@ -373,6 +373,33 @@ export interface PickedItem {
   readonly groups: readonly PropertyGroup[];
 }
 
+/** Lo que dice el auditor de sombras. Ver {@link BimViewer.shadowAudit}. */
+export interface ShadowAudit {
+  /** `true` si el renderizador tiene el mapa de sombras encendido. */
+  readonly shadowMap: boolean;
+  /** Luces en la escena, y cuántas de ellas proyectan sombra. */
+  readonly lights: number;
+  readonly lightsCasting: number;
+  /** Mallas del modelo que están dibujadas. */
+  readonly meshes: number;
+  /** De ésas, cuántas proyectan sombra y cuántas la reciben. */
+  readonly casting: number;
+  readonly receiving: number;
+  /** Si la postproducción —oclusión ambiental y aristas— está encendida. */
+  readonly postproduction: boolean;
+  /**
+   * Qué luces hay y qué alcanza la sombra de cada una, frente a lo que mide el modelo.
+   *
+   * **Es el dato que separa "no hay sombras" de "hay sombras y caen fuera".** La cámara de
+   * sombra de una luz direccional trae un recuadro pequeño por defecto; con un edificio de 27 m
+   * de lado, el modelo queda entero fuera y no se dibuja ni una sombra aunque todo lo demás
+   * esté bien puesto.
+   */
+  readonly lightsDetail: readonly string[];
+  /** El lado mayor del modelo, en metros. */
+  readonly modelSpanM: number;
+}
+
 /** Lo que dice el auditor de pintura. Ver {@link BimViewer.paintAudit}. */
 export interface PaintAudit {
   /** Materiales que llevan puesta la pintura de la vista fantasma. */
@@ -443,6 +470,52 @@ const TOLERANCIA_OPACIDAD = 0.01;
  * Se recarga en cada gesto del usuario, así que el techo es por gesto y no para toda la sesión.
  */
 const REPINTADOS_POR_GESTO = 4;
+
+/**
+ * Cuánta luz ambiental deja el sombreado legible.
+ *
+ * **`ShadowedScene.setup()` la deja en 1,50**, y con la direccional también en 1,50 el término
+ * ambiente domina: todas las caras reciben casi lo mismo y el modelo se ve plano. Es la mitad de
+ * "no da profundidad" que no tiene nada que ver con las sombras proyectadas — un cubo sin sombra
+ * pero bien sombreado se lee como un cubo; con ambiente al máximo se lee como una silueta.
+ *
+ * 0,45 deja los rincones oscuros sin que las caras a contraluz se vayan a negro.
+ */
+const LUZ_AMBIENTE = 0.45;
+
+/** La direccional sube para compensar el ambiente que baja: el modelo no se oscurece en total. */
+const LUZ_DIRECCIONAL = 2.2;
+
+/**
+ * Cuánto más grande que el modelo se hace el recuadro de sombra.
+ *
+ * La sombra de un edificio cae **fuera** de su planta —es una proyección oblicua—, así que un
+ * recuadro del tamaño justo la corta por la mitad.
+ */
+const HOLGURA_DE_SOMBRA = 1.6;
+
+/**
+ * Enciende el mapa de sombras y equilibra las luces que dejó `setup()`.
+ *
+ * Se hace una vez al crear el mundo. Lo que depende del modelo —el alcance de la sombra— se
+ * ajusta cada vez que entra uno: ver {@link BimViewer.ajustarLuces}.
+ */
+function encenderSombras(world: World): void {
+  const renderizador = world.renderer?.three;
+  if (renderizador !== undefined) {
+    renderizador.shadowMap.enabled = true;
+    // Bordes suaves. Con el mapa duro por defecto, la sombra de una viga sale como una escalera
+    // de píxeles y se lee como un defecto de dibujo, no como una sombra.
+    renderizador.shadowMap.type = THREE.PCFSoftShadowMap;
+  }
+
+  world.scene.three.traverse((objeto) => {
+    const luz = objeto as THREE.Light;
+    if (!luz.isLight) return;
+    if ((luz as THREE.AmbientLight).isAmbientLight) luz.intensity = LUZ_AMBIENTE;
+    else if (luz.castShadow) luz.intensity = LUZ_DIRECCIONAL;
+  });
+}
 
 function esFantasma(material: THREE.Material): boolean {
   return material.transparent && Math.abs(material.opacity - GHOST_OPACITY) < TOLERANCIA_OPACIDAD;
@@ -1385,6 +1458,11 @@ export class BimViewer {
 
     components.init();
 
+    // **Y ahora las sombras de verdad.** `setup({shadows})` crea la luz que las proyecta y deja
+    // el resto sin hacer: medido con `diag.html?modo=sombras`, el mapa de sombras del
+    // renderizador venía **apagado**, así que no se calculaba ninguna. Ver {@link ajustarLuces}.
+    encenderSombras(world);
+
     // Oclusión ambiental y aristas. `COLOR_PEN_SHADOWS` es color + líneas + sombras, que es
     // la combinación con la que un modelo se lee: las aristas marcan dónde acaba cada
     // elemento y la oclusión da profundidad a los rincones.
@@ -1459,7 +1537,12 @@ export class BimViewer {
       // descansar la cámara el modelo se quedaba al 62 % pintado y ahí se quedaba, porque las
       // mallas del nivel de detalle nuevo llegan *después* del repintado, no antes. Este evento es
       // el que avisa cuando llegaron. Ver {@link repintarGeometriaNueva}.
-      model.onViewUpdated.add(() => void this.repintarGeometriaNueva());
+      model.onViewUpdated.add(() => {
+        // Las banderas de sombra van por objeto y la geometría nueva llega sin ellas, así que
+        // esto no es opcional: sin la línea, media planta deja de proyectar al girar la cámara.
+        this.ajustarLuces();
+        void this.repintarGeometriaNueva();
+      });
     });
   }
 
@@ -1837,6 +1920,10 @@ export class BimViewer {
 
     onStage("drawing");
     await this.fragments.core.update(true);
+
+    // **Las sombras se ajustan en cuanto hay geometría**, que es el primer momento en que se
+    // conoce el tamaño del modelo: el alcance de la sombra depende de él. Ver {@link ajustarLuces}.
+    this.ajustarLuces();
 
     onStage("framing");
     const sizeM = await this.fitTo(model);
@@ -2399,6 +2486,139 @@ export class BimViewer {
    * Y es además la **condición de parada** del repintado automático: ver
    * {@link repintarGeometriaNueva}.
    */
+  /**
+   * Pone las sombras al alcance del modelo, y las banderas en las mallas que las necesitan.
+   *
+   * **Son las dos mitades que `setup({shadows})` no hace**, y las dos salieron de medir con
+   * `diag.html?modo=sombras` sobre `Piso 5.ifc`:
+   *
+   * 1. **El recuadro de sombra venía de 10 × 10 m para un modelo de 40,5 m.** La cámara de
+   *    sombra de una luz direccional es ortográfica y trae un recuadro pequeño por defecto: con
+   *    el edificio fuera de él no se dibuja **ni una** sombra, y todo lo demás puede estar
+   *    perfecto. Se ajusta al modelo con holgura, porque la sombra cae fuera de la planta.
+   * 2. **Ninguna malla tenía `castShadow` ni `receiveShadow`.** Three.js las exige **por
+   *    objeto**, y las mallas del modelo las crea el worker de Fragments *después* del `setup`.
+   *
+   * Se llama al cargar un modelo **y cada vez que llega geometría nueva**, por lo mismo que el
+   * repintado del fantasma: mover la cámara cambia el nivel de detalle y lo que entra viene sin
+   * banderas. Ver {@link repintarGeometriaNueva}.
+   */
+  private ajustarLuces(): void {
+    const caja = new THREE.Box3();
+    for (const [, model] of this.fragments.list) {
+      model.object.traverse((objeto) => {
+        const malla = objeto as THREE.Mesh;
+        if (!malla.isMesh) return;
+        // El suelo de un piso recibe la sombra de sus muros: todo proyecta y todo recibe.
+        malla.castShadow = true;
+        malla.receiveShadow = true;
+      });
+      caja.expandByObject(model.object);
+    }
+
+    if (caja.isEmpty()) return;
+
+    const centro = caja.getCenter(new THREE.Vector3());
+    const lado = caja.getSize(new THREE.Vector3());
+    const alcance = (Math.max(lado.x, lado.y, lado.z) * HOLGURA_DE_SOMBRA) / 2;
+
+    this.world.scene.three.traverse((objeto) => {
+      const luz = objeto as THREE.DirectionalLight;
+      if (!luz.isLight || !luz.castShadow) return;
+
+      const camara = luz.shadow.camera as THREE.OrthographicCamera;
+      if (camara.isOrthographicCamera !== true) return;
+      camara.left = -alcance;
+      camara.right = alcance;
+      camara.top = alcance;
+      camara.bottom = -alcance;
+      camara.near = 0.5;
+      camara.far = alcance * 6;
+      camara.updateProjectionMatrix();
+
+      // **Y la luz tiene que apuntar al modelo.** Su dirección va del objeto a su `target`, y el
+      // de fábrica está en el origen: con un modelo en coordenadas de proyecto —a cientos de
+      // metros del origen, que es lo normal en un IFC de obra— la luz lo ilumina de canto.
+      luz.target.position.copy(centro);
+      luz.target.updateMatrixWorld();
+      luz.position.copy(centro).add(new THREE.Vector3(alcance, alcance * 2, alcance));
+      luz.updateMatrixWorld();
+      // Con el mapa de sombras grande, el sesgo de fábrica deja franjas: el propio muro se
+      // sombrea a sí mismo en bandas. Se escala con el alcance porque es un error en unidades
+      // del mundo.
+      luz.shadow.bias = -0.00005 * Math.max(1, alcance / 20);
+      luz.shadow.needsUpdate = true;
+    });
+  }
+
+  /**
+   * Si las sombras están puestas de verdad, pieza por pieza.
+   *
+   * **Es el oráculo de `F1.16`** —"no está renderizando con mejor información de sombras"—. La
+   * maquinaria está montada desde el principio: `ShadowedScene`, `setup({shadows})` y la
+   * postproducción `COLOR_PEN_SHADOWS`. Eso hace que el tablero diga que sí y la pantalla diga
+   * que no, que es la clase de fallo que ya se pagó con `F7.13`.
+   *
+   * Lo que hay que poder preguntar es lo que Three.js exige **por objeto**: una malla no
+   * proyecta ni recibe sombra hasta que alguien le pone `castShadow` y `receiveShadow`, y las
+   * mallas del modelo las crea el worker de Fragments *después* del `setup` de la escena.
+   */
+  get shadowAudit(): ShadowAudit {
+    this.assertAlive();
+
+    let lights = 0;
+    let lightsCasting = 0;
+    const lightsDetail: string[] = [];
+    this.world.scene.three.traverse((objeto) => {
+      const luz = objeto as THREE.Light;
+      if (!luz.isLight) return;
+      lights += 1;
+      if (luz.castShadow) lightsCasting += 1;
+
+      // `Light` no declara `shadow`: lo traen sus subclases que proyectan. Se lee así porque la
+      // pregunta es justamente qué subclase hay, y no se sabe hasta mirar.
+      const camara = (luz as THREE.DirectionalLight).shadow?.camera as
+        THREE.OrthographicCamera | undefined;
+      const recuadro =
+        camara?.isOrthographicCamera === true
+          ? `recuadro ${(camara.right - camara.left).toFixed(0)} x ${(camara.top - camara.bottom).toFixed(0)} m, ` +
+            `profundidad ${camara.near.toFixed(1)}–${camara.far.toFixed(0)}`
+          : "sin camara ortografica de sombra";
+      lightsDetail.push(
+        `${luz.type} intensidad=${luz.intensity.toFixed(2)} proyecta=${luz.castShadow} · ${recuadro}`,
+      );
+    });
+
+    const caja = new THREE.Box3();
+    for (const [, model] of this.fragments.list) caja.expandByObject(model.object);
+    const lado = caja.isEmpty() ? new THREE.Vector3() : caja.getSize(new THREE.Vector3());
+
+    let meshes = 0;
+    let casting = 0;
+    let receiving = 0;
+    for (const [, model] of this.fragments.list) {
+      model.object.traverseVisible((objeto) => {
+        const malla = objeto as THREE.Mesh;
+        if (!malla.isMesh) return;
+        meshes += 1;
+        if (malla.castShadow) casting += 1;
+        if (malla.receiveShadow) receiving += 1;
+      });
+    }
+
+    return {
+      shadowMap: this.world.renderer?.three.shadowMap.enabled ?? false,
+      lights,
+      lightsCasting,
+      meshes,
+      casting,
+      receiving,
+      postproduction: this.postproduction,
+      lightsDetail,
+      modelSpanM: Math.max(lado.x, lado.y, lado.z),
+    };
+  }
+
   get paintAudit(): PaintAudit {
     this.assertAlive();
 

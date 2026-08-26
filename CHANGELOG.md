@@ -5,6 +5,40 @@ Este proyecto sigue [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Corregido — Las sombras estaban montadas y apagadas (`F1.16`, 2026-08-26)
+
+Lo reportó el usuario: «no está renderizando con mejor información de sombras o realista». Y
+leyendo el código estaba hecho —`ShadowedScene`, `setup({shadows})`, postproducción
+`COLOR_PEN_SHADOWS`—, que es el mismo caso que `F7.13`: el código dice una cosa y la pantalla otra.
+Medido con el modo `sombras` nuevo de `diag.html`, había **cuatro** cosas mal a la vez, más una
+quinta que también las habría anulado:
+
+| Qué                                      | Antes                                      | Ahora              |
+| ---------------------------------------- | ------------------------------------------ | ------------------ |
+| Mapa de sombras del renderizador         | **apagado**                                | encendido, suave   |
+| Recuadro de sombra de la luz direccional | **10 × 10 m**, con el modelo midiendo 40,5 | 65 × 65 m          |
+| Mallas que proyectan sombra              | **0 de 8**, y **0 de 15** al mover         | 8 de 8, y 15 de 15 |
+| Mallas que reciben sombra                | **0**                                      | todas              |
+| Luz ambiental / direccional              | 1,50 / 1,50                                | 0,45 / 2,20        |
+
+- `setup({shadows})` crea la luz que proyecta y **deja el mapa de sombras del renderizador
+  apagado**: sin él no se calcula ninguna sombra, haga lo que haga el resto.
+- La cámara de sombra de una luz direccional es ortográfica y trae **un recuadro pequeño de
+  fábrica**; con el edificio fuera, no se dibuja ni una sombra aunque todo lo demás esté bien.
+- Three.js exige `castShadow` y `receiveShadow` **por objeto**, y las mallas del modelo las crea el
+  worker de Fragments _después_ del `setup`. Se ponen al cargar y en cada `onViewUpdated`, el mismo
+  enganche que arregló el modo fantasma.
+- La **luz ambiental venía tan fuerte como la direccional**, y eso iguala todas las caras: es la
+  mitad de «no da profundidad» que no tiene nada que ver con las sombras proyectadas.
+- Y la quinta: **la luz apuntaba al origen**, no al modelo. Un IFC de obra viene en coordenadas de
+  proyecto, a cientos de metros: lo iluminaba de canto.
+
+Comprobado también con el IFC de 23,6 MB —71,5 m de lado, recuadro de 114 × 114 m, 87 de 87 mallas
+proyectando y recibiendo— y sin romper nada: el modo fantasma sigue al 100 % y el informe de
+fidelidad del plano no cambia una cifra. **Lo que no se puede afirmar desde aquí** es que la sombra
+guste: el panel del navegador de este entorno no compone fotogramas, así que lo verificado es que
+las cinco condiciones que Three.js exige están puestas, donde antes cuatro no lo estaban.
+
 ### Añadido — El documento se ve y se comenta en su sitio (`F8.6`, 2026-08-26)
 
 El modelo guardaba `pagina`, `ancla_x` y `ancla_y` de cada observación desde el primer día y **no
