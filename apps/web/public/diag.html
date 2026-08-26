@@ -36,13 +36,15 @@
       `fantasma` (cuánto del modelo está pintado de translúcido, moviendo la cámara),
       `sombras` (si las sombras están puestas de verdad, pieza por pieza) y
       `medidas` (las cuatro mediciones, una por carga: `&medida=distancia|angulo|area|
-      perpendicular|vacio`).
+      perpendicular|vacio) y
+      `pdf` (que el PDF se lee: texto extraido y busqueda, con `&buscar=`).
 
       Uso: /diag.html?modo=clase&ifc=/samples/muro-minimo.ifc
            /diag.html?modo=plano&dxf=/samples/fidelidad-2d.dxf
            /diag.html?modo=fantasma&ifc=/samples/Piso%205.ifc
            /diag.html?modo=sombras&ifc=/samples/Piso%205.ifc
            /diag.html?modo=medidas&medida=area&ifc=/samples/Piso%205.ifc
+           /diag.html?modo=pdf&pdf=/samples/planta-prueba.pdf&buscar=vanos
     -->
     <div id="log">iniciando…</div>
     <div id="escena"></div>
@@ -54,7 +56,8 @@
 
       const params = new URLSearchParams(location.search);
       // El modo `plano` lee un DXF y los demás un IFC; los dos llegan por el mismo argumento.
-      const ifcUrl = params.get("dxf") ?? params.get("ifc") ?? "/samples/muro-minimo.ifc";
+      const ifcUrl =
+        params.get("dxf") ?? params.get("pdf") ?? params.get("ifc") ?? "/samples/muro-minimo.ifc";
       const modo = params.get("modo") ?? "clase";
 
       log.textContent =

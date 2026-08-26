@@ -27,23 +27,20 @@ STORAGES = {
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
-# **Las dos cosas que romperian el visor sin dejar rastro.**
+# **La cosa que romperia el visor sin dejar rastro.**
 #
-# 1. **Nunca servir `Cross-Origin-Opener-Policy` ni `Cross-Origin-Embedder-Policy`.**
-#    Es una regla cerrada de `AGENTS.md`: activan el WASM multihilo de `web-ifc`,
-#    que no funciona empaquetado, y el visor **se cuelga sin error**. Ya costo una
-#    sesion encontrarlo, y la comprobacion de `crossOriginIsolated` que falla al
-#    arrancar se queda puesta justamente para que no vuelva a costar otra.
+# **Nunca servir `Cross-Origin-Opener-Policy` ni `Cross-Origin-Embedder-Policy`.**
+# Es una regla cerrada de `AGENTS.md`: activan el WASM multihilo de `web-ifc`, que
+# no funciona empaquetado, y el visor **se cuelga sin error**. Ya costo una sesion
+# encontrarlo, y la comprobacion de `crossOriginIsolated` que falla al arrancar se
+# queda puesta justamente para que no vuelva a costar otra.
 #
-#    Django no las sirve por su cuenta; esto esta escrito para que nadie las
-#    añada "por seguridad" sin saber que rompe. Si alguna vez hicieran falta,
-#    primero hay que resolver el WASM.
+# Django no las sirve por su cuenta; esto esta escrito para que nadie las añada
+# "por seguridad" sin saber que rompe. Si alguna vez hicieran falta, primero hay
+# que resolver el WASM.
 #
-# 2. **El visor necesita WASM, y la CSP de AeroControl no lo permite.** Alli
-#    `script-src` es un `'self'` pelado sin `unsafe-eval`, que se pudo conseguir
-#    porque todo su JavaScript esta servido desde su propio origen. Aqui el visor
-#    compila WebAssembly y arranca un worker, asi que hacen falta dos permisos
-#    mas. Van declarados y con su motivo, no como un comodin.
+# **Los permisos de la CSP que el WASM necesita estan en `base.py`**, no aqui: los
+# necesitan los dos entornos por igual, y tenerlos solo en produccion hacia que
+# desarrollo avisara de una violacion en cada carga —inofensiva, porque alli la
+# politica es solo un informe, pero indistinguible de una de verdad—.
 # ─────────────────────────────────────────────────────────────────────────────
-CSP_EXTRA_SCRIPT_SRC = ["'wasm-unsafe-eval'"]
-CSP_EXTRA_WORKER_SRC = ["'self'", "blob:"]

@@ -1350,11 +1350,40 @@ ancladas:
 > `/entregables/<id-de-otra>/observar/` metía un hallazgo en el proyecto de otro cliente **y le
 > mandaba un correo a alguien que no tiene nada que ver**. Acotado, con su prueba.
 
-### Lo que falta de esta fase, dicho en voz alta
+### El PDF se lee: texto seleccionable y búsqueda (2026-08-26)
 
-- **Buscar dentro del PDF y seleccionar su texto.** El motor lo sabe hacer
-  —`getPageTextRects`— y hoy la página solo dibuja imágenes: no se puede copiar una cota ni
-  buscar un código de recinto. Es lo siguiente que pediría quien lo use a diario.
+Era lo que `F8.6` dejó pendiente el mismo día: la página dibujaba imágenes y **de una imagen no se
+copia nada**. De un plano lo que se copia es un código de recinto o una cota, para pegarlos en un
+correo.
+
+- **Capa de texto invisible sobre cada página**, con los rectángulos que da `getPageTextRects`
+  puestos en su sitio y en transparente. Es la técnica de cualquier lector de PDF. El
+  `pointer-events` va suelto en cada tramo y no en la capa, para que el clic que abre una
+  observación siga llegando a la página: con la capa capturando el puntero se podría seleccionar
+  texto y ya no se podría marcar un hallazgo.
+- **Búsqueda en el documento entero**, con el número de página como botón para saltar.
+  **El motor dice dónde buscar y la capa dice dónde está en la hoja**, y son dos cosas por un
+  motivo: `searchAllPages` recorre el PDF sin dibujarlo —barato— pero devuelve índices de carácter,
+  no rectángulos; la capa de texto ya tiene los rectángulos de las páginas que se están mirando, que
+  es donde el resaltado se ve. Una página con coincidencias se dibuja aunque esté lejos, o saltar a
+  ella mostraría el hueco reservado.
+- **Un PDF escaneado no tiene texto que buscar**, y eso no rompe la pantalla: dice «sin
+  coincidencias». El modo `pdf` del diagnóstico lo nombra explícitamente, porque «no encuentra nada»
+  y «no hay nada que encontrar» son dos cosas distintas.
+
+**Comprobado detrás del login**, con el fixture de tres páginas: 6 tramos de texto extraídos con su
+posición y su fuente, el texto copiable palabra por palabra, y buscar «vanos» → **1 coincidencia en
+la página 3**, la vista salta a la 3 y el tramo «Cuadro de vanos» queda resaltado en
+`rgba(255, 212, 59, 0.45)`.
+
+> **Un dato del entorno que costó encontrar y sirve para la próxima.** Los clics del panel del
+> navegador **no llegan a los manejadores de React**: `computer left_click` sobre el botón no
+> disparaba el `onSubmit`, y `form_input` sobre un campo controlado no actualizaba su estado. Con
+> `elemento.click()` desde la consola sí. Es la misma razón por la que no se puede escribir en el
+> formulario de ingreso desde aquí.
+>
+> De paso, el término de búsqueda dejó de ser estado de React y se lee del campo al enviar: solo
+> importa en ese momento, y tenerlo en estado repintaba el documento en cada tecla.
 
 ---
 

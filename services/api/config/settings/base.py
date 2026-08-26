@@ -220,6 +220,23 @@ SITE_BASE_URL = config("SITE_BASE_URL", default="http://localhost:8000").rstrip(
 CSP_REPORT_ONLY = config("CSP_REPORT_ONLY", default=True, cast=bool)
 CSP_REPORT_URI = config("CSP_REPORT_URI", default="")
 
+# **Los dos permisos que el visor necesita, y van en los dos entornos.**
+#
+# La CSP de AeroControl es un `script-src 'self'` pelado sin `unsafe-eval`, que alli
+# se pudo conseguir porque todo su JavaScript sale de su propio origen. Aqui hay dos
+# consumidores de WebAssembly —`web-ifc` para el modelo y PDFium para el documento—
+# y uno de ellos arranca un worker, asi que hacen falta dos permisos mas. Van
+# declarados y con su motivo, nunca como un comodin: `'unsafe-eval'` a secas
+# permitiria tambien `eval()`, y lo que hace falta es solo compilar WASM.
+#
+# **Estan aqui y no solo en `prod.py`** porque los necesitan los dos entornos por
+# igual: con el permiso solo en produccion, desarrollo avisaba de una violacion de
+# CSP en cada carga del visor. Inofensiva —alli la politica es solo un informe— pero
+# indistinguible de una de verdad, que es la peor clase de aviso: el que se aprende
+# a ignorar.
+CSP_EXTRA_SCRIPT_SRC = ["'wasm-unsafe-eval'"]
+CSP_EXTRA_WORKER_SRC = ["'self'", "blob:"]
+
 LOG_DIR = Path(config("LOGS_DIR", default=str(BASE_DIR / "logs")))
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 LOGGING = {

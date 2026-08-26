@@ -80,7 +80,13 @@ apps/web/public/wasm/
 
 # Excepcion: los fixtures sinteticos si se versionan. Estan escritos a mano y no
 # contienen dato alguno de un proyecto real. Cualquier otro .ifc o .dxf queda fuera.
+#
+# **Y versionarlos no es publicarlos**: lo que sale al build lo decide la lista blanca
+# de `apps/web/scripts/limpiar-dist.mjs`, que deja `samples/` fuera. Son fixtures para
+# `diag.html`, que tampoco se publica.
 !apps/web/public/samples/muro-minimo.ifc
 !apps/web/public/samples/muro-con-psets.ifc
 !apps/web/public/samples/elemento-sin-geometria.ifc
 !apps/web/public/samples/fidelidad-2d.dxf
+# Tres paginas con texto, para comprobar que el PDF se lee y se busca (`F8.6`).
+!apps/web/public/samples/planta-prueba.pdf

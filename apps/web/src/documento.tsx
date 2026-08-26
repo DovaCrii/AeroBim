@@ -24,7 +24,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { StrictMode } from "react";
 import { createPdfiumEngine } from "@embedpdf/engines/pdfium-direct-engine";
-import type { PdfDocumentObject } from "@embedpdf/models";
+import type { PdfDocumentObject, PdfTextRectObject } from "@embedpdf/models";
 import "./index.css";
 
 /**
@@ -124,6 +124,7 @@ function Pagina({
   escala,
   visible,
   observaciones,
+  buscado,
   onClic,
 }: {
   engine: Motor;
@@ -132,9 +133,12 @@ function Pagina({
   escala: number;
   visible: boolean;
   observaciones: readonly Observacion[];
+  /** Lo que se está buscando, en minúsculas, o `""`. Resalta los trozos que lo contienen. */
+  buscado: string;
   onClic: ((pagina: number, x: number, y: number) => void) | null;
 }) {
   const [url, setUrl] = useState<string | null>(null);
+  const [textos, setTextos] = useState<readonly PdfTextRectObject[]>([]);
   const pagina = doc.pages[indice];
 
   useEffect(() => {
@@ -158,6 +162,29 @@ function Pagina({
       if (anterior !== null) URL.revokeObjectURL(anterior);
     };
   }, [engine, doc, pagina, escala, visible]);
+
+  /**
+   * El texto de la página, para poder **seleccionarlo y copiarlo**.
+   *
+   * Una imagen no se puede copiar, y en un plano lo que más se copia es un código de recinto o una
+   * cota para pegarlos en un correo. Se piden los rectángulos de texto y se ponen encima, en
+   * transparente: es la misma técnica que usa cualquier lector de PDF del navegador.
+   *
+   * **No depende de la escala**, a diferencia del dibujo: las coordenadas vienen en puntos del PDF
+   * y se escalan al pintar. Así cambiar el zoom no obliga a volver a pedirlas.
+   */
+  useEffect(() => {
+    if (!visible || pagina === undefined) return;
+
+    let vivo = true;
+    void (async () => {
+      const rects = await engine.getPageTextRects(doc, pagina).toPromise();
+      if (vivo) setTextos(rects);
+    })();
+    return () => {
+      vivo = false;
+    };
+  }, [engine, doc, pagina, visible]);
 
   // El alto se reserva **antes** de tener la imagen, con el tamaño que declara el PDF: así la
   // barra de desplazamiento no salta cada vez que entra una página nueva.
@@ -190,6 +217,44 @@ function Pagina({
             página {indice + 1}
           </div>
         )}
+
+        {/*
+          **La capa de texto va encima de la imagen y es invisible.** El texto se pinta transparente
+          sobre su propio sitio: no se ve, pero se puede seleccionar, copiar y buscar con el
+          navegador. Es la técnica de cualquier lector de PDF, y el motivo es concreto: de un plano
+          lo que se copia es un código de recinto o una cota, y de una imagen no se copia nada.
+
+          `pointer-events` va suelto en los tramos y no en la capa, para que el clic que abre una
+          observación siga llegando a la página: si la capa entera capturara el puntero, se podría
+          seleccionar texto y ya no se podría marcar un hallazgo.
+        */}
+        <div className="pointer-events-none absolute inset-0 select-text">
+          {textos.map((trozo, i) => {
+            const resalta = buscado !== "" && trozo.content.toLowerCase().includes(buscado);
+            return (
+              <span
+                key={i}
+                className="pointer-events-auto absolute origin-top-left whitespace-pre"
+                style={{
+                  left: trozo.rect.origin.x * escala,
+                  top: trozo.rect.origin.y * escala,
+                  height: trozo.rect.size.height * escala,
+                  fontSize: trozo.font.size * escala,
+                  fontFamily: trozo.font.family,
+                  lineHeight: 1,
+                  // Transparente, no `opacity: 0`: con opacidad cero el navegador tampoco deja
+                  // seleccionarlo en algunos motores, y lo que hace falta es justamente eso.
+                  color: "transparent",
+                  // Y lo que coincide con la búsqueda **sí se ve**: el amarillo va detrás del
+                  // texto, que sigue siendo el dibujado por PDFium.
+                  backgroundColor: resalta ? "rgba(255, 212, 59, 0.45)" : undefined,
+                }}
+              >
+                {trozo.content}
+              </span>
+            );
+          })}
+        </div>
 
         {observaciones.map((observacion) => (
           <a
@@ -229,8 +294,19 @@ function Documento() {
   const [puedeObservar, setPuedeObservar] = useState(false);
   const [escala, setEscala] = useState<number>(1);
   const [pagina, setPagina] = useState(1);
+  /**
+   * Lo que se buscó de verdad. **Lo que se está escribiendo no es estado.**
+   *
+   * La caja va sin controlar y se lee por referencia al enviar: el término solo importa en ese
+   * momento, y tenerlo en estado obligaba a repintar el documento entero en cada tecla.
+   */
+  const [buscado, setBuscado] = useState("");
+  const caja = useRef<HTMLInputElement>(null);
+  const [hallazgos, setHallazgos] = useState<readonly number[] | null>(null);
+  const [buscando, setBuscando] = useState(false);
   const engine = useRef<Motor | null>(null);
   const scroller = useRef<HTMLDivElement>(null);
+  const paginas = useRef<(HTMLDivElement | null)[]>([]);
 
   const revisionId = useMemo(() => revisionPedida(), []);
 
@@ -339,6 +415,53 @@ function Documento() {
     return mapa;
   }, [observaciones]);
 
+  /** Lleva la vista a una página por su número, contando desde 1. */
+  const irA = useCallback((numero: number) => {
+    paginas.current[numero - 1]?.scrollIntoView({ block: "start" });
+    setPagina(numero);
+  }, []);
+
+  /**
+   * Buscar en el documento entero.
+   *
+   * **La búsqueda la hace el motor y el resaltado lo hace la capa de texto**, y son dos cosas por
+   * un motivo: `searchAllPages` recorre el PDF completo sin dibujarlo —barato, y contesta «en qué
+   * páginas está»—, pero devuelve índices de carácter, no rectángulos. Resaltar desde ahí pediría
+   * mapear carácter a posición; en cambio la capa de texto ya tiene los rectángulos **de las
+   * páginas que se están mirando**, que es donde el resaltado se ve.
+   *
+   * Así que el motor dice **dónde buscar** y la capa dice **dónde está en la hoja**.
+   */
+  const buscar = useCallback(async () => {
+    const motor = engine.current;
+    const termino = (caja.current?.value ?? "").trim();
+    if (motor === null || doc === null || termino === "") {
+      setBuscado("");
+      setHallazgos(null);
+      return;
+    }
+
+    setBuscando(true);
+    try {
+      const encontrado = await motor.searchAllPages(doc, termino).toPromise();
+      const paginasConTexto = [...new Set(encontrado.results.map((uno) => uno.pageIndex + 1))].sort(
+        (a, b) => a - b,
+      );
+      setBuscado(termino.toLowerCase());
+      setHallazgos(paginasConTexto);
+      // Se salta a la primera coincidencia: buscar y quedarse donde se estaba obliga a buscar dos
+      // veces, una para saber y otra para llegar.
+      if (paginasConTexto[0] !== undefined) irA(paginasConTexto[0]);
+    } catch {
+      // Un PDF escaneado no tiene texto que buscar, y eso no es un error que merezca romper la
+      // pantalla: se dice que no hay coincidencias.
+      setBuscado(termino.toLowerCase());
+      setHallazgos([]);
+    } finally {
+      setBuscando(false);
+    }
+  }, [doc, irA]);
+
   if (error !== null) {
     return (
       <div className="mx-auto max-w-2xl p-12">
@@ -374,6 +497,25 @@ function Documento() {
           </>
         )}
         <span className="ml-auto flex items-center gap-2">
+          <form
+            onSubmit={(evento) => {
+              evento.preventDefault();
+              void buscar();
+            }}
+            className="flex items-center gap-1"
+          >
+            <input
+              ref={caja}
+              type="search"
+              defaultValue=""
+              placeholder="Buscar en el documento"
+              aria-label="buscar en el documento"
+              className="w-48 rounded bg-white/10 px-2 py-1 placeholder:text-slate-500"
+            />
+            <button type="submit" className="rounded bg-white/10 px-2 py-1 hover:bg-white/20">
+              {buscando ? "…" : "Buscar"}
+            </button>
+          </form>
           {doc !== null && (
             <span className="text-slate-400">
               {pagina} / {doc.pageCount}
@@ -399,28 +541,68 @@ function Documento() {
         regla que el visor de modelos —nada flota sobre lo que se está mirando— y quien viene de
         un CAD ya mira arriba y abajo.
       */}
-      <p className="border-b border-white/10 bg-white/5 px-4 py-1 text-xs text-slate-400">
-        {doc === null
-          ? aviso
-          : puedeObservar
-            ? `${observaciones.length} observaciones sobre el documento · clic en la página para abrir una nueva`
-            : `${observaciones.length} observaciones sobre el documento`}
+      <p className="flex flex-wrap items-center gap-x-3 border-b border-white/10 bg-white/5 px-4 py-1 text-xs text-slate-400">
+        <span>
+          {doc === null
+            ? aviso
+            : puedeObservar
+              ? `${observaciones.length} observaciones sobre el documento · clic en la página para abrir una nueva`
+              : `${observaciones.length} observaciones sobre el documento`}
+        </span>
+
+        {/*
+          El resultado de la búsqueda dice **en qué páginas** está y lleva a cada una. Un contador
+          sin los números de página obliga a recorrer el documento para encontrar lo que ya se sabe
+          que está.
+        */}
+        {hallazgos !== null && (
+          <span className="flex flex-wrap items-center gap-x-2">
+            <span className="text-slate-300">
+              «{buscado}»:{" "}
+              {hallazgos.length === 0
+                ? "sin coincidencias"
+                : `en ${hallazgos.length === 1 ? "1 página" : `${hallazgos.length} páginas`}`}
+            </span>
+            {hallazgos.map((numero) => (
+              <button
+                key={numero}
+                type="button"
+                onClick={() => irA(numero)}
+                className="rounded bg-white/10 px-1.5 hover:bg-white/20"
+              >
+                {numero}
+              </button>
+            ))}
+          </span>
+        )}
       </p>
 
       <div ref={scroller} onScroll={alDesplazar} className="flex-1 overflow-auto bg-slate-800 p-6">
         {doc !== null &&
           engine.current !== null &&
           doc.pages.map((_p, indice) => (
-            <Pagina
+            <div
               key={indice}
-              engine={engine.current as Motor}
-              doc={doc}
-              indice={indice}
-              escala={escala}
-              visible={Math.abs(indice + 1 - pagina) <= PAGINAS_DE_MARGEN}
-              observaciones={porPagina.get(indice + 1) ?? []}
-              onClic={puedeObservar ? abrirObservacion : null}
-            />
+              ref={(nodo) => {
+                paginas.current[indice] = nodo;
+              }}
+            >
+              <Pagina
+                engine={engine.current as Motor}
+                doc={doc}
+                indice={indice}
+                escala={escala}
+                // Una página con coincidencias se dibuja aunque esté lejos: si no, saltar a ella
+                // muestra el hueco reservado y el resaltado no se ve hasta que termine de entrar.
+                visible={
+                  Math.abs(indice + 1 - pagina) <= PAGINAS_DE_MARGEN ||
+                  (hallazgos?.includes(indice + 1) ?? false)
+                }
+                observaciones={porPagina.get(indice + 1) ?? []}
+                buscado={buscado}
+                onClic={puedeObservar ? abrirObservacion : null}
+              />
+            </div>
           ))}
       </div>
     </div>

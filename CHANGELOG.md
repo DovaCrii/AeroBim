@@ -5,6 +5,33 @@ Este proyecto sigue [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Añadido — El PDF se lee: texto seleccionable y búsqueda (`F8.6`, 2026-08-26)
+
+Era lo que `F8.6` dejó pendiente el mismo día: la página dibujaba imágenes, y **de una imagen no se
+copia nada**. De un plano lo que se copia es un código de recinto o una cota.
+
+- **Capa de texto invisible** sobre cada página, con los rectángulos de `getPageTextRects` en su
+  sitio y en transparente. El `pointer-events` va suelto en cada tramo, no en la capa, para que el
+  clic que abre una observación siga llegando a la página.
+- **Búsqueda en el documento entero**, con el número de página como botón para saltar. El motor dice
+  **dónde buscar** —`searchAllPages` recorre el PDF sin dibujarlo— y la capa de texto dice **dónde
+  está en la hoja**, porque el motor devuelve índices de carácter y no rectángulos.
+- **Un PDF escaneado no tiene texto que buscar** y eso no rompe la pantalla: dice «sin
+  coincidencias». El modo `pdf` del diagnóstico lo nombra, porque «no encuentra nada» y «no hay nada
+  que encontrar» son dos cosas distintas.
+
+Comprobado detrás del login con un fixture de tres páginas: 6 tramos extraídos con posición y
+fuente, el texto copiable palabra por palabra, y buscar «vanos» da **1 coincidencia en la página
+3** — la vista salta allí y «Cuadro de vanos» queda resaltado.
+
+### Corregido — La CSP de desarrollo avisaba de una violación en cada carga (2026-08-26)
+
+Los dos permisos que el WASM necesita —`'wasm-unsafe-eval'` y `worker-src 'self' blob:`— estaban
+solo en `prod.py`, así que en desarrollo el navegador informaba de una violación de CSP en cada
+carga del visor. Inofensiva, porque allí la política es solo un informe, pero **indistinguible de
+una de verdad**: la peor clase de aviso, el que se aprende a ignorar. Pasan a `base.py`, que es
+donde vale para los dos entornos; producción sigue siendo la única que aplica la política.
+
 ### Corregido — El marcador de ajuste era del mismo violeta que la selección (`F1.12`, 2026-08-26)
 
 «Al acercar el mouse sin clickear selecciona solo elementos, lo cual es poco práctico.» **No hay

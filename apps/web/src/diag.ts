@@ -13,6 +13,8 @@ import * as OBC from "@thatopen/components";
 import * as OBF from "@thatopen/components-front";
 import { parseDxf, suggestMetresPerUnit } from "@aerobim/bim-core";
 import { BimViewer } from "@aerobim/viewer";
+import { createPdfiumEngine } from "@embedpdf/engines/pdfium-direct-engine";
+import rutaWasm from "@embedpdf/pdfium/pdfium.wasm?url";
 
 type Log = (linea: string) => void;
 
@@ -353,6 +355,58 @@ export async function fantasma(container: HTMLElement, ifcUrl: string, log: Log)
     );
     await viewer.clearSelection();
   }
+}
+
+/**
+ * Que el PDF se lee: texto extraído y búsqueda, para `F8.6`.
+ *
+ * **Comprueba el motor, no la pantalla.** La capa de texto que hace el PDF seleccionable y la caja
+ * de búsqueda son React encima de dos llamadas —`getPageTextRects` y `searchAllPages`—, y lo que
+ * puede fallar sin avisar son ellas: un PDF escaneado no tiene texto que extraer, y ahí la búsqueda
+ * no encuentra nada aunque el documento «diga» la palabra.
+ *
+ * Uso: `/diag.html?modo=pdf&pdf=/samples/x.pdf&buscar=vanos`
+ */
+export async function pdf(container: HTMLElement, url: string, log: Log): Promise<void> {
+  const bytes = await (await fetch(url, { credentials: "same-origin" })).arrayBuffer();
+  log(`descargado: ${Math.round(bytes.byteLength / 1024)} KB`);
+
+  // `fontFallback: null` por lo mismo que en la pantalla: con el respaldo activado PDFium pide
+  // fuentes a otro origen y la CSP no lo permite.
+  const motor = await createPdfiumEngine(rutaWasm, { fontFallback: null });
+  const doc = await motor.openDocumentBuffer({ id: url, content: bytes }).toPromise();
+  log(`paginas: ${doc.pageCount}`);
+
+  let total = 0;
+  for (const pagina of doc.pages) {
+    const rects = await motor.getPageTextRects(doc, pagina).toPromise();
+    total += rects.length;
+    log(`  pagina ${pagina.index + 1}: ${rects.length} tramos de texto`);
+    for (const trozo of rects.slice(0, 3)) {
+      log(
+        `    «${trozo.content}» en (${trozo.rect.origin.x.toFixed(0)}, ${trozo.rect.origin.y.toFixed(0)}) ` +
+          `· ${trozo.font.family} ${trozo.font.size.toFixed(1)}`,
+      );
+    }
+  }
+  log(
+    `\ntexto extraido: ${total} tramos — ${total === 0 ? "NINGUNO: es un PDF escaneado o sin capa de texto" : "se puede seleccionar y buscar"}`,
+  );
+
+  const termino = new URLSearchParams(globalThis.location?.search ?? "").get("buscar");
+  if (termino !== null && termino !== "") {
+    const encontrado = await motor.searchAllPages(doc, termino).toPromise();
+    const paginas = [...new Set(encontrado.results.map((uno) => uno.pageIndex + 1))].sort(
+      (a, b) => a - b,
+    );
+    log(
+      `\nbuscar «${termino}»: ${encontrado.total} coincidencias` +
+        `${paginas.length === 0 ? "" : `, en la pagina ${paginas.join(", ")}`}`,
+    );
+  }
+
+  await motor.destroy().toPromise();
+  container.textContent = "";
 }
 
 /**
