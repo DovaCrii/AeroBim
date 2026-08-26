@@ -1749,12 +1749,38 @@ proyecta, con qué nombre, en qué papel y con qué avisos.
 
 > **No se pudo verificar en el navegador de pruebas**, y esta vez el motivo es claro: `EdgeProjector`
 > usa el renderizador para descartar lo tapado, y en un panel que no compone fotogramas la
-> proyección **no arranca** — ni siquiera emite su primer aviso de avance. Es la misma limitación de
-> siempre, y ahora afecta a una función entera. Por eso la interfaz muestra el avance y ofrece
-> **"Dejar de esperar"**: si la proyección se queda quieta, la aplicación vuelve.
->
-> **Lo que hay que confirmar en un navegador de verdad**: que la planta sale con las aristas del
-> modelo, cuánto tarda con el IFC de 23,6 MB, y que el DXF abre en AutoCAD con su escala.
+> proyección **no arranca** — ni siquiera emite su primer aviso de avance.
+
+#### Medido el 2026-08-26: el cuelgue ahora se dice
+
+Se escribió el modo `planos` del diagnóstico —`/diag.html?modo=planos&ifc=…`— y **confirmó el
+diagnóstico con precisión**: en las tres vistas, `projector.get()` **no resuelve nunca y no emite un
+solo aviso**; la promesa se queda pendiente para siempre.
+
+Eso, mirado de frente, **es un defecto del producto y no solo del entorno**: quien pulsara «Planta»
+en un equipo sin aceleración —o con la pestaña de fondo— veía «Proyectando las aristas del modelo…»
+indefinidamente. Había un botón «Dejar de esperar», pero solo limpiaba el aviso: no explicaba nada y
+la promesa seguía colgada. Es la misma clase de fallo que el WASM multihilo, y ese ya costó una
+sesión.
+
+**Ahora hay un corte por falta de latido**, y la distinción importa: **no es un tope al tiempo
+total** —proyectar un modelo grande puede tardar minutos con razón— sino a **veinte segundos sin un
+solo aviso de avance**. Lo que llega por `onProgress` es el latido. Al cortar, el mensaje dice qué
+pasó y por qué:
+
+> _«La proyección de aristas no respondió en 20 s y se dio por colgada. Suele ser que el navegador no
+> está dibujando la escena: EdgeProjector lee la escena dibujada, así que en una pestaña oculta o sin
+> aceleración no avanza.»_
+
+Comprobado en las tres vistas: las tres cortan con ese mensaje, la interfaz vuelve y el aviso de
+avance se limpia. **Un cuelgue se convirtió en algo que se puede contar.**
+
+> **Y siguen en 🟡 a propósito.** Lo que está comprobado es el camino del fallo, no el del acierto.
+> **Falta confirmar en un navegador de verdad**: que la planta sale con las aristas del modelo,
+> cuánto tarda con el IFC de 23,6 MB, y que el DXF abre en AutoCAD con su escala. El modo `planos`
+> ya lleva el oráculo puesto para ese día: **exporta el DXF y lo vuelve a leer con nuestro propio
+> lector**, y compara los trazos que salen con los segmentos proyectados y la extensión con el A3
+> declarado. Ahí no hace falta creer a nadie.
 
 > **Por qué esta fase es sobre todo integración.** `TechnicalDrawings`, `DrawingViewports`,
 > `DrawingLayers`, `DxfExporter` y la familia de anotaciones —lineales, de ángulo, de

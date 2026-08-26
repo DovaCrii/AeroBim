@@ -47,6 +47,23 @@ const NOMBRES: Record<DrawingView, string> = {
   side: "Alzado lateral",
 };
 
+/**
+ * Cuánto se espera **sin un solo aviso de avance** antes de darlo por colgado.
+ *
+ * **No es un tope al tiempo total**, y la diferencia es todo: proyectar las aristas de un modelo
+ * grande puede tardar minutos legítimamente, y cortarlo a los treinta segundos rompería el caso
+ * bueno. Lo que no puede pasar es que no ocurra *nada*: `EdgeProjector` informa de su avance, así
+ * que veinte segundos de silencio absoluto significan que se quedó.
+ *
+ * **Existe porque el fallo se reprodujo.** En un navegador que no compone fotogramas —el panel del
+ * entorno de trabajo— `projector.get()` **no resuelve nunca y no emite un solo aviso**: la promesa
+ * se queda pendiente. Sin este corte, la interfaz mostraba «Proyectando las aristas del modelo…»
+ * para siempre, sin error y sin salida, que es la misma clase de fallo que ya costó una sesión con
+ * el WASM multihilo. Un mensaje claro no arregla la proyección, pero convierte un cuelgue en algo
+ * que se puede contar.
+ */
+const SIN_AVANCE_MS = 20_000;
+
 /** Lo que se guarda de cada plano generado. */
 interface PlanoGenerado {
   readonly info: GeneratedDrawing;
@@ -84,13 +101,23 @@ export class DrawingMaker {
     const projector = this.components.get(OBC.EdgeProjector);
     projector.projectionDirection.set(...DIRECCIONES[view]);
 
-    // El aviso de avance se pasa solo si lo hay: con `exactOptionalPropertyTypes`, un
-    // `onProgress: undefined` no es lo mismo que no ponerlo.
-    const proyeccion = await projector.get(
-      modelIdMap,
-      world,
-      onProgress === undefined ? {} : { onProgress },
+    // **El aviso de avance es también el latido.** Cada vez que la proyección informa se anota la
+    // hora; si pasan `SIN_AVANCE_MS` sin un solo aviso, se da por colgada. Ver {@link SIN_AVANCE_MS}.
+    let ultimoAvance = performance.now();
+    const conLatido = (mensaje: string, avance?: number) => {
+      ultimoAvance = performance.now();
+      onProgress?.(mensaje, avance);
+    };
+
+    // El aviso se pasa siempre, aunque quien llame no quiera oírlo: hace falta para el latido.
+    const proyeccion = await conCorte(
+      projector.get(modelIdMap, world, { onProgress: conLatido }),
+      () => performance.now() - ultimoAvance,
+      `La proyección de aristas no respondió en ${SIN_AVANCE_MS / 1000} s y se dio por colgada. ` +
+        `Suele ser que el navegador no está dibujando la escena: EdgeProjector lee la escena ` +
+        `dibujada, así que en una pestaña oculta o sin aceleración no avanza.`,
     );
+
     const visibles = contarSegmentos(proyeccion.visible);
     if (visibles === 0) return null;
 
@@ -219,4 +246,34 @@ export class DrawingMaker {
 function contarSegmentos(geometria: THREE.BufferGeometry): number {
   const posiciones = geometria.getAttribute("position");
   return posiciones === undefined ? 0 : Math.floor(posiciones.count / 2);
+}
+
+/**
+ * Espera una promesa pero **se rinde si deja de haber señales de vida**.
+ *
+ * `silencio()` devuelve cuántos milisegundos han pasado desde la última señal, así que quien llama
+ * decide qué cuenta como una: aquí es el aviso de avance de la proyección. **No es un tope al
+ * tiempo total** —lo que tarda puede tardar— sino a la falta de noticias.
+ *
+ * El vigilante se limpia en los dos caminos: sin eso, un `setInterval` cada segundo sobrevive a la
+ * proyección y sigue corriendo hasta recargar la página.
+ */
+async function conCorte<T>(
+  promesa: Promise<T>,
+  silencio: () => number,
+  mensaje: string,
+): Promise<T> {
+  let vigilante: ReturnType<typeof setInterval> | undefined;
+  try {
+    return await Promise.race([
+      promesa,
+      new Promise<never>((_resolver, rechazar) => {
+        vigilante = setInterval(() => {
+          if (silencio() > SIN_AVANCE_MS) rechazar(new Error(mensaje));
+        }, 1000);
+      }),
+    ]);
+  } finally {
+    if (vigilante !== undefined) clearInterval(vigilante);
+  }
 }

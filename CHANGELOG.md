@@ -5,6 +5,27 @@ Este proyecto sigue [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Corregido — Generar un plano podía dejar la interfaz esperando para siempre (`F7.1`, 2026-08-26)
+
+Se escribió el modo `planos` del diagnóstico para confirmar de una vez las dos tareas que llevaban
+meses montadas y sin comprobar. Lo que confirmó, con precisión, es el fallo: en las tres vistas
+`EdgeProjector.get()` **no resuelve nunca y no emite un solo aviso de avance**.
+
+Mirado de frente **eso es un defecto del producto y no solo del entorno de pruebas**: quien pulsara
+«Planta» en un equipo sin aceleración —o con la pestaña de fondo— veía «Proyectando las aristas del
+modelo…» indefinidamente. Había un botón «Dejar de esperar», pero solo limpiaba el aviso: no
+explicaba nada.
+
+Ahora hay un **corte por falta de latido**, y la distinción importa: no es un tope al tiempo total
+—proyectar un modelo grande puede tardar minutos con razón— sino a **veinte segundos sin un solo
+aviso**. Al cortar, el mensaje dice qué pasó: que el navegador probablemente no está dibujando la
+escena, que es de donde `EdgeProjector` lee. Comprobado en las tres vistas.
+
+`F7.1` y `F7.4` **siguen en 🟡 a propósito**: lo comprobado es el camino del fallo, no el del
+acierto. El modo `planos` ya lleva el oráculo puesto para el día que se corra en un navegador de
+verdad — **exporta el DXF y lo vuelve a leer con nuestro propio lector**, comparando trazos contra
+segmentos proyectados y la extensión contra el A3 declarado.
+
 ### Añadido — El PDF se lee: texto seleccionable y búsqueda (`F8.6`, 2026-08-26)
 
 Era lo que `F8.6` dejó pendiente el mismo día: la página dibujaba imágenes, y **de una imagen no se

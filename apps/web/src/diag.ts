@@ -358,6 +358,108 @@ export async function fantasma(container: HTMLElement, ifcUrl: string, log: Log)
 }
 
 /**
+ * Generar un plano desde el modelo y **leerlo de vuelta**, para `F7.1` y `F7.4`.
+ *
+ * Estas dos tareas llevaban meses montadas y **nunca confirmadas en pantalla**, con el motivo
+ * anotado: `EdgeProjector` necesitaba un navegador que pintara. Esta prueba las comprueba sin
+ * mirar, y el oráculo es de los buenos: **se genera el DXF desde el IFC y se lee con nuestro propio
+ * lector de DXF**. Si los trazos que salen son los que entran y la extensión coincide con lo que
+ * mide el modelo, el plano es real; si el exportador escribe basura, `parseDxf` lo dice.
+ *
+ * Se comprueban las tres vistas, porque proyectar en planta y proyectar de lado no son el mismo
+ * camino: una direccion de proyección mal puesta da un dibujo vacío o aplastado, y el conteo de
+ * segmentos lo delata.
+ *
+ * Uso: `/diag.html?modo=planos&ifc=/samples/Piso%205.ifc`
+ */
+export async function planos(container: HTMLElement, ifcUrl: string, log: Log): Promise<void> {
+  const viewer = await BimViewer.create(container);
+  const bytes = new Uint8Array(await (await fetch(ifcUrl)).arrayBuffer());
+  await viewer.loadIfc(bytes, ifcUrl);
+  log(`modelo cargado · lado mayor ${viewer.shadowAudit.modelSpanM.toFixed(1)} m`);
+
+  let colgadas = 0;
+  for (const vista of ["plan", "front", "side"] as const) {
+    log(`\nvista ${vista}:`);
+
+    // **Un fallo en una vista no aborta las otras**, y hace falta: si la proyección se cuelga, lo
+    // que este informe tiene que decir es *cuántas* se colgaron, no morir en la primera.
+    let plano;
+    try {
+      plano = await viewer.createDrawing(vista, (mensaje, avance) => {
+        if (avance === undefined || avance === 1) {
+          log(`  ${mensaje}${avance === 1 ? " (100 %)" : ""}`);
+        }
+      });
+    } catch (fallo: unknown) {
+      colgadas += 1;
+      log(`  cortada: ${fallo instanceof Error ? fallo.message : String(fallo)}`);
+      continue;
+    }
+
+    if (plano === null) {
+      log("  **no se genero nada** — no habia geometria proyectable");
+      continue;
+    }
+
+    log(
+      `  ${plano.segments} segmentos visibles, ${plano.hiddenSegments} ocultos · ` +
+        `${plano.sizeM.map((m) => m.toFixed(2)).join(" x ")} m · ${Math.round(plano.elapsedMs)} ms`,
+    );
+
+    // **Y ahora la vuelta**: se exporta y se lee con el lector propio. Es lo que distingue "el
+    // exportador devolvio un texto" de "el exportador devolvio un DXF".
+    const dxf = viewer.exportDrawingDxf(plano.id, {
+      widthMm: 420,
+      heightMm: 297,
+      margin: 10,
+    });
+    if (dxf === null) {
+      log("  **el exportador devolvio null**");
+      continue;
+    }
+
+    const leido = parseDxf(dxf);
+    const omitidas = Object.entries(leido.skipped);
+    log(`  DXF: ${Math.round(dxf.length / 1024)} KB · lo lee nuestro lector:`);
+    log(
+      `    ${leido.polylines.length} trazos, ${leido.texts.length} textos, ` +
+        `sin dibujar: ${omitidas.length === 0 ? "nada" : omitidas.map(([t, n]) => `${t}=${n}`).join(" ")}`,
+    );
+    if (leido.bounds === null) {
+      log("    **sin extension: el DXF no tiene geometria legible**");
+    } else {
+      const ancho = leido.bounds.maxX - leido.bounds.minX;
+      const alto = leido.bounds.maxY - leido.bounds.minY;
+      log(`    extension del DXF: ${ancho.toFixed(1)} x ${alto.toFixed(1)} (unidades del archivo)`);
+      // Con papel el DXF sale en milimetros y colocado en la hoja, asi que la extension tiene que
+      // caber en los 420 x 297 menos el margen. Si no cabe, el dibujo se sale del papel.
+      const cabe = ancho <= 420 && alto <= 297;
+      log(`    cabe en el A3 declarado: ${cabe ? "si (bien)" : "NO (mal)"}`);
+    }
+    log(
+      `    trazos frente a segmentos: ${leido.polylines.length} / ${plano.segments} — ` +
+        `${leido.polylines.length > 0 ? "el DXF lleva geometria (bien)" : "EL DXF ESTA VACIO (mal)"}`,
+    );
+  }
+
+  log("");
+  if (colgadas === 3) {
+    log(
+      "veredicto: las tres vistas se cortaron. **En este entorno es lo esperado** y no dice nada\n" +
+        "  del generador: `EdgeProjector` lee la escena dibujada y este panel no compone\n" +
+        "  fotogramas. Lo que si queda comprobado es que **el cuelgue ahora se dice**: antes la\n" +
+        "  interfaz mostraba «Proyectando…» para siempre, sin error y sin salida.\n" +
+        "  Para confirmar el plano hace falta correr esto en un navegador de verdad.",
+    );
+  } else if (colgadas > 0) {
+    log(`veredicto: ${colgadas} de 3 vistas se cortaron; las otras generaron plano.`);
+  } else {
+    log("veredicto: las tres vistas generan plano y su DXF lo lee nuestro propio lector.");
+  }
+}
+
+/**
  * Que el PDF se lee: texto extraído y búsqueda, para `F8.6`.
  *
  * **Comprueba el motor, no la pantalla.** La capa de texto que hace el PDF seleccionable y la caja
