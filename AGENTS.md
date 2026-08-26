@@ -101,6 +101,12 @@ reconcilia a favor de lo vigente en el repo y se deja constancia en el PR o en
   Correcto: `"Model tree"`, `"Clash groups"`. Incorrecto: `"Model Tree"`.
 - Modelos IFC, nubes de puntos, ortofotos y datos de proyectos reales viven **fuera
   del repositorio**. Nunca confirmar un IFC de cliente ni un dato de obra.
+- **Y lo que se pone en `apps/web/public/` se publica.** No confirmar no es lo mismo que
+  no publicar: al servir `apps/web/dist` como estático desde Django, los archivos de
+  prueba de la organización quedaron descargables **sin autenticar** —comprobado, 200 y
+  34 MB—. Lo que va al build lo decide la **lista blanca** de
+  `apps/web/scripts/limpiar-dist.mjs`, no una lista de lo prohibido: lo nuevo se queda
+  fuera por defecto y hay que pedirlo.
 
 ## Contrato de permisos y lectura (obligatorio en toda vista de `services/api`)
 

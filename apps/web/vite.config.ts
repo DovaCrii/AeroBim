@@ -32,7 +32,31 @@ const enRaiz = (ruta: string) => resolve(here, "../../node_modules", ruta);
  * colgarse — ver `packages/viewer`.
  */
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
+  /**
+   * **Solo al construir.** Django publica el SPA construido bajo `/static/visor/`, así que
+   * los assets tienen que resolverse desde ahí; en desarrollo la aplicación vive en la raíz
+   * del servidor de Vite y ponerle prefijo rompería el flujo de siempre —y `diag.html`—.
+   *
+   * `import.meta.env.BASE_URL` refleja este valor, y de ahí sale la ruta del WASM: ver
+   * `RUTA_WASM` en `src/App.tsx`.
+   */
+  base: command === "build" ? "/static/visor/" : "/",
+
+  server: {
+    /**
+     * El registro documental vive en Django, en otro puerto durante el desarrollo. Sin este
+     * puente, un `fetch("/api/…")` desde el SPA de Vite pediría a sí mismo y devolvería el
+     * `index.html`, que falla con `Unexpected token '<'` — el mismo síntoma que ya costó una
+     * sesión con el WASM, y por la misma razón: una ruta que no existe devuelve la página.
+     *
+     * En producción no hace falta: el mismo origen sirve las dos cosas.
+     */
+    proxy: {
+      "/api": { target: "http://127.0.0.1:8000", changeOrigin: false },
+    },
+  },
+
   plugins: [react(), tailwindcss()],
 
   resolve: {
@@ -85,4 +109,4 @@ export default defineConfig({
   worker: {
     format: "es",
   },
-});
+}));

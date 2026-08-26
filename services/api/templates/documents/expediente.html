@@ -75,6 +75,17 @@
               <a href="{% url 'documents:descargar-revision' revision.pk %}">
                 {{ revision.nombre_original|default:"—" }}
               </a>
+              {% if revision.pk in abribles %}
+                {% comment %}
+                  **Esta es la costura.** El archivo que se subio es el que se abre, y en el
+                  mismo sitio: es lo que ningun gestor documental del mercado puede ofrecer,
+                  porque el visor y el registro son el mismo producto.
+                {% endcomment %}
+                <br />
+                <a href="{% url 'visor:visor' %}?revision={{ revision.pk }}">
+                  {% translate "Open in the viewer" %} →
+                </a>
+              {% endif %}
               <br /><small>sha256 {{ revision.sha256|slice:":12" }}…</small>
             {% else %}
               —

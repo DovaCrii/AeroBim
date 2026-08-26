@@ -48,9 +48,12 @@ class PortalView(LoginRequiredMixin, TemplateView):
             (
                 _("Model"),
                 _("BIM viewer"),
+                "visor:visor",
+                # Sin permiso: mirar un modelo es lo que cualquiera que pueda entrar viene a
+                # hacer. Lo que **sí** está guardado es qué revisiones puede abrir, y eso lo
+                # decide `view_revision` en la API.
                 None,
-                None,
-                _("Opens the IFC and DXF viewer. Available to anyone who can sign in."),
+                _("The IFC and DXF viewer. What it can open depends on your role."),
             ),
             (
                 _("Documents"),

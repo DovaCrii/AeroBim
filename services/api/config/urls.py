@@ -60,6 +60,10 @@ urlpatterns = [
     path("administracion/", include("apps.accounts.urls")),
     path("proyecto/", include("apps.core.urls")),
     path("documentos/", include("apps.documents.urls")),
+    # El visor y la API que lo alimenta. Van juntos porque son las dos mitades de lo mismo:
+    # el SPA detrás del login y las revisiones que puede abrir.
+    path("visor/", include("apps.visor.urls")),
+    path("api/", include("apps.documents.api_urls")),
     path("api-token/", TokenConThrottle.as_view(), name="api-token"),
     path("admin/", admin.site.urls),
 ]

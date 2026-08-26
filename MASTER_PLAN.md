@@ -893,6 +893,50 @@ emitió y a quién— viva en un registro y no en la bandeja de correo de alguie
 | `F8.5` | **Trabajos programados** con su fila en `JobRun` y su vigilante                                            | ✅     |
 | `F8.6` | **Ver y comentar el PDF en el navegador** con EmbedPDF (MIT), sin descargarlo                              | ⬜     |
 | `F8.7` | **Emitir el transmittal desde la pantalla**, con carátula y acuse                                          | 🟡     |
+| `F8.8` | **El visor y el registro son el mismo producto**: abrir la revisión desde su expediente                    | ✅     |
+
+### `F8.8`: el hueco que no estaba en ninguna lista (2026-08-26)
+
+**Era el más grande, y no figuraba como tarea.** El visor abría archivos del disco de quien lo
+usaba y no sabía nada de proyectos; el registro guardaba revisiones —DXF e IFC incluidos— y no
+podía mostrarlas. O sea que _«visualizar y subir documentos todo junto»_, que es lo que el
+usuario pidió con esas palabras, **no estaba**: se podían las dos cosas, pero no con el mismo
+archivo. La tarjeta «BIM viewer» del portal no tenía ni enlace.
+
+| Decisión                                          | Por qué                                                                                                         |
+| ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| El SPA en **el mismo origen**, servido por Django | En otro origen harían falta CORS, un token en el navegador y una segunda CSP. Aquí la cookie de sesión ya sirve |
+| Y **por una vista**, no por whitenoise            | Un archivo estático se entrega antes de que Django mire quién pregunta: no admite un login delante              |
+| **Dos peticiones**: metadatos y luego bytes       | El visor dice _qué_ abre antes de descargar veinte megas, y el nombre no viaja en una cabecera del binario      |
+| Vite con `base` **solo al construir**             | En desarrollo la aplicación vive en la raíz de Vite; con prefijo se rompería el flujo de siempre y `diag.html`  |
+| La ruta del WASM desde `import.meta.env.BASE_URL` | Escrita a mano pediría `/wasm/`, recibiría el `index.html` y fallaría **dentro del worker**: sin error visible  |
+
+**Y las tres reglas de acceso se aplican también en la API**, no solo en la pantalla. La del
+acotado por organización hay que escribirla a mano: una `Revision` **no lleva** el campo
+`organizacion` —cuelga de su entregable— y `scope_queryset_to_organizacion` devuelve intacto un
+modelo sin el campo, así que confiar en él habría dejado el hueco abierto.
+
+**Comprobado en el navegador con el servidor corriendo:** el plano real del usuario
+(`ACAD-Piso 5_Base.dxf`, 1,5 MB) abre desde el registro y aparece como «PLANOS 2D (1)» con sus
+capas; el IFC (`Piso 5.ifc`) abre con sus **551 elementos** en el árbol. Sin autenticar,
+`/visor/` redirige y la API responde 401. Un `mandante` abre el visor pero tiene **cero
+revisiones abribles** y 404 en la `S3` en curso.
+
+> ### Y este bloque dejó accesibles los modelos del cliente sin autenticar
+>
+> **Vale escribirlo porque es la clase de defecto que se introduce arreglando otra cosa.**
+> Publicar `apps/web/dist` como estático dejó los IFC y DXF reales de la organización
+> descargables sin entrar: `HEAD /static/visor/samples/716-LCD-ME-ISUP-D-TEST.ifc` devolvía
+> **200 y 34 MB**. Vite copia todo lo que hay en `public/`, y ahí viven los archivos de prueba.
+>
+> `AGENTS.md` ya decía que los modelos de cliente viven fuera del repositorio, y así era: no
+> están confirmados. Lo que faltaba decir es lo otro: **lo que se pone en `public/` se
+> publica**, y publicar no es lo mismo que confirmar.
+>
+> El guardián es `apps/web/scripts/limpiar-dist.mjs`, que corre en cada `npm run build` y es
+> una **lista blanca**: una lista de lo prohibido habría funcionado hoy y se habría quedado
+> atrás con lo siguiente que alguien deje en `public/`. Y hay una prueba que falla si alguien
+> salta el paso.
 
 **Oráculo, y está automatizado** (`apps/documents/tests/test_pantallas.py`): el ciclo completo
 de un entregable —subir una revisión en `S3`, abrir una observación asignada a otro, comprobar

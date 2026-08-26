@@ -8,6 +8,7 @@
     "dev": "vite",
     "prebuild": "node scripts/copy-wasm.mjs",
     "build": "tsc -b && vite build",
+    "postbuild": "node scripts/limpiar-dist.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

@@ -5,6 +5,58 @@ Este proyecto sigue [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Añadido — El visor y el registro dejan de ser dos herramientas (2026-08-26)
+
+**El hueco no estaba en ninguna lista, y era el más grande.** El visor abría archivos del disco
+de quien lo usaba y no sabía nada de proyectos; el registro guardaba revisiones —DXF e IFC
+incluidos— y no podía mostrarlas. Así que «visualizar y subir documentos todo junto» **no
+estaba**: se podían las dos cosas, pero no con el mismo archivo.
+
+- **El SPA se sirve detrás del login**, en el mismo origen (`/visor/`). Con la aplicación en
+  otro origen harían falta CORS, un token en el navegador y una segunda configuración de CSP;
+  en el mismo origen la cookie de sesión ya sirve y las dos trampas del despliegue —COOP/COEP y
+  el `'wasm-unsafe-eval'`— se resuelven una vez.
+- **Y pasa por una vista, no por whitenoise**: un archivo estático no se puede poner detrás de
+  `LoginRequiredMixin`, porque se entrega antes de que Django mire quién pregunta.
+- **«Abrir en el visor» desde el expediente de la revisión.** La extensión decide qué se
+  ofrece, que es la misma regla que ya usa la aplicación al soltar un archivo.
+- **Una API de dos peticiones**: primero los metadatos —qué entregable, qué revisión, qué código
+  de idoneidad— y después los bytes. Así el visor dice qué está abriendo antes de descargar
+  veinte megas, y el nombre del archivo no hay que sacarlo de una cabecera del binario.
+- **Las tres reglas de acceso se aplican también en la API**, no solo en la pantalla:
+  `view_revision` explícito, acotado por organización —y aquí a mano, porque una `Revision` no
+  lleva el campo y cuelga de su entregable—, y solo lo publicado para quien no escribe.
+
+**Comprobado en el navegador, con el servidor corriendo:** el plano real del usuario
+(`ACAD-Piso 5_Base.dxf`, 1,5 MB) abre desde el registro y aparece como «PLANOS 2D (1)» con sus
+capas; el IFC (`Piso 5.ifc`) abre con sus 551 elementos en el árbol. Sin autenticar, `/visor/`
+redirige y la API responde 401. Un `mandante` abre el visor pero tiene **cero revisiones
+abribles** y 404 en la `S3` en curso.
+
+### Corregido — Los modelos del cliente quedaron accesibles sin autenticar (2026-08-26)
+
+**Defecto introducido por el cambio anterior, encontrado midiendo.** Publicar `apps/web/dist`
+como estático dejó los IFC y DXF reales de la organización descargables **sin autenticar**:
+`HEAD /static/visor/samples/716-LCD-ME-ISUP-D-TEST.ifc` devolvía **200 y 34 MB**. Vite copia
+todo lo que hay en `public/`, y ahí viven los archivos de prueba.
+
+`AGENTS.md` ya decía que los modelos de cliente viven fuera del repositorio, y así era: no
+están confirmados. Lo que faltaba decir es lo otro: **lo que se pone en `public/` se publica**,
+y publicar no es lo mismo que confirmar.
+
+El arreglo es `apps/web/scripts/limpiar-dist.mjs`, que corre en cada `npm run build` y es una
+**lista blanca y no una lista negra**: una lista de lo prohibido habría funcionado hoy y se
+habría quedado atrás con lo siguiente que alguien deje en `public/`. Y hay una prueba que falla
+si alguien salta el paso.
+
+### Corregido — La marca no cargaba con el visor servido por Django (2026-08-26)
+
+**Vite reescribe las rutas del `index.html` y no las cadenas dentro del JSX.** El favicon salió
+bien en el build y el `<img>` de la cinta se quedó pidiendo `/aerobim-mark.svg`, que bajo
+`/static/visor/` no existe. Ahora la ruta sale de `import.meta.env.BASE_URL`, igual que la del
+WASM — y esa es la que importaba de verdad: pedirla mal habría dado `Unexpected token '<'`
+**dentro del worker**, o sea sin error visible.
+
 ### Añadido — Control documental y seguimiento (2026-08-26)
 
 La Fase 8, a pedido del usuario y tomando la idea de **MineDoc** —el que ya usa la empresa—

@@ -155,6 +155,43 @@ function workerDeConversion(): Worker {
   return conversor;
 }
 
+/**
+ * De dónde se sirve el WASM de `web-ifc`.
+ *
+ * **Sale de `BASE_URL` y no de una constante**, porque la aplicación vive en dos sitios: en
+ * la raíz del servidor de Vite mientras se desarrolla, y bajo `/static/visor/` cuando Django
+ * la sirve detrás del login. Con la ruta escrita a mano, el segundo caso pide `/wasm/`, recibe
+ * el `index.html` de Django y falla con `Unexpected token '<'` **dentro del worker** — o sea
+ * sin un error visible, que es exactamente la trampa que ya costó una sesión.
+ *
+ * `BASE_URL` termina en barra en los dos casos, así que se concatena tal cual.
+ */
+const RUTA_WASM = `${import.meta.env.BASE_URL}wasm/`;
+
+/**
+ * La marca, por la misma razón que el WASM.
+ *
+ * **Vite reescribe las rutas del `index.html` y no las cadenas dentro del JSX.** El favicon
+ * salió bien en el build y este `img` se quedó pidiendo `/aerobim-mark.svg`, que bajo
+ * `/static/visor/` no existe: un 404 en la consola y la marca sin dibujar. Se vio al abrir el
+ * visor servido por Django.
+ */
+const RUTA_MARCA = `${import.meta.env.BASE_URL}aerobim-mark.svg`;
+
+/**
+ * Qué revisión del registro hay que abrir, si la URL lo dice.
+ *
+ * Es la costura con el control documental: desde el expediente de un entregable, «abrir en el
+ * visor» llega aquí como `?revision=<uuid>`. Sin el parámetro, el visor arranca vacío como
+ * siempre y sigue abriendo archivos del disco.
+ */
+function revisionPedida(): string | null {
+  const pedida = new URLSearchParams(globalThis.location?.search ?? "").get("revision");
+  // Se comprueba la forma antes de pedirla: un valor cualquiera en la URL no tiene por qué
+  // convertirse en una petición a la API.
+  return pedida !== null && /^[0-9a-f-]{36}$/i.test(pedida) ? pedida : null;
+}
+
 const ETAPAS: Record<LoadStage, string> = {
   converting: "convirtiendo la geometría",
   loading: "cargando en la escena",
@@ -190,6 +227,14 @@ export function App() {
    * seleccionaba un elemento distinto del que se había pulsado.
    */
   const clickInFlight = useRef(false);
+  /**
+   * Qué revisión del registro se abrió ya, para no volver a pedirla.
+   *
+   * El efecto que la abre depende del estado del visor, y ese estado pasa por `ready` varias
+   * veces durante una sesión —después de cada carga—. Sin esta marca, cada una volvería a
+   * descargar y a dibujar la misma revisión.
+   */
+  const revisionAbierta = useRef<string | null>(null);
   const [status, setStatus] = useState<Status>({ kind: "starting" });
   const [models, setModels] = useState<readonly LoadedModel[]>([]);
   const [dragging, setDragging] = useState(false);
@@ -335,7 +380,7 @@ export function App() {
     let cancelled = false;
     let desuscribir: (() => void) | null = null;
 
-    BimViewer.create(host, { convertWorker: workerDeConversion() })
+    BimViewer.create(host, { wasmPath: RUTA_WASM, convertWorker: workerDeConversion() })
       .then((instance) => {
         if (cancelled) return;
         viewer.current = instance;
@@ -435,6 +480,84 @@ export function App() {
     (file: File) => (file.name.toLowerCase().endsWith(".dxf") ? openDxf(file) : openIfc(file)),
     [openDxf, openIfc],
   );
+
+  /**
+   * Abre una revisión del registro documental, por su identificador.
+   *
+   * **Es la costura entre las dos mitades del producto**: hasta ahora el visor abría archivos
+   * del disco de quien lo usaba y no sabía nada de proyectos, y el registro guardaba
+   * revisiones —DXF e IFC incluidos— y no podía mostrarlas.
+   *
+   * Dos peticiones y no una, a propósito: primero los metadatos, que dicen **qué** se va a
+   * abrir y con qué nombre, y después los bytes. Así se puede avisar de lo que se está
+   * cargando antes de descargar veinte megas, y el nombre —que es lo que decide si entra como
+   * plano o como modelo— no hay que sacarlo de una cabecera del binario.
+   *
+   * La cookie de sesión viaja porque el SPA y la API comparten origen. Un 403 aquí no es un
+   * fallo del visor: es que ese rol no puede ver esa revisión —una `S0` en curso, por
+   * ejemplo— y así se dice.
+   */
+  const abrirRevision = useCallback(
+    async (revisionId: string) => {
+      setStatus({ kind: "loading", name: revisionId, stage: "reading" });
+      try {
+        const meta = await fetch(`/api/revisiones/${revisionId}/`, {
+          credentials: "same-origin",
+          headers: { Accept: "application/json" },
+        });
+        if (!meta.ok) {
+          setStatus({
+            kind: "error",
+            message:
+              meta.status === 403
+                ? "Tu rol no puede abrir esta revisión."
+                : meta.status === 404
+                  ? "Esa revisión no existe o no está disponible."
+                  : `El registro respondió ${meta.status}.`,
+          });
+          return;
+        }
+        const datos = (await meta.json()) as {
+          nombre: string;
+          contenido: string;
+          correlativo: string;
+          entregable: { codigo: string };
+        };
+
+        const etiqueta = `${datos.entregable.codigo} rev. ${datos.correlativo}`;
+        setStatus({ kind: "loading", name: etiqueta, stage: "reading" });
+
+        const archivo = await fetch(datos.contenido, { credentials: "same-origin" });
+        if (!archivo.ok) {
+          setStatus({ kind: "error", message: `No se pudo leer el archivo (${archivo.status}).` });
+          return;
+        }
+        // El nombre original viaja en los metadatos, y es el que decide el camino: `openFile`
+        // manda un `.dxf` al lector de planos y todo lo demás al de IFC.
+        await openFile(new File([await archivo.blob()], datos.nombre));
+      } catch (error: unknown) {
+        setStatus({ kind: "error", message: describe(error) });
+      }
+    },
+    [openFile],
+  );
+
+  /**
+   * Si la URL pide una revisión, se abre en cuanto el visor está listo.
+   *
+   * Se espera al visor a propósito: `abrirRevision` necesita la instancia, y arrancar la
+   * descarga antes solo adelantaría el fallo.
+   */
+  useEffect(() => {
+    if (status.kind !== "ready" || viewer.current === null) return;
+    const pedida = revisionPedida();
+    if (pedida === null || pedida === revisionAbierta.current) return;
+
+    // Se marca antes de pedirla: sin esto, cada cambio de estado a `ready` —y hay varios
+    // durante una carga— volvería a abrir la misma revisión.
+    revisionAbierta.current = pedida;
+    void abrirRevision(pedida);
+  }, [status.kind, abrirRevision]);
 
   const onDrop = useCallback(
     (event: React.DragEvent<HTMLDivElement>) => {
@@ -1019,7 +1142,7 @@ export function App() {
       <Ribbon
         brand={
           <span className="flex items-center gap-2" title="AeroBim — visor y coordinador BIM">
-            <img src="/aerobim-mark.svg" alt="" className="h-6 w-auto" />
+            <img src={RUTA_MARCA} alt="" className="h-6 w-auto" />
             <span className="text-sm font-semibold">AeroBim</span>
           </span>
         }

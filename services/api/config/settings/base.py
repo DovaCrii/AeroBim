@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     "apps.accounts",
     "apps.projects",
     "apps.documents",
+    "apps.visor",
 ]
 
 MIDDLEWARE = [
@@ -130,9 +131,19 @@ TIME_ZONE = config("TIME_ZONE", default="America/Santiago")
 USE_I18N = True
 USE_TZ = True
 
+# La raíz del monorepo, dos niveles arriba de `services/api`. Es donde vive el SPA.
+REPO_DIR = BASE_DIR.parent.parent
+
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
-STATICFILES_DIRS = [BASE_DIR / "static"]
+# **El SPA se sirve desde donde lo construye Vite**, con el prefijo `visor/`. La alternativa
+# —hacer que Vite escriba dentro del árbol de Django— acoplaría el build de JavaScript a la
+# estructura del backend; así cada uno se queda en su sitio y Django solo lo publica.
+VISOR_DIST = Path(config("VISOR_DIST", default=str(REPO_DIR / "apps" / "web" / "dist")))
+STATICFILES_DIRS = [BASE_DIR / "static", ("visor", VISOR_DIST)]
+# Mientras se trabaja en el SPA, el servidor de Vite. Vacío en producción: ahí se sirve lo
+# construido, y si no está, `/visor/` lo dice en vez de fallar con un traceback.
+VISOR_DEV_URL = config("VISOR_DEV_URL", default="")
 
 # Los documentos viven **fuera del repositorio**, bajo el control del operador,
 # igual que los IFC y los planos del visor.

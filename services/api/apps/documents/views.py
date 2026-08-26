@@ -23,6 +23,7 @@ from apps.core.views import (
     OrganizacionScopedQuerysetMixin,
 )
 from apps.documents import storage
+from apps.documents.abribles import es_abrible
 from apps.documents.forms import (
     ActividadForm,
     CierreForm,
@@ -105,6 +106,10 @@ class ExpedienteView(ModelViewPermissionRequiredMixin, OrganizacionScopedQueryse
         ).select_related("responsable", "autor")
         contexto["actividades"] = entregable.actividades.select_related("responsable")
         contexto["idoneidades"] = Idoneidad.choices
+        # Cuáles se pueden abrir en el visor. **Se decide por la extensión**, que es la misma
+        # regla que ya usa la aplicación al soltar un archivo, y se calcula aquí para que la
+        # plantilla no tenga que saber de formatos.
+        contexto["abribles"] = {r.pk for r in contexto["revisiones"] if es_abrible(r)}
 
         # **Lo que falta, nombrado.** No un porcentaje: la fila concreta y el atajo que la
         # cierra, y el atajo solo si el usuario puede ejecutarlo.
