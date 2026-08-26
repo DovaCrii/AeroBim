@@ -959,6 +959,49 @@ modelo es lo difícil: un IFC suele venir en coordenadas locales de proyecto (y 
 veces con el norte rotado), mientras la nube viene georreferenciada del vuelo. Sin
 `F2.2` resuelta, `F2.4` mide basura con dos decimales.
 
+### `F2.6` — Gaussian splatting: **va aquí y no en AeroPlanner** (decidido el 2026-08-26)
+
+| #      | Tarea                                                                        | Estado |
+| ------ | ---------------------------------------------------------------------------- | ------ |
+| `F2.6` | Abrir una escena de gaussian splatting en la misma escena Three.js del visor | ⬜     |
+
+Lo preguntó el usuario: ¿AeroBim o AeroPlanner? **AeroBim**, por cuatro razones, y ninguna es de
+comodidad:
+
+1. **El valor del splat es comparar lo construido con lo modelado**, y esa comparación **solo existe
+   aquí**. Es literalmente la razón de ser del producto —«lo que dice el plano, ¿está modelado?»— y
+   ya hay un IFC y un DXF en la misma escena para hacerla.
+2. **El sitio ya está reservado.** `docs/UX.md` tiene `NUBES DE PUNTOS` como sección del navegador
+   del proyecto, y un splat es de la misma clase: una captura de la realidad, con las mismas
+   necesidades —encender y apagar, recortar por caja, medir contra ella y, sobre todo, **calzarla
+   con el modelo**—. La regla de crecimiento del propio documento es «una capacidad nueva es una
+   sección del navegador».
+3. **La máquina que hace falta ya está montada acá**: la escena, la cámara, los cortes, las
+   mediciones y la disciplina de unidades y coordenadas. Y `F2.2` —el problema difícil, alinear la
+   captura con el modelo— **es el mismo problema** y se resuelve una vez para las dos.
+4. **El ciclo se cierra acá**: sobre un splat se ve el defecto y se abre la observación, con su
+   responsable y su correo. En AeroPlanner no hay a quién asignar nada.
+
+**Lo que sí es de AeroPlanner** es la otra mitad: **planificar el vuelo que produce una buena
+reconstrucción** —líneas y solape— y, si acaso, lanzar y vigilar el trabajo de reconstrucción. El
+artefacto se consume aquí. Es la misma división que ya existe con la ortofoto (`F6.4`).
+
+> **Y una trampa verificada que costaría una sesión.** El renderizador más conocido para Three.js,
+> `@mkkellogg/gaussian-splats-3d` (MIT), usa **`SharedArrayBuffer` por defecto** para hablar con su
+> worker de ordenamiento, y su propio README dice que para eso **hacen falta las cabeceras
+> COOP/COEP**. Esas cabeceras son la **regla cerrada número 9 de `AGENTS.md`**: activan el WASM
+> multihilo de `web-ifc`, que no funciona empaquetado, y **el visor se cuelga sin emitir error**.
+>
+> Así que si entra por ahí, entra con `sharedMemoryForWorkers: false` y —como recomienda el propio
+> README cuando eso se apaga— `gpuAcceleratedSort: false`. No es una preferencia de rendimiento: es
+> la diferencia entre que el IFC abra o no. Alternativas a evaluar, las tres MIT:
+> `@sparkjsdev/spark` (pensado para Three.js), `gsplat` y el motor `playcanvas` — de este último hay
+> que ver si trae su propia escena, que es el motivo por el que se descartó `dxf-viewer`.
+>
+> Lo otro a medir antes de prometer: **el peso**. Una escena de splats son cientos de megas, y este
+> repositorio ya pagó una vez el precio de la memoria de vídeo con el atlas de rótulos del plano. El
+> archivo vive fuera del repositorio, como los IFC.
+
 ---
 
 ## FASE 3 — Persistencia y backend
