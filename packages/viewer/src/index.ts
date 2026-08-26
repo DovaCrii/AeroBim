@@ -3001,6 +3001,26 @@ export class BimViewer {
     return this.planSnapEnabled;
   }
 
+  /**
+   * Enciende o apaga la postproducción: la oclusión ambiental y las aristas dibujadas.
+   *
+   * **Un plano CAD no se mira con postproducción.** `COLOR_PEN_SHADOWS` está para que un modelo se
+   * lea —las aristas marcan dónde acaba cada elemento, la oclusión da profundidad a los rincones—
+   * y sobre un dibujo de líneas plano hace lo contrario: filtra los colores y los deja lavados, que
+   * es parte de por qué el plano no se veía como en el CAD. En Modo 2D se apaga, y volviendo al
+   * modelo se enciende.
+   */
+  setPostproductionEnabled(enabled: boolean): void {
+    this.assertAlive();
+    const postproduccion = this.world.renderer?.postproduction;
+    if (postproduccion !== undefined) postproduccion.enabled = enabled;
+  }
+
+  /** `true` si la postproducción está encendida. */
+  get postproduction(): boolean {
+    return this.world.renderer?.postproduction.enabled ?? false;
+  }
+
   /** Encuadra un plano, en planta por defecto. Devuelve `false` si ese plano ya no está. */
   framePlan(id: string, view: StandardView = "top"): boolean {
     this.assertAlive();

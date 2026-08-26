@@ -26,6 +26,9 @@ import {
   type DxfText,
 } from "@aerobim/bim-core";
 import * as THREE from "three";
+import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
+import { LineSegments2 } from "three/examples/jsm/lines/LineSegments2.js";
+import { LineSegmentsGeometry } from "three/examples/jsm/lines/LineSegmentsGeometry.js";
 import { mantenerTamanoEnPantalla, materialDeMarcas, tocarMarcas } from "./etiquetas.js";
 
 /**
@@ -85,6 +88,80 @@ export interface LoadedPlan {
   readonly labelHeightM: number;
   /** El alto que le corresponde a este plano por su tamaño, para poder ofrecerlo. */
   readonly suggestedLabelHeightM: number;
+}
+
+/**
+ * En qué orden se dibujan las piezas del plano.
+ *
+ * **En el CAD el macizo va debajo y el trazo encima.** Todo el plano es coplanar y se dibuja sin
+ * escribir profundidad, así que quien manda es este orden y no la geometría: sin él, un relleno
+ * tapaba el contorno del propio muro que estaba rellenando.
+ */
+const ORDEN = { macizos: 0, trazos: 1, rotulos: 2 } as const;
+
+/**
+ * Cuánto mide en pantalla, en píxeles, un grosor de trazo en milímetros de papel.
+ *
+ * **Va en píxeles y no en metros de escena, y es a propósito**: es lo que hace un CAD. El grosor de
+ * un trazo es una propiedad de la lámina, no del edificio, así que un muro de 0,30 mm se ve igual de
+ * gordo mirando la planta entera que mirando un recinto. Si escalara con el zoom, de cerca sería una
+ * mancha y de lejos no existiría.
+ *
+ * **La rampa se mide desde el grosor por defecto del propio archivo, no desde cero.** El primer
+ * intento fue absoluto —un píxel más tres y medio por milímetro— y borraba justo lo que venía a
+ * mostrar: los 0,25 mm del `$LWDEFAULT` daban 1,875 px y los 0,30 mm del muro daban 2,05, los dos
+ * redondeaban a 2 y el muro volvía a pesar lo mismo que la cota. Y de paso todos los trazos pagaban
+ * la malla gruesa sin ganar nada.
+ *
+ * Con la rampa relativa, **lo que el archivo considera normal es el trazo de un píxel** y solo lo
+ * que declara más gordo se dibuja más gordo, que es exactamente la jerarquía que se quería leer. El
+ * techo son ocho píxeles: por encima, un plano se convierte en manchas.
+ */
+const ANCHO_PX = { base: 1, porMmExtra: 12, maximo: 8 } as const;
+
+function anchoEnPixeles(lineweightMm: number, porDefectoMm: number): number {
+  const extra = Math.max(0, lineweightMm - porDefectoMm);
+  // Se redondea a una décima de píxel para que dos grosores casi iguales compartan malla en vez de
+  // abrir una por cada milésima declarada.
+  const px = Math.round((ANCHO_PX.base + extra * ANCHO_PX.porMmExtra) * 10) / 10;
+  return Math.min(ANCHO_PX.maximo, px);
+}
+
+/**
+ * A partir de qué ancho conviene pagar la línea gruesa de verdad.
+ *
+ * Por debajo, `LineBasicMaterial` ya dibuja un píxel y es una malla y una pasada; por encima hace
+ * falta `LineSegments2`, que convierte cada segmento en un cuadrilátero instanciado. Ver
+ * {@link trazosDe} para por qué eso obliga a dibujar dos objetos.
+ */
+const ANCHO_QUE_MERECE_MALLA = 1.1;
+
+/** Un grupo de trazos que comparten color, opacidad, patrón y grosor: se dibujan de una pasada. */
+interface EstiloDeTrazo {
+  readonly color: number;
+  readonly opacity: number;
+  readonly dash: readonly [number, number] | null;
+  readonly anchoPx: number;
+  readonly puntos: number[];
+}
+
+/**
+ * El material de una cara del plano —un macizo, una banda—, con la opacidad que declara el CAD.
+ *
+ * **Antes iba al 35 % y al 40 % por decisión propia, y el CAD es opaco.** Un plano con los macizos
+ * translúcidos se ve lavado y los colores dejan de ser los del CAD, que era la queja. La opacidad
+ * ahora viene del código 440 del archivo, y solo se paga mezcla cuando el archivo la pide.
+ *
+ * Sigue sin escribir profundidad: el plano vive debajo del modelo y no debe pelearse con la losa.
+ */
+function materialDeCara(color: number, opacity: number): THREE.MeshBasicMaterial {
+  return new THREE.MeshBasicMaterial({
+    color,
+    transparent: opacity < 1,
+    opacity,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+  });
 }
 
 /** Entre qué medidas, en metros de la escena, una raya se ve como raya y no como otra cosa. */
@@ -250,12 +327,9 @@ export class PlanOverlay {
       // no de su capa, y en un plano de remodelación eso *es* la información: lo nuevo y lo que se
       // demuele conviven en la misma capa con colores distintos. Con el trazo pasa igual: la línea
       // discontinua distingue un eje o lo que se bota de un muro que se queda.
-      const porEstilo = new Map<
-        string,
-        { color: number; dash: readonly [number, number] | null; puntos: number[] }
-      >();
+      const porEstilo = new Map<string, EstiloDeTrazo>();
       // Las polilíneas **con ancho** no son líneas gruesas: son macizos, y van a su propia malla.
-      const bandas = new Map<number, number[]>();
+      const bandas = new Map<string, { color: number; opacity: number; posiciones: number[] }>();
 
       for (const linea of dibujo.polylines) {
         if (linea.layer !== capa.name) continue;
@@ -263,65 +337,39 @@ export class PlanOverlay {
         // **El color ya viene resuelto del dominio**, con su procedencia: la entidad, su capa, el
         // bloque que la inserta o el por defecto. Antes se resolvía aquí con un `?? capa.colorIndex`
         // que no sabía nada de bloques, y por eso el contenido de los bloques salía casi blanco.
-        const color = linea.color.rgb;
+        const { rgb: color, opacity } = linea.color;
 
         if (linea.width !== null && linea.width > 0) {
-          const destino = bandas.get(color) ?? [];
-          empujarBanda(linea, centrado, linea.width, destino);
-          bandas.set(color, destino);
+          const clave = `${color}|${opacity}`;
+          const destino = bandas.get(clave) ?? { color, opacity, posiciones: [] };
+          empujarBanda(linea, centrado, linea.width, destino.posiciones);
+          bandas.set(clave, destino);
         }
 
         // El eje se dibuja igual, en fino: es lo que se engancha al medir y lo que marca el borde
         // donde dos macizos se tocan.
         const dash = linea.dash;
-        const clave = `${color}|${dash === null ? "llena" : `${dash[0]}:${dash[1]}`}`;
-        const grupo = porEstilo.get(clave) ?? { color, dash, puntos: [] };
+        const anchoPx = anchoEnPixeles(linea.lineweightMm, dibujo.defaultLineweightMm);
+        const clave = `${color}|${opacity}|${dash === null ? "llena" : `${dash[0]}:${dash[1]}`}|${anchoPx}`;
+        const grupo = porEstilo.get(clave) ?? { color, opacity, dash, anchoPx, puntos: [] };
         empujarSegmentos(linea, centrado, grupo.puntos);
         porEstilo.set(clave, grupo);
       }
 
-      for (const [color, posiciones] of bandas) {
+      for (const { color, opacity, posiciones } of bandas.values()) {
         if (posiciones.length === 0) continue;
 
         const geometria = new THREE.BufferGeometry();
         geometria.setAttribute("position", new THREE.Float32BufferAttribute(posiciones, 3));
-        const malla = new THREE.Mesh(
-          geometria,
-          new THREE.MeshBasicMaterial({
-            color,
-            transparent: true,
-            opacity: 0.4,
-            depthWrite: false,
-            side: THREE.DoubleSide,
-          }),
-        );
+        const malla = new THREE.Mesh(geometria, materialDeCara(color, opacity));
         malla.userData = { tipo: "banda", capa: capa.name };
-        malla.renderOrder = 0;
+        malla.renderOrder = ORDEN.macizos;
         malla.frustumCulled = false;
         grupoCapa.add(malla);
       }
 
-      for (const { color, dash, puntos } of porEstilo.values()) {
-        if (puntos.length === 0) continue;
-
-        const geometria = new THREE.BufferGeometry();
-        geometria.setAttribute("position", new THREE.Float32BufferAttribute(puntos, 3));
-
-        // El plano va **debajo** del modelo y no debe taparlo, pero tampoco desaparecer bajo la
-        // losa: se dibuja sin escribir profundidad, así que se ve a través sin pelearse con ella.
-        const comun = { color, depthWrite: false, transparent: true, opacity: 0.9 };
-        const patron = dash === null ? null : patronLegible(dash, unidades.metresPerUnit);
-        const material =
-          patron === null
-            ? new THREE.LineBasicMaterial(comun)
-            : new THREE.LineDashedMaterial({ ...comun, dashSize: patron[0], gapSize: patron[1] });
-
-        const linea = new THREE.LineSegments(geometria, material);
-        // Una línea discontinua necesita saber cuánto lleva recorrido en cada vértice; sin esto se
-        // dibuja llena y el patrón no aparece por ninguna parte.
-        if (patron !== null) linea.computeLineDistances();
-        linea.frustumCulled = false;
-        grupoCapa.add(linea);
+      for (const estilo of porEstilo.values()) {
+        for (const objeto of trazosDe(estilo, unidades.metresPerUnit)) grupoCapa.add(objeto);
       }
 
       for (const relleno of dibujo.hatches) {
@@ -342,6 +390,10 @@ export class PlanOverlay {
       );
 
       if (grupoCapa.children.length === 0) continue;
+      // **Una capa apagada en el CAD arranca apagada.** Se dibuja igual —la geometría está ahí y se
+      // puede encender— pero de entrada el plano se ve como en AutoCAD, que es la referencia. En el
+      // plano real es `0-AREA UTIL`, que el visor pintaba violeta encima del dibujo.
+      grupoCapa.visible = !capa.off;
       capas.set(capa.name, grupoCapa);
       grupo.add(grupoCapa);
     }
@@ -870,6 +922,90 @@ function empujarBanda(
   }
 }
 
+/**
+ * Los objetos con los que se dibuja un grupo de trazos.
+ *
+ * **Por qué puede ser más de uno.** `LineBasicMaterial` no sabe de grosor: WebGL ignora su
+ * `linewidth` y todo sale a un píxel, que es por lo que un muro pesaba lo mismo que una cota. La
+ * línea gruesa de verdad es `LineSegments2`, que convierte cada segmento en un cuadrilátero
+ * instanciado — y ahí está el problema: **es una malla, y su geometría ya no son pares de vértices**.
+ *
+ * De esos pares dependen dos cosas que ya funcionan y no se pueden romper: el clic que devuelve la
+ * capa y el largo del tramo (`extremosDelSegmento`) y el ajuste al cruce de dos trazos
+ * (`intersectionsNear`). Así que cuando hace falta grosor se dibujan **dos objetos**: la malla
+ * gruesa, que se ve y no se puede clicar, y la línea de siempre con el material apagado, que no se
+ * dibuja y sigue siendo la que contesta las preguntas.
+ *
+ * Un material invisible **no** deja de ser raycastable —lo que se apaga es el dibujo, no el objeto—
+ * y por eso el par sale gratis en pasadas de dibujo. Para los trazos finos, que en un plano real son
+ * la inmensa mayoría, se sigue dibujando un solo objeto.
+ */
+function trazosDe(estilo: EstiloDeTrazo, metrosPorUnidad: number): readonly THREE.Object3D[] {
+  const { color, opacity, dash, anchoPx, puntos } = estilo;
+  if (puntos.length === 0) return [];
+
+  const patron = dash === null ? null : patronLegible(dash, metrosPorUnidad);
+  const geometria = new THREE.BufferGeometry();
+  geometria.setAttribute("position", new THREE.Float32BufferAttribute(puntos, 3));
+
+  const fina = new THREE.LineSegments(
+    geometria,
+    patron === null
+      ? new THREE.LineBasicMaterial({ color, depthWrite: false, transparent: opacity < 1, opacity })
+      : new THREE.LineDashedMaterial({
+          color,
+          depthWrite: false,
+          transparent: opacity < 1,
+          opacity,
+          dashSize: patron[0],
+          gapSize: patron[1],
+        }),
+  );
+  // Una línea discontinua necesita saber cuánto lleva recorrido en cada vértice; sin esto se dibuja
+  // llena y el patrón no aparece por ninguna parte.
+  if (patron !== null) fina.computeLineDistances();
+  fina.frustumCulled = false;
+  fina.renderOrder = ORDEN.trazos;
+  fina.userData = { tipo: "trazos" };
+
+  if (anchoPx <= ANCHO_QUE_MERECE_MALLA) return [fina];
+
+  const gruesa = new LineSegments2(
+    new LineSegmentsGeometry().setPositions(puntos),
+    new LineMaterial({
+      color,
+      linewidth: anchoPx,
+      transparent: opacity < 1,
+      opacity,
+      depthWrite: false,
+      dashed: patron !== null,
+      ...(patron === null ? {} : { dashSize: patron[0], gapSize: patron[1] }),
+    }),
+  );
+  if (patron !== null) gruesa.computeLineDistances();
+  gruesa.frustumCulled = false;
+  gruesa.renderOrder = ORDEN.trazos;
+  // La malla gruesa se ve y no se clica: quien contesta es la línea fina. Sin esta marca, `pick` la
+  // tomaría por un relleno —es una malla— y un clic sobre un muro devolvería "relleno" sin su largo.
+  gruesa.userData = { tipo: "grosor" };
+  gruesa.raycast = () => {};
+
+  // `LineMaterial` necesita el tamaño del lienzo para convertir su ancho de píxeles a pantalla, y si
+  // no se le da dibuja con el que traía por defecto: al redimensionar la ventana los grosores se
+  // desajustan. Se pone antes de cada fotograma, que es cuando se sabe.
+  const material = gruesa.material;
+  gruesa.onBeforeRender = (renderer) => {
+    renderer.getSize(TAMANO);
+    material.resolution.set(TAMANO.x, TAMANO.y);
+  };
+
+  // El orden importa: la fina va después para que sus extremos ganen el clic frente a la malla.
+  return [gruesa, fina];
+}
+
+/** Reutilizado para no crear un vector por fotograma y por malla. */
+const TAMANO = new THREE.Vector2();
+
 /** Cuelga de la capa los rótulos que le tocan y devuelve cuántos entraron. */
 function ponerRotulos(
   grupoCapa: THREE.Group,
@@ -1061,7 +1197,7 @@ function atlasDeEtiquetas(
   malla.raycast = (rayo, impactos) => tocarMarcas(malla, material, centros, rayo, impactos);
   // Los rótulos se dibujan **encima** de los trazos: compartiendo plano con las líneas, parpadean
   // contra ellas al orbitar.
-  malla.renderOrder = 2;
+  malla.renderOrder = ORDEN.rotulos;
   malla.frustumCulled = false;
   return { malla, cuantos };
 }
@@ -1113,9 +1249,15 @@ function mallaDeRelleno(
     geometria.setAttribute("position", new THREE.Float32BufferAttribute(puntos, 3));
     const linea = new THREE.LineSegments(
       geometria,
-      new THREE.LineBasicMaterial({ color, depthWrite: false, transparent: true, opacity: 0.5 }),
+      new THREE.LineBasicMaterial({
+        color,
+        depthWrite: false,
+        transparent: relleno.color.opacity < 1,
+        opacity: relleno.color.opacity,
+      }),
     );
     linea.frustumCulled = false;
+    linea.renderOrder = ORDEN.trazos;
     return linea;
   }
 
@@ -1128,19 +1270,11 @@ function mallaDeRelleno(
   // Y se sube un pelo para que no pelee contra las líneas del propio contorno.
   geometria.translate(0, 0.0005, 0);
 
-  const malla = new THREE.Mesh(
-    geometria,
-    new THREE.MeshBasicMaterial({
-      color,
-      // Translúcido a propósito: el relleno no puede tapar ni el modelo que hay debajo ni las
-      // líneas del propio plano, que son las que se miden.
-      transparent: true,
-      opacity: 0.35,
-      depthWrite: false,
-      side: THREE.DoubleSide,
-    }),
-  );
-  malla.renderOrder = 0;
+  // **Opaco, como en el CAD.** Iba al 35 % para no tapar el modelo ni las líneas del propio plano;
+  // el precio era un plano lavado, que es justo la queja. Lo que no lo tape ahora es el orden de
+  // dibujo —{@link ORDEN}—, que pone los trazos encima del macizo, y no la transparencia.
+  const malla = new THREE.Mesh(geometria, materialDeCara(color, relleno.color.opacity));
+  malla.renderOrder = ORDEN.macizos;
   malla.frustumCulled = false;
   return malla;
 }

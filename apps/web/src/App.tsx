@@ -383,6 +383,17 @@ export function App() {
       const texto = await file.text();
       const plano = await instance.loadPlan(texto, file.name);
       setPlans((actuales) => [...actuales, plano]);
+      // **Las capas que el CAD tiene apagadas arrancan apagadas acá también**, y con el ojo cerrado
+      // en la lista: si el plano se ve como en AutoCAD pero la lista dice que todo está encendido,
+      // la lista miente. Se pueden encender una por una — la geometría está cargada.
+      const apagadas = plano.layers.filter((capa) => capa.off);
+      if (apagadas.length > 0) {
+        setHiddenPlanLayers((actual) => {
+          const siguiente = new Set(actual);
+          for (const capa of apagadas) siguiente.add(`${plano.id}:${capa.name}`);
+          return siguiente;
+        });
+      }
       setStatus({ kind: "ready" });
       requestAnimationFrame(() => instance.framePlan(plano.id, "top"));
     } catch (error: unknown) {
@@ -725,6 +736,9 @@ export function App() {
       if (activar) {
         setHiddenModels(new Set(models.map((modelo) => modelo.id)));
         for (const modelo of models) void instance.setModelVisible(modelo.id, false);
+        // La postproducción está para que se lea un modelo; sobre un dibujo de líneas plano filtra
+        // los colores y los deja lavados, y el plano deja de verse como en el CAD.
+        instance.setPostproductionEnabled(false);
         setProjection("Orthographic");
         void instance.setProjection("Orthographic");
         setNavigation("Plan");
@@ -736,6 +750,7 @@ export function App() {
 
       setHiddenModels(new Set());
       for (const modelo of models) void instance.setModelVisible(modelo.id, true);
+      instance.setPostproductionEnabled(true);
       setProjection("Perspective");
       void instance.setProjection("Perspective");
       setNavigation("Orbit");

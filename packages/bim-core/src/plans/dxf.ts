@@ -276,6 +276,14 @@ export interface DxfDrawing {
    * lo que hacía que un plano de veinte metros midiera cuatrocientos ochenta.
    */
   readonly paperSpaceCount: number;
+  /**
+   * El grosor de trazo del archivo (`$LWDEFAULT`), en milímetros.
+   *
+   * **Es la referencia con la que se dibuja la jerarquía de grosores.** Un plano no se lee por el
+   * valor absoluto de sus trazos sino por cuáles son más gordos que los demás, y "los demás" es
+   * justo este número: lo que declara el archivo para todo lo que no dice nada.
+   */
+  readonly defaultLineweightMm: number;
 }
 
 /**
@@ -349,6 +357,7 @@ export function parseDxf(text: string): DxfDrawing {
     declaredUnits,
     skipped,
     paperSpaceCount: salida.paperSpace,
+    defaultLineweightMm: grosorPorDefectoMm,
   };
 }
 
