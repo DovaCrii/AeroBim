@@ -45,6 +45,21 @@ function dxf(...pares: readonly (readonly [number | string, string])[]): string 
   return pares.map(([code, value]) => `${code}\n${value}`).join("\n") + "\n";
 }
 
+/**
+ * El color ya resuelto que le toca a una entidad.
+ *
+ * Se escribe con su **procedencia** porque es lo que se está probando: la mitad de los defectos de
+ * color de un plano no son la paleta, son haber ido a buscar el color al sitio equivocado.
+ */
+const color = (
+  aci: number | null,
+  source: "entidad" | "capa" | "bloque" | "defecto",
+  opacity = 1,
+) => ({ rgb: aciColor(aci), aci, opacity, source });
+
+/** El grosor que sale cuando nadie lo declara: el `$LWDEFAULT` de AutoCAD. */
+const GROSOR_POR_DEFECTO = 0.25;
+
 const CABECERA = (insunits: string) =>
   [
     [0, "SECTION"],
@@ -77,9 +92,10 @@ describe("parseDxf", () => {
         layer: "0-MUROS",
         points: [0, 0, 3000, 4000],
         closed: false,
-        colorIndex: null,
+        color: color(null, "defecto"),
         dash: null,
         width: null,
+        lineweightMm: GROSOR_POR_DEFECTO,
       },
     ]);
     expect(plano.declaredUnits).toEqual({ code: 4, name: "milímetros", metresPerUnit: 0.001 });
@@ -218,7 +234,7 @@ describe("parseDxf", () => {
         height: 250,
         rotationDeg: 90,
         text: "OFICINA 5 18.4 m2",
-        colorIndex: null,
+        color: color(null, "defecto"),
       },
       {
         layer: "0-EJES",
@@ -227,7 +243,7 @@ describe("parseDxf", () => {
         height: 100,
         rotationDeg: 0,
         text: "EJE A °",
-        colorIndex: null,
+        color: color(null, "defecto"),
       },
     ]);
     // Un texto también ocupa sitio en el plano: cuenta para la extensión y para su capa.
@@ -331,8 +347,17 @@ describe("parseDxf", () => {
     );
 
     expect(plano.hatches).toEqual([
-      { layer: "0-MUROS", colorIndex: null, solid: true, loops: [[0, 0, 10, 0, 10, 5, 0, 5]] },
+      {
+        layer: "0-MUROS",
+        color: color(null, "defecto"),
+        solid: true,
+        pattern: null,
+        loops: [[0, 0, 10, 0, 10, 5, 0, 5]],
+      },
     ]);
+    // Un macizo también ocupa sitio: sin contarlo, el plano se centra mal y la unidad se deduce
+    // con una extensión que no es la del dibujo.
+    expect(plano.bounds).toEqual({ minX: 0, minY: 0, maxX: 10, maxY: 5 });
   });
 
   it("resuelve el color: el propio de la entidad manda, y si no, el de su capa", () => {
@@ -371,7 +396,9 @@ describe("parseDxf", () => {
       ),
     );
 
-    expect(plano.polylines.map((linea) => linea.colorIndex)).toEqual([4, 1, 4]);
+    expect(plano.polylines.map((linea) => linea.color.aci)).toEqual([4, 1, 4]);
+    // Y con su procedencia, que es lo que permite auditar por qué algo se ve de un color.
+    expect(plano.polylines.map((linea) => linea.color.source)).toEqual(["capa", "entidad", "capa"]);
   });
 
   it("no lanza con un archivo truncado ni con uno que no es un DXF", () => {
@@ -419,10 +446,315 @@ describe("parseDxf", () => {
     );
 
     expect(plano.layers).toEqual([
-      { name: "0-MUROS", count: 2, colorIndex: 7 },
-      // Una capa apagada declara su color en negativo: el color es el mismo.
-      { name: "0-R-DEMUELE", count: 1, colorIndex: 1 },
+      { name: "0-MUROS", count: 2, colorIndex: 7, off: false, lineweightMm: null },
+      // **El signo negativo del 62 es "capa apagada"**: el color es el mismo y la capa no se ve. En
+      // el plano real es `0-AREA UTIL`, que el visor pintaba violeta encima del dibujo.
+      { name: "0-R-DEMUELE", count: 1, colorIndex: 1, off: true, lineweightMm: null },
     ]);
+  });
+
+  it("marca apagada la capa congelada y la `Defpoints`, que en el CAD no se imprime", () => {
+    const plano = parseDxf(
+      dxf(
+        [0, "SECTION"],
+        [2, "TABLES"],
+        [0, "LAYER"],
+        [2, "0-AUX"],
+        [62, "3"],
+        // El bit 1 del código 70 es "congelada", que en pantalla es lo mismo que apagada.
+        [70, "1"],
+        [0, "LAYER"],
+        [2, "Defpoints"],
+        [62, "5"],
+        [0, "ENDSEC"],
+        [0, "SECTION"],
+        [2, "ENTITIES"],
+        [0, "LINE"],
+        [8, "0-AUX"],
+        [10, "0"],
+        [20, "0"],
+        [11, "1"],
+        [21, "0"],
+        [0, "LINE"],
+        [8, "Defpoints"],
+        [10, "0"],
+        [20, "0"],
+        [11, "2"],
+        [21, "0"],
+        [0, "ENDSEC"],
+      ),
+    );
+
+    expect(plano.layers.map((capa) => [capa.name, capa.off])).toEqual([
+      ["0-AUX", true],
+      ["Defpoints", true],
+    ]);
+    // Y la geometría se conserva: "¿qué hay en la capa que apagaron?" es una pregunta legítima.
+    expect(plano.polylines).toHaveLength(2);
+  });
+
+  it("la capa `0` dentro de un bloque toma la capa del `INSERT`, como en AutoCAD", () => {
+    const plano = parseDxf(
+      dxf(
+        [0, "SECTION"],
+        [2, "TABLES"],
+        [0, "LAYER"],
+        [2, "0-MOBILIARIO"],
+        [62, "3"],
+        [0, "ENDSEC"],
+        [0, "SECTION"],
+        [2, "BLOCKS"],
+        [0, "BLOCK"],
+        [2, "ESCRITORIO"],
+        [10, "0"],
+        [20, "0"],
+        // Dibujado en la capa `0`, que es como se dibuja un bloque para poder insertarlo donde sea.
+        [0, "LINE"],
+        [8, "0"],
+        [10, "0"],
+        [20, "0"],
+        [11, "120"],
+        [21, "0"],
+        // Y una línea con capa propia, que el `INSERT` no puede cambiar.
+        [0, "LINE"],
+        [8, "0-MUROS"],
+        [10, "0"],
+        [20, "0"],
+        [11, "60"],
+        [21, "0"],
+        [0, "ENDBLK"],
+        [0, "ENDSEC"],
+        [0, "SECTION"],
+        [2, "ENTITIES"],
+        [0, "INSERT"],
+        [2, "ESCRITORIO"],
+        [8, "0-MOBILIARIO"],
+        [10, "0"],
+        [20, "0"],
+        [0, "ENDSEC"],
+      ),
+    );
+
+    expect(plano.polylines.map((linea) => linea.layer)).toEqual(["0-MOBILIARIO", "0-MUROS"]);
+    // Y con la capa correcta llega el color correcto: verde y no el casi blanco del por defecto.
+    expect(plano.polylines[0]?.color).toEqual(color(3, "capa"));
+    expect(plano.polylines[1]?.color).toEqual(color(null, "defecto"));
+  });
+
+  it("el color `0` es «por bloque»: lo pone el `INSERT`, no la capa donde se dibujó", () => {
+    const plano = parseDxf(
+      dxf(
+        [0, "SECTION"],
+        [2, "BLOCKS"],
+        [0, "BLOCK"],
+        [2, "MARCA"],
+        [10, "0"],
+        [20, "0"],
+        [0, "LINE"],
+        [8, "0-AUX"],
+        // `62 = 0` es "por bloque": antes caía a la capa y salía del color equivocado.
+        [62, "0"],
+        [10, "0"],
+        [20, "0"],
+        [11, "10"],
+        [21, "0"],
+        [0, "ENDBLK"],
+        [0, "ENDSEC"],
+        [0, "SECTION"],
+        [2, "ENTITIES"],
+        [0, "INSERT"],
+        [2, "MARCA"],
+        [8, "0-EJES"],
+        [62, "6"],
+        [10, "0"],
+        [20, "0"],
+        [0, "ENDSEC"],
+      ),
+    );
+
+    expect(plano.polylines[0]?.color).toEqual(color(6, "bloque"));
+  });
+
+  it("deja fuera el espacio papel y lo cuenta aparte: el marco de la lámina no es el dibujo", () => {
+    const plano = parseDxf(
+      dxf(
+        [0, "SECTION"],
+        [2, "ENTITIES"],
+        [0, "LINE"],
+        [8, "0-MUROS"],
+        [10, "0"],
+        [20, "0"],
+        [11, "20000"],
+        [21, "0"],
+        // El marco de la lámina: código 67 a 1, y cuatrocientos ochenta metros de extensión falsa.
+        [0, "LWPOLYLINE"],
+        [8, "0-FORMATO"],
+        [67, "1"],
+        [70, "1"],
+        [10, "0"],
+        [20, "0"],
+        [10, "480000"],
+        [20, "0"],
+        [10, "480000"],
+        [20, "297000"],
+        [0, "ENDSEC"],
+      ),
+    );
+
+    expect(plano.polylines).toHaveLength(1);
+    expect(plano.bounds).toEqual({ minX: 0, minY: 0, maxX: 20000, maxY: 0 });
+    // Va aparte de `skipped` a propósito: no es geometría que falte, es geometría que no toca.
+    expect(plano.paperSpaceCount).toBe(1);
+    expect(plano.skipped).toEqual({});
+  });
+
+  it("lee el color verdadero (420) y la transparencia (440), no solo el índice de la paleta", () => {
+    const plano = parseDxf(
+      dxf(
+        [0, "SECTION"],
+        [2, "ENTITIES"],
+        [0, "LINE"],
+        [8, "0-MUROS"],
+        [62, "1"],
+        // El 420 manda sobre el 62: es lo que declara un plano con colores de marca.
+        [420, String(0x336699)],
+        [440, String(0x02000080)],
+        [10, "0"],
+        [20, "0"],
+        [11, "1"],
+        [21, "0"],
+        [0, "ENDSEC"],
+      ),
+    );
+
+    expect(plano.polylines[0]?.color.rgb).toBe(0x336699);
+    expect(plano.polylines[0]?.color.aci).toBeNull();
+    expect(plano.polylines[0]?.color.opacity).toBeCloseTo(128 / 255, 5);
+  });
+
+  it("resuelve el grosor: el de la entidad, el de su capa, y el del archivo cuando nadie lo dice", () => {
+    const plano = parseDxf(
+      dxf(
+        [0, "SECTION"],
+        [2, "HEADER"],
+        [9, "$LWDEFAULT"],
+        [370, "9"],
+        [0, "ENDSEC"],
+        [0, "SECTION"],
+        [2, "TABLES"],
+        [0, "LAYER"],
+        [2, "0-MUROS"],
+        [62, "4"],
+        // 30 centésimas de milímetro: el muro del plano real.
+        [370, "30"],
+        [0, "LAYER"],
+        [2, "AA - COTAS"],
+        [62, "2"],
+        // `-3` es "el del archivo", que es lo que declara la cota del plano real.
+        [370, "-3"],
+        [0, "ENDSEC"],
+        [0, "SECTION"],
+        [2, "ENTITIES"],
+        [0, "LINE"],
+        [8, "0-MUROS"],
+        [10, "0"],
+        [20, "0"],
+        [11, "1"],
+        [21, "0"],
+        [0, "LINE"],
+        [8, "AA - COTAS"],
+        [10, "0"],
+        [20, "0"],
+        [11, "2"],
+        [21, "0"],
+        // Grosor propio, que manda sobre el de su capa.
+        [0, "LINE"],
+        [8, "AA - COTAS"],
+        [370, "50"],
+        [10, "0"],
+        [20, "0"],
+        [11, "3"],
+        [21, "0"],
+        [0, "ENDSEC"],
+      ),
+    );
+
+    // **La jerarquía de grosores es cómo se lee un plano**: el muro gordo, la cota fina.
+    expect(plano.polylines.map((linea) => linea.lineweightMm)).toEqual([0.3, 0.09, 0.5]);
+    expect(plano.layers.map((capa) => [capa.name, capa.lineweightMm])).toEqual([
+      ["AA - COTAS", null],
+      ["0-MUROS", 0.3],
+    ]);
+  });
+
+  it("un `INSERT` con matriz dibuja todas sus copias, no una", () => {
+    const plano = parseDxf(
+      dxf(
+        [0, "SECTION"],
+        [2, "BLOCKS"],
+        [0, "BLOCK"],
+        [2, "PILAR"],
+        [10, "0"],
+        [20, "0"],
+        [0, "LINE"],
+        [8, "0-ESTRUCTURA"],
+        [10, "0"],
+        [20, "0"],
+        [11, "1"],
+        [21, "0"],
+        [0, "ENDBLK"],
+        [0, "ENDSEC"],
+        [0, "SECTION"],
+        [2, "ENTITIES"],
+        [0, "INSERT"],
+        [2, "PILAR"],
+        [8, "0-ESTRUCTURA"],
+        [10, "0"],
+        [20, "0"],
+        // Tres columnas por dos filas, separadas 100 y 200: seis pilares, no uno.
+        [70, "3"],
+        [71, "2"],
+        [44, "100"],
+        [45, "200"],
+        [0, "ENDSEC"],
+      ),
+    );
+
+    expect(plano.polylines).toHaveLength(6);
+    expect(plano.polylines.map((linea) => linea.points[0])).toEqual([0, 100, 200, 0, 100, 200]);
+    expect(plano.polylines.map((linea) => linea.points[1])).toEqual([0, 0, 0, 200, 200, 200]);
+  });
+
+  it("conserva el nombre del patrón de un rayado, que es lo que permite rayarlo", () => {
+    const plano = parseDxf(
+      dxf(
+        [0, "SECTION"],
+        [2, "ENTITIES"],
+        [0, "HATCH"],
+        [8, "0-MUROS"],
+        [2, "ANSI31"],
+        [70, "0"],
+        [91, "1"],
+        // Contorno de polilínea: la bandera 2 del código 92.
+        [92, "2"],
+        [72, "0"],
+        [73, "1"],
+        [93, "3"],
+        [10, "0"],
+        [20, "0"],
+        [10, "10"],
+        [20, "0"],
+        [10, "10"],
+        [20, "10"],
+        [97, "0"],
+        [0, "ENDSEC"],
+      ),
+    );
+
+    expect(plano.hatches).toHaveLength(1);
+    // Los veintitrés rellenos del plano real son `ANSI31`, y se dibujaban como contornos vacíos.
+    expect(plano.hatches[0]?.solid).toBe(false);
+    expect(plano.hatches[0]?.pattern).toBe("ANSI31");
   });
 });
 

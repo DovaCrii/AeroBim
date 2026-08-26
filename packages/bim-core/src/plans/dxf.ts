@@ -17,20 +17,47 @@
  * cabecera no basta.
  */
 
+/**
+ * El color con el que hay que dibujar algo del plano, **ya resuelto y con su procedencia**.
+ *
+ * En DXF el color de una entidad casi nunca está en la entidad: dice "por capa" —lo normal— o "por
+ * bloque", y hay que ir a buscarlo. Resolverlo acá y no en el visor es lo que evita que la leyenda
+ * del panel y el dibujo digan cosas distintas, que ya pasó una vez.
+ *
+ * **Por qué además se guarda de dónde salió.** Cuando un plano se ve de un color que no es el del
+ * CAD, la pregunta es siempre la misma —¿lo dijo la entidad, su capa o el bloque que la contiene?—
+ * y sin este dato hay que leer el archivo a mano para contestarla. Con él, el informe de fidelidad
+ * lo dice.
+ */
+export interface DxfColor {
+  /** El valor final, `0xRRGGBB`. Es lo único que necesita el visor para pintar. */
+  readonly rgb: number;
+  /** El índice ACI del que salió, o `null` si vino como color verdadero (código 420). */
+  readonly aci: number | null;
+  /** Opacidad de 0 a 1, del código 440. `1` es opaco, que es lo que es casi todo un plano. */
+  readonly opacity: number;
+  readonly source: "entidad" | "capa" | "bloque" | "defecto";
+}
+
 /** Una polilínea del plano, ya resuelta a puntos: `[x0, y0, x1, y1, …]` en unidades del dibujo. */
 export interface DxfPolyline {
   readonly layer: string;
   readonly points: readonly number[];
   readonly closed: boolean;
+  /** El color, ya resuelto. Ver {@link DxfColor}. */
+  readonly color: DxfColor;
   /**
-   * El color con el que hay que dibujarla, como índice de AutoCAD.
+   * El grosor del trazo en **milímetros de papel**, resuelto ya sea de la entidad, de su capa o del
+   * `$LWDEFAULT` del archivo.
    *
-   * **Ya resuelto**: si la entidad trae color propio es ese, y si dice "por capa" —que es lo
-   * normal— es el de su capa. `null` solo cuando nadie lo declara. Sin resolverlo aquí, un plano
-   * pintado por capas se ve plano: en un plano de remodelación el color **es** la información,
-   * porque separa lo que se construye de lo que se demuele.
+   * **Un plano de arquitectura se lee por su jerarquía de grosores**: el muro cortado va gordo, la
+   * cota y el rayado van finos, y es así como el ojo separa la estructura de la anotación.
+   * Dibujando todo al mismo grosor el plano se ve como una maraña — que es exactamente lo que se
+   * veía antes de leer esto.
+   *
+   * Es medida de papel y no de dibujo: no se escala con el plano, igual que en el CAD.
    */
-  readonly colorIndex: number | null;
+  readonly lineweightMm: number;
   /**
    * El patrón de trazo, como `[raya, espacio]` en unidades del dibujo, o `null` si es continua.
    *
@@ -66,7 +93,7 @@ export interface DxfText {
   readonly height: number;
   readonly rotationDeg: number;
   readonly text: string;
-  readonly colorIndex: number | null;
+  readonly color: DxfColor;
 }
 
 /**
@@ -78,9 +105,23 @@ export interface DxfText {
  */
 export interface DxfHatch {
   readonly layer: string;
-  readonly colorIndex: number | null;
-  /** `true` si es un relleno macizo; `false` si es un rayado, que se dibuja solo con su contorno. */
+  readonly color: DxfColor;
+  /** `true` si es un relleno macizo; `false` si es un rayado. */
   readonly solid: boolean;
+  /**
+   * El nombre del patrón del CAD —`ANSI31`, `NET`…— o `null` si es macizo.
+   *
+   * **Hace falta para poder rayarlo de verdad.** Antes se decidía "macizo o solo contorno", y los
+   * veintitrés rellenos del plano real son `ANSI31`: se veían como veintitrés contornos vacíos
+   * justo donde el CAD dibuja un muro rayado.
+   *
+   * Va el nombre y no el ángulo ni la separación, y es a propósito. Esos dos números viven en
+   * códigos —41 y 52— que **también aparecen dentro de los contornos** del propio relleno, así que
+   * buscarlos sueltos lee tan a menudo un radio de arista como una separación de rayado. El ángulo
+   * lo dice el nombre del patrón, y la separación la elige el visor a una medida legible, que es la
+   * misma decisión ya tomada con el tamaño de las rayas: ver `patronLegible`.
+   */
+  readonly pattern: string | null;
   /**
    * Los contornos, cada uno como `[x0, y0, x1, y1, …]` y cerrado.
    *
@@ -182,6 +223,21 @@ export interface DxfLayer {
   readonly colorIndex: number | null;
   /** Cuántas polilíneas quedaron en esta capa, ya desarmados los bloques. */
   readonly count: number;
+  /**
+   * `true` si el CAD la tiene **apagada, congelada o sin imprimir**.
+   *
+   * El signo negativo del código 62 es la convención de AutoCAD para una capa apagada, y en el
+   * plano real del usuario `0-AREA UTIL` la lleva: el visor la pintaba violeta encima del dibujo
+   * cuando en el CAD no se ve. Se lee también el congelado (código 70) y el nombre `Defpoints`, que
+   * por convención no se imprime.
+   *
+   * **La geometría se conserva igual y la capa arranca oculta.** Borrarla sería mentir en la otra
+   * dirección: "¿qué hay en esa capa que el proyectista apagó?" es una pregunta legítima, y el
+   * plano tiene que poder contestarla encendiéndola.
+   */
+  readonly off: boolean;
+  /** Grosor que declara la capa, en milímetros de papel. `null` si dice "por defecto". */
+  readonly lineweightMm: number | null;
 }
 
 export interface DxfBounds {
@@ -212,6 +268,14 @@ export interface DxfDrawing {
   readonly declaredUnits: DxfDeclaredUnits;
   /** Entidades que este lector no dibuja, por tipo. Es lo que falta del plano, dicho en voz alta. */
   readonly skipped: Readonly<Record<string, number>>;
+  /**
+   * Cuántas entidades se dejaron fuera por estar en **espacio papel**, no por no saber dibujarlas.
+   *
+   * Va aparte de {@link skipped} a propósito: no es geometría que falte, es geometría que no
+   * pertenece al dibujo. El marco de la lámina y su cajetín viven ahí, y meterlos en el modelo es
+   * lo que hacía que un plano de veinte metros midiera cuatrocientos ochenta.
+   */
+  readonly paperSpaceCount: number;
 }
 
 /**
@@ -257,9 +321,11 @@ export function parseDxf(text: string): DxfDrawing {
   const pares = tokenizar(text);
 
   const declaredUnits = leerUnidades(pares);
-  const { colores, tiposDeLinea: tiposPorCapa } = leerTablaDeCapas(pares);
+  const capas = leerTablaDeCapas(pares);
   const patrones = leerPatronesDeLinea(pares);
   const escalaGlobal = numeroDeCabecera(pares, "$LTSCALE") ?? 1;
+  // `$LWDEFAULT` viene en centésimas de milímetro; sin él, AutoCAD usa 0,25 mm.
+  const grosorPorDefectoMm = grosorEnMm(numeroDeCabecera(pares, "$LWDEFAULT") ?? 25) ?? 0.25;
   const bloques = leerBloques(pares);
 
   const polylines: DxfPolyline[] = [];
@@ -267,19 +333,21 @@ export function parseDxf(text: string): DxfDrawing {
   const hatches: DxfHatch[] = [];
   const skipped: Record<string, number> = {};
   const entidades = entidadesDe(pares, indiceDeSeccion(pares, "ENTITIES"));
-  const estilo = { colores, tiposPorCapa, patrones, escalaGlobal };
+  const estilo: Estilo = { capas, patrones, escalaGlobal, grosorPorDefectoMm };
+  const salida = { polylines, texts, hatches, estilo, paperSpace: 0 };
   for (const entidad of entidades) {
-    dibujar(entidad, bloques, { polylines, texts, hatches, estilo }, skipped, IDENTIDAD, 0);
+    dibujar(entidad, bloques, salida, skipped, IDENTIDAD, SIN_HEREDAR, 0);
   }
 
   return {
     polylines,
     texts,
     hatches,
-    layers: capasDe(polylines, texts, hatches, colores),
-    bounds: extension(polylines, texts),
+    layers: capasDe(polylines, texts, hatches, capas),
+    bounds: extension(polylines, texts, hatches),
     declaredUnits,
     skipped,
+    paperSpaceCount: salida.paperSpace,
   };
 }
 
@@ -463,39 +531,94 @@ function leerUnidades(pares: readonly Par[]): DxfDeclaredUnits {
   return { code: 0, name: "sin unidades declaradas", metresPerUnit: null };
 }
 
+/** Lo que la tabla `LAYER` declara de una capa. */
+interface CapaDeclarada {
+  readonly colorIndex: number | null;
+  /** Apagada, congelada o no imprimible: en el CAD no se ve. */
+  readonly off: boolean;
+  readonly linetype: string | null;
+  /** Grosor en milímetros de papel, o `null` si dice "por defecto". */
+  readonly lineweightMm: number | null;
+}
+
 /**
- * La tabla de capas: el color y el tipo de línea de cada una.
+ * Una capa que el archivo no declara: pasa con planos exportados a los que les falta la tabla.
+ *
+ * No es lo mismo que una capa sin color —esa declara y no dice color—, así que no se cachea: se
+ * devuelve al vuelo y quien pregunte resuelve por defecto.
+ */
+const CAPA_SIN_DECLARAR: CapaDeclarada = {
+  colorIndex: null,
+  off: false,
+  linetype: null,
+  lineweightMm: null,
+};
+
+/**
+ * La tabla de capas: color, tipo de línea, grosor y si está apagada.
  *
  * Es lo que hace que el plano se lea como en el CAD, porque casi todo en un plano dice "por capa":
- * sin esta tabla, el color y el trazo de la inmensa mayoría de las entidades se quedan sin
- * resolver.
+ * sin esta tabla, el color, el trazo y el grosor de la inmensa mayoría de las entidades se quedan
+ * sin resolver.
  */
-function leerTablaDeCapas(pares: readonly Par[]): {
-  readonly colores: ReadonlyMap<string, number>;
-  readonly tiposDeLinea: ReadonlyMap<string, string>;
-} {
-  const colores = new Map<string, number>();
-  const tiposDeLinea = new Map<string, string>();
+function leerTablaDeCapas(pares: readonly Par[]): ReadonlyMap<string, CapaDeclarada> {
+  const capas = new Map<string, CapaDeclarada>();
   const inicio = indiceDeSeccion(pares, "TABLES");
-  if (inicio < 0) return { colores, tiposDeLinea };
+  if (inicio < 0) return capas;
 
   let nombre: string | null = null;
   let dentro = false;
+  let actual = { ...CAPA_SIN_DECLARAR };
+
+  const guardar = () => {
+    if (nombre === null) return;
+    // **`Defpoints` no se imprime, por convención de AutoCAD.** Es donde va la geometría auxiliar
+    // —los puntos de replanteo del propio dibujante—, y en el plano real son treinta y seis puntos
+    // que en el CAD no se ven.
+    const auxiliar = nombre.toUpperCase() === "DEFPOINTS";
+    capas.set(nombre, { ...actual, off: actual.off || auxiliar });
+  };
+
   for (let i = inicio; i < pares.length; i++) {
     const { code, value } = pares[i]!;
     if (code === 0) {
+      guardar();
       if (value === "ENDSEC") break;
       dentro = value === "LAYER";
       nombre = null;
+      actual = { ...CAPA_SIN_DECLARAR };
       continue;
     }
     if (!dentro) continue;
     if (code === 2) nombre = value;
-    // El color negativo es la convención de AutoCAD para una capa apagada: importa el color, no el signo.
-    if (code === 62 && nombre !== null) colores.set(nombre, Math.abs(Number(value)));
-    if (code === 6 && nombre !== null) tiposDeLinea.set(nombre, value.toUpperCase());
+    if (code === 62) {
+      const n = Number(value);
+      if (!Number.isFinite(n)) continue;
+      // **El signo negativo del 62 es "capa apagada"**, y descartarlo con un valor absoluto —que es
+      // lo que se hacía— dibuja encima del plano justo lo que el proyectista decidió no ver.
+      actual = { ...actual, colorIndex: Math.abs(n), off: actual.off || n < 0 };
+    }
+    // El código 70 son banderas; el bit 1 es "congelada", que en pantalla es lo mismo que apagada.
+    if (code === 70) {
+      const n = Number(value);
+      if (Number.isFinite(n) && (n & 1) === 1) actual = { ...actual, off: true };
+    }
+    if (code === 6) actual = { ...actual, linetype: value.toUpperCase() };
+    if (code === 370) actual = { ...actual, lineweightMm: grosorEnMm(Number(value)) };
   }
-  return { colores, tiposDeLinea };
+  return capas;
+}
+
+/**
+ * Un grosor del código 370 en milímetros, o `null` si no es una medida.
+ *
+ * El CAD lo escribe en centésimas de milímetro, y reserva los negativos para "lo dice otro":
+ * `-1` por capa, `-2` por bloque, `-3` el del archivo. Traducirlos acá sería adivinar; los resuelve
+ * quien sabe de qué capa y de qué bloque se trata.
+ */
+function grosorEnMm(centesimas: number): number | null {
+  if (!Number.isFinite(centesimas) || centesimas < 0) return null;
+  return centesimas / 100;
 }
 
 /**
@@ -671,14 +794,29 @@ function dibujar(
     readonly texts: DxfText[];
     readonly hatches: DxfHatch[];
     readonly estilo: Estilo;
+    paperSpace: number;
   },
   omitidas: Record<string, number>,
   t: Transformacion,
+  heredado: Heredado,
   profundidad: number,
 ): void {
-  const layer = valor(entidad, 8) ?? "0";
-  const colorIndex = colorDe(entidad, layer, salida.estilo.colores);
-  const dash = trazoDe(entidad, layer, salida.estilo, t);
+  // **El espacio papel no es el dibujo.** El código 67 a 1 marca lo que vive en la lámina —el
+  // marco, el cajetín, las viñetas—, y traerlo al modelo es lo que hacía que una planta de veinte
+  // metros midiera cuatrocientos ochenta y que la unidad se dedujera mal.
+  if (numero(entidad, 67) === 1) {
+    salida.paperSpace += 1;
+    return;
+  }
+
+  const propia = valor(entidad, 8) ?? "0";
+  // **La capa `0` dentro de un bloque no es la capa `0`**: AutoCAD la sustituye por la capa del
+  // `INSERT`. Es la regla que hace que un bloque se pinte del color de donde se inserta.
+  const layer = propia === "0" && heredado.layer !== "0" ? heredado.layer : propia;
+
+  const color = colorDe(entidad, layer, salida.estilo.capas, heredado);
+  const dash = trazoDe(entidad, layer, salida.estilo, heredado, t);
+  const lineweightMm = grosorDe(entidad, layer, salida.estilo, heredado);
 
   const anadir = (
     puntos: readonly (readonly [number, number])[],
@@ -691,7 +829,7 @@ function dibujar(
       const [px, py] = aplicar(t, x, y);
       planos.push(px, py);
     }
-    salida.polylines.push({ layer, points: planos, closed, colorIndex, dash, width });
+    salida.polylines.push({ layer, points: planos, closed, color, dash, width, lineweightMm });
   };
 
   switch (entidad.type) {
@@ -716,7 +854,7 @@ function dibujar(
         height: (numero(entidad, 40) ?? 2.5) * escala,
         rotationDeg: (numero(entidad, 50) ?? 0) + (t.giro * 180) / Math.PI,
         text: contenido,
-        colorIndex,
+        color,
       });
       return;
     }
@@ -803,7 +941,13 @@ function dibujar(
         cuenta(omitidas, entidad.type);
         return;
       }
-      salida.hatches.push({ layer, colorIndex, solid: true, loops: [esquinas] });
+      salida.hatches.push({
+        layer,
+        color,
+        solid: true,
+        pattern: null,
+        loops: [esquinas],
+      });
       return;
     }
 
@@ -813,13 +957,15 @@ function dibujar(
         cuenta(omitidas, "HATCH");
         return;
       }
+      const patron = (valor(entidad, 2) ?? "").toUpperCase();
+      const solid = patron === "SOLID" || (numero(entidad, 70) ?? 0) === 1;
       salida.hatches.push({
         layer,
-        colorIndex,
-        // El nombre del patrón dice si es macizo; un rayado se dibuja solo con su contorno, que es
-        // lo que se distingue a la escala de un plano.
-        solid:
-          (valor(entidad, 2) ?? "").toUpperCase() === "SOLID" || (numero(entidad, 70) ?? 0) === 1,
+        color,
+        solid,
+        // El nombre del patrón se conserva para poder **rayarlo**. Decidir solo "macizo o contorno"
+        // dejaba los veintitrés `ANSI31` del plano real como contornos vacíos.
+        pattern: solid || patron === "" ? null : patron,
         loops,
       });
       return;
@@ -832,24 +978,52 @@ function dibujar(
         cuenta(omitidas, "INSERT");
         return;
       }
-      const propia = componer(t, {
-        x: numero(entidad, 10) ?? 0,
-        y: numero(entidad, 20) ?? 0,
-        escalaX: numero(entidad, 41) ?? 1,
-        escalaY: numero(entidad, 42) ?? 1,
-        giro: ((numero(entidad, 50) ?? 0) * Math.PI) / 180,
-      });
-      // El punto base del bloque es su origen: lo que se inserta es el bloque **descontado** ese
-      // punto, o todo lo que no esté dibujado en el origen aparece desplazado.
-      const conBase: Transformacion = {
-        ...propia,
-        ...(() => {
-          const [x, y] = aplicar(propia, -bloque.baseX, -bloque.baseY);
-          return { x, y };
-        })(),
+      const x0 = numero(entidad, 10) ?? 0;
+      const y0 = numero(entidad, 20) ?? 0;
+      const escalaX = numero(entidad, 41) ?? 1;
+      const escalaY = numero(entidad, 42) ?? 1;
+      const giro = ((numero(entidad, 50) ?? 0) * Math.PI) / 180;
+
+      // **Un `INSERT` puede ser una matriz.** Los códigos 70 y 71 dicen cuántas columnas y filas, y
+      // los 44 y 45 su separación: de una reja de veinte pilares se dibujaba **uno**. La separación
+      // se mide en el sistema del bloque, así que va antes del giro y de la escala.
+      const columnas = Math.max(1, Math.trunc(numero(entidad, 70) ?? 1));
+      const filas = Math.max(1, Math.trunc(numero(entidad, 71) ?? 1));
+      const pasoX = numero(entidad, 44) ?? 0;
+      const pasoY = numero(entidad, 45) ?? 0;
+
+      // Lo que el bloque presta a lo que lleva dentro. Se presta **ya resuelto**: si el `INSERT`
+      // dice "por capa", lo que hereda el hijo es el trazo de esa capa, no la palabra "por capa".
+      const suyo = valor(entidad, 6)?.toUpperCase();
+      const presta: Heredado = {
+        layer,
+        color,
+        linetype:
+          suyo === undefined || suyo === "BYLAYER"
+            ? (salida.estilo.capas.get(layer)?.linetype ?? null)
+            : suyo === "BYBLOCK"
+              ? heredado.linetype
+              : suyo,
+        lineweightMm,
       };
-      for (const hija of bloque.entidades) {
-        dibujar(hija, bloques, salida, omitidas, conBase, profundidad + 1);
+
+      for (let fila = 0; fila < filas; fila++) {
+        for (let columna = 0; columna < columnas; columna++) {
+          const propia = componer(t, {
+            x: x0 + columna * pasoX * Math.cos(giro) - fila * pasoY * Math.sin(giro),
+            y: y0 + columna * pasoX * Math.sin(giro) + fila * pasoY * Math.cos(giro),
+            escalaX,
+            escalaY,
+            giro,
+          });
+          // El punto base del bloque es su origen: lo que se inserta es el bloque **descontado** ese
+          // punto, o todo lo que no esté dibujado en el origen aparece desplazado.
+          const [bx, by] = aplicar(propia, -bloque.baseX, -bloque.baseY);
+          const conBase: Transformacion = { ...propia, x: bx, y: by };
+          for (const hija of bloque.entidades) {
+            dibujar(hija, bloques, salida, omitidas, conBase, presta, profundidad + 1);
+          }
+        }
       }
 
       return;
@@ -871,14 +1045,6 @@ function cuenta(registro: Record<string, number>, clave: string): void {
   registro[clave] = (registro[clave] ?? 0) + 1;
 }
 
-/**
- * El color de una entidad, resuelto.
- *
- * En DXF el color va en el código 62 y tiene dos valores especiales: **256 es "por capa"** —lo
- * normal, y lo que trae casi todo plano— y **0 es "por bloque"**. En los dos casos manda la capa,
- * que es la aproximación correcta salvo para bloques con color propio, algo que un plano de
- * arquitectura casi nunca usa.
- */
 /**
  * Los contornos de un `HATCH`, ya transformados y cerrados.
  *
@@ -974,14 +1140,33 @@ function contornosDeRelleno(entidad: Entidad, t: Transformacion): readonly (read
   return contornos;
 }
 
-/** Lo que hace falta para saber de qué color y con qué trazo se dibuja cada entidad. */
+/** Lo que hace falta para saber de qué color, con qué trazo y con qué grosor se dibuja cada entidad. */
 interface Estilo {
-  readonly colores: ReadonlyMap<string, number>;
-  readonly tiposPorCapa: ReadonlyMap<string, string>;
+  readonly capas: ReadonlyMap<string, CapaDeclarada>;
   readonly patrones: ReadonlyMap<string, readonly [number, number]>;
   /** `$LTSCALE`: multiplica el patrón de todo el dibujo. */
   readonly escalaGlobal: number;
+  /** `$LWDEFAULT`, en milímetros: el grosor de todo lo que no declara ninguno. */
+  readonly grosorPorDefectoMm: number;
 }
+
+/**
+ * Lo que un `INSERT` presta a lo que lleva dentro.
+ *
+ * **Es la pieza que faltaba y la que más se notaba.** Un bloque de AutoCAD se dibuja para poder
+ * insertarlo en cualquier capa y de cualquier color, y el formato lo consigue con dos convenciones
+ * que hay que resolver desde arriba: lo dibujado en la **capa `0`** toma la capa del `INSERT`, y lo
+ * que dice **"por bloque"** toma su color y su trazo. Sin esto, ciento dieciséis entidades del plano
+ * real se quedaban en la capa `0` literal y salían casi blancas.
+ */
+interface Heredado {
+  readonly layer: string;
+  readonly color: DxfColor | null;
+  readonly linetype: string | null;
+  readonly lineweightMm: number | null;
+}
+
+const SIN_HEREDAR: Heredado = { layer: "0", color: null, linetype: null, lineweightMm: null };
 
 /**
  * El patrón de trazo de una entidad, ya resuelto y escalado.
@@ -995,14 +1180,20 @@ function trazoDe(
   entidad: Entidad,
   layer: string,
   estilo: Estilo,
+  heredado: Heredado,
   t: Transformacion,
 ): readonly [number, number] | null {
   const propio = valor(entidad, 6)?.toUpperCase();
+  const deCapa = estilo.capas.get(layer)?.linetype ?? undefined;
   const nombre =
-    propio === undefined || propio === "BYLAYER" || propio === "BYBLOCK"
-      ? estilo.tiposPorCapa.get(layer)
-      : propio;
-  if (nombre === undefined || nombre === "CONTINUOUS") return null;
+    propio === undefined || propio === "BYLAYER"
+      ? deCapa
+      : // **"Por bloque" no es "por capa".** Colapsar los dos dibujaba llenas las cincuenta y cuatro
+        // entidades del plano real que heredan el trazo de su bloque.
+        propio === "BYBLOCK"
+        ? (heredado.linetype ?? deCapa)
+        : propio;
+  if (nombre === undefined || nombre === null || nombre === "CONTINUOUS") return null;
 
   const patron = estilo.patrones.get(nombre);
   if (patron === undefined) return null;
@@ -1017,11 +1208,60 @@ function trazoDe(
 function colorDe(
   entidad: Entidad,
   layer: string,
-  colores: ReadonlyMap<string, number>,
-): number | null {
+  capas: ReadonlyMap<string, CapaDeclarada>,
+  heredado: Heredado,
+): DxfColor {
+  const opacity = opacidadDe(entidad) ?? heredado.color?.opacity ?? 1;
+
+  // **El color verdadero manda sobre el índice.** Es lo que declara un plano moderno, y sin leerlo
+  // un rojo de marca cualquiera se dibuja con el rojo puro de la paleta o con el color por defecto.
+  const verdadero = numero(entidad, 420);
+  if (verdadero !== null && verdadero >= 0) {
+    return { rgb: verdadero & 0xffffff, aci: null, opacity, source: "entidad" };
+  }
+
   const propio = numero(entidad, 62);
-  if (propio !== null && propio > 0 && propio < 256) return propio;
-  return colores.get(layer) ?? null;
+  // **`0` es "por bloque"**: el color lo pone el `INSERT` que lo contiene, no la capa donde el
+  // bloque fue dibujado. Son treinta y siete entidades en el plano real.
+  if (propio === 0 && heredado.color !== null) {
+    return { ...heredado.color, opacity, source: "bloque" };
+  }
+  if (propio !== null && propio > 0 && propio < 256) {
+    return { rgb: aciColor(propio), aci: propio, opacity, source: "entidad" };
+  }
+
+  const deCapa = capas.get(layer)?.colorIndex ?? null;
+  if (deCapa !== null) return { rgb: aciColor(deCapa), aci: deCapa, opacity, source: "capa" };
+  return { rgb: aciColor(null), aci: null, opacity, source: "defecto" };
+}
+
+/**
+ * La opacidad de una entidad, del código 440, o `null` si no la declara.
+ *
+ * El valor trae la marca `0x02` en el byte alto cuando es una transparencia propia, y el byte bajo
+ * es el alfa de 0 a 255. `0x01000000` significa "por bloque" y se resuelve heredando.
+ */
+function opacidadDe(entidad: Entidad): number | null {
+  const bruto = numero(entidad, 440);
+  if (bruto === null || bruto < 0) return null;
+  if ((bruto & 0x02000000) === 0) return null;
+  return (bruto & 0xff) / 255;
+}
+
+/**
+ * El grosor de trazo de una entidad, en milímetros de papel, ya resuelto.
+ *
+ * El código 370 reserva los negativos para delegar: `-1` en la capa, `-2` en el bloque, `-3` en el
+ * `$LWDEFAULT` del archivo. Se sigue la cadena hasta un número, y si nadie lo dice manda el del
+ * archivo — nunca se devuelve "no se sabe", porque el visor tendría que inventarlo igual.
+ */
+function grosorDe(entidad: Entidad, layer: string, estilo: Estilo, heredado: Heredado): number {
+  const deCapa = estilo.capas.get(layer)?.lineweightMm ?? null;
+  const propio = numero(entidad, 370);
+
+  if (propio !== null && propio >= 0) return propio / 100;
+  if (propio === -2) return heredado.lineweightMm ?? deCapa ?? estilo.grosorPorDefectoMm;
+  return deCapa ?? estilo.grosorPorDefectoMm;
 }
 
 /**
@@ -1161,7 +1401,7 @@ function capasDe(
   polylines: readonly DxfPolyline[],
   texts: readonly DxfText[],
   hatches: readonly DxfHatch[],
-  colores: ReadonlyMap<string, number>,
+  capas: ReadonlyMap<string, CapaDeclarada>,
 ): readonly DxfLayer[] {
   const cuentas = new Map<string, number>();
   for (const linea of polylines) cuentas.set(linea.layer, (cuentas.get(linea.layer) ?? 0) + 1);
@@ -1171,11 +1411,24 @@ function capasDe(
   for (const relleno of hatches) cuentas.set(relleno.layer, (cuentas.get(relleno.layer) ?? 0) + 1);
 
   return [...cuentas]
-    .map(([name, count]) => ({ name, count, colorIndex: colores.get(name) ?? null }))
+    .map(([name, count]) => {
+      const declarada = capas.get(name) ?? CAPA_SIN_DECLARAR;
+      return {
+        name,
+        count,
+        colorIndex: declarada.colorIndex,
+        off: declarada.off,
+        lineweightMm: declarada.lineweightMm,
+      };
+    })
     .sort((a, b) => b.count - a.count);
 }
 
-function extension(polylines: readonly DxfPolyline[], texts: readonly DxfText[]): DxfBounds | null {
+function extension(
+  polylines: readonly DxfPolyline[],
+  texts: readonly DxfText[],
+  hatches: readonly DxfHatch[],
+): DxfBounds | null {
   let minX = Infinity;
   let minY = Infinity;
   let maxX = -Infinity;
@@ -1193,6 +1446,14 @@ function extension(polylines: readonly DxfPolyline[], texts: readonly DxfText[])
       meter(linea.points[i]!, linea.points[i + 1]!);
   }
   for (const texto of texts) meter(texto.x, texto.y);
+  // **Los rellenos también son dibujo.** Sin contarlos, un plano cuyos macizos salen del recuadro
+  // de sus líneas queda descentrado y, peor, la unidad se deduce con una extensión que no es la del
+  // plano: ver `suggestMetresPerUnit`.
+  for (const relleno of hatches) {
+    for (const contorno of relleno.loops) {
+      for (let i = 0; i + 1 < contorno.length; i += 2) meter(contorno[i]!, contorno[i + 1]!);
+    }
+  }
 
   if (!Number.isFinite(minX)) return null;
   return { minX, minY, maxX, maxY };

@@ -16,7 +16,6 @@
  */
 
 import {
-  aciColor,
   parseDxf,
   segmentIntersection,
   suggestMetresPerUnit,
@@ -86,17 +85,6 @@ export interface LoadedPlan {
   readonly labelHeightM: number;
   /** El alto que le corresponde a este plano por su tamaño, para poder ofrecerlo. */
   readonly suggestedLabelHeightM: number;
-}
-
-/**
- * El color con el que se dibuja algo del plano; sin índice, el del "por defecto".
- *
- * **La paleta vive en el dominio**, no aquí: la comparten la escena y la leyenda del panel, y
- * cuando había una copia en cada sitio la lista mentía sobre el dibujo. Ver `aciColor` en
- * `bim-core`.
- */
-function colorDeCapa(colorIndex: number | null): number {
-  return aciColor(colorIndex);
 }
 
 /** Entre qué medidas, en metros de la escena, una raya se ve como raya y no como otra cosa. */
@@ -272,7 +260,10 @@ export class PlanOverlay {
       for (const linea of dibujo.polylines) {
         if (linea.layer !== capa.name) continue;
 
-        const color = colorDeCapa(linea.colorIndex ?? capa.colorIndex);
+        // **El color ya viene resuelto del dominio**, con su procedencia: la entidad, su capa, el
+        // bloque que la inserta o el por defecto. Antes se resolvía aquí con un `?? capa.colorIndex`
+        // que no sabía nada de bloques, y por eso el contenido de los bloques salía casi blanco.
+        const color = linea.color.rgb;
 
         if (linea.width !== null && linea.width > 0) {
           const destino = bandas.get(color) ?? [];
@@ -336,7 +327,7 @@ export class PlanOverlay {
       for (const relleno of dibujo.hatches) {
         if (relleno.layer !== capa.name) continue;
 
-        const malla = mallaDeRelleno(relleno, centrado, capa.colorIndex);
+        const malla = mallaDeRelleno(relleno, centrado);
         if (malla !== null) grupoCapa.add(malla);
       }
 
@@ -894,7 +885,7 @@ function ponerRotulos(
   const suyos = dibujo.texts.filter((texto) => texto.layer === capa.name).slice(0, cupo);
   if (suyos.length === 0) return 0;
 
-  const rotulos = atlasDeEtiquetas(suyos, centro, capa.colorIndex, metrosPorUnidad, altoM);
+  const rotulos = atlasDeEtiquetas(suyos, centro, metrosPorUnidad, altoM);
   if (rotulos === null) return 0;
 
   grupoCapa.add(rotulos.malla);
@@ -952,7 +943,6 @@ function liberar(objeto: THREE.Object3D): void {
 function atlasDeEtiquetas(
   textos: readonly DxfText[],
   [cx, cy]: readonly [number, number],
-  colorCapa: number | null,
   metrosPorUnidad: number,
   altoM: number,
 ): { readonly malla: THREE.Mesh; readonly cuantos: number } | null {
@@ -1003,7 +993,7 @@ function atlasDeEtiquetas(
 
     // El color va **dentro** del atlas: así una sola malla lleva rótulos de colores distintos sin
     // un material por color.
-    pincel.fillStyle = `#${new THREE.Color(colorDeCapa(texto.colorIndex ?? colorCapa)).getHexString()}`;
+    pincel.fillStyle = `#${new THREE.Color(texto.color.rgb).getHexString()}`;
     pincel.strokeText(contenido, x + letra / 2, y + fila / 2);
     pincel.fillText(contenido, x + letra / 2, y + fila / 2);
 
@@ -1090,7 +1080,6 @@ function atlasDeEtiquetas(
 function mallaDeRelleno(
   relleno: DxfHatch,
   [cx, cy]: readonly [number, number],
-  colorCapa: number | null,
 ): THREE.Object3D | null {
   const contornos = relleno.loops
     .map((puntos) => {
@@ -1108,7 +1097,7 @@ function mallaDeRelleno(
   const borde = contornos[0];
   if (borde === undefined) return null;
 
-  const color = colorDeCapa(relleno.colorIndex ?? colorCapa);
+  const color = relleno.color.rgb;
 
   if (!relleno.solid) {
     // Un rayado: solo su borde, en la misma línea que el resto del plano.
