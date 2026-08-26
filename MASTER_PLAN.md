@@ -61,14 +61,14 @@ no es medir—, nunca para un botón.
 **Objetivo de salida:** un visor que abre un IFC real y lo muestra, con el
 monorepo compilando y el plan confirmado o corregido con datos.
 
-| #      | Tarea                                                                                                     | Estado               |
-| ------ | --------------------------------------------------------------------------------------------------------- | -------------------- |
-| `F0.1` | Documentación de arranque: plan, MVP, arquitectura, referencias con licencias verificadas y marca         | ✅                   |
-| `F0.2` | Repositorio creado y publicado, MIT, con la marca en la línea de la familia                               | ✅                   |
-| `F0.3` | Monorepo npm: `apps/web` (React 19 + TS + Vite) y `packages/bim-core`, con build, lint y formato verdes   | ✅                   |
-| `F0.4` | **PoC del visor**: cargar un IFC real y navegarlo — medir tiempo de carga y memoria                       | ✅ ver abajo         |
-| `F0.5` | **Medir la conversión a Fragments** sobre el mismo modelo: tiempo de conversión y tamaño resultante       | ✅ medido            |
-| `F0.6` | Decidir dónde corre la conversión (navegador con WASM vs worker de backend) **con los números de `F0.5`** | 🟡 medido, ver abajo |
+| #      | Tarea                                                                                                     | Estado       |
+| ------ | --------------------------------------------------------------------------------------------------------- | ------------ |
+| `F0.1` | Documentación de arranque: plan, MVP, arquitectura, referencias con licencias verificadas y marca         | ✅           |
+| `F0.2` | Repositorio creado y publicado, MIT, con la marca en la línea de la familia                               | ✅           |
+| `F0.3` | Monorepo npm: `apps/web` (React 19 + TS + Vite) y `packages/bim-core`, con build, lint y formato verdes   | ✅           |
+| `F0.4` | **PoC del visor**: cargar un IFC real y navegarlo — medir tiempo de carga y memoria                       | ✅ ver abajo |
+| `F0.5` | **Medir la conversión a Fragments** sobre el mismo modelo: tiempo de conversión y tamaño resultante       | ✅ medido    |
+| `F0.6` | Decidir dónde corre la conversión (navegador con WASM vs worker de backend) **con los números de `F0.5`** | ✅ ver abajo |
 
 **Criterio de aceptación:** un IFC de obra real abre en el navegador, se puede
 orbitar y seleccionar un elemento, y hay una cifra medida de cuánto costó.
@@ -257,6 +257,31 @@ software de escritorio ni pedir una licencia.
 | `F1.9`  | **Unidades de las propiedades** — cada número con la unidad que declara el archivo                                                    | ✅ ver abajo |
 | `F1.10` | **Geometría que no se carga** — el conversor dejaba fuera `IfcProxy`: 433 elementos de 1.274                                          | ✅ ver abajo |
 | `F1.11` | **El picker caía desviado** el ancho del panel izquierdo: se seleccionaba otro elemento                                               | ✅ ver abajo |
+| `F1.12` | **Preselección al pasar el cursor** — se selecciona sin clicar y el usuario lo llama «poco práctico»                                  | ⬜ ver abajo |
+| `F1.13` | **El panel de abajo no se entiende** — reubicar y agrupar las herramientas, mirando cómo lo resuelven Revit y AutoCAD                 | ⬜ ver abajo |
+| `F1.14` | **La medición de distancia no funciona** en uso real, con el modelo del usuario                                                       | ⬜ ver abajo |
+| `F1.15` | **El modo fantasma se cae al mover** la cámara                                                                                        | ⬜ ver abajo |
+| `F1.16` | **El renderizado no da profundidad** — sin sombras creíbles, el modelo se lee peor de lo que debería                                  | ⬜ ver abajo |
+
+### Lo que el usuario pidió el 2026-08-19 y no estaba en ningún tablero
+
+**Estaba en una nota con dos capturas, y `obsidian/` está en `.gitignore`**: se habría perdido.
+Son cinco cosas, dichas con sus palabras, y ninguna es cosmética — todas son sobre _cómo se
+navega y se revisa_, que es lo que llamó «lo esencial»:
+
+- **`F1.12`** «al acercar el mouse sin clickear selecciona solo elementos, lo cual es poco
+  práctico». **Se cruza con el 2D**: la preselección compite con el picking del plano, así que
+  el arreglo hay que probarlo con un DXF y un IFC cargados a la vez.
+- **`F1.13`** «abajo no se entienden bien, debe ser un panel mejor implementado; revisar cómo la
+  competencia lo utiliza». La referencia declarada en `docs/UX.md` ya es AutoCAD y Revit.
+- **`F1.14`** «las opciones de medida de distancia no está funcionando». `F1.4` está cerrada con
+  33 pruebas de geometría, así que **es la interacción, no la aritmética** — y encaja con lo que
+  `HANDOFF.md` ya decía de la perpendicular: en el navegador de pruebas ningún rayo encuentra
+  geometría después de un par de refrescos.
+- **`F1.15`** «el modo fantasma se cae al mover».
+- **`F1.16`** «no está renderizando con mejor información de sombras o realista». Ojo con la
+  interacción con el plano 2D: la postproducción **se apaga en Modo 2D** a propósito (`F7.16`),
+  porque sobre un dibujo de líneas lava los colores.
 
 **Oráculo:** el mismo modelo abierto en **Bonsai/BlenderBIM** (o cualquier visor
 IFC de escritorio). El árbol, los psets y las mediciones deben coincidir — un
@@ -816,16 +841,90 @@ volver a la herramienta de escritorio.
 
 ### La mitad de entrada: cargar el plano y cruzarlo con el modelo
 
-| #       | Tarea                                                                                  | Estado |
-| ------- | -------------------------------------------------------------------------------------- | ------ |
-| `F7.6`  | **Leer un DXF**: capas, unidades, colores, textos, líneas, polilíneas, arcos y bloques | ✅     |
-| `F7.7`  | **Dibujarlo en la escena** a una cota, con los colores reales del CAD y sus rótulos    | ✅     |
-| `F7.8`  | **Calzar plano y modelo**: por dos pares de puntos, y a mano con unidad, cota y giro   | ✅     |
-| `F7.9`  | **Panel de capas del plano**: encender y apagar cada una                               | ✅     |
-| `F7.10` | **Seleccionar en 2D**: clic en un trazo → su capa, su plano y el largo del tramo       | ✅     |
-| `F7.11` | **Herramientas CAD**: ajuste a extremo, punto medio y cruce, y medir sobre el plano    | ✅     |
-| `F7.12` | **Cruzar**: modo 2D, y cortar el modelo a la altura del plano desde su ficha           | ✅     |
-| `F7.13` | **Fidelidad del CAD**: paleta ACI, tipos de línea, rellenos, anchos y rótulos          | ✅     |
+| #       | Tarea                                                                                                             | Estado                            |
+| ------- | ----------------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| `F7.6`  | **Leer un DXF**: capas, unidades, colores, textos, líneas, polilíneas, arcos y bloques                            | ✅                                |
+| `F7.7`  | **Dibujarlo en la escena** a una cota, con los colores reales del CAD y sus rótulos                               | ✅                                |
+| `F7.8`  | **Calzar plano y modelo**: por dos pares de puntos, y a mano con unidad, cota y giro                              | ✅                                |
+| `F7.9`  | **Panel de capas del plano**: encender y apagar cada una                                                          | ✅                                |
+| `F7.10` | **Seleccionar en 2D**: clic en un trazo → su capa, su plano y el largo del tramo                                  | ✅                                |
+| `F7.11` | **Herramientas CAD**: ajuste a extremo, punto medio y cruce, y medir sobre el plano                               | ✅                                |
+| `F7.12` | **Cruzar**: modo 2D, y cortar el modelo a la altura del plano desde su ficha                                      | ✅                                |
+| `F7.13` | **Fidelidad del CAD**: paleta ACI, tipos de línea, rellenos, anchos y rótulos                                     | ✅ reabierta y cerrada, ver abajo |
+| `F7.14` | **Que sea reproducible**: fixture DXF sintético y modo `plano` en `diag.html`                                     | ✅                                |
+| `F7.15` | **El color, resuelto donde el CAD lo pone**: capa `0` en bloque, `BYBLOCK`, capa apagada, color verdadero, grosor | ✅                                |
+| `F7.16` | **La forma**: grosores de trazo, patrones de rayado y espacio papel                                               | ✅                                |
+| `F7.17` | **Lo que no se dibujaba**: cotas, llamadas, elipses, `POLYLINE`, atributos, matrices                              | ✅                                |
+| `F7.18` | **El texto**: alineación real, multilínea, y que el plano no arranque mudo                                        | ✅                                |
+
+### `F7.13` estaba marcada cerrada y la pantalla decía otra cosa (2026-08-26)
+
+**El usuario volvió con la misma queja: «el 2D no representa los colores, las formas ni las
+figuras como se esperaba».** La ficha decía «paleta ACI, tipos de línea, rellenos, anchos y
+rótulos: ✅». Es exactamente la lección que `AeroControl/AGENTS.md` ya tenía por escrito —_el
+tablero miente en las dos direcciones; antes de implementar una fila pendiente, grep el código
+que describe_— y aquí mentía en la dirección cómoda.
+
+Medido contra `ACAD-Piso 5_Base.dxf` y `Base1.dxf`, no eran una brecha sino **quince**. Las
+cuatro que explicaban lo que se veía:
+
+| Lo que se veía                           | Lo que era                                                                                                                                                                             |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| El contenido de los bloques, casi blanco | **116 entidades** en `Base` y **140** en `Base1` están en la capa `0` dentro de un bloque, y AutoCAD las pinta con la capa del `INSERT`. Se quedaban en la capa `0` literal → índice 7 |
+| Un muro pesaba lo mismo que una cota     | **El grosor (código 370) no se leía en ninguna parte**, y `LineBasicMaterial` ignora su `linewidth`: todo a 1 px. La tabla `LAYER` declara `0-MUROS 370=30` contra `AA - COTAS 370=-3` |
+| Los rellenos, recuadros vacíos           | Los **23 `HATCH`** del archivo son `ANSI31` y solo se consideraba macizo lo que dice `SOLID`: se dibujaban solo con su contorno                                                        |
+| Una capa violeta encima del dibujo       | `Math.abs` borraba el signo del código 62, que es la marca de **capa apagada**. `0-AREA UTIL` (`62 = -201`) está apagada en AutoCAD                                                    |
+
+Y desaparecían en silencio **12 cotas, 11 llamadas, 36 puntos, 3 enmascaramientos** y **10
+elipses**; las opacidades estaban inventadas entre 0,35 y 0,9 con la postproducción encendida
+sobre el plano; los 433 textos salían todos centrados cuando **398 van arriba a la izquierda**;
+un `MTEXT` de cuatro renglones se aplastaba a uno y se cortaba a 60 caracteres; y con 433
+textos el plano **arrancaba sin un solo rótulo**, porque el tope era un conteo de 150.
+
+> **Dos brechas solo aparecieron al medir, y las dos eran de la propia reparación.**
+>
+> **Las capas apagadas no pueden decidir el tamaño del plano.** En `Base1.dxf` la capa
+> `0-AREA UTIL` mide 7.050 unidades de alto contra las 2.500 del edificio, y contándola el
+> plano pasaba de 27 × 25 m a 27 × 82 m. Con la extensión mal, se deduce mal la unidad y se
+> centra mal el dibujo.
+>
+> **La rampa de grosor tiene que medirse desde el grosor por defecto del archivo, no desde
+> cero.** El primer intento —un píxel más 3,5 por milímetro— daba 1,875 px para los 0,25 mm
+> del `$LWDEFAULT` y 2,05 para los 0,30 del muro: los dos redondeaban a 2 y el muro volvía a
+> pesar lo mismo que la cota. Y los 34 grupos de trazos pagaban la malla gruesa sin ganar nada.
+
+**Lo medido al cerrar** (2026-08-26, sobre `ACAD-Piso 5_Base.dxf`, 1,5 MB):
+
+| Qué                 | Antes                  | Ahora                                        |
+| ------------------- | ---------------------- | -------------------------------------------- |
+| Trazos              | 5.608                  | **5.711** (con las 12 cotas y 11 llamadas)   |
+| Textos              | 380                    | **433** (con los atributos de bloque)        |
+| Renglones dibujados | **0** (arrancaba mudo) | **498 de 498**, ninguno descartado           |
+| Rellenos            | 23 contornos vacíos    | **23 rayados `ANSI31`**                      |
+| Grosores            | todo a 1 px            | **242 trazos a 0,30 mm** contra 5.469 a 0,25 |
+| Espacio papel       | dentro del dibujo      | **10 entidades fuera**, contadas aparte      |
+| Texturas de rótulos | 7 por plano            | **8 en la escena** con los dos planos        |
+| Carga en la escena  | —                      | **137 ms**, sin un error en consola          |
+
+> **La malla gruesa se dibuja y no se clica.** `LineSegments2` es una malla y su geometría ya
+> no son pares de vértices, y de esos pares dependen dos cosas que ya funcionaban: el clic que
+> devuelve la capa y el largo del tramo (`F7.10`) y el ajuste al cruce de dos trazos (`F7.11`).
+> Donde hace falta grosor se dibujan **dos objetos**: la malla, y la línea de siempre con el
+> material apagado —que no se dibuja, no cuesta una pasada y sigue contestando—. Comprobado:
+> el clic sobre un muro de `0-MUROS` devuelve 0,71 m, el largo exacto del segmento, en una capa
+> que ahora tiene malla gruesa al lado.
+
+**Oráculo, y por qué el fixture** (`F7.14`): nada de esto era reproducible —`.gitignore`
+excluía `*.dxf` sin excepción y no había un solo plano versionado—, así que se escribió a mano
+`apps/web/public/samples/fidelidad-2d.dxf` con un caso por defecto corregido, y el modo `plano`
+de `diag.html` emite el informe que lo comprueba. En el informe del fixture **la capa `0` no
+aparece**: las 14 entidades del bloque heredaron su capa de inserción, que es la prueba de que
+la brecha mayor está cerrada.
+
+`POINT` y `WIPEOUT` **siguen contados a propósito**: un punto se dibuja como un punto —invisible
+a escala de plano, y los 36 del plano real están en `Defpoints`, que no se imprime— y un
+enmascaramiento **tapa** lo de abajo, que es un efecto y no un trazo. En un visor cuyo objeto es
+cruzar plano y modelo, una máscara opaca taparía el modelo. Son 492 en el plano real, y se dicen.
 
 **Lo que quedó hecho el 2026-08-19**, verificado sobre el DXF real en el navegador: el lector
 (`packages/bim-core/src/plans/dxf.ts`, 13 pruebas) resuelve el archivo del usuario en **36 ms**

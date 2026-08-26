@@ -68,18 +68,21 @@ aquí.
 aplicación abre modelos IFC reales y planos DXF del mismo proyecto, en el mismo
 espacio. Medido sobre los archivos de la organización, no sobre ejemplos:
 
-| Lo que hace                                                                    | Comprobado con                                         |
-| ------------------------------------------------------------------------------ | ------------------------------------------------------ |
-| Abre varios IFC, con la conversión en un worker                                | 23,6 MB de OpenBuildings en **2,2 s**, 1.316 elementos |
-| Árbol espacial, propiedades y psets **con su unidad**                          | `Qto_BeamBaseQuantities` con m², m³ y mm               |
-| Apagar, aislar y **salir del aislamiento** volviendo a lo de antes             | Sobre modelo cargado, en el navegador                  |
-| Mide distancia, ángulo, área y perpendicular; corta por tres ejes              | Fase 1                                                 |
-| Vistas guardadas: cámara, visibilidad y cortes                                 | Sobreviven a recargar                                  |
-| **Carga un DXF** con sus capas, colores y rótulos, y lo ajusta sobre el modelo | `ACAD-Piso 5_Base.dxf`: 5.608 trazos en **36 ms**      |
-| **Clic en un trazo del plano** → capa, plano de origen y largo del tramo       | `0-MUROS`, 0,060 m                                     |
-| Avisa cuando el archivo trae elementos que no se cargaron                      | Delató 433 `IfcProxy` en un modelo real                |
+| Lo que hace                                                                          | Comprobado con                                                |
+| ------------------------------------------------------------------------------------ | ------------------------------------------------------------- |
+| Abre varios IFC, con la conversión en un worker                                      | 23,6 MB de OpenBuildings en **2,2 s**, 1.316 elementos        |
+| Árbol espacial, propiedades y psets **con su unidad**                                | `Qto_BeamBaseQuantities` con m², m³ y mm                      |
+| Apagar, aislar y **salir del aislamiento** volviendo a lo de antes                   | Sobre modelo cargado, en el navegador                         |
+| Mide distancia, ángulo, área y perpendicular; corta por tres ejes                    | Fase 1                                                        |
+| Vistas guardadas: cámara, visibilidad y cortes                                       | Sobreviven a recargar                                         |
+| **Carga un DXF** con sus capas, colores y rótulos, y lo ajusta sobre el modelo       | `ACAD-Piso 5_Base.dxf`: 5.711 trazos en **137 ms**            |
+| **Dibuja el plano como el CAD**: grosores, rayados, cotas, llamadas y capas apagadas | 242 trazos a 0,30 mm contra 5.469 a 0,25; 23 rayados `ANSI31` |
+| **Clic en un trazo del plano** → capa, plano de origen y largo del tramo             | `0-MUROS`, 0,71 m — el largo exacto del segmento              |
+| Avisa cuando el archivo trae elementos que no se cargaron                            | Delató 433 `IfcProxy` en un modelo real                       |
 
-**140 pruebas** en `packages/bim-core`; build, lint y formato en verde.
+**182 pruebas** en `packages/bim-core`; build, lint y formato en verde. La fidelidad del plano se
+comprueba sin necesitar un archivo de cliente:
+`/diag.html?modo=plano&dxf=/samples/fidelidad-2d.dxf`.
 [MASTER_PLAN.md](MASTER_PLAN.md) es la fuente de verdad de lo que sigue, y
 [docs/UX.md](docs/UX.md) explica cómo está repartida la pantalla y con qué regla
 crece.

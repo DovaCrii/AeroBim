@@ -5,9 +5,64 @@
 
 ## Cómo seguir (leer esto primero)
 
-**Rama de trabajo: `codex/fase-0-andamiaje`, con PR abierto y sin fusionar.**
+**Ramas sin fusionar, y son dos:** `codex/fase-0-andamiaje` (34 commits) y
+`codex/fidelidad-2d` (6 commits, sale de la anterior). `AGENTS.md` es explícito: **no se fusiona
+sin permiso del usuario**, así que se dejan dichas.
 
-> ## ⚠️ Lo siguiente: el plano 2D sobre el modelo (`F7.6`–`F7.10`)
+> ## ⚠️ Estado al 2026-08-26: la fidelidad del 2D, cerrada de verdad
+>
+> **`F7.13` estaba marcada ✅ y la pantalla decía otra cosa.** El usuario volvió con «el 2D no
+> representa los colores, las formas ni las figuras como se esperaba», y medido contra sus dos
+> planos no era una brecha: eran **quince**. El detalle completo, con las cifras de antes y
+> después, está en `MASTER_PLAN.md` bajo _«`F7.13` estaba marcada cerrada y la pantalla decía otra
+> cosa»_. Las cuatro que explicaban lo que se veía:
+>
+> - **116 entidades** en `Base` y **140** en `Base1` están en la capa `0` **dentro de un bloque**,
+>   y AutoCAD las pinta con la capa del `INSERT`: se quedaban en la capa `0` literal, casi blancas.
+> - **El grosor (código 370) no se leía en ninguna parte**, y `LineBasicMaterial` ignora su
+>   `linewidth`: todo a un píxel, y un muro pesaba lo mismo que una cota.
+> - Los **23 `HATCH`** son `ANSI31` y se dibujaban solo con su contorno.
+> - `Math.abs` borraba el signo del 62, que es **capa apagada**: `0-AREA UTIL` se pintaba violeta
+>   encima del dibujo.
+>
+> **Cómo comprobarlo sin el plano del usuario**, que es lo que antes no se podía:
+>
+> ```
+> /diag.html?modo=plano&dxf=/samples/fidelidad-2d.dxf
+> ```
+>
+> El fixture está escrito a mano con un caso por defecto corregido y **sí se versiona**. En su
+> informe, **la capa `0` no aparece**: las 14 entidades del bloque heredaron su capa de inserción,
+> que es la prueba de que la brecha mayor está cerrada.
+>
+> **Dos trampas que la propia reparación dejó, y que solo aparecieron al medir.** Están arregladas,
+> y conviene no reaprenderlas: las **capas apagadas no pueden decidir el tamaño del plano** (con
+> `0-AREA UTIL` dentro, `Base1` pasaba de 27 × 25 m a 27 × 82 m, y con la extensión mal se deduce
+> mal la unidad), y **la rampa de grosor se mide desde el `$LWDEFAULT` del archivo, no desde cero**
+> (con una rampa absoluta, 0,25 y 0,30 mm redondeaban los dos a 2 px y el muro volvía a pesar lo
+> mismo que la cota).
+>
+> **`LineSegments2` es una malla y su geometría ya no son pares de vértices**, y de esos pares
+> dependen el clic con el largo del tramo (`F7.10`) y el ajuste al cruce (`F7.11`). Donde hace
+> falta grosor se dibujan **dos objetos**: la malla, y la línea de siempre con el material apagado
+> —que no se dibuja, no cuesta una pasada y sigue contestando—. Si alguien «limpia» ese par,
+> rompe las dos funciones a la vez.
+>
+> ### Y después, en este orden
+>
+> 1. **Los cinco pedidos del usuario del 2026-08-19**, ahora sí en el tablero como `F1.12` a
+>    `F1.16`: la preselección al pasar el cursor sin clicar («poco práctico», y **se cruza con el
+>    picking del plano**), el panel de abajo que no se entiende, la medición de distancia que no
+>    funciona en uso real, el modo fantasma que se cae al mover, y las sombras del renderizado.
+>    Estaban en una nota de `obsidian/`, que está en `.gitignore`: se habrían perdido.
+> 2. **`F7.1` y `F7.4`, montadas y sin confirmar en pantalla** — la mitad de _salida_ de la Fase 7.
+>    Ver el aviso más abajo: `EdgeProjector` necesita un renderizador que componga fotogramas.
+> 3. **La Fase 3 y el portal de ingreso.** Es lo que el usuario pidió junto con esto: credenciales,
+>    módulos por etapa y el registro documental. `services/` no existe todavía.
+>
+> ---
+>
+> ## Lo anterior: el plano 2D sobre el modelo (`F7.6`–`F7.10`)
 >
 > **El frente cambió el 2026-08-19 a pedido del usuario:** antes que las nubes de puntos va
 > **cargar el plano DXF del proyecto y cruzarlo con el IFC**. La mitad de entrada de la Fase 7 está

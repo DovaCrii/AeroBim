@@ -138,5 +138,13 @@ trabajo entero —coordinar no es medir—, y nunca para un solo botón.
   gesto. El extremo y el punto medio ya enganchan.
 - **Llevar la selección al árbol**: seleccionar en el modelo y que el árbol se despliegue hasta el
   elemento.
-- **Textos del plano en 3D**: se dibujan tumbados sobre el plano y con su color; queda pendiente
-  decidir si además se pueden apagar por separado de su capa.
+- **Textos del plano en 3D**: se dibujan tumbados sobre el plano, con su color y **con la
+  alineación que declara el CAD** (2026-08-26 — antes se centraban todos, y 398 de los 433 del
+  plano real van arriba a la izquierda). Queda pendiente decidir si además se pueden apagar por
+  separado de su capa.
+- **Las cinco cosas que el usuario pidió el 2026-08-19** y que ahora están en `MASTER_PLAN.md`
+  como `F1.12` a `F1.16`: la **preselección al pasar el cursor** sin clicar —«poco práctico», y se
+  cruza con el picking del plano—, el **panel de abajo que no se entiende** (la referencia
+  declarada arriba, AutoCAD y Revit, es justo la que hay que mirar), la **medición de distancia que
+  no funciona** en uso real, el **modo fantasma que se cae al mover** y las **sombras del
+  renderizado**.

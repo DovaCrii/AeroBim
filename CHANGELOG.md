@@ -5,6 +5,110 @@ Este proyecto sigue [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Corregido — Fidelidad del plano 2D (2026-08-26)
+
+`F7.13` estaba marcada cerrada y la pantalla decía otra cosa: el usuario volvió con «el 2D no
+representa los colores, las formas ni las figuras como se esperaba». Medido contra
+`ACAD-Piso 5_Base.dxf` y `Base1.dxf` no era una brecha, eran **quince**.
+
+**El color, resuelto donde el CAD lo pone** (`F7.15`):
+
+- **La capa `0` dentro de un bloque no es la capa `0`**: AutoCAD la sustituye por la capa del
+  `INSERT`. Eran 116 entidades en `Base` y 140 en `Base1` que se quedaban en la capa `0` literal
+  y salían casi blancas. Era la brecha de color más grande.
+- **`62 = 0` es «por bloque»**, no «por capa» (37 entidades), y el trazo `BYBLOCK` tampoco es
+  `BYLAYER` (54, que se dibujaban llenas).
+- **El signo negativo del código 62 es «capa apagada»**, y se descartaba con un valor absoluto:
+  `0-AREA UTIL` (`62 = -201`) está apagada en AutoCAD y el visor la pintaba violeta encima del
+  dibujo. Se lee también el congelado y `Defpoints`. La geometría se conserva y la capa arranca
+  oculta, con el ojo cerrado en la lista.
+- **Color verdadero (420) y transparencia (440)**, que se ignoraban del todo.
+- El color pasa a ser un `DxfColor` con su valor, su índice ACI y **de dónde salió** — entidad,
+  capa, bloque o por defecto. Sin la procedencia, «por qué esto se ve de este color» solo se
+  contesta leyendo el archivo a mano. Y el visor deja de resolver color: se le quitó el
+  `?? capa.colorIndex` que no sabía nada de bloques.
+
+**La forma** (`F7.16`):
+
+- **El grosor de trazo (código 370) no se leía en ninguna parte**, y `LineBasicMaterial` ignora
+  su `linewidth` en WebGL: todo salía a un píxel y un muro pesaba lo mismo que una cota. Se
+  siguen la cadena entidad → capa → `$LWDEFAULT` y se dibuja con `LineSegments2`.
+- **Los rayados se rayan.** Los 23 `HATCH` del plano real son `ANSI31` y se dibujaban solo con
+  su contorno: 23 recuadros vacíos donde el CAD dibuja un muro rayado.
+- **El espacio papel (código 67) no es el dibujo.** El marco de la lámina es la _causa_ del plano
+  de 480 metros que antes se rodeaba midiendo el trazo más largo.
+- El `bulge` del contorno de un relleno se leía y se tiraba, así que un macizo de muro curvo se
+  cerraba con la cuerda.
+
+**Lo que no se dibujaba** (`F7.17`): las 12 cotas y las 11 llamadas —o sea **todo el acotado**—,
+los atributos de bloque, las 10 elipses de `Base1`, la `POLYLINE` clásica (cuyos `VERTEX` se
+descartaban en silencio), las matrices de `INSERT` (de una reja de veinte pilares se dibujaba
+uno) y la extrusión hacia −Z, que sale espejada.
+
+**El texto** (`F7.18`): los 433 textos salían **todos centrados** cuando 398 van arriba a la
+izquierda; un texto justificado se coloca con su segundo punto y no con el primero; un `MTEXT`
+de cuatro renglones se aplastaba a uno y se cortaba a 60 caracteres; y con 433 textos el plano
+**arrancaba sin un solo rótulo**, porque el tope era un conteo de 150 en vez de una densidad.
+
+**Y el plano se dibuja opaco.** Las opacidades estaban inventadas entre 0,35 y 0,9 y el CAD es
+opaco; lo que evita que un macizo tape el contorno del muro que rellena es el orden de dibujo,
+no la transparencia. La postproducción `COLOR_PEN_SHADOWS` **se apaga en Modo 2D**: está para que
+se lea un modelo, y sobre un dibujo de líneas filtra los colores.
+
+### Medido al cerrar (2026-08-26, sobre `ACAD-Piso 5_Base.dxf`, 1,5 MB)
+
+| Qué                 | Antes                  | Ahora                                        |
+| ------------------- | ---------------------- | -------------------------------------------- |
+| Trazos              | 5.608                  | **5.711**, con las cotas y las llamadas      |
+| Textos              | 380                    | **433**, con los atributos de bloque         |
+| Renglones dibujados | **0** (arrancaba mudo) | **498 de 498**, ninguno descartado           |
+| Rellenos            | 23 contornos vacíos    | **23 rayados `ANSI31`**                      |
+| Grosores            | todo a 1 px            | **242 trazos a 0,30 mm** contra 5.469 a 0,25 |
+| Espacio papel       | dentro del dibujo      | **10 entidades fuera**, contadas aparte      |
+| Texturas de rótulos | 7 por plano            | **8 en la escena** con los dos planos        |
+| Carga en la escena  | —                      | **137 ms**, sin un error en consola          |
+
+Y `Base1.dxf` pasa de 27 × 82 m a **27 × 25 m** —un edificio creíble— porque las capas apagadas
+dejaron de contar para la extensión, y sigue deduciendo centímetros como estaba documentado.
+
+**El clic no se rompió**, que era el riesgo: `LineSegments2` es una malla y su geometría ya no son
+pares de vértices, de los que dependen el clic con el largo del tramo (`F7.10`) y el ajuste al
+cruce (`F7.11`). Donde hace falta grosor se dibujan dos objetos: la malla, y la línea de siempre
+con el material apagado —que no se dibuja, no cuesta una pasada y sigue contestando—. Comprobado
+en el navegador: un clic sobre `0-MUROS` devuelve 0,71 m, el largo exacto del segmento.
+
+### Añadido — Que la fidelidad del 2D sea reproducible (2026-08-26)
+
+- **`apps/web/public/samples/fidelidad-2d.dxf`**: fixture sintético escrito a mano con un caso
+  por cada defecto corregido. Nada de esto era comprobable en CI —`.gitignore` excluía `*.dxf`
+  sin excepción y no había un solo plano versionado—, y los planos del usuario no se confirman.
+- **Modo `plano` en `diag.html`**: el informe de fidelidad que la frase «el 2D no se ve como en
+  el CAD» necesita para poder depurarse. Por tipo de entidad, cuántas entraron y cuántas
+  quedaron fuera; por capa, su color **con su procedencia**, su grosor y si está apagada.
+- **`hatchLines` en `bim-core`, con 8 pruebas.** El recorte por paridad de un rayado falla en
+  silencio: una raya que pasa por un vértice invierte la paridad y sale **el negativo del
+  relleno**, que a primera vista parece un rayado válido. Vive en el dominio por la misma razón
+  que `segmentIntersection`.
+
+**182 pruebas** en `bim-core`, contra 139. Las nuevas cubren lo que no tenía ninguna: capa
+apagada, congelada y `Defpoints`, capa `0` en bloque, `BYBLOCK`, espacio papel, color verdadero,
+grosor, matriz de `INSERT`, `POLYLINE` con `bulge`, atributos, cota por su bloque anónimo,
+elipse, `MULTILEADER` con sus dos trampas de códigos, extrusión negativa, y el rayado entero.
+
+### Pendiente conocido
+
+- **`POINT` y `WIPEOUT` no se dibujan, y se cuentan.** Un punto se dibuja como un punto
+  —invisible a escala de plano, y los 36 del plano real están en `Defpoints`, que no se imprime—
+  y un enmascaramiento **tapa** lo de abajo, que es un efecto y no un trazo. Son 492 en el plano
+  real: en un visor cuyo objeto es cruzar plano y modelo, una máscara opaca taparía el modelo.
+- **`SPLINE`, `MLINE`, `XLINE`, `RAY` y `ACAD_TABLE`** siguen contados sin dibujar. No aparecen
+  en los planos del usuario.
+- **La caja para clicar un rótulo girado sigue siendo alineada a los ejes.** Ya lo era antes; con
+  la alineación real se nota algo más en rótulos muy girados.
+- **Los cinco pedidos de la nota del 2026-08-19** entran al plan como `F1.12` a `F1.16` y no se
+  tocaron: la preselección al pasar el cursor, el panel de abajo, la medición de distancia en uso
+  real, el modo fantasma al mover y las sombras del renderizado.
+
 ### Añadido — Fase 0, andamiaje y mediciones (2026-08-19)
 
 - **Monorepo npm** con tres paquetes: `packages/bim-core` (dominio puro, sin React ni

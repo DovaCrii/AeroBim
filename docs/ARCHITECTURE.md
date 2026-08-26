@@ -1,8 +1,9 @@
 # Arquitectura — AeroBim
 
-> Estado: **diseño**. Nada de esto está construido todavía; `F0.3` monta el
-> andamiaje y `F0.6` confirma o corrige la decisión sobre dónde corre la conversión.
-> Última revisión: 2026-08-18.
+> Estado: **construido de la Fase 0 a la Fase 1, y la mitad de entrada de la Fase 7**. Los
+> paquetes `bim-core`, `viewer` y `apps/web` existen y `F0.6` está cerrada: la conversión corre en
+> un worker. **`services/` todavía no existe** — es la Fase 3, y lo que se describe abajo de ella
+> sigue siendo diseño. Última revisión: 2026-08-26.
 
 ## El principio que ordena todo
 
