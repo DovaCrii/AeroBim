@@ -12,6 +12,22 @@
     <a href="{% url 'documents:observaciones' %}">{% translate "All" %}</a>
   </p>
 
+  {% comment %}
+    **Exportar a BCF es lo que hace que estas observaciones valgan fuera de AeroBim** (`F4.4`): un
+    hallazgo anclado al GUID de una viga es lo que el mandante abre en Solibri o en Navisworks.
+
+    Va por proyecto y no una lista general, porque un BCF es de una obra: mezclar proyectos en un
+    archivo obliga a quien lo recibe a separarlos.
+  {% endcomment %}
+  {% if proyectos_exportables %}
+    <p class="subtitulo">
+      {% translate "Export to BCF 2.1" %}:
+      {% for proyecto in proyectos_exportables %}
+        <a href="{% url 'documents:exportar-bcf' proyecto.pk %}">{{ proyecto.codigo }}</a>{% if not forloop.last %} ·{% endif %}
+      {% endfor %}
+    </p>
+  {% endif %}
+
   <table>
     <thead>
       <tr>

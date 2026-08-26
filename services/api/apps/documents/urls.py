@@ -37,6 +37,11 @@ urlpatterns = [
         name="validar-ids",
     ),
     path("observaciones/", views.ObservacionesView.as_view(), name="observaciones"),
+    path(
+        "proyectos/<uuid:pk>/observaciones.bcf",
+        views.ExportarBcfView.as_view(),
+        name="exportar-bcf",
+    ),
     path("observaciones/<uuid:pk>/", views.ObservacionView.as_view(), name="observacion"),
     path(
         "observaciones/<uuid:pk>/comentar/",

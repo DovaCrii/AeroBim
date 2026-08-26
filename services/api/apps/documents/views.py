@@ -7,6 +7,8 @@ ejecutar**, porque ofrecer un botón que termina en 403 es peor que no ofrecerlo
 a probar puertas.
 """
 
+from io import BytesIO
+
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
@@ -26,6 +28,7 @@ from apps.core.views import (
 )
 from apps.documents import storage
 from apps.documents.abribles import RUTA_POR_VISOR, visor_de
+from apps.documents.bcf import exportar as exportar_bcf
 from apps.documents.forms import (
     ActividadForm,
     CierreForm,
@@ -294,6 +297,55 @@ class DescargarRevisionView(ModelViewPermissionRequiredMixin, View):
         return respuesta
 
 
+class ExportarBcfView(ModelViewPermissionRequiredMixin, View):
+    """Las observaciones de un proyecto, en **BCF 2.1** (`F4.4`).
+
+    **Es lo que hace que una observación valga fuera de AeroBim.** Un hallazgo anclado al GUID de
+    una viga es exactamente lo que el mandante abre en Solibri o en Navisworks; guardado solo aquí,
+    obliga a que todos entren a nuestra pantalla, y eso no pasa.
+
+    **Pide `view_observacion` y nada más**, porque exportar es leer: se lleva lo que el usuario ya
+    puede ver en la lista, ni un tema más. Y por eso la consulta se acota igual que la pantalla.
+    """
+
+    model = Observacion
+
+    def get(self, request, *args, **kwargs):
+        proyecto = get_object_or_404(
+            scope_queryset_to_organizacion(Proyecto.objects.all(), request.user), pk=kwargs["pk"]
+        )
+
+        observaciones = (
+            Observacion.objects.filter(proyecto=proyecto)
+            .select_related("autor", "responsable", "cerrada_por")
+            .prefetch_related("comentarios__autor")
+            .order_by("created_at")
+        )
+        if not observaciones.exists():
+            messages.error(request, _("This project has no observations to export."))
+            return redirect("documents:observaciones")
+
+        contenido = exportar_bcf(observaciones, str(proyecto))
+        set_audit_context(
+            request,
+            proyecto,
+            action="exportar_bcf",
+            metadata={"temas": observaciones.count()},
+        )
+
+        # **Va un `BytesIO`, no un iterador.** `FileResponse._set_streaming_content` solo llama a
+        # `set_headers` cuando el contenido tiene `read`: con `iter([bytes])` se traga
+        # `as_attachment` y `filename` sin avisar, y el archivo sale sin `Content-Disposition`.
+        return FileResponse(
+            BytesIO(contenido),
+            as_attachment=True,
+            # El nombre lleva el código del proyecto: quien lo recibe por correo tiene que saber de
+            # qué obra es sin abrirlo.
+            filename=f"{proyecto.codigo}-observaciones.bcf",
+            content_type="application/octet-stream",
+        )
+
+
 class RequisitosIdsView(
     ModelViewPermissionRequiredMixin,
     OrganizacionScopedQuerysetMixin,
@@ -445,6 +497,18 @@ class ObservacionesView(
         if entregable:
             consulta = consulta.filter(revision__entregable_id=entregable)
         return consulta
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        # **Los proyectos que tienen algo que exportar**, no todos: un enlace a un BCF vacío se abre
+        # en Solibri y no muestra nada, que se lee como que la exportación falló.
+        contexto["proyectos_exportables"] = (
+            scope_queryset_to_organizacion(Proyecto.objects.all(), self.request.user)
+            .filter(observaciones__isnull=False)
+            .distinct()
+            .order_by("codigo")
+        )
+        return contexto
 
 
 class ObservacionView(

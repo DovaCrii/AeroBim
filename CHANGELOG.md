@@ -5,6 +5,49 @@ Este proyecto sigue [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Añadido — La observación se lleva a Solibri o a Navisworks (`F4.4`, 2026-08-26)
+
+Un hallazgo anclado al GUID de una viga es exactamente lo que el mandante necesita abrir en su
+software; guardado solo acá, obliga a que **todos entren a nuestra pantalla**, y eso no pasa. Ahora
+la lista de observaciones ofrece, por proyecto, un **BCF 2.1** con sus temas.
+
+**Se escribe a mano, con `zipfile` y `ElementTree`, y es una decisión con dos motivos.** El primero
+es que es un ZIP con tres XML pequeños, y una dependencia más —con su licencia y su forma de
+fallar— no se paga por ahorrar cien líneas. El segundo pesa más: **así el oráculo es
+independiente.** `bcf-client` está instalado —lo trae `ifcopenshell`— y se usa **en las pruebas
+para leer de vuelta lo que escribimos**. Si escribiéramos con su serializador y leyéramos con su
+parser, la prueba solo diría que la librería es consistente consigo misma; ahora dice algo sobre el
+archivo.
+
+**Se emite 2.1 y no 3.0**: la 3.0 existe y todavía no la lee todo el mercado.
+
+**Y no se inventa una cámara.** BCF permite un viewpoint con solo los componentes seleccionados,
+sin posición de cámara, y es lo que corresponde: nadie eligió un punto de vista para estas
+observaciones —vienen de una validación IDS o de un clic sobre un documento—. Un BCF que abre en
+Solibri mirando a un sitio que nadie decidió es peor que uno que simplemente **selecciona el
+elemento**: el primero afirma algo falso, el segundo dice lo que sabe. Por el mismo motivo el
+elemento va **seleccionado y no aislado**: aislar decidiría por quien revisa que lo demás no
+importa, y a veces el problema es justamente el vecino.
+
+El GUID del tema **es** el de la observación, no uno nuevo, así reimportar el mismo BCF actualiza
+el tema en vez de duplicarlo. Y a las personas las identifica su correo, que es lo que BCF espera;
+a quien no tenga correo se le pone el nombre de usuario, porque inventar una dirección haría que el
+software del otro lado asignara el tema a alguien que no existe.
+
+**Un defecto que apareció por escribir la prueba de la pantalla:** `FileResponse` solo llama a
+`set_headers` cuando el contenido tiene `read`, así que con `iter([bytes])` se tragaba
+`as_attachment` y `filename` **sin avisar** y el archivo salía sin `Content-Disposition`. Ahora va
+un `BytesIO` y el nombre lleva el código del proyecto — quien lo recibe por correo tiene que saber
+de qué obra es sin abrirlo.
+
+15 pruebas, y con ellas el tablero de la Fase 4 se reconcilió: `F4.2` y `F4.3` estaban en ⬜ sobre
+código que existe desde hace días —las cerró `Observacion` y `Comentario`, que era justamente la
+apuesta de `F8.2`—, y `F4.1` pasa a 🟡 porque el ancla por GUID está y la cámara no.
+
+**Lo que no se verificó, dicho en voz alta:** el oráculo de la fase es que el BCF **abra en
+Navisworks o Solibri**, y ninguno de los dos corre acá. Que la implementación de referencia de
+buildingSMART lo parsee es evidencia fuerte; no es la misma afirmación.
+
 ### Comprobado — El exportador a DXF **no dependía del proyector** (`F7.4`, 2026-08-26)
 
 `F7.1` y `F7.4` llevaban meses las dos en 🟡 «por el mismo motivo», y no era el mismo: proyectar las

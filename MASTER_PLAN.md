@@ -1233,18 +1233,50 @@ modelos que existen hoy — se completa con los entregables en `F8.1`.
 **Objetivo de salida:** una observación de coordinación deja de ser un correo con
 una captura de pantalla.
 
-| #      | Tarea                                                                                            | Estado |
-| ------ | ------------------------------------------------------------------------------------------------ | ------ |
-| `F4.1` | Temas de observación con viewpoint: cámara, visibilidad y elementos involucrados por GUID        | ⬜     |
-| `F4.2` | Metadatos y ciclo de vida: prioridad, responsable, fecha de vencimiento, estado                  | ⬜     |
-| `F4.3` | Comentarios ligados al viewpoint, con historial                                                  | ⬜     |
-| `F4.4` | **Exportar e importar BCF 2.1 y 3.0** — con `BCFTopics` en el frontend y `bcf-client` en backend | ⬜     |
-| `F4.5` | Marcado sobre la vista (nube, flecha, texto) embebido en el viewpoint                            | ⬜     |
+| #      | Tarea                                                                                     | Estado |
+| ------ | ----------------------------------------------------------------------------------------- | ------ |
+| `F4.1` | Temas de observación con viewpoint: cámara, visibilidad y elementos involucrados por GUID | 🟡     |
+| `F4.2` | Metadatos y ciclo de vida: prioridad, responsable, fecha de vencimiento, estado           | ✅     |
+| `F4.3` | Comentarios ligados al viewpoint, con historial                                           | ✅     |
+| `F4.4` | **Exportar BCF 2.1** — escrito a mano, leído de vuelta por `bcf-client` en las pruebas    | ✅     |
+| `F4.5` | Marcado sobre la vista (nube, flecha, texto) embebido en el viewpoint                     | ⬜     |
+
+**`F4.2` y `F4.3` las cerró la Fase 8, no esta.** Fue la apuesta del replanteo —«las
+observaciones comparten modelo con los temas BCF», `F8.2`— y salió: `Observacion` ya trae
+prioridad, responsable, vencimiento, estado y resolución, y `Comentario` el historial. No hay
+tabla nueva que escribir; el tablero decía ⬜ sobre código que existe desde hace días.
+
+**`F4.1` va a medio camino, y el medio que falta importa.** El ancla por GUID está y viaja al
+BCF; **la cámara y la visibilidad no**. Hoy nadie elige un punto de vista al abrir una
+observación —vienen de una validación IDS o de un clic sobre un documento—, así que el
+viewpoint lleva el elemento seleccionado y **ninguna cámara inventada**: un BCF que abre
+mirando a un sitio que nadie decidió afirma algo falso, y uno que solo selecciona el elemento
+dice lo que sabe. Se completa cuando el visor sepa guardar la cámara de una observación, que es
+donde se cruza con `F1.9` (vistas guardadas) y con lo que
+[savedView.ts:50](packages/bim-core/src/views/savedView.ts) ya dejó anotado: su clave **no
+sirve** para un viewpoint BCF, tiene que ir por GUID.
+
+**Y la importación quedó fuera de `F4.4` a propósito**, así que la fila dice «Exportar» y no
+«Exportar e importar». Exportar es lo que desbloquea al mandante hoy; importar exige decidir
+qué gana cuando el BCF que vuelve contradice lo que hay acá —y eso es una política de fusión,
+no un parser—. Entra como `F4.6` cuando haya un BCF de vuelta de verdad que mirar.
+
+| #      | Tarea                                                                                  | Estado |
+| ------ | -------------------------------------------------------------------------------------- | ------ |
+| `F4.6` | Importar BCF 2.1: reconciliar por GUID de tema, con política escrita para el conflicto | ⬜     |
 
 **Oráculo, y es el que manda:** un BCF exportado por AeroBim **abre en Navisworks
 o Solibri** con su viewpoint intacto, y uno generado por ellos abre aquí. Un BCF
 que solo se entiende consigo mismo no es interoperabilidad, es un formato propio
 con extensión prestada.
+
+> **Lo que sí se verificó, y lo que no.** Las 15 pruebas de `test_bcf.py` leen el archivo con
+> **`bcf-client`, la implementación de referencia de buildingSMART** —instalada porque la trae
+> `ifcopenshell`—, no con nuestro propio código: el GUID del elemento, el correo del
+> responsable, los comentarios con su historial y la ausencia de cámara sobreviven el viaje de
+> ida y vuelta. **Eso no es lo mismo que el oráculo de arriba.** Navisworks y Solibri no corren
+> acá; que la implementación de referencia lo parsee es evidencia fuerte, y el oráculo sigue
+> abierto hasta que alguien lo abra en uno de los dos.
 
 ---
 

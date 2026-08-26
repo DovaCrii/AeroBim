@@ -1813,3 +1813,13 @@ msgstr "Validar contra el IDS"
 #: .\templates\documents\expediente.html
 msgid "did not apply to this model"
 msgstr "no aplicaron a este modelo"
+
+
+#: .\templates\documents\observaciones.html
+msgid "Export to BCF 2.1"
+msgstr "Exportar a BCF 2.1"
+
+
+#: .\apps\documents\views.py
+msgid "This project has no observations to export."
+msgstr "Este proyecto no tiene observaciones que exportar."
