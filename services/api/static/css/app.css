@@ -194,6 +194,18 @@ tbody tr:last-child td {
   margin-bottom: 18px;
 }
 
+.paginacion {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 14px;
+  font-size: 0.9rem;
+}
+
+.paginacion .inactivo {
+  color: var(--ab-text-muted);
+}
+
 .vacio {
   color: var(--ab-text-muted);
   padding: 18px;

@@ -69,6 +69,22 @@ class OrganizacionScopedQuerysetMixin:
         return scope_queryset_to_organizacion(super().get_queryset(), self.request.user)
 
 
+class FiltrosEnLaPaginacionMixin:
+    """Deja en el contexto los filtros de la URL, sin la página.
+
+    **Sin esto, pasar de página pierde el filtro** y devuelve la lista entera: parece que
+    el filtro no funciona, y quien lo usa deja de confiar en él. Se calcula una vez aquí en
+    vez de repetirlo en cada plantilla.
+    """
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        parametros = self.request.GET.copy()
+        parametros.pop("page", None)
+        contexto["filtros"] = parametros.urlencode()
+        return contexto
+
+
 class ViewModelPermissions(DjangoModelPermissions):
     """`DjangoModelPermissions` **con la lectura guardada**.
 

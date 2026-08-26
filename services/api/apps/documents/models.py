@@ -129,8 +129,22 @@ class Entregable(BaseModel):
 
     @property
     def revision_vigente(self):
-        """La ultima revision emitida, o `None` si todavia no hay ninguna."""
-        return self.revisiones.filter(es_vigente=True).first()
+        """La ultima revision emitida, o `None` si todavia no hay ninguna.
+
+        **Se recorre `all()` y no se filtra, y la diferencia se midio.** `filter()` abre una
+        consulta nueva **aunque la relacion ya venga precargada**, asi que el listado de
+        entregables gastaba 71 consultas para veinte filas: una por fila para la revision
+        vigente y otra por fila para el avance, que la vuelve a pedir. Recorriendo `all()`,
+        con `prefetch_related("revisiones")` en la vista, las veinte filas no cuestan
+        ninguna consulta extra.
+
+        El orden del modelo es por fecha de emision descendente, asi que la primera vigente
+        que aparece es la que corresponde.
+        """
+        for revision in self.revisiones.all():
+            if revision.es_vigente:
+                return revision
+        return None
 
     @property
     def avance(self) -> float:

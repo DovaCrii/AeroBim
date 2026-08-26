@@ -17,6 +17,7 @@ from django.views.generic import DetailView, ListView, TemplateView, View
 from apps.core.audit import set_audit_context
 from apps.core.tenancy import scope_queryset_to_organizacion
 from apps.core.views import (
+    FiltrosEnLaPaginacionMixin,
     ModelPermissionRequiredMixin,
     ModelViewPermissionRequiredMixin,
     OrganizacionScopedQuerysetMixin,
@@ -56,7 +57,12 @@ def solo_publicadas(queryset, user):
     return queryset.filter(idoneidad__in=IDONEIDADES_PUBLICADAS)
 
 
-class EntregablesView(ModelViewPermissionRequiredMixin, OrganizacionScopedQuerysetMixin, ListView):
+class EntregablesView(
+    ModelViewPermissionRequiredMixin,
+    OrganizacionScopedQuerysetMixin,
+    FiltrosEnLaPaginacionMixin,
+    ListView,
+):
     model = Entregable
     template_name = "documents/entregables.html"
     context_object_name = "entregables"
@@ -224,7 +230,10 @@ class DescargarRevisionView(ModelViewPermissionRequiredMixin, View):
 
 
 class ObservacionesView(
-    ModelViewPermissionRequiredMixin, OrganizacionScopedQuerysetMixin, ListView
+    ModelViewPermissionRequiredMixin,
+    OrganizacionScopedQuerysetMixin,
+    FiltrosEnLaPaginacionMixin,
+    ListView,
 ):
     model = Observacion
     template_name = "documents/observaciones.html"
@@ -304,7 +313,12 @@ class CerrarObservacionView(ModelPermissionRequiredMixin, View):
         return redirect("documents:observacion", pk=observacion.pk)
 
 
-class ActividadesView(ModelViewPermissionRequiredMixin, OrganizacionScopedQuerysetMixin, ListView):
+class ActividadesView(
+    ModelViewPermissionRequiredMixin,
+    OrganizacionScopedQuerysetMixin,
+    FiltrosEnLaPaginacionMixin,
+    ListView,
+):
     model = Actividad
     template_name = "documents/actividades.html"
     context_object_name = "actividades"
@@ -317,7 +331,12 @@ class ActividadesView(ModelViewPermissionRequiredMixin, OrganizacionScopedQuerys
         return consulta
 
 
-class TransmittalsView(ModelViewPermissionRequiredMixin, OrganizacionScopedQuerysetMixin, ListView):
+class TransmittalsView(
+    ModelViewPermissionRequiredMixin,
+    OrganizacionScopedQuerysetMixin,
+    FiltrosEnLaPaginacionMixin,
+    ListView,
+):
     model = Transmittal
     template_name = "documents/transmittals.html"
     context_object_name = "transmittals"
