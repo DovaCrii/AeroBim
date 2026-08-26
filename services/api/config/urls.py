@@ -59,6 +59,7 @@ urlpatterns = [
     ),
     path("administracion/", include("apps.accounts.urls")),
     path("proyecto/", include("apps.core.urls")),
+    path("documentos/", include("apps.documents.urls")),
     path("api-token/", TokenConThrottle.as_view(), name="api-token"),
     path("admin/", admin.site.urls),
 ]

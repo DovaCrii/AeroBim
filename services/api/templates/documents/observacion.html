@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block titulo %}{{ observacion.titulo }} · AeroBim{% endblock %}
+
+{% block contenido %}
+  <h1>{{ observacion.titulo }}</h1>
+  <p class="subtitulo">
+    {{ observacion.get_estado_display }} ·
+    {% translate "owner" %}: {{ observacion.responsable }} ·
+    {% translate "opened by" %} {{ observacion.autor }}
+    {% if observacion.vence %}· {% translate "due" %} {{ observacion.vence|date:"Y-m-d" }}{% endif %}
+    {% if observacion.vencida %}<strong>⚠ {% translate "overdue" %}</strong>{% endif %}
+  </p>
+
+  {% if observacion.descripcion %}<p>{{ observacion.descripcion|linebreaksbr }}</p>{% endif %}
+
+  {% if observacion.revision %}
+    <p>
+      {% translate "On" %}:
+      <a href="{% url 'documents:expediente' observacion.revision.entregable.pk %}">
+        {{ observacion.revision.entregable.codigo }} rev. {{ observacion.revision.correlativo }}
+      </a>
+      {% if observacion.pagina %}· {% translate "page" %} {{ observacion.pagina }}{% endif %}
+    </p>
+  {% elif observacion.ifc_guid %}
+    {# El GUID de IFC es la identidad, y es lo que viaja en un BCF. #}
+    <p>{% translate "On the model" %}: <code>{{ observacion.ifc_guid }}</code></p>
+  {% endif %}
+
+  {% if observacion.estado == "cerrada" %}
+    <div class="vacio">
+      <strong>{% translate "Closed" %}</strong> {{ observacion.cerrada_en|date:"Y-m-d H:i" }}
+      {% translate "by" %} {{ observacion.cerrada_por }}.<br />
+      {{ observacion.resolucion|linebreaksbr }}
+    </div>
+  {% endif %}
+
+  <p class="grupo">{% translate "Thread" %}</p>
+  <table>
+    <tbody>
+      {% for comentario in comentarios %}
+        <tr>
+          <td style="width: 220px">
+            {{ comentario.autor }}<br />
+            <small>{{ comentario.created_at|date:"Y-m-d H:i" }}</small>
+          </td>
+          <td>{{ comentario.texto|linebreaksbr }}</td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td>{% translate "Nothing said yet." %}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% comment %}
+    Los dos formularios van solo si el usuario puede ejecutarlos. Ofrecer un boton que
+    termina en 403 es peor que no ofrecerlo.
+  {% endcomment %}
+  {% if puede_comentar %}
+    <p class="grupo">{% translate "Answer" %}</p>
+    <form method="post" action="{% url 'documents:comentar-observacion' observacion.pk %}" style="max-width: 560px">
+      {% csrf_token %}
+      {{ form_comentario.as_p }}
+      <button type="submit">{% translate "Post" %}</button>
+    </form>
+  {% endif %}
+
+  {% if puede_cerrar and observacion.estado != "cerrada" %}
+    <p class="grupo">{% translate "Close" %}</p>
+    <p class="subtitulo">
+      {% blocktranslate %}An observation is not closed without saying how it was resolved: that is
+      what tells a resolved one apart from one somebody ticked to bring the count
+      down.{% endblocktranslate %}
+    </p>
+    <form method="post" action="{% url 'documents:cerrar-observacion' observacion.pk %}" style="max-width: 560px">
+      {% csrf_token %}
+      {{ form_cierre.as_p }}
+      <button type="submit">{% translate "Close observation" %}</button>
+    </form>
+  {% endif %}
+{% endblock %}

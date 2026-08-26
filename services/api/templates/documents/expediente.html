@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block titulo %}{{ entregable.codigo }} · AeroBim{% endblock %}
+
+{% block contenido %}
+  <h1>{{ entregable.codigo }}</h1>
+  <p class="subtitulo">
+    {{ entregable.titulo }} · {{ entregable.disciplina }} ·
+    {% translate "owner" %}: {{ entregable.responsable }}
+  </p>
+
+  {% comment %}
+    **Lo que falta va primero, y nombrado.** No un porcentaje: la fila concreta y el
+    atajo que la cierra -- y el atajo solo si el usuario puede ejecutarlo, porque
+    ofrecer un boton que termina en 403 es peor que no ofrecerlo.
+  {% endcomment %}
+  <p class="grupo">{% translate "What is missing" %}</p>
+  {% if faltantes %}
+    <table>
+      <tbody>
+        {% for falta in faltantes %}
+          <tr>
+            <td>{{ falta.que }}</td>
+            <td>
+              {% if falta.url %}<a href="{{ falta.url }}">{{ falta.accion }}</a>{% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="vacio">{% translate "Nothing missing: complete and documented." %}</div>
+  {% endif %}
+
+  <p class="grupo">{% translate "Revisions" %}</p>
+  {% if perms.documents.add_revision %}
+    <p><a href="{% url 'documents:subir-revision' entregable.pk %}">{% translate "Upload a revision" %}</a></p>
+  {% endif %}
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">{% translate "Revision" %}</th>
+        <th scope="col">{% translate "Suitability" %}</th>
+        <th scope="col">{% translate "Issued" %}</th>
+        <th scope="col">{% translate "By" %}</th>
+        <th scope="col">{% translate "File" %}</th>
+        <th scope="col">{% translate "Current" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for revision in revisiones %}
+        <tr>
+          <td>{{ revision.correlativo }}</td>
+          <td>
+            {{ revision.get_idoneidad_display }}
+            {% if perms.documents.change_revision %}
+              <form method="post" action="{% url 'documents:cambiar-idoneidad' revision.pk %}">
+                {% csrf_token %}
+                <select name="idoneidad" aria-label="{% translate 'Suitability' %}">
+                  {% for valor, etiqueta in idoneidades %}
+                    <option value="{{ valor }}" {% if valor == revision.idoneidad %}selected{% endif %}>
+                      {{ etiqueta }}
+                    </option>
+                  {% endfor %}
+                </select>
+                <button type="submit">{% translate "Change" %}</button>
+              </form>
+            {% endif %}
+          </td>
+          <td>{{ revision.emitida_en|date:"Y-m-d H:i" }}</td>
+          <td>{{ revision.subida_por }}</td>
+          <td>
+            {% if revision.clave_archivo %}
+              <a href="{% url 'documents:descargar-revision' revision.pk %}">
+                {{ revision.nombre_original|default:"—" }}
+              </a>
+              <br /><small>sha256 {{ revision.sha256|slice:":12" }}…</small>
+            {% else %}
+              —
+            {% endif %}
+          </td>
+          <td>{% if revision.es_vigente %}{% translate "Yes" %}{% endif %}</td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="6">{% translate "Nothing issued yet." %}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <p class="grupo">{% translate "Observations" %}</p>
+  {% if perms.documents.add_observacion %}
+    <p><a href="{% url 'documents:nueva-observacion' entregable.pk %}">{% translate "Open an observation" %}</a></p>
+  {% endif %}
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">{% translate "Title" %}</th>
+        <th scope="col">{% translate "Owner" %}</th>
+        <th scope="col">{% translate "Due" %}</th>
+        <th scope="col">{% translate "State" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for observacion in observaciones %}
+        <tr>
+          <td><a href="{% url 'documents:observacion' observacion.pk %}">{{ observacion.titulo }}</a></td>
+          <td>{{ observacion.responsable }}</td>
+          <td>{{ observacion.vence|date:"Y-m-d"|default:"—" }}{% if observacion.vencida %} ⚠{% endif %}</td>
+          <td>{{ observacion.get_estado_display }}</td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="4">{% translate "No observation." %}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <p class="grupo">{% translate "Activities" %}</p>
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">{% translate "Title" %}</th>
+        <th scope="col">{% translate "Owner" %}</th>
+        <th scope="col">{% translate "Due" %}</th>
+        <th scope="col">{% translate "State" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for actividad in actividades %}
+        <tr>
+          <td>{{ actividad.titulo }}</td>
+          <td>{{ actividad.responsable }}</td>
+          <td>{{ actividad.vence|date:"Y-m-d"|default:"—" }}{% if actividad.vencida %} ⚠{% endif %}</td>
+          <td>{{ actividad.get_status_display }}</td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="4">{% translate "No activity." %}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

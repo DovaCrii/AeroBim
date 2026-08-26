@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block titulo %}{% translate "Observations" %} · AeroBim{% endblock %}
+
+{% block contenido %}
+  <h1>{% translate "Observations" %}</h1>
+  <p class="subtitulo">
+    {% blocktranslate %}Findings and errors, each with an owner and a due date.{% endblocktranslate %}
+    <a href="?mias=1">{% translate "Only mine" %}</a> ·
+    <a href="?abiertas=1">{% translate "Only open" %}</a> ·
+    <a href="{% url 'documents:observaciones' %}">{% translate "All" %}</a>
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">{% translate "Title" %}</th>
+        <th scope="col">{% translate "On" %}</th>
+        <th scope="col">{% translate "Priority" %}</th>
+        <th scope="col">{% translate "Owner" %}</th>
+        <th scope="col">{% translate "Due" %}</th>
+        <th scope="col">{% translate "State" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for observacion in observaciones %}
+        <tr>
+          <td><a href="{% url 'documents:observacion' observacion.pk %}">{{ observacion.titulo }}</a></td>
+          <td>
+            {% if observacion.revision %}
+              {{ observacion.revision.entregable.codigo }} rev. {{ observacion.revision.correlativo }}
+            {% else %}
+              {{ observacion.ancla }}
+            {% endif %}
+          </td>
+          <td>{{ observacion.get_prioridad_display }}</td>
+          <td>{{ observacion.responsable }}</td>
+          <td>{{ observacion.vence|date:"Y-m-d"|default:"—" }}{% if observacion.vencida %} ⚠{% endif %}</td>
+          <td>{{ observacion.get_estado_display }}</td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="6">{% translate "Nothing here." %}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

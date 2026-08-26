@@ -5,6 +5,68 @@ Este proyecto sigue [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Añadido — Control documental y seguimiento (2026-08-26)
+
+La Fase 8, a pedido del usuario y tomando la idea de **MineDoc** —el que ya usa la empresa—
+construida aquí: MIT y local-first.
+
+- **El registro**: proyecto, disciplina, WBS, entregable, revisión, transmittal, observación,
+  comentario y actividad. **El vocabulario es el de ISO 19650**: un código `S3` o `A1` significa
+  lo mismo en las tres oficinas, y un estado llamado «en revisión» significa lo que cada uno
+  entienda. Las `S` no son contractuales y las `A`/`B` sí.
+- **El entregable no tiene archivo, la revisión sí.** Existe desde que se planifica, mucho antes
+  de su primer archivo: un registro que necesita un archivo para existir no puede decir que
+  falta.
+- **El avance físico es una suma auditable**, del peso de cada entregable por el código de
+  idoneidad de su revisión vigente. Y una `B` no es el 100 %: queda la obligación de resolver
+  los comentarios.
+- **Nunca se sobreescribe una revisión: se emite otra**, para poder contestar qué decía el plano
+  cuando se aprobó la etapa.
+- **La observación tiene un ciclo de vida y dos anclas** —documento (revisión, página,
+  coordenada) y modelo (GUID de IFC + viewpoint)—, así que este registro es la mitad ya
+  construida de la Fase 4. Y **no se cierra sin decir cómo**.
+- **Quien abre una observación es quien la cierra.** El `Proyectista` sube y responde; si
+  cerrara, el registro sería «yo mismo declaro que lo arreglé».
+- **Subir es entrada hostil**: extensión, **firma real** de los primeros bytes y tamaño, y **el
+  nombre del cliente nunca llega al sistema de archivos** — la clave se construye con el sha256 y
+  el nombre original vive en la base de datos.
+- **Avisar es la función.** Correo al asignar con el enlace, la fecha y la descripción; resumen
+  por tramos (vencido, 7, 15, 30 días) desde un comando con su fila en `JobRun`. **No se manda un
+  resumen vacío** —enseña a archivar el remitente— y **un responsable sin correo se registra**.
+- **El expediente**, copiado del `dossier.py` de AeroControl: contesta «¿esto está completo y
+  documentado?» nombrando cada fila que falta con el atajo que la cierra, y omitiendo los botones
+  que el usuario no puede ejecutar.
+- **La matriz de roles queda completa**, y un `Mandante` **no ve lo que está en curso**: eso no
+  lo puede decir un permiso —`view_revision` no distingue una `S0` de una `A1`— así que lo pone
+  la vista, con la regla en un solo sitio.
+
+**Comprobado en el navegador con el servidor corriendo:** un ejecutable renombrado a `plano.pdf`
+se rechaza con 400 y nada llega al disco; el PDF real queda en el disco como
+`716-LCD/716-LCD-AR-P-001/14fb1bb0a3f7….pdf` —el nombre con guiones largos y acentos no lo
+tocó— y la pantalla lo devuelve tal cual; el expediente se actualiza solo; la observación se
+crea con su responsable y su aviso; y **la auditoría registró todo con acciones con nombre,
+incluidos los intentos rechazados**.
+
+**122 pruebas, 92 % de cobertura**, con el ciclo completo de un entregable automatizado.
+
+### Corregido — Tres defectos del validador de archivos, encontrados por sus propias pruebas (2026-08-26)
+
+- **`latin-1` nunca falla.** Asigna un carácter a cada uno de los 256 bytes, así que un
+  ejecutable renombrado a `.dxf` pasaba el filtro entero. Ahora se comprueba lo que sí distingue
+  un texto de un binario: que no lleve bytes nulos y que casi todo sea imprimible.
+- **`carpeta//doble.pdf` no se rechazaba.** Partiendo el separador con `[/\\]+`, un `//` se
+  colapsaba en uno y el tramo vacío desaparecía sin que nadie lo viera.
+- **`../../etc` salía como `..-..-etc`.** No es una fuga —no queda separador— pero es un nombre
+  de carpeta que parece una, y hace perder el tiempo a quien audite el disco.
+
+### Pendiente conocido — Control documental
+
+- **`F8.6`: ver y comentar el PDF en el navegador** con **EmbedPDF** (MIT). Es el «comentar en
+  línea sin descargar» de MineDoc. Hoy la observación sobre un documento guarda su página y su
+  coordenada y **no hay quien las dibuje**.
+- **`F8.7`: emitir el transmittal desde la pantalla.** El modelo está y se prueba —no se emite
+  vacío ni sin destinatario—, pero la pantalla solo lista.
+
 ### Añadido — Portal de ingreso y credenciales (2026-08-26)
 
 `services/api` existe: Django 6 + uv, con la **forma** de AeroControl y base de datos propia. Se

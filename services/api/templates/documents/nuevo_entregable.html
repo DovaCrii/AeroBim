@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block titulo %}{% translate "New deliverable" %} · AeroBim{% endblock %}
+
+{% block contenido %}
+  <h1>{% translate "New deliverable" %}</h1>
+  <p class="subtitulo">
+    {% blocktranslate %}A deliverable exists from the moment it is planned, long before its first
+    file. That is what lets the register say what is missing.{% endblocktranslate %}
+  </p>
+
+  <form method="post" style="max-width: 560px">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">{% translate "Create" %}</button>
+  </form>
+  <p><a href="{% url 'documents:entregables' %}">{% translate "Back" %}</a></p>
+{% endblock %}

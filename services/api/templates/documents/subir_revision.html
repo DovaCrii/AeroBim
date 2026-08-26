@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block titulo %}{% translate "Upload a revision" %} · AeroBim{% endblock %}
+
+{% block contenido %}
+  <h1>{% translate "Upload a revision" %}</h1>
+  <p class="subtitulo">{{ entregable.codigo }} · {{ entregable.titulo }}</p>
+
+  {% comment %}
+    El archivo se valida antes de tocar el disco: extension, firma real de los primeros
+    bytes y tamano. Y el nombre que traiga **no llega al sistema de archivos**: la clave
+    se construye con el sha256 del contenido, y el nombre original se guarda en la base
+    de datos para poder mostrarlo.
+  {% endcomment %}
+  <form method="post" enctype="multipart/form-data" style="max-width: 560px">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">{% translate "Upload" %}</button>
+  </form>
+  <p><a href="{% url 'documents:expediente' entregable.pk %}">{% translate "Back" %}</a></p>
+{% endblock %}

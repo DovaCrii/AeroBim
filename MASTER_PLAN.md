@@ -874,6 +874,113 @@ abre la herramienta una segunda vez.
 
 ---
 
+## FASE 8 — Control documental y seguimiento
+
+**Agregada el 2026-08-26 a pedido del usuario**, junto con el portal de ingreso. La idea de
+conjunto viene de **MineDoc** —el que ya usa la empresa: control de documentos con
+transmittals, avance físico del documento y comentarios sobre el propio archivo— construida
+aquí, MIT y local-first.
+
+**Objetivo de salida:** que el seguimiento de un proyecto —qué falta, quién lo tiene, qué se
+emitió y a quién— viva en un registro y no en la bandeja de correo de alguien.
+
+| #      | Tarea                                                                                                      | Estado |
+| ------ | ---------------------------------------------------------------------------------------------------------- | ------ |
+| `F8.1` | **El modelo**: proyecto, disciplina, WBS, entregable, revisión, transmittal, observación, actividad        | ✅     |
+| `F8.2` | **La observación comparte modelo con los temas BCF** de la Fase 4, con dos anclas                          | ✅     |
+| `F8.3` | **Subir y descargar**: validación de firma real, clave por sha256, y el nombre del cliente fuera del disco | ✅     |
+| `F8.4` | **Asignar, avisar y seguir**: correo al asignar, resumen por tramos, y el expediente                       | ✅     |
+| `F8.5` | **Trabajos programados** con su fila en `JobRun` y su vigilante                                            | ✅     |
+| `F8.6` | **Ver y comentar el PDF en el navegador** con EmbedPDF (MIT), sin descargarlo                              | ⬜     |
+| `F8.7` | **Emitir el transmittal desde la pantalla**, con carátula y acuse                                          | 🟡     |
+
+**Oráculo, y está automatizado** (`apps/documents/tests/test_pantallas.py`): el ciclo completo
+de un entregable —subir una revisión en `S3`, abrir una observación asignada a otro, comprobar
+que **le llega el correo con el enlace**, responderla, que el proyectista **no la pueda
+cerrar**, que el revisor la cierre diciendo cómo, y publicar en `A` para que el avance llegue
+a 1— más la comprobación de que un `Mandante` **no ve lo que está en curso**.
+
+### Las decisiones que ordenan este registro (2026-08-26)
+
+**El vocabulario es el de ISO 19650, no uno inventado.** Un código de idoneidad `S3` o `A1`
+significa lo mismo en la oficina del proyectista, en la del revisor y en la del mandante; un
+estado llamado «en revisión» significa lo que cada uno entienda. Las `S` no son contractuales
+y las `A`/`B` sí, y una `B` está publicada **con comentarios**: se puede usar y queda la
+obligación de resolverlos, así que una `B` con observaciones abiertas no es un error del
+sistema sino su estado normal.
+
+**El entregable no tiene archivo, la revisión sí.** Un entregable existe desde que se
+planifica —con su código, su responsable y su fecha— y mucho antes de que exista su primer
+archivo. Un registro que necesita un archivo para existir **no puede decir que falta**, que es
+justo lo que se le pide.
+
+**El avance físico es una suma auditable, no un número teclado.** Sale del peso de cada
+entregable por el código de idoneidad de su revisión vigente. Es la diferencia entre un
+porcentaje que alguien escribe en una reunión y uno que se puede revisar entregable por
+entregable.
+
+**Nunca se sobreescribe una revisión: se emite otra.** Es lo que permite contestar «qué decía
+el plano cuando se aprobó la etapa», que es la pregunta que llega seis meses después.
+
+**La observación tiene un solo ciclo de vida y dos anclas** —revisión + página + coordenada
+para el documento, GUID de IFC + viewpoint para el modelo—, así que este registro es **la mitad
+ya construida de la Fase 4** en vez de dos tablas parecidas que hay que mantener sincronizadas.
+Y **no se cierra sin decir cómo**: eso distingue una resuelta de una que alguien marcó para
+bajar el contador.
+
+**Quien abre una observación es quien la cierra.** El `Proyectista` sube revisiones y responde,
+pero no cierra: si no, el registro se convierte en «yo mismo declaro que lo arreglé».
+
+**Un archivo que llega de fuera es entrada hostil**, y son las tres reglas que
+`docs/ARCHITECTURE.md` ya exigía: extensión, **firma real** de los primeros bytes y tamaño; y
+**el nombre del cliente nunca llega al sistema de archivos** — la clave se construye con el
+sha256 del contenido y el nombre original vive en la base de datos para poder mostrarlo.
+
+**Los avisos son la función, no un adorno.** Es lo que el usuario pidió con estas palabras:
+_«ver los responsables y asignar quién debe realizarlo y que le debe enviar mensaje e
+información necesaria»_. Al asignar, al responsable le llega un correo con el enlace, la fecha
+y la descripción; y hay un resumen por tramos —vencido, 7, 15 y 30 días—. Dos decisiones que
+parecen menores: **no se manda un resumen vacío**, porque un correo que dice «no tienes nada»
+todas las mañanas enseña a archivar el remitente sin leerlo; y **un responsable sin correo se
+registra**, porque es un aviso que nadie va a recibir.
+
+**Y el expediente es la pantalla que ordena todo**, copiada del `dossier.py` de AeroControl:
+contesta _«¿esto está completo y documentado?»_ nombrando **cada fila que falta** con el atajo
+que la cierra, y omitiendo los botones que el usuario no puede ejecutar — ofrecer un botón que
+termina en 403 es peor que no ofrecerlo, porque enseña a probar puertas.
+
+### Comprobado en el navegador, con el servidor corriendo (2026-08-26)
+
+- Un ejecutable renombrado a `plano.pdf` (cabecera `MZ`) se **rechaza con 400** y el mensaje
+  dice qué pasa; nada llega al disco.
+- El PDF real sube, y en el disco queda como
+  `716-LCD/716-LCD-AR-P-001/14fb1bb0a3f7….pdf`: **el nombre del cliente —con guiones largos y
+  acentos— no lo tocó**, y la pantalla se lo devuelve tal cual porque vive en la base de datos.
+- El expediente se actualiza solo: desaparece la fila «no hay revisión» y aparece «la revisión
+  vigente no está publicada».
+- La observación se crea con su responsable, su prioridad, su vencimiento y su ancla, y el
+  responsable recibe el aviso.
+- **La auditoría registró todo con acciones con nombre** —`subir_revision`,
+  `abrir_observacion`— **y también los intentos rechazados**, que es justamente para lo que
+  sirve una auditoría.
+- Los cuatro roles ven el registro en el portal y **ninguno ve la auditoría**.
+
+### Lo que falta de esta fase, dicho en voz alta
+
+- **`F8.6`: ver y comentar el PDF en el navegador**, con **EmbedPDF** (MIT, framework-agnóstico,
+  con anotación y búsqueda incluidas). Es el «comentar en línea sin descargar el documento» de
+  MineDoc, y su licencia encaja donde `pdf.js` solo no llega — `pdf.js` muestra, no anota. Hoy
+  la observación sobre un documento guarda su página y su coordenada y **no hay quien las
+  dibuje**.
+- **`F8.7`: emitir el transmittal desde la pantalla.** El modelo está y se prueba —no se emite
+  vacío ni sin destinatario— pero la pantalla solo lista: falta armar el borrador, la carátula y
+  el acuse.
+- **El catálogo `locale/es/` no existe**, así que la interfaz mezcla las cadenas fuente en
+  inglés con lo que Django traduce por su cuenta. Se vio en pantalla: «File» sale como
+  «Archivo» y «Yes» como «Sí» porque esas las traduce Django, y las propias no.
+
+---
+
 ## FASE 6 — Geo + BIM
 
 **Objetivo de salida:** cerrar el ciclo con la familia — el modelo sobre el terreno

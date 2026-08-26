@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block titulo %}{% translate "Activities" %} · AeroBim{% endblock %}
+
+{% block contenido %}
+  <h1>{% translate "Activities" %}</h1>
+  <p class="subtitulo">
+    {% blocktranslate %}Planned work: who does what, and by when. Not every task comes from a
+    finding.{% endblocktranslate %}
+    <a href="?mias=1">{% translate "Only mine" %}</a> ·
+    <a href="{% url 'documents:actividades' %}">{% translate "All" %}</a>
+    {% if perms.documents.add_actividad %}
+      · <a href="{% url 'documents:nueva-actividad' %}">{% translate "New activity" %}</a>
+    {% endif %}
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">{% translate "Title" %}</th>
+        <th scope="col">{% translate "Deliverable" %}</th>
+        <th scope="col">{% translate "Owner" %}</th>
+        <th scope="col">{% translate "Due" %}</th>
+        <th scope="col">{% translate "State" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for actividad in actividades %}
+        <tr>
+          <td>{{ actividad.titulo }}</td>
+          <td>
+            {% if actividad.entregable %}
+              <a href="{% url 'documents:expediente' actividad.entregable.pk %}">
+                {{ actividad.entregable.codigo }}
+              </a>
+            {% else %}
+              —
+            {% endif %}
+          </td>
+          <td>{{ actividad.responsable }}</td>
+          <td>{{ actividad.vence|date:"Y-m-d"|default:"—" }}{% if actividad.vencida %} ⚠{% endif %}</td>
+          <td>{{ actividad.get_status_display }}</td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="5">{% translate "Nothing here." %}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

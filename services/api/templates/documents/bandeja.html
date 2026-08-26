@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block titulo %}{% translate "My plate" %} · AeroBim{% endblock %}
+
+{% block contenido %}
+  <h1>{% translate "My plate" %}</h1>
+  <p class="subtitulo">
+    {% blocktranslate %}What is assigned to you, by how soon it is due. It is the same split the
+    daily digest uses: what is overdue and what is due in a month need different
+    reactions.{% endblocktranslate %}
+  </p>
+
+  {% for clave, etiqueta in tramos_etiquetados %}
+    <p class="grupo">{{ etiqueta }}</p>
+    <table>
+      <tbody>
+        {% for item in clave %}
+          <tr>
+            <td style="width: 110px">{{ item.vence|date:"Y-m-d" }}</td>
+            <td>{{ item.titulo }}</td>
+            <td>{{ item.proyecto }}</td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td>{% translate "Nothing." %}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endfor %}
+
+  <p class="grupo">{% translate "Deliverables you own" %}</p>
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">{% translate "Code" %}</th>
+        <th scope="col">{% translate "Title" %}</th>
+        <th scope="col">{% translate "Current revision" %}</th>
+        <th scope="col">{% translate "Progress" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for entregable in entregables %}
+        <tr>
+          <td><a href="{% url 'documents:expediente' entregable.pk %}">{{ entregable.codigo }}</a></td>
+          <td>{{ entregable.titulo }}</td>
+          <td>
+            {{ entregable.revision_vigente.correlativo|default:"—" }}
+            {{ entregable.revision_vigente.idoneidad|default:"" }}
+          </td>
+          <td>{{ entregable.avance|floatformat:"-2" }}</td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="4">{% translate "You do not own any deliverable." %}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}
