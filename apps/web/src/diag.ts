@@ -10,11 +10,121 @@
  */
 
 import * as OBC from "@thatopen/components";
+import { parseDxf, suggestMetresPerUnit } from "@aerobim/bim-core";
 import { BimViewer } from "@aerobim/viewer";
 
 type Log = (linea: string) => void;
 
 const WASM = { path: "/wasm/", absolute: true } as const;
+
+/**
+ * Informe de fidelidad de un plano: qué se leyó, qué se dibujó y qué no.
+ *
+ * **Es la respuesta a "el 2D no se ve como en el CAD".** Esa frase no se puede depurar: hay que
+ * poder preguntarle al archivo qué trae y al visor qué hizo con cada cosa. El informe dice, por tipo
+ * de entidad, cuántas entraron y cuántas quedaron fuera; y por capa, su color con **de dónde salió**,
+ * su grosor y si el CAD la tiene apagada.
+ *
+ * Uso: `/diag.html?modo=plano&dxf=/samples/fidelidad-2d.dxf`
+ *
+ * El fixture `fidelidad-2d.dxf` está escrito a mano con un caso por cada defecto que se corrigió, así
+ * que este modo es la comprobación de que ninguno vuelve. Los planos reales del usuario no se
+ * versionan —regla de `AGENTS.md`—, pero el mismo modo los lee si están en `public/samples/`.
+ */
+export async function plano(
+  container: HTMLElement,
+  dxfUrl: string,
+  log: Log,
+  esperaMs = 0,
+): Promise<void> {
+  const t0 = performance.now();
+  const texto = await (await fetch(dxfUrl)).text();
+  log(
+    `descargado: ${Math.round(texto.length / 1024)} KB en ${Math.round(performance.now() - t0)} ms`,
+  );
+
+  const t1 = performance.now();
+  const dibujo = parseDxf(texto);
+  const msLectura = Math.round(performance.now() - t1);
+  const unidades = suggestMetresPerUnit(dibujo);
+
+  log(
+    `\nlectura: ${msLectura} ms — ${dibujo.polylines.length} trazos, ${dibujo.texts.length} textos, ` +
+      `${dibujo.hatches.length} rellenos`,
+  );
+  log(`unidad: ${unidades.metresPerUnit} m/unidad (${unidades.unitName})`);
+  log(`  ${unidades.reason}`);
+  if (dibujo.bounds !== null) {
+    const ancho = (dibujo.bounds.maxX - dibujo.bounds.minX) * unidades.metresPerUnit;
+    const alto = (dibujo.bounds.maxY - dibujo.bounds.minY) * unidades.metresPerUnit;
+    log(`extension de lo dibujado: ${ancho.toFixed(2)} x ${alto.toFixed(2)} m`);
+  }
+  log(`grosor por defecto del archivo: ${dibujo.defaultLineweightMm} mm`);
+
+  // **Lo que no se dibuja va primero.** Es lo único que hace que el visor mienta sobre el plano.
+  const omitidas = Object.entries(dibujo.skipped).sort((uno, otro) => otro[1] - uno[1]);
+  log(
+    `\nsin dibujar: ${omitidas.length === 0 ? "nada" : omitidas.map(([tipo, n]) => `${tipo}=${n}`).join("  ")}`,
+  );
+  log(`espacio papel (fuera a proposito): ${dibujo.paperSpaceCount}`);
+
+  const porProcedencia = new Map<string, number>();
+  const porGrosor = new Map<number, number>();
+  for (const trazo of dibujo.polylines) {
+    porProcedencia.set(trazo.color.source, (porProcedencia.get(trazo.color.source) ?? 0) + 1);
+    porGrosor.set(trazo.lineweightMm, (porGrosor.get(trazo.lineweightMm) ?? 0) + 1);
+  }
+  log(
+    `\ncolor por procedencia: ${[...porProcedencia].map(([donde, n]) => `${donde}=${n}`).join("  ")}`,
+  );
+  log(
+    `grosores (mm): ${[...porGrosor]
+      .sort((uno, otro) => otro[1] - uno[1])
+      .map(([mm, n]) => `${mm}=${n}`)
+      .join("  ")}`,
+  );
+
+  const porPatron = new Map<string, number>();
+  for (const relleno of dibujo.hatches) {
+    const clave = relleno.pattern ?? "(macizo)";
+    porPatron.set(clave, (porPatron.get(clave) ?? 0) + 1);
+  }
+  log(
+    `rellenos por patron: ${[...porPatron].map(([p, n]) => `${p}=${n}`).join("  ") || "ninguno"}`,
+  );
+
+  const porAlineacion = new Map<string, number>();
+  for (const texto of dibujo.texts) {
+    const clave = `${texto.hAlign}/${texto.vAlign}`;
+    porAlineacion.set(clave, (porAlineacion.get(clave) ?? 0) + 1);
+  }
+  const multilinea = dibujo.texts.filter((uno) => uno.text.includes("\n")).length;
+  log(`textos por alineacion: ${[...porAlineacion].map(([a, n]) => `${a}=${n}`).join("  ")}`);
+  log(`textos de varias lineas: ${multilinea}`);
+
+  log("\ncapas (n = trazos + textos + rellenos):");
+  for (const capa of dibujo.layers) {
+    log(
+      `  ${capa.off ? "APAGADA" : "       "} ${String(capa.count).padStart(6)}  ` +
+        `aci=${String(capa.colorIndex).padStart(4)}  lw=${String(capa.lineweightMm).padStart(5)}  ${capa.name}`,
+    );
+  }
+
+  // Y ahora por el visor, que es donde el dibujo se convierte en escena.
+  const viewer = await BimViewer.create(container);
+  const t2 = performance.now();
+  const cargado = await viewer.loadPlan(texto, dxfUrl.split("/").pop() ?? "plano");
+  log(`\nescena: ${Math.round(performance.now() - t2)} ms — ${cargado.vertexCount} vertices`);
+  log(
+    `rotulos: ${cargado.labelCount} renglones dibujados, ${cargado.labelsDropped} sin sitio, ` +
+      `de ${cargado.textCount} textos`,
+  );
+  log(`alto de rotulo: ${cargado.labelHeightM.toFixed(3)} m`);
+  const apagadas = cargado.layers.filter((capa) => capa.off).map((capa) => capa.name);
+  log(`capas que arrancan apagadas: ${apagadas.join(", ") || "ninguna"}`);
+
+  if (esperaMs > 0) await new Promise((listo) => setTimeout(listo, esperaMs));
+}
 
 /** Flujo mínimo, sin nuestra envoltura: solo componentes de That Open. */
 export async function manual(

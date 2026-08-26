@@ -69,7 +69,8 @@ npm-debug.log*
 apps/web/public/wasm/
 
 # Excepcion: los fixtures sinteticos si se versionan. Estan escritos a mano y no
-# contienen dato alguno de un proyecto real. Cualquier otro .ifc queda fuera.
+# contienen dato alguno de un proyecto real. Cualquier otro .ifc o .dxf queda fuera.
 !apps/web/public/samples/muro-minimo.ifc
 !apps/web/public/samples/muro-con-psets.ifc
 !apps/web/public/samples/elemento-sin-geometria.ifc
+!apps/web/public/samples/fidelidad-2d.dxf
