@@ -243,7 +243,8 @@ def test_el_expediente_ofrece_abrir_solo_lo_abrible(client, revision_dxf, proyec
         reverse("documents:expediente", args=[revision_dxf.entregable_id])
     ).content.decode()
 
-    assert "Open in the viewer" in cuerpo
+    # Por la URL y no por el rótulo: el rótulo cambia con la traducción y lo que se comprueba
+    # es que el enlace exista y apunte a la revisión correcta.
     assert f"/visor/?revision={revision_dxf.pk}" in cuerpo
 
 

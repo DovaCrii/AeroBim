@@ -1,0 +1,1528 @@
+# Catalogo de AeroBim en espanol.
+#
+# El codigo escribe en ingles y el espanol vive aca, que es la convencion de la familia
+# (ver AGENTS.md). Este archivo se regenera con `makemessages` y se compila con
+# `compilemessages`; el `.mo` es binario y no se confirma.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-08-26 12:31-0400\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: es\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+#: .\apps\accounts\apps.py:8
+msgid "Accounts"
+msgstr ""
+
+#: .\apps\accounts\roles.py:31
+msgid "Everything, including system administration."
+msgstr "Todo, incluida la administración del sistema."
+
+
+#: .\apps\accounts\roles.py:33
+msgid ""
+"Creates projects and deliverables, assigns owners, issues transmittals, "
+"closes observations."
+msgstr "Crea proyectos y entregables, asigna responsables, emite transmittals y cierra observaciones."
+
+
+#: .\apps\accounts\roles.py:36
+msgid "Uploads revisions of their own deliverables and answers observations."
+msgstr "Sube revisiones de sus propios entregables y responde observaciones."
+
+
+#: .\apps\accounts\roles.py:37
+msgid "Opens and grades observations, changes a revision's suitability code."
+msgstr "Abre y califica observaciones, y cambia el código de idoneidad de una revisión."
+
+
+#: .\apps\accounts\roles.py:38
+msgid "Reads published deliverables, downloads them and comments."
+msgstr "Lee los entregables publicados, los descarga y comenta."
+
+
+#: .\apps\accounts\roles.py:39
+msgid "Not a role: notification group for the executive summary."
+msgstr "No es un rol: grupo de notificación para el resumen ejecutivo."
+
+
+#: .\apps\accounts\views.py:42
+msgid "Project"
+msgstr "Proyecto"
+
+
+#: .\apps\accounts\views.py:43 .\templates\accounts\organizaciones.html:4
+#: .\templates\accounts\organizaciones.html:7
+msgid "Organisations"
+msgstr "Organizaciones"
+
+
+#: .\apps\accounts\views.py:46
+msgid "Who the project data belongs to."
+msgstr "A quién pertenecen los datos del proyecto."
+
+
+#: .\apps\accounts\views.py:49 .\apps\documents\models.py:70
+msgid "Model"
+msgstr "Modelo"
+
+
+#: .\apps\accounts\views.py:50
+msgid "BIM viewer"
+msgstr "Visor BIM"
+
+
+#: .\apps\accounts\views.py:56
+msgid "The IFC and DXF viewer. What it can open depends on your role."
+msgstr "El visor de IFC y DXF. Lo que puede abrir depende de tu rol."
+
+
+#: .\apps\accounts\views.py:59 .\apps\accounts\views.py:66
+#: .\apps\accounts\views.py:73 .\apps\documents\apps.py:8
+msgid "Documents"
+msgstr "Documentos"
+
+
+#: .\apps\accounts\views.py:60 .\templates\documents\bandeja.html:4
+#: .\templates\documents\bandeja.html:7
+msgid "My plate"
+msgstr "Lo mío"
+
+
+#: .\apps\accounts\views.py:63
+msgid "What is assigned to you, by how soon it is due."
+msgstr "Lo que tienes asignado, ordenado por lo pronto que vence."
+
+
+#: .\apps\accounts\views.py:67 .\templates\documents\entregables.html:4
+#: .\templates\documents\entregables.html:7
+msgid "Deliverables"
+msgstr "Entregables"
+
+
+#: .\apps\accounts\views.py:70
+msgid "The register: what has to be delivered and how far along it is."
+msgstr "El registro: qué hay que entregar y en qué va."
+
+
+#: .\apps\accounts\views.py:74 .\templates\documents\transmittals.html:4
+#: .\templates\documents\transmittals.html:7
+msgid "Transmittals"
+msgstr "Transmittals"
+
+
+#: .\apps\accounts\views.py:77
+msgid "What was issued, to whom and when."
+msgstr "Qué se emitió, a quién y cuándo."
+
+
+#: .\apps\accounts\views.py:80 .\apps\accounts\views.py:87
+msgid "Coordination"
+msgstr "Coordinación"
+
+
+#: .\apps\accounts\views.py:81 .\templates\documents\expediente.html:106
+#: .\templates\documents\observaciones.html:4
+#: .\templates\documents\observaciones.html:7
+msgid "Observations"
+msgstr "Observaciones"
+
+
+#: .\apps\accounts\views.py:84
+msgid "Findings and errors, with an owner and a due date."
+msgstr "Hallazgos y errores, con responsable y fecha de vencimiento."
+
+
+#: .\apps\accounts\views.py:88 .\templates\documents\actividades.html:4
+#: .\templates\documents\actividades.html:7
+#: .\templates\documents\expediente.html:135
+msgid "Activities"
+msgstr "Actividades"
+
+
+#: .\apps\accounts\views.py:91
+msgid "Planned work: who does what, and by when."
+msgstr "Trabajo planificado: quién hace qué, y para cuándo."
+
+
+#: .\apps\accounts\views.py:94 .\apps\accounts\views.py:101
+#: .\apps\accounts\views.py:108
+msgid "Administration"
+msgstr "Administración"
+
+
+#: .\apps\accounts\views.py:95 .\templates\accounts\usuarios_roles.html:4
+#: .\templates\accounts\usuarios_roles.html:7
+msgid "Users and roles"
+msgstr "Usuarios y roles"
+
+
+#: .\apps\accounts\views.py:98
+msgid "Who holds which role. Read-only."
+msgstr "Quién tiene qué rol. Solo lectura."
+
+
+#: .\apps\accounts\views.py:102 .\templates\accounts\auditoria.html:4
+#: .\templates\accounts\auditoria.html:7
+msgid "Audit trail"
+msgstr "Auditoría"
+
+
+#: .\apps\accounts\views.py:105
+msgid "Every change, append-only."
+msgstr "Cada cambio, de solo agregar."
+
+
+#: .\apps\accounts\views.py:109 .\templates\accounts\trabajos.html:4
+#: .\templates\accounts\trabajos.html:7
+msgid "Scheduled jobs"
+msgstr "Trabajos programados"
+
+
+#: .\apps\accounts\views.py:112
+msgid "Whether the nightly work actually ran."
+msgstr "Si el trabajo de la noche corrió de verdad."
+
+
+#: .\apps\core\apps.py:8
+msgid "Core"
+msgstr "Núcleo"
+
+
+#: .\apps\core\models.py:27
+msgid "active"
+msgstr "activo"
+
+
+#: .\apps\core\models.py:28
+msgid "notes"
+msgstr "notas"
+
+
+#: .\apps\core\models.py:113 .\apps\projects\models.py:44
+#: .\apps\projects\models.py:92 .\apps\projects\models.py:125
+msgid "name"
+msgstr "nombre"
+
+
+#: .\apps\core\models.py:122
+msgid "organisation"
+msgstr "organización"
+
+
+#: .\apps\core\models.py:123
+msgid "organisations"
+msgstr "organizaciones"
+
+
+#: .\apps\core\models.py:131
+msgid "Member"
+msgstr "Miembro"
+
+
+#: .\apps\core\models.py:131
+msgid "Admin"
+msgstr "Administrador"
+
+
+#: .\apps\core\models.py:138
+msgid "membership"
+msgstr "membresía"
+
+
+#: .\apps\core\models.py:139
+msgid "memberships"
+msgstr "membresías"
+
+
+#: .\apps\core\models.py:196
+msgid "audit event"
+msgstr "evento de auditoría"
+
+
+#: .\apps\core\models.py:197
+msgid "audit events"
+msgstr "eventos de auditoría"
+
+
+#: .\apps\core\models.py:230
+msgid "Running"
+msgstr "En curso"
+
+
+#: .\apps\core\models.py:231
+msgid "Completed"
+msgstr "Completado"
+
+
+#: .\apps\core\models.py:232
+msgid "Failed"
+msgstr "Falló"
+
+
+#: .\apps\core\models.py:247
+msgid "job run"
+msgstr "corrida de trabajo"
+
+
+#: .\apps\core\models.py:248
+msgid "job runs"
+msgstr "corridas de trabajo"
+
+
+#: .\apps\documents\forms.py:44 .\templates\documents\expediente.html:48
+msgid "File"
+msgstr "Archivo"
+
+
+#: .\apps\documents\forms.py:45
+#, python-format
+msgid "Accepted: %(exts)s"
+msgstr "Se aceptan: %(exts)s"
+
+
+#: .\apps\documents\forms.py:91
+msgid "How it was resolved"
+msgstr "Cómo se resolvió"
+
+
+#: .\apps\documents\forms.py:99
+msgid "Comment"
+msgstr "Comentario"
+
+
+#: .\apps\documents\forms.py:121 .\templates\documents\entregables.html:26
+#: .\templates\documents\expediente.html:45
+#: .\templates\documents\expediente.html:61
+msgid "Suitability"
+msgstr "Idoneidad"
+
+
+#: .\apps\documents\models.py:36
+msgid "S0 · Work in progress"
+msgstr "S0 · Trabajo en curso"
+
+
+#: .\apps\documents\models.py:37
+msgid "S1 · Suitable for coordination"
+msgstr "S1 · Apto para coordinación"
+
+
+#: .\apps\documents\models.py:38
+msgid "S2 · Suitable for information"
+msgstr "S2 · Apto para información"
+
+
+#: .\apps\documents\models.py:39
+msgid "S3 · Suitable for review and comment"
+msgstr "S3 · Apto para revisión y comentario"
+
+
+#: .\apps\documents\models.py:40
+msgid "S4 · Suitable for stage approval"
+msgstr "S4 · Apto para aprobación de etapa"
+
+
+#: .\apps\documents\models.py:41
+msgid "S6 · Suitable for PIM authorisation"
+msgstr "S6 · Apto para autorización del PIM"
+
+
+#: .\apps\documents\models.py:42
+msgid "S7 · Suitable for AIM authorisation"
+msgstr "S7 · Apto para autorización del AIM"
+
+
+#: .\apps\documents\models.py:43
+msgid "A · Published and authorised"
+msgstr "A · Publicado y autorizado"
+
+
+#: .\apps\documents\models.py:44
+msgid "B · Published with comments"
+msgstr "B · Publicado con comentarios"
+
+
+#: .\apps\documents\models.py:68
+msgid "Drawing"
+msgstr "Plano"
+
+
+#: .\apps\documents\models.py:69
+msgid "Report"
+msgstr "Memoria"
+
+
+#: .\apps\documents\models.py:71
+msgid "Specification"
+msgstr "Especificación"
+
+
+#: .\apps\documents\models.py:72
+msgid "Other"
+msgstr "Otro"
+
+
+#: .\apps\documents\models.py:97 .\apps\projects\models.py:43
+#: .\apps\projects\models.py:91 .\apps\projects\models.py:124
+msgid "code"
+msgstr "código"
+
+
+#: .\apps\documents\models.py:98 .\apps\documents\models.py:354
+#: .\apps\documents\models.py:495
+msgid "title"
+msgstr "título"
+
+
+#: .\apps\documents\models.py:106 .\apps\documents\models.py:366
+#: .\apps\documents\models.py:501 .\apps\projects\models.py:132
+#: .\templates\documents\expediente.html:10
+#: .\templates\documents\observacion.html:10
+msgid "owner"
+msgstr "responsable"
+
+
+#: .\apps\documents\models.py:108
+msgid "planned date"
+msgstr "fecha planificada"
+
+
+#: .\apps\documents\models.py:111
+msgid "weight"
+msgstr "peso"
+
+
+#: .\apps\documents\models.py:114
+msgid "deliverable"
+msgstr "entregable"
+
+
+#: .\apps\documents\models.py:115
+msgid "deliverables"
+msgstr "entregables"
+
+
+#: .\apps\documents\models.py:180 .\apps\documents\models.py:203
+msgid "revision"
+msgstr "revisión"
+
+
+#: .\apps\documents\models.py:182
+msgid "suitability"
+msgstr "idoneidad"
+
+
+#: .\apps\documents\models.py:199
+msgid "issued"
+msgstr "emitida"
+
+
+#: .\apps\documents\models.py:200
+msgid "current"
+msgstr "vigente"
+
+
+#: .\apps\documents\models.py:204
+msgid "revisions"
+msgstr "revisiones"
+
+
+#: .\apps\documents\models.py:246
+msgid "Draft"
+msgstr "Borrador"
+
+
+#: .\apps\documents\models.py:247 .\templates\documents\expediente.html:46
+#: .\templates\documents\transmittals.html:22
+msgid "Issued"
+msgstr "Emitido"
+
+
+#: .\apps\documents\models.py:248
+msgid "Acknowledged"
+msgstr "Acusado"
+
+
+#: .\apps\documents\models.py:249 .\apps\documents\models.py:471
+msgid "Cancelled"
+msgstr "Anulado"
+
+
+#: .\apps\documents\models.py:258
+msgid "reference"
+msgstr "folio"
+
+
+#: .\apps\documents\models.py:259
+msgid "subject"
+msgstr "asunto"
+
+
+#: .\apps\documents\models.py:272
+msgid "transmittal"
+msgstr "transmittal"
+
+
+#: .\apps\documents\models.py:273
+msgid "transmittals"
+msgstr "transmittals"
+
+
+#: .\apps\documents\models.py:330
+msgid "Open"
+msgstr "Abierta"
+
+
+#: .\apps\documents\models.py:331
+msgid "Answered"
+msgstr "Respondida"
+
+
+#: .\apps\documents\models.py:332 .\apps\projects\models.py:29
+#: .\templates\documents\observacion.html:33
+msgid "Closed"
+msgstr "Cerrada"
+
+
+#: .\apps\documents\models.py:333
+msgid "Dismissed"
+msgstr "Descartada"
+
+
+#: .\apps\documents\models.py:339
+msgid "High"
+msgstr "Alta"
+
+
+#: .\apps\documents\models.py:339
+msgid "Medium"
+msgstr "Media"
+
+
+#: .\apps\documents\models.py:339
+msgid "Low"
+msgstr "Baja"
+
+
+#: .\apps\documents\models.py:355 .\apps\documents\models.py:496
+msgid "description"
+msgstr "descripción"
+
+
+#: .\apps\documents\models.py:368 .\apps\documents\models.py:510
+#: .\templates\documents\observacion.html:12
+msgid "due"
+msgstr "vence"
+
+
+#: .\apps\documents\models.py:379
+msgid "resolution"
+msgstr "resolución"
+
+
+#: .\apps\documents\models.py:392 .\apps\documents\notify.py:58
+msgid "observation"
+msgstr "observación"
+
+
+#: .\apps\documents\models.py:393
+msgid "observations"
+msgstr "observaciones"
+
+
+#: .\apps\documents\models.py:446
+msgid "comment"
+msgstr "comentario"
+
+
+#: .\apps\documents\models.py:447
+msgid "comments"
+msgstr "comentarios"
+
+
+#: .\apps\documents\models.py:467
+msgid "Pending"
+msgstr "Pendiente"
+
+
+#: .\apps\documents\models.py:468
+msgid "In progress"
+msgstr "En curso"
+
+
+#: .\apps\documents\models.py:469
+msgid "Under review"
+msgstr "En revisión"
+
+
+#: .\apps\documents\models.py:470
+msgid "Done"
+msgstr "Hecha"
+
+
+#: .\apps\documents\models.py:514 .\apps\documents\notify.py:62
+msgid "activity"
+msgstr "actividad"
+
+
+#: .\apps\documents\models.py:515
+msgid "activities"
+msgstr "actividades"
+
+
+#: .\apps\documents\notify.py:56
+#, python-format
+msgid "[AeroBim] Observation assigned: %(titulo)s"
+msgstr "[AeroBim] Observación asignada: %(titulo)s"
+
+
+#: .\apps\documents\notify.py:60
+#, python-format
+msgid "[AeroBim] Activity assigned: %(titulo)s"
+msgstr "[AeroBim] Actividad asignada: %(titulo)s"
+
+
+#: .\apps\documents\notify.py:64
+msgid "no due date"
+msgstr "sin fecha de vencimiento"
+
+
+#: .\apps\documents\notify.py:67
+#, python-format
+msgid "You have been assigned a %(que)s in AeroBim."
+msgstr "Te asignaron una %(que)s en AeroBim."
+
+
+#: .\apps\documents\notify.py:71
+#, python-format
+msgid "Project: %(p)s"
+msgstr "Proyecto: %(p)s"
+
+
+#: .\apps\documents\notify.py:72
+#, python-format
+msgid "Due: %(v)s"
+msgstr "Vence: %(v)s"
+
+
+#: .\apps\documents\notify.py:138 .\apps\documents\views.py:374
+msgid "Overdue"
+msgstr "Vencido"
+
+
+#: .\apps\documents\notify.py:139 .\apps\documents\views.py:375
+msgid "Next 7 days"
+msgstr "Próximos 7 días"
+
+
+#: .\apps\documents\notify.py:140 .\apps\documents\views.py:376
+msgid "Next 15 days"
+msgstr "Próximos 15 días"
+
+
+#: .\apps\documents\notify.py:141 .\apps\documents\views.py:377
+msgid "Next 30 days"
+msgstr "Próximos 30 días"
+
+
+#: .\apps\documents\notify.py:143
+msgid "What is on your plate in AeroBim."
+msgstr "Lo que tienes pendiente en AeroBim."
+
+
+#: .\apps\documents\notify.py:155
+#, python-format
+msgid "[AeroBim] %(n)s items on your plate"
+msgstr "[AeroBim] %(n)s pendientes"
+
+
+#: .\apps\documents\storage.py:70
+msgid "The storage key is empty or padded with spaces."
+msgstr "La clave de almacenamiento está vacía o lleva espacios de más."
+
+
+#: .\apps\documents\storage.py:72
+msgid "The storage key cannot be an absolute path."
+msgstr "La clave de almacenamiento no puede ser una ruta absoluta."
+
+
+#: .\apps\documents\storage.py:78
+msgid "The storage key cannot walk out of its folder."
+msgstr "La clave de almacenamiento no puede salirse de su carpeta."
+
+
+#: .\apps\documents\storage.py:88
+msgid "The file is empty."
+msgstr "El archivo está vacío."
+
+
+#: .\apps\documents\storage.py:91
+#, python-format
+msgid "The file is larger than the %(mb)s MB limit."
+msgstr "El archivo pasa del límite de %(mb)s MB."
+
+
+#: .\apps\documents\storage.py:98
+#, python-format
+msgid "Files with extension «%(ext)s» are not accepted."
+msgstr "No se aceptan archivos con extensión «%(ext)s»."
+
+
+#: .\apps\documents\storage.py:106
+#, python-format
+msgid "The content does not match a «%(ext)s» file."
+msgstr "El contenido no corresponde a un archivo «%(ext)s»."
+
+
+#: .\apps\documents\storage.py:109
+#, python-format
+msgid "A «%(ext)s» file has to be text."
+msgstr "Un archivo «%(ext)s» tiene que ser texto."
+
+
+#: .\apps\documents\views.py:120
+msgid "There is no revision yet: nothing has been issued."
+msgstr "Todavía no hay ninguna revisión: no se ha emitido nada."
+
+
+#: .\apps\documents\views.py:126 .\templates\documents\expediente.html:39
+#: .\templates\documents\subir_revision.html:4
+#: .\templates\documents\subir_revision.html:7
+msgid "Upload a revision"
+msgstr "Subir una revisión"
+
+
+#: .\apps\documents\views.py:132
+msgid "The current revision is not published (no A or B code yet)."
+msgstr "La revisión vigente no está publicada (todavía sin código A ni B)."
+
+
+#: .\apps\documents\views.py:141
+#, python-format
+msgid "%(n)s open observations."
+msgstr "%(n)s observaciones abiertas."
+
+
+#: .\apps\documents\views.py:143
+msgid "See them"
+msgstr "Verlas"
+
+
+#: .\apps\documents\views.py:147
+msgid "No planned date."
+msgstr "Sin fecha planificada."
+
+
+#: .\apps\documents\views.py:205
+#, python-format
+msgid "Revision %(rev)s uploaded (%(kb)s KB)."
+msgstr "Revisión %(rev)s subida (%(kb)s KB)."
+
+
+#: .\apps\documents\views.py:300
+msgid "The comment cannot be empty."
+msgstr "El comentario no puede estar vacío."
+
+
+#: .\apps\documents\views.py:312
+msgid "An observation is not closed without saying how."
+msgstr "Una observación no se cierra sin decir cómo se resolvió."
+
+
+#: .\apps\documents\views.py:317
+msgid "Observation closed."
+msgstr "Observación cerrada."
+
+
+#: .\apps\documents\views.py:394
+#, python-format
+msgid "Saved, but %(quien)s has no email address: nobody was notified."
+msgstr "Se guardó, pero %(quien)s no tiene correo: no se avisó a nadie."
+
+
+#: .\apps\documents\views.py:435
+msgid "Observation opened and the owner notified."
+msgstr "Observación abierta, y se avisó al responsable."
+
+
+#: .\apps\documents\views.py:459
+msgid "Pick the deliverable the activity belongs to."
+msgstr "Elige el entregable al que pertenece la actividad."
+
+
+#: .\apps\documents\views.py:465
+msgid "Activity created and the owner notified."
+msgstr "Actividad creada, y se avisó al responsable."
+
+
+#: .\apps\documents\views.py:489
+#, python-format
+msgid "Revision %(rev)s is now %(cod)s."
+msgstr "La revisión %(rev)s queda en %(cod)s."
+
+
+#: .\apps\documents\views.py:518
+msgid "Deliverable created."
+msgstr "Entregable creado."
+
+
+#: .\apps\projects\apps.py:8
+msgid "Projects"
+msgstr "Proyectos"
+
+
+#: .\apps\projects\models.py:25
+msgid "Concept"
+msgstr "Anteproyecto"
+
+
+#: .\apps\projects\models.py:26
+msgid "Scheme design"
+msgstr "Proyecto básico"
+
+
+#: .\apps\projects\models.py:27
+msgid "Detailed design"
+msgstr "Proyecto de detalle"
+
+
+#: .\apps\projects\models.py:28
+msgid "Construction"
+msgstr "Construcción"
+
+
+#: .\apps\projects\models.py:45
+msgid "client"
+msgstr "cliente"
+
+
+#: .\apps\projects\models.py:47
+msgid "start"
+msgstr "inicio"
+
+
+#: .\apps\projects\models.py:48
+msgid "end"
+msgstr "término"
+
+
+#: .\apps\projects\models.py:51
+msgid "project"
+msgstr "proyecto"
+
+
+#: .\apps\projects\models.py:52
+msgid "projects"
+msgstr "proyectos"
+
+
+#: .\apps\projects\models.py:95
+msgid "colour"
+msgstr "color"
+
+
+#: .\apps\projects\models.py:98
+msgid "discipline"
+msgstr "disciplina"
+
+
+#: .\apps\projects\models.py:99
+msgid "disciplines"
+msgstr "disciplinas"
+
+
+#: .\apps\projects\models.py:136
+msgid "WBS package"
+msgstr "paquete WBS"
+
+
+#: .\apps\projects\models.py:137
+msgid "WBS packages"
+msgstr "paquetes WBS"
+
+
+#: .\apps\visor\apps.py:8
+msgid "Viewer"
+msgstr "Visor"
+
+
+#: .\apps\visor\views.py:49
+msgid "Viewer not built"
+msgstr "Visor sin construir"
+
+
+#: .\apps\visor\views.py:51
+msgid "The viewer is not built"
+msgstr "El visor no está construido"
+
+
+#: .\apps\visor\views.py:52
+msgid "Build it from the repository root:"
+msgstr "Constrúyelo desde la raíz del repositorio:"
+
+
+#: .\apps\visor\views.py:54
+msgid "Or point VISOR_DEV_URL at the Vite dev server while you work on it."
+msgstr "O apunta VISOR_DEV_URL al servidor de Vite mientras trabajas en él."
+
+
+#: .\apps\visor\views.py:55
+#: .\templates\registration\password_change_done.html:8
+msgid "Back to the portal"
+msgstr "Volver al portal"
+
+
+#: .\config\settings\base.py:128
+msgid "Spanish"
+msgstr "Español"
+
+
+#: .\config\settings\base.py:128
+msgid "English"
+msgstr "Inglés"
+
+
+#: .\templates\accounts\auditoria.html:9
+msgid ""
+"Append-only: nothing here can be edited or deleted from the\n"
+"    application."
+msgstr "De solo agregar: nada de esto se puede editar ni borrar desde la aplicación."
+
+
+#: .\templates\accounts\auditoria.html:17
+msgid "When"
+msgstr "Cuándo"
+
+
+#: .\templates\accounts\auditoria.html:18
+msgid "Who"
+msgstr "Quién"
+
+
+#: .\templates\accounts\auditoria.html:19
+msgid "Action"
+msgstr "Acción"
+
+
+#: .\templates\accounts\auditoria.html:20
+msgid "Path"
+msgstr "Ruta"
+
+
+#: .\templates\accounts\auditoria.html:21
+msgid "Status"
+msgstr "Código"
+
+
+#: .\templates\accounts\auditoria.html:36
+msgid "Nothing recorded yet."
+msgstr "Todavía no hay nada registrado."
+
+
+#: .\templates\accounts\organizaciones.html:9
+msgid ""
+"Who the project data belongs to. Every query is scoped by this.\n"
+"    "
+msgstr "A quién pertenecen los datos del proyecto. Toda consulta se acota por esto."
+
+
+#: .\templates\accounts\organizaciones.html:16
+#: .\templates\accounts\usuarios_roles.html:17
+msgid "Name"
+msgstr "Nombre"
+
+
+#: .\templates\accounts\organizaciones.html:17
+msgid "Slug"
+msgstr "Identificador"
+
+
+#: .\templates\accounts\organizaciones.html:18
+msgid "Members"
+msgstr "Miembros"
+
+
+#: .\templates\accounts\organizaciones.html:30
+msgid "No organisation created yet."
+msgstr "Todavía no hay ninguna organización."
+
+
+#: .\templates\accounts\portal.html:4 .\templates\accounts\portal.html:7
+msgid "Portal"
+msgstr "Portal"
+
+
+#: .\templates\accounts\portal.html:9
+msgid "Only what your role can open is listed."
+msgstr "Solo se lista lo que tu rol puede abrir."
+
+
+#: .\templates\accounts\portal.html:32
+msgid ""
+"Your account has no module assigned yet. Ask an administrator for a\n"
+"      role."
+msgstr "Tu cuenta todavía no tiene ningún módulo asignado. Pide un rol a un administrador."
+
+
+#: .\templates\accounts\trabajos.html:9
+msgid ""
+"A job that stops running raises no error: nothing happens, and the\n"
+"    notices it owed are simply not sent."
+msgstr "Un trabajo que deja de correr no da error: simplemente no pasa nada, y los avisos que debía no se envían."
+
+
+#: .\templates\accounts\trabajos.html:21
+msgid "Mail is not being delivered."
+msgstr "El correo no se está entregando."
+
+
+#: .\templates\accounts\trabajos.html:28
+msgid "Jobs stuck mid-run:"
+msgstr "Trabajos colgados a mitad:"
+
+
+#: .\templates\accounts\trabajos.html:33
+msgid "Expected jobs"
+msgstr "Trabajos esperados"
+
+
+#: .\templates\accounts\trabajos.html:37 .\templates\accounts\trabajos.html:63
+msgid "Command"
+msgstr "Comando"
+
+
+#: .\templates\accounts\trabajos.html:38
+msgid "Last run"
+msgstr "Última corrida"
+
+
+#: .\templates\accounts\trabajos.html:39 .\templates\accounts\trabajos.html:66
+msgid "Result"
+msgstr "Resultado"
+
+
+#: .\templates\accounts\trabajos.html:50
+msgid "never ran"
+msgstr "nunca corrió"
+
+
+#: .\templates\accounts\trabajos.html:59
+msgid "History"
+msgstr "Historial"
+
+
+#: .\templates\accounts\trabajos.html:64
+msgid "Started"
+msgstr "Empezó"
+
+
+#: .\templates\accounts\trabajos.html:65
+msgid "Seconds"
+msgstr "Segundos"
+
+
+#: .\templates\accounts\trabajos.html:67
+msgid "Summary"
+msgstr "Resumen"
+
+
+#: .\templates\accounts\trabajos.html:81
+msgid "No job has run yet."
+msgstr "Todavía no ha corrido ningún trabajo."
+
+
+#: .\templates\accounts\usuarios_roles.html:9
+msgid "Read-only."
+msgstr "Solo lectura."
+
+
+#: .\templates\accounts\usuarios_roles.html:10
+msgid "Download CSV"
+msgstr "Descargar CSV"
+
+
+#: .\templates\accounts\usuarios_roles.html:16
+#: .\templates\registration\login.html:111
+msgid "Username"
+msgstr "Nombre de usuario"
+
+
+#: .\templates\accounts\usuarios_roles.html:18
+msgid "Email"
+msgstr "Correo"
+
+
+#: .\templates\accounts\usuarios_roles.html:19
+msgid "Roles"
+msgstr "Roles"
+
+
+#: .\templates\accounts\usuarios_roles.html:20
+msgid "Active"
+msgstr "Activo"
+
+
+#: .\templates\accounts\usuarios_roles.html:30
+#: .\templates\documents\expediente.html:96
+msgid "Yes"
+msgstr "Sí"
+
+
+#: .\templates\accounts\usuarios_roles.html:30
+msgid "No"
+msgstr "No"
+
+
+#: .\templates\base.html:11
+msgid "Skip to content"
+msgstr "Ir al contenido"
+
+
+#: .\templates\base.html:17
+#: .\templates\registration\password_change_form.html:4
+#: .\templates\registration\password_change_form.html:7
+#: .\templates\registration\password_change_form.html:16
+msgid "Change password"
+msgstr "Cambiar la contraseña"
+
+
+#: .\templates\base.html:20
+msgid "Sign out"
+msgstr "Salir"
+
+
+#: .\templates\base.html:23 .\templates\registration\login.html:7
+#: .\templates\registration\login.html:130
+msgid "Sign in"
+msgstr "Entrar"
+
+
+#: .\templates\documents\actividades.html:9
+msgid ""
+"Planned work: who does what, and by when. Not every task comes from a\n"
+"    finding."
+msgstr "Trabajo planificado: quién hace qué, y para cuándo. No toda tarea nace de un hallazgo."
+
+
+#: .\templates\documents\actividades.html:11
+#: .\templates\documents\entregables.html:11
+#: .\templates\documents\observaciones.html:10
+msgid "Only mine"
+msgstr "Solo las mías"
+
+
+#: .\templates\documents\actividades.html:12
+#: .\templates\documents\entregables.html:12
+#: .\templates\documents\observaciones.html:12
+msgid "All"
+msgstr "Todas"
+
+
+#: .\templates\documents\actividades.html:14
+#: .\templates\documents\nueva_actividad.html:4
+#: .\templates\documents\nueva_actividad.html:7
+msgid "New activity"
+msgstr "Nueva actividad"
+
+
+#: .\templates\documents\actividades.html:21
+#: .\templates\documents\bandeja.html:38
+#: .\templates\documents\entregables.html:22
+#: .\templates\documents\expediente.html:113
+#: .\templates\documents\expediente.html:139
+#: .\templates\documents\observaciones.html:18
+msgid "Title"
+msgstr "Título"
+
+
+#: .\templates\documents\actividades.html:22
+msgid "Deliverable"
+msgstr "Entregable"
+
+
+#: .\templates\documents\actividades.html:23
+#: .\templates\documents\entregables.html:24
+#: .\templates\documents\expediente.html:114
+#: .\templates\documents\expediente.html:140
+#: .\templates\documents\observaciones.html:21
+msgid "Owner"
+msgstr "Responsable"
+
+
+#: .\templates\documents\actividades.html:24
+#: .\templates\documents\expediente.html:115
+#: .\templates\documents\expediente.html:141
+#: .\templates\documents\observaciones.html:22
+msgid "Due"
+msgstr "Vence"
+
+
+#: .\templates\documents\actividades.html:25
+#: .\templates\documents\expediente.html:116
+#: .\templates\documents\expediente.html:142
+#: .\templates\documents\observaciones.html:23
+#: .\templates\documents\transmittals.html:21
+msgid "State"
+msgstr "Estado"
+
+
+#: .\templates\documents\actividades.html:47
+#: .\templates\documents\observaciones.html:44
+msgid "Nothing here."
+msgstr "Nada por acá."
+
+
+#: .\templates\documents\bandeja.html:9
+msgid ""
+"What is assigned to you, by how soon it is due. It is the same split the\n"
+"    daily digest uses: what is overdue and what is due in a month need "
+"different\n"
+"    reactions."
+msgstr "Lo que tienes asignado, ordenado por lo pronto que vence. Es el mismo reparto que usa el resumen diario: lo que venció y lo que vence en un mes piden reacciones distintas."
+
+
+#: .\templates\documents\bandeja.html:26
+msgid "Nothing."
+msgstr "Nada."
+
+
+#: .\templates\documents\bandeja.html:33
+msgid "Deliverables you own"
+msgstr "Entregables a tu cargo"
+
+
+#: .\templates\documents\bandeja.html:37
+#: .\templates\documents\entregables.html:21
+msgid "Code"
+msgstr "Código"
+
+
+#: .\templates\documents\bandeja.html:39
+#: .\templates\documents\entregables.html:25
+msgid "Current revision"
+msgstr "Revisión vigente"
+
+
+#: .\templates\documents\bandeja.html:40
+#: .\templates\documents\entregables.html:27
+msgid "Progress"
+msgstr "Avance"
+
+
+#: .\templates\documents\bandeja.html:56
+msgid "You do not own any deliverable."
+msgstr "No tienes ningún entregable a tu cargo."
+
+
+#: .\templates\documents\entregables.html:9
+msgid ""
+"The register: what has to be delivered, who owns it and how far along it\n"
+"    is."
+msgstr "El registro: qué hay que entregar, quién lo tiene a cargo y en qué va."
+
+
+#: .\templates\documents\entregables.html:14
+#: .\templates\documents\nuevo_entregable.html:4
+#: .\templates\documents\nuevo_entregable.html:7
+msgid "New deliverable"
+msgstr "Nuevo entregable"
+
+
+#: .\templates\documents\entregables.html:23
+msgid "Discipline"
+msgstr "Disciplina"
+
+
+#: .\templates\documents\entregables.html:44
+msgid "No deliverable registered yet."
+msgstr "Todavía no hay ningún entregable registrado."
+
+
+#: .\templates\documents\expediente.html:19
+msgid "What is missing"
+msgstr "Lo que falta"
+
+
+#: .\templates\documents\expediente.html:34
+msgid "Nothing missing: complete and documented."
+msgstr "No falta nada: completo y documentado."
+
+
+#: .\templates\documents\expediente.html:37
+#: .\templates\documents\transmittals.html:20
+msgid "Revisions"
+msgstr "Revisiones"
+
+
+#: .\templates\documents\expediente.html:44
+msgid "Revision"
+msgstr "Revisión"
+
+
+#: .\templates\documents\expediente.html:47
+msgid "By"
+msgstr "Por"
+
+
+#: .\templates\documents\expediente.html:49
+msgid "Current"
+msgstr "Vigente"
+
+
+#: .\templates\documents\expediente.html:68
+msgid "Change"
+msgstr "Cambiar"
+
+
+#: .\templates\documents\expediente.html:88
+msgid "Open in the viewer"
+msgstr "Abrir en el visor"
+
+
+#: .\templates\documents\expediente.html:100
+#: .\templates\documents\transmittals.html:50
+msgid "Nothing issued yet."
+msgstr "Todavía no se ha emitido nada."
+
+
+#: .\templates\documents\expediente.html:108
+#: .\templates\documents\nueva_observacion.html:4
+#: .\templates\documents\nueva_observacion.html:7
+msgid "Open an observation"
+msgstr "Abrir una observación"
+
+
+#: .\templates\documents\expediente.html:129
+msgid "No observation."
+msgstr "Sin observaciones."
+
+
+#: .\templates\documents\expediente.html:155
+msgid "No activity."
+msgstr "Sin actividades."
+
+
+#: .\templates\documents\nueva_actividad.html:9
+msgid "The owner gets an email with the link and the due date."
+msgstr "Al responsable le llega un correo con el enlace y la fecha de vencimiento."
+
+
+#: .\templates\documents\nueva_actividad.html:15
+msgid "Create and notify"
+msgstr "Crear y avisar"
+
+
+#: .\templates\documents\nueva_actividad.html:17
+#: .\templates\documents\nueva_observacion.html:19
+#: .\templates\documents\nuevo_entregable.html:18
+#: .\templates\documents\subir_revision.html:22
+msgid "Back"
+msgstr "Volver"
+
+
+#: .\templates\documents\nueva_observacion.html:10
+msgid ""
+"The owner gets an email with the link, the due date and the\n"
+"    description."
+msgstr "Al responsable le llega un correo con el enlace, la fecha de vencimiento y la descripción."
+
+
+#: .\templates\documents\nueva_observacion.html:17
+msgid "Open and notify"
+msgstr "Abrir y avisar"
+
+
+#: .\templates\documents\nuevo_entregable.html:9
+msgid ""
+"A deliverable exists from the moment it is planned, long before its first\n"
+"    file. That is what lets the register say what is missing."
+msgstr "Un entregable existe desde que se planifica, mucho antes de su primer archivo. Es lo que le permite al registro decir qué falta."
+
+
+#: .\templates\documents\nuevo_entregable.html:16
+msgid "Create"
+msgstr "Crear"
+
+
+#: .\templates\documents\observacion.html:11
+msgid "opened by"
+msgstr "abierta por"
+
+
+#: .\templates\documents\observacion.html:13
+msgid "overdue"
+msgstr "vencida"
+
+
+#: .\templates\documents\observacion.html:20
+#: .\templates\documents\observaciones.html:19
+msgid "On"
+msgstr "Sobre"
+
+
+#: .\templates\documents\observacion.html:24
+msgid "page"
+msgstr "página"
+
+
+#: .\templates\documents\observacion.html:28
+msgid "On the model"
+msgstr "Sobre el modelo"
+
+
+#: .\templates\documents\observacion.html:34
+msgid "by"
+msgstr "por"
+
+
+#: .\templates\documents\observacion.html:39
+msgid "Thread"
+msgstr "Hilo"
+
+
+#: .\templates\documents\observacion.html:52
+msgid "Nothing said yet."
+msgstr "Todavía no se ha dicho nada."
+
+
+#: .\templates\documents\observacion.html:64
+msgid "Answer"
+msgstr "Responder"
+
+
+#: .\templates\documents\observacion.html:68
+msgid "Post"
+msgstr "Publicar"
+
+
+#: .\templates\documents\observacion.html:73
+msgid "Close"
+msgstr "Cerrar"
+
+
+#: .\templates\documents\observacion.html:75
+msgid ""
+"An observation is not closed without saying how it was resolved: that is\n"
+"      what tells a resolved one apart from one somebody ticked to bring the "
+"count\n"
+"      down."
+msgstr "Una observación no se cierra sin decir cómo se resolvió: eso es lo que distingue una resuelta de una que alguien marcó para bajar el contador."
+
+
+#: .\templates\documents\observacion.html:82
+msgid "Close observation"
+msgstr "Cerrar la observación"
+
+
+#: .\templates\documents\observaciones.html:9
+msgid "Findings and errors, each with an owner and a due date."
+msgstr "Hallazgos y errores, cada uno con su responsable y su fecha de vencimiento."
+
+
+#: .\templates\documents\observaciones.html:11
+msgid "Only open"
+msgstr "Solo abiertas"
+
+
+#: .\templates\documents\observaciones.html:20
+msgid "Priority"
+msgstr "Prioridad"
+
+
+#: .\templates\documents\subir_revision.html:20
+msgid "Upload"
+msgstr "Subir"
+
+
+#: .\templates\documents\transmittals.html:9
+msgid ""
+"What was issued, to whom and when. It is what turns «I emailed it» into a\n"
+"    record."
+msgstr "Qué se emitió, a quién y cuándo. Es lo que convierte «se lo mandé por correo» en un registro."
+
+
+#: .\templates\documents\transmittals.html:16
+msgid "Reference"
+msgstr "Folio"
+
+
+#: .\templates\documents\transmittals.html:17
+msgid "Subject"
+msgstr "Asunto"
+
+
+#: .\templates\documents\transmittals.html:18
+msgid "Issued by"
+msgstr "Emitido por"
+
+
+#: .\templates\documents\transmittals.html:19
+msgid "Recipients"
+msgstr "Destinatarios"
+
+
+#: .\templates\generic\_paginacion.html:14
+msgid "Pages"
+msgstr "Páginas"
+
+
+#: .\templates\generic\_paginacion.html:17
+#: .\templates\generic\_paginacion.html:20
+msgid "Previous"
+msgstr "Anterior"
+
+
+#: .\templates\generic\_paginacion.html:24
+#, python-format
+msgid ""
+"\n"
+"        Page %(actual)s of %(total)s · %(n)s rows\n"
+"      "
+msgstr "Página %(actual)s de %(total)s · %(n)s filas"
+
+
+#: .\templates\generic\_paginacion.html:31
+#: .\templates\generic\_paginacion.html:34
+msgid "Next"
+msgstr "Siguiente"
+
+
+#: .\templates\registration\login.html:100
+msgid "Model, plans and document control."
+msgstr "Modelo, planos y control documental."
+
+
+#: .\templates\registration\login.html:108
+msgid "Invalid username or password. Try again."
+msgstr "Usuario o contraseña inválidos. Inténtalo de nuevo."
+
+
+#: .\templates\registration\login.html:121
+msgid "Password"
+msgstr "Contraseña"
+
+
+#: .\templates\registration\login.html:134
+msgid "There is no self sign-up: an administrator creates the accounts."
+msgstr "No hay auto-registro: las cuentas las crea un administrador."
+
+
+#: .\templates\registration\password_change_done.html:4
+#: .\templates\registration\password_change_done.html:7
+msgid "Password changed"
+msgstr "Contraseña cambiada"
+
+
+#: .\templates\registration\password_change_form.html:9
+msgid ""
+"Inside the application, so nobody needs the technical admin site to\n"
+"    rotate their own credential."
+msgstr "Dentro de la aplicación, para que nadie tenga que entrar al administrador técnico a cambiar su propia credencial."

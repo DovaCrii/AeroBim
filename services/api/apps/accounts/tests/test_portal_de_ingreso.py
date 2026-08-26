@@ -1,5 +1,7 @@
 """El portal de ingreso: bloqueo por intentos, y sin pistas sobre quien existe."""
 
+import re
+
 import pytest
 from django.contrib.auth import get_user_model
 from django.test import override_settings
@@ -24,7 +26,13 @@ def test_no_hay_auto_registro(client):
 @pytest.mark.django_db
 def test_el_error_no_dice_si_el_usuario_existe(client, alguien):
     """**El mismo mensaje en los dos casos.** Distinguirlos le regala a quien prueba
-    credenciales la mitad del trabajo: con el primer mensaje ya sabe que nombres hay."""
+    credenciales la mitad del trabajo: con el primer mensaje ya sabe qué nombres hay.
+
+    Se comprueba que las dos respuestas son **idénticas**, no que digan una frase concreta. Es
+    una prueba mejor y además no depende del idioma: la versión anterior afirmaba el texto en
+    inglés y se rompió al añadir el catálogo en español, sin que la propiedad que importaba
+    hubiera cambiado.
+    """
     inexistente = client.post(
         reverse("login"), {"username": "no-existe", "password": "lo-que-sea-99"}
     )
@@ -34,8 +42,10 @@ def test_el_error_no_dice_si_el_usuario_existe(client, alguien):
 
     assert inexistente.status_code == 200
     assert mala_clave.status_code == 200
-    assert "Invalid username or password" in inexistente.content.decode()
-    assert "Invalid username or password" in mala_clave.content.decode()
+
+    # El token de CSRF cambia entre respuestas; se quita antes de comparar.
+    sin_token = lambda cuerpo: re.sub(r'value="[^"]{20,}"', "", cuerpo)  # noqa: E731
+    assert sin_token(inexistente.content.decode()) == sin_token(mala_clave.content.decode())
 
 
 @pytest.mark.django_db

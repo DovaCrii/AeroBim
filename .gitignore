@@ -55,6 +55,9 @@ services/api/staticfiles/
 services/api/logs/
 services/api/documents/
 services/api/.coverage
+# El `.mo` **si** se confirma, y a proposito: es binario y pequeno, y su ausencia deja la
+# interfaz en ingles **sin que nada falle**. Un clon recien hecho tiene que salir en espanol.
+# Que no se separe del `.po` lo comprueba `apps/core/tests/test_traducciones.py`.
 # `uv.lock` **si** se confirma: es lo que hace reproducible la instalacion.
 
 # Notas de trabajo con capturas del modelo real: no se versionan, igual que los IFC.

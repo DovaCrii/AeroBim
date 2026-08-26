@@ -25,7 +25,21 @@ from django.utils.translation import gettext_lazy as _
 
 
 class CargaRechazada(Exception):
-    """El archivo es el problema. Se le dice a quien lo sube, y se le dice que arreglar."""
+    """El archivo es el problema. Se le dice a quien lo sube, y se le dice qué arreglar.
+
+    Lleva **dos cosas y no una**: el mensaje, que es para la persona y va traducido, y un
+    `codigo`, que es para el código y no cambia nunca.
+
+    La razón la dio el catálogo en español: las pruebas comprobaban el motivo buscando una
+    palabra del mensaje —`match="empty"`— y se rompieron todas al traducirlo, **sin que nada
+    del comportamiento hubiera cambiado**. Un motivo de rechazo es una decisión del programa y
+    tiene que poder nombrarse sin depender del idioma en que se le cuente a nadie. Sirve además
+    para el log, donde un mensaje traducido es un estorbo.
+    """
+
+    def __init__(self, mensaje, codigo: str = ""):
+        super().__init__(mensaje)
+        self.codigo = codigo
 
 
 # Firma real de los formatos que este registro acepta. La lista es corta a proposito:
@@ -67,15 +81,15 @@ def normalize_storage_key(clave: str) -> str:
     intento sin registrar.
     """
     if not clave or clave != clave.strip():
-        raise CargaRechazada(_("The storage key is empty or padded with spaces."))
+        raise CargaRechazada(_("The storage key is empty or padded with spaces."), "clave-vacia")
     if clave.startswith(("/", "\\")) or re.match(r"^[A-Za-z]:", clave):
-        raise CargaRechazada(_("The storage key cannot be an absolute path."))
+        raise CargaRechazada(_("The storage key cannot be an absolute path."), "clave-absoluta")
     # **El separador se parte de uno en uno, no en grupos.** Con `[/\\]+` un `//` se
     # colapsaba en uno solo y el tramo vacio desaparecia sin que nadie lo viera: lo
     # delato su propia prueba.
     partes = re.split(r"[/\\]", clave)
     if any(p in {"", ".", ".."} for p in partes):
-        raise CargaRechazada(_("The storage key cannot walk out of its folder."))
+        raise CargaRechazada(_("The storage key cannot walk out of its folder."), "clave-fuera")
     return "/".join(partes)
 
 
@@ -85,17 +99,19 @@ def validar(nombre_original: str, contenido: bytes) -> tuple[str, str]:
     Lanza `CargaRechazada` con un motivo que se le puede mostrar a quien sube.
     """
     if not contenido:
-        raise CargaRechazada(_("The file is empty."))
+        raise CargaRechazada(_("The file is empty."), "vacio")
     if len(contenido) > TAMANO_MAXIMO_BYTES:
         raise CargaRechazada(
             _("The file is larger than the %(mb)s MB limit.")
-            % {"mb": TAMANO_MAXIMO_BYTES // (1024 * 1024)}
+            % {"mb": TAMANO_MAXIMO_BYTES // (1024 * 1024)},
+            "demasiado-grande",
         )
 
     extension = extension_de(nombre_original)
     if extension not in EXTENSIONES_ACEPTADAS:
         raise CargaRechazada(
-            _("Files with extension «%(ext)s» are not accepted.") % {"ext": extension or "—"}
+            _("Files with extension «%(ext)s» are not accepted.") % {"ext": extension or "—"},
+            "extension-no-aceptada",
         )
 
     if extension in FIRMAS:
@@ -103,10 +119,13 @@ def validar(nombre_original: str, contenido: bytes) -> tuple[str, str]:
         if not any(cabecera.startswith(firma) for firma in FIRMAS[extension]):
             # **Aqui se cae `virus.exe` renombrado a `plano.pdf`.**
             raise CargaRechazada(
-                _("The content does not match a «%(ext)s» file.") % {"ext": extension}
+                _("The content does not match a «%(ext)s» file.") % {"ext": extension},
+                "firma-no-coincide",
             )
     elif not parece_texto(contenido[:4096]):
-        raise CargaRechazada(_("A «%(ext)s» file has to be text.") % {"ext": extension})
+        raise CargaRechazada(
+            _("A «%(ext)s» file has to be text.") % {"ext": extension}, "no-es-texto"
+        )
 
     return extension, hashlib.sha256(contenido).hexdigest()
 

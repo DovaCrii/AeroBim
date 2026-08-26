@@ -65,16 +65,24 @@ def test_con_su_permiso_abre(client, ruta, permiso):
 
 @pytest.mark.django_db
 def test_el_portal_solo_lista_lo_que_el_usuario_puede_abrir(client):
-    """Si no tienes el permiso, **la fila no existe**: ni en gris ni llevando a un 403."""
+    """Si no tienes el permiso, **la fila no existe**: ni en gris ni llevando a un 403.
+
+    Se comprueba por **la URL del módulo y no por su rótulo**. Un rótulo cambia con la
+    traducción —esta prueba se rompió entera al añadir el catálogo en español— y lo que se está
+    comprobando no es cómo se llama la fila sino si existe.
+    """
+    usuarios_roles = reverse("accounts:usuarios-roles")
+    auditoria = reverse("accounts:auditoria")
+
     client.force_login(usuario())
     sin_nada = client.get("/").content.decode()
 
-    assert "Users and roles" not in sin_nada
-    assert "Audit trail" not in sin_nada
+    assert usuarios_roles not in sin_nada
+    assert auditoria not in sin_nada
 
     client.force_login(dar(usuario(username="con-permiso"), "auth.view_user"))
     con_uno = client.get("/").content.decode()
 
-    assert "Users and roles" in con_uno
+    assert usuarios_roles in con_uno
     # Y solo ese: tener uno no destapa los demas.
-    assert "Audit trail" not in con_uno
+    assert auditoria not in con_uno

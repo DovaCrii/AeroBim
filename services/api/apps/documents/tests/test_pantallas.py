@@ -125,25 +125,38 @@ def test_un_entregable_de_otra_organizacion_no_se_ve_ni_pidiendolo_a_mano(
 
 @pytest.mark.django_db
 def test_el_expediente_nombra_lo_que_falta(client, mirona, entregable):
-    """No un porcentaje: la fila concreta."""
-    client.force_login(dar(mirona, "documents.view_entregable"))
-    cuerpo = client.get(reverse("documents:expediente", args=[entregable.pk])).content.decode()
+    """No un porcentaje: la fila concreta.
 
-    assert "no revision yet" in cuerpo
-    assert "No planned date" in cuerpo
+    Se comprueba en la vista y no en el HTML: el rótulo cambia con la traducción y lo que se
+    está probando es **cuántas cosas faltan y cuáles**, no cómo se escriben.
+    """
+    client.force_login(dar(mirona, "documents.view_entregable"))
+    respuesta = client.get(reverse("documents:expediente", args=[entregable.pk]))
+
+    faltantes = respuesta.context["faltantes"]
+    # Sin revisión y sin fecha planificada: dos filas, y las dos nombradas.
+    assert len(faltantes) == 2
+    assert all(f["que"] for f in faltantes)
 
 
 @pytest.mark.django_db
 def test_el_atajo_solo_aparece_si_se_puede_ejecutar(client, mirona, entregable):
     """**Ofrecer un botón que termina en 403 es peor que no ofrecerlo**: enseña a probar
-    puertas."""
+    puertas.
+
+    El atajo se comprueba por su URL, que no depende del idioma.
+    """
+    subir = reverse("documents:subir-revision", args=[entregable.pk])
+
     client.force_login(dar(mirona, "documents.view_entregable"))
-    sin_permiso = client.get(reverse("documents:expediente", args=[entregable.pk])).content.decode()
-    assert "Upload a revision" not in sin_permiso
+    sin_permiso = client.get(reverse("documents:expediente", args=[entregable.pk]))
+    assert subir not in sin_permiso.content.decode()
+    # Y la fila sigue estando: lo que desaparece es el atajo, no el aviso de lo que falta.
+    assert [f["url"] for f in sin_permiso.context["faltantes"]] == [None, None]
 
     client.force_login(dar(mirona, "documents.add_revision"))
-    con_permiso = client.get(reverse("documents:expediente", args=[entregable.pk])).content.decode()
-    assert "Upload a revision" in con_permiso
+    con_permiso = client.get(reverse("documents:expediente", args=[entregable.pk]))
+    assert subir in con_permiso.content.decode()
 
 
 @pytest.mark.django_db
@@ -309,7 +322,8 @@ def test_subir_un_ejecutable_disfrazado_de_pdf_se_rechaza_en_la_pantalla(
         )
 
         assert respuesta.status_code == 400
-        assert "does not match" in respuesta.content.decode()
+        # El formulario devuelve el error, y lo que importa no es su texto —que va traducido—
+        # sino que **no se creó nada y nada llegó al disco**.
+        assert respuesta.context["form"].errors["archivo"]
         assert Revision.objects.count() == 0
-        # Y nada llegó al disco.
         assert list(tmp_path.rglob("*")) == []
