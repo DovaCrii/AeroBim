@@ -45,16 +45,66 @@ DESCRIPCIONES = {
 #
 # `ADMINISTRADOR` no aparece: se le dan todos los permisos que existan, porque
 # enumerarlos seria una lista que se queda atras en cuanto se añade un modelo.
+
+# Lo que cualquiera con un rol puede leer del proyecto: sin esto no hay pantalla que
+# abrir. Va aparte para no repetirlo en cada rol y que se olvide en uno.
+_LECTURA_DEL_PROYECTO = (
+    "core.view_organizacion",
+    "projects.view_proyecto",
+    "projects.view_disciplina",
+    "projects.view_paquetewbs",
+    "documents.view_entregable",
+    "documents.view_revision",
+    "documents.view_observacion",
+    "documents.view_comentario",
+    "documents.view_actividad",
+    "documents.view_transmittal",
+)
+
 PERMISOS_POR_ROL: dict[str, tuple[str, ...]] = {
-    COORDINADOR: (
-        "core.view_organizacion",
+    # Arma el proyecto, asigna a quien le toca, emite y cierra.
+    COORDINADOR: _LECTURA_DEL_PROYECTO
+    + (
         "core.view_membresia",
         "core.view_jobrun",
+        "projects.add_proyecto",
+        "projects.change_proyecto",
+        "projects.add_disciplina",
+        "projects.change_disciplina",
+        "projects.add_paquetewbs",
+        "projects.change_paquetewbs",
+        "documents.add_entregable",
+        "documents.change_entregable",
+        "documents.add_revision",
+        "documents.change_revision",
+        "documents.add_transmittal",
+        "documents.change_transmittal",
+        "documents.add_observacion",
+        "documents.change_observacion",
+        "documents.add_comentario",
+        "documents.add_actividad",
+        "documents.change_actividad",
     ),
-    PROYECTISTA: ("core.view_organizacion",),
-    REVISOR: ("core.view_organizacion",),
-    # **Lista blanca, no patron.** Cuando lleguen los entregables (`F8.1`), aqui se
-    # añaden uno por uno los `view_*` del registro del proyecto — y ni uno de la
-    # administracion del sistema.
-    MANDANTE: ("core.view_organizacion",),
+    # Sube revisiones y responde. **No cierra observaciones**: quien las abre las cierra,
+    # o el registro se convierte en "yo mismo declaro que lo arregle".
+    PROYECTISTA: _LECTURA_DEL_PROYECTO
+    + (
+        "documents.add_revision",
+        "documents.add_comentario",
+        "documents.change_actividad",
+    ),
+    # Abre y califica observaciones, y cambia el codigo de idoneidad de una revision —
+    # que es su trabajo: decir para que sirve el documento.
+    REVISOR: _LECTURA_DEL_PROYECTO
+    + (
+        "documents.add_observacion",
+        "documents.change_observacion",
+        "documents.add_comentario",
+        "documents.change_revision",
+    ),
+    # **Lista blanca, no patron.** Lee el registro del proyecto y comenta; ni un permiso
+    # de la administracion del sistema, y ni uno de escritura sobre el registro. Lo que
+    # ve, ademas, se acota a las revisiones publicadas: eso lo hace la vista, porque un
+    # permiso no sabe distinguir una `S0` de una `A1`.
+    MANDANTE: _LECTURA_DEL_PROYECTO + ("documents.add_comentario",),
 }

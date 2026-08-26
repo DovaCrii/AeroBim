@@ -38,6 +38,8 @@ INSTALLED_APPS = [
     "axes",
     "apps.core",
     "apps.accounts",
+    "apps.projects",
+    "apps.documents",
 ]
 
 MIDDLEWARE = [
