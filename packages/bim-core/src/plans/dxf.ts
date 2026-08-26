@@ -339,12 +339,13 @@ export function parseDxf(text: string): DxfDrawing {
     dibujar(entidad, bloques, salida, skipped, IDENTIDAD, SIN_HEREDAR, 0);
   }
 
+  const layers = capasDe(polylines, texts, hatches, capas);
   return {
     polylines,
     texts,
     hatches,
-    layers: capasDe(polylines, texts, hatches, capas),
-    bounds: extension(polylines, texts, hatches),
+    layers,
+    bounds: extension(polylines, texts, hatches, capasApagadas(layers)),
     declaredUnits,
     skipped,
     paperSpaceCount: salida.paperSpace,
@@ -455,10 +456,15 @@ export function suggestMetresPerUnit(drawing: DxfDrawing): {
  * Es la medida que no engaña al deducir la unidad: el marco de la lámina o una entidad perdida a
  * kilómetros inflan la extensión total, pero **la línea más larga de un plano de edificio es una
  * fachada, un muro o un eje** — entre tres y cien metros, nunca dos.
+ *
+ * Las capas apagadas no cuentan, por lo mismo que no cuentan en la extensión: lo que el CAD no
+ * dibuja no puede decidir de qué tamaño es el plano.
  */
 function trazoMayor(drawing: DxfDrawing): number | null {
+  const apagadas = capasApagadas(drawing.layers);
   let mayor = 0;
   for (const linea of drawing.polylines) {
+    if (apagadas.has(linea.layer)) continue;
     let minX = Infinity;
     let minY = Infinity;
     let maxX = -Infinity;
@@ -474,6 +480,11 @@ function trazoMayor(drawing: DxfDrawing): number | null {
     if (Number.isFinite(minX)) mayor = Math.max(mayor, maxX - minX, maxY - minY);
   }
   return mayor > 0 ? mayor : null;
+}
+
+/** Los nombres de las capas que el CAD no dibuja. */
+function capasApagadas(layers: readonly DxfLayer[]): ReadonlySet<string> {
+  return new Set(layers.filter((capa) => capa.off).map((capa) => capa.name));
 }
 
 /** El lado mayor de la extensión, en unidades del dibujo. */
@@ -690,18 +701,28 @@ function numeroDeCabecera(pares: readonly Par[], clave: string): number | null {
 interface Entidad {
   readonly type: string;
   readonly pares: readonly Par[];
+  /**
+   * Las entidades que van detrás en el archivo y le pertenecen.
+   *
+   * **En DXF una entidad compuesta no está anidada, está seguida.** Una `POLYLINE` clásica escribe
+   * sus puntos como entidades `VERTEX` hermanas y cierra con un `SEQEND`; un `INSERT` escribe así
+   * sus `ATTRIB`. Leído plano, los `VERTEX` se descartaban en silencio y con ellos la polilínea
+   * entera, y los `ATTRIB` —los números de puerta, los nombres de recinto, el cajetín— no se
+   * dibujaban.
+   */
+  readonly hijas: readonly Entidad[];
 }
 
-/** Las entidades de una sección, desde `desde` hasta su `ENDSEC`. */
+/** Las entidades de una sección, desde `desde` hasta su `ENDSEC`, ya con sus hijas colgadas. */
 function entidadesDe(pares: readonly Par[], desde: number): readonly Entidad[] {
   if (desde < 0) return [];
 
-  const entidades: Entidad[] = [];
+  const planas: { type: string; pares: Par[] }[] = [];
   let actual: { type: string; pares: Par[] } | null = null;
   for (let i = desde; i < pares.length; i++) {
     const par = pares[i]!;
     if (par.code === 0) {
-      if (actual !== null) entidades.push(actual);
+      if (actual !== null) planas.push(actual);
       actual = null;
       if (par.value === "ENDSEC") break;
       actual = { type: par.value, pares: [] };
@@ -709,8 +730,38 @@ function entidadesDe(pares: readonly Par[], desde: number): readonly Entidad[] {
     }
     actual?.pares.push(par);
   }
-  if (actual !== null) entidades.push(actual);
-  return entidades;
+  if (actual !== null) planas.push(actual);
+  return agrupar(planas);
+}
+
+/** Qué entidad se lleva detrás a sus hijas, y de qué tipo son. */
+const HIJAS_DE: Readonly<Record<string, readonly string[]>> = {
+  POLYLINE: ["VERTEX"],
+  INSERT: ["ATTRIB"],
+};
+
+/** Cuelga de cada entidad compuesta las que la siguen y le pertenecen. Ver {@link Entidad.hijas}. */
+function agrupar(planas: readonly { readonly type: string; readonly pares: Par[] }[]): Entidad[] {
+  const salida: Entidad[] = [];
+  let padre: { hijas: Entidad[]; admite: readonly string[] } | null = null;
+
+  for (const cruda of planas) {
+    if (padre !== null && padre.admite.includes(cruda.type)) {
+      padre.hijas.push({ type: cruda.type, pares: cruda.pares, hijas: [] });
+      continue;
+    }
+    // El `SEQEND` cierra la entidad compuesta y no es geometría: no vuelve a la lista.
+    if (cruda.type === "SEQEND") {
+      padre = null;
+      continue;
+    }
+
+    const hijas: Entidad[] = [];
+    salida.push({ type: cruda.type, pares: cruda.pares, hijas });
+    const admite = HIJAS_DE[cruda.type];
+    padre = admite === undefined ? null : { hijas, admite };
+  }
+  return salida;
 }
 
 /** Un bloque: su punto base y lo que contiene. Un `INSERT` lo coloca girado y escalado. */
@@ -760,6 +811,9 @@ interface Transformacion {
 
 const IDENTIDAD: Transformacion = { x: 0, y: 0, escalaX: 1, escalaY: 1, giro: 0 };
 
+/** El reflejo que aplica una extrusión hacia −Z: en el plano del dibujo, negar la X. */
+const ESPEJO_X: Transformacion = { x: 0, y: 0, escalaX: -1, escalaY: 1, giro: 0 };
+
 function aplicar(t: Transformacion, x: number, y: number): readonly [number, number] {
   const ex = x * t.escalaX;
   const ey = y * t.escalaY;
@@ -797,7 +851,7 @@ function dibujar(
     paperSpace: number;
   },
   omitidas: Record<string, number>,
-  t: Transformacion,
+  tPadre: Transformacion,
   heredado: Heredado,
   profundidad: number,
 ): void {
@@ -813,6 +867,11 @@ function dibujar(
   // **La capa `0` dentro de un bloque no es la capa `0`**: AutoCAD la sustituye por la capa del
   // `INSERT`. Es la regla que hace que un bloque se pinte del color de donde se inserta.
   const layer = propia === "0" && heredado.layer !== "0" ? heredado.layer : propia;
+
+  // **Una entidad con extrusión hacia −Z está espejada respecto al dibujo.** El CAD la escribe en su
+  // propio sistema y deja la dirección en el código 230; sin aplicarla, esa geometría sale reflejada
+  // y desplazada. Son cuatro entidades en `ACAD-Piso 5_Base1.dxf`.
+  const t = (numero(entidad, 230) ?? 1) < 0 ? componer(tPadre, ESPEJO_X) : tPadre;
 
   const color = colorDe(entidad, layer, salida.estilo.capas, heredado);
   const dash = trazoDe(entidad, layer, salida.estilo, heredado, t);
@@ -832,9 +891,28 @@ function dibujar(
     salida.polylines.push({ layer, points: planos, closed, color, dash, width, lineweightMm });
   };
 
+  /** Lo que esta entidad presta a un bloque que expanda: su capa, su color y su trazo, ya resueltos. */
+  const presta = (): Heredado => {
+    const suyo = valor(entidad, 6)?.toUpperCase();
+    return {
+      layer,
+      color,
+      linetype:
+        suyo === undefined || suyo === "BYLAYER"
+          ? (salida.estilo.capas.get(layer)?.linetype ?? null)
+          : suyo === "BYBLOCK"
+            ? heredado.linetype
+            : suyo,
+      lineweightMm,
+    };
+  };
+
   switch (entidad.type) {
     case "TEXT":
-    case "MTEXT": {
+    case "MTEXT":
+    // Un `ATTRIB` es el valor de un atributo de bloque, y en pantalla es un texto como cualquier
+    // otro. Su contenido va en el código 1, igual que un `TEXT`.
+    case "ATTRIB": {
       const contenido = textoDe(entidad);
       const x = numero(entidad, 10);
       const y = numero(entidad, 20);
@@ -896,6 +974,39 @@ function dibujar(
       return;
     }
 
+    // La polilínea "pesada", la de siempre: guarda sus puntos en entidades `VERTEX` aparte, que
+    // `agrupar` ya le colgó. Se descartaban en silencio, y con ellas la polilínea entera.
+    case "POLYLINE": {
+      const banderas = numero(entidad, 70) ?? 0;
+      // Los bits 16 y 64 son malla poligonal y malla de caras: no son un trazo de plano, y
+      // desarrollarlas como si lo fueran dibuja una maraña que no está en el CAD.
+      if ((banderas & 16) === 16 || (banderas & 64) === 64) {
+        cuenta(omitidas, "POLYLINE (malla)");
+        return;
+      }
+
+      const vertices: Vertice[] = [];
+      for (const hija of entidad.hijas) {
+        const x = numero(hija, 10);
+        const y = numero(hija, 20);
+        if (x === null || y === null) continue;
+        vertices.push({ x, y, bulge: numero(hija, 42) ?? 0 });
+      }
+      if (vertices.length < 2) {
+        cuenta(omitidas, "POLYLINE");
+        return;
+      }
+
+      const cerrada = (banderas & 1) === 1;
+      const anchos = [numero(entidad, 40), numero(entidad, 41)].filter(
+        (uno): uno is number => uno !== null && uno > 0,
+      );
+      const ancho = anchos.length === 0 ? null : anchos.reduce((a, b) => a + b, 0) / anchos.length;
+      const escalaAncho = Math.abs(t.escalaX) || 1;
+      anadir(desarrollar(vertices, cerrada), cerrada, ancho === null ? null : ancho * escalaAncho);
+      return;
+    }
+
     case "CIRCLE": {
       const cx = numero(entidad, 10);
       const cy = numero(entidad, 20);
@@ -913,6 +1024,82 @@ function dibujar(
       const hasta = numero(entidad, 51);
       if (cx === null || cy === null || r === null || desde === null || hasta === null) return;
       anadir(arco(cx, cy, r, desde, hasta), false);
+      return;
+    }
+
+    // Una elipse, o su arco. El CAD la escribe con el semieje mayor **relativo al centro** y la
+    // proporción del menor: son diez en `ACAD-Piso 5_Base1.dxf` y no se dibujaba ninguna.
+    case "ELLIPSE": {
+      const cx = numero(entidad, 10);
+      const cy = numero(entidad, 20);
+      const mayorX = numero(entidad, 11);
+      const mayorY = numero(entidad, 21);
+      const proporcion = numero(entidad, 40);
+      if (cx === null || cy === null || mayorX === null || mayorY === null || proporcion === null) {
+        cuenta(omitidas, "ELLIPSE");
+        return;
+      }
+
+      // Los parámetros van en radianes, y una elipse completa va de 0 a 2π.
+      const desde = numero(entidad, 41) ?? 0;
+      const hasta = numero(entidad, 42) ?? Math.PI * 2;
+      const completa = Math.abs(hasta - desde) >= Math.PI * 2 - 1e-9;
+      anadir(elipse(cx, cy, mayorX, mayorY, proporcion, desde, hasta), completa);
+      return;
+    }
+
+    // Una llamada clásica: sus vértices van en códigos 10 y 20 repetidos, como una polilínea.
+    case "LEADER": {
+      const puntos = verticesDe(entidad).map((v): readonly [number, number] => [v.x, v.y]);
+      if (puntos.length < 2) {
+        cuenta(omitidas, "LEADER");
+        return;
+      }
+      anadir(puntos, false);
+      return;
+    }
+
+    // **La geometría de una cota vive en un bloque anónimo** —`*D6`, `*D7`…— que el CAD genera con
+    // las líneas, las flechas y el texto ya dibujados, y nombra en el código 2. Sin seguirlo,
+    // **todo el acotado del plano desaparece**: son las doce cotas de `ACAD-Piso 5_Base.dxf`, y sus
+    // doce bloques están en el archivo.
+    case "DIMENSION": {
+      const anonimo = valor(entidad, 2);
+      const bloque = anonimo === undefined ? undefined : bloques.get(anonimo);
+      if (bloque === undefined || profundidad >= PROFUNDIDAD_MAXIMA) {
+        cuenta(omitidas, "DIMENSION");
+        return;
+      }
+      // El bloque de una cota está dibujado en coordenadas del modelo, así que va con la
+      // transformación de quien la contiene y sin descontar punto base.
+      for (const hija of bloque.entidades) {
+        dibujar(hija, bloques, salida, omitidas, t, presta(), profundidad + 1);
+      }
+      return;
+    }
+
+    // Una llamada moderna. Su geometría vive dentro del bloque de datos de contexto, mezclada con
+    // decenas de campos que reciclan los mismos códigos: ver {@link leerMultileader}.
+    case "MULTILEADER":
+    case "MLEADER": {
+      const contenido = leerMultileader(entidad);
+      if (contenido.lineas.length === 0 && contenido.texto === null) {
+        cuenta(omitidas, entidad.type);
+        return;
+      }
+      for (const linea of contenido.lineas) anadir(linea, false);
+      if (contenido.texto !== null) {
+        const [px, py] = aplicar(t, contenido.texto.x, contenido.texto.y);
+        salida.texts.push({
+          layer,
+          x: px,
+          y: py,
+          height: contenido.texto.height * (Math.abs(t.escalaY) || 1),
+          rotationDeg: (t.giro * 180) / Math.PI,
+          text: contenido.texto.text,
+          color,
+        });
+      }
       return;
     }
 
@@ -992,20 +1179,9 @@ function dibujar(
       const pasoX = numero(entidad, 44) ?? 0;
       const pasoY = numero(entidad, 45) ?? 0;
 
-      // Lo que el bloque presta a lo que lleva dentro. Se presta **ya resuelto**: si el `INSERT`
-      // dice "por capa", lo que hereda el hijo es el trazo de esa capa, no la palabra "por capa".
-      const suyo = valor(entidad, 6)?.toUpperCase();
-      const presta: Heredado = {
-        layer,
-        color,
-        linetype:
-          suyo === undefined || suyo === "BYLAYER"
-            ? (salida.estilo.capas.get(layer)?.linetype ?? null)
-            : suyo === "BYBLOCK"
-              ? heredado.linetype
-              : suyo,
-        lineweightMm,
-      };
+      // Lo que el bloque presta a lo que lleva dentro, **ya resuelto**: si el `INSERT` dice "por
+      // capa", lo que hereda el hijo es el trazo de esa capa, no la palabra "por capa".
+      const suyo = presta();
 
       for (let fila = 0; fila < filas; fila++) {
         for (let columna = 0; columna < columnas; columna++) {
@@ -1021,9 +1197,16 @@ function dibujar(
           const [bx, by] = aplicar(propia, -bloque.baseX, -bloque.baseY);
           const conBase: Transformacion = { ...propia, x: bx, y: by };
           for (const hija of bloque.entidades) {
-            dibujar(hija, bloques, salida, omitidas, conBase, presta, profundidad + 1);
+            dibujar(hija, bloques, salida, omitidas, conBase, suyo, profundidad + 1);
           }
         }
+      }
+
+      // Los `ATTRIB` del `INSERT` —el número de la puerta, el nombre del recinto, el cajetín— son
+      // hermanos suyos en el archivo y van en coordenadas del dibujo, no del bloque: se dibujan con
+      // la transformación de fuera, no con la del bloque.
+      for (const atributo of entidad.hijas) {
+        dibujar(atributo, bloques, salida, omitidas, tPadre, suyo, profundidad + 1);
       }
 
       return;
@@ -1033,10 +1216,19 @@ function dibujar(
     case "SEQEND":
     case "ENDBLK":
     case "BLOCK":
-    case "VERTEX":
+      return;
+
+    // Un `ATTDEF` es la **definición** de un atributo dentro del bloque, no su valor: al insertarlo,
+    // el CAD lo sustituye por el `ATTRIB` correspondiente. Dibujar los dos escribiría cada rótulo de
+    // bloque dos veces, una con el texto de muestra.
+    case "ATTDEF":
       return;
 
     default:
+      // Lo que queda se cuenta y se dice. `POINT` y `WIPEOUT` están aquí a propósito: un punto se
+      // dibuja como un punto —invisible a escala de plano, y los treinta y seis del plano real están
+      // en `Defpoints`, que no se imprime— y un enmascaramiento **tapa** lo que hay debajo, que es
+      // un efecto y no un trazo. Inventarles una forma sería dibujar algo que el CAD no muestra.
       cuenta(omitidas, entidad.type);
   }
 }
@@ -1058,7 +1250,8 @@ function contornosDeRelleno(entidad: Entidad, t: Transformacion): readonly (read
   const contornos: number[][] = [];
   let actual: number[] | null = null;
   let esPolilinea = false;
-  let vertice: { x: number | null; bulge: number } = { x: null, bulge: 0 };
+  let vertices: Vertice[] = [];
+  let pendiente: number | null = null;
   let arista: Record<number, number> = {};
   let tipoArista = 0;
 
@@ -1067,7 +1260,20 @@ function contornosDeRelleno(entidad: Entidad, t: Transformacion): readonly (read
     actual?.push(px, py);
   };
 
+  /**
+   * Vuelca los vértices de un contorno de polilínea, **curvando los que traen `bulge`**.
+   *
+   * El `bulge` se leía y se tiraba, así que el macizo de un muro curvo se cerraba con la cuerda: el
+   * relleno se salía del muro justo donde hay curvas, que es donde más se nota.
+   */
+  const volcarPolilinea = (cerrada: boolean) => {
+    for (const [x, y] of desarrollar(vertices, cerrada)) punto(x, y);
+    vertices = [];
+    pendiente = null;
+  };
+
   const cerrarContorno = () => {
+    if (esPolilinea && vertices.length > 0) volcarPolilinea(true);
     if (actual !== null && actual.length >= 6) contornos.push(actual);
     actual = null;
   };
@@ -1116,14 +1322,21 @@ function contornosDeRelleno(entidad: Entidad, t: Transformacion): readonly (read
       cerrarContorno();
       actual = [];
       esPolilinea = (n & 2) === 2;
-      vertice = { x: null, bulge: 0 };
+      vertices = [];
+      pendiente = null;
       continue;
     }
     if (actual === null) continue;
 
     if (esPolilinea) {
-      if (code === 10) vertice = { x: n, bulge: 0 };
-      else if (code === 20 && vertice.x !== null) punto(vertice.x, n);
+      if (code === 10) pendiente = n;
+      else if (code === 20 && pendiente !== null) {
+        vertices.push({ x: pendiente, y: n, bulge: 0 });
+        pendiente = null;
+      } else if (code === 42 && vertices.length > 0) {
+        const ultimo = vertices[vertices.length - 1]!;
+        vertices[vertices.length - 1] = { ...ultimo, bulge: n };
+      }
       continue;
     }
 
@@ -1279,6 +1492,16 @@ function textoDe(entidad: Entidad): string {
     else if (code === 1) crudo += value;
   }
 
+  return limpiarTexto(crudo);
+}
+
+/**
+ * El mismo limpiado, sobre una cadena ya reunida.
+ *
+ * Vive aparte porque el texto de un `MULTILEADER` no llega en los códigos 1 y 3 sino en el 304, y
+ * trae exactamente los mismos códigos de formato incrustados.
+ */
+function limpiarTexto(crudo: string): string {
   return crudo
     .replace(/\\P/g, " ")
     .replace(/\\[A-Za-z][^;\\]*;/g, "")
@@ -1366,6 +1589,136 @@ function desarrollar(
   return puntos;
 }
 
+/**
+ * Una elipse en segmentos, con el semieje mayor dado **relativo al centro**.
+ *
+ * El punto de un parámetro `t` es el centro más el semieje mayor por su coseno más el menor por su
+ * seno; el menor es el mayor girado un cuarto de vuelta y reducido por `proporcion`. Con eso sale
+ * también el arco de elipse, que es como el CAD dibuja un abatimiento de puerta.
+ */
+function elipse(
+  cx: number,
+  cy: number,
+  mayorX: number,
+  mayorY: number,
+  proporcion: number,
+  desde: number,
+  hasta: number,
+): readonly (readonly [number, number])[] {
+  let barrido = hasta - desde;
+  while (barrido <= 0) barrido += Math.PI * 2;
+
+  const menorX = -mayorY * proporcion;
+  const menorY = mayorX * proporcion;
+  const tramos = Math.max(2, Math.ceil((barrido * 180) / Math.PI / GRADOS_POR_TRAMO));
+
+  const puntos: (readonly [number, number])[] = [];
+  for (let i = 0; i <= tramos; i++) {
+    const th = desde + (barrido * i) / tramos;
+    const cos = Math.cos(th);
+    const sen = Math.sin(th);
+    puntos.push([cx + mayorX * cos + menorX * sen, cy + mayorY * cos + menorY * sen]);
+  }
+  return puntos;
+}
+
+/**
+ * Lo dibujable de un `MULTILEADER`: sus líneas de llamada y su texto.
+ *
+ * **Es la entidad más hostil del formato para leer suelta.** Todo vive dentro de un bloque de datos
+ * de contexto delimitado por cadenas —`CONTEXT_DATA{`, `LEADER{`, `LEADER_LINE{`— y **fuera de ese
+ * bloque los mismos códigos 10 y 20 vuelven a aparecer** como propiedades del estilo: leer los
+ * códigos sueltos mete puntos en `(1, 1)` que no existen en el plano. Por eso se recorre con una
+ * máquina de estados y se corta en el cierre del contexto.
+ *
+ * Y hay una trampa propia: **el código 304 se usa para dos cosas**, el texto de la llamada y la
+ * marca de apertura `LEADER_LINE{`. Se distinguen por el valor, no por el código.
+ */
+function leerMultileader(entidad: Entidad): {
+  readonly lineas: readonly (readonly (readonly [number, number])[])[];
+  readonly texto: {
+    readonly x: number;
+    readonly y: number;
+    readonly height: number;
+    readonly text: string;
+  } | null;
+} {
+  const lineas: (readonly [number, number])[][] = [];
+  let actual: (readonly [number, number])[] | null = null;
+  let enContexto = false;
+
+  let alto = 0;
+  let texto = "";
+  let textoX: number | null = null;
+  let textoY: number | null = null;
+  let pendienteX: number | null = null;
+
+  for (const { code, value } of entidad.pares) {
+    if (code === 300 && value.startsWith("CONTEXT_DATA")) {
+      enContexto = true;
+      continue;
+    }
+    if (!enContexto) continue;
+    // El cierre del contexto: a partir de aquí los 10 y 20 son propiedades, no geometría.
+    if (code === 301) break;
+
+    if (code === 302 && value.startsWith("LEADER")) {
+      if (actual !== null && actual.length >= 2) lineas.push(actual);
+      actual = [];
+      continue;
+    }
+    if (code === 303) {
+      if (actual !== null && actual.length >= 2) lineas.push(actual);
+      actual = null;
+      continue;
+    }
+
+    if (code === 304) {
+      // La marca de apertura de una línea de llamada, no el texto.
+      if (value.endsWith("{")) continue;
+      texto = value;
+      continue;
+    }
+    if (code === 41 && alto === 0) {
+      const n = Number(value);
+      if (Number.isFinite(n) && n > 0) alto = n;
+      continue;
+    }
+    if (code === 12) {
+      const n = Number(value);
+      if (Number.isFinite(n)) textoX = n;
+      continue;
+    }
+    if (code === 22) {
+      const n = Number(value);
+      if (Number.isFinite(n)) textoY = n;
+      continue;
+    }
+
+    if (actual === null) continue;
+    if (code === 10) {
+      const n = Number(value);
+      pendienteX = Number.isFinite(n) ? n : null;
+      continue;
+    }
+    if (code === 20 && pendienteX !== null) {
+      const n = Number(value);
+      if (Number.isFinite(n)) actual.push([pendienteX, n]);
+      pendienteX = null;
+    }
+  }
+  if (actual !== null && actual.length >= 2) lineas.push(actual);
+
+  const limpio = limpiarTexto(texto);
+  return {
+    lineas,
+    texto:
+      limpio === "" || textoX === null || textoY === null
+        ? null
+        : { x: textoX, y: textoY, height: alto === 0 ? 2.5 : alto, text: limpio },
+  };
+}
+
 /** Un arco en segmentos, de `desde` a `hasta` en grados y en sentido antihorario, como el DXF. */
 function arco(
   cx: number,
@@ -1424,10 +1777,22 @@ function capasDe(
     .sort((a, b) => b.count - a.count);
 }
 
+/**
+ * La extensión real de **lo que se dibuja**.
+ *
+ * Dos exclusiones, y las dos costaron encontrarlas midiendo los planos del usuario:
+ *
+ * - **Las capas apagadas no cuentan.** En `ACAD-Piso 5_Base1.dxf` la capa `0-AREA UTIL` —apagada en
+ *   el CAD— mide 7.050 unidades de alto contra las 2.500 del edificio: contándola, el plano pasaba
+ *   de 27 × 25 m a 27 × 82 m, y con eso se deduce mal la unidad y se centra mal el dibujo.
+ * - **Los rellenos sí cuentan**, y antes no: un plano cuyos macizos salen del recuadro de sus
+ *   líneas quedaba descentrado.
+ */
 function extension(
   polylines: readonly DxfPolyline[],
   texts: readonly DxfText[],
   hatches: readonly DxfHatch[],
+  apagadas: ReadonlySet<string>,
 ): DxfBounds | null {
   let minX = Infinity;
   let minY = Infinity;
@@ -1442,14 +1807,16 @@ function extension(
   };
 
   for (const linea of polylines) {
+    if (apagadas.has(linea.layer)) continue;
     for (let i = 0; i + 1 < linea.points.length; i += 2)
       meter(linea.points[i]!, linea.points[i + 1]!);
   }
-  for (const texto of texts) meter(texto.x, texto.y);
-  // **Los rellenos también son dibujo.** Sin contarlos, un plano cuyos macizos salen del recuadro
-  // de sus líneas queda descentrado y, peor, la unidad se deduce con una extensión que no es la del
-  // plano: ver `suggestMetresPerUnit`.
+  for (const texto of texts) {
+    if (apagadas.has(texto.layer)) continue;
+    meter(texto.x, texto.y);
+  }
   for (const relleno of hatches) {
+    if (apagadas.has(relleno.layer)) continue;
     for (const contorno of relleno.loops) {
       for (let i = 0; i + 1 < contorno.length; i += 2) meter(contorno[i]!, contorno[i + 1]!);
     }

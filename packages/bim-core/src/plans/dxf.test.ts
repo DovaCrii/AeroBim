@@ -756,6 +756,321 @@ describe("parseDxf", () => {
     expect(plano.hatches[0]?.solid).toBe(false);
     expect(plano.hatches[0]?.pattern).toBe("ANSI31");
   });
+
+  it("lee la `POLYLINE` clásica, cuyos puntos viven en entidades `VERTEX` aparte", () => {
+    const plano = parseDxf(
+      dxf(
+        [0, "SECTION"],
+        [2, "ENTITIES"],
+        [0, "POLYLINE"],
+        [8, "0-MUROS"],
+        [66, "1"],
+        [70, "1"],
+        [0, "VERTEX"],
+        [8, "0-MUROS"],
+        [10, "0"],
+        [20, "0"],
+        [0, "VERTEX"],
+        [8, "0-MUROS"],
+        [10, "100"],
+        [20, "0"],
+        [0, "VERTEX"],
+        [8, "0-MUROS"],
+        [10, "100"],
+        [20, "50"],
+        [0, "SEQEND"],
+        [8, "0-MUROS"],
+        [0, "ENDSEC"],
+      ),
+    );
+
+    expect(plano.polylines).toHaveLength(1);
+    expect(plano.polylines[0]?.closed).toBe(true);
+    expect(plano.polylines[0]?.points).toEqual([0, 0, 100, 0, 100, 50]);
+    // Y el `SEQEND` no cuenta como entidad que falte: es la marca de cierre.
+    expect(plano.skipped).toEqual({});
+  });
+
+  it("curva un `VERTEX` con `bulge`, igual que en la polilínea ligera", () => {
+    const plano = parseDxf(
+      dxf(
+        [0, "SECTION"],
+        [2, "ENTITIES"],
+        [0, "POLYLINE"],
+        [8, "0"],
+        [70, "0"],
+        [0, "VERTEX"],
+        [10, "0"],
+        [20, "0"],
+        [42, "1"],
+        [0, "VERTEX"],
+        [10, "10"],
+        [20, "0"],
+        [0, "SEQEND"],
+        [0, "ENDSEC"],
+      ),
+    );
+
+    const puntos = plano.polylines[0]!.points;
+    expect(puntos.length).toBeGreaterThan(4);
+    const alturas = [];
+    for (let i = 1; i < puntos.length; i += 2) alturas.push(puntos[i]!);
+    expect(Math.max(...alturas.map(Math.abs))).toBeCloseTo(5, 6);
+  });
+
+  it("dibuja los `ATTRIB` de un `INSERT`: el número de puerta, el nombre del recinto", () => {
+    const plano = parseDxf(
+      dxf(
+        [0, "SECTION"],
+        [2, "BLOCKS"],
+        [0, "BLOCK"],
+        [2, "PUERTA"],
+        [10, "0"],
+        [20, "0"],
+        [0, "LINE"],
+        [8, "0-PUERTAS"],
+        [10, "0"],
+        [20, "0"],
+        [11, "90"],
+        [21, "0"],
+        // La **definición** del atributo: no se dibuja, la sustituye el `ATTRIB` del `INSERT`.
+        [0, "ATTDEF"],
+        [8, "0-PUERTAS"],
+        [10, "0"],
+        [20, "0"],
+        [40, "100"],
+        [1, "NUMERO"],
+        [2, "N"],
+        [0, "ENDBLK"],
+        [0, "ENDSEC"],
+        [0, "SECTION"],
+        [2, "ENTITIES"],
+        [0, "INSERT"],
+        [2, "PUERTA"],
+        [8, "0-PUERTAS"],
+        [10, "500"],
+        [20, "300"],
+        [66, "1"],
+        [0, "ATTRIB"],
+        [8, "0-PUERTAS"],
+        [10, "520"],
+        [20, "320"],
+        [40, "100"],
+        [1, "P-14"],
+        [2, "N"],
+        [0, "SEQEND"],
+        [0, "ENDSEC"],
+      ),
+    );
+
+    expect(plano.texts).toEqual([
+      {
+        layer: "0-PUERTAS",
+        x: 520,
+        y: 320,
+        height: 100,
+        rotationDeg: 0,
+        text: "P-14",
+        color: color(null, "defecto"),
+      },
+    ]);
+    // El `ATTDEF` no se cuenta como entidad que falte: es una definición, no geometría.
+    expect(plano.skipped).toEqual({});
+  });
+
+  it("una cota dibuja su bloque anónimo, que es donde el CAD le guarda la geometría", () => {
+    const plano = parseDxf(
+      dxf(
+        [0, "SECTION"],
+        [2, "BLOCKS"],
+        [0, "BLOCK"],
+        [2, "*D6"],
+        [10, "0"],
+        [20, "0"],
+        [0, "LINE"],
+        [8, "AA - COTAS"],
+        [10, "0"],
+        [20, "0"],
+        [11, "4500"],
+        [21, "0"],
+        [0, "MTEXT"],
+        [8, "AA - COTAS"],
+        [10, "2250"],
+        [20, "120"],
+        [40, "180"],
+        [1, "4.50"],
+        [0, "ENDBLK"],
+        [0, "ENDSEC"],
+        [0, "SECTION"],
+        [2, "ENTITIES"],
+        [0, "DIMENSION"],
+        [8, "AA - COTAS"],
+        [2, "*D6"],
+        [10, "0"],
+        [20, "0"],
+        [0, "ENDSEC"],
+      ),
+    );
+
+    // Sin seguir el bloque desaparece **todo el acotado**: doce cotas en el plano real.
+    expect(plano.polylines).toHaveLength(1);
+    expect(plano.polylines[0]?.points).toEqual([0, 0, 4500, 0]);
+    expect(plano.texts.map((texto) => texto.text)).toEqual(["4.50"]);
+    expect(plano.skipped).toEqual({});
+  });
+
+  it("cuenta la cota cuyo bloque no viene en el archivo, en vez de callarla", () => {
+    const plano = parseDxf(
+      dxf(
+        [0, "SECTION"],
+        [2, "ENTITIES"],
+        [0, "DIMENSION"],
+        [8, "AA - COTAS"],
+        [2, "*D99"],
+        [0, "ENDSEC"],
+      ),
+    );
+
+    expect(plano.skipped).toEqual({ DIMENSION: 1 });
+  });
+
+  it("lee una elipse y su arco, con el semieje mayor relativo al centro", () => {
+    const plano = parseDxf(
+      dxf(
+        [0, "SECTION"],
+        [2, "ENTITIES"],
+        [0, "ELLIPSE"],
+        [8, "0-VENTANAS"],
+        [10, "100"],
+        [20, "200"],
+        // Semieje mayor de 50 en X, y el menor a la mitad: 25 en Y.
+        [11, "50"],
+        [21, "0"],
+        [40, "0.5"],
+        [41, "0"],
+        [42, String(Math.PI * 2)],
+        [0, "ENDSEC"],
+      ),
+    );
+
+    const puntos = plano.polylines[0]!.points;
+    const xs = [];
+    const ys = [];
+    for (let i = 0; i + 1 < puntos.length; i += 2) {
+      xs.push(puntos[i]!);
+      ys.push(puntos[i + 1]!);
+    }
+    expect(Math.max(...xs)).toBeCloseTo(150, 6);
+    expect(Math.min(...xs)).toBeCloseTo(50, 6);
+    expect(Math.max(...ys)).toBeCloseTo(225, 6);
+    expect(Math.min(...ys)).toBeCloseTo(175, 6);
+  });
+
+  it("lee las líneas y el texto de un `MULTILEADER`, sin comerse los códigos de después", () => {
+    const plano = parseDxf(
+      dxf(
+        [0, "SECTION"],
+        [2, "ENTITIES"],
+        [0, "MULTILEADER"],
+        [8, "0-NOTAS"],
+        [100, "AcDbMLeader"],
+        [300, "CONTEXT_DATA{"],
+        [40, "1.0"],
+        // El punto base del contenido: **no** es geometría de la llamada.
+        [10, "18648.14"],
+        [20, "40489.91"],
+        [30, "0.0"],
+        [41, "8.0"],
+        [304, "Mampara divisoria"],
+        [12, "18757.57"],
+        [22, "40495.25"],
+        [32, "0.0"],
+        [302, "LEADER{"],
+        [10, "18759.93"],
+        [20, "40484.58"],
+        [30, "0.0"],
+        [11, "-1.0"],
+        [21, "0.0"],
+        [31, "0.0"],
+        // **El 304 se usa para dos cosas**: aquí es la marca de apertura, no el texto.
+        [304, "LEADER_LINE{"],
+        [10, "18804.32"],
+        [20, "40452.15"],
+        [30, "0.0"],
+        [305, "}"],
+        [303, "}"],
+        [301, "}"],
+        // Y a partir del cierre del contexto los 10 y 20 son propiedades del estilo, no puntos.
+        [340, "8F2"],
+        [10, "1.0"],
+        [20, "1.0"],
+        [30, "1.0"],
+        [0, "ENDSEC"],
+      ),
+    );
+
+    expect(plano.polylines).toHaveLength(1);
+    expect(plano.polylines[0]?.points).toEqual([18759.93, 40484.58, 18804.32, 40452.15]);
+    expect(plano.texts).toHaveLength(1);
+    expect(plano.texts[0]?.text).toBe("Mampara divisoria");
+    expect(plano.texts[0]?.x).toBeCloseTo(18757.57, 6);
+    expect(plano.texts[0]?.height).toBe(8);
+    expect(plano.skipped).toEqual({});
+  });
+
+  it("aplica la extrusión hacia −Z: esa geometría va espejada, no tal cual", () => {
+    const plano = parseDxf(
+      dxf(
+        [0, "SECTION"],
+        [2, "ENTITIES"],
+        [0, "LINE"],
+        [8, "0-MUROS"],
+        [10, "10"],
+        [20, "5"],
+        [11, "20"],
+        [21, "5"],
+        [230, "-1.0"],
+        [0, "ENDSEC"],
+      ),
+    );
+
+    expect(plano.polylines[0]?.points).toEqual([-10, 5, -20, 5]);
+  });
+
+  it("curva el contorno de un relleno con `bulge`: un muro curvo no se cierra con la cuerda", () => {
+    const plano = parseDxf(
+      dxf(
+        [0, "SECTION"],
+        [2, "ENTITIES"],
+        [0, "HATCH"],
+        [8, "0-MUROS"],
+        [2, "SOLID"],
+        [70, "1"],
+        [91, "1"],
+        // Contorno de polilínea: la bandera 2 del código 92.
+        [92, "2"],
+        [72, "1"],
+        [73, "1"],
+        [93, "3"],
+        [10, "0"],
+        [20, "0"],
+        [42, "1"],
+        [10, "10"],
+        [20, "0"],
+        [10, "10"],
+        [20, "10"],
+        [97, "0"],
+        [0, "ENDSEC"],
+      ),
+    );
+
+    const contorno = plano.hatches[0]!.loops[0]!;
+    // Con la cuerda serían tres puntos; con el arco desarrollado, muchos más.
+    expect(contorno.length / 2).toBeGreaterThan(10);
+    const ys = [];
+    for (let i = 1; i < contorno.length; i += 2) ys.push(contorno[i]!);
+    expect(Math.max(...ys.map(Math.abs))).toBeGreaterThan(4.9);
+  });
 });
 
 describe("suggestMetresPerUnit", () => {
