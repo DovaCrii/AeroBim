@@ -50,6 +50,13 @@ pointclouds/
 *.sqlite3
 *.db
 
+# Salidas del servicio Django: las genera el despliegue, no el repositorio.
+services/api/staticfiles/
+services/api/logs/
+services/api/documents/
+services/api/.coverage
+# `uv.lock` **si** se confirma: es lo que hace reproducible la instalacion.
+
 # Notas de trabajo con capturas del modelo real: no se versionan, igual que los IFC.
 obsidian/
 

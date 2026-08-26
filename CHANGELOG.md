@@ -5,6 +5,70 @@ Este proyecto sigue [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Añadido — Portal de ingreso y credenciales (2026-08-26)
+
+`services/api` existe: Django 6 + uv, con la **forma** de AeroControl y base de datos propia. Se
+portó lo que esa aplicación ya tenía probado en producción —1440 pruebas con datos reales de la
+DGAC— y no su dominio.
+
+- **El portal de ingreso.** `django.contrib.auth` endurecido: axes **delante** del backend real
+  para cortar un intento bloqueado antes de comprobar la contraseña, bloqueo **por nombre de
+  usuario** —detrás de un proxy toda petición llega de la misma dirección, así que una clave por IP
+  sería inútil o falsificable—, sesión con tope de 12 h y expiración deslizante, y **un solo
+  mensaje de error, genérico**: distinguir «no existe ese usuario» de «esa no es la contraseña» le
+  regala a quien prueba credenciales la mitad del trabajo.
+- **Sin auto-registro.** El primer usuario sale de `createsuperuser` y el resto los crea un
+  administrador. Una aplicación de control documental donde cualquiera se da de alta no controla
+  nada. El cambio de contraseña vive **dentro** de la aplicación, para que nadie tenga que entrar
+  al `/admin/` técnico a rotar su propia credencial.
+- **`/api-token/` con throttle propio.** `ObtainAuthToken` de DRF viene con
+  `throttle_classes = ()`, o sea que deja fuera del límite global justo al único endpoint que
+  acepta pares usuario/contraseña sin autenticar: sin esto es un oráculo de contraseñas.
+- **Los roles como dato** (`apps/accounts/roles.py`): Administrador, Coordinador BIM, Proyectista,
+  Revisor y Mandante, más **Dirección**, que no es un rol sino un grupo de notificación con cero
+  permisos. Un nombre de permiso mal escrito **para** el comando `bootstrap_roles`.
+- **El contrato de permisos, en `AGENTS.md`.** Toda superficie de lectura pide un `view_*`
+  explícito; `LoginRequiredMixin` solo no alcanza; un modelo acotado por organización acota el
+  queryset y no solo comprueba el permiso; y **cada vista nueva trae su prueba de 403**. Es lo que
+  de verdad hizo robusto a AeroControl, y es agnóstico del stack.
+- **El rol de lectura es una lista blanca, nunca un patrón.** El `Viewer` de AeroControl era «todo
+  permiso que empiece por `view_`», y eso le entregaba en silencio los tokens de API, la lista de
+  usuarios, las sesiones y la auditoría. Hay una prueba que falla si aparece uno de esos en
+  `Mandante`.
+- **Piezas portadas con su historia:** `BaseModel` (archivar, no borrar), `AuditEvent` de solo
+  agregar con `sequence` —porque `created_at` no basta para ordenar dos filas del mismo instante—,
+  el middleware de auditoría y CSP, `mail.py` (no decir «enviado» cuando el correo solo se
+  imprimió), `jobs.py` con la fila que nace en `running`, la exportación CSV que neutraliza
+  fórmulas, y el acotado por organización.
+- **SQLite en WAL.** La auditoría escribe en cada petición que muta, y con los 5 s por defecto
+  AeroControl tuvo «database is locked» intermitentes que su propio `except` se tragaba: eventos
+  perdidos en silencio.
+
+**Comprobado contra un servidor corriendo:** un `Mandante` ve en el portal solo Organizaciones y el
+visor, y pedir a mano `/administracion/usuarios-y-roles/` le devuelve **403**, no la página; un
+`Coordinador BIM` ve además Trabajos programados y puede abrirlo; un `Administrador` lo ve todo. Y
+el bloqueo por intentos es real: al quinto fallo la respuesta pasa a **429** y **la contraseña
+correcta también recibe 429** mientras dura el enfriamiento, mientras otro usuario sigue entrando.
+
+**Gate propio** (`services/api/scripts/verify.ps1`), el mismo que AeroControl: `check`,
+`check --deploy`, `makemigrations --check`, `pytest --cov`, `ruff`, `bandit` y `pip-audit`. **64
+pruebas, 89 % de cobertura.**
+
+### Corregido — Un gate que decía «verde» estando rojo (2026-08-26)
+
+La primera versión de `verify.ps1` imprimió «Gate en verde» con `ruff format` fallando:
+`$ErrorActionPreference = "Stop"` **no cubre a un ejecutable nativo** que devuelve un código
+distinto de cero. Cada paso pasa ahora por una función que mira `$LASTEXITCODE`. Es la misma clase
+de defecto que la `F7.13` marcada cerrada, y por eso va escrito.
+
+### Pendiente conocido — Portal
+
+- **El catálogo de traducciones (`locale/es/`) no existe todavía**, así que la interfaz muestra las
+  cadenas fuente en inglés donde Django no traduce por su cuenta. La convención está puesta —el
+  código escribe en inglés y el español vive en el catálogo— pero el catálogo hay que generarlo.
+- **La matriz de roles solo cubre los modelos que existen hoy.** Se completa con los entregables.
+- `services/worker` no existe: los jobs pesados de `ifcopenshell` siguen pendientes (`F3.4`).
+
 ### Corregido — Fidelidad del plano 2D (2026-08-26)
 
 `F7.13` estaba marcada cerrada y la pantalla decía otra cosa: el usuario volvió con «el 2D no

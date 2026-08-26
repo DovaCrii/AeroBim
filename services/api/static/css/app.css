@@ -1,0 +1,203 @@
+/*
+ * Tokens de AeroBim.
+ *
+ * **La marca se separa del color de accion, y no por gusto.** El violeta de AeroBim
+ * (#9B5DE5) no llega a 4,5:1 sobre blanco, asi que usarlo para un enlace o un boton
+ * deja texto que no se lee. La marca pinta cabeceras y acentos; lo que hay que leer
+ * usa `--ab-primary`, que si pasa. Es la misma disciplina que lleva AeroControl, con
+ * los contrastes anotados al lado.
+ */
+:root {
+  --ab-navy: #1b2a4a; /* marca */
+  --ab-violet: #9b5de5; /* marca — decorativo, 2,9:1 sobre blanco: no para texto */
+
+  --ab-bg: #f4f7fb;
+  --ab-surface: #ffffff;
+  --ab-border: #dbe3ee;
+
+  --ab-text: #172238; /* 14,2:1 sobre --ab-surface */
+  --ab-text-secondary: #4f5b72; /* 7,4:1 */
+  --ab-text-muted: #626f85; /* 5,1:1 — el minimo que se acepta */
+
+  --ab-primary: #5b3a9e; /* 7,9:1 sobre blanco: el violeta llevado a texto */
+  --ab-primary-hover: #472d7d;
+  --ab-primary-soft: #efe7fb;
+  --ab-danger: #c53b4d; /* 4,8:1 */
+  --ab-ok: #0f7a5f; /* 4,9:1 */
+
+  --ab-shadow: 0 10px 30px rgb(18 34 59 / 8%);
+  --ab-radius: 12px;
+  --ab-control-height: 42px;
+  --ab-sidebar-width: 248px;
+}
+
+[data-theme="dark"] {
+  --ab-bg: #131a26;
+  --ab-surface: #1b2432;
+  --ab-border: #2b3648;
+  --ab-text: #eef1f6;
+  --ab-text-secondary: #b6c0d1;
+  --ab-text-muted: #97a3b6;
+  --ab-primary: #c3a6f0; /* sobre superficie oscura, 7,1:1 */
+  --ab-primary-hover: #d5c2f6;
+  --ab-primary-soft: #2a2140;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--ab-bg);
+  color: var(--ab-text);
+  font:
+    15px/1.55 system-ui,
+    "Segoe UI",
+    sans-serif;
+}
+
+a {
+  color: var(--ab-primary);
+}
+
+a:hover {
+  color: var(--ab-primary-hover);
+}
+
+/* El salto al contenido: primero en el orden de tabulacion y visible al enfocarlo. */
+.salto {
+  position: absolute;
+  left: -9999px;
+}
+
+.salto:focus {
+  left: 12px;
+  top: 12px;
+  z-index: 10;
+  padding: 8px 12px;
+  background: var(--ab-surface);
+  border-radius: var(--ab-radius);
+}
+
+.barra {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 20px;
+  background: var(--ab-navy);
+  color: #fff;
+}
+
+.barra a {
+  color: #fff;
+}
+
+.barra .marca {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.barra .separador {
+  flex: 1;
+}
+
+main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 20px 60px;
+}
+
+h1 {
+  font-size: 1.5rem;
+  margin: 0 0 4px;
+}
+
+.subtitulo {
+  color: var(--ab-text-muted);
+  margin: 0 0 24px;
+}
+
+.grupo {
+  margin: 28px 0 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ab-text-muted);
+}
+
+.tarjetas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+.tarjeta {
+  display: block;
+  padding: 16px 18px;
+  background: var(--ab-surface);
+  border: 1px solid var(--ab-border);
+  border-radius: var(--ab-radius);
+  text-decoration: none;
+  color: inherit;
+  box-shadow: var(--ab-shadow);
+}
+
+.tarjeta:hover {
+  border-color: var(--ab-primary);
+}
+
+.tarjeta .titulo {
+  font-weight: 650;
+  margin-bottom: 4px;
+}
+
+.tarjeta .detalle {
+  color: var(--ab-text-muted);
+  font-size: 0.9rem;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--ab-surface);
+  border: 1px solid var(--ab-border);
+  border-radius: var(--ab-radius);
+  overflow: hidden;
+}
+
+th,
+td {
+  padding: 9px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--ab-border);
+  font-size: 0.92rem;
+}
+
+th {
+  background: var(--ab-primary-soft);
+  color: var(--ab-text);
+  font-weight: 650;
+}
+
+tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.aviso {
+  padding: 12px 14px;
+  border-radius: var(--ab-radius);
+  border: 1px solid var(--ab-danger);
+  color: var(--ab-danger);
+  background: var(--ab-surface);
+  margin-bottom: 18px;
+}
+
+.vacio {
+  color: var(--ab-text-muted);
+  padding: 18px;
+  background: var(--ab-surface);
+  border: 1px dashed var(--ab-border);
+  border-radius: var(--ab-radius);
+}

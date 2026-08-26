@@ -1,9 +1,10 @@
 # Arquitectura — AeroBim
 
-> Estado: **construido de la Fase 0 a la Fase 1, y la mitad de entrada de la Fase 7**. Los
-> paquetes `bim-core`, `viewer` y `apps/web` existen y `F0.6` está cerrada: la conversión corre en
-> un worker. **`services/` todavía no existe** — es la Fase 3, y lo que se describe abajo de ella
-> sigue siendo diseño. Última revisión: 2026-08-26.
+> Estado: **construido de la Fase 0 a la Fase 1, la mitad de entrada de la Fase 7, y el portal de
+> `services/api`**. Los paquetes `bim-core`, `viewer` y `apps/web` existen; `F0.6` está cerrada (la
+> conversión corre en un worker); y `services/api` existe con su portal de ingreso, sus roles y su
+> gate propio (`F3.6`–`F3.9`). Lo que sigue siendo diseño es el resto de la Fase 3 —los modelos de
+> proyecto, `ifcopenshell`, los jobs— y de ahí en adelante. Última revisión: 2026-08-26.
 
 ## El principio que ordena todo
 
@@ -24,9 +25,9 @@ aerobim/
 ├── packages/
 │   ├── bim-core/         Dominio puro. Sin React, sin Three.js, sin DOM.
 │   └── viewer/           Envoltura del visor: escena, cámara, selección, cortes.
-└── services/             (Fase 3 en adelante)
-    ├── api/              Django + DRF: proyectos, modelos, versiones, temas.
-    └── worker/           Celery: ifcopenshell, ifctester, ifcclash.
+└── services/
+    ├── api/              Django 6 + DRF: portal, credenciales, roles, auditoría.
+    └── worker/           (pendiente) ifcopenshell, ifctester, ifcclash.
 ```
 
 ### `packages/bim-core` — el dominio
@@ -58,15 +59,33 @@ React 19, igual que AeroPlanner, para que la experiencia de mantener ambos sea l
 misma. Aquí viven los paneles, el árbol, las tablas de propiedades y el estado de
 interfaz.
 
-### `services/` — desde la Fase 3
+### `services/api` — el portal y las credenciales
 
-Django + DRF por coherencia con AeroControl: el mismo lenguaje, el mismo estilo de
+Django 6 + DRF por coherencia con AeroControl: el mismo lenguaje, el mismo estilo de
 despliegue, un equipo que ya sabe mantenerlo. `ifcopenshell` es Python, así que la
 extracción de metadatos, la validación IDS y las interferencias caen naturalmente
 del mismo lado.
 
-**No existe hasta la Fase 3, y eso es deliberado.** Las fases 0 a 2 abren un archivo
-local en el navegador y no necesitan servidor.
+**Se portó la forma de AeroControl, no su dominio** (`F3.6`–`F3.9`, 2026-08-26): el
+modelo base, la auditoría de solo agregar, el middleware de CSP y log, el aviso de
+correo no entregado, el vigilante de trabajos programados, la exportación CSV con
+neutralización de fórmulas, el acotado por organización y —lo más valioso— el
+**contrato de permisos**, que ahora vive en `AGENTS.md`. Esa aplicación lleva 1440
+pruebas en producción; lo que se copió son las decisiones que ya costaron encontrarse.
+
+**La base de datos es propia.** Es la regla de la familia: ninguna aplicación comparte
+base con otra, y la integración es por archivo y por API.
+
+> **Dos cosas del despliegue que romperían el visor sin dejar rastro**, y por eso están
+> escritas en `config/settings/prod.py` en vez de en la cabeza de alguien: nunca servir
+> `COOP` ni `COEP` —activan el WASM multihilo de `web-ifc`, que no funciona empaquetado,
+> y el visor se cuelga **sin error**— y la CSP necesita `'wasm-unsafe-eval'` y
+> `worker-src 'self' blob:`, porque el visor compila WebAssembly y arranca un worker. La
+> CSP de AeroControl es un `script-src 'self'` pelado y lo bloquearía.
+
+`services/worker` todavía no existe: es donde caerán los jobs pesados de `ifcopenshell`.
+Las fases 0 a 2 del visor siguen abriendo un archivo local sin necesitar servidor, y eso
+no cambia — el portal es la puerta, no un requisito para mirar un modelo.
 
 ## El flujo de un modelo
 

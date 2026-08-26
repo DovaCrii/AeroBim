@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block titulo %}{% translate "Scheduled jobs" %} · AeroBim{% endblock %}
+
+{% block contenido %}
+  <h1>{% translate "Scheduled jobs" %}</h1>
+  <p class="subtitulo">
+    {% blocktranslate %}A job that stops running raises no error: nothing happens, and the
+    notices it owed are simply not sent.{% endblocktranslate %}
+  </p>
+
+  {% if not correo_entrega %}
+    {% comment %}
+      **Va arriba y en rojo.** Un trabajo que corrio bien y un correo que no salio se
+      ven igual desde el historial, y es el caso que mas engaña: la aplicacion informa
+      "enviado a N destinatarios" mientras el correo solo se imprime en el log.
+    {% endcomment %}
+    <div class="aviso">
+      <strong>{% translate "Mail is not being delivered." %}</strong><br />
+      {{ correo_motivo }}
+    </div>
+  {% endif %}
+
+  {% if colgados %}
+    <div class="aviso">
+      <strong>{% translate "Jobs stuck mid-run:" %}</strong>
+      {% for corrida in colgados %}{{ corrida.command }}{% if not forloop.last %}, {% endif %}{% endfor %}
+    </div>
+  {% endif %}
+
+  <p class="grupo">{% translate "Expected jobs" %}</p>
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">{% translate "Command" %}</th>
+        <th scope="col">{% translate "Last run" %}</th>
+        <th scope="col">{% translate "Result" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for esperado in esperados %}
+        <tr>
+          <td>{{ esperado.comando }}</td>
+          <td>
+            {% if esperado.ultima %}
+              {{ esperado.ultima.started_at|date:"Y-m-d H:i" }}
+            {% else %}
+              {% translate "never ran" %}
+            {% endif %}
+          </td>
+          <td>{{ esperado.ultima.get_result_display|default:"—" }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <p class="grupo">{% translate "History" %}</p>
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">{% translate "Command" %}</th>
+        <th scope="col">{% translate "Started" %}</th>
+        <th scope="col">{% translate "Seconds" %}</th>
+        <th scope="col">{% translate "Result" %}</th>
+        <th scope="col">{% translate "Summary" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for corrida in corridas %}
+        <tr>
+          <td>{{ corrida.command }}</td>
+          <td>{{ corrida.started_at|date:"Y-m-d H:i:s" }}</td>
+          <td>{{ corrida.duration_seconds|default:"—" }}</td>
+          <td>{{ corrida.get_result_display }}</td>
+          <td>{{ corrida.summary|default:"—" }}</td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="5">{% translate "No job has run yet." %}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

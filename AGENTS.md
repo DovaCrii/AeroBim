@@ -102,6 +102,36 @@ reconcilia a favor de lo vigente en el repo y se deja constancia en el PR o en
 - Modelos IFC, nubes de puntos, ortofotos y datos de proyectos reales viven **fuera
   del repositorio**. Nunca confirmar un IFC de cliente ni un dato de obra.
 
+## Contrato de permisos y lectura (obligatorio en toda vista de `services/api`)
+
+Copiado casi literal de `AeroControl/AGENTS.md`, y es lo que de verdad hizo robusto
+ese sistema. No es una recomendación:
+
+- Una vista que **muta** pide su permiso de modelo: `add_*`, `change_*` o `delete_*`.
+- **Toda superficie de lectura** —lista, detalle, exportación, API— pide un `view_*`
+  explícito. `LoginRequiredMixin` **solo no alcanza**: deja que cualquier usuario
+  autenticado lea todo lo que no se le negó a mano.
+- Un modelo acotado por organización **acota el queryset**, no solo comprueba el
+  permiso. `view_entregable` dice "puede ver entregables", no "puede ver **estos**":
+  sin acotar, pedir a mano `/entregables/<id-de-otra>/` responde con el objeto.
+- **Cada vista nueva trae su prueba de 403** para un usuario autenticado sin el
+  permiso, y su prueba de aislamiento entre organizaciones cuando aplique. En
+  `apps/accounts/tests/test_permisos.py` están como una tabla: añadir una vista es
+  añadir una fila.
+- Un rol de lectura se declara con una **lista blanca** de permisos, nunca con un
+  patrón. "Todo lo que empiece por `view_`" le entrega los tokens de API, la lista de
+  usuarios, las sesiones y la auditoría — le pasó a AeroControl.
+- Nunca `fields = "__all__"` en un formulario de escritura ni en una exportación.
+- Se redirige al login a quien es **anónimo**, y se devuelve **403 duro** a quien está
+  autenticado y no autorizado. Mandar al login a quien ya entró es un bucle en el que
+  nadie llega a saber que lo que le falta es un permiso.
+
+**Dos cosas del despliegue que romperían el visor sin dejar rastro**, y que están
+escritas en `services/api/config/settings/prod.py`: nunca servir `COOP` ni `COEP`
+—activan el WASM multihilo de `web-ifc`, que no funciona empaquetado, y el visor se
+cuelga **sin error**— y la CSP necesita `'wasm-unsafe-eval'` en `script-src` y
+`worker-src 'self' blob:`, porque el visor compila WebAssembly y arranca un worker.
+
 ## Licencias: verificar antes de portar
 
 Este proyecto es MIT y debe seguir siéndolo. Antes de copiar o adaptar código de un

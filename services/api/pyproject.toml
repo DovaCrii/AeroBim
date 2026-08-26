@@ -1,0 +1,62 @@
+[project]
+name = "aerobim-api"
+version = "0.1.0"
+description = "API y portal de AeroBim: credenciales, modulos por etapa y control documental"
+requires-python = ">=3.12"
+# No es un paquete instalable: es una aplicacion Django que se corre desde su
+# directorio, igual que AeroControl. Ver `package = false` mas abajo.
+dependencies = [
+    "django>=6.0,<6.1",
+    "djangorestframework>=3.16",
+    "django-axes>=8.0",
+    "python-decouple>=3.8",
+    "whitenoise>=6.8",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-django>=4.9",
+    "pytest-cov>=6.0",
+    "ruff>=0.15",
+    "bandit>=1.8",
+    "pip-audit>=2.9",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+extend-exclude = ["*/migrations/*"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "DJ"]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.dev"
+python_files = ["test_*.py", "*_test.py"]
+addopts = "-q"
+
+[tool.coverage.run]
+source = ["apps", "config"]
+omit = [
+    "*/migrations/*",
+    "*/tests/*",
+    "*/test_*.py",
+    # Puntos de entrada del despliegue y ajustes de produccion: ninguna prueba los
+    # importa, y contarlos solo diluye el numero sin decir nada de la cobertura real.
+    # Lo que si se prueba de produccion son sus dos decisiones -- la CSP con WASM y el
+    # correo -- y eso vive en `apps/core`, donde si se mide.
+    "config/wsgi.py",
+    "config/asgi.py",
+    "config/settings/prod.py",
+]
+
+[tool.coverage.report]
+# Un piso, no un objetivo. AeroControl lo tiene en 83 con 1440 pruebas; aqui
+# arranca mas bajo a proposito y sube con cada bloque, en vez de fijar un numero
+# que obligue a escribir pruebas de relleno para alcanzarlo.
+fail_under = 80
+show_missing = true

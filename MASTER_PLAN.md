@@ -746,6 +746,10 @@ guardan por proyecto, con versiones y con quién subió qué.
 | `F3.3` | Extracción de metadatos con `ifcopenshell`: esquema, unidades, georreferenciación, conteo por tipo | ⬜     |
 | `F3.4` | Jobs asíncronos (Celery) para lo que tarde: conversión, extracción, validación                     | ⬜     |
 | `F3.5` | Validación **IDS** con `ifctester`: el modelo cumple o no el requisito de información del proyecto | ⬜     |
+| `F3.6` | **Levantar `services/api`**: Django 6 + uv, con la forma de AeroControl y base de datos propia     | ✅     |
+| `F3.7` | **Portal de ingreso**: `django.contrib.auth` endurecido con axes, sin auto-registro                | ✅     |
+| `F3.8` | **Roles y el contrato de permisos**: la matriz como dato, el guardián, y la prueba de 403          | ✅     |
+| `F3.9` | **Los módulos y cómo se entra a cada uno**: portal por etapa de trabajo, filtrado por permiso      | ✅     |
 
 **Criterio de aceptación:** un modelo subido sobrevive al cierre del navegador, y
 la versión anterior sigue recuperable.
@@ -753,6 +757,76 @@ la versión anterior sigue recuperable.
 `F3.5` es lo que separa un visor de una herramienta de control: revisar a mano si
 cada elemento trae el pset que el mandante exigió no escala; un IDS lo verifica en
 un paso y dice exactamente qué falta.
+
+### El portal de ingreso, y por qué se portó en vez de escribirse (2026-08-26)
+
+**Lo pidió el usuario junto con la fidelidad del 2D**, y la aplicación hermana ya lo
+tenía resuelto: AeroControl lleva 1440 pruebas en producción con datos reales de la
+DGAC. Su fuerza no está en código ingenioso sino en un puñado de decisiones que ya
+costaron encontrarse, y **eso es lo que se portó** — la forma, no el dominio. La base
+de datos es propia: la regla de la familia es que ninguna aplicación comparte base con
+otra.
+
+| Qué se portó                                            | Por qué esa pieza y no otra                                                 |
+| ------------------------------------------------------- | --------------------------------------------------------------------------- |
+| `BaseModel`: UUID, marcas de tiempo, `is_active`        | Archivar en vez de borrar. Borrar un entregable se lleva su historial       |
+| `AuditEvent` de solo agregar, con `sequence`            | `created_at` **no basta** para ordenar dos filas del mismo instante         |
+| `RequestMetricsMiddleware`                              | Auditoría en cada petición que muta, id de correlación y log estructurado   |
+| `mail.py`                                               | No decir "enviado" cuando el correo solo se imprimió en el log              |
+| `jobs.py` + `JobRun`                                    | La fila nace en `running`: un proceso muerto a mitad deja de ser un éxito   |
+| `exports.py`                                            | Una celda que empieza por `=` es una fórmula que se ejecuta en otra máquina |
+| `tenancy.py`                                            | El permiso dice qué se puede hacer, no **sobre qué**                        |
+| `ModelPermissionRequiredMixin` y `ViewModelPermissions` | El contrato de permisos, cumplido sin depender de que alguien se acuerde    |
+
+**Las decisiones del portal:** `LoginView` con plantilla propia y **un solo mensaje de
+error**, genérico —distinguir "no existe ese usuario" de "esa no es la contraseña" le
+regala a quien prueba credenciales la mitad del trabajo—; axes **delante** del backend
+real, para cortar un intento bloqueado antes de comprobar la contraseña; bloqueo **por
+nombre de usuario y no por IP**, porque detrás de un proxy toda petición llega de la
+misma dirección; sesión con tope de 12 h y expiración deslizante; **sin auto-registro**,
+porque una aplicación de control documental donde cualquiera se da de alta no controla
+nada; y `/api-token/` con throttle propio, porque el de DRF viene con
+`throttle_classes = ()` y deja fuera del límite justo al único endpoint que acepta
+usuario y contraseña sin autenticar.
+
+**Los roles**, con la matriz en `apps/accounts/roles.py`: Administrador, Coordinador
+BIM, Proyectista, Revisor y Mandante, más **Dirección**, que no es un rol sino un grupo
+de notificación con cero permisos. Un nombre de permiso mal escrito **para el comando**
+`bootstrap_roles` en vez de dejar un rol silenciosamente vacío.
+
+> **La lección del `Viewer` de AeroControl, portada con el código.** Su rol de lectura
+> era "todo permiso cuyo nombre empiece por `view_`", y eso le entregaba en silencio los
+> tokens de API, la lista de usuarios, las sesiones, la auditoría y el historial de
+> trabajos. `Mandante` es una **lista blanca explícita**, y hay una prueba que falla si
+> alguna vez aparece ahí un permiso de administración.
+
+**Comprobado contra un servidor corriendo**, que es el oráculo que pedía el contrato:
+
+| Usuario             | Ve en el portal               | Pide a mano `/administracion/usuarios-y-roles/` |
+| ------------------- | ----------------------------- | ----------------------------------------------- |
+| **Mandante**        | Organizaciones y el visor BIM | **403**                                         |
+| **Coordinador BIM** | + Trabajos programados        | **403**                                         |
+| **Administrador**   | Todo                          | 200                                             |
+
+Y el bloqueo por intentos es real, no cosmético: al quinto fallo la respuesta pasa a
+**429**, y **la contraseña correcta también recibe 429** mientras dura el enfriamiento
+—si entrara, el bloqueo no estaría haciendo nada— mientras otro usuario sigue pudiendo
+entrar, que es lo que distingue un bloqueo por nombre de un bloqueo global.
+
+**El gate propio** (`services/api/scripts/verify.ps1`) replica el de AeroControl:
+`check`, `check --deploy`, `makemigrations --check`, `pytest --cov`, `ruff`, `bandit` y
+`pip-audit`. **64 pruebas, 89 % de cobertura**, todo en verde.
+
+> **La primera versión del gate dijo «verde» con `ruff format` fallando.** Un ejecutable
+> nativo que devuelve un código distinto de cero no dispara el manejo de errores de
+> PowerShell, así que cada paso pasa ahora por una función que mira `$LASTEXITCODE`. Un
+> gate que miente es peor que no tener gate — y es la misma clase de defecto que la
+> `F7.13` marcada cerrada.
+
+**Lo que queda de este frente**, dicho en voz alta: el catálogo de traducciones
+(`locale/es/`) todavía no existe, así que la interfaz muestra las cadenas fuente en
+inglés donde Django no traduce por su cuenta; y la matriz de roles solo cubre los
+modelos que existen hoy — se completa con los entregables en `F8.1`.
 
 ---
 

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block titulo %}{% translate "Audit trail" %} · AeroBim{% endblock %}
+
+{% block contenido %}
+  <h1>{% translate "Audit trail" %}</h1>
+  <p class="subtitulo">
+    {% blocktranslate %}Append-only: nothing here can be edited or deleted from the
+    application.{% endblocktranslate %}
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">#</th>
+        <th scope="col">{% translate "When" %}</th>
+        <th scope="col">{% translate "Who" %}</th>
+        <th scope="col">{% translate "Action" %}</th>
+        <th scope="col">{% translate "Path" %}</th>
+        <th scope="col">{% translate "Status" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for evento in eventos %}
+        <tr>
+          <td>{{ evento.sequence }}</td>
+          <td>{{ evento.created_at|date:"Y-m-d H:i:s" }}</td>
+          <td>{{ evento.actor|default:"—" }}</td>
+          <td>{{ evento.action }}</td>
+          <td>{{ evento.path }}</td>
+          <td>{{ evento.status_code }}</td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="6">{% translate "Nothing recorded yet." %}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

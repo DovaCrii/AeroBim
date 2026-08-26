@@ -1,0 +1,137 @@
+{% load static i18n %}
+<!doctype html>
+<html lang="{{ LANGUAGE_CODE|default:'es' }}">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% translate "Sign in" %} · AeroBim</title>
+    {% comment %}
+      **Autocontenida a proposito.** No extiende `base.html` ni carga `app.css`: la
+      pagina de ingreso es lo primero que alguien ve y no tiene que depender de que el
+      resto de la hoja de estilos cargue bien. Sus tokens son suyos, y respeta el modo
+      oscuro del sistema.
+
+      Y va con `{% templatetag openblock %} comment {% templatetag closeblock %}` y no
+      con la marca de una linea: esa **solo comenta una linea**, asi que un comentario
+      de varias se imprime en la pagina. Se vio al abrirla.
+    {% endcomment %}
+    <style>
+      :root {
+        --login-bg: #f4f7fb;
+        --login-surface: #ffffff;
+        --login-border: #dbe3ee;
+        --login-text: #172238;
+        --login-muted: #626f85;
+        --login-primary: #5b3a9e;
+        --login-primary-hover: #472d7d;
+        --login-danger: #c53b4d;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --login-bg: #131a26;
+          --login-surface: #1b2432;
+          --login-border: #2b3648;
+          --login-text: #eef1f6;
+          --login-muted: #97a3b6;
+          --login-primary: #c3a6f0;
+          --login-primary-hover: #d5c2f6;
+        }
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: var(--login-bg);
+        color: var(--login-text);
+        font: 15px/1.55 system-ui, "Segoe UI", sans-serif;
+      }
+      .tarjeta {
+        width: min(380px, calc(100vw - 32px));
+        padding: 28px;
+        background: var(--login-surface);
+        border: 1px solid var(--login-border);
+        border-radius: 14px;
+        box-shadow: 0 10px 30px rgb(18 34 59 / 10%);
+      }
+      h1 { margin: 0 0 4px; font-size: 1.35rem; }
+      p.sub { margin: 0 0 22px; color: var(--login-muted); font-size: 0.92rem; }
+      label { display: block; margin-bottom: 4px; font-size: 0.88rem; font-weight: 600; }
+      input[type="text"], input[type="password"] {
+        width: 100%;
+        height: 42px;
+        margin-bottom: 16px;
+        padding: 0 12px;
+        color: var(--login-text);
+        background: var(--login-bg);
+        border: 1px solid var(--login-border);
+        border-radius: 10px;
+        font: inherit;
+      }
+      button {
+        width: 100%;
+        height: 42px;
+        border: 0;
+        border-radius: 10px;
+        background: var(--login-primary);
+        color: #fff;
+        font: inherit;
+        font-weight: 650;
+        cursor: pointer;
+      }
+      button:hover { background: var(--login-primary-hover); }
+      .error {
+        margin-bottom: 16px;
+        padding: 10px 12px;
+        border: 1px solid var(--login-danger);
+        border-radius: 10px;
+        color: var(--login-danger);
+        font-size: 0.9rem;
+      }
+      .pie { margin: 20px 0 0; color: var(--login-muted); font-size: 0.82rem; }
+    </style>
+  </head>
+  <body>
+    <form class="tarjeta" method="post">
+      {% csrf_token %}
+      <h1>AeroBim</h1>
+      <p class="sub">{% translate "Model, plans and document control." %}</p>
+
+      {% if form.errors %}
+        {#
+          **Un solo mensaje, y generico.** Distinguir "no existe ese usuario" de
+          "la contraseña no es esa" le regala la mitad del trabajo a quien prueba
+          credenciales: con el primer mensaje ya sabe que nombres existen.
+        #}
+        <div class="error">{% translate "Invalid username or password. Try again." %}</div>
+      {% endif %}
+
+      <label for="{{ form.username.id_for_label }}">{% translate "Username" %}</label>
+      <input
+        type="text"
+        name="{{ form.username.html_name }}"
+        id="{{ form.username.id_for_label }}"
+        autocomplete="username"
+        autofocus
+        required
+      />
+
+      <label for="{{ form.password.id_for_label }}">{% translate "Password" %}</label>
+      <input
+        type="password"
+        name="{{ form.password.html_name }}"
+        id="{{ form.password.id_for_label }}"
+        autocomplete="current-password"
+        required
+      />
+
+      <button type="submit">{% translate "Sign in" %}</button>
+      {% if next %}<input type="hidden" name="next" value="{{ next }}" />{% endif %}
+
+      <p class="pie">
+        {% translate "There is no self sign-up: an administrator creates the accounts." %}
+      </p>
+    </form>
+  </body>
+</html>

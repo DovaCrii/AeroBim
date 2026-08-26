@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block titulo %}{% translate "Portal" %} · AeroBim{% endblock %}
+
+{% block contenido %}
+  <h1>{% translate "Portal" %}</h1>
+  <p class="subtitulo">
+    {% blocktranslate %}Only what your role can open is listed.{% endblocktranslate %}
+  </p>
+
+  {% regroup modulos by grupo as por_grupo %}
+  {% for grupo in por_grupo %}
+    <p class="grupo">{{ grupo.grouper }}</p>
+    <div class="tarjetas">
+      {% for modulo in grupo.list %}
+        {% if modulo.url %}
+          <a class="tarjeta" href="{{ modulo.url }}">
+            <div class="titulo">{{ modulo.titulo }}</div>
+            <div class="detalle">{{ modulo.descripcion }}</div>
+          </a>
+        {% else %}
+          <div class="tarjeta">
+            <div class="titulo">{{ modulo.titulo }}</div>
+            <div class="detalle">{{ modulo.descripcion }}</div>
+          </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+  {% empty %}
+    <div class="vacio">
+      {% blocktranslate %}Your account has no module assigned yet. Ask an administrator for a
+      role.{% endblocktranslate %}
+    </div>
+  {% endfor %}
+{% endblock %}

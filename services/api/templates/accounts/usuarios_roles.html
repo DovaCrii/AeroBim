@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block titulo %}{% translate "Users and roles" %} · AeroBim{% endblock %}
+
+{% block contenido %}
+  <h1>{% translate "Users and roles" %}</h1>
+  <p class="subtitulo">
+    {% translate "Read-only." %}
+    <a href="?formato=csv">{% translate "Download CSV" %}</a>
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">{% translate "Username" %}</th>
+        <th scope="col">{% translate "Name" %}</th>
+        <th scope="col">{% translate "Email" %}</th>
+        <th scope="col">{% translate "Roles" %}</th>
+        <th scope="col">{% translate "Active" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for usuario in usuarios %}
+        <tr>
+          <td>{{ usuario.username }}</td>
+          <td>{{ usuario.get_full_name|default:"—" }}</td>
+          <td>{{ usuario.email|default:"—" }}</td>
+          <td>{{ usuario.roles }}</td>
+          <td>{% if usuario.is_active %}{% translate "Yes" %}{% else %}{% translate "No" %}{% endif %}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}
