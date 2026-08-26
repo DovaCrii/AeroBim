@@ -59,6 +59,18 @@ React 19, igual que AeroPlanner, para que la experiencia de mantener ambos sea l
 misma. Aquí viven los paneles, el árbol, las tablas de propiedades y el estado de
 interfaz.
 
+**Son dos páginas del mismo build** (`F8.6`, 2026-08-26): `index.html` es el visor de modelos y
+planos, y `documento.html` el del PDF con las observaciones dibujadas encima. La separación no es
+organizativa, es de coste: un PDF en el visor 3D cargaría Three.js y el WASM de `web-ifc` —seis
+megas y medio de JavaScript— para nada, y no sabría abrirlo; la página del documento pesa 348 kB.
+Comparten build, assets, `base` y el paso de limpieza, que es justo lo que no había que duplicar,
+y Django las sirve las dos detrás del login con la misma vista.
+
+**Qué visor abre qué lo decide un solo sitio**, `apps/documents/abribles.py`, por la extensión del
+archivo. Y son **dos** preguntas: si hay algún visor que lo abra —para ofrecer el enlace— y si lo
+abre **este** visor —para llenar su selector—. Con una sola función, los PDFs entraban en la lista
+del visor de modelos.
+
 ### `services/api` — el portal y las credenciales
 
 Django 6 + DRF por coherencia con AeroControl: el mismo lenguaje, el mismo estilo de

@@ -28,16 +28,18 @@ const dist = resolve(aqui, "..", "dist");
  * Lo único que sobrevive, y por qué cada cosa:
  *
  * - `assets/` — el JavaScript y el CSS con su nombre con hash. Es la aplicación.
- * - `index.html` — la página, que sirve Django detrás del login.
- * - `wasm/` — el WASM de `web-ifc`, servido **local** porque la aplicación tiene que abrir un
- *   modelo en una faena sin internet.
- * - `aerobim-mark.svg` — la marca, referenciada por `index.html`.
+ * - `index.html` — el visor de modelos, que sirve Django detrás del login.
+ * - `documento.html` — el visor del documento (`F8.6`), servido igual.
+ * - `wasm/` — el WASM de `web-ifc` y el de PDFium, servidos **locales** porque la aplicación
+ *   tiene que abrir un modelo en una faena sin internet, y porque la CSP de la página no deja
+ *   pedirle nada a otro origen.
+ * - `aerobim-mark.svg` — la marca, referenciada por las dos páginas.
  *
  * Lo que se queda fuera: `samples/` (archivos de la organización y fixtures de prueba) y
  * `diag.html`, que además apunta a rutas absolutas del equipo de quien lo escribió y no
  * funcionaría en un servidor.
  */
-const PERMITIDO = new Set(["assets", "index.html", "wasm", "aerobim-mark.svg"]);
+const PERMITIDO = new Set(["assets", "index.html", "documento.html", "wasm", "aerobim-mark.svg"]);
 
 try {
   await stat(dist);

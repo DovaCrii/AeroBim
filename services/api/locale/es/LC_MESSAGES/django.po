@@ -1646,3 +1646,18 @@ msgstr "Emitir y avisar"
 #: .\templates\documents\transmittal.html:118
 msgid "Acknowledge receipt"
 msgstr "Acusar recibo"
+
+
+#: .\apps\documents\forms.py
+msgid "An anchor on the document needs the page and both coordinates."
+msgstr "Un ancla en el documento necesita la página y las dos coordenadas."
+
+
+#: .\apps\documents\forms.py
+msgid "The position must be a fraction of the page, 0 to 1."
+msgstr "La posición tiene que ser una fracción de la página, de 0 a 1."
+
+
+#: .\apps\documents\forms.py
+msgid "An anchor on the document needs the revision it points at."
+msgstr "Un ancla en el documento necesita la revisión a la que apunta."

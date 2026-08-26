@@ -75,14 +75,18 @@
               <a href="{% url 'documents:descargar-revision' revision.pk %}">
                 {{ revision.nombre_original|default:"—" }}
               </a>
-              {% if revision.pk in abribles %}
+              {% if revision.visor_ruta %}
                 {% comment %}
                   **Esta es la costura.** El archivo que se subio es el que se abre, y en el
                   mismo sitio: es lo que ningun gestor documental del mercado puede ofrecer,
                   porque el visor y el registro son el mismo producto.
+
+                  Y **cual visor lo decide la vista**, no la plantilla: un IFC o un DXF van al
+                  de tres dimensiones, un PDF a su propia pantalla. Cargar Three.js y el WASM
+                  de web-ifc para leer un plano en PDF seria pagar por nada.
                 {% endcomment %}
                 <br />
-                <a href="{% url 'visor:visor' %}?revision={{ revision.pk }}">
+                <a href="{% url revision.visor_ruta %}?revision={{ revision.pk }}">
                   {% translate "Open in the viewer" %} →
                 </a>
               {% endif %}

@@ -27,8 +27,8 @@ from rest_framework.views import APIView
 
 from apps.core.views import ViewModelPermissions
 from apps.documents import storage
-from apps.documents.abribles import es_abrible
-from apps.documents.models import Revision
+from apps.documents.abribles import VISOR_MODELO, abre_en, visor_de
+from apps.documents.models import Observacion, Revision
 from apps.documents.views import revisiones_visibles
 
 
@@ -41,6 +41,9 @@ def como_json(revision: Revision) -> dict:
         "idoneidadTexto": revision.get_idoneidad_display(),
         "nombre": revision.nombre_original,
         "extension": storage.extension_de(revision.nombre_original),
+        # Con qué visor se abre, decidido en un solo sitio. Así la página del documento puede
+        # decir "esto no es un PDF" en vez de pasarle un IFC a PDFium y mostrar un error suyo.
+        "visor": visor_de(revision),
         "tamanoBytes": revision.tamano_bytes,
         "sha256": revision.sha256,
         "emitidaEn": revision.emitida_en.isoformat(),
@@ -60,10 +63,14 @@ def como_json(revision: Revision) -> dict:
 
 
 class RevisionesAbriblesAPI(ListAPIView):
-    """Las revisiones que el visor puede abrir: su propio selector.
+    """Las revisiones que **el visor de modelos** puede abrir: su propio selector.
 
     Existe para que el visor no dependa de que alguien llegue con un enlace. Es la lista
     que contesta «qué hay en este proyecto que yo pueda mirar».
+
+    **Filtra por el visor concreto y no por «es abrible».** Desde `F8.6` un PDF también se abre
+    —en otra pantalla—, y con el predicado general los PDFs entraban en esta lista: el visor 3D
+    los habría intentado cargar como geometría y habría quedado en blanco.
     """
 
     permission_classes = [ViewModelPermissions]
@@ -75,7 +82,7 @@ class RevisionesAbriblesAPI(ListAPIView):
         abribles = [
             como_json(r)
             for r in revisiones_visibles(request.user).filter(es_vigente=True)[:200]
-            if es_abrible(r)
+            if abre_en(r, VISOR_MODELO)
         ]
         return Response({"revisiones": abribles})
 
@@ -93,6 +100,65 @@ class RevisionAPI(RetrieveAPIView):
         if revision is None:
             raise Http404
         return Response(como_json(revision))
+
+
+class ObservacionesDeRevisionAPI(APIView):
+    """Las observaciones ancladas en un documento: **página y coordenada**, para dibujarlas.
+
+    Es la mitad que faltaba de `F8.6`. El modelo guardaba `pagina`, `ancla_x` y `ancla_y` desde
+    el primer día y **no había quien las dibujara**: una observación sobre la página 7 se leía
+    como texto en una lista, y quien la recibía tenía que buscar a mano de qué hablaba.
+
+    **Pide `view_observacion`, no `view_revision`.** Son dos permisos porque son dos cosas: un
+    rol puede ver los planos publicados y no tener nada que ver con los hallazgos internos. Y
+    la revisión se busca por `revisiones_visibles`, así que sobre un documento que el usuario
+    no puede ver no hay observaciones que listar, ni siquiera para decir cuántas hay.
+    """
+
+    permission_classes = [ViewModelPermissions]
+    queryset = Observacion.objects.none()
+
+    def get(self, request, *args, **kwargs):
+        from rest_framework.response import Response
+
+        revision = revisiones_visibles(request.user).filter(pk=kwargs["pk"]).first()
+        if revision is None:
+            raise Http404
+
+        observaciones = (
+            Observacion.objects.filter(revision=revision)
+            .exclude(pagina=None)
+            .select_related("responsable", "autor")
+            .order_by("pagina", "created_at")
+        )
+        return Response(
+            {
+                # **Si puede abrir una, y por eso viene en la respuesta.** El visor decide con
+                # esto si el clic sobre la página hace algo: ofrecer un cursor que promete abrir
+                # una observación y termina en 403 es la misma trampa que ofrecer un botón que
+                # termina en 403, y peor, porque en una página entera no se ve dónde estaba.
+                "puedeObservar": request.user.has_perm("documents.add_observacion"),
+                "observaciones": [
+                    {
+                        "id": str(o.pk),
+                        "titulo": o.titulo,
+                        "estado": o.estado,
+                        "estadoTexto": o.get_estado_display(),
+                        "prioridad": o.prioridad,
+                        "responsable": str(o.responsable),
+                        "pagina": o.pagina,
+                        # Fracciones de la página, no píxeles: el PDF se dibuja a la escala que
+                        # quepa y a la densidad de la pantalla, así que un píxel guardado hoy
+                        # apunta a otro sitio mañana.
+                        "x": o.ancla_x,
+                        "y": o.ancla_y,
+                        "url": f"/documentos/observaciones/{o.pk}/",
+                    }
+                    for o in observaciones
+                    if o.ancla_x is not None and o.ancla_y is not None
+                ],
+            }
+        )
 
 
 class RevisionContenidoAPI(APIView):

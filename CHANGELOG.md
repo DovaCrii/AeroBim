@@ -5,6 +5,52 @@ Este proyecto sigue [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Añadido — El documento se ve y se comenta en su sitio (`F8.6`, 2026-08-26)
+
+El modelo guardaba `pagina`, `ancla_x` y `ancla_y` de cada observación desde el primer día y **no
+había quien las dibujara**: una observación sobre la página 7 de un plano se leía como una línea de
+texto en una lista. Ahora hay una pantalla que ve el PDF sin descargarlo, dibuja las observaciones
+donde se abrieron, y abre una nueva con un clic sobre la página.
+
+- **De EmbedPDF se usa el motor, no su visor.** `@embedpdf/snippet` es un lector completo de 9,7 MB
+  con su propia interfaz; aquí hace falta dibujar páginas y poner **nuestras** marcas encima, con
+  control de la coordenada. Con `@embedpdf/engines` (PDFium por WASM, MIT) la página pesa 348 kB.
+- **Es una página aparte del build**, no una pestaña del visor de modelos: un PDF ahí cargaría
+  Three.js y `web-ifc` para nada, y no sabría abrirlo. Comparten build, assets, `base` y limpieza.
+- **El ancla es una fracción de la página, no un píxel**: el PDF se dibuja a la escala que quepa y
+  a la densidad de cada pantalla.
+- **El clic lleva al formulario de Django con el ancla puesta**; no se guarda nada desde el
+  navegador. Fuera de `[0, 1]`, o con media ancla, se rechaza.
+- **Sólo se dibujan las páginas cercanas a la que se mira.** Una memoria de 200 páginas serían 200
+  imágenes en memoria de vídeo, que es el fallo que ya se pagó con el atlas de rótulos del plano.
+
+Dos trampas encontradas, del mismo tipo que las que `AGENTS.md` ya listaba: **el WASM de PDFium
+sale de un CDN por defecto** —con el valor de fábrica, página en blanco detrás del login— y
+**`fontFallback` pide fuentes a otro origen**. La primera se resuelve con
+`import "…/pdfium.wasm?url"`, así que la ruta la calcula Vite en vez de componerla a mano; va como
+regla nueva en `AGENTS.md`.
+
+Comprobado en el navegador detrás del login, con un PDF de tres páginas: las tres dibujadas
+(595 × 842 desde `blob:`, sin errores en consola), el WASM servido desde
+`/static/visor/assets/pdfium-*.wasm` y **nada desde un CDN**, las tres marcas en su fracción exacta
+—la cerrada en verde—, y un clic al 30 %/80 % de la página 2 llegando al formulario con
+`pagina=2`, `ancla_x=0.2992`, `ancla_y=0.7993`.
+
+### Corregido — «Es abrible» y «lo abre este visor» eran la misma función (2026-08-26)
+
+Lo delató una prueba que ya existía. Al sumar el PDF al conjunto de lo abrible, los PDFs entraban
+en el **selector del visor de modelos**, que los habría cargado como geometría: pantalla en blanco.
+Son dos preguntas distintas —si ofrecer un enlace, y si este visor concreto sabe abrirlo— y ahora
+son dos funciones.
+
+### Corregido — Se podía abrir una observación sobre el entregable de otra organización (2026-08-26)
+
+`NuevaObservacionView` buscaba el entregable **sin acotar por organización**. Con
+`add_observacion`, pedir `/entregables/<id-de-otra>/observar/` metía un hallazgo en el proyecto de
+otro cliente **y le mandaba un correo a alguien que no tiene nada que ver**. Es la regla de
+`AGENTS.md` que ya estaba escrita —«un permiso dice qué se puede hacer, no sobre qué»— y esta vista
+se había quedado sin ella. Acotada, con su prueba.
+
 ### Añadido — Emitir el transmittal desde la pantalla (`F8.7`, 2026-08-26)
 
 El modelo sabía emitir desde el primer día y estaba probado —no se emite vacío ni sin

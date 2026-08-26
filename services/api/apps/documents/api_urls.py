@@ -19,4 +19,9 @@ urlpatterns = [
         api.RevisionContenidoAPI.as_view(),
         name="revision-contenido",
     ),
+    path(
+        "revisiones/<uuid:pk>/observaciones/",
+        api.ObservacionesDeRevisionAPI.as_view(),
+        name="revision-observaciones",
+    ),
 ]

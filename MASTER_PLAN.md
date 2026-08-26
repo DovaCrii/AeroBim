@@ -998,7 +998,7 @@ emitió y a quién— viva en un registro y no en la bandeja de correo de alguie
 | `F8.3` | **Subir y descargar**: validación de firma real, clave por sha256, y el nombre del cliente fuera del disco | ✅     |
 | `F8.4` | **Asignar, avisar y seguir**: correo al asignar, resumen por tramos, y el expediente                       | ✅     |
 | `F8.5` | **Trabajos programados** con su fila en `JobRun` y su vigilante                                            | ✅     |
-| `F8.6` | **Ver y comentar el PDF en el navegador** con EmbedPDF (MIT), sin descargarlo                              | ⬜     |
+| `F8.6` | **Ver y comentar el PDF en el navegador** con EmbedPDF (MIT), sin descargarlo                              | ✅     |
 | `F8.7` | **Emitir el transmittal desde la pantalla**, con carátula y acuse                                          | ✅     |
 | `F8.8` | **El visor y el registro son el mismo producto**: abrir la revisión desde su expediente                    | ✅     |
 
@@ -1166,13 +1166,75 @@ una fuga de lectura, es firmar en nombre de otro.
 > el error solo aparecía el día que alguien tocara el catálogo. Arreglada la entrada y **añadido
 > `compilemessages` al gate borrando el `.mo` antes**, que es lo único que lo comprueba de verdad.
 
+### `F8.6` cerrada: el documento se ve y se comenta en su sitio (2026-08-26)
+
+**El modelo guardaba `pagina`, `ancla_x` y `ancla_y` desde el primer día y no había quien las
+dibujara.** Una observación sobre la página 7 de un plano se leía como una línea de texto en una
+lista, y quien la recibía tenía que abrir el PDF aparte y buscar de qué hablaba.
+
+Ahora hay una pantalla que hace tres cosas y ninguna más: **ver el PDF sin descargarlo**, **ver
+las observaciones en su sitio** y **abrir una nueva con un clic** sobre la página.
+
+**Decisiones que importan, y por qué:**
+
+- **De EmbedPDF se usa el motor, no su visor.** `@embedpdf/snippet` es un lector completo de 9,7
+  MB con su propia interfaz en Preact; lo que hace falta aquí es dibujar páginas y poner **nuestras**
+  marcas encima, con control de la coordenada. Así que se usa `@embedpdf/engines` (PDFium por
+  WASM, MIT) y la capa de marcas es propia. La página pesa 348 kB de JavaScript.
+- **Es una página aparte del build, no una pestaña del visor de modelos.** Un PDF en el visor 3D
+  cargaría Three.js y el WASM de `web-ifc` para nada —y no sabría abrirlo—. Comparten el build,
+  los assets, el `base` y el paso de limpieza, que es justo lo que no había que duplicar:
+  `documento.html` es la segunda entrada de la misma configuración de Vite, y Django la sirve
+  detrás del login con la misma vista, generalizada.
+- **El ancla es una fracción de la página, no un píxel.** El PDF se dibuja a la escala que quepa
+  y a la densidad de pantalla de cada equipo: un píxel guardado hoy apunta a otro sitio mañana.
+- **El clic lleva al formulario de Django con el ancla puesta; no se guarda nada desde el
+  navegador.** El formulario ya comprueba el permiso, el rango de la coordenada y que las tres
+  partes del ancla vengan juntas; duplicar esa validación en el cliente serían dos reglas que se
+  separan en el primer cambio.
+- **Sólo se dibujan las páginas cercanas a la que se mira.** Una memoria de 200 páginas serían 200
+  imágenes en memoria de vídeo a la vez, que es el fallo que ya se pagó con el atlas de rótulos.
+
+**Y dos trampas encontradas, las dos del mismo tipo que las que `AGENTS.md` ya listaba:**
+
+1. **El WASM de PDFium sale de un CDN por defecto** (`cdn.jsdelivr.net`). Con el valor de fábrica
+   no habría un aviso: habría una página en blanco, porque la CSP de una página detrás del login
+   no deja pedirle nada a otro origen — y porque en faena no hay internet. Se resuelve con
+   `import "…/pdfium.wasm?url"`, así que **la ruta la calcula Vite**, con el prefijo
+   `/static/visor/` incluido, en vez de componerla a mano como se hizo con el otro WASM. Va como
+   regla nueva en `AGENTS.md`.
+2. **`fontFallback` activado pide fuentes a otro origen** cuando el PDF no las trae incrustadas.
+   Se pone en `null`.
+
+**Y un defecto propio, encontrado por una prueba que ya existía:** «es abrible» y «lo abre **este**
+visor» son dos preguntas distintas, y hasta ahora eran una función. Con el PDF sumado al conjunto
+de lo abrible, los PDFs entraban en el selector del visor de modelos, que los habría cargado como
+geometría. Ahora son `es_abrible` y `abre_en`.
+
+**Comprobado en el navegador**, detrás del login, con un PDF de tres páginas y tres observaciones
+ancladas:
+
+| Qué                                 | Resultado                                                                               |
+| ----------------------------------- | --------------------------------------------------------------------------------------- |
+| Las tres páginas                    | Dibujadas: `img` de 595 × 842 desde `blob:`, sin un error en consola                    |
+| El WASM                             | `/static/visor/assets/pdfium-RAgkpwfK.wasm`, 4,5 MB — **nada de un CDN**                |
+| Las tres marcas                     | En 42 %/35 %, 68 %/55 % y 25 %/72 %, la cerrada en verde y las abiertas en violeta      |
+| Clic sobre la página 2 al 30 %/80 % | Formulario con `pagina=2`, `ancla_x=0.2992`, `ancla_y=0.7993` y la revisión ya elegidas |
+| Una coordenada de 1,4               | **400**, con el motivo en español, y no se crea nada                                    |
+| `puedeObservar` por rol             | Coordinador `true`; proyectista y mandante `false`                                      |
+
+16 pruebas nuevas. Gate en verde: 180 pruebas, 93,22 % de cobertura.
+
+> **De paso salió un agujero de aislamiento que no era de esta tarea.** `NuevaObservacionView`
+> buscaba el entregable **sin acotar por organización**: con `add_observacion`, pedir
+> `/entregables/<id-de-otra>/observar/` metía un hallazgo en el proyecto de otro cliente **y le
+> mandaba un correo a alguien que no tiene nada que ver**. Acotado, con su prueba.
+
 ### Lo que falta de esta fase, dicho en voz alta
 
-- **`F8.6`: ver y comentar el PDF en el navegador**, con **EmbedPDF** (MIT, framework-agnóstico,
-  con anotación y búsqueda incluidas). Es el «comentar en línea sin descargar el documento» de
-  MineDoc, y su licencia encaja donde `pdf.js` solo no llega — `pdf.js` muestra, no anota. Hoy
-  la observación sobre un documento guarda su página y su coordenada y **no hay quien las
-  dibuje**.
+- **Buscar dentro del PDF y seleccionar su texto.** El motor lo sabe hacer
+  —`getPageTextRects`— y hoy la página solo dibuja imágenes: no se puede copiar una cota ni
+  buscar un código de recinto. Es lo siguiente que pediría quien lo use a diario.
 
 ---
 

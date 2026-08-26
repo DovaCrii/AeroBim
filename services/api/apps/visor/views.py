@@ -21,27 +21,38 @@ from django.utils.translation import gettext as _
 from django.views.generic import View
 
 
-class VisorView(LoginRequiredMixin, View):
-    """Sirve el SPA construido, o dice con claridad por qué no puede.
+class PaginaConstruida(LoginRequiredMixin, View):
+    """Sirve una página del build de `apps/web`, o dice con claridad por qué no puede.
 
     Los tres casos, y ninguno es un 500:
 
-    1. **Está construido** → se devuelve su `index.html`.
+    1. **Está construida** → se devuelve su HTML.
     2. **No está, pero hay un servidor de desarrollo configurado** → se redirige a él
        conservando la consulta, para que `?revision=<uuid>` siga llegando.
     3. **No está y no hay servidor** → una página que dice qué orden hay que correr. Es el
        caso normal en un equipo recién clonado, y un 500 ahí manda a leer un `traceback` para
        enterarse de que falta un `npm run build`.
+
+    **Son dos páginas y no una** desde `F8.6`: el visor de tres dimensiones y el del documento.
+    Comparten el build, los assets y esta vista; lo que cambia es qué archivo se sirve. Un PDF
+    en el visor 3D cargaría Three.js y el WASM de `web-ifc` para nada.
     """
 
+    #: El archivo del build que sirve esta vista.
+    pagina = "index.html"
+
     def get(self, request, *args, **kwargs):
-        indice = Path(settings.VISOR_DIST) / "index.html"
-        if indice.is_file():
-            return HttpResponse(indice.read_text(encoding="utf-8"))
+        archivo = Path(settings.VISOR_DIST) / self.pagina
+        if archivo.is_file():
+            return HttpResponse(archivo.read_text(encoding="utf-8"))
 
         if settings.VISOR_DEV_URL:
             consulta = request.META.get("QUERY_STRING", "")
+            # En desarrollo el servidor de Vite sirve `index.html` en la raíz y las demás
+            # páginas por su nombre, así que la raíz se pide sin nombre y el resto con él.
             destino = settings.VISOR_DEV_URL.rstrip("/") + "/"
+            if self.pagina != "index.html":
+                destino += self.pagina
             return HttpResponseRedirect(f"{destino}?{consulta}" if consulta else destino)
 
         return HttpResponse(
@@ -56,3 +67,15 @@ class VisorView(LoginRequiredMixin, View):
             "</body>",
             status=503,
         )
+
+
+class VisorView(PaginaConstruida):
+    """El visor de modelos y planos: IFC y DXF."""
+
+    pagina = "index.html"
+
+
+class DocumentoView(PaginaConstruida):
+    """El visor de documentos: el PDF con las observaciones dibujadas encima (`F8.6`)."""
+
+    pagina = "documento.html"

@@ -202,8 +202,13 @@ def test_un_mandante_no_puede_bajar_una_revision_en_curso(client, revision_dxf, 
 def test_solo_se_ofrecen_los_formatos_que_el_visor_sabe_abrir(
     client, revision_dxf, proyectista, organizacion, proyecto, disciplina
 ):
-    """Un PDF no está: su visor es otro (`F8.6`), y ofrecerlo aquí llevaría a una pantalla en
-    blanco."""
+    """**Un PDF no está en esta lista, y desde `F8.6` es más importante que antes.**
+
+    Ahora un PDF sí se abre —en su propia pantalla—, así que el predicado «es abrible» dice que
+    sí. Pero esta lista es el selector del visor de **modelos**: metiéndole un PDF, lo intentaría
+    cargar como geometría y quedaría en blanco. Son dos preguntas distintas y por eso hay dos
+    funciones.
+    """
     otro = Entregable.objects.create(
         organizacion=organizacion,
         proyecto=proyecto,

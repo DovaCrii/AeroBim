@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/aerobim-mark.svg" />
+    <title>AeroBim · documento</title>
+  </head>
+  <body>
+    <!--
+      La segunda página del build: el visor del documento (`F8.6`).
+
+      Es una página aparte y no una ruta del visor de modelos porque no comparten nada de lo
+      caro: aquí no hay Three.js, ni `web-ifc`, ni escena. Lo que hay es PDFium dibujando
+      paginas y las observaciones del registro encima.
+
+      Django la sirve detras del login en `/visor/documento/?revision=<uuid>`.
+    -->
+    <div id="root"></div>
+    <script type="module" src="/src/documento.tsx"></script>
+  </body>
+</html>

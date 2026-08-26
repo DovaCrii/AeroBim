@@ -25,7 +25,7 @@ from apps.core.views import (
     OrganizacionScopedQuerysetMixin,
 )
 from apps.documents import storage
-from apps.documents.abribles import es_abrible
+from apps.documents.abribles import RUTA_POR_VISOR, visor_de
 from apps.documents.forms import (
     ActividadForm,
     CierreForm,
@@ -120,19 +120,23 @@ class ExpedienteView(ModelViewPermissionRequiredMixin, OrganizacionScopedQueryse
         entregable = self.object
         usuario = self.request.user
 
-        contexto["revisiones"] = solo_publicadas(
-            entregable.revisiones.select_related("subida_por"), usuario
+        revisiones = list(
+            solo_publicadas(entregable.revisiones.select_related("subida_por"), usuario)
         )
-        contexto["observaciones"] = entregable.revisiones.none()
+        # **Con qué visor se abre cada una, resuelto acá.** Se decide por la extensión —la
+        # misma regla que ya usa la aplicación al soltar un archivo— y se le cuelga a la
+        # revisión el nombre de la ruta ya resuelto: la plantilla no tiene que saber de
+        # formatos, y tampoco hace falta un filtro nuevo para leer un diccionario por clave.
+        for revision in revisiones:
+            visor = visor_de(revision)
+            revision.visor_ruta = RUTA_POR_VISOR[visor] if visor is not None else ""
+        contexto["revisiones"] = revisiones
+
         contexto["observaciones"] = Observacion.objects.filter(
             revision__entregable=entregable
         ).select_related("responsable", "autor")
         contexto["actividades"] = entregable.actividades.select_related("responsable")
         contexto["idoneidades"] = Idoneidad.choices
-        # Cuáles se pueden abrir en el visor. **Se decide por la extensión**, que es la misma
-        # regla que ya usa la aplicación al soltar un archivo, y se calcula aquí para que la
-        # plantilla no tenga que saber de formatos.
-        contexto["abribles"] = {r.pk for r in contexto["revisiones"] if es_abrible(r)}
 
         # **Lo que falta, nombrado.** No un porcentaje: la fila concreta y el atajo que la
         # cierra, y el atajo solo si el usuario puede ejecutarlo.
@@ -581,23 +585,55 @@ class NuevaObservacionView(ModelPermissionRequiredMixin, View):
     permission_action = "add"
     template_name = "documents/nueva_observacion.html"
 
+    def entregable(self, request, pk):
+        """**Acotado por organización.** `add_observacion` dice que puede abrir observaciones,
+        no que pueda abrirlas sobre el entregable de otro cliente."""
+        return get_object_or_404(
+            scope_queryset_to_organizacion(Entregable.objects.all(), request.user), pk=pk
+        )
+
+    def ancla_pedida(self, request) -> dict:
+        """El ancla que trae el visor del documento en la URL, si la trae.
+
+        Llega como `?revision=<uuid>&pagina=3&x=0.42&y=0.18` desde un clic sobre el PDF. **Se
+        pasa como valor inicial y no se guarda desde aquí**: entra por el formulario, que es
+        quien comprueba el rango y que las tres partes vengan juntas. Un valor con mala forma se
+        ignora en silencio a propósito — el formulario se abre igual, sin ancla, y quien lo usa
+        no tiene por qué ver un error sobre un parámetro que no escribió.
+        """
+        inicial = {}
+        for campo, clave in (("pagina", "pagina"), ("ancla_x", "x"), ("ancla_y", "y")):
+            crudo = request.GET.get(clave)
+            if crudo is None:
+                continue
+            try:
+                inicial[campo] = int(crudo) if campo == "pagina" else float(crudo)
+            except ValueError:
+                return {}
+        revision = request.GET.get("revision")
+        if revision:
+            inicial["revision"] = revision
+        return inicial
+
     def get(self, request, *args, **kwargs):
         from django.shortcuts import render
 
-        entregable = get_object_or_404(Entregable, pk=kwargs["pk"])
+        entregable = self.entregable(request, kwargs["pk"])
         return render(
             request,
             self.template_name,
             {
                 "entregable": entregable,
-                "form": ObservacionForm(proyecto=entregable.proyecto),
+                "form": ObservacionForm(
+                    proyecto=entregable.proyecto, initial=self.ancla_pedida(request)
+                ),
             },
         )
 
     def post(self, request, *args, **kwargs):
         from django.shortcuts import render
 
-        entregable = get_object_or_404(Entregable, pk=kwargs["pk"])
+        entregable = self.entregable(request, kwargs["pk"])
         form = ObservacionForm(request.POST, proyecto=entregable.proyecto)
         if not form.is_valid():
             return render(

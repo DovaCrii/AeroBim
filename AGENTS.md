@@ -49,6 +49,14 @@ peor que no tener visor — alguien tomará una decisión de obra con ese dato.
    explícito si detecta `crossOriginIsolated`, y esa comprobación no se quita. Si algún
    día el multihilo se arregla upstream, se revisa entonces; hasta ahí, el monohilo abre
    un IFC de 1,5 MB en medio segundo.
+10. **Ninguna librería descarga su WASM de un CDN.** AeroBim es local-first —hay que abrir
+    un modelo y un documento en una faena sin internet— y además las páginas viven detrás
+    del login con una CSP que no deja pedir nada a otro origen. Al añadir una librería con
+    WASM hay que **buscar su valor por defecto**: `web-ifc` y PDFium traen los dos una URL
+    de `cdn.jsdelivr.net`, y dejarla no produce un aviso, produce una página en blanco.
+    Cuando el empaquetador pueda resolverlo —`import "…/x.wasm?url"`— se hace así, que es
+    lo que evita también el otro fallo: una ruta escrita a mano que no acierta con el
+    prefijo `/static/visor/` recibe el `index.html` de Django y falla por dentro.
 
 ## Precedencia documental
 

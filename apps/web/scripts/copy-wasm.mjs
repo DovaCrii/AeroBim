@@ -5,6 +5,12 @@
  * internet. That Open descarga este WASM de un CDN por defecto, así que se sirve
  * desde el propio despliegue. Los archivos son artefactos de `node_modules` y no se
  * confirman al repositorio — este script los repone en cada `dev` y `build`.
+ *
+ * **El de PDFium no está aquí, y es a propósito.** También sale de un CDN por defecto y
+ * también hay que servirlo local (`F8.6`), pero ese lo resuelve Vite con un `import
+ * "…/pdfium.wasm?url"`: así la ruta la calcula el empaquetador, con el prefijo
+ * `/static/visor/` incluido, en vez de componerla a mano. `web-ifc` no admite ese camino
+ * porque decide la ruta de su WASM en tiempo de ejecución.
  */
 
 import { copyFile, mkdir } from "node:fs/promises";

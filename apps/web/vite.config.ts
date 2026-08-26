@@ -43,6 +43,21 @@ export default defineConfig(({ command }) => ({
    */
   base: command === "build" ? "/static/visor/" : "/",
 
+  build: {
+    /**
+     * **Dos páginas, un solo build.** El visor de modelos y el del documento (`F8.6`) comparten
+     * los assets, el `base`, el WASM y el paso de limpieza; lo único que cambia es qué HTML
+     * sirve Django. Un PDF en el visor 3D cargaría Three.js y `web-ifc` para nada, y un
+     * proyecto de build aparte duplicaría las cuatro cosas que ya están resueltas aquí.
+     */
+    rollupOptions: {
+      input: {
+        index: resolve(here, "index.html"),
+        documento: resolve(here, "documento.html"),
+      },
+    },
+  },
+
   server: {
     /**
      * El registro documental vive en Django, en otro puerto durante el desarrollo. Sin este
