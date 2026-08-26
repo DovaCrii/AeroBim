@@ -1,0 +1,88 @@
+/**
+ * El enlace que lleva de un elemento del modelo a una observación del registro: `F4.1`.
+ *
+ * **Por qué esto es del dominio y no de la interfaz.** La URL es un contrato con el servidor: los
+ * nombres de los parámetros —`revision`, `guid`, `titulo`— los lee `NuevaObservacionView.ancla_pedida`
+ * en el otro lado, y un cambio de nombre acá rompe el ancla **en silencio**: el formulario se abre
+ * igual, sin GUID, y la observación queda diciendo «algo en este modelo». Un contrato que se puede
+ * romper sin que nada se queje es exactamente lo que hay que probar.
+ *
+ * Y lo que decide si el enlace existe también es una regla, no una condición de dibujo: hay tres
+ * motivos distintos por los que no hay dónde anotar un hallazgo, y los tres significan **que el
+ * enlace no existe**, no que esté deshabilitado. Un botón gris que no dice por qué está gris manda
+ * a buscar el error donde no está.
+ */
+
+/** De qué revisión del registro salió el modelo que está abierto. */
+export interface RegistryOrigin {
+  /** La revisión abierta. Es a lo que queda anclada la observación. */
+  readonly revisionId: string;
+  /** El entregable del que cuelga. El formulario vive bajo él, no bajo la revisión. */
+  readonly entregableId: string;
+  /**
+   * `true` si este usuario puede abrir observaciones.
+   *
+   * **Lo contesta el servidor**, que es el único que puede: depende de `add_observacion` y de la
+   * organización. Llega en los metadatos de la revisión.
+   */
+  readonly puedeObservar: boolean;
+}
+
+/** Lo que se sabe del elemento seleccionado, reducido a lo que el enlace necesita. */
+export interface ObservableElement {
+  /** GUID de IFC ya validado, o `null` si el elemento no trae uno. */
+  readonly guid: string | null;
+  readonly category: string | null;
+  readonly name: string | null;
+}
+
+/** Tope del título que acepta el formulario del registro. Más allá, el servidor lo recorta. */
+const TITULO_MAXIMO = 250;
+
+/**
+ * El título propuesto para la observación: la categoría y el nombre del elemento.
+ *
+ * Es lo que quien abre la observación tendría que escribir a mano mirando la ficha, y es editable en
+ * el formulario. Se propone y no se impone.
+ */
+export function tituloPropuesto(element: ObservableElement): string {
+  return [element.category, element.name]
+    .filter((parte): parte is string => typeof parte === "string" && parte.trim() !== "")
+    .join(" · ")
+    .slice(0, TITULO_MAXIMO);
+}
+
+/**
+ * A dónde lleva «Observar este elemento», o `null` si no lleva a ninguna parte.
+ *
+ * Devuelve `null` en tres casos:
+ *
+ * 1. **El modelo no vino del registro** (`origin === null`): se abrió arrastrando un archivo, y no
+ *    hay entregable donde colgar la observación.
+ * 2. **El rol no puede abrirlas**: ofrecer un enlace que termina en 403 enseña a probar puertas.
+ * 3. **El elemento no trae GUID válido**: un ancla sin identidad no apunta a nada. Es el caso menos
+ *    obvio y el que más importa — el GUID es lo único estable entre versiones del modelo y entre
+ *    herramientas, y es lo que después selecciona la viga en Solibri.
+ */
+export function urlDeNuevaObservacion(
+  origin: RegistryOrigin | null,
+  element: ObservableElement | null,
+): string | null {
+  if (origin === null || !origin.puedeObservar) return null;
+  if (element === null || element.guid === null) return null;
+
+  // **Cada valor escapado, uno por uno.** No es adorno: un GUID de IFC usa `$` en su alfabeto y un
+  // nombre de elemento puede traer `&` —«Muro básico & tabique» es un nombre real de Revit—, y
+  // pegado a mano ese `&` inventaría un parámetro y partiría el título en dos.
+  //
+  // Se escribe con `encodeURIComponent` y no con `URLSearchParams` porque este paquete es dominio
+  // puro: se prueba en Node sin DOM, y una API del navegador acá lo ataría a él.
+  const partes = [
+    `revision=${encodeURIComponent(origin.revisionId)}`,
+    `guid=${encodeURIComponent(element.guid)}`,
+  ];
+  const titulo = tituloPropuesto(element);
+  if (titulo !== "") partes.push(`titulo=${encodeURIComponent(titulo)}`);
+
+  return `/documentos/entregables/${origin.entregableId}/observar/?${partes.join("&")}`;
+}

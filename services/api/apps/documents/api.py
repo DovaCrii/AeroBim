@@ -32,7 +32,7 @@ from apps.documents.models import Observacion, Revision
 from apps.documents.views import revisiones_visibles
 
 
-def como_json(revision: Revision) -> dict:
+def como_json(revision: Revision, user) -> dict:
     entregable = revision.entregable
     return {
         "id": str(revision.pk),
@@ -58,6 +58,13 @@ def como_json(revision: Revision) -> dict:
             "codigo": entregable.proyecto.codigo,
             "nombre": entregable.proyecto.nombre,
         },
+        # **Si este usuario puede abrir una observación sobre esta revisión** (`F4.1`). Lo contesta
+        # el servidor porque es el único que puede, y viaja acá —en los metadatos que el visor ya
+        # pide— para no gastar una petición más en una pregunta de un solo bit.
+        #
+        # Con esto el visor decide si dibuja el botón «Observar» en la ficha del elemento. Un botón
+        # que termina en 403 es peor que no ofrecerlo: enseña a probar puertas.
+        "puedeObservar": user.has_perm("documents.add_observacion"),
         "contenido": f"/api/revisiones/{revision.pk}/contenido/",
     }
 
@@ -80,7 +87,7 @@ class RevisionesAbriblesAPI(ListAPIView):
         from rest_framework.response import Response
 
         abribles = [
-            como_json(r)
+            como_json(r, request.user)
             for r in revisiones_visibles(request.user).filter(es_vigente=True)[:200]
             if abre_en(r, VISOR_MODELO)
         ]
@@ -99,7 +106,7 @@ class RevisionAPI(RetrieveAPIView):
         revision = revisiones_visibles(request.user).filter(pk=kwargs["pk"]).first()
         if revision is None:
             raise Http404
-        return Response(como_json(revision))
+        return Response(como_json(revision, request.user))
 
 
 class ObservacionesDeRevisionAPI(APIView):

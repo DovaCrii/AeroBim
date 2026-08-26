@@ -439,3 +439,78 @@ def test_no_se_observa_sobre_el_entregable_de_otra_organizacion(client, proyecti
         == 404
     )
     assert Observacion.objects.count() == 0
+
+
+# --- Observar desde el visor de modelos: `F4.1` --------------------------------------
+
+
+@pytest.mark.django_db
+def test_los_metadatos_dicen_si_este_usuario_puede_observar(client, proyectista, revision_pdf):
+    """El visor dibuja «Observar este elemento» solo si el servidor dice que si.
+
+    **Viaja en los metadatos que el visor ya pide**, no en una peticion aparte: es una pregunta de
+    un solo bit y el visor la necesita antes del primer clic sobre el modelo.
+
+    Y el visor **no puede contestarla**: depende de `add_observacion` y de la organizacion, que
+    viven en el servidor. Un boton dibujado por adivinanza termina en 403 y enseña a probar
+    puertas.
+    """
+    ruta = reverse("documents_api:revision", args=[revision_pdf.pk])
+
+    client.force_login(dar(proyectista, "documents.view_revision", "documents.add_revision"))
+    assert client.get(ruta).json()["puedeObservar"] is False
+
+    client.force_login(dar(proyectista, "documents.add_observacion"))
+    assert client.get(ruta).json()["puedeObservar"] is True
+
+
+@pytest.mark.django_db
+def test_los_metadatos_traen_el_id_del_entregable(client, proyectista, revision_pdf):
+    """Sin el, el visor no sabe **donde** anotar la observacion: el formulario cuelga del
+    entregable, no de la revision."""
+    client.force_login(dar(proyectista, "documents.view_revision", "documents.add_revision"))
+
+    datos = client.get(reverse("documents_api:revision", args=[revision_pdf.pk])).json()
+
+    assert datos["entregable"]["id"] == str(revision_pdf.entregable.pk)
+
+
+@pytest.mark.django_db
+def test_el_guid_del_visor_llega_al_formulario_y_se_guarda(client, proyectista, revision_pdf):
+    """**El camino completo de `F4.1`**, tal como lo arma el visor: el enlace de la ficha del
+    elemento trae la revision y el GUID, el formulario los recibe como valores iniciales, y lo que
+    se guarda queda anclado al elemento.
+
+    Que ese GUID sobreviva es lo que hace que el BCF exportado seleccione la viga en Solibri.
+    """
+    guid = "2x9ibDgrvAu8y4Yd$Ug4Qu"
+    usuario = dar(
+        proyectista,
+        "documents.view_revision",
+        "documents.add_revision",
+        "documents.add_observacion",
+    )
+    client.force_login(usuario)
+    ruta = reverse("documents:nueva-observacion", args=[revision_pdf.entregable.pk])
+
+    formulario = client.get(f"{ruta}?revision={revision_pdf.pk}&guid={guid}&titulo=Viga+eje+C")
+    assert formulario.status_code == 200
+    # El GUID viaja en el formulario, no en un campo que quien lo usa tenga que copiar a mano.
+    assert guid in formulario.content.decode()
+
+    creada = client.post(
+        ruta,
+        {
+            "titulo": "Viga eje C sin su fase",
+            "descripcion": "",
+            "prioridad": Observacion.ALTA,
+            "responsable": usuario.pk,
+            "revision": str(revision_pdf.pk),
+            "ifc_guid": guid,
+        },
+    )
+    assert creada.status_code == 302
+
+    observacion = Observacion.objects.get(titulo="Viga eje C sin su fase")
+    assert observacion.ifc_guid == guid
+    assert observacion.revision_id == revision_pdf.pk

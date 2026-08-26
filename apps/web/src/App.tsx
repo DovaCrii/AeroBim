@@ -22,7 +22,7 @@ import {
   type SpatialNode,
   type StandardView,
 } from "@aerobim/viewer";
-import { parseSavedViews } from "@aerobim/bim-core";
+import { parseSavedViews, urlDeNuevaObservacion, type RegistryOrigin } from "@aerobim/bim-core";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DrawingsPanel } from "./components/DrawingsPanel.js";
 import { ModelsPanel } from "./components/ModelsPanel.js";
@@ -280,6 +280,15 @@ export function App() {
    * Al salir del aislamiento hay que devolver las dos, o los iconos mienten sobre lo que se ve.
    */
   const [isolations, setIsolations] = useState<readonly HiddenState[]>([]);
+  /**
+   * De qué revisión del registro salió lo que está abierto, o `null` si es un archivo del disco.
+   *
+   * **Es lo que permite abrir una observación desde el visor** (`F4.1`): una observación cuelga de un
+   * entregable y apunta a una revisión, y eso no se puede adivinar del IFC. Si el modelo se abrió
+   * arrastrando un archivo, no hay registro donde anotarla y el botón no aparece — ofrecerlo para
+   * que termine en un 404 es peor que no ofrecerlo.
+   */
+  const [origen, setOrigen] = useState<RegistryOrigin | null>(null);
   /** Los planos 2D cargados, en el orden en que se abrieron. */
   const [plans, setPlans] = useState<readonly LoadedPlan[]>([]);
   /**
@@ -454,6 +463,11 @@ export function App() {
     if (!instance) return;
 
     setStatus({ kind: "loading", name: file.name, stage: "converting" });
+    // **Un archivo del disco borra el origen en el registro.** Lo vuelve a poner `abrirRevision`
+    // cuando la carga viene de ahí. Si se abre una revisión y después se arrastra otro IFC encima,
+    // el elemento seleccionado ya puede ser del segundo modelo: anclar la observación a la revisión
+    // del primero apuntaría a un GUID que ese archivo no contiene.
+    setOrigen(null);
     try {
       const bytes = new Uint8Array(await file.arrayBuffer());
       const loaded = await instance.loadIfc(bytes, file.name, (stage) => {
@@ -524,7 +538,8 @@ export function App() {
           nombre: string;
           contenido: string;
           correlativo: string;
-          entregable: { codigo: string };
+          puedeObservar?: boolean;
+          entregable: { id: string; codigo: string };
         };
 
         const etiqueta = `${datos.entregable.codigo} rev. ${datos.correlativo}`;
@@ -538,6 +553,14 @@ export function App() {
         // El nombre original viaja en los metadatos, y es el que decide el camino: `openFile`
         // manda un `.dxf` al lector de planos y todo lo demás al de IFC.
         await openFile(new File([await archivo.blob()], datos.nombre));
+
+        // **Después de abrir, no antes**: `openIfc` borra el origen a propósito —un archivo del
+        // disco no tiene registro donde anotar— y ponerlo antes se perdería en esa limpieza.
+        setOrigen({
+          revisionId,
+          entregableId: datos.entregable.id,
+          puedeObservar: datos.puedeObservar === true,
+        });
       } catch (error: unknown) {
         setStatus({ kind: "error", message: describe(error) });
       }
@@ -1047,6 +1070,21 @@ export function App() {
     hiddenPlans.size > 0 ||
     hiddenPlanLayers.size > 0;
 
+  /**
+   * A dónde lleva «Observar» con este elemento seleccionado, o `null` si no lleva a ninguna parte.
+   *
+   * **Es la mitad de `F4.1` que no necesita coordenadas**: el ancla es el GUID, la identidad estable
+   * del elemento, y es la que después viaja en el BCF que abre el mandante. La cámara es otra cosa y
+   * está pendiente — la escena del visor tiene el eje Y hacia arriba y BCF espera Z, y esa
+   * transformación hay que medirla antes de exportarla.
+   *
+   * Devuelve `null` en tres casos, y los tres son "no hay dónde anotarlo", no "está deshabilitado":
+   * el modelo no vino del registro, el usuario no puede abrir observaciones, o el elemento **no
+   * trae GUID válido** — un ancla sin identidad no apunta a nada, y una observación que dice
+   * «algo en este modelo» no es mejor que un correo.
+   */
+  const urlDeObservar = useMemo(() => urlDeNuevaObservacion(origen, selected), [origen, selected]);
+
   /** Apaga o enciende **el elemento seleccionado**, que es lo que se pidió tener a un botón. */
   const onToggleSelectionVisible = useCallback(() => {
     const instance = viewer.current;
@@ -1258,6 +1296,7 @@ export function App() {
                 onToggleVisible={onToggleSelectionVisible}
                 onIsolate={onIsolateSelection}
                 onUndoIsolate={onUndoIsolate}
+                urlDeObservar={urlDeObservar}
               />
             )}
           </aside>

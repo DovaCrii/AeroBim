@@ -5,6 +5,42 @@ Este proyecto sigue [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Añadido — Del elemento del modelo a la observación, sin salir del visor (`F4.1`, 2026-08-26)
+
+Ver el problema y que alguien lo arregle eran dos aplicaciones. Ahora, con un modelo abierto desde
+el registro, la ficha del elemento ofrece **«Observar este elemento»** y lleva al formulario con la
+revisión y el GUID ya puestos: quien revisa no copia un GUID de 22 caracteres a mano ni busca el
+entregable en otra pestaña.
+
+**El ancla es el GUID y no el identificador del motor**, que es la decisión que hace que esto sirva
+para algo: `localId` cambia entre versiones del modelo y entre librerías, y una observación que
+apunte a uno queda huérfana en la siguiente carga. El GUID es lo único estable, y es el que después
+selecciona la viga en Solibri por el BCF de `F4.4`.
+
+**El enlace no existe en tres casos, y no se dibuja gris.** El modelo se abrió arrastrando un
+archivo del disco —no hay entregable donde colgar nada—; el rol no puede abrir observaciones; o el
+elemento no trae GUID válido. Los tres significan «no hay dónde anotarlo», no «está
+deshabilitado»: un botón gris que no explica por qué manda a buscar el error donde no está.
+
+Y el permiso **lo contesta el servidor**, en los metadatos de la revisión que el visor ya pedía —una
+pregunta de un solo bit no merece una petición más—. El visor no puede contestarla: depende de
+`add_observacion` y de la organización.
+
+**El armado de la URL vive en `bim-core`, no en el componente**, y con 12 pruebas. No es purismo:
+los nombres de los parámetros son un contrato con `NuevaObservacionView.ancla_pedida` del otro lado,
+y renombrar uno rompe el ancla **en silencio** — el formulario se abre igual, sin GUID, y la
+observación queda diciendo «algo en este modelo». Una de las pruebas es exactamente esa: que las
+claves sean `guid`, `revision` y `titulo` y ninguna otra.
+
+Un archivo del disco borra el origen a propósito: si se abre una revisión y se arrastra otro IFC
+encima, el elemento seleccionado ya puede ser del segundo modelo, y anclar a la revisión del primero
+apuntaría a un GUID que ese archivo no contiene.
+
+**Lo que falta de `F4.1`, y por qué no está:** la cámara. La escena del visor tiene el eje **Y**
+hacia arriba y BCF espera las coordenadas del IFC, con **Z** arriba. Exportar la posición sin medir
+esa transformación produce un BCF que abre mirando bajo tierra, y eso es peor que uno sin cámara:
+afirma algo falso. Se mide antes de exportarla.
+
 ### Añadido — La observación se lleva a Solibri o a Navisworks (`F4.4`, 2026-08-26)
 
 Un hallazgo anclado al GUID de una viga es exactamente lo que el mandante necesita abrir en su

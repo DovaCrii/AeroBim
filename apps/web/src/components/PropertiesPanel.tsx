@@ -107,6 +107,7 @@ export function PropertiesPanel({
   onToggleVisible,
   onIsolate,
   onUndoIsolate,
+  urlDeObservar = null,
 }: {
   /** El elemento seleccionado, o `null` cuando no hay ninguno. */
   readonly item: PickedItem | null;
@@ -119,6 +120,15 @@ export function PropertiesPanel({
   readonly onIsolate: () => void;
   /** Sale del aislamiento y devuelve el modelo a como estaba antes de aislar. */
   readonly onUndoIsolate: () => void;
+  /**
+   * A dónde lleva «Observar este elemento», o `null` si no hay dónde anotarlo.
+   *
+   * **`null` significa que el enlace no existe, no que esté deshabilitado**, y por eso no se dibuja:
+   * pasa cuando el modelo se abrió del disco —no hay entregable donde colgar la observación—, cuando
+   * el rol no puede abrirlas, o cuando el elemento no trae GUID válido. Un botón gris que no explica
+   * por qué está gris manda a alguien a buscar el error donde no está.
+   */
+  readonly urlDeObservar?: string | null;
 }) {
   // El panel **está siempre**, como en Revit: es un sitio fijo de la pantalla, y en cuanto se
   // selecciona algo se llena. Antes aparecía y desaparecía flotando sobre el modelo, lo que movía la
@@ -220,6 +230,26 @@ export function PropertiesPanel({
             />
             <Row label="Modelo" value={item.modelId} />
           </dl>
+
+          {/* **De ver el problema a que alguien lo arregle**, sin salir del visor (`F4.1`). El GUID
+              que se muestra arriba es el ancla: va en la URL, queda guardado en la observación y es
+              el que después viaja en el BCF que abre el mandante en Solibri.
+
+              Es un enlace y no un botón porque **lleva a otra pantalla** —el formulario del
+              registro, con su responsable y su vencimiento—, y un enlace se puede abrir en otra
+              pestaña sin perder el modelo cargado, que es justo lo que uno quiere acá: son veinte
+              megas y medio minuto de conversión. */}
+          {urlDeObservar !== null && (
+            <a
+              href={urlDeObservar}
+              target="_blank"
+              rel="noopener"
+              className="mt-2 inline-flex items-center gap-1.5 rounded bg-brand/15 px-2 py-1 text-[11px] font-semibold text-brand hover:bg-brand/25"
+              title="Abre una observación del registro anclada al GUID de este elemento"
+            >
+              Observar este elemento
+            </a>
+          )}
         </section>
 
         {item.attributes.length > 0 && (

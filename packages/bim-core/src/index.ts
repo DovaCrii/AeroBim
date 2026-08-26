@@ -70,6 +70,13 @@ export {
 export { hatchAngles, hatchLines, type PlanLoop, type PlanPoint } from "./plans/hatch.js";
 
 export {
+  tituloPropuesto,
+  urlDeNuevaObservacion,
+  type ObservableElement,
+  type RegistryOrigin,
+} from "./registro/observar.js";
+
+export {
   parseSavedViews,
   readSavedView,
   type SavedCamera,

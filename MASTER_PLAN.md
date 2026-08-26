@@ -1246,13 +1246,26 @@ observaciones comparten modelo con los temas BCF», `F8.2`— y salió: `Observa
 prioridad, responsable, vencimiento, estado y resolución, y `Comentario` el historial. No hay
 tabla nueva que escribir; el tablero decía ⬜ sobre código que existe desde hace días.
 
-**`F4.1` va a medio camino, y el medio que falta importa.** El ancla por GUID está y viaja al
-BCF; **la cámara y la visibilidad no**. Hoy nadie elige un punto de vista al abrir una
-observación —vienen de una validación IDS o de un clic sobre un documento—, así que el
-viewpoint lleva el elemento seleccionado y **ninguna cámara inventada**: un BCF que abre
-mirando a un sitio que nadie decidió afirma algo falso, y uno que solo selecciona el elemento
-dice lo que sabe. Se completa cuando el visor sepa guardar la cámara de una observación, que es
-donde se cruza con `F1.9` (vistas guardadas) y con lo que
+**`F4.1` va a medio camino, y el medio que falta importa.** El ancla por GUID está, **se abre
+desde la ficha del elemento en el visor** y viaja al BCF; **la cámara y la visibilidad no**.
+
+Lo que ya funciona: con un modelo abierto desde el registro, la ficha del elemento ofrece
+«Observar este elemento» y lleva al formulario con la revisión y el GUID puestos. El enlace no
+existe en tres casos, y los tres significan «no hay dónde anotarlo»: el modelo se abrió del
+disco, el rol no puede abrir observaciones —lo contesta el servidor en los metadatos, no el
+visor por adivinanza—, o el elemento no trae GUID válido. Un ancla sin identidad no apunta a
+nada.
+
+Lo que falta: **la cámara**. Y no está pendiente por falta de tiempo, sino porque hay una
+medición que hacer primero: la escena del visor tiene el **eje Y hacia arriba**
+([index.ts:3239](packages/viewer/src/index.ts) corta a una altura con `Vector3(0, altura, 0)`)
+y BCF espera las coordenadas del IFC, con **Z hacia arriba**. Exportar la posición sin medir
+esa transformación —y si hay traslación, cuál— produce un BCF que abre mirando bajo tierra o de
+lado, que es peor que uno sin cámara: **afirma algo falso**. Hasta que se mida, el viewpoint
+lleva el elemento seleccionado y ninguna cámara inventada.
+
+Se completa cuando el visor sepa guardar la cámara de una observación, donde se cruza con
+`F1.9` (vistas guardadas) y con lo que
 [savedView.ts:50](packages/bim-core/src/views/savedView.ts) ya dejó anotado: su clave **no
 sirve** para un viewpoint BCF, tiene que ir por GUID.
 
