@@ -105,6 +105,15 @@ export function tocarMarcas(
   cajas: readonly {
     readonly x: number;
     readonly z: number;
+    /**
+     * Cuánto se aparta el centro de la caja de su ancla, en unidades locales.
+     *
+     * **No es cero desde que los rótulos se colocan por su alineación.** Un texto alineado a la
+     * izquierda crece hacia la derecha de su punto, así que su caja no está centrada en él — y se
+     * aparta más cuanto más grande se dibuja, igual que la propia marca.
+     */
+    readonly dx: number;
+    readonly dz: number;
     readonly media: number;
     readonly medioAlto: number;
   }[],
@@ -125,8 +134,8 @@ export function tocarMarcas(
   const factor = (material.uniforms["factor"]?.value as number | undefined) ?? 1;
 
   for (const caja of cajas) {
-    if (Math.abs(punto.x - caja.x) > caja.media * factor) continue;
-    if (Math.abs(punto.z - caja.z) > caja.medioAlto * factor) continue;
+    if (Math.abs(punto.x - (caja.x + caja.dx * factor)) > caja.media * factor) continue;
+    if (Math.abs(punto.z - (caja.z + caja.dz * factor)) > caja.medioAlto * factor) continue;
 
     const mundo = punto.clone().applyMatrix4(malla.matrixWorld);
     impactos.push({ distance: rayo.ray.origin.distanceTo(mundo), point: mundo, object: malla });

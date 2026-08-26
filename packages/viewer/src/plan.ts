@@ -83,8 +83,16 @@ export interface LoadedPlan {
    */
   readonly sizeUnits: readonly [number, number];
   readonly vertexCount: number;
-  /** Cuántos rótulos se dibujaron. */
+  /** Cuántos renglones de rótulo se dibujaron. Un `MTEXT` de cuatro líneas cuenta cuatro. */
   readonly labelCount: number;
+  /**
+   * Cuántos no cupieron en el atlas de su capa.
+   *
+   * **Se dice en vez de callarse**, que es la regla de esta aplicación con todo lo que no se dibuja:
+   * un rótulo más ancho que el atlas, o el último de una capa que llena el lienzo, desaparecía sin
+   * que nada lo mencionara.
+   */
+  readonly labelsDropped: number;
   /** Cuántos textos trae el archivo, dibujados o no. */
   readonly textCount: number;
   /** El alto con el que se dibujaron, en metros. `0` si se arrancó sin ellos. */
@@ -219,13 +227,18 @@ const LIMITE_ETIQUETAS = 3000;
 const ETIQUETA = { fraccion: 0.004, minimaM: 0.06, maximaM: 0.3 } as const;
 
 /**
- * A partir de cuántos rótulos el plano se dibuja **sin ellos**.
+ * A partir de qué **densidad** de rótulos el plano se dibuja sin ellos.
  *
- * Un plano de oficinas trae cientos: dibujados todos a la vez sobre una planta completa no se lee
- * ninguno y tapan el dibujo, que es justo lo que se venía a mirar. Se cargan igual y el selector de
- * la ficha los enciende cuando hacen falta.
+ * **El tope era un conteo total, y eso dejaba mudo cualquier plano de obra.** Ciento cincuenta
+ * rótulos son muchos en el detalle de un baño y pocos en una planta de oficinas: el plano real trae
+ * 433 y arrancaba sin uno solo, así que había que descubrir el selector de la ficha para ver lo que
+ * el plano dice. Lo que tapa el dibujo no es cuántos rótulos hay sino **cuántos por metro
+ * cuadrado**, y eso sí se puede medir.
+ *
+ * Dos por metro cuadrado es un plano de instalaciones con cada tramo etiquetado; el plano real sale
+ * a 0,64 y arranca con sus rótulos, que es lo que se espera al abrir un plano.
  */
-const ETIQUETAS_DEMASIADAS = 150;
+const ETIQUETAS_POR_M2 = 2;
 
 /** El lado del atlas de rótulos, en píxeles. Uno por capa, no uno por texto. */
 const ATLAS_PX = 2048;
@@ -306,21 +319,21 @@ export class PlanOverlay {
     const capas = new Map<string, THREE.Group>();
     const centrado = centroDe(dibujo);
     let etiquetasPuestas = 0;
+    let etiquetasDescartadas = 0;
 
-    // El alto de los rótulos sale del tamaño del propio plano, y **con muchos se arranca sin
-    // ellos**: cientos de textos sobre una planta completa no se leen y tapan el dibujo.
-    const ladoM =
-      dibujo.bounds === null
-        ? 0
-        : Math.max(
-            dibujo.bounds.maxX - dibujo.bounds.minX,
-            dibujo.bounds.maxY - dibujo.bounds.minY,
-          ) * unidades.metresPerUnit;
+    // El alto de los rótulos sale del tamaño del propio plano, y **con demasiados por metro
+    // cuadrado se arranca sin ellos**: apiñados sobre una planta no se lee ninguno y tapan el
+    // dibujo, que es justo lo que se venía a mirar.
+    const anchoU = dibujo.bounds === null ? 0 : dibujo.bounds.maxX - dibujo.bounds.minX;
+    const altoU = dibujo.bounds === null ? 0 : dibujo.bounds.maxY - dibujo.bounds.minY;
+    const ladoM = Math.max(anchoU, altoU) * unidades.metresPerUnit;
+    const areaM2 = anchoU * altoU * unidades.metresPerUnit * unidades.metresPerUnit;
     const altoSugerido = Math.min(
       ETIQUETA.maximaM,
       Math.max(ETIQUETA.minimaM, ladoM * ETIQUETA.fraccion),
     );
-    const altoEtiqueta = dibujo.texts.length > ETIQUETAS_DEMASIADAS ? 0 : altoSugerido;
+    const apinados = areaM2 > 0 && dibujo.texts.length / areaM2 > ETIQUETAS_POR_M2;
+    const altoEtiqueta = apinados ? 0 : altoSugerido;
 
     for (const capa of dibujo.layers) {
       const grupoCapa = new THREE.Group();
@@ -382,7 +395,7 @@ export class PlanOverlay {
         if (malla !== null) grupoCapa.add(malla);
       }
 
-      etiquetasPuestas += ponerRotulos(
+      const rotulos = ponerRotulos(
         grupoCapa,
         dibujo,
         capa,
@@ -391,6 +404,8 @@ export class PlanOverlay {
         altoEtiqueta,
         LIMITE_ETIQUETAS - etiquetasPuestas,
       );
+      etiquetasPuestas += rotulos.puestos;
+      etiquetasDescartadas += rotulos.descartados;
 
       if (grupoCapa.children.length === 0) continue;
       // **Una capa apagada en el CAD arranca apagada.** Se dibuja igual —la geometría está ahí y se
@@ -438,6 +453,7 @@ export class PlanOverlay {
       sizeUnits: [ancho, alto],
       vertexCount: dibujo.polylines.reduce((n, p) => n + p.points.length / 2, 0),
       labelCount: etiquetasPuestas,
+      labelsDropped: etiquetasDescartadas,
       labelHeightM: altoEtiqueta,
       suggestedLabelHeightM: altoSugerido,
       textCount: dibujo.texts.length,
@@ -486,7 +502,7 @@ export class PlanOverlay {
         plano.transform.metresPerUnit,
         plano.labelHeightM,
         LIMITE_ETIQUETAS - puestos,
-      );
+      ).puestos;
     }
     return puestos;
   }
@@ -1009,7 +1025,7 @@ function trazosDe(estilo: EstiloDeTrazo, metrosPorUnidad: number): readonly THRE
 /** Reutilizado para no crear un vector por fotograma y por malla. */
 const TAMANO = new THREE.Vector2();
 
-/** Cuelga de la capa los rótulos que le tocan y devuelve cuántos entraron. */
+/** Cuelga de la capa los rótulos que le tocan: cuántos entraron y cuántos no cupieron. */
 function ponerRotulos(
   grupoCapa: THREE.Group,
   dibujo: DxfDrawing,
@@ -1018,18 +1034,40 @@ function ponerRotulos(
   metrosPorUnidad: number,
   altoM: number,
   cupo: number,
-): number {
-  if (cupo <= 0 || altoM <= 0) return 0;
+): { readonly puestos: number; readonly descartados: number } {
+  if (cupo <= 0 || altoM <= 0) return SIN_ROTULOS;
 
-  const suyos = dibujo.texts.filter((texto) => texto.layer === capa.name).slice(0, cupo);
-  if (suyos.length === 0) return 0;
+  const suyos = dibujo.texts.filter((texto) => texto.layer === capa.name);
+  if (suyos.length === 0) return SIN_ROTULOS;
 
-  const rotulos = atlasDeEtiquetas(suyos, centro, metrosPorUnidad, altoM);
-  if (rotulos === null) return 0;
+  // **Un atlas por capa no alcanza, y agrandar la textura tampoco es la respuesta.** La capa `0` del
+  // plano real trae cuatrocientos rótulos y en un lienzo de 2048 px caben unos doscientos: el resto
+  // se caía. Subir a 4096 son cuatro veces la memoria de vídeo **para toda capa**, y esa memoria fue
+  // exactamente lo que tumbó la pestaña la primera vez. Se reparte en tantos atlas como hagan falta,
+  // que es una pasada de dibujo cada uno y crece con el contenido, no con el peor caso.
+  let pendientes = renglones(suyos, altoM / metrosPorUnidad).slice(0, cupo);
+  let puestos = 0;
+  let descartados = 0;
 
-  grupoCapa.add(rotulos.malla);
-  return rotulos.cuantos;
+  while (pendientes.length > 0) {
+    const rotulos = atlasDeEtiquetas(pendientes, centro, metrosPorUnidad, altoM);
+    if (rotulos === null) break;
+
+    grupoCapa.add(rotulos.malla);
+    puestos += rotulos.cuantos;
+    descartados += rotulos.anchasDeMas;
+    pendientes = pendientes.slice(rotulos.consumidas);
+    // Si un atlas no consume nada, seguir sería un bucle infinito: se cuenta lo que queda y se sale.
+    if (rotulos.consumidas === 0) {
+      descartados += pendientes.length;
+      break;
+    }
+  }
+  return { puestos, descartados };
 }
+
+/** Cuando una capa no aporta ningún rótulo. */
+const SIN_ROTULOS = { puestos: 0, descartados: 0 } as const;
 
 /**
  * Qué rótulo del atlas cayó bajo el clic.
@@ -1079,23 +1117,74 @@ function liberar(objeto: THREE.Object3D): void {
  * traen alturas de papel —un centímetro de modelo— que no se ven, y los que traen alturas de modelo
  * tapan el dibujo. Ver {@link ALTO_ETIQUETA_M} y `setLabelHeight`.
  */
+/**
+ * Un rótulo por renglón, ya colocado respecto a su ancla.
+ *
+ * **Un `MTEXT` de dos renglones es un rótulo de dos renglones.** Antes se aplastaba a una línea —el
+ * nombre del recinto y sus metros cuadrados salían como una tira— y ahora cada renglón entra en el
+ * atlas por su cuenta, apilado donde le toca. Partirlo en vez de reservarle una celda alta mantiene
+ * el atlas como está: una fila de alto fijo, que es lo que lo hace empaquetar bien.
+ *
+ * `dxFraccion` va de −½ a +½ y dice cuánto se aparta el centro del renglón respecto a su ancho, así
+ * que sirve sin saber todavía cuánto medirá el texto. `dyCentro` ya viene en unidades del dibujo.
+ */
+interface Renglon {
+  readonly texto: DxfText;
+  readonly dxFraccion: number;
+  readonly dyCentro: number;
+}
+
+function renglones(textos: readonly DxfText[], alto: number): readonly Renglon[] {
+  const salida: Renglon[] = [];
+
+  for (const texto of textos) {
+    if (texto.text === "") continue;
+
+    const lineas = texto.text.split("\n").filter((linea) => linea !== "");
+    if (lineas.length === 0) continue;
+
+    const dxFraccion = texto.hAlign === "izquierda" ? 0.5 : texto.hAlign === "derecha" ? -0.5 : 0;
+    // El alto del bloque cuelga del ancla según su alineación vertical: por debajo si el ancla es
+    // el borde de arriba, a caballo si es el medio, por encima si es el de abajo.
+    const bloque = lineas.length * alto;
+    const arriba = texto.vAlign === "arriba" ? 0 : texto.vAlign === "medio" ? bloque / 2 : bloque;
+
+    for (const [indice, linea] of lineas.entries()) {
+      salida.push({
+        texto: { ...texto, text: linea },
+        dxFraccion,
+        dyCentro: arriba - (indice + 0.5) * alto,
+      });
+    }
+  }
+  return salida;
+}
+
 function atlasDeEtiquetas(
-  textos: readonly DxfText[],
+  aColocar: readonly Renglon[],
   [cx, cy]: readonly [number, number],
   metrosPorUnidad: number,
   altoM: number,
-): { readonly malla: THREE.Mesh; readonly cuantos: number } | null {
-  const utiles = textos.filter((texto) => texto.text !== "");
-  if (utiles.length === 0) return null;
+): {
+  readonly malla: THREE.Mesh;
+  readonly cuantos: number;
+  /** Cuántos renglones de la lista consumió este atlas, cupieran o no. */
+  readonly consumidas: number;
+  /** De esos, cuántos no cabían de ancho en el atlas y no se dibujarán nunca. */
+  readonly anchasDeMas: number;
+} | null {
+  if (aColocar.length === 0) return null;
+
+  const fila = 64;
+  const letra = 40;
+  const alto = altoM / metrosPorUnidad;
 
   const lienzo = document.createElement("canvas");
   const pincel = lienzo.getContext("2d");
   if (pincel === null) return null;
 
-  const fila = 64;
-  const letra = 40;
   lienzo.width = ATLAS_PX;
-  lienzo.height = Math.min(ATLAS_PX, Math.ceil(utiles.length / 2) * fila + fila);
+  lienzo.height = Math.min(ATLAS_PX, Math.ceil(aColocar.length / 2) * fila + fila);
   pincel.font = `600 ${letra}px system-ui, "Segoe UI", sans-serif`;
   pincel.textBaseline = "middle";
   // **Un contorno fino, no una placa.** Con el trazo grueso y opaco de la primera versión, un
@@ -1111,24 +1200,41 @@ function atlasDeEtiquetas(
   const esquinas: number[] = [];
   const uvs: number[] = [];
   const indices: number[] = [];
-  /** El centro de cada rótulo, su media caja y lo que dice: es lo que permite clicarlo. */
-  const centros: { x: number; z: number; text: string; media: number; medioAlto: number }[] = [];
-  const alto = altoM / metrosPorUnidad;
+  /** El ancla de cada rótulo, cuánto se aparta su caja y lo que dice: es lo que permite clicarlo. */
+  const centros: {
+    x: number;
+    z: number;
+    dx: number;
+    dz: number;
+    text: string;
+    media: number;
+    medioAlto: number;
+  }[] = [];
 
   let x = 0;
   let y = 0;
   let cuantos = 0;
+  let consumidas = 0;
+  let anchasDeMas = 0;
 
-  for (const texto of utiles) {
-    const contenido = texto.text.slice(0, 60);
+  for (const { texto, dxFraccion, dyCentro } of aColocar) {
+    const contenido = texto.text;
     const ancho = Math.ceil(pincel.measureText(contenido).width) + letra;
-    if (ancho > lienzo.width) continue;
+    // Un renglón más ancho que el atlas no cabe en ninguna fila, ni en este ni en el siguiente. Se
+    // cuenta: antes se descartaba en silencio y el rótulo simplemente no estaba.
+    if (ancho > lienzo.width) {
+      consumidas++;
+      anchasDeMas++;
+      continue;
+    }
 
     if (x + ancho > lienzo.width) {
       x = 0;
       y += fila;
     }
+    // Este atlas está lleno. Lo que queda va al siguiente, que es lo que hace `ponerRotulos`.
     if (y + fila > lienzo.height) break;
+    consumidas++;
 
     // El color va **dentro** del atlas: así una sola malla lleva rótulos de colores distintos sin
     // un material por color.
@@ -1149,9 +1255,14 @@ function atlasDeEtiquetas(
     // crecer y encoger alrededor de su ancla sin moverse de sitio, que es lo que hace falta para
     // que se lea igual de cerca que de lejos. El giro del texto se hornea en la esquina, porque la
     // malla es una sola y no puede girar por rótulo.
-    const esquina = (dx: number, dy: number) => {
+    // **El rótulo se coloca por su alineación, no centrado en su punto.** La caja se aparta del
+    // ancla lo que diga el CAD: un nombre de recinto alineado a la izquierda crece hacia la derecha
+    // de su punto, y centrarlo lo corría media palabra hacia dentro del muro.
+    const dx = dxFraccion * media * 2;
+    const dy = dyCentro;
+    const esquina = (ex: number, ey: number) => {
       posiciones.push(px, 0, -py);
-      esquinas.push(dx * cos - dy * sen, -(dx * sen + dy * cos));
+      esquinas.push((dx + ex) * cos - (dy + ey) * sen, -((dx + ex) * sen + (dy + ey) * cos));
     };
     esquina(-media, -medioAlto);
     esquina(media, -medioAlto);
@@ -1167,7 +1278,17 @@ function atlasDeEtiquetas(
 
     const base = cuantos * 4;
     indices.push(base, base + 1, base + 2, base, base + 2, base + 3);
-    centros.push({ x: px, z: -py, text: contenido, media, medioAlto });
+    centros.push({
+      x: px,
+      z: -py,
+      // El mismo apartado que se dibuja, en coordenadas locales: la caja para clicar tiene que
+      // seguir a la caja que se ve.
+      dx: dx * cos - dy * sen,
+      dz: -(dx * sen + dy * cos),
+      text: contenido,
+      media,
+      medioAlto,
+    });
 
     x += ancho;
     cuantos++;
@@ -1202,7 +1323,7 @@ function atlasDeEtiquetas(
   // contra ellas al orbitar.
   malla.renderOrder = ORDEN.rotulos;
   malla.frustumCulled = false;
-  return { malla, cuantos };
+  return { malla, cuantos, consumidas, anchasDeMas };
 }
 
 /**

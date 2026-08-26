@@ -233,8 +233,12 @@ describe("parseDxf", () => {
         y: 2000,
         height: 250,
         rotationDeg: 90,
-        text: "OFICINA 5 18.4 m2",
+        // **`\P` es un salto de línea**, no un espacio: el nombre del recinto y sus metros
+        // cuadrados son dos renglones, como en el plano.
+        text: "OFICINA 5\n18.4 m2",
         color: color(null, "defecto"),
+        hAlign: "izquierda",
+        vAlign: "arriba",
       },
       {
         layer: "0-EJES",
@@ -244,11 +248,56 @@ describe("parseDxf", () => {
         rotationDeg: 0,
         text: "EJE A °",
         color: color(null, "defecto"),
+        // Un `TEXT` sin justificar va a la izquierda y sobre su línea base.
+        hAlign: "izquierda",
+        vAlign: "abajo",
       },
     ]);
     // Un texto también ocupa sitio en el plano: cuenta para la extensión y para su capa.
     expect(plano.bounds).toEqual({ minX: 0, minY: 0, maxX: 1000, maxY: 2000 });
     expect(plano.layers.map((c) => c.name).sort()).toEqual(["0-EJES", "AA - COTAS"]);
+  });
+
+  it("un texto justificado se coloca con su segundo punto, no con el primero", () => {
+    const plano = parseDxf(
+      dxf(
+        [0, "SECTION"],
+        [2, "ENTITIES"],
+        // Centrado y a media altura: el 10/20 queda con el valor viejo y manda el 11/21.
+        [0, "TEXT"],
+        [8, "AA - COTAS"],
+        [10, "0"],
+        [20, "0"],
+        [11, "500"],
+        [21, "300"],
+        [40, "100"],
+        [72, "1"],
+        [73, "2"],
+        [1, "4.50"],
+        // Sin justificar: manda el 10/20 y el 11/21 no existe.
+        [0, "TEXT"],
+        [8, "0-EJES"],
+        [10, "10"],
+        [20, "20"],
+        [40, "100"],
+        [1, "A"],
+        // Un `MTEXT` con anclaje 9: abajo y a la derecha.
+        [0, "MTEXT"],
+        [8, "0-NOTAS"],
+        [10, "70"],
+        [20, "80"],
+        [40, "100"],
+        [71, "9"],
+        [1, "NOTA"],
+        [0, "ENDSEC"],
+      ),
+    );
+
+    expect(plano.texts.map((t) => [t.x, t.y, t.hAlign, t.vAlign])).toEqual([
+      [500, 300, "centro", "medio"],
+      [10, 20, "izquierda", "abajo"],
+      [70, 80, "derecha", "abajo"],
+    ]);
   });
 
   it("resuelve el trazo discontinuo: patrón de la capa, escalado por `$LTSCALE`", () => {
@@ -872,6 +921,8 @@ describe("parseDxf", () => {
         rotationDeg: 0,
         text: "P-14",
         color: color(null, "defecto"),
+        hAlign: "izquierda",
+        vAlign: "abajo",
       },
     ]);
     // El `ATTDEF` no se cuenta como entidad que falte: es una definición, no geometría.

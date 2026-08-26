@@ -92,8 +92,21 @@ export interface DxfText {
   /** Alto de la letra, en unidades del dibujo. */
   readonly height: number;
   readonly rotationDeg: number;
+  /** El texto, con `\n` donde el CAD pone un salto de línea. */
   readonly text: string;
   readonly color: DxfColor;
+  /**
+   * Dónde cae el punto de inserción respecto a la caja del texto.
+   *
+   * **Sin esto, todo el texto de un plano sale desplazado media palabra.** El visor centraba cada
+   * rótulo sobre su punto, y en el CAD la mayoría va alineado a la izquierda sobre la línea base:
+   * un nombre de recinto se corría hacia dentro del muro y una cota se salía de su línea.
+   *
+   * La línea base cuenta como `abajo`: la diferencia es el trazo descendente de una letra, y a la
+   * escala de un plano eso es menos de lo que mide el propio contorno del rótulo.
+   */
+  readonly hAlign: "izquierda" | "centro" | "derecha";
+  readonly vAlign: "arriba" | "medio" | "abajo";
 }
 
 /**
@@ -923,8 +936,16 @@ function dibujar(
     // otro. Su contenido va en el código 1, igual que un `TEXT`.
     case "ATTRIB": {
       const contenido = textoDe(entidad);
-      const x = numero(entidad, 10);
-      const y = numero(entidad, 20);
+      const alineacion = alineacionDe(entidad);
+      // **Un texto justificado se coloca con su segundo punto**, no con el primero. Es la convención
+      // del formato: el 10/20 queda con el valor de cuando el texto estaba a la izquierda, y el que
+      // manda es el 11/21. Sin esto, cada rótulo centrado o a la derecha sale de sitio.
+      const x = alineacion.usaSegundoPunto
+        ? (numero(entidad, 11) ?? numero(entidad, 10))
+        : numero(entidad, 10);
+      const y = alineacion.usaSegundoPunto
+        ? (numero(entidad, 21) ?? numero(entidad, 20))
+        : numero(entidad, 20);
       if (contenido === "" || x === null || y === null) {
         cuenta(omitidas, entidad.type);
         return;
@@ -942,6 +963,8 @@ function dibujar(
         rotationDeg: (numero(entidad, 50) ?? 0) + (t.giro * 180) / Math.PI,
         text: contenido,
         color,
+        hAlign: alineacion.hAlign,
+        vAlign: alineacion.vAlign,
       });
       return;
     }
@@ -1107,6 +1130,10 @@ function dibujar(
           rotationDeg: (t.giro * 180) / Math.PI,
           text: contenido.texto.text,
           color,
+          // El texto de una llamada arranca donde acaba su línea, a media altura: es como el CAD
+          // engancha el rótulo al codo del trazo.
+          hAlign: "izquierda",
+          vAlign: "medio",
         });
       }
       return;
@@ -1505,22 +1532,70 @@ function textoDe(entidad: Entidad): string {
 }
 
 /**
+ * Cómo está justificado un texto, y con qué punto se coloca.
+ *
+ * Los dos tipos de texto lo dicen de forma distinta y hay que traducir los dos:
+ *
+ * - Un **`TEXT`** lleva la justificación horizontal en el código 72 —izquierda, centro, derecha,
+ *   alineado, medio, ajustado— y la vertical en el 73 —línea base, abajo, medio, arriba—.
+ * - Un **`MTEXT`** lleva las dos en el código 71, como una de nueve posiciones de una rejilla de
+ *   tres por tres que empieza arriba a la izquierda.
+ */
+function alineacionDe(entidad: Entidad): {
+  readonly hAlign: "izquierda" | "centro" | "derecha";
+  readonly vAlign: "arriba" | "medio" | "abajo";
+  readonly usaSegundoPunto: boolean;
+} {
+  if (entidad.type === "MTEXT") {
+    const anclaje = numero(entidad, 71) ?? 1;
+    const columna = (anclaje - 1) % 3;
+    const fila = Math.floor((anclaje - 1) / 3);
+    return {
+      hAlign: (["izquierda", "centro", "derecha"] as const)[columna] ?? "izquierda",
+      vAlign: (["arriba", "medio", "abajo"] as const)[fila] ?? "arriba",
+      // Un `MTEXT` siempre se coloca con su punto de anclaje, que es el 10/20.
+      usaSegundoPunto: false,
+    };
+  }
+
+  const h = numero(entidad, 72) ?? 0;
+  const vertical = numero(entidad, 73) ?? 0;
+  // 3 es "alineado" y 5 "ajustado": los dos estiran el texto entre dos puntos y arrancan a la
+  // izquierda. 4 es "medio", que centra en los dos ejes.
+  const hAlign = h === 1 || h === 4 ? "centro" : h === 2 ? "derecha" : ("izquierda" as const);
+  const vAlign =
+    h === 4 || vertical === 2 ? "medio" : vertical === 3 ? "arriba" : ("abajo" as const);
+
+  return { hAlign, vAlign, usaSegundoPunto: h !== 0 || vertical !== 0 };
+}
+
+/**
  * El mismo limpiado, sobre una cadena ya reunida.
  *
  * Vive aparte porque el texto de un `MULTILEADER` no llega en los códigos 1 y 3 sino en el 304, y
  * trae exactamente los mismos códigos de formato incrustados.
  */
 function limpiarTexto(crudo: string): string {
-  return crudo
-    .replace(/\\P/g, " ")
-    .replace(/\\[A-Za-z][^;\\]*;/g, "")
-    .replace(/[{}]/g, "")
-    .replace(/\\~/g, " ")
-    .replace(/%%[cCdDpP]/g, (marca) =>
-      marca.toLowerCase() === "%%c" ? "Ø" : marca.toLowerCase() === "%%d" ? "°" : "±",
-    )
-    .replace(/\s+/g, " ")
-    .trim();
+  return (
+    crudo
+      // **`\P` es un salto de línea, no un espacio.** Aplastando el `MTEXT` a una línea, un rótulo de
+      // dos renglones —el nombre del recinto y sus metros cuadrados— salía como una tira larga que
+      // tapa el dibujo y no se parece a lo que dice el plano.
+      .replace(/\\P/g, "\n")
+      .replace(/\\[A-Za-z][^;\\]*;/g, "")
+      .replace(/[{}]/g, "")
+      .replace(/\\~/g, " ")
+      .replace(/%%[cCdDpP]/g, (marca) =>
+        marca.toLowerCase() === "%%c" ? "Ø" : marca.toLowerCase() === "%%d" ? "°" : "±",
+      )
+      // Se aprietan los espacios de cada renglón, pero no los saltos de línea.
+      .replace(/[^\S\n]+/g, " ")
+      .split("\n")
+      .map((renglon) => renglon.trim())
+      .join("\n")
+      .replace(/\n{2,}/g, "\n")
+      .replace(/^\n+|\n+$/g, "")
+  );
 }
 
 /** Un vértice de polilínea, con su curvatura: `bulge` es la tangente de un cuarto del ángulo. */
