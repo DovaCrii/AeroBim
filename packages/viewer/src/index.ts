@@ -373,6 +373,31 @@ export interface PickedItem {
   readonly groups: readonly PropertyGroup[];
 }
 
+/** Lo que dice el auditor de pintura. Ver {@link BimViewer.paintAudit}. */
+export interface PaintAudit {
+  /** Materiales que llevan puesta la pintura de la vista fantasma. */
+  readonly ghosted: number;
+  /**
+   * Materiales **opacos**. En vista fantasma, cada uno es un parche sólido a la vista.
+   *
+   * Es opaco de verdad y no "distinto de la pintura del fantasma", y la diferencia importa: el
+   * modelo trae vidrios y barandas translúcidos de fábrica, y dos mallas internas de Fragments con
+   * `ShaderMaterial` que no toman pintura ninguna. Contándolas como sólidas, este número **nunca
+   * llegaría a cero** y el repintado automático no tendría condición de parada. Ninguna de ellas se
+   * ve como el parche que el usuario reporta: van aparte, en {@link translucent}.
+   */
+  readonly solid: number;
+  /** Translúcidos que no llevan la pintura del fantasma. No son huecos; se informan para no perderlos. */
+  readonly translucent: number;
+  /**
+   * De qué son los sólidos, agrupados por malla y material.
+   *
+   * Distingue "el pintado no llegó a tiempo" de "esas mallas no se pintan nunca porque no son
+   * caras", que a ojo son el mismo síntoma y piden arreglos distintos.
+   */
+  readonly solidKinds: Readonly<Record<string, number>>;
+}
+
 const DEFAULT_WASM_PATH = "/wasm/";
 
 /** Un fotograma a 60 Hz, para forzar el avance de los controles de cámara. */
@@ -383,6 +408,45 @@ const SELECTION_COLOR = 0x9b5de5;
 
 /** El mismo violeta como color CSS, para las etiquetas de las mediciones. */
 const SELECTION_CSS = "#9b5de5";
+
+/**
+ * Opacidad de la vista fantasma.
+ *
+ * Translúcido pero todavía legible: con 0,15 el modelo se volvía una silueta y no se distinguía una
+ * viga de una losa, que es justo lo que se viene a mirar detrás.
+ *
+ * **Está aquí y no escrito dentro del pintado porque hay dos lugares que tienen que coincidir**: el
+ * que lo pinta y el que comprueba si está pintado (`paintAudit`). Con el número escrito dos veces,
+ * cambiarlo en uno deja al otro diciendo que todo el modelo está sin pintar.
+ */
+const GHOST_OPACITY = 0.3;
+
+/** Margen al comparar opacidades: son flotantes que van y vuelven del worker. */
+const TOLERANCIA_OPACIDAD = 0.01;
+
+/**
+ * Si un material es el de la vista fantasma.
+ *
+ * Se compara la opacidad y no solo `transparent`, porque un modelo trae vidrios y barandas
+ * translúcidos de fábrica: dándolos por pintados, sus mallas nuevas se quedarían opacas sin que
+ * nadie lo note. Un vidrio a 0,4 cuenta como sólido, se repinta a 0,3 y en la siguiente vuelta ya
+ * cuenta —el conteo converge, que es lo que hace falta para que sirva de condición de parada.
+ */
+/**
+ * Cuántos repintados se conceden por gesto para tapar la geometría que llega nueva.
+ *
+ * Existe porque **no todo material se puede pintar**: hay dos mallas internas de Fragments con
+ * `ShaderMaterial` y, en un modelo cualquiera, mallas que el resaltado no alcanza. Sin un techo, un
+ * material que nunca toma la pintura convierte el repintado automático en un bucle infinito que
+ * quema la GPU en silencio. Con techo, cuesta cuatro repintados desperdiciados y para.
+ *
+ * Se recarga en cada gesto del usuario, así que el techo es por gesto y no para toda la sesión.
+ */
+const REPINTADOS_POR_GESTO = 4;
+
+function esFantasma(material: THREE.Material): boolean {
+  return material.transparent && Math.abs(material.opacity - GHOST_OPACITY) < TOLERANCIA_OPACIDAD;
+}
 
 /**
  * El punto del ratón tal como lo espera el rayo de Fragments: **en píxeles de la ventana**.
@@ -1160,6 +1224,38 @@ export class BimViewer {
   private applyingHighlights = false;
   /** `true` si llegó otra petición de repintado mientras se atendía la anterior. */
   private highlightsPending = false;
+  /** `true` mientras se atiende un repintado disparado por geometría nueva. */
+  private repintandoPorVista = false;
+  /**
+   * Las mallas a las que la vista fantasma les cambió el material, con el que tenían.
+   *
+   * Se guarda la referencia original y no una copia de sus valores: salir de la vista fantasma es
+   * reponerla. Ver {@link completarPintura}.
+   */
+  private readonly pinturaPropia = new Map<THREE.Mesh, THREE.Material | THREE.Material[]>();
+  /** Un clon translúcido por material de origen, para no subir miles a la GPU. */
+  private readonly clonesDeFantasma = new Map<THREE.Material, THREE.Material>();
+  /**
+   * Los materiales que hubo que pintar **en su sitio** por no dejarse clonar, y cómo estaban.
+   *
+   * Son los del nivel de detalle de Fragments. Ver {@link pinturaDe}.
+   */
+  private readonly pinturaEnSitio = new Map<
+    THREE.Material,
+    {
+      readonly transparent: boolean;
+      readonly opacity: number;
+      readonly depthWrite: boolean;
+      readonly side: THREE.Side;
+    }
+  >();
+  /**
+   * Repintados que quedan por intentar sobre la geometría nueva. Ver {@link repintarGeometriaNueva}.
+   *
+   * Arranca en cero porque en vista sólida no hay nada que repintar; se recarga al entrar en vista
+   * fantasma y cada vez que la cámara descansa, que son los momentos en que el usuario hizo algo.
+   */
+  private presupuestoDePintura = 0;
   /**
    * Las mediciones tomadas, en orden, con lo que se dibuja de cada una.
    *
@@ -1344,6 +1440,10 @@ export class BimViewer {
       // se perdía el violeta del elemento seleccionado.** Quien clicaba una viga y giraba para
       // verla ya no sabía cuál había elegido, y la selección parecía no funcionar. Se repinta
       // siempre que haya algo pintado.
+      // Descansar la cámara es un gesto terminado: se le renueva el presupuesto de repintados
+      // para que la geometría que traiga el nivel de detalle nuevo se pueda tapar.
+      this.presupuestoDePintura = REPINTADOS_POR_GESTO;
+
       if (this.renderStyle === "wireframe" || this.selection !== null) void this.applyHighlights();
       else void this.fragments.core.update(true);
     });
@@ -1354,7 +1454,54 @@ export class BimViewer {
       model.useCamera(this.world.camera.three);
       this.world.scene.three.add(model.object);
       this.modelCount += 1;
+
+      // **`rest` no alcanza para la vista fantasma.** Medido con `diag.html?modo=fantasma`: al
+      // descansar la cámara el modelo se quedaba al 62 % pintado y ahí se quedaba, porque las
+      // mallas del nivel de detalle nuevo llegan *después* del repintado, no antes. Este evento es
+      // el que avisa cuando llegaron. Ver {@link repintarGeometriaNueva}.
+      model.onViewUpdated.add(() => void this.repintarGeometriaNueva());
     });
+  }
+
+  /**
+   * Vuelve a pintar de fantasma lo que llegó opaco, y sabe cuándo parar.
+   *
+   * **Es el arreglo de `F1.15`** —"el modo fantasma se cae al mover"—. Fragments dibuja por niveles
+   * de detalle: mover la cámara descarta mallas y trae otras, y las que llegan traen su material
+   * original, opaco. El repintado al descansar la cámara no basta porque corre *antes* de que esas
+   * mallas existan; medido, dejaba el modelo al 62 % y no avanzaba más.
+   *
+   * **Lo delicado es parar.** El propio repintado termina en `fragments.core.update(true)`, que
+   * dispara otro `onViewUpdated`: sin condición de parada esto es un bucle infinito. La condición
+   * es la escena misma —{@link paintAudit} cuenta los materiales opacos que quedan— y por eso
+   * `solid` cuenta solo lo **opaco**: contando también los translúcidos que no toman la pintura,
+   * nunca llegaría a cero. Y por si algún material no se deja pintar en un modelo que no hemos
+   * visto, el {@link REPINTADOS_POR_GESTO} pone un techo por gesto.
+   */
+  private async repintarGeometriaNueva(): Promise<void> {
+    // En vista sólida el material original **es** el correcto: no hay nada que tapar.
+    if (this.disposed || this.loading || this.renderStyle !== "wireframe") return;
+    // El refresco del repintado dispara este mismo evento; atenderlo aquí sería morderse la cola.
+    if (this.applyingHighlights || this.repintandoPorVista) return;
+
+    const antes = this.paintAudit.solid;
+    if (antes === 0) {
+      this.presupuestoDePintura = REPINTADOS_POR_GESTO;
+      return;
+    }
+    if (this.presupuestoDePintura <= 0) return;
+
+    this.repintandoPorVista = true;
+    try {
+      await this.applyHighlights();
+      // Solo se gasta presupuesto cuando el repintado **no sirvió**. Si bajó el conteo, el
+      // siguiente aviso vuelve a tener el cupo entero: acercarse a un modelo grande trae geometría
+      // en muchas tandas, y cada tanda merece su intento.
+      if (this.paintAudit.solid >= antes) this.presupuestoDePintura -= 1;
+      else this.presupuestoDePintura = REPINTADOS_POR_GESTO;
+    } finally {
+      this.repintandoPorVista = false;
+    }
   }
 
   /**
@@ -1808,6 +1955,10 @@ export class BimViewer {
    * seleccionar un elemento apagaba la vista fantasma sin motivo aparente. El orden importa: el
    * fantasma primero, sobre el modelo entero, y la selección después, para que el elemento
    * elegido quede opaco por encima de lo translúcido.
+   *
+   * **Y las dos capas ya no se pintan con el mismo mecanismo.** La selección la resuelve Fragments,
+   * que es lo que sabe hacer; el fantasma lo pinta {@link completarPintura} por su cuenta, porque
+   * medido no llegaba a un tercio del modelo y no se podía deshacer.
    */
   private async applyHighlights(): Promise<void> {
     // **No se puede repintar dos veces a la vez.** Esto lo dispara también el descanso de la
@@ -1827,16 +1978,13 @@ export class BimViewer {
 
         await this.fragments.resetHighlight();
 
-        if (this.renderStyle === "wireframe") {
-          await this.fragments.highlight({
-            color: new THREE.Color(0xffffff),
-            renderedFaces: FRAGS.RenderedFaces.TWO,
-            // Translúcido pero todavía legible: con 0,15 el modelo se volvía una silueta y no se
-            // distinguía una viga de una losa, que es justo lo que se viene a mirar detrás.
-            opacity: 0.3,
-            transparent: true,
-          });
-        }
+        // **Se despinta al principio de cada pasada, no solo al salir de la vista fantasma.** La
+        // librería arma sus materiales a partir del que la malla tiene puesto, así que si ve el clon
+        // translúcido, lo que construya encima nace translúcido: el elemento seleccionado se volvía
+        // invisible dentro del fantasma por esto. Que vea siempre los materiales originales.
+        this.despintar();
+
+        if (this.renderStyle === "wireframe") this.completarPintura();
 
         if (this.selection !== null) {
           await this.fragments.highlight(
@@ -1855,6 +2003,118 @@ export class BimViewer {
     } finally {
       this.applyingHighlights = false;
     }
+  }
+
+  /**
+   * Pinta de translúcido las mallas del modelo: **la vista fantasma, hecha por nuestra cuenta**.
+   *
+   * Antes esto lo hacía `fragments.highlight()`, y las mediciones con `diag.html?modo=fantasma`
+   * sobre `Piso 5.ifc` dijeron que no sirve para esto, por dos motivos independientes:
+   *
+   * 1. **No llega a un tercio del modelo.** Quedaban 16 mallas opacas *y dibujando* —258, 822, 180
+   *    índices reales—, y no es cuestión de a quién se resalta: pasar la lista explícita de todos los
+   *    elementos con `getLocalIds()` daba exactamente el mismo 16, y repetir la llamada tampoco. Son
+   *    `LODMesh`, las mallas que Fragments dibuja **mientras la cámara se mueve**, y no pasan por su
+   *    registro de resaltado. Ahí estaba el "se cae al mover" del informe.
+   * 2. **`resetHighlight()` no deshace lo que `highlight()` sí pinta.** Al volver a sólido quedaban
+   *    13 mallas translúcidas para siempre, y el material que la librería construía para la
+   *    selección heredaba esa transparencia: el elemento elegido desaparecía dentro del fantasma.
+   *
+   * Así que el fantasma se pinta acá y la librería queda solo para la selección, que es lo que sí
+   * hace bien. **Con un clon del material, nunca mutando el que hay**: Fragments comparte materiales
+   * entre mosaicos y mutarlos se filtra a donde no toca. El único que se pinta en su sitio es el del
+   * nivel de detalle, que no se deja clonar — ver {@link pinturaDe}.
+   *
+   * De paso el fantasma **conserva el color de cada elemento** en vez de blanquear todo el modelo,
+   * que era lo que hacía la librería: mirando detrás de un muro se sigue distinguiendo una viga de
+   * una losa.
+   */
+  private completarPintura(): void {
+    // Lo ya translúcido se deja en paz: el vidrio y las barandas del modelo son más transparentes
+    // que el fantasma, y pintarlos los volvería *más* opacos de lo que el propio modelo dice.
+    const toca = (material: THREE.Material): boolean => !material.transparent;
+
+    for (const [, model] of this.fragments.list) {
+      model.object.traverse((objeto) => {
+        const malla = objeto as THREE.Mesh;
+        if (!malla.isMesh) return;
+
+        const original = malla.material;
+        const puestos: THREE.Material[] = Array.isArray(original) ? [...original] : [original];
+        if (puestos.length === 0 || !puestos.some(toca)) return;
+
+        if (!this.pinturaPropia.has(malla)) this.pinturaPropia.set(malla, original);
+
+        const pintados = puestos.map((material) =>
+          toca(material) ? this.pinturaDe(material) : material,
+        );
+        malla.material = Array.isArray(original) ? pintados : (pintados[0] as THREE.Material);
+      });
+    }
+  }
+
+  /**
+   * El material translúcido con que pintar uno opaco: un clon, o el propio si no se deja clonar.
+   *
+   * **Los que no se dejan clonar son los del nivel de detalle**, y son justamente los que importan.
+   * `LodMaterial.clone()` reventó en la primera prueba —`Cannot read properties of undefined
+   * (reading 'color')` dentro de `newLodMaterialParams`—, y el rastro dijo lo que faltaba saber: las
+   * mallas que se quedaban opacas son `LODMesh`, los sustitutos que Fragments dibuja **mientras la
+   * cámara se mueve**. Ahí está el "se cae al mover" del informe, con nombre y apellido.
+   *
+   * Así que esos se pintan en su sitio, guardando cómo estaban. Es seguro donde antes no lo era:
+   * el material del nivel de detalle no lo comparte nadie más, mientras que mutar los materiales de
+   * los elementos se filtraba al elemento seleccionado y lo volvía translúcido.
+   *
+   * Los clones se cachean por material de origen: un modelo grande tiene miles de mallas y decenas
+   * de materiales, y clonar por malla subiría miles de programas a la GPU para pintar lo mismo.
+   */
+  private pinturaDe(origen: THREE.Material): THREE.Material {
+    const guardado = this.clonesDeFantasma.get(origen);
+    if (guardado !== undefined) return guardado;
+
+    let pintado: THREE.Material;
+    try {
+      pintado = origen.clone();
+    } catch {
+      pintado = origen;
+      if (!this.pinturaEnSitio.has(origen)) {
+        this.pinturaEnSitio.set(origen, {
+          transparent: origen.transparent,
+          opacity: origen.opacity,
+          depthWrite: origen.depthWrite,
+          side: origen.side,
+        });
+      }
+    }
+
+    pintado.transparent = true;
+    pintado.opacity = GHOST_OPACITY;
+    // Sin esto, la cara de delante escribe profundidad y tapa lo que hay detrás: se vería
+    // translúcido y sin embargo no se vería el muro de atrás, que es para lo que sirve el modo.
+    pintado.depthWrite = false;
+    // Las dos caras, como pedía el resaltado de la librería: mirando a través de un muro se ven
+    // sus caras interiores, y sin esto un elemento abierto se ve por dentro como un agujero.
+    pintado.side = THREE.DoubleSide;
+    pintado.needsUpdate = true;
+    this.clonesDeFantasma.set(origen, pintado);
+    return pintado;
+  }
+
+  /** Deshace {@link completarPintura}: repone los materiales y devuelve los que se tocaron en su sitio. */
+  private despintar(): void {
+    for (const [malla, original] of this.pinturaPropia) malla.material = original;
+    this.pinturaPropia.clear();
+
+    for (const [material, antes] of this.pinturaEnSitio) {
+      material.transparent = antes.transparent;
+      material.opacity = antes.opacity;
+      material.depthWrite = antes.depthWrite;
+      material.side = antes.side;
+      material.needsUpdate = true;
+    }
+    this.pinturaEnSitio.clear();
+    this.clonesDeFantasma.clear();
   }
 
   /**
@@ -2116,12 +2376,70 @@ export class BimViewer {
     this.assertAlive();
 
     this.renderStyle = style;
+    // Entrar a la vista fantasma es un gesto: se le concede su cupo de repintados para tapar la
+    // geometría que vaya llegando. Ver {@link repintarGeometriaNueva}.
+    this.presupuestoDePintura = style === "wireframe" ? REPINTADOS_POR_GESTO : 0;
     await this.applyHighlights();
   }
 
   /** Estilo de representación actual. */
   get style(): RenderStyle {
     return this.renderStyle;
+  }
+
+  /**
+   * Cuántas mallas del modelo llevan puesta la pintura de fantasma y cuántas siguen sólidas.
+   *
+   * **Es el oráculo de `F1.15`** —"el modo fantasma se cae al mover"—. Esa frase no se puede
+   * depurar mirando: hay que poder preguntarle a la escena si el material que tiene puesto cada
+   * malla es el que la vista fantasma pide. Fragments dibuja por niveles de detalle, y la geometría
+   * que entra mientras la cámara se mueve llega con **su material original, opaco**: el modelo se
+   * queda mitad translúcido y mitad sólido, que es exactamente lo que se ve como "se cae".
+   *
+   * Y es además la **condición de parada** del repintado automático: ver
+   * {@link repintarGeometriaNueva}.
+   */
+  get paintAudit(): PaintAudit {
+    this.assertAlive();
+
+    let ghosted = 0;
+    let solid = 0;
+    let translucent = 0;
+    const solidKinds: Record<string, number> = {};
+
+    for (const [, model] of this.fragments.list) {
+      // **`traverseVisible` y no `traverse`**: lo que no se dibuja no cuenta. Fragments deja mallas
+      // apagadas en la escena —los clones con que resuelve el resaltado, entre otras— y contarlas
+      // hacía que salir de la vista fantasma pareciera dejar pintura pegada cuando en pantalla no
+      // había nada pegado.
+      model.object.traverseVisible((objeto) => {
+        const malla = objeto as THREE.Mesh;
+        if (!malla.isMesh) return;
+
+        // Una malla puede llevar varios materiales; basta que uno no esté pintado para que se
+        // vea el hueco, así que se cuenta material por material y no malla por malla.
+        for (const material of Array.isArray(malla.material) ? malla.material : [malla.material]) {
+          if (!material.visible) continue;
+          if (esFantasma(material)) ghosted += 1;
+          else if (material.transparent) translucent += 1;
+          else {
+            solid += 1;
+            // **Y se dice de qué son.** Un conteo de sólidos no distingue "el pintado no llegó" de
+            // "esas mallas no se pintan nunca porque no son caras", y son dos arreglos distintos.
+            const dibuja =
+              malla.geometry.groups.length === 0
+                ? malla.geometry.drawRange.count
+                : malla.geometry.groups.reduce((suma, grupo) => suma + grupo.count, 0);
+            const clase =
+              `${material.type}·op=${material.opacity}·visible=${malla.visible && material.visible}` +
+              `·grupos=${malla.geometry.groups.length}·indices=${dibuja}`;
+            solidKinds[clase] = (solidKinds[clase] ?? 0) + 1;
+          }
+        }
+      });
+    }
+
+    return { ghosted, solid, translucent, solidKinds };
   }
 
   /**

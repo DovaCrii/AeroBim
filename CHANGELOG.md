@@ -5,6 +5,48 @@ Este proyecto sigue [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Corregido — El modo fantasma no se caía al mover: nunca estuvo entero (`F1.15`, 2026-08-26)
+
+Lo reportó el usuario: «el modo fantasma se cae al mover». Antes de arreglarlo hubo que poder
+verlo, porque esa frase no se depura mirando: `BimViewer.paintAudit` cuenta material por material
+de la escena cuántos llevan la pintura translúcida y cuántos siguen opacos, y
+`diag.html?modo=fantasma` mueve la cámara anotando en cada paso.
+
+**Y la medición corrigió el diagnóstico.** Sobre `Piso 5.ifc`: recién encendido el fantasma iba al
+**0 %**, moviendo la cámara al 53–56 %, y con la cámara ya detenida al **62 %, donde se quedaba**.
+No se caía al mover — nunca llegó a estar entero, y detenerse no lo recuperaba.
+
+La causa la nombró un error: al clonar el material de las mallas que quedaban opacas, la traza dijo
+`LodMaterial.clone()` sobre un `LODMesh`. Son los **sustitutos del nivel de detalle**, lo que
+Fragments dibuja mientras la cámara se mueve, y no pasan por su registro de resaltado. No es
+cuestión de a quién se resalta: pasarle la lista explícita de todos los elementos dejaba
+**exactamente las mismas 16 mallas** opacas y dibujando.
+
+Y apareció un segundo defecto que ninguna nota tenía: **`resetHighlight()` no deshace lo que
+`highlight()` pinta.** Al volver a sólido quedaban 32 mallas translúcidas para siempre.
+
+Así que la vista fantasma se pinta por cuenta propia —un clon translúcido por material de origen,
+`depthWrite` apagado, las dos caras— y `fragments.highlight` queda solo para la selección. Se
+engancha `onViewUpdated` para tapar la geometría que llega nueva, con la condición de parada en la
+escena misma y un techo de repintados por gesto: sin techo, un material que no se dejara pintar
+sería un bucle infinito quemando la GPU en silencio.
+
+| Momento                       | Antes             | Ahora         |
+| ----------------------------- | ----------------- | ------------- |
+| Recién encendido              | 0 %               | **100 %**     |
+| En cada movimiento de cámara  | 53–56 %           | **100 %**     |
+| Con la cámara detenida        | 62 %              | **100 %**     |
+| Al volver a sólido            | 32 mallas pegadas | **0, limpio** |
+| Materiales visibles en escena | ~50               | 18            |
+
+Lo último no es cosmético: sin las mallas duplicadas del resaltado, el modo cuesta menos que antes.
+Y el fantasma **conserva el color de cada elemento** en vez de blanquear el modelo, así que mirando
+detrás de un muro se sigue distinguiendo una viga de una losa.
+
+**Lo que este oráculo no puede decir**, dicho en el código: `paintAudit` es **ciego a la
+selección** —medido en los dos estilos, seleccionar no añade ningún material a la escena—, así que
+un cero de opacos con algo seleccionado no significa que el fantasma se la haya tragado.
+
 ### Corregido — La medición de distancia no fallaba, mentía (`F1.14`, 2026-08-26)
 
 Lo reportó el usuario: «las opciones de medida de distancia no está funcionando». El defecto

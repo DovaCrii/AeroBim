@@ -223,6 +223,138 @@ export async function camara(container: HTMLElement, ifcUrl: string, log: Log): 
 }
 
 /**
+ * La vista fantasma mientras la cámara se mueve, para `F1.15`.
+ *
+ * El usuario lo dijo así: **"el modo fantasma se cae al mover"**. Eso no se depura mirando, y en
+ * este entorno tampoco se puede mirar —el panel del navegador no compone fotogramas—, así que la
+ * prueba es la escena misma: se cuenta cuántos materiales del modelo llevan la pintura translúcida
+ * y cuántos siguen opacos, se mueve la cámara para que Fragments traiga otro nivel de detalle, y se
+ * vuelve a contar. **Si aparecen sólidos donde antes no había, el defecto está.**
+ *
+ * Uso: `/diag.html?modo=fantasma&ifc=/samples/Piso%205.ifc`
+ */
+export async function fantasma(container: HTMLElement, ifcUrl: string, log: Log): Promise<void> {
+  const viewer = await BimViewer.create(container);
+  const bytes = new Uint8Array(await (await fetch(ifcUrl)).arrayBuffer());
+  await viewer.loadIfc(bytes, ifcUrl);
+
+  const cuenta = (etiqueta: string) => {
+    const { ghosted, solid, translucent } = viewer.paintAudit;
+    const total = ghosted + solid;
+    const porcentaje = total === 0 ? 0 : Math.round((ghosted / total) * 100);
+    log(
+      `  ${etiqueta}: ${ghosted} fantasma / ${solid} opacos / ${translucent} translucidos — ` +
+        `${porcentaje} % de las caras pintado`,
+    );
+    return solid;
+  };
+
+  log(`estilo inicial: ${viewer.style}`);
+  cuenta("solido");
+
+  await viewer.setRenderStyle("wireframe");
+  log(`\nestilo: ${viewer.style}`);
+  const tras = cuenta("recien pintado");
+
+  // Mover la cámara es lo que hace que Fragments cambie el nivel de detalle y traiga mallas
+  // nuevas. Se hace en varios pasos y se cuenta en cada uno: el defecto no aparece siempre en
+  // el primer movimiento, porque depende de qué nivel tocaba.
+  // El movimiento va **sin transición y con `rest` emitido a mano**. Las transiciones de
+  // camera-controls solo avanzan dentro de `update(delta)`, y en este entorno el panel del
+  // navegador no corre el bucle de dibujo: esperar una transición cuelga la prueba (comprobado).
+  // Emitir `rest` es exactamente lo que hace camera-controls cuando alguien suelta el ratón, así
+  // que se mide el camino que el visor tiene de verdad y no uno inventado.
+  const controls = viewer.camera.controls;
+  const descansar = () =>
+    (controls as unknown as { dispatchEvent: (evento: { type: string }) => void }).dispatchEvent({
+      type: "rest",
+    });
+
+  let peor = tras;
+  for (const [i, angulo] of [Math.PI / 6, Math.PI / 3, Math.PI / 2].entries()) {
+    await controls.rotateTo(angulo, Math.PI / 3, false);
+    await controls.dolly(i % 2 === 0 ? 8 : -5, false);
+    controls.update(1 / 60);
+    await new Promise((listo) => setTimeout(listo, 1200));
+    peor = Math.max(peor, cuenta(`tras mover ${i + 1}`));
+    descansar();
+    await new Promise((listo) => setTimeout(listo, 1200));
+    cuenta(`  y tras descansar ${i + 1}`);
+  }
+
+  await new Promise((listo) => setTimeout(listo, 2000));
+  const final = cuenta("tras dejarla quieta");
+
+  log(
+    `\nveredicto: ${peor === 0 ? "el fantasma aguanta el movimiento" : `${peor} materiales se quedaron solidos al mover`}`,
+  );
+  log(`  y al detenerse: ${final === 0 ? "se recupera" : `siguen ${final} solidos`}`);
+
+  const clases = Object.entries(viewer.paintAudit.solidKinds).sort((uno, otro) => otro[1] - uno[1]);
+  if (clases.length > 0) {
+    log("\nlos que se quedan solidos, por malla y material:");
+    for (const [clase, n] of clases) log(`  ${String(n).padStart(4)}  ${clase}`);
+  }
+
+  // **Las dos regresiones que este arreglo puede causar**, y por eso se miden acá y no a ojo.
+  // La pintura se aplica sobre materiales de la librería, así que salir tiene que devolverlos; y
+  // la selección es opaca a propósito, así que completar la pintura no debe tragársela.
+  log("\nvolver a solido:");
+  await viewer.setRenderStyle("solid");
+  for (const espera of [800, 1500, 1500]) {
+    await new Promise((listo) => setTimeout(listo, espera));
+    descansar();
+    const vuelta = viewer.paintAudit;
+    log(
+      `  ${vuelta.ghosted} fantasma / ${vuelta.solid} opacos / ${vuelta.translucent} translucidos — ` +
+        `${vuelta.ghosted === 0 ? "limpio" : "queda pintura"}`,
+    );
+  }
+
+  // **La selección se mide en los dos estilos, y el sólido es la línea base.**
+  //
+  // Se conserva aunque el resultado sea negativo, porque el resultado *es* el dato: medido el
+  // 2026-08-26, seleccionar no añade **ningún** material a la escena, ni en sólido ni en fantasma.
+  // Fragments dibuja el elemento elegido por dentro de su propia pasada y no colgando una malla con
+  // material nuevo, así que **este auditor es ciego a la selección**. Sin la línea base en sólido,
+  // el cero en fantasma se leía como "el fantasma se tragó la selección" y no era verdad.
+  //
+  // Queda anotado para el siguiente que venga: si la selección dentro del fantasma da problemas,
+  // hay que comprobarla mirando la pantalla, no con `paintAudit`.
+  const centro = () =>
+    viewer.pickAt(
+      container.clientWidth / 2,
+      container.getBoundingClientRect().top + container.clientHeight / 2,
+    );
+
+  for (const estilo of ["solid", "wireframe"] as const) {
+    log(`\nseleccionar en estilo ${estilo}:`);
+    await viewer.setRenderStyle(estilo);
+    await new Promise((listo) => setTimeout(listo, 800));
+    const antes = viewer.paintAudit;
+
+    const elegido = await centro();
+    if (elegido === null) {
+      log("  el rayo no dio con nada al centro: no se puede medir aca");
+      continue;
+    }
+    await new Promise((listo) => setTimeout(listo, 800));
+    const despues = viewer.paintAudit;
+
+    log(`  seleccionado: ${elegido.category ?? "?"} ${elegido.name ?? ""}`);
+    log(
+      `  antes ${antes.ghosted}/${antes.solid} · despues ${despues.ghosted}/${despues.solid} ` +
+        `(fantasma/opacos)`,
+    );
+    log(
+      `  materiales nuevos: ${despues.ghosted + despues.solid - antes.ghosted - antes.solid} — ` +
+        `${despues.solid > antes.solid ? "aparecio uno opaco" : "el auditor es ciego a la seleccion (esperado)"}`,
+    );
+    await viewer.clearSelection();
+  }
+}
+
+/**
  * Qué devuelve un clic sobre el modelo.
  *
  * Lanza varios rayos en una rejilla sobre el lienzo, porque el primer punto que se elija a

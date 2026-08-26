@@ -260,7 +260,7 @@ software de escritorio ni pedir una licencia.
 | `F1.12` | **Preselección al pasar el cursor** — se selecciona sin clicar y el usuario lo llama «poco práctico»                                  | ⬜ ver abajo |
 | `F1.13` | **El panel de abajo no se entiende** — reubicar y agrupar las herramientas, mirando cómo lo resuelven Revit y AutoCAD                 | ⬜ ver abajo |
 | `F1.14` | **La medición de distancia no funciona** en uso real, con el modelo del usuario                                                       | ✅ ver abajo |
-| `F1.15` | **El modo fantasma se cae al mover** la cámara                                                                                        | ⬜ ver abajo |
+| `F1.15` | **El modo fantasma se cae al mover** la cámara                                                                                        | ✅ ver abajo |
 | `F1.16` | **El renderizado no da profundidad** — sin sombras creíbles, el modelo se lee peor de lo que debería                                  | ⬜ ver abajo |
 
 ### Lo que el usuario pidió el 2026-08-19 y no estaba en ningún tablero
@@ -316,13 +316,76 @@ y el otro a un vértice del modelo.
 > cayó en el vacío. Va dicho en el código: son las dos que quedan por pasar al rayo propio, y
 > hacerlo ahora sería cambiar tres cosas para arreglar una.
 
+### `F1.15` cerrada: el fantasma no se caía al mover, nunca estuvo entero (2026-08-26)
+
+**Primero hubo que poder verlo.** «Se cae al mover» no se depura mirando, y en el entorno de trabajo
+tampoco se puede mirar —el panel del navegador no compone fotogramas—, así que lo primero fue un
+oráculo: `BimViewer.paintAudit` cuenta, material por material de la escena, cuántos llevan la
+pintura translúcida y cuántos siguen opacos, y `diag.html?modo=fantasma` mueve la cámara y va
+anotando. Con eso el defecto dejó de ser una frase.
+
+**Lo que dijo la medición sobre `Piso 5.ifc`, antes de tocar nada:**
+
+| Momento                      | Pintado                    |
+| ---------------------------- | -------------------------- |
+| Recién encendido el fantasma | **0 %**                    |
+| Moviendo la cámara           | 53–56 %                    |
+| Con la cámara ya detenida    | **62 %**, y ahí se quedaba |
+
+Es decir: **no es que se caiga al mover, es que nunca llegó a estar entero**, y detenerse no lo
+recupera. Y el repintado que había al descansar la cámara corría _antes_ de que llegaran las mallas
+nuevas, así que subía siete puntos y se rendía.
+
+**La causa apareció por un error, y fue el error el que la nombró.** Al intentar clonar el material
+de las mallas que quedaban opacas, la traza dijo `LodMaterial.clone()` →
+`Cannot read properties of undefined (reading 'color')`, sobre un `LODMesh`. Esas mallas son los
+**sustitutos del nivel de detalle**: lo que Fragments dibuja mientras la cámara se mueve. No pasan
+por su registro de resaltado, así que `fragments.highlight()` no las alcanza — y no es cuestión de a
+quién se resalta: pasarle la lista explícita de todos los elementos con `getLocalIds()` dejaba
+**exactamente las mismas 16 mallas** opacas y dibujando, con 258, 822, 180 índices reales.
+
+**Y había un segundo defecto detrás, que ninguna nota tenía apuntado:** `resetHighlight()` **no
+deshace lo que `highlight()` pinta**. Al volver a sólido quedaban 32 mallas translúcidas para
+siempre.
+
+**El arreglo:** la vista fantasma se pinta por cuenta propia —un clon translúcido por material de
+origen, `depthWrite` apagado y las dos caras—, y `fragments.highlight` queda solo para la selección,
+que es lo que sí resuelve bien. El material del nivel de detalle es el único que se pinta en su
+sitio, porque no se deja clonar; se guarda cómo estaba y se repone. Y se engancha `onViewUpdated`
+para tapar la geometría que llega nueva, con la condición de parada puesta en la escena misma —no
+quedan opacos— y un techo de cuatro repintados por gesto, porque un material que no se dejara pintar
+convertiría eso en un bucle infinito que quema la GPU en silencio.
+
+**Después:**
+
+| Momento                             | Antes             | Ahora         |
+| ----------------------------------- | ----------------- | ------------- |
+| Recién encendido                    | 0 %               | **100 %**     |
+| En cada uno de los tres movimientos | 53–56 %           | **100 %**     |
+| Con la cámara detenida              | 62 %              | **100 %**     |
+| Al volver a sólido                  | 32 mallas pegadas | **0, limpio** |
+| Materiales visibles en escena       | ~50               | 18            |
+
+Lo último no es cosmético: al dejar de usar el resaltado de la librería para el fantasma
+desaparecen sus mallas duplicadas, así que el modo cuesta menos que antes. Los dos únicos
+translúcidos que quedan son **el vidrio del propio modelo**, y se dejan a propósito: pintarlos los
+volvería _más_ opacos de lo que el modelo dice.
+
+De paso el fantasma **conserva el color de cada elemento** en vez de blanquear el modelo entero, que
+es lo que hacía la librería: mirando detrás de un muro se sigue distinguiendo una viga de una losa.
+
+> **Lo que este oráculo no puede decir.** `paintAudit` **es ciego a la selección**: medido en los
+> dos estilos, seleccionar no añade ningún material a la escena, ni en sólido ni en fantasma —
+> Fragments dibuja el elemento elegido dentro de su propia pasada. Un cero de opacos con algo
+> seleccionado se leía como «el fantasma se tragó la selección» y no era verdad. Queda dicho en
+> `diag.ts`: si la selección dentro del fantasma da problemas, hay que mirar la pantalla.
+
 - **`F1.13`** «abajo no se entienden bien, debe ser un panel mejor implementado; revisar cómo la
   competencia lo utiliza». La referencia declarada en `docs/UX.md` ya es AutoCAD y Revit.
 - **`F1.14`** «las opciones de medida de distancia no está funcionando». `F1.4` está cerrada con
   33 pruebas de geometría, así que **es la interacción, no la aritmética** — y encaja con lo que
   `HANDOFF.md` ya decía de la perpendicular: en el navegador de pruebas ningún rayo encuentra
   geometría después de un par de refrescos.
-- **`F1.15`** «el modo fantasma se cae al mover».
 - **`F1.16`** «no está renderizando con mejor información de sombras o realista». Ojo con la
   interacción con el plano 2D: la postproducción **se apaga en Modo 2D** a propósito (`F7.16`),
   porque sobre un dibujo de líneas lava los colores.
