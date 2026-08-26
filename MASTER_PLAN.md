@@ -1009,20 +1009,49 @@ artefacto se consume aquí. Es la misma división que ya existe con la ortofoto 
 **Objetivo de salida:** los modelos dejan de vivir en la pestaña del navegador: se
 guardan por proyecto, con versiones y con quién subió qué.
 
-| #      | Tarea                                                                                              | Estado |
-| ------ | -------------------------------------------------------------------------------------------------- | ------ |
-| `F3.1` | API en Python (Django + DRF, como AeroControl): proyectos, modelos, versiones, usuarios y permisos | ⬜     |
-| `F3.2` | Almacenamiento de archivos con validación de tipo, tamaño y nombre — nunca el nombre del cliente   | ⬜     |
-| `F3.3` | Extracción de metadatos con `ifcopenshell`: esquema, unidades, georreferenciación, conteo por tipo | ⬜     |
-| `F3.4` | Jobs asíncronos (Celery) para lo que tarde: conversión, extracción, validación                     | ⬜     |
-| `F3.5` | Validación **IDS** con `ifctester`: el modelo cumple o no el requisito de información del proyecto | ⬜     |
-| `F3.6` | **Levantar `services/api`**: Django 6 + uv, con la forma de AeroControl y base de datos propia     | ✅     |
-| `F3.7` | **Portal de ingreso**: `django.contrib.auth` endurecido con axes, sin auto-registro                | ✅     |
-| `F3.8` | **Roles y el contrato de permisos**: la matriz como dato, el guardián, y la prueba de 403          | ✅     |
-| `F3.9` | **Los módulos y cómo se entra a cada uno**: portal por etapa de trabajo, filtrado por permiso      | ✅     |
+| #      | Tarea                                                                                              | Estado       |
+| ------ | -------------------------------------------------------------------------------------------------- | ------------ |
+| `F3.1` | API en Python (Django + DRF, como AeroControl): proyectos, modelos, versiones, usuarios y permisos | ✅ ver abajo |
+| `F3.2` | Almacenamiento de archivos con validación de tipo, tamaño y nombre — nunca el nombre del cliente   | ✅ ver abajo |
+| `F3.3` | Extracción de metadatos con `ifcopenshell`: esquema, unidades, georreferenciación, conteo por tipo | ⬜           |
+| `F3.4` | Jobs asíncronos (Celery) para lo que tarde: conversión, extracción, validación                     | ⬜           |
+| `F3.5` | Validación **IDS** con `ifctester`: el modelo cumple o no el requisito de información del proyecto | ⬜           |
+| `F3.6` | **Levantar `services/api`**: Django 6 + uv, con la forma de AeroControl y base de datos propia     | ✅           |
+| `F3.7` | **Portal de ingreso**: `django.contrib.auth` endurecido con axes, sin auto-registro                | ✅           |
+| `F3.8` | **Roles y el contrato de permisos**: la matriz como dato, el guardián, y la prueba de 403          | ✅           |
+| `F3.9` | **Los módulos y cómo se entra a cada uno**: portal por etapa de trabajo, filtrado por permiso      | ✅           |
 
 **Criterio de aceptación:** un modelo subido sobrevive al cierre del navegador, y
 la versión anterior sigue recuperable.
+
+### `F3.1` y `F3.2` estaban hechas y el tablero decía que no (2026-08-26)
+
+**El tablero miente en las dos direcciones**, que es la lección que `AGENTS.md` ya tenía escrita.
+`F3.6`–`F3.9` construyeron el servicio y con él quedaron cubiertas estas dos filas, que nadie
+volvió a mirar:
+
+- **`F3.1`** — `services/api` es Django 6 + DRF: **proyectos** (`Proyecto`, `Disciplina`,
+  `PaqueteWBS`), **versiones** (`Revision`, que nunca se sobreescribe), **usuarios y permisos**
+  (`apps/accounts` con la matriz de roles como dato y el contrato de permisos con su prueba de 403),
+  y la API del visor con `ViewModelPermissions` y su `api-token` con throttle propio.
+- **`F3.2`** — `apps/documents/storage.py` valida **extensión, firma real del archivo y tamaño**
+  (200 MB), y **el nombre del cliente nunca llega al disco**: la clave se compone del proyecto, el
+  entregable y el sha256 del contenido.
+
+> **Con un matiz que conviene decir en voz alta.** La fila de `F3.1` nombra «modelos» como entidad
+> propia, y no la hay: **un IFC vive como `Revision` de un `Entregable`**. No es una omisión, es la
+> forma de ISO 19650 que trajo la Fase 8 — un modelo _es_ un entregable que se emite por revisiones,
+> con su código de idoneidad y su responsable— y es lo que permite que abrirlo en el visor sea la
+> misma costura que abrir un plano (`F8.8`). La fila se escribió antes de que la Fase 8 existiera.
+
+**Y el criterio de aceptación de la fase no tenía prueba.** «La versión anterior sigue recuperable»
+es la que contesta _«¿qué decía el plano cuando se aprobó la etapa?»_, y no estaba comprobada en
+ningún sitio. Ahora sí, en `test_versiones.py`, y no por lo obvio: se comprueba que la anterior
+**se siga descargando**, que devuelva **sus propios bytes** —si la clave se derivara del entregable
+en vez del contenido, la nueva habría pisado a la vieja y las dos descargas darían lo mismo con el
+registro diciendo que son distintas— y que **relevar no sea borrar**. Y de paso que subir dos veces
+el mismo archivo deje **dos revisiones en el registro y un solo archivo en el disco**, porque la
+clave sale del contenido.
 
 `F3.5` es lo que separa un visor de una herramienta de control: revisar a mano si
 cada elemento trae el pset que el mandante exigió no escala; un IDS lo verifica en
