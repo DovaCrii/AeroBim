@@ -57,6 +57,7 @@ export {
   parseDxf,
   suggestMetresPerUnit,
   type DxfBounds,
+  type DxfColor,
   type DxfDeclaredUnits,
   type DxfDrawing,
   type DxfHatch,
@@ -64,6 +65,8 @@ export {
   type DxfPolyline,
   type DxfText,
 } from "./plans/dxf.js";
+
+export { hatchAngles, hatchLines, type PlanLoop, type PlanPoint } from "./plans/hatch.js";
 
 export {
   parseSavedViews,

@@ -16,9 +16,12 @@
  */
 
 import {
+  hatchAngles,
+  hatchLines,
   parseDxf,
   segmentIntersection,
   suggestMetresPerUnit,
+  type PlanPoint,
   type DxfDrawing,
   type DxfHatch,
   type DxfLayer,
@@ -375,7 +378,7 @@ export class PlanOverlay {
       for (const relleno of dibujo.hatches) {
         if (relleno.layer !== capa.name) continue;
 
-        const malla = mallaDeRelleno(relleno, centrado);
+        const malla = mallaDeRelleno(relleno, centrado, unidades.metresPerUnit);
         if (malla !== null) grupoCapa.add(malla);
       }
 
@@ -1216,6 +1219,7 @@ function atlasDeEtiquetas(
 function mallaDeRelleno(
   relleno: DxfHatch,
   [cx, cy]: readonly [number, number],
+  metrosPorUnidad: number,
 ): THREE.Object3D | null {
   const contornos = relleno.loops
     .map((puntos) => {
@@ -1236,7 +1240,9 @@ function mallaDeRelleno(
   const color = relleno.color.rgb;
 
   if (!relleno.solid) {
-    // Un rayado: solo su borde, en la misma línea que el resto del plano.
+    // **Un rayado se raya.** Antes se dibujaba solo su borde, y los veintitrés rellenos del plano
+    // real son `ANSI31`: se veían como veintitrés contornos vacíos justo donde el CAD dibuja un muro
+    // rayado. El borde va igual, porque en el CAD también está.
     const puntos: number[] = [];
     for (const contorno of contornos) {
       for (let i = 0; i < contorno.length; i++) {
@@ -1244,6 +1250,9 @@ function mallaDeRelleno(
         const b = contorno[(i + 1) % contorno.length]!;
         puntos.push(a.x, 0, a.y, b.x, 0, b.y);
       }
+    }
+    for (const [a, b] of rayado(contornos, relleno.pattern, metrosPorUnidad)) {
+      puntos.push(a[0], 0, a[1], b[0], 0, b[1]);
     }
     const geometria = new THREE.BufferGeometry();
     geometria.setAttribute("position", new THREE.Float32BufferAttribute(puntos, 3));
@@ -1277,6 +1286,61 @@ function mallaDeRelleno(
   malla.renderOrder = ORDEN.macizos;
   malla.frustumCulled = false;
   return malla;
+}
+
+/**
+ * Cuánto se separan las rayas de un relleno, y cuántas se dibujan como mucho.
+ *
+ * **La separación del archivo no sirve tal cual**, por lo mismo que no sirve el tamaño del patrón de
+ * una línea discontinua: se define en unidades de papel y se escala con un número que en cada oficina
+ * vale otra cosa. Se conserva el ángulo, que es lo que distingue un macizo cortado de una zona
+ * sombreada, y la separación se lleva a una medida en la que el relleno se lee.
+ *
+ * **La separación sale del lado menor del propio relleno**, y esto lo decidió medir el plano real:
+ * con una separación fija de doce centímetros los veintitrés rellenos salían con **cero o una raya**,
+ * porque no son zonas grandes sino jambas y topes de muro de seis por quince centímetros. Con una
+ * fracción de su lado menor, un tope de muro sale con una docena de rayas y una zona de cinco metros
+ * con unas cuantas decenas — que es la densidad con la que un rayado se distingue de un macizo.
+ *
+ * Los topes están para las dos puntas: una raya cada cinco milímetros ya es una mancha, y una cada
+ * veinte centímetros deja de leerse como rayado. Y el tope por relleno es la red de seguridad: al
+ * llegar, la separación se ensancha, porque un relleno rayado a medias se ve como un error.
+ */
+const RAYADO = {
+  fraccionDelLadoMenor: 0.25,
+  minimaM: 0.005,
+  maximaM: 0.2,
+  maximoPorRelleno: 400,
+} as const;
+
+/**
+ * Las rayas de un relleno, en el sistema local del plano.
+ *
+ * **La aritmética vive en el dominio** (`hatchLines`, con sus pruebas): el recorte por paridad falla
+ * en silencio —una raya que pasa por un vértice invierte la paridad y sale el negativo del relleno—
+ * y eso se prueba en Node. Lo que se decide aquí es **la separación**, que depende de a qué escala se
+ * está mirando el plano y no del archivo.
+ */
+function rayado(
+  contornos: readonly (readonly THREE.Vector2[])[],
+  patron: string | null,
+  metrosPorUnidad: number,
+): readonly (readonly [PlanPoint, PlanPoint])[] {
+  const escala = metrosPorUnidad > 0 ? metrosPorUnidad : 1;
+
+  // La separación se decide con el tamaño del relleno, y por eso se mide antes de girar nada.
+  const caja = new THREE.Box2();
+  for (const contorno of contornos) for (const punto of contorno) caja.expandByPoint(punto);
+  const ladoMenor = Math.min(caja.max.x - caja.min.x, caja.max.y - caja.min.y);
+  if (!(ladoMenor > 0)) return [];
+
+  const separacion = Math.min(
+    RAYADO.maximaM / escala,
+    Math.max(RAYADO.minimaM / escala, ladoMenor * RAYADO.fraccionDelLadoMenor),
+  );
+
+  const lazos = contornos.map((contorno) => contorno.map((punto): PlanPoint => [punto.x, punto.y]));
+  return hatchLines(lazos, hatchAngles(patron), separacion, RAYADO.maximoPorRelleno);
 }
 
 /** Lleva la colocación al objeto de la escena. */
