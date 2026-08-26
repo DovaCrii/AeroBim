@@ -5,6 +5,42 @@ Este proyecto sigue [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Añadido — Emitir el transmittal desde la pantalla (`F8.7`, 2026-08-26)
+
+El modelo sabía emitir desde el primer día y estaba probado —no se emite vacío ni sin
+destinatario—, pero **el acto solo se podía ejecutar desde una consola**: la pantalla listaba y
+nada más. Ahora están las tres piezas que faltaban: **el borrador**, **la carátula** y **emitir y
+acusar**.
+
+- El **proyecto no se pide: lo dicen las revisiones.** Pedirlo aparte abre la puerta a un
+  transmittal cuyo proyecto no es el de los documentos que lleva, que es contestar mal la pregunta
+  que el transmittal existe para contestar. Mezclar revisiones de dos proyectos se rechaza.
+- La carátula deriva su paso a paso **del modelo** y **nombra lo que falta**, igual que el
+  expediente. Los botones, solo si se pueden ejecutar.
+- `Transmittal.acusar()` es nuevo, y solo sobre lo emitido: un acuse sobre un borrador diría que
+  alguien recibió algo que nunca salió. No guarda quién acusó —un transmittal va a varios y el
+  primero que confirma no habla por los demás—; eso va a la auditoría, que admite varios.
+- **El correo lleva la lista de documentos**, no solo el enlace: quien lo recibe suele leerlo en el
+  teléfono y en obra.
+- **Y no se calla a quien no recibió nada.** La pantalla dice cuántos se avisaron **y a quién no se
+  pudo**. Es la lección de `apps/core/mail.py` aplicada a su gemelo: decir «emitido» a secas cuando
+  dos de los cinco destinatarios no tienen dirección deja al emisor creyendo que avisó.
+
+Comprobado por HTTP contra el servicio corriendo, con los cuatro roles sembrados: sin destinatario
+da 400; emitido dice «Transmittal T-1773 emitido, 3 destinatarios avisados» **y** «Sin dirección de
+correo para sin-correo: no se les avisó»; acusar un borrador no hace nada y acusar lo emitido sí; y
+un **mandante** no ve el enlace, recibe 403 pidiendo el formulario a mano y 403 intentando emitir.
+13 pruebas nuevas, incluida la de aislamiento sobre el `POST` de emitir — sin acotar la consulta,
+eso no es una fuga de lectura, es firmar en nombre de otro.
+
+### Corregido — El catálogo no compilaba, y el gate no podía verlo (2026-08-26)
+
+`compilemessages` **no recompila si el `.mo` es más nuevo que el `.po`**, y el `.po` llevaba una
+entrada que msgfmt rechaza: el `\n` inicial estaba en el `msgid` y no en el `msgstr` de la
+paginación. El binario al día lo tapaba, así que el error solo iba a aparecer el día que alguien
+tocara el catálogo — y apareció hoy. Arreglada la entrada, y **`compilemessages` añadido al gate
+borrando el `.mo` antes**, que es lo único que lo comprueba de verdad.
+
 ### Corregido — El modo fantasma no se caía al mover: nunca estuvo entero (`F1.15`, 2026-08-26)
 
 Lo reportó el usuario: «el modo fantasma se cae al mover». Antes de arreglarlo hubo que poder

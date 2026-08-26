@@ -25,23 +25,11 @@ from django.http import FileResponse, Http404
 from rest_framework.generics import ListAPIView, RetrieveAPIView
 from rest_framework.views import APIView
 
-from apps.core.tenancy import organizaciones_visibles
 from apps.core.views import ViewModelPermissions
 from apps.documents import storage
 from apps.documents.abribles import es_abrible
 from apps.documents.models import Revision
-from apps.documents.views import solo_publicadas
-
-
-def revisiones_visibles(user):
-    """Las revisiones que este usuario puede leer, acotadas y filtradas."""
-    ids = organizaciones_visibles(user)
-    consulta = Revision.objects.select_related("entregable__proyecto", "entregable__disciplina")
-    if not user.is_superuser:
-        if not ids:
-            return consulta.none()
-        consulta = consulta.filter(entregable__organizacion_id__in=ids)
-    return solo_publicadas(consulta, user)
+from apps.documents.views import revisiones_visibles
 
 
 def como_json(revision: Revision) -> dict:

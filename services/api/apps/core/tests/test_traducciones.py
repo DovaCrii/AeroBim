@@ -72,6 +72,10 @@ def test_ninguna_traduccion_repite_el_original():
         "transmittal",
         "transmittals",
         "Transmittals",
+        # El asunto del correo: marca, préstamo del oficio y dos marcadores. No queda ni una
+        # palabra que traducir, y forzar «Transmisión» pondría en el asunto una palabra que
+        # nadie usa en obra.
+        "[AeroBim] Transmittal %(folio)s: %(asunto)s",
     }
     sospechosas = [
         msgid

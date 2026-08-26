@@ -89,6 +89,68 @@ def avisar_asignacion(objeto) -> bool:
     return True
 
 
+def avisar_transmittal(transmittal) -> tuple[int, list[str]]:
+    """Avisa a los destinatarios de un transmittal emitido.
+
+    Devuelve **cuantos se avisaron y a quienes no se pudo**. Los dos numeros importan y por
+    eso van los dos: emitir un transmittal es un acto con consecuencias contractuales, y
+    "se emitio" sin decir que dos de los cinco destinatarios no tienen correo es la clase
+    de silencio que hace que nadie se entere hasta la reunion.
+
+    **El correo lleva la lista de documentos**, no solo el enlace. Quien lo recibe tiene que
+    poder saber que le mandaron sin entrar, porque muchas veces lo lee en el telefono y en
+    obra; y el enlace esta para lo otro, que es descargarlos.
+    """
+    documentos = [
+        f"  · {revision.entregable.codigo}  rev. {revision.correlativo}  "
+        f"[{revision.idoneidad}]  {revision.entregable.titulo}"
+        for revision in transmittal.revisiones.select_related("entregable")
+    ]
+    cuerpo = "\n".join(
+        [
+            _("%(quien)s has issued a transmittal to you in AeroBim.")
+            % {"quien": transmittal.emisor},
+            "",
+            f"{transmittal.folio} · {transmittal.asunto}",
+            "",
+            _("Project: %(p)s") % {"p": transmittal.proyecto},
+            _("Documents (%(n)s):") % {"n": len(documentos)},
+            *documentos,
+            "",
+            enlace(f"/documentos/transmittals/{transmittal.pk}/"),
+        ]
+    )
+    asunto = _("[AeroBim] Transmittal %(folio)s: %(asunto)s") % {
+        "folio": transmittal.folio,
+        "asunto": transmittal.asunto,
+    }
+
+    avisados = 0
+    sin_correo: list[str] = []
+    for destinatario in transmittal.destinatarios.all():
+        correo = _destinatario(destinatario)
+        if correo is None:
+            sin_correo.append(str(destinatario))
+            continue
+        send_mail(asunto, cuerpo, settings.DEFAULT_FROM_EMAIL, [correo], fail_silently=False)
+        avisados += 1
+
+    logger.info(
+        "transmittal_emitido",
+        extra={
+            "recipient": transmittal.folio,
+            "item_count": len(documentos),
+            "send_result": "enviado" if mail_is_delivered() else "impreso",
+        },
+    )
+    if sin_correo:
+        logger.warning(
+            "transmittal_sin_destinatario",
+            extra={"recipient": ", ".join(sin_correo), "item_count": len(sin_correo)},
+        )
+    return avisados, sin_correo
+
+
 def pendientes_por_tramo(usuario) -> dict[str, list]:
     """Lo que le queda a alguien, repartido en los tramos del resumen."""
     hoy = timezone.localdate()

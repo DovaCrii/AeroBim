@@ -1486,7 +1486,9 @@ msgid ""
 "\n"
 "        Page %(actual)s of %(total)s · %(n)s rows\n"
 "      "
-msgstr "Página %(actual)s de %(total)s · %(n)s filas"
+msgstr ""
+"\n"
+"Página %(actual)s de %(total)s · %(n)s filas"
 
 
 #: .\templates\generic\_paginacion.html:31
@@ -1526,3 +1528,121 @@ msgid ""
 "Inside the application, so nobody needs the technical admin site to\n"
 "    rotate their own credential."
 msgstr "Dentro de la aplicación, para que nadie tenga que entrar al administrador técnico a cambiar su propia credencial."
+
+
+#: .\apps\documents\forms.py
+msgid "All revisions in one transmittal must belong to the same project."
+msgstr "Todas las revisiones de un transmittal tienen que ser del mismo proyecto."
+
+
+#: .\apps\documents\notify.py
+msgid "%(quien)s has issued a transmittal to you in AeroBim."
+msgstr "%(quien)s te emitió un transmittal en AeroBim."
+
+
+#: .\apps\documents\notify.py
+msgid "[AeroBim] Transmittal %(folio)s: %(asunto)s"
+msgstr "[AeroBim] Transmittal %(folio)s: %(asunto)s"
+
+
+#: .\apps\documents\notify.py
+msgid "Documents (%(n)s):"
+msgstr "Documentos (%(n)s):"
+
+
+#: .\apps\documents\views.py
+msgid "Add at least one revision."
+msgstr "Agregar al menos una revisión."
+
+
+#: .\apps\documents\views.py
+msgid "Add at least one recipient."
+msgstr "Agregar al menos un destinatario."
+
+
+#: .\apps\documents\views.py
+msgid "Draft transmittal created. Review the cover and issue it."
+msgstr "Transmittal creado en borrador. Revisa la carátula y emítelo."
+
+
+#: .\apps\documents\views.py
+msgid "Transmittal %(folio)s issued, %(n)s recipients notified."
+msgstr "Transmittal %(folio)s emitido, %(n)s destinatarios avisados."
+
+
+#: .\apps\documents\views.py
+msgid "No email address for %(quienes)s: they were not notified."
+msgstr "Sin dirección de correo para %(quienes)s: no se les avisó."
+
+
+#: .\apps\documents\views.py
+msgid "Receipt acknowledged."
+msgstr "Recibo acusado."
+
+
+#: .\templates\documents\nuevo_transmittal.html:4
+#: .\templates\documents\nuevo_transmittal.html:7
+#: .\templates\documents\transmittals.html:14
+msgid "New transmittal"
+msgstr "Nuevo transmittal"
+
+
+#: .\templates\documents\nuevo_transmittal.html:9
+msgid ""
+"Pick the revisions that go out and who they go to. The project is taken from\n"
+"    the revisions. It is created as a draft: issuing it is a separate step, so somebody can read the\n"
+"    cover before it leaves."
+msgstr "Elige las revisiones que salen y a quién van. El proyecto lo dicen las revisiones. Nace como borrador: emitirlo es un paso aparte, para que alguien pueda leer la carátula antes de que salga."
+
+
+#: .\templates\documents\nuevo_transmittal.html:15
+msgid "Create draft"
+msgstr "Crear borrador"
+
+
+#: .\templates\documents\transmittal.html:34
+msgid "Not issued yet."
+msgstr "Todavía no se emitió."
+
+
+#: .\templates\documents\transmittal.html:48
+msgid "no email address"
+msgstr "sin dirección de correo"
+
+
+#: .\templates\documents\transmittal.html:53
+msgid "Nobody yet."
+msgstr "Todavía nadie."
+
+
+#: .\templates\documents\transmittal.html:80
+msgid "Nothing attached yet."
+msgstr "Todavía no lleva nada."
+
+
+#: .\templates\documents\transmittal.html:92
+msgid "What is missing to issue it"
+msgstr "Qué falta para emitirlo"
+
+
+#: .\templates\documents\transmittal.html:103
+msgid "Issue"
+msgstr "Emitir"
+
+
+#: .\templates\documents\transmittal.html:105
+msgid ""
+"Every recipient gets an email with the list of documents and the\n"
+"      link."
+msgstr "A cada destinatario le llega un correo con la lista de documentos y el enlace."
+
+
+#: .\templates\documents\transmittal.html:110
+msgid "Issue and notify"
+msgstr "Emitir y avisar"
+
+
+#: .\templates\documents\transmittal.html:115
+#: .\templates\documents\transmittal.html:118
+msgid "Acknowledge receipt"
+msgstr "Acusar recibo"

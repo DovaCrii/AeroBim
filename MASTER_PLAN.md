@@ -999,7 +999,7 @@ emitió y a quién— viva en un registro y no en la bandeja de correo de alguie
 | `F8.4` | **Asignar, avisar y seguir**: correo al asignar, resumen por tramos, y el expediente                       | ✅     |
 | `F8.5` | **Trabajos programados** con su fila en `JobRun` y su vigilante                                            | ✅     |
 | `F8.6` | **Ver y comentar el PDF en el navegador** con EmbedPDF (MIT), sin descargarlo                              | ⬜     |
-| `F8.7` | **Emitir el transmittal desde la pantalla**, con carátula y acuse                                          | 🟡     |
+| `F8.7` | **Emitir el transmittal desde la pantalla**, con carátula y acuse                                          | ✅     |
 | `F8.8` | **El visor y el registro son el mismo producto**: abrir la revisión desde su expediente                    | ✅     |
 
 ### `F8.8`: el hueco que no estaba en ninguna lista (2026-08-26)
@@ -1116,6 +1116,56 @@ termina en 403 es peor que no ofrecerlo, porque enseña a probar puertas.
   sirve una auditoría.
 - Los cuatro roles ven el registro en el portal y **ninguno ve la auditoría**.
 
+### `F8.7` cerrada: emitir el transmittal desde la pantalla (2026-08-26)
+
+El modelo sabía emitir desde el primer día y estaba probado —no se emite vacío ni sin
+destinatario—, pero **el acto solo se podía ejecutar desde una consola**: la pantalla listaba y
+nada más. Ahora hay las tres piezas que faltaban:
+
+- **El borrador**: se eligen las revisiones y los destinatarios, y **el proyecto no se pide, lo
+  dicen las revisiones**. Pedirlo aparte abre la puerta a un transmittal cuyo proyecto no es el de
+  los documentos que lleva, que es contestar mal la pregunta que el transmittal existe para
+  contestar. Mezclar revisiones de dos proyectos se rechaza.
+- **La carátula**: qué lleva, a quién, el paso a paso derivado del modelo (nunca teclado en la
+  plantilla), y **lo que le falta nombrado** — la misma idea del expediente. Los botones solo si
+  se pueden ejecutar.
+- **Emitir y acusar**: emitir cambia el estado **y avisa**; el acuse cierra el ciclo, y solo sobre
+  lo emitido. `Transmittal.acusar()` es nuevo; no guarda quién acusó porque un transmittal va a
+  varios y el primero que confirma no habla por los demás — eso va a la auditoría, que admite
+  varios.
+
+**El correo lleva la lista de documentos, no solo el enlace.** Quien lo recibe suele leerlo en el
+teléfono y en obra: tiene que poder saber qué le mandaron sin entrar.
+
+**Y no se calla a quien no recibió nada.** Emitir tiene consecuencias contractuales, así que la
+pantalla dice las dos cosas: cuántos se avisaron y **a quién no se pudo**. Es la misma lección que
+`apps/core/mail.py` —el sistema decía «enviado a N» cuando el correo solo se imprimía— aplicada a
+su gemelo: decir «emitido» a secas cuando dos de los cinco destinatarios no tienen dirección deja
+al emisor creyendo que avisó.
+
+**Comprobado por HTTP contra el servicio corriendo**, con los cuatro roles sembrados:
+
+| Qué                                           | Resultado                                                  |
+| --------------------------------------------- | ---------------------------------------------------------- |
+| Armar el borrador sin destinatario            | **400**, no se crea nada                                   |
+| Armarlo bien                                  | Carátula que ofrece **emitir** y no acusar                 |
+| Acusar un borrador                            | Sigue en borrador                                          |
+| Emitir                                        | «Transmittal T-1773 emitido, 3 destinatarios avisados»     |
+| Un destinatario sin correo                    | «Sin dirección de correo para sin-correo: no se les avisó» |
+| Acusar lo emitido                             | La carátula dice acusado                                   |
+| Un **mandante** pidiendo el formulario a mano | **403**, y el enlace no se le ofrece                       |
+| Un **mandante** intentando emitir             | **403**                                                    |
+
+13 pruebas nuevas, incluidas las dos del contrato: 403 por vista y **aislamiento entre
+organizaciones sobre el `POST` de emitir** — sin acotar la consulta, `emitir/<id-de-otra>` no es
+una fuga de lectura, es firmar en nombre de otro.
+
+> **De paso salió un defecto latente que el gate no podía ver.** `compilemessages` no recompila
+> si el `.mo` es más nuevo que el `.po`, y el `.po` llevaba **una entrada que msgfmt rechaza** —el
+> `\n` inicial en el `msgid` y no en el `msgstr` de la paginación—. El binario al día lo tapaba, y
+> el error solo aparecía el día que alguien tocara el catálogo. Arreglada la entrada y **añadido
+> `compilemessages` al gate borrando el `.mo` antes**, que es lo único que lo comprueba de verdad.
+
 ### Lo que falta de esta fase, dicho en voz alta
 
 - **`F8.6`: ver y comentar el PDF en el navegador**, con **EmbedPDF** (MIT, framework-agnóstico,
@@ -1123,12 +1173,6 @@ termina en 403 es peor que no ofrecerlo, porque enseña a probar puertas.
   MineDoc, y su licencia encaja donde `pdf.js` solo no llega — `pdf.js` muestra, no anota. Hoy
   la observación sobre un documento guarda su página y su coordenada y **no hay quien las
   dibuje**.
-- **`F8.7`: emitir el transmittal desde la pantalla.** El modelo está y se prueba —no se emite
-  vacío ni sin destinatario— pero la pantalla solo lista: falta armar el borrador, la carátula y
-  el acuse.
-- **El catálogo `locale/es/` no existe**, así que la interfaz mezcla las cadenas fuente en
-  inglés con lo que Django traduce por su cuenta. Se vio en pantalla: «File» sale como
-  «Archivo» y «Yes» como «Sí» porque esas las traduce Django, y las propias no.
 
 ---
 

@@ -9,7 +9,14 @@ navegador.
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
-from apps.documents.models import Actividad, Entregable, Idoneidad, Observacion, Revision
+from apps.documents.models import (
+    Actividad,
+    Entregable,
+    Idoneidad,
+    Observacion,
+    Revision,
+    Transmittal,
+)
 from apps.documents.storage import EXTENSIONES_ACEPTADAS, CargaRechazada, validar
 
 
@@ -119,3 +126,45 @@ class IdoneidadForm(forms.Form):
     """Cambiar el codigo de idoneidad de una revision: es el trabajo del revisor."""
 
     idoneidad = forms.ChoiceField(label=_("Suitability"), choices=Idoneidad.choices)
+
+
+class TransmittalForm(forms.ModelForm):
+    """El borrador del transmittal: que revisiones van y a quien.
+
+    **El proyecto no se elige: lo dicen las revisiones.** Pedirlo aparte abre la puerta a
+    un transmittal cuyo proyecto no es el de los documentos que lleva, y ese registro
+    contesta mal la pregunta que el transmittal existe para contestar.
+    """
+
+    class Meta:
+        model = Transmittal
+        fields = ("folio", "asunto", "revisiones", "destinatarios")
+        widgets = {
+            "revisiones": forms.CheckboxSelectMultiple,
+            "destinatarios": forms.CheckboxSelectMultiple,
+        }
+
+    def __init__(self, *args, revisiones=None, destinatarios=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Los dos son obligatorios **en el formulario** aunque el modelo los deje en blanco:
+        # el modelo admite el borrador a medio armar, la pantalla de emision no.
+        self.fields["revisiones"].required = True
+        self.fields["destinatarios"].required = True
+        if revisiones is not None:
+            self.fields["revisiones"].queryset = revisiones
+        if destinatarios is not None:
+            self.fields["destinatarios"].queryset = destinatarios
+
+    def clean_revisiones(self):
+        elegidas = self.cleaned_data["revisiones"]
+        proyectos = {revision.entregable.proyecto_id for revision in elegidas}
+        if len(proyectos) > 1:
+            raise forms.ValidationError(
+                _("All revisions in one transmittal must belong to the same project.")
+            )
+        return elegidas
+
+    @property
+    def proyecto(self):
+        """El proyecto deducido de las revisiones. Solo tiene sentido tras validar."""
+        return self.cleaned_data["revisiones"][0].entregable.proyecto

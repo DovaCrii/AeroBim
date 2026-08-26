@@ -44,4 +44,16 @@ urlpatterns = [
     path("actividades/", views.ActividadesView.as_view(), name="actividades"),
     path("actividades/nueva/", views.NuevaActividadView.as_view(), name="nueva-actividad"),
     path("transmittals/", views.TransmittalsView.as_view(), name="transmittals"),
+    path("transmittals/nuevo/", views.NuevoTransmittalView.as_view(), name="nuevo-transmittal"),
+    path("transmittals/<uuid:pk>/", views.TransmittalView.as_view(), name="transmittal"),
+    path(
+        "transmittals/<uuid:pk>/emitir/",
+        views.EmitirTransmittalView.as_view(),
+        name="emitir-transmittal",
+    ),
+    path(
+        "transmittals/<uuid:pk>/acusar/",
+        views.AcusarTransmittalView.as_view(),
+        name="acusar-transmittal",
+    ),
 ]

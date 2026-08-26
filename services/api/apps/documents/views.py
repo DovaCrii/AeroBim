@@ -8,6 +8,8 @@ a probar puertas.
 """
 
 from django.contrib import messages
+from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
@@ -15,7 +17,7 @@ from django.utils.translation import gettext as _
 from django.views.generic import DetailView, ListView, TemplateView, View
 
 from apps.core.audit import set_audit_context
-from apps.core.tenancy import scope_queryset_to_organizacion
+from apps.core.tenancy import organizaciones_visibles, scope_queryset_to_organizacion
 from apps.core.views import (
     FiltrosEnLaPaginacionMixin,
     ModelPermissionRequiredMixin,
@@ -32,6 +34,7 @@ from apps.documents.forms import (
     IdoneidadForm,
     ObservacionForm,
     RevisionForm,
+    TransmittalForm,
 )
 from apps.documents.models import (
     IDONEIDADES_PUBLICADAS,
@@ -43,7 +46,7 @@ from apps.documents.models import (
     Revision,
     Transmittal,
 )
-from apps.documents.notify import avisar_asignacion
+from apps.documents.notify import avisar_asignacion, avisar_transmittal
 
 
 def solo_publicadas(queryset, user):
@@ -56,6 +59,26 @@ def solo_publicadas(queryset, user):
     if user.has_perm("documents.change_revision") or user.has_perm("documents.add_revision"):
         return queryset
     return queryset.filter(idoneidad__in=IDONEIDADES_PUBLICADAS)
+
+
+def revisiones_visibles(user):
+    """Las revisiones que este usuario puede leer, acotadas y filtradas.
+
+    **Se acota a mano y no con `scope_queryset_to_organizacion`.** Una `Revision` no lleva el
+    campo `organizacion` —cuelga de su entregable—, y ese ayudante devuelve intacto un modelo
+    que no lo tiene: confiar en él dejaría el hueco abierto.
+
+    Vive aquí, junto a {@link solo_publicadas}, porque la regla la necesitan **dos sitios**: la
+    API que alimenta al visor y el desplegable de revisiones al armar un transmittal. Escrita
+    una vez, no se puede olvidar en uno de los dos.
+    """
+    ids = organizaciones_visibles(user)
+    consulta = Revision.objects.select_related("entregable__proyecto", "entregable__disciplina")
+    if not user.is_superuser:
+        if not ids:
+            return consulta.none()
+        consulta = consulta.filter(entregable__organizacion_id__in=ids)
+    return solo_publicadas(consulta, user)
 
 
 class EntregablesView(
@@ -354,6 +377,162 @@ class TransmittalsView(
             .select_related("proyecto", "emisor")
             .prefetch_related("destinatarios", "revisiones__entregable")
         )
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        contexto["puede_crear"] = self.request.user.has_perm("documents.add_transmittal")
+        return contexto
+
+
+class TransmittalView(
+    ModelViewPermissionRequiredMixin, OrganizacionScopedQuerysetMixin, DetailView
+):
+    """La carátula: qué lleva, a quién va, en qué estado está y qué se puede hacer.
+
+    **Es la pantalla que faltaba.** El modelo sabía emitir desde el principio y la lista solo
+    listaba, así que un transmittal solo se podía emitir desde una consola.
+    """
+
+    model = Transmittal
+    template_name = "documents/transmittal.html"
+    context_object_name = "transmittal"
+
+    def get_queryset(self):
+        return (
+            super()
+            .get_queryset()
+            .select_related("proyecto", "emisor")
+            .prefetch_related("destinatarios", "revisiones__entregable")
+        )
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        # **El botón solo si se puede ejecutar**, y son dos condiciones distintas: el permiso
+        # y el estado. Separadas, porque el mensaje que merece cada una no es el mismo: a
+        # quien no tiene permiso no se le explica qué le falta al borrador.
+        puede_cambiar = self.request.user.has_perm("documents.change_transmittal")
+        contexto["puede_emitir"] = puede_cambiar and self.object.puede_emitirse
+        contexto["puede_acusar"] = puede_cambiar and self.object.puede_acusarse
+        contexto["falta_para_emitir"] = self.falta_para_emitir()
+        return contexto
+
+    def falta_para_emitir(self) -> list[str]:
+        """Qué le falta al borrador, **nombrado**. Es la idea del expediente."""
+        if self.object.status != Transmittal.BORRADOR:
+            return []
+        faltas = []
+        if not self.object.revisiones.exists():
+            faltas.append(_("Add at least one revision."))
+        if not self.object.destinatarios.exists():
+            faltas.append(_("Add at least one recipient."))
+        return faltas
+
+
+class NuevoTransmittalView(ModelPermissionRequiredMixin, View):
+    """Armar el borrador: qué revisiones van y a quién.
+
+    Nace **borrador** siempre, aunque esté completo: emitir es un acto aparte y con acuse, y
+    juntarlo con el alta quitaría el paso en que alguien revisa la carátula antes de que salga.
+    """
+
+    model = Transmittal
+    permission_action = "add"
+    template_name = "documents/nuevo_transmittal.html"
+
+    def formulario(self, request, datos=None):
+        # Las opciones se acotan a la organización de quien mira: un desplegable con las
+        # revisiones de todas las organizaciones no es solo incómodo, es una fuga.
+        return TransmittalForm(
+            datos,
+            revisiones=revisiones_visibles(request.user),
+            destinatarios=get_user_model().objects.filter(is_active=True).order_by("username"),
+        )
+
+    def get(self, request, *args, **kwargs):
+        from django.shortcuts import render
+
+        return render(request, self.template_name, {"form": self.formulario(request)})
+
+    def post(self, request, *args, **kwargs):
+        from django.shortcuts import render
+
+        form = self.formulario(request, request.POST)
+        if not form.is_valid():
+            return render(request, self.template_name, {"form": form}, status=400)
+
+        transmittal = form.save(commit=False)
+        transmittal.proyecto = form.proyecto
+        transmittal.organizacion = form.proyecto.organizacion
+        transmittal.emisor = request.user
+        transmittal.save()
+        # El `save_m2m` va después del `save()` y no antes: sin identificador no hay a qué
+        # colgar las relaciones.
+        form.save_m2m()
+        set_audit_context(request, transmittal, action="crear_transmittal")
+        messages.success(request, _("Draft transmittal created. Review the cover and issue it."))
+        return redirect("documents:transmittal", pk=transmittal.pk)
+
+
+class EmitirTransmittalView(ModelPermissionRequiredMixin, View):
+    """Emitir: cambia el estado **y avisa**. Las dos cosas, o no sirve de nada."""
+
+    model = Transmittal
+    permission_action = "change"
+
+    def post(self, request, *args, **kwargs):
+        transmittal = get_object_or_404(
+            scope_queryset_to_organizacion(Transmittal.objects.all(), request.user), pk=kwargs["pk"]
+        )
+        try:
+            transmittal.emitir()
+        except ValidationError as rechazo:
+            # El modelo ya lo impide; la pantalla lo dice con palabras en vez de con un 500.
+            messages.error(request, "; ".join(rechazo.messages))
+            return redirect("documents:transmittal", pk=transmittal.pk)
+
+        avisados, sin_correo = avisar_transmittal(transmittal)
+        set_audit_context(
+            request,
+            transmittal,
+            action="emitir_transmittal",
+            metadata={"avisados": avisados, "sin_correo": len(sin_correo)},
+        )
+        messages.success(
+            request,
+            _("Transmittal %(folio)s issued, %(n)s recipients notified.")
+            % {"folio": transmittal.folio, "n": avisados},
+        )
+        # **No se calla a quien no recibió nada.** Emitir tiene consecuencias contractuales:
+        # decir "emitido" a secas cuando dos destinatarios no tienen correo deja al emisor
+        # creyendo que avisó.
+        if sin_correo:
+            messages.warning(
+                request,
+                _("No email address for %(quienes)s: they were not notified.")
+                % {"quienes": ", ".join(sin_correo)},
+            )
+        return redirect("documents:transmittal", pk=transmittal.pk)
+
+
+class AcusarTransmittalView(ModelPermissionRequiredMixin, View):
+    """Acusar recibo: cierra el ciclo del registro."""
+
+    model = Transmittal
+    permission_action = "change"
+
+    def post(self, request, *args, **kwargs):
+        transmittal = get_object_or_404(
+            scope_queryset_to_organizacion(Transmittal.objects.all(), request.user), pk=kwargs["pk"]
+        )
+        try:
+            transmittal.acusar(request.user)
+        except ValidationError as rechazo:
+            messages.error(request, "; ".join(rechazo.messages))
+            return redirect("documents:transmittal", pk=transmittal.pk)
+
+        set_audit_context(request, transmittal, action="acusar_transmittal")
+        messages.success(request, _("Receipt acknowledged."))
+        return redirect("documents:transmittal", pk=transmittal.pk)
 
 
 class MiBandejaView(ModelViewPermissionRequiredMixin, TemplateView):

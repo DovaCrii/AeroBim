@@ -35,6 +35,17 @@ Paso "check --deploy" {
 }
 
 Paso "makemigrations --check" { uv run python manage.py makemigrations --check --dry-run }
+
+# **Un `.mo` al dia tapa un `.po` roto.** `compilemessages` no recompila si el binario es mas
+# nuevo que el catalogo, asi que un `.po` que msgfmt rechaza pasa desapercibido hasta el dia
+# que alguien lo toca -- y eso paso: el catalogo llevaba una entrada con el `\n` inicial en el
+# `msgid` y no en el `msgstr`, y el gate lo daba por bueno porque no lo compilaba nunca. Se
+# borra el binario antes para que compile siempre, que es lo unico que lo comprueba.
+Paso "compilemessages" {
+    Get-ChildItem locale -Filter "*.mo" -Recurse | Remove-Item -Force
+    uv run python manage.py compilemessages -i .venv -i staticfiles
+}
+
 Paso "pytest" { uv run pytest --cov }
 Paso "ruff check" { uv run ruff check . }
 Paso "ruff format" { uv run ruff format --check . }

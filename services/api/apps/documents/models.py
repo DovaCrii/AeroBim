@@ -306,6 +306,29 @@ class Transmittal(BaseModel):
         self.emitido_en = timezone.now()
         self.save(update_fields=["status", "emitido_en", "updated_at"])
 
+    @property
+    def puede_acusarse(self) -> bool:
+        """**Solo se acusa lo que se emitio.**
+
+        Un acuse sobre un borrador diria que alguien recibio algo que no salio, y es
+        justamente el dato que se viene a buscar seis meses despues.
+        """
+        return self.status == self.EMITIDO
+
+    def acusar(self, quien=None):
+        """Registra que llego. `quien` va al log de auditoria, no al modelo.
+
+        No se guarda quien acuso porque un transmittal va a varios destinatarios y el
+        primero que confirma no habla por los demas: lo que el registro puede afirmar es
+        **que se acuso y cuando**. Quien lo hizo queda en la auditoria, que es append-only
+        y admite varios.
+        """
+        if not self.puede_acusarse:
+            raise ValidationError("Solo se puede acusar recibo de un transmittal emitido.")
+        self.status = self.ACUSADO
+        self.acusado_en = timezone.now()
+        self.save(update_fields=["status", "acusado_en", "updated_at"])
+
 
 class Observacion(BaseModel):
     """Una observacion, un error, un hallazgo: algo que alguien tiene que resolver.

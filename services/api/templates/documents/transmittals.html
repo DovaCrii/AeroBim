@@ -10,6 +10,10 @@
     record.{% endblocktranslate %}
   </p>
 
+  {% if puede_crear %}
+    <p><a href="{% url 'documents:nuevo-transmittal' %}">{% translate "New transmittal" %}</a></p>
+  {% endif %}
+
   <table>
     <thead>
       <tr>
@@ -25,7 +29,9 @@
     <tbody>
       {% for transmittal in transmittals %}
         <tr>
-          <td>{{ transmittal.folio }}</td>
+          <td>
+            <a href="{% url 'documents:transmittal' transmittal.pk %}">{{ transmittal.folio }}</a>
+          </td>
           <td>{{ transmittal.asunto }}</td>
           <td>{{ transmittal.emisor }}</td>
           <td>
