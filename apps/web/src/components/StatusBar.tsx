@@ -15,6 +15,7 @@ import { IconEye, IconIsolate } from "./icons.js";
 export function StatusBar({
   measureMode,
   measurePoints,
+  measureMissed,
   measurement,
   selected,
   modelCount,
@@ -28,6 +29,15 @@ export function StatusBar({
   readonly measureMode: MeasureMode | null;
   /** Puntos ya puestos en la medición en curso: dice qué falta. */
   readonly measurePoints: number;
+  /**
+   * `true` si el último clic al medir no encontró geometría.
+   *
+   * **Es la mitad que faltaba del arreglo de la medición.** Antes el visor daba por registrado
+   * cualquier clic, así que uno que cayó al vacío se veía igual que uno que entró: el aviso
+   * pasaba a pedir el punto siguiente y no se dibujaba nada. Ahora el clic al vacío no cuenta —y
+   * hay que decirlo, o el silencio se sigue leyendo como «no funciona».
+   */
+  readonly measureMissed: boolean;
   readonly measurement: Measurement | null;
   readonly selected: PickedItem | null;
   readonly modelCount: number;
@@ -50,11 +60,19 @@ export function StatusBar({
         <span className="text-white/80">{ETIQUETA_MODO[measureMode ?? "select"]}</span>
       </span>
 
-      <span className="min-w-0 flex-1 truncate text-brand">
+      <span
+        className={
+          measureMissed && measureMode !== null
+            ? "min-w-0 flex-1 truncate text-amber-300"
+            : "min-w-0 flex-1 truncate text-brand"
+        }
+      >
         {aligning !== null
           ? instruccionDeCalce(aligning.planName, aligning.placed)
           : measureMode !== null
-            ? instruccion(measureMode, measurePoints)
+            ? measureMissed
+              ? "Ahí no hay geometría: el clic no contó. Apunta al modelo o a un trazo del plano."
+              : instruccion(measureMode, measurePoints)
             : selected === null
               ? "Clic en un elemento para ver sus propiedades · doble clic para acercarse"
               : `${selected.category ?? "Elemento"}${

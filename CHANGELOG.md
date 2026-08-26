@@ -5,6 +5,46 @@ Este proyecto sigue [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Corregido — La medición de distancia no fallaba, mentía (`F1.14`, 2026-08-26)
+
+Lo reportó el usuario: «las opciones de medida de distancia no está funcionando». El defecto
+tenía dos mitades, y la segunda es la que lo hacía indistinguible de «no funciona».
+
+- El ajuste de `LengthMeasurement` **no usa el rayo de la CPU: lee los píxeles de la escena
+  dibujada.** Cuando esa lectura no resuelve, `create()` no coloca nada.
+- Y `addMeasurePoint` **devolvía `true` de todas formas** —con su propio comentario admitiéndolo—,
+  así que la interfaz avanzaba el contador y el aviso pasaba a pedir el segundo punto. Un clic que
+  no hizo nada se veía **igual** que uno que sí.
+
+El arreglo usa el rayo propio, que ya estaba escrito: `snapAt` va por `fragments.raycast` con las
+mismas clases de ajuste y es el mismo mecanismo que la selección, que sí funciona en uso real.
+Devuelve el punto o `null`, así que el valor de retorno deja de mentir. Y `addPlanMeasurePoint`,
+que ya dibujaba una cota de dos clics con coordenadas propias, se generaliza y sirve para los dos.
+
+**Y ahora el clic al vacío se dice**: la barra de estado avisa en ámbar en vez de callarse. El
+silencio es lo que se lee como «no funciona».
+
+**De paso salió gratis lo que `docs/UX.md` tenía pedido**: medir del plano al modelo en un mismo
+gesto, porque los dos puntos entran por la misma función.
+
+Comprobado en el navegador con `Piso 5.ifc` y `ACAD-Piso 5_Base.dxf` cargados a la vez: clic al
+vacío devuelve `false`, dos clics sobre el modelo dan **13,066 m** (13,064 en planta, 0,179 de
+desnivel), y del plano al modelo **8,948 m**. Sin errores en consola.
+
+El ángulo y el área siguen con el medidor de la librería y siguen sin informar del clic vacío. Va
+dicho en el código: son las dos que quedan.
+
+### Buscado y no encontrado — la preselección al pasar el ratón (`F1.12`, 2026-08-26)
+
+«Al acercar el mouse sin clickear selecciona solo elementos, lo cual es poco práctico.»
+**No está en nuestro código**: `pickAt` se llama solo desde `onClick`, y no hay un solo
+`addEventListener` de movimiento del ratón en todo `packages/viewer`. Lo único que escucha el
+puntero son los controles de cámara y los medidores de la librería cuando están encendidos.
+
+El único candidato es el **marcador de ajuste** de `LengthMeasurement`: un punto de 10 px **del
+mismo violeta que la selección** que sigue al cursor mientras se está en modo medición. Antes de
+cambiar el comportamiento de la selección hace falta confirmar con el usuario si eso es lo que vio.
+
 ### Añadido — El visor y el registro dejan de ser dos herramientas (2026-08-26)
 
 **El hueco no estaba en ninguna lista, y era el más grande.** El visor abría archivos del disco

@@ -2189,15 +2189,36 @@ export class BimViewer {
       return this.addPerpendicularPoint(clientX, clientY);
     }
 
-    // **El plano tiene la primera palabra al medir distancias.** El ajuste de la librería trabaja
-    // sobre la geometría del modelo y no ve los trazos del CAD, así que sin esto medir sobre un
-    // plano es imposible: el clic cae al vacío o se engancha al muro que hay debajo. Solo actúa si
-    // el cursor está de verdad sobre un trazo; si no, sigue el camino de siempre.
-    if (this.measureMode === "distance" && this.planSnapEnabled) {
-      if (clientX !== undefined && clientY !== undefined) {
+    // **Medir distancias va con el rayo propio, no con el selector de la librería.**
+    //
+    // El usuario reportó que «las opciones de medida de distancia no está funcionando», y leyendo
+    // el camino que había se ve por qué podía no funcionar **y por qué no lo decía**:
+    //
+    // - El ajuste de `LengthMeasurement` **no usa el rayo de la CPU: lee los píxeles de la escena
+    //   dibujada**. Cuando esa lectura no resuelve —y depende de qué fotograma haya— `create()` no
+    //   coloca nada.
+    // - Y esta función **devolvía `true` de todas formas**. La interfaz avanzaba su contador y el
+    //   aviso pasaba a pedir el segundo punto, así que un clic que no hizo nada se veía igual que
+    //   uno que sí: exactamente «no funciona» sin un solo mensaje.
+    //
+    // El rayo propio (`snapAt`) usa `fragments.raycast` con las mismas clases de ajuste —vértice,
+    // arista y cara— y es el mismo que usa la selección, que sí funciona en uso real. Devuelve el
+    // punto o `null`, así que el valor de retorno **deja de mentir**.
+    //
+    // Y de paso resuelve lo que `docs/UX.md` tenía pedido: **medir del plano al modelo en un mismo
+    // gesto**, porque los dos puntos entran por el mismo sitio.
+    if (this.measureMode === "distance") {
+      if (clientX === undefined || clientY === undefined) return false;
+
+      // El plano tiene la primera palabra: su ajuste ve los trazos del CAD, que el del modelo no.
+      if (this.planSnapEnabled) {
         const enganche = this.snapOnPlan(clientX, clientY);
-        if (enganche !== null) return this.addPlanMeasurePoint(enganche);
+        if (enganche !== null) return this.addDistancePoint(new THREE.Vector3(...enganche.point));
       }
+
+      const punto = await this.snapAt(clientX, clientY);
+      if (punto === null) return false;
+      return this.addDistancePoint(punto);
     }
 
     // **Un dibujado antes de leer.** El ajuste del medidor no usa el rayo de la CPU: lee los
@@ -2207,12 +2228,12 @@ export class BimViewer {
     // dibujado explícito acá cuesta milisegundos y garantiza que se mide lo que se está viendo.
     this.world.renderer?.update();
 
-    if (this.measureMode === "distance") await this.tools.distance.create();
-    else if (this.measureMode === "angle") await this.tools.angle.create();
+    if (this.measureMode === "angle") await this.tools.angle.create();
     else if (this.measureMode === "area") await this.tools.area.create();
 
-    // Los medidores de la librería no informan si el clic cayó en el vacío, así que acá se da por
-    // registrado. Es lo que había antes de que existiera este valor de retorno.
+    // El ángulo y el área siguen con el medidor de la librería, y **siguen sin informar** si el
+    // clic cayó en el vacío. Se deja dicho: son las dos que quedan por pasar al rayo propio, y
+    // hacerlo ahora sería cambiar tres cosas para arreglar una.
     return true;
   }
 
@@ -2296,21 +2317,25 @@ export class BimViewer {
   }
 
   /**
-   * Los dos clics de una medición sobre el plano.
+   * Los dos clics de una medición de distancia, venga el punto de donde venga.
    *
    * **La cota la dibuja el medidor de la librería aunque los puntos sean propios**, igual que la
-   * perpendicular: así una medida tomada sobre el plano se ve como las demás, aparece en la misma
-   * lista y se apaga y se borra igual. Lo único propio es de dónde salen los dos puntos.
+   * perpendicular: así una medida se ve como las demás, aparece en la misma lista y se apaga y se
+   * borra igual. Lo único propio es de dónde salen los dos puntos.
+   *
+   * **Y por eso los dos puntos no tienen que venir del mismo sitio.** Uno puede engancharse a un
+   * trazo del CAD y el otro a un vértice del modelo, que es literalmente lo que `docs/UX.md` tenía
+   * anotado como pendiente: _«medir del plano al modelo en un mismo gesto»_. Sale de que los dos
+   * entren por aquí, no de código nuevo.
    */
-  private addPlanMeasurePoint(enganche: PlanSnap): boolean {
-    const punto = new THREE.Vector3(...enganche.point);
-
+  private addDistancePoint(punto: THREE.Vector3): boolean {
     if (this.planMeasureStart === null) {
       this.planMeasureStart = punto;
 
       // El primer punto tiene que verse, o no hay forma de saber si el clic entró ni dónde quedó
-      // enganchado. Se marca con la misma cruz de la perpendicular, mirando hacia arriba porque un
-      // plano es horizontal.
+      // enganchado. Se marca con la misma cruz de la perpendicular, mirando hacia arriba: sirve
+      // igual sobre un plano —que es horizontal— y sobre el modelo, donde lo que importa es ver
+      // **dónde** quedó el punto y no la orientación de la cara.
       const marca = marcaDeReferencia(
         punto,
         new THREE.Vector3(0, 1, 0),

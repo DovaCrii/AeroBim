@@ -254,6 +254,8 @@ export function App() {
    * el clic entró, y eso es justo lo que hacía pensar que medir no funcionaba.
    */
   const [measurePoints, setMeasurePoints] = useState(0);
+  /** `true` si el último clic al medir cayó al vacío. Ver {@link StatusBar}. */
+  const [measureMissed, setMeasureMissed] = useState(false);
   /** Las cotas dibujadas, para poder apagarlas o borrarlas una por una. */
   const [drawn, setDrawn] = useState<readonly DrawnMeasurement[]>([]);
   const [snapMode, setSnapMode] = useState<SnapMode>("vertex");
@@ -392,6 +394,7 @@ export function App() {
           setDrawn(instance.listMeasurements());
           // Una medición cerrada —o descartada— deja el contador a cero para la siguiente.
           setMeasurePoints(0);
+          setMeasureMissed(false);
         });
         // **En desarrollo el visor queda a mano desde la consola.** Es lo que permite comprobar
         // una selección o una carga sin ojos —`window.aerobim.pickPlan(x, y)`— y es la misma idea
@@ -629,6 +632,10 @@ export function App() {
           // Solo cuenta el clic que registró: si cayó al vacío, el aviso sigue pidiendo lo mismo en
           // vez de pasar al paso siguiente como si hubiera entrado.
           const registrado = await instance.addMeasurePoint(event.clientX, event.clientY);
+          // **Un clic que no encontró geometría se dice.** Antes el visor daba todo por registrado
+          // y el aviso pasaba a pedir el punto siguiente: un clic al vacío se veía igual que uno
+          // que entró, y eso es lo que se lee como «la medición no funciona».
+          setMeasureMissed(!registrado);
           if (registrado) setMeasurePoints((actual) => actual + 1);
           return;
         }
@@ -707,6 +714,7 @@ export function App() {
   const onMeasureMode = useCallback((mode: MeasureMode | null) => {
     setMeasureMode(mode);
     setMeasurePoints(0);
+    setMeasureMissed(false);
     // Medir y seleccionar no se mezclan: entrar a medir cierra la ficha y suelta el elemento
     // resaltado, que si no se queda violeta debajo de las cotas y estorba para ver.
     if (mode !== null) setSelected(null);
@@ -1445,6 +1453,7 @@ export function App() {
       <StatusBar
         measureMode={measureMode}
         measurePoints={measurePoints}
+        measureMissed={measureMissed}
         measurement={measurement}
         selected={selected}
         modelCount={models.length}

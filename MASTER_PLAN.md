@@ -259,7 +259,7 @@ software de escritorio ni pedir una licencia.
 | `F1.11` | **El picker caía desviado** el ancho del panel izquierdo: se seleccionaba otro elemento                                               | ✅ ver abajo |
 | `F1.12` | **Preselección al pasar el cursor** — se selecciona sin clicar y el usuario lo llama «poco práctico»                                  | ⬜ ver abajo |
 | `F1.13` | **El panel de abajo no se entiende** — reubicar y agrupar las herramientas, mirando cómo lo resuelven Revit y AutoCAD                 | ⬜ ver abajo |
-| `F1.14` | **La medición de distancia no funciona** en uso real, con el modelo del usuario                                                       | ⬜ ver abajo |
+| `F1.14` | **La medición de distancia no funciona** en uso real, con el modelo del usuario                                                       | ✅ ver abajo |
 | `F1.15` | **El modo fantasma se cae al mover** la cámara                                                                                        | ⬜ ver abajo |
 | `F1.16` | **El renderizado no da profundidad** — sin sombras creíbles, el modelo se lee peor de lo que debería                                  | ⬜ ver abajo |
 
@@ -270,8 +270,52 @@ Son cinco cosas, dichas con sus palabras, y ninguna es cosmética — todas son 
 navega y se revisa_, que es lo que llamó «lo esencial»:
 
 - **`F1.12`** «al acercar el mouse sin clickear selecciona solo elementos, lo cual es poco
-  práctico». **Se cruza con el 2D**: la preselección compite con el picking del plano, así que
-  el arreglo hay que probarlo con un DXF y un IFC cargados a la vez.
+  práctico». **Buscado y no está en nuestro código** (2026-08-26): `pickAt` se llama solo desde
+  `onClick`, y no hay un solo `addEventListener` de movimiento del ratón en todo
+  `packages/viewer` —lo único que escucha el puntero son los controles de cámara y los medidores
+  de la librería cuando están encendidos—. El único candidato es el **marcador de ajuste** de
+  `LengthMeasurement`: un punto de 10 px **del mismo violeta que la selección** que sigue al
+  cursor y salta a los vértices mientras se está en modo medición. Antes de cambiar el
+  comportamiento de la selección hay que confirmar con el usuario si eso es lo que vio.
+
+### `F1.14` cerrada: la medición no fallaba, mentía (2026-08-26)
+
+**El defecto tenía dos mitades y la segunda es la que lo hacía indistinguible de «no funciona».**
+
+1. El ajuste de `LengthMeasurement` **no usa el rayo de la CPU: lee los píxeles de la escena
+   dibujada**. Cuando esa lectura no resuelve —y depende de qué fotograma haya— `create()` no
+   coloca nada.
+2. Y `addMeasurePoint` **devolvía `true` de todas formas**, con su propio comentario admitiéndolo:
+   _«Los medidores de la librería no informan si el clic cayó en el vacío, así que acá se da por
+   registrado»_. La interfaz avanzaba el contador, el aviso pasaba a pedir el segundo punto, y un
+   clic que no hizo nada se veía **igual** que uno que sí.
+
+**El arreglo es usar el rayo propio, que ya estaba escrito.** `snapAt` usa `fragments.raycast` con
+las mismas clases de ajuste —vértice, arista, cara— y es el mismo mecanismo que la selección, que
+sí funciona en uso real. Devuelve el punto o `null`, así que el valor de retorno deja de mentir; y
+`addPlanMeasurePoint`, que ya dibujaba una cota de dos clics con coordenadas propias, se
+generaliza a `addDistancePoint` y sirve para los dos.
+
+**Y la otra mitad: ahora el clic al vacío se dice.** La barra de estado avisa en ámbar —«ahí no hay
+geometría: el clic no contó»— en vez de callarse. El silencio es lo que se lee como «no funciona».
+
+**De paso salió gratis lo que `docs/UX.md` tenía pedido**: medir del plano al modelo en un mismo
+gesto. Los dos puntos entran por la misma función, así que uno puede engancharse a un trazo del CAD
+y el otro a un vértice del modelo.
+
+**Comprobado en el navegador** con `Piso 5.ifc` y `ACAD-Piso 5_Base.dxf` cargados a la vez:
+
+| Qué                            | Resultado                                                        |
+| ------------------------------ | ---------------------------------------------------------------- |
+| El rayo propio sobre el modelo | Devuelve el punto; en una esquina vacía devuelve `null`          |
+| Clic al vacío                  | `false` — **no cuenta**, y la barra lo dice                      |
+| Dos clics sobre el modelo      | Una cota: **13,066 m**, con 13,064 en planta y 0,179 de desnivel |
+| Del plano al modelo            | Una cota: **8,948 m**                                            |
+
+> **El ángulo y el área siguen con el medidor de la librería, y siguen sin informar** si el clic
+> cayó en el vacío. Va dicho en el código: son las dos que quedan por pasar al rayo propio, y
+> hacerlo ahora sería cambiar tres cosas para arreglar una.
+
 - **`F1.13`** «abajo no se entienden bien, debe ser un panel mejor implementado; revisar cómo la
   competencia lo utiliza». La referencia declarada en `docs/UX.md` ya es AutoCAD y Revit.
 - **`F1.14`** «las opciones de medida de distancia no está funcionando». `F1.4` está cerrada con

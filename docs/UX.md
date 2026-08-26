@@ -134,8 +134,11 @@ trabajo entero —coordinar no es medir—, y nunca para un solo botón.
 - **Herramientas CAD de revisión** (`F7.11`): snap a extremo/medio/intersección sobre el plano,
   medir del plano al modelo, y marcar sobre el plano. Hoy se puede seleccionar un trazo y leer su
   largo, que es el primer paso.
-- **Intersección de dos trazos** como punto de ajuste, y medir del plano al modelo en un mismo
-  gesto. El extremo y el punto medio ya enganchan.
+- **Intersección de dos trazos** como punto de ajuste. El extremo y el punto medio ya enganchan.
+- ~~Medir del plano al modelo en un mismo gesto~~ — **hecho el 2026-08-26**, y salió gratis: al
+  pasar la medición de distancia al rayo propio, los dos puntos entran por la misma función, así
+  que uno puede engancharse a un trazo del CAD y el otro a un vértice del modelo. Comprobado en
+  el navegador: 8,948 m entre un trazo del plano y un punto del `Piso 5.ifc`.
 - **Llevar la selección al árbol**: seleccionar en el modelo y que el árbol se despliegue hasta el
   elemento.
 - **Textos del plano en 3D**: se dibujan tumbados sobre el plano, con su color y **con la
