@@ -559,3 +559,87 @@ class Actividad(StatusFlowMixin, BaseModel):
         if self.vence is None or self.status in {self.HECHA, self.ANULADA}:
             return False
         return self.vence < timezone.localdate()
+
+
+class RequisitoIds(BaseModel):
+    """El requisito de informacion del proyecto, escrito en un IDS (`F3.5`).
+
+    **Es del proyecto y no del entregable.** El mandante exige lo mismo a todos los modelos de la
+    obra —"cada viga trae su fase", "cada muro su pset de identidad"—, y tenerlo por entregable
+    obligaria a copiarlo y a mantener las copias de acuerdo.
+
+    IDS es el estandar de buildingSMART para escribirlo, asi que **el requisito es interoperable**:
+    el mismo archivo lo entiende Solibri, lo entiende BlenderBIM y lo entiende esto. Un requisito
+    escrito en una tabla nuestra no lo entiende nadie mas.
+    """
+
+    organizacion = models.ForeignKey(
+        Organizacion, on_delete=models.PROTECT, related_name="requisitos_ids"
+    )
+    proyecto = models.ForeignKey(Proyecto, on_delete=models.CASCADE, related_name="requisitos_ids")
+    titulo = models.CharField(max_length=250, verbose_name=_("title"))
+
+    # El archivo, con la misma disciplina que una revision: clave por contenido y el nombre del
+    # cliente solo en la base de datos.
+    clave_archivo = models.CharField(max_length=400, blank=True)
+    nombre_original = models.CharField(max_length=250, blank=True)
+    sha256 = models.CharField(max_length=64, blank=True, db_index=True)
+
+    subido_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="requisitos_ids_subidos"
+    )
+
+    class Meta:
+        verbose_name = _("information requirement")
+        verbose_name_plural = _("information requirements")
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return self.titulo
+
+
+class ValidacionIds(BaseModel):
+    """Una corrida de un requisito contra una revision: **un acto, con su fecha**.
+
+    No es un campo de la revision, y la diferencia importa: el requisito cambia —el mandante añade
+    una exigencia a mitad de proyecto— y entonces la misma revision cumple ayer y no cumple hoy.
+    Guardar la corrida con su fecha y su requisito es lo que permite contestar *"cumplia cuando se
+    aprobo"*, que es la unica pregunta que despues importa.
+    """
+
+    organizacion = models.ForeignKey(
+        Organizacion, on_delete=models.PROTECT, related_name="validaciones_ids"
+    )
+    requisito = models.ForeignKey(
+        RequisitoIds, on_delete=models.CASCADE, related_name="validaciones"
+    )
+    revision = models.ForeignKey(Revision, on_delete=models.CASCADE, related_name="validaciones")
+    corrida_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="validaciones_ids"
+    )
+
+    # **`cumple` es un campo y no una propiedad calculada del resumen.** Es el veredicto, se
+    # consulta y se filtra —"que revisiones no cumplen"— y calcularlo al leer obligaria a recorrer
+    # el JSON de cada fila.
+    cumple = models.BooleanField(default=False, verbose_name=_("complies"))
+    # El resumen acotado: ver `apps/documents/ids.py`. El informe crudo de `ifctester` son casi un
+    # mega para un modelo mediano y no se guarda.
+    resumen = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        verbose_name = _("IDS validation")
+        verbose_name_plural = _("IDS validations")
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["revision", "-created_at"])]
+
+    def __str__(self):
+        return f"{self.revision} · {self.requisito.titulo}"
+
+    @property
+    def se_comprobo(self) -> bool:
+        """`False` cuando **ninguna especificacion aplico al modelo**.
+
+        Es distinto de no cumplir, y confundirlos es el error que este modulo existe para evitar: un
+        IDS escrito para otra disciplina no dice nada del modelo, ni bien ni mal.
+        """
+        return bool(self.resumen.get("seComprobo"))

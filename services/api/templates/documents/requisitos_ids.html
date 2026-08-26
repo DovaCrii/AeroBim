@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block titulo %}{% translate "Information requirements" %} · AeroBim{% endblock %}
+
+{% block contenido %}
+  <h1>{% translate "Information requirements" %}</h1>
+  <p class="subtitulo">
+    {% blocktranslate %}What the client requires each model to carry, written in IDS — the
+    buildingSMART standard. Revisar a mano si cada elemento trae el pset exigido no escala; un IDS lo
+    verifica en segundos.{% endblocktranslate %}
+  </p>
+
+  {% if puede_subir %}
+    <p><a href="{% url 'documents:nuevo-requisito-ids' %}">{% translate "Upload a requirement" %}</a></p>
+  {% endif %}
+
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">{% translate "Title" %}</th>
+        <th scope="col">{% translate "Project" %}</th>
+        <th scope="col">{% translate "File" %}</th>
+        <th scope="col">{% translate "Uploaded by" %}</th>
+        <th scope="col">{% translate "Validations" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for requisito in requisitos %}
+        <tr>
+          <td>{{ requisito.titulo }}</td>
+          <td>{{ requisito.proyecto }}</td>
+          <td>
+            {{ requisito.nombre_original|default:"—" }}
+            <br /><small>sha256 {{ requisito.sha256|slice:":12" }}…</small>
+          </td>
+          <td>
+            {{ requisito.subido_por }}<br />
+            <small>{{ requisito.created_at|date:"Y-m-d" }}</small>
+          </td>
+          <td>{{ requisito.validaciones.count }}</td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="5">
+            {% translate "No requirement yet: nothing is being verified against the model." %}
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% include "generic/_paginacion.html" %}
+{% endblock %}

@@ -12,6 +12,7 @@ dependencies = [
     "python-decouple>=3.8",
     "whitenoise>=6.8",
     "ifcopenshell==0.8.5",
+    "ifctester==0.8.5",
 ]
 
 [dependency-groups]
@@ -39,6 +40,14 @@ select = ["E", "F", "W", "I", "UP", "B", "DJ"]
 DJANGO_SETTINGS_MODULE = "config.settings.dev"
 python_files = ["test_*.py", "*_test.py"]
 addopts = "-q"
+# **No se filtra el aviso de `ifcopenshell`, y es una decision.** Su `file.__del__` levanta un
+# `KeyError` que Python ya ignora, y pytest lo eleva a `PytestUnraisableExceptionWarning`. Silenciarlo
+# por mensaje no se puede: el filtro de pytest separa sus campos por dos puntos y el mensaje lleva
+# uno. Lo unico que quedaria es un patron ancho --"Exception ignored in"-- y **eso taparia tambien
+# una excepcion no elevada de nuestro propio codigo**, que es justo lo que hay que ver.
+#
+# Asi que se queda a la vista, nombrado en `apps/documents/tests/test_validacion_ids.py`. Un aviso
+# explicado molesta menos que un filtro que esconde lo que importa.
 
 [tool.coverage.run]
 source = ["apps", "config"]

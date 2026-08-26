@@ -59,6 +59,11 @@ _LECTURA_DEL_PROYECTO = (
     "documents.view_comentario",
     "documents.view_actividad",
     "documents.view_transmittal",
+    # El requisito de informacion del proyecto y sus corridas (`F3.5`). **Se leen desde
+    # cualquier rol**: saber si el modelo cumple lo que el mandante exigio no es un dato
+    # interno, es el estado del entregable — y el mandante es justamente quien lo exigio.
+    "documents.view_requisitoids",
+    "documents.view_validacionids",
 )
 
 PERMISOS_POR_ROL: dict[str, tuple[str, ...]] = {
@@ -84,6 +89,11 @@ PERMISOS_POR_ROL: dict[str, tuple[str, ...]] = {
         "documents.add_comentario",
         "documents.add_actividad",
         "documents.change_actividad",
+        # **El requisito lo pone quien coordina**, porque es un acuerdo con el mandante y no
+        # una preferencia de quien modela.
+        "documents.add_requisitoids",
+        "documents.change_requisitoids",
+        "documents.add_validacionids",
     ),
     # Sube revisiones y responde. **No cierra observaciones**: quien las abre las cierra,
     # o el registro se convierte en "yo mismo declaro que lo arregle".
@@ -92,6 +102,9 @@ PERMISOS_POR_ROL: dict[str, tuple[str, ...]] = {
         "documents.add_revision",
         "documents.add_comentario",
         "documents.change_actividad",
+        # **Puede validar contra el requisito, no escribirlo.** Es lo que le permite comprobar
+        # su propio modelo antes de emitirlo, que es cuando corregirlo cuesta menos.
+        "documents.add_validacionids",
     ),
     # Abre y califica observaciones, y cambia el codigo de idoneidad de una revision —
     # que es su trabajo: decir para que sirve el documento.

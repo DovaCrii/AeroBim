@@ -1681,3 +1681,135 @@ msgstr "sin georreferenciar"
 #: .\templates\documents\expediente.html:112
 msgid "the file's own data could not be read"
 msgstr "no se pudieron leer los datos del propio archivo"
+
+
+#: .\apps\accounts\views.py
+#: .\templates\documents\requisitos_ids.html
+msgid "Information requirements"
+msgstr "Requisitos de información"
+
+
+#: .\apps\accounts\views.py
+msgid "What the client requires each model to carry, in IDS."
+msgstr "Lo que el mandante exige que traiga cada modelo, en IDS."
+
+
+#: .\apps\documents\forms.py
+msgid "IDS file"
+msgstr "Archivo IDS"
+
+
+#: .\apps\documents\forms.py
+msgid "buildingSMART IDS, .ids"
+msgstr "IDS de buildingSMART, .ids"
+
+
+#: .\apps\documents\forms.py
+msgid "Optional: taken from the IDS if left empty."
+msgstr "Opcional: se toma del IDS si se deja vacío."
+
+
+#: .\apps\documents\forms.py
+msgid "The information requirement must be an .ids file."
+msgstr "El requisito de información tiene que ser un archivo .ids."
+
+
+#: .\apps\documents\forms.py
+msgid "This file is not a readable IDS."
+msgstr "Este archivo no es un IDS que se pueda leer."
+
+
+#: .\apps\documents\views.py
+msgid "Untitled"
+msgstr "Sin título"
+
+
+#: .\apps\documents\views.py
+msgid "Information requirement uploaded."
+msgstr "Requisito de información subido."
+
+
+#: .\apps\documents\views.py
+msgid "Only an IFC can be validated against an IDS."
+msgstr "Contra un IDS solo se puede validar un IFC."
+
+
+#: .\apps\documents\views.py
+msgid "This project has no information requirement yet: upload an IDS first."
+msgstr "Este proyecto todavía no tiene requisito de información: primero hay que subir un IDS."
+
+
+#: .\apps\documents\views.py
+msgid "Validated against %(total)s requirements: %(ok)s comply."
+msgstr "Validado contra %(total)s requisitos: %(ok)s cumplen."
+
+
+#: .\templates\documents\requisitos_ids.html
+msgid "Upload a requirement"
+msgstr "Subir un requisito"
+
+
+#: .\templates\documents\requisitos_ids.html
+msgid "Uploaded by"
+msgstr "Subido por"
+
+
+#: .\templates\documents\requisitos_ids.html
+msgid "Validations"
+msgstr "Validaciones"
+
+
+#: .\templates\documents\requisitos_ids.html
+msgid "No requirement yet: nothing is being verified against the model."
+msgstr "Todavía no hay requisito: no se está verificando nada contra el modelo."
+
+
+#: .\templates\documents\requisitos_ids.html
+msgid ""
+"What the client requires each model to carry, written in IDS — the\n"
+"    buildingSMART standard. Revisar a mano si cada elemento trae el pset exigido no escala; un IDS lo\n"
+"    verifica en segundos."
+msgstr "Lo que el mandante exige que traiga cada modelo, escrito en IDS, el estándar de buildingSMART. Revisar a mano si cada elemento trae el pset exigido no escala; un IDS lo verifica en segundos."
+
+
+#: .\templates\documents\nuevo_requisito_ids.html
+msgid ""
+"An IDS declares, for a set of elements, what data they must carry. The file is\n"
+"    checked before it is stored: a requirement that cannot be read would not reject anything nor\n"
+"    approve anything — it would just fail on every validation."
+msgstr "Un IDS declara, para un conjunto de elementos, qué datos tienen que traer. El archivo se comprueba antes de guardarlo: un requisito que no se puede leer no rechazaría nada ni aprobaría nada, solo daría error en cada validación."
+
+
+#: .\templates\documents\expediente.html
+msgid "nothing was checked"
+msgstr "no se comprobó nada"
+
+
+#: .\templates\documents\expediente.html
+msgid "of"
+msgstr "de"
+
+
+#: .\templates\documents\expediente.html
+msgid "specifications fail"
+msgstr "especificaciones fallan"
+
+
+#: .\templates\documents\expediente.html
+msgid "open an observation"
+msgstr "abrir una observación"
+
+
+#: .\templates\documents\expediente.html
+msgid "in total"
+msgstr "en total"
+
+
+#: .\templates\documents\expediente.html
+msgid "Validate against the IDS"
+msgstr "Validar contra el IDS"
+
+
+#: .\templates\documents\expediente.html
+msgid "did not apply to this model"
+msgstr "no aplicaron a este modelo"

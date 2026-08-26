@@ -33,9 +33,11 @@ from apps.documents.forms import (
     EntregableForm,
     IdoneidadForm,
     ObservacionForm,
+    RequisitoIdsForm,
     RevisionForm,
     TransmittalForm,
 )
+from apps.documents.ids import validar as validar_ids
 from apps.documents.ifc import extraer as extraer_ifc
 from apps.documents.models import (
     IDONEIDADES_PUBLICADAS,
@@ -44,10 +46,13 @@ from apps.documents.models import (
     Entregable,
     Idoneidad,
     Observacion,
+    RequisitoIds,
     Revision,
     Transmittal,
+    ValidacionIds,
 )
 from apps.documents.notify import avisar_asignacion, avisar_transmittal
+from apps.projects.models import Proyecto
 
 
 def solo_publicadas(queryset, user):
@@ -132,6 +137,27 @@ class ExpedienteView(ModelViewPermissionRequiredMixin, OrganizacionScopedQueryse
             visor = visor_de(revision)
             revision.visor_ruta = RUTA_POR_VISOR[visor] if visor is not None else ""
         contexto["revisiones"] = revisiones
+
+        # **La última validación IDS de cada revisión, no todas** (`F3.5`). El histórico está en la
+        # base y se puede consultar; lo que el expediente contesta es «¿cumple hoy?», y una lista de
+        # todas las corridas de todos los requisitos tapa esa respuesta con ruido.
+        ultimas: dict = {}
+        for validacion in ValidacionIds.objects.filter(
+            revision__entregable=entregable
+        ).select_related("requisito", "revision"):
+            clave = (validacion.revision_id, validacion.requisito_id)
+            if clave not in ultimas:
+                ultimas[clave] = validacion
+        for revision in revisiones:
+            revision.validaciones_ultimas = [
+                validacion
+                for (revision_id, _r), validacion in ultimas.items()
+                if revision_id == revision.pk
+            ]
+        contexto["puede_validar"] = usuario.has_perm("documents.add_validacionids")
+        contexto["hay_requisitos"] = entregable.proyecto.requisitos_ids.filter(
+            is_active=True
+        ).exists()
 
         contexto["observaciones"] = Observacion.objects.filter(
             revision__entregable=entregable
@@ -266,6 +292,132 @@ class DescargarRevisionView(ModelViewPermissionRequiredMixin, View):
             filename=revision.nombre_original or f"{revision.entregable.codigo}.bin",
         )
         return respuesta
+
+
+class RequisitosIdsView(
+    ModelViewPermissionRequiredMixin,
+    OrganizacionScopedQuerysetMixin,
+    FiltrosEnLaPaginacionMixin,
+    ListView,
+):
+    """Los requisitos de información del proyecto, en IDS (`F3.5`)."""
+
+    model = RequisitoIds
+    template_name = "documents/requisitos_ids.html"
+    context_object_name = "requisitos"
+    paginate_by = 50
+
+    def get_queryset(self):
+        return super().get_queryset().select_related("proyecto", "subido_por")
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        contexto["puede_subir"] = self.request.user.has_perm("documents.add_requisitoids")
+        return contexto
+
+
+class NuevoRequisitoIdsView(ModelPermissionRequiredMixin, View):
+    model = RequisitoIds
+    permission_action = "add"
+    template_name = "documents/nuevo_requisito_ids.html"
+
+    def formulario(self, request, datos=None, archivos=None):
+        # Los proyectos se acotan a la organización: subir el requisito de otro cliente sería
+        # escribir en su proyecto.
+        return RequisitoIdsForm(
+            datos,
+            archivos,
+            proyectos=scope_queryset_to_organizacion(Proyecto.objects.all(), request.user),
+        )
+
+    def get(self, request, *args, **kwargs):
+        from django.shortcuts import render
+
+        return render(request, self.template_name, {"form": self.formulario(request)})
+
+    def post(self, request, *args, **kwargs):
+        from django.shortcuts import render
+
+        form = self.formulario(request, request.POST, request.FILES)
+        if not form.is_valid():
+            return render(request, self.template_name, {"form": form}, status=400)
+
+        proyecto = form.cleaned_data["proyecto"]
+        clave = storage.clave_para(
+            proyecto_codigo=proyecto.codigo,
+            entregable_codigo="ids",
+            sha256=form.sha256,
+            extension="ids",
+        )
+        storage.guardar(clave, form.contenido)
+
+        requisito = form.save(commit=False)
+        requisito.organizacion = proyecto.organizacion
+        # El título del archivo gana si nadie escribió uno: el IDS ya lo trae.
+        requisito.titulo = form.cleaned_data["titulo"] or form.titulo_del_archivo or _("Untitled")
+        requisito.clave_archivo = clave
+        requisito.nombre_original = form.cleaned_data["archivo"].name[:250]
+        requisito.sha256 = form.sha256
+        requisito.subido_por = request.user
+        requisito.save()
+
+        set_audit_context(request, requisito, action="subir_requisito_ids")
+        messages.success(request, _("Information requirement uploaded."))
+        return redirect("documents:requisitos-ids")
+
+
+class ValidarIdsView(ModelPermissionRequiredMixin, View):
+    """Corre **todos los requisitos del proyecto** contra una revisión.
+
+    **Todos y no uno.** La pregunta que trae a alguien aquí es «¿este modelo cumple?», y contestarla
+    requisito por requisito obliga a repetir el gesto tantas veces como requisitos haya, y a sumar a
+    mano. Cada corrida deja su propia fila, así que el detalle no se pierde.
+    """
+
+    model = ValidacionIds
+    permission_action = "add"
+
+    def post(self, request, *args, **kwargs):
+        revision = get_object_or_404(
+            revisiones_visibles(request.user).filter(pk=kwargs["pk"]),
+        )
+        if storage.extension_de(revision.nombre_original) != "ifc":
+            messages.error(request, _("Only an IFC can be validated against an IDS."))
+            return redirect("documents:expediente", pk=revision.entregable_id)
+
+        entregable = revision.entregable
+        requisitos = list(entregable.proyecto.requisitos_ids.filter(is_active=True))
+        if not requisitos:
+            messages.error(
+                request,
+                _("This project has no information requirement yet: upload an IDS first."),
+            )
+            return redirect("documents:expediente", pk=entregable.pk)
+
+        cumplen = 0
+        for requisito in requisitos:
+            resumen = validar_ids(
+                storage.ruta_de(requisito.clave_archivo),
+                storage.ruta_de(revision.clave_archivo),
+            )
+            validacion = ValidacionIds.objects.create(
+                organizacion=entregable.organizacion,
+                requisito=requisito,
+                revision=revision,
+                corrida_por=request.user,
+                cumple=bool(resumen.get("cumple")),
+                resumen=resumen,
+            )
+            if validacion.cumple:
+                cumplen += 1
+            set_audit_context(request, validacion, action="validar_ids")
+
+        messages.success(
+            request,
+            _("Validated against %(total)s requirements: %(ok)s comply.")
+            % {"total": len(requisitos), "ok": cumplen},
+        )
+        return redirect("documents:expediente", pk=entregable.pk)
 
 
 class ObservacionesView(
@@ -620,6 +772,18 @@ class NuevaObservacionView(ModelPermissionRequiredMixin, View):
         revision = request.GET.get("revision")
         if revision:
             inicial["revision"] = revision
+
+        # **El ancla en el modelo llega de un fallo de validación IDS** (`F3.5`): el GUID del
+        # elemento que no cumple, más la etiqueta del requisito como título propuesto. Es lo que
+        # convierte «702 vigas sin su fase» en una observación sobre **una** viga, con responsable.
+        guid = (request.GET.get("guid") or "").strip()
+        # Se comprueba la forma: un GUID de IFC son 22 caracteres del alfabeto base64 propio del
+        # formato, y guardar cualquier cosa dejaría un ancla que no apunta a nada.
+        if len(guid) == 22 and all(c.isalnum() or c in "_$" for c in guid):
+            inicial["ifc_guid"] = guid
+        titulo = (request.GET.get("titulo") or "").strip()
+        if titulo:
+            inicial["titulo"] = titulo[:250]
         return inicial
 
     def get(self, request, *args, **kwargs):

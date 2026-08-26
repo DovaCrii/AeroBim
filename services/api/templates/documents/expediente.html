@@ -119,6 +119,85 @@
                   </small>
                 {% endif %}
               {% endwith %}
+
+              {% comment %}
+                **La validacion IDS, y con los tres estados a la vista** (`F3.5`). "No aplica" no es
+                "cumple": una especificacion cuyo conjunto de elementos no existe en el modelo no
+                dice nada de el, ni bien ni mal, y contarla como cumplida seria afirmar que el
+                modelo satisface un requisito que nunca se comprobo.
+
+                Y cada fallo lleva su **GUID**, que es lo que permite abrir una observacion sobre
+                **ese** elemento en vez de sobre "el modelo".
+              {% endcomment %}
+              {% for validacion in revision.validaciones_ultimas %}
+                <br /><small>
+                  {% if validacion.cumple %}
+                    ✓ {{ validacion.requisito.titulo }}
+                  {% elif not validacion.se_comprobo %}
+                    — {{ validacion.requisito.titulo }}:
+                    <strong>{% translate "nothing was checked" %}</strong>
+                  {% else %}
+                    ✕ <strong>{{ validacion.requisito.titulo }}</strong>
+                    ({{ validacion.resumen.fallaron }} {% translate "of" %}
+                    {{ validacion.resumen.aplicaron }} {% translate "specifications fail" %})
+                  {% endif %}
+
+                  {% comment %}
+                    **Las que no aplicaron se dicen tambien**, y en los tres casos. No es un detalle:
+                    una especificacion que no aplico significa que el requisito cubre algo que este
+                    modelo no tiene, y eso puede ser correcto —el IDS es del proyecto entero— o puede
+                    ser que alguien escribio la clase equivocada. Callarlo deja las dos indistinguibles.
+                  {% endcomment %}
+                  {% if validacion.resumen.noAplicaron %}
+                    · {{ validacion.resumen.noAplicaron }}
+                    {% translate "did not apply to this model" %}
+                  {% endif %}
+                </small>
+
+                {% if not validacion.cumple and validacion.se_comprobo %}
+                  <ul>
+                    {% for especificacion in validacion.resumen.detalle %}
+                      {% if especificacion.estado == "falla" %}
+                        <li>
+                          <small>
+                            {{ especificacion.nombre }} —
+                            {{ especificacion.fallan }} {% translate "of" %}
+                            {{ especificacion.aplicables }}
+                          </small>
+                          {% for requisito in especificacion.requisitos %}
+                            {% if not requisito.cumple %}
+                              <ul>
+                                {% for fallo in requisito.fallos|slice:":5" %}
+                                  <li><small>
+                                    {{ fallo.clase }} {{ fallo.nombre }} — {{ fallo.motivo }}
+                                    {% if perms.documents.add_observacion %}
+                                      · <a href="{% url 'documents:nueva-observacion' entregable.pk %}?guid={{ fallo.guid }}&amp;titulo={{ requisito.etiqueta|urlencode }}">
+                                        {% translate "open an observation" %}
+                                      </a>
+                                    {% endif %}
+                                  </small></li>
+                                {% endfor %}
+                                {% if requisito.totalFallan > 5 %}
+                                  <li><small>
+                                    … {{ requisito.totalFallan }} {% translate "in total" %}
+                                  </small></li>
+                                {% endif %}
+                              </ul>
+                            {% endif %}
+                          {% endfor %}
+                        </li>
+                      {% endif %}
+                    {% endfor %}
+                  </ul>
+                {% endif %}
+              {% endfor %}
+
+              {% if puede_validar and revision.visor_ruta and hay_requisitos %}
+                <form method="post" action="{% url 'documents:validar-ids' revision.pk %}">
+                  {% csrf_token %}
+                  <button type="submit">{% translate "Validate against the IDS" %}</button>
+                </form>
+              {% endif %}
             {% else %}
               —
             {% endif %}

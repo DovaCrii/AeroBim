@@ -77,6 +77,13 @@ class PortalView(LoginRequiredMixin, TemplateView):
                 _("What was issued, to whom and when."),
             ),
             (
+                _("Documents"),
+                _("Information requirements"),
+                "documents:requisitos-ids",
+                "documents.view_requisitoids",
+                _("What the client requires each model to carry, in IDS."),
+            ),
+            (
                 _("Coordination"),
                 _("Observations"),
                 "documents:observaciones",

@@ -5,6 +5,38 @@ Este proyecto sigue [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Añadido — El modelo cumple o no el requisito del proyecto (`F3.5`, 2026-08-26)
+
+Es lo que el plan llamaba **«lo que separa un visor de una herramienta de control»**: revisar a mano
+si cada elemento trae el pset que el mandante exigió no escala —702 vigas por modelo— y un IDS lo
+verifica en segundos. IDS es el estándar de buildingSMART, así que el requisito es **interoperable**;
+`ifctester` (LGPL-3.0) se usa como librería.
+
+**Dos modelos, y la separación importa.** El requisito es del **proyecto** —el mandante exige lo
+mismo a todos los modelos de la obra—; la validación es **un acto con su fecha**, porque el requisito
+cambia a mitad de proyecto y entonces la misma revisión cumple ayer y no cumple hoy. Eso es lo que
+permite contestar «cumplía cuando se aprobó».
+
+**Tres decisiones que hacen que el resultado no mienta**, las tres sacadas de mirar el informe crudo:
+
+1. **«No aplica» no es «cumple».** `ifctester` devuelve `status: True` para una especificación que no
+   aplicó a nada; contarla como cumplida diría que el modelo satisface un requisito que **nunca se
+   comprobó**. Aquí son tres estados.
+2. **Si no aplicó ninguna, no se cumple nada**: un IDS de otra disciplina no dice nada del modelo.
+3. **El informe crudo no se guarda**: 944 KB para el modelo de 24 MB, porque incluye la línea STEP de
+   cada elemento que falla. Se guarda un resumen acotado, y **el conteo total va aparte**.
+
+**Y el ciclo cierra donde tenía que cerrar**: cada fallo lleva el **GUID** del elemento, así que desde
+el fallo se abre una observación sobre **esa viga**, con responsable y fecha.
+
+Comprobado por HTTP con el IFC real de 23,6 MB: validar tarda **1,7 s**; el veredicto en pantalla dice
+«1 de 2 especificaciones fallan · 1 no aplicaron a este modelo»; el detalle nombra «702 de 702» con su
+motivo; el enlace a la observación lleva el GUID real. Un **mandante** ve la lista y recibe **403** en
+el formulario y al validar. Un IDS ilegible da **400** y nada llega al disco. 23 pruebas nuevas.
+
+`F3.4` (Celery) sigue sin hacer falta: 1,7 s en la propia petición para el tamaño que recibe un
+control documental.
+
 ### Añadido — Lo que el IFC declara de sí mismo, leído al subirlo (`F3.3`, 2026-08-26)
 
 Al subir un IFC, la revisión queda sabiendo su **esquema**, el **proyecto** que declara, su **unidad

@@ -1015,7 +1015,7 @@ guardan por proyecto, con versiones y con quién subió qué.
 | `F3.2` | Almacenamiento de archivos con validación de tipo, tamaño y nombre — nunca el nombre del cliente   | ✅ ver abajo |
 | `F3.3` | Extracción de metadatos con `ifcopenshell`: esquema, unidades, georreferenciación, conteo por tipo | ✅ ver abajo |
 | `F3.4` | Jobs asíncronos (Celery) para lo que tarde: conversión, extracción, validación                     | ⬜           |
-| `F3.5` | Validación **IDS** con `ifctester`: el modelo cumple o no el requisito de información del proyecto | ⬜           |
+| `F3.5` | Validación **IDS** con `ifctester`: el modelo cumple o no el requisito de información del proyecto | ✅ ver abajo |
 | `F3.6` | **Levantar `services/api`**: Django 6 + uv, con la forma de AeroControl y base de datos propia     | ✅           |
 | `F3.7` | **Portal de ingreso**: `django.contrib.auth` endurecido con axes, sin auto-registro                | ✅           |
 | `F3.8` | **Roles y el contrato de permisos**: la matriz como dato, el guardián, y la prueba de 403          | ✅           |
@@ -1023,6 +1023,62 @@ guardan por proyecto, con versiones y con quién subió qué.
 
 **Criterio de aceptación:** un modelo subido sobrevive al cierre del navegador, y
 la versión anterior sigue recuperable.
+
+### `F3.5` cerrada: el modelo cumple o no el requisito del proyecto (2026-08-26)
+
+**Es lo que este plan llamaba «lo que separa un visor de una herramienta de control».** Revisar a
+mano si cada elemento trae el pset que el mandante exigió no escala —702 vigas por modelo— y un IDS
+lo verifica en segundos.
+
+**IDS es el estándar de buildingSMART**, así que el requisito es **interoperable**: el mismo archivo
+lo entiende Solibri, lo entiende BlenderBIM y lo entiende esto. Un requisito escrito en una tabla
+nuestra no lo entiende nadie más. `ifctester` (LGPL-3.0) se usa **como librería**, que es lo que
+`AGENTS.md` permite.
+
+**Dos modelos, y la separación importa.** `RequisitoIds` es del **proyecto** —el mandante exige lo
+mismo a todos los modelos de la obra, y tenerlo por entregable obligaría a copiarlo—. `ValidacionIds`
+es **un acto con su fecha**: el requisito cambia a mitad de proyecto, y entonces la misma revisión
+cumple ayer y no cumple hoy. Guardar la corrida con su fecha es lo que permite contestar _«cumplía
+cuando se aprobó»_.
+
+**Tres decisiones que hacen que el resultado no mienta**, y las tres salieron de mirar el informe
+crudo de `ifctester` antes de escribir nada:
+
+1. **«No aplica» no es «cumple».** Una especificación cuyo conjunto de elementos no existe en el
+   modelo sale de `ifctester` con `status: True` y `is_skipped: True`. Contarla como cumplida diría
+   que el modelo satisface un requisito que **nunca se comprobó**, y es justo el número que alguien
+   mira antes de aprobar una etapa. Aquí son **tres estados**: cumple, falla y no aplica.
+2. **Si no aplicó ninguna, no se cumple nada.** Un IDS escrito para otra disciplina da cero
+   comprobaciones y «todo bien»; lo que corresponde decir es que no se comprobó nada.
+3. **El informe crudo no se guarda.** Son **944 KB** para el modelo de 24 MB: `ifctester` incluye la
+   línea STEP completa de cada elemento que falla, 702 veces. Se guarda un resumen con un tope de
+   fallos por requisito, y **el conteo total va aparte**, así que la cifra que se informa es la
+   verdadera aunque la lista esté recortada.
+
+**Y el ciclo se cierra donde tenía que cerrarse.** Cada fallo lleva el **GUID** del elemento —la
+identidad estable, la que viaja en un BCF— así que desde el fallo se abre **una observación sobre esa
+viga**, con responsable y fecha. Es lo que convierte «702 vigas sin su fase» en trabajo asignado. El
+formulario de observación acepta el ancla en el modelo, comprobando la forma del GUID: 22 caracteres,
+que es lo que mide uno de verdad.
+
+**Comprobado por HTTP contra el servicio corriendo, con el IFC real de 23,6 MB:**
+
+| Qué                          | Resultado                                                                           |
+| ---------------------------- | ----------------------------------------------------------------------------------- |
+| Validar el modelo de 23,6 MB | **1,7 s**, incluida la carga del archivo                                            |
+| El veredicto en pantalla     | «1 de 2 especificaciones fallan · 1 no aplicaron a este modelo»                     |
+| El detalle                   | «Las vigas llevan su fase de obra — 702 de 702», con el motivo                      |
+| El enlace a la observación   | Lleva el GUID real: `2x9ibDgrvAu8y4Yd$Ug4Qu`                                        |
+| Un **mandante**              | Ve la lista; **sin** enlace de subir, **403** en el formulario y **403** al validar |
+| Un IDS que no se puede leer  | **400** al subirlo, y **nada llega al disco**                                       |
+
+23 pruebas nuevas. **Y `F3.4` (Celery) sigue sin hacer falta**: 1,7 s en la propia petición para el
+tamaño que recibe un control documental. Queda para los trabajos que de verdad tarden.
+
+> **Un detalle que no se puede arreglar y va dicho**: el motivo de cada fallo —«The required property
+> set does not exist»— viene de `ifctester` **en sus palabras**, en inglés. Traducir los mensajes de
+> una librería obligaría a mantener un mapa de sus cadenas, que se rompe en su siguiente versión sin
+> avisar.
 
 ### `F3.3` cerrada: lo que el IFC declara de sí mismo (2026-08-26)
 

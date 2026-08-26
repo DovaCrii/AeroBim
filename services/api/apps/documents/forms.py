@@ -9,11 +9,13 @@ navegador.
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
+from apps.documents.ids import titulo_de_ids
 from apps.documents.models import (
     Actividad,
     Entregable,
     Idoneidad,
     Observacion,
+    RequisitoIds,
     Revision,
     Transmittal,
 )
@@ -94,6 +96,7 @@ class ObservacionForm(forms.ModelForm):
             "pagina",
             "ancla_x",
             "ancla_y",
+            "ifc_guid",
         )
         widgets = {
             "vence": forms.DateInput(attrs={"type": "date"}),
@@ -101,6 +104,10 @@ class ObservacionForm(forms.ModelForm):
             "pagina": forms.HiddenInput,
             "ancla_x": forms.HiddenInput,
             "ancla_y": forms.HiddenInput,
+            # **El ancla en el modelo también va oculta**, y llega de dos sitios: de un fallo de
+            # validación IDS —que trae el GUID del elemento que no cumple— y, más adelante, de un
+            # clic sobre el modelo en el visor. Es la identidad estable, y la que viaja en un BCF.
+            "ifc_guid": forms.HiddenInput,
         }
 
     def __init__(self, *args, proyecto=None, **kwargs):
@@ -175,6 +182,51 @@ class IdoneidadForm(forms.Form):
     """Cambiar el codigo de idoneidad de una revision: es el trabajo del revisor."""
 
     idoneidad = forms.ChoiceField(label=_("Suitability"), choices=Idoneidad.choices)
+
+
+class RequisitoIdsForm(forms.ModelForm):
+    """Subir el requisito de informacion del proyecto: un IDS.
+
+    **El titulo no se teclea si el archivo lo trae.** Un IDS lleva su propio `<title>`, y pedirlo
+    aparte deja dos nombres para la misma cosa que se separan en cuanto alguien edita uno.
+    """
+
+    archivo = forms.FileField(label=_("IDS file"), help_text=_("buildingSMART IDS, .ids"))
+
+    class Meta:
+        model = RequisitoIds
+        fields = ("proyecto", "titulo")
+
+    def __init__(self, *args, proyectos=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        # El titulo es opcional: si el IDS lo declara, se toma de ahi.
+        self.fields["titulo"].required = False
+        self.fields["titulo"].help_text = _("Optional: taken from the IDS if left empty.")
+        if proyectos is not None:
+            self.fields["proyecto"].queryset = proyectos
+
+    def clean_archivo(self):
+        subido = self.cleaned_data["archivo"]
+        contenido = subido.read()
+        subido.seek(0)
+        try:
+            extension, sha = validar(subido.name, contenido)
+        except CargaRechazada as rechazo:
+            raise forms.ValidationError(str(rechazo)) from rechazo
+        if extension != "ids":
+            raise forms.ValidationError(_("The information requirement must be an .ids file."))
+
+        # **Se comprueba que el IDS se pueda leer antes de guardarlo.** Un requisito que no se puede
+        # abrir no rechaza nada ni aprueba nada: se queda en el proyecto dando error en cada
+        # validacion, y eso se lee como que el sistema esta roto.
+        titulo = titulo_de_ids(contenido)
+        if titulo is None:
+            raise forms.ValidationError(_("This file is not a readable IDS."))
+
+        self.contenido = contenido
+        self.sha256 = sha
+        self.titulo_del_archivo = titulo
+        return subido
 
 
 class TransmittalForm(forms.ModelForm):

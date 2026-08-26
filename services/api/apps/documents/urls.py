@@ -29,6 +29,13 @@ urlpatterns = [
         views.CambiarIdoneidadView.as_view(),
         name="cambiar-idoneidad",
     ),
+    path("requisitos/", views.RequisitosIdsView.as_view(), name="requisitos-ids"),
+    path("requisitos/nuevo/", views.NuevoRequisitoIdsView.as_view(), name="nuevo-requisito-ids"),
+    path(
+        "revisiones/<uuid:pk>/validar/",
+        views.ValidarIdsView.as_view(),
+        name="validar-ids",
+    ),
     path("observaciones/", views.ObservacionesView.as_view(), name="observaciones"),
     path("observaciones/<uuid:pk>/", views.ObservacionView.as_view(), name="observacion"),
     path(

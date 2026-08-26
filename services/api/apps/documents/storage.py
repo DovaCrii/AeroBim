@@ -60,7 +60,10 @@ FIRMAS: dict[str, tuple[bytes, ...]] = {
     "dwg": (b"AC10", b"AC1"),
 }
 
-SIN_FIRMA = {"dxf", "ifc", "csv", "txt", "md"}
+# `ids` es el requisito de informacion del proyecto (`F3.5`): XML de buildingSMART, texto, y sin
+# firma propia. Va aca y no en `FIRMAS` porque comprobar `<?xml` rechazaria un IDS valido que
+# empiece directo por `<ids`, y comprobar `<ids` seria una firma inventada por nosotros.
+SIN_FIRMA = {"dxf", "ifc", "csv", "txt", "md", "ids"}
 
 EXTENSIONES_ACEPTADAS = set(FIRMAS) | SIN_FIRMA
 
