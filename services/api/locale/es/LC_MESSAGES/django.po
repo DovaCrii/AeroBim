@@ -1661,3 +1661,23 @@ msgstr "La posición tiene que ser una fracción de la página, de 0 a 1."
 #: .\apps\documents\forms.py
 msgid "An anchor on the document needs the revision it points at."
 msgstr "Un ancla en el documento necesita la revisión a la que apunta."
+
+
+#: .\templates\documents\expediente.html:102
+msgid "elements"
+msgstr "elementos"
+
+
+#: .\templates\documents\expediente.html:105
+msgid "georeferenced"
+msgstr "georreferenciado"
+
+
+#: .\templates\documents\expediente.html:107
+msgid "not georeferenced"
+msgstr "sin georreferenciar"
+
+
+#: .\templates\documents\expediente.html:112
+msgid "the file's own data could not be read"
+msgstr "no se pudieron leer los datos del propio archivo"

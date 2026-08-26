@@ -5,6 +5,36 @@ Este proyecto sigue [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Añadido — Lo que el IFC declara de sí mismo, leído al subirlo (`F3.3`, 2026-08-26)
+
+Al subir un IFC, la revisión queda sabiendo su **esquema**, el **proyecto** que declara, su **unidad
+de longitud con el factor a metros**, si está **georreferenciado y por qué vía**, y **cuántos
+elementos trae y de qué tipos**. Se ve en el expediente, al lado del sha.
+
+El visor ya leía las unidades, pero las olvidaba al cerrar la pestaña; el registro necesita **poder
+contestar sin abrir nada**. Y hay un dato que solo se puede dar aquí: Fragments aplica el factor de
+unidad a la geometría y **descarta la declaración**, así que después de convertir ya no se puede
+preguntar si el archivo está georreferenciado.
+
+`ifcopenshell` (LGPL-3.0) se usa **como librería**, que es lo que `AGENTS.md` permite. Medido:
+**1,1 s** para el IFC real de 23,6 MB, así que se lee en la propia subida — no hace falta `F3.4`
+para el tamaño que recibe un control documental, y el campo es un `JSONField` por si algún día sí.
+
+**Dos defectos que encontró la primera pasada sobre los modelos reales**, y ninguno se habría visto
+con un solo archivo de muestra:
+
+- **`IfcMapConversion` no existe en IFC2X3** y pedirlo allí **levanta**, no devuelve vacío. Eso
+  tiraba la extracción entera para la mayoría de los IFC del mundo; el de muestra en IFC4 funcionaba.
+- **`Piso 5.ifc` declara su sitio en `(0, 0, 0, 0)`** y salía como georreferenciado. Cero y cero no
+  son una ubicación: son el marcador de posición que escriben Revit y otros cuando nadie fijó el
+  emplazamiento, y creérselo manda a buscar el edificio a la isla nula.
+
+Y una tercera atajada al escribirlo: en IFC **el signo de una latitud va solo en el primer término**.
+`(-33, 26, 15)` es 33° 26′ 15″ sur; sumarlos con su signo daría otro hemisferio.
+
+**«Sin georreferenciar» se dice, no se omite**: es la respuesta que hace falta antes de prometer una
+vista sobre el terreno. 11 pruebas nuevas con IFC escritos a mano, uno por caso.
+
 ### Corregido — Generar un plano podía dejar la interfaz esperando para siempre (`F7.1`, 2026-08-26)
 
 Se escribió el modo `planos` del diagnóstico para confirmar de una vez las dos tareas que llevaban

@@ -199,6 +199,15 @@ class Revision(BaseModel):
     emitida_en = models.DateTimeField(default=timezone.now, verbose_name=_("issued"))
     es_vigente = models.BooleanField(default=True, verbose_name=_("current"))
 
+    # Lo que el archivo declara de si mismo, leido al subirlo: esquema, unidades, si esta
+    # georreferenciado y cuantos elementos trae. Solo tiene contenido para los IFC — ver
+    # `apps/documents/ifc.py` y `F3.3`.
+    #
+    # **Va como JSON y no como columnas** porque es un informe, no un dato del negocio: nada del
+    # sistema decide nada en funcion de el, se lee. Convertirlo en ocho columnas obligaria a una
+    # migracion cada vez que IFC gane un campo que valga la pena mirar.
+    metadatos = models.JSONField(default=dict, blank=True)
+
     class Meta:
         verbose_name = _("revision")
         verbose_name_plural = _("revisions")

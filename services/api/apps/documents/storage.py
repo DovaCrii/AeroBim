@@ -176,6 +176,16 @@ def guardar(clave: str, contenido: bytes) -> Path:
     return destino
 
 
+def ruta_de(clave: str) -> Path:
+    """Donde vive el archivo, para lo que necesita **una ruta y no los bytes**.
+
+    `ifcopenshell` abre por ruta y lee el archivo por tramos; pasarle los bytes obligaria a tenerlo
+    entero en memoria dos veces —una en la peticion y otra en la libreria— y un IFC federado son
+    cientos de megas. Va aparte de `leer` a proposito: la clave se normaliza igual en las dos, y
+    tener dos formas de componer la ruta es como se separan.
+    """
+    return Path(settings.DOCUMENTS_DIR) / normalize_storage_key(clave)
+
+
 def leer(clave: str) -> bytes:
-    origen = Path(settings.DOCUMENTS_DIR) / normalize_storage_key(clave)
-    return origen.read_bytes()
+    return ruta_de(clave).read_bytes()

@@ -1013,7 +1013,7 @@ guardan por proyecto, con versiones y con quién subió qué.
 | ------ | -------------------------------------------------------------------------------------------------- | ------------ |
 | `F3.1` | API en Python (Django + DRF, como AeroControl): proyectos, modelos, versiones, usuarios y permisos | ✅ ver abajo |
 | `F3.2` | Almacenamiento de archivos con validación de tipo, tamaño y nombre — nunca el nombre del cliente   | ✅ ver abajo |
-| `F3.3` | Extracción de metadatos con `ifcopenshell`: esquema, unidades, georreferenciación, conteo por tipo | ⬜           |
+| `F3.3` | Extracción de metadatos con `ifcopenshell`: esquema, unidades, georreferenciación, conteo por tipo | ✅ ver abajo |
 | `F3.4` | Jobs asíncronos (Celery) para lo que tarde: conversión, extracción, validación                     | ⬜           |
 | `F3.5` | Validación **IDS** con `ifctester`: el modelo cumple o no el requisito de información del proyecto | ⬜           |
 | `F3.6` | **Levantar `services/api`**: Django 6 + uv, con la forma de AeroControl y base de datos propia     | ✅           |
@@ -1023,6 +1023,49 @@ guardan por proyecto, con versiones y con quién subió qué.
 
 **Criterio de aceptación:** un modelo subido sobrevive al cierre del navegador, y
 la versión anterior sigue recuperable.
+
+### `F3.3` cerrada: lo que el IFC declara de sí mismo (2026-08-26)
+
+El visor ya leía las unidades para poner el símbolo al lado de un número, y las olvidaba al cerrar
+la pestaña. El registro necesita otra cosa: **poder contestar sin abrir nada**. Ahora, al subir un
+IFC, la revisión queda sabiendo su **esquema**, el **proyecto** que declara, su **unidad de longitud
+con el factor a metros**, si está **georreferenciado y por qué vía**, y **cuántos elementos trae y de
+qué tipos**. Se ve en el expediente, al lado del sha.
+
+**Y hay un dato que solo se puede dar aquí**: si el archivo está georreferenciado. Fragments aplica
+el factor de unidad a la geometría y **descarta la declaración**, así que después de convertir ya no
+se puede preguntar.
+
+`ifcopenshell` es **LGPL-3.0** y se usa **como librería**, que es exactamente lo que `AGENTS.md`
+permite. Medido: **1,1 s** para el IFC real de 23,6 MB, así que se lee en la propia subida y no hace
+falta un trabajo en segundo plano —`F3.4`— para el tamaño que recibe un control documental. El campo
+es un `JSONField`, así que el día que llegue un federado que tarde, lo único que se mueve es dónde
+se llama.
+
+**Los dos defectos que encontró la primera pasada sobre los modelos reales**, y ninguno se habría
+visto con un solo archivo de muestra:
+
+1. **`IfcMapConversion` no existe en IFC2X3**, y pedirlo allí no devuelve una lista vacía: **levanta**.
+   Eso tiraba la extracción entera y convertía «este IFC2X3 no tiene conversión de mapa» —que es lo
+   normal— en «no se pudieron leer los metadatos». El archivo de muestra en IFC4 funcionaba y los dos
+   en IFC2X3 no, **y la mayoría de los IFC de obra siguen siendo IFC2X3**.
+2. **`Piso 5.ifc` declara su sitio en `(0, 0, 0, 0)`** y salía como georreferenciado. Latitud y
+   longitud exactamente cero no son una ubicación: son **el marcador de posición** que escriben Revit
+   y otros cuando nadie fijó el emplazamiento. Creérselo manda a buscar el edificio a la isla nula,
+   en el golfo de Guinea.
+
+Y una tercera que se atajó al escribirlo: en IFC una latitud es una tupla de enteros y **el signo va
+solo en el primero**. `(-33, 26, 15)` es 33° 26′ 15″ **sur**; sumar los términos con su signo daría
+una coordenada en otro hemisferio, y eso no se ve hasta que el modelo aparece en el mar.
+
+**Lo que se dice en pantalla incluye el «no».** «Sin georreferenciar» va en negrita en el expediente,
+porque es la respuesta que hace falta **antes** de prometer una vista sobre el terreno (Fase 6), y
+callarla obliga a descubrirlo con el modelo ya cargado en el sitio equivocado.
+
+11 pruebas nuevas, con IFC escritos a mano —uno por caso, incluido el sitio en cero— porque un
+archivo real no permite comprobar el caso raro. Y **la extracción nunca levanta**: un IFC que no se
+puede leer sigue siendo un entregable válido, se descarga y se emite; rechazar la subida por no
+poder leerle los metadatos sería confundir dos cosas.
 
 ### `F3.1` y `F3.2` estaban hechas y el tablero decía que no (2026-08-26)
 

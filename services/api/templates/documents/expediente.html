@@ -91,6 +91,34 @@
                 </a>
               {% endif %}
               <br /><small>sha256 {{ revision.sha256|slice:":12" }}…</small>
+
+              {% comment %}
+                **Lo que el propio archivo declara** (`F3.3`), leido al subirlo. Va aqui y no en una
+                pantalla aparte porque es una propiedad del archivo, como su tamaño o su sha.
+
+                Y **"sin georreferenciar" se dice**, no se omite: es la respuesta que hace falta
+                antes de prometer una vista sobre el terreno, y la mayoria de los IFC de obra no la
+                traen. Callarlo obligaria a descubrirlo con el modelo ya cargado en otro sitio.
+              {% endcomment %}
+              {% with meta=revision.metadatos %}
+                {% if meta.esquema %}
+                  <br /><small class="subtitulo">
+                    {{ meta.esquema }}
+                    {% if meta.unidades.longitud %}· {{ meta.unidades.longitud|lower }}{% endif %}
+                    {% if meta.elementos %}· {{ meta.elementos }} {% translate "elements" %}{% endif %}
+                    ·
+                    {% if meta.georreferencia.georreferenciado %}
+                      {% translate "georeferenced" %} ({{ meta.georreferencia.via }})
+                    {% else %}
+                      <strong>{% translate "not georeferenced" %}</strong>
+                    {% endif %}
+                  </small>
+                {% elif meta.error %}
+                  <br /><small class="subtitulo">
+                    {% translate "the file's own data could not be read" %}
+                  </small>
+                {% endif %}
+              {% endwith %}
             {% else %}
               —
             {% endif %}

@@ -36,6 +36,7 @@ from apps.documents.forms import (
     RevisionForm,
     TransmittalForm,
 )
+from apps.documents.ifc import extraer as extraer_ifc
 from apps.documents.models import (
     IDONEIDADES_PUBLICADAS,
     Actividad,
@@ -224,6 +225,12 @@ class SubirRevisionView(ModelPermissionRequiredMixin, View):
         revision.nombre_original = form.cleaned_data["archivo"].name[:250]
         revision.tamano_bytes = len(form.contenido)
         revision.sha256 = form.sha256
+        # **Lo que el IFC declara se lee al subirlo** (`F3.3`), y solo si es un IFC. Medido: 1,1 s
+        # para el modelo real de 23,6 MB, así que no hace falta un trabajo en segundo plano para el
+        # tamaño que recibe un control documental. Si algún día llega un federado que tarde, esto es
+        # lo que se mueve a `JobRun`, y el campo ya está.
+        if storage.extension_de(revision.nombre_original) == "ifc":
+            revision.metadatos = extraer_ifc(storage.ruta_de(clave))
         revision.save()
 
         set_audit_context(request, revision, action="subir_revision")
