@@ -22,7 +22,12 @@ import {
   type SpatialNode,
   type StandardView,
 } from "@aerobim/viewer";
-import { parseSavedViews, urlDeNuevaObservacion, type RegistryOrigin } from "@aerobim/bim-core";
+import {
+  camaraBcfDesdeEscena,
+  parseSavedViews,
+  urlDeNuevaObservacion,
+  type RegistryOrigin,
+} from "@aerobim/bim-core";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DrawingsPanel } from "./components/DrawingsPanel.js";
 import { ModelsPanel } from "./components/ModelsPanel.js";
@@ -1083,7 +1088,25 @@ export function App() {
    * trae GUID válido** — un ancla sin identidad no apunta a nada, y una observación que dice
    * «algo en este modelo» no es mejor que un correo.
    */
-  const urlDeObservar = useMemo(() => urlDeNuevaObservacion(origen, selected), [origen, selected]);
+  const observar = useMemo(() => {
+    const href = urlDeNuevaObservacion(origen, selected);
+    if (href === null) return null;
+
+    return {
+      href,
+      // **La cámara se lee al pulsar, no al seleccionar.** Entre elegir el elemento y pulsar uno
+      // suele girar para verlo mejor, y el punto de vista que hay que guardar es el de ese momento.
+      // `camaraBcfDesdeEscena` la convierte al sistema del IFC —la escena tiene Y arriba y el IFC
+      // Z— y devuelve `null` para las cámaras que no se pueden reproducir: entonces se abre el
+      // enlace sin ella, que es una observación válida con su ancla por GUID.
+      conCamara: () => {
+        const instancia = viewer.current;
+        if (instancia === null) return href;
+        const camara = camaraBcfDesdeEscena(instancia.cameraState);
+        return urlDeNuevaObservacion(origen, selected, camara) ?? href;
+      },
+    };
+  }, [origen, selected]);
 
   /** Apaga o enciende **el elemento seleccionado**, que es lo que se pidió tener a un botón. */
   const onToggleSelectionVisible = useCallback(() => {
@@ -1296,7 +1319,7 @@ export function App() {
                 onToggleVisible={onToggleSelectionVisible}
                 onIsolate={onIsolateSelection}
                 onUndoIsolate={onUndoIsolate}
-                urlDeObservar={urlDeObservar}
+                observar={observar}
               />
             )}
           </aside>

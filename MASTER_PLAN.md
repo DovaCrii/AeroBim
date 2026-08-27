@@ -1233,41 +1233,53 @@ modelos que existen hoy — se completa con los entregables en `F8.1`.
 **Objetivo de salida:** una observación de coordinación deja de ser un correo con
 una captura de pantalla.
 
-| #      | Tarea                                                                                     | Estado |
-| ------ | ----------------------------------------------------------------------------------------- | ------ |
-| `F4.1` | Temas de observación con viewpoint: cámara, visibilidad y elementos involucrados por GUID | 🟡     |
-| `F4.2` | Metadatos y ciclo de vida: prioridad, responsable, fecha de vencimiento, estado           | ✅     |
-| `F4.3` | Comentarios ligados al viewpoint, con historial                                           | ✅     |
-| `F4.4` | **Exportar BCF 2.1** — escrito a mano, leído de vuelta por `bcf-client` en las pruebas    | ✅     |
-| `F4.5` | Marcado sobre la vista (nube, flecha, texto) embebido en el viewpoint                     | ⬜     |
+| #      | Tarea                                                                                  | Estado |
+| ------ | -------------------------------------------------------------------------------------- | ------ |
+| `F4.1` | Temas de observación con viewpoint: **cámara** y elementos involucrados por GUID       | 🟡     |
+| `F4.2` | Metadatos y ciclo de vida: prioridad, responsable, fecha de vencimiento, estado        | ✅     |
+| `F4.3` | Comentarios ligados al viewpoint, con historial                                        | ✅     |
+| `F4.4` | **Exportar BCF 2.1** — escrito a mano, leído de vuelta por `bcf-client` en las pruebas | ✅     |
+| `F4.5` | Marcado sobre la vista (nube, flecha, texto) embebido en el viewpoint                  | ⬜     |
 
 **`F4.2` y `F4.3` las cerró la Fase 8, no esta.** Fue la apuesta del replanteo —«las
 observaciones comparten modelo con los temas BCF», `F8.2`— y salió: `Observacion` ya trae
 prioridad, responsable, vencimiento, estado y resolución, y `Comentario` el historial. No hay
 tabla nueva que escribir; el tablero decía ⬜ sobre código que existe desde hace días.
 
-**`F4.1` va a medio camino, y el medio que falta importa.** El ancla por GUID está, **se abre
-desde la ficha del elemento en el visor** y viaja al BCF; **la cámara y la visibilidad no**.
+**`F4.1`: el ancla por GUID y la cámara están; lo que queda es la visibilidad.**
 
-Lo que ya funciona: con un modelo abierto desde el registro, la ficha del elemento ofrece
-«Observar este elemento» y lleva al formulario con la revisión y el GUID puestos. El enlace no
-existe en tres casos, y los tres significan «no hay dónde anotarlo»: el modelo se abrió del
-disco, el rol no puede abrir observaciones —lo contesta el servidor en los metadatos, no el
-visor por adivinanza—, o el elemento no trae GUID válido. Un ancla sin identidad no apunta a
-nada.
+Con un modelo abierto desde el registro, la ficha del elemento ofrece «Observar este elemento»
+y lleva al formulario con la revisión, el GUID y **el punto de vista de ese momento**. El
+enlace no existe en tres casos, y los tres significan «no hay dónde anotarlo»: el modelo se
+abrió del disco, el rol no puede abrir observaciones —lo contesta el servidor en los
+metadatos, no el visor por adivinanza—, o el elemento no trae GUID válido.
 
-Lo que falta: **la cámara**. Y no está pendiente por falta de tiempo, sino porque hay una
-medición que hacer primero: la escena del visor tiene el **eje Y hacia arriba**
-([index.ts:3239](packages/viewer/src/index.ts) corta a una altura con `Vector3(0, altura, 0)`)
-y BCF espera las coordenadas del IFC, con **Z hacia arriba**. Exportar la posición sin medir
-esa transformación —y si hay traslación, cuál— produce un BCF que abre mirando bajo tierra o de
-lado, que es peor que uno sin cámara: **afirma algo falso**. Hasta que se mida, el viewpoint
-lleva el elemento seleccionado y ninguna cámara inventada.
+**La cámara exigía una medición antes de exportarse**, y esa era la razón de que `F4.4` no la
+escribiera: la escena del visor tiene el eje **Y** hacia arriba y BCF espera las coordenadas
+del IFC, con **Z**. Exportar la posición sin la transformación produce un BCF que abre mirando
+bajo tierra, que es peor que uno sin cámara: afirma algo falso.
 
-Se completa cuando el visor sepa guardar la cámara de una observación, donde se cruza con
-`F1.9` (vistas guardadas) y con lo que
-[savedView.ts:50](packages/bim-core/src/views/savedView.ts) ya dejó anotado: su clave **no
-sirve** para un viewpoint BCF, tiene que ir por GUID.
+La transformación **ya estaba en el repositorio y comprobada**:
+[grid.ts:61](packages/viewer/src/grid.ts) dibuja los ejes de replanteo leyendo el IFC y
+poniéndolos en la escena como `(x, cota, -y)`, y los ejes caen sobre el modelo — si fuera otra,
+las letras aparecerían a noventa grados. La misma la usa el plano DXF de referencia, que calza
+con error de milímetros. De ahí sale `escenaAIfc`, en `bim-core`, con sus pruebas.
+
+**Y el vector «arriba» se lee del cuaternión de la cámara, no se supone.** La tentación es
+pasar el eje vertical del mundo, y con la cámara en planta —lo que hace el Modo 2D— eso es
+paralelo a la dirección de vista: una cámara imposible que BCF rechaza. Leyéndolo no hay
+convención que elegir ni caso degenerado que resolver a dedo.
+
+Lo que falta: **la visibilidad**. Hoy el viewpoint dice «el modelo entero, con este elemento
+seleccionado», que es una afirmación cierta y deliberada —aislar decidiría por quien revisa que
+lo demás no importa, y a veces el problema es justamente el vecino—. Llevar lo que estaba
+apagado exige traducir identificadores del motor a GUID, que es justo lo que
+[savedView.ts:50](packages/bim-core/src/views/savedView.ts) dejó anotado: su clave **no sirve**
+para un viewpoint BCF. Queda como `F4.7`.
+
+| #      | Tarea                                                                               | Estado |
+| ------ | ----------------------------------------------------------------------------------- | ------ |
+| `F4.7` | Visibilidad en el viewpoint: lo apagado y lo aislado, traducido de `localId` a GUID | ⬜     |
 
 **Y la importación quedó fuera de `F4.4` a propósito**, así que la fila dice «Exportar» y no
 «Exportar e importar». Exportar es lo que desbloquea al mandante hoy; importar exige decidir
@@ -1283,7 +1295,7 @@ o Solibri** con su viewpoint intacto, y uno generado por ellos abre aquí. Un BC
 que solo se entiende consigo mismo no es interoperabilidad, es un formato propio
 con extensión prestada.
 
-> **Lo que sí se verificó, y lo que no.** Las 15 pruebas de `test_bcf.py` leen el archivo con
+> **Lo que sí se verificó, y lo que no.** Las 20 pruebas de `test_bcf.py` leen el archivo con
 > **`bcf-client`, la implementación de referencia de buildingSMART** —instalada porque la trae
 > `ifcopenshell`—, no con nuestro propio código: el GUID del elemento, el correo del
 > responsable, los comentarios con su historial y la ausencia de cámara sobreviven el viaje de

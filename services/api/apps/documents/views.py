@@ -848,6 +848,14 @@ class NuevaObservacionView(ModelPermissionRequiredMixin, View):
         titulo = (request.GET.get("titulo") or "").strip()
         if titulo:
             inicial["titulo"] = titulo[:250]
+
+        # **El punto de vista, si el visor lo mandó** (`F4.1`). Llega ya convertido al sistema del
+        # IFC —la escena del visor tiene el eje Y hacia arriba y el IFC la cota en Z— y se pasa tal
+        # cual: quien comprueba que sea una cámara reproducible es el formulario, con
+        # `camara.leer`. Acá solo se traslada, igual que el resto del ancla.
+        camara = (request.GET.get("camara") or "").strip()
+        if camara:
+            inicial["camara"] = camara
         return inicial
 
     def get(self, request, *args, **kwargs):

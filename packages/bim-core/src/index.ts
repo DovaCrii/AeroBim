@@ -77,6 +77,15 @@ export {
 } from "./registro/observar.js";
 
 export {
+  camaraBcfDesdeEscena,
+  escenaAIfc,
+  ifcAEscena,
+  type BcfCamera,
+  type BcfCameraKind,
+  type SceneCameraState,
+} from "./registro/viewpoint.js";
+
+export {
   parseSavedViews,
   readSavedView,
   type SavedCamera,

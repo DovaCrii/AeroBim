@@ -57,6 +57,14 @@ ESTADOS = {
 #: La prioridad, igual: los tres valores habituales de BCF.
 PRIORIDADES = {"alta": "High", "media": "Normal", "baja": "Low"}
 
+#: Campo visual vertical que se escribe cuando la camara no trae el suyo, en grados.
+#:
+#: **Es el unico numero de este modulo que no sale de un dato nuestro**, y esta porque el XSD lo
+#: exige: `FieldOfView` es obligatorio dentro de `PerspectiveCamera`. Sesenta grados es el valor por
+#: defecto de todo visor de BIM, asi que es el que menos sorprende; la posicion y la direccion —lo
+#: que de verdad dice a donde se miraba— siguen saliendo del dato.
+FOV_POR_DEFECTO = 60.0
+
 
 def exportar(observaciones, proyecto_nombre: str) -> bytes:
     """El ZIP de BCF 2.1 con las observaciones que se le pasen.
@@ -149,12 +157,67 @@ def _markup(observacion, tema: str) -> str:
     return _texto(raiz)
 
 
-def _viewpoint(observacion, tema: str) -> str:
-    """El punto de vista: **el elemento seleccionado, y nada mas**.
+def _camara(raiz: ET.Element, camara: dict) -> None:
+    """La camara del viewpoint, si la observacion trae una. `F4.1`.
 
-    Sin camara, a proposito — ver el docstring del modulo. Cuando el visor sepa guardar la camara de
-    una observacion (`F4.1`), aqui se añade `PerspectiveCamera`; hasta entonces, seleccionar el
-    elemento es todo lo que se puede afirmar.
+    **Solo se escribe lo que alguien decidio.** El visor guarda la camara desde la que se vio el
+    problema, ya convertida al sistema del IFC; una observacion que no viene del visor —de una
+    validacion IDS, de un clic sobre un PDF— no tiene camara y **no se le inventa una**: un BCF que
+    abre mirando a un sitio que nadie eligio afirma algo falso.
+
+    **El orden de los hijos importa** aca tambien: el XSD de BCF 2.1 los declara en secuencia.
+    """
+    tipo = camara.get("tipo")
+    if tipo not in ("perspectiva", "ortogonal"):
+        return
+
+    # **Se comprueba todo antes de escribir nada**, y no es estilo: escribiendo sobre la marcha, una
+    # camara a medias —guardada por una version anterior o por un script— dejaba un
+    # `PerspectiveCamera` sin sus hijos obligatorios, y con eso `bcf-client` **se niega a leer el
+    # archivo entero**. Un BCF sin camara es utilizable; uno que no abre, no. Lo encontro la prueba.
+    vectores = []
+    for etiqueta, clave in (
+        ("CameraViewPoint", "punto"),
+        ("CameraDirection", "direccion"),
+        ("CameraUpVector", "arriba"),
+    ):
+        valor = camara.get(clave)
+        if not isinstance(valor, (list, tuple)) or len(valor) != 3:
+            return
+        try:
+            vectores.append((etiqueta, [float(componente) for componente in valor]))
+        except (TypeError, ValueError):
+            return
+
+    if tipo == "ortogonal":
+        try:
+            escala = float(camara["escala"])
+        except (KeyError, TypeError, ValueError):
+            # `ViewToWorldScale` es obligatorio en el XSD, y sin el la ortogonal no se reproduce.
+            return
+
+    nodo = ET.SubElement(raiz, "PerspectiveCamera" if tipo == "perspectiva" else "OrthogonalCamera")
+    for etiqueta, valor in vectores:
+        punto = ET.SubElement(nodo, etiqueta)
+        for eje, componente in zip("XYZ", valor, strict=True):
+            ET.SubElement(punto, eje).text = repr(componente)
+
+    if tipo == "perspectiva":
+        # El campo visual es opcional en nuestro dato y **obligatorio en el XSD**, asi que cuando no
+        # se sabe se pone el que usa por defecto todo visor de BIM. Es el unico valor de todo este
+        # modulo que no sale de un dato nuestro, y va dicho.
+        ET.SubElement(nodo, "FieldOfView").text = repr(
+            float(camara.get("campoVisual") or FOV_POR_DEFECTO)
+        )
+    else:
+        ET.SubElement(nodo, "ViewToWorldScale").text = repr(escala)
+
+
+def _viewpoint(observacion, tema: str) -> str:
+    """El punto de vista: el elemento seleccionado, y **la camara solo si alguien la eligio**.
+
+    Ver el docstring del modulo: la camara la trae la observacion cuando se abrio desde el visor
+    (`F4.1`), y cuando no la trae no se inventa.
     """
     raiz = ET.Element("VisualizationInfo", {"Guid": tema})
     componentes = ET.SubElement(raiz, "Components")
@@ -165,6 +228,11 @@ def _viewpoint(observacion, tema: str) -> str:
     # veces el problema es justamente el vecino.
     visibilidad = ET.SubElement(componentes, "Visibility", {"DefaultVisibility": "true"})
     ET.SubElement(visibilidad, "Exceptions")
+
+    # **Despues de `Components`, no antes**: el XSD de BCF 2.1 declara la secuencia
+    # `Components`, `OrthogonalCamera`, `PerspectiveCamera`, y un lector estricto rechaza el
+    # viewpoint entero si llegan al reves.
+    _camara(raiz, observacion.punto_de_vista or {})
     return _texto(raiz)
 
 

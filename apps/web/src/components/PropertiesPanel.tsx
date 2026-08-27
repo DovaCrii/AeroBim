@@ -8,6 +8,19 @@ import { IconEye, IconEyeOff, IconIsolate } from "./icons.js";
  * GUID ni psets, tiene capa, plano de origen, largo y dónde está. Mezclarlo con la ficha del modelo
  * obligaría a llenar de "—" media pantalla; separarlo deja claro qué se está mirando.
  */
+/**
+ * Cómo se abre una observación sobre el elemento seleccionado.
+ *
+ * Son dos porque son dos momentos: `href` es el enlace de verdad —el que se copia, el que abre el
+ * botón central— y lleva el ancla por GUID; `conCamara` se llama **al pulsar** y añade el punto de
+ * vista de ese instante, que es el que hay que guardar.
+ */
+export interface EnlaceDeObservar {
+  readonly href: string;
+  /** La misma URL con la cámara de ahora, o `null` si esa cámara no se puede reproducir. */
+  readonly conCamara: () => string | null;
+}
+
 /** Cómo se llama en la ficha lo que se tocó del plano. */
 const ETIQUETA_2D: Record<"line" | "fill" | "text", string> = {
   line: "Trazo 2D",
@@ -107,7 +120,7 @@ export function PropertiesPanel({
   onToggleVisible,
   onIsolate,
   onUndoIsolate,
-  urlDeObservar = null,
+  observar = null,
 }: {
   /** El elemento seleccionado, o `null` cuando no hay ninguno. */
   readonly item: PickedItem | null;
@@ -121,14 +134,14 @@ export function PropertiesPanel({
   /** Sale del aislamiento y devuelve el modelo a como estaba antes de aislar. */
   readonly onUndoIsolate: () => void;
   /**
-   * A dónde lleva «Observar este elemento», o `null` si no hay dónde anotarlo.
+   * Cómo se abre una observación sobre este elemento, o `null` si no hay dónde anotarla.
    *
    * **`null` significa que el enlace no existe, no que esté deshabilitado**, y por eso no se dibuja:
    * pasa cuando el modelo se abrió del disco —no hay entregable donde colgar la observación—, cuando
    * el rol no puede abrirlas, o cuando el elemento no trae GUID válido. Un botón gris que no explica
    * por qué está gris manda a alguien a buscar el error donde no está.
    */
-  readonly urlDeObservar?: string | null;
+  readonly observar?: EnlaceDeObservar | null;
 }) {
   // El panel **está siempre**, como en Revit: es un sitio fijo de la pantalla, y en cuanto se
   // selecciona algo se llena. Antes aparecía y desaparecía flotando sobre el modelo, lo que movía la
@@ -239,13 +252,23 @@ export function PropertiesPanel({
               registro, con su responsable y su vencimiento—, y un enlace se puede abrir en otra
               pestaña sin perder el modelo cargado, que es justo lo que uno quiere acá: son veinte
               megas y medio minuto de conversión. */}
-          {urlDeObservar !== null && (
+          {observar !== null && (
             <a
-              href={urlDeObservar}
+              href={observar.href}
               target="_blank"
               rel="noopener"
+              onClick={(evento) => {
+                // **La cámara se lee al pulsar, no al seleccionar.** Entre elegir el elemento y
+                // pulsar acá uno suele girar para verlo mejor, y el punto de vista que hay que
+                // guardar es el de ahora — el `href` lleva la versión sin cámara, que es un enlace
+                // válido y es lo que sigue funcionando al copiarlo o abrirlo con el botón central.
+                const conCamara = observar.conCamara();
+                if (conCamara === null) return;
+                evento.preventDefault();
+                window.open(conCamara, "_blank", "noopener");
+              }}
               className="mt-2 inline-flex items-center gap-1.5 rounded bg-brand/15 px-2 py-1 text-[11px] font-semibold text-brand hover:bg-brand/25"
-              title="Abre una observación del registro anclada al GUID de este elemento"
+              title="Abre una observación del registro anclada al GUID de este elemento, con el punto de vista de ahora"
             >
               Observar este elemento
             </a>

@@ -514,3 +514,110 @@ def test_el_guid_del_visor_llega_al_formulario_y_se_guarda(client, proyectista, 
     observacion = Observacion.objects.get(titulo="Viga eje C sin su fase")
     assert observacion.ifc_guid == guid
     assert observacion.revision_id == revision_pdf.pk
+
+
+@pytest.mark.django_db
+def test_la_camara_del_visor_llega_al_formulario_y_se_guarda(client, proyectista, revision_pdf):
+    """**El camino completo de la camara** (`F4.1`): el visor la arma ya convertida al sistema del
+    IFC, viaja en la URL, el formulario la valida y queda en `punto_de_vista`, que es de donde la
+    lee el exportador a BCF."""
+    import json
+
+    guid = "2x9ibDgrvAu8y4Yd$Ug4Qu"
+    camara = {
+        "tipo": "perspectiva",
+        "punto": [10.0, -10.0, 10.0],
+        "direccion": [-0.57735, 0.57735, -0.57735],
+        "arriba": [-0.408248, 0.408248, 0.816497],
+        "campoVisual": 60.0,
+    }
+    usuario = dar(
+        proyectista,
+        "documents.view_revision",
+        "documents.add_revision",
+        "documents.add_observacion",
+    )
+    client.force_login(usuario)
+    ruta = reverse("documents:nueva-observacion", args=[revision_pdf.entregable.pk])
+
+    creada = client.post(
+        ruta,
+        {
+            "titulo": "Viga eje C sin su fase",
+            "descripcion": "",
+            "prioridad": Observacion.ALTA,
+            "responsable": usuario.pk,
+            "revision": str(revision_pdf.pk),
+            "ifc_guid": guid,
+            "camara": json.dumps(camara),
+        },
+    )
+    assert creada.status_code == 302
+
+    observacion = Observacion.objects.get(titulo="Viga eje C sin su fase")
+    assert observacion.punto_de_vista == camara
+
+
+@pytest.mark.django_db
+def test_una_camara_mala_no_impide_guardar_la_observacion(client, proyectista, revision_pdf):
+    """**Quien abre la observacion no escribio ese parametro**: llega del visor por la URL.
+    Negarse a guardar un hallazgo real por un dato accesorio seria el peor de los dos errores, y
+    sin camara el BCF sale con el elemento seleccionado."""
+    usuario = dar(
+        proyectista,
+        "documents.view_revision",
+        "documents.add_revision",
+        "documents.add_observacion",
+    )
+    client.force_login(usuario)
+
+    creada = client.post(
+        reverse("documents:nueva-observacion", args=[revision_pdf.entregable.pk]),
+        {
+            "titulo": "Con una camara rota",
+            "descripcion": "",
+            "prioridad": Observacion.MEDIA,
+            "responsable": usuario.pk,
+            "ifc_guid": "2x9ibDgrvAu8y4Yd$Ug4Qu",
+            "camara": "{no es json",
+        },
+    )
+
+    assert creada.status_code == 302
+    assert Observacion.objects.get(titulo="Con una camara rota").punto_de_vista == {}
+
+
+@pytest.mark.django_db
+def test_una_camara_sin_guid_no_se_guarda(client, proyectista, revision_pdf):
+    """El punto de vista es **la mitad del ancla en el modelo**. Sin el elemento al que apunta, un
+    viewpoint dice «mira hacia aca» sin decir que hay que mirar."""
+    import json
+
+    usuario = dar(
+        proyectista,
+        "documents.view_revision",
+        "documents.add_revision",
+        "documents.add_observacion",
+    )
+    client.force_login(usuario)
+
+    client.post(
+        reverse("documents:nueva-observacion", args=[revision_pdf.entregable.pk]),
+        {
+            "titulo": "Camara sin elemento",
+            "descripcion": "",
+            "prioridad": Observacion.MEDIA,
+            "responsable": usuario.pk,
+            "camara": json.dumps(
+                {
+                    "tipo": "ortogonal",
+                    "punto": [0.0, 0.0, 40.0],
+                    "direccion": [0.0, 0.0, -1.0],
+                    "arriba": [0.0, 1.0, 0.0],
+                    "escala": 25.0,
+                }
+            ),
+        },
+    )
+
+    assert Observacion.objects.get(titulo="Camara sin elemento").punto_de_vista == {}

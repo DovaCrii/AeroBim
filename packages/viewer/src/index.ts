@@ -31,6 +31,7 @@ import {
   type MissingClass,
   type Point3,
   type SavedView,
+  type SceneCameraState,
   type ViewNavigation,
   type ViewProjection,
 } from "@aerobim/bim-core";
@@ -85,6 +86,7 @@ export type {
   SavedCamera,
   SavedSection,
   SavedView,
+  SceneCameraState,
 } from "@aerobim/bim-core";
 
 /**
@@ -2395,6 +2397,54 @@ export class BimViewer {
    * para hablar de lo mismo, y para eso hacen falta las tres cosas: desde dónde se mira, qué está
    * apagado y por dónde está cortado. Con solo la cámara, la vista del otro muestra otra cosa.
    */
+  /**
+   * La cámara tal como está ahora, en coordenadas de la escena: `F4.1`.
+   *
+   * Existe aparte de {@link captureView} porque una observación **no es una vista guardada**: no
+   * necesita nombre, ni qué está oculto, ni los cortes, y sí necesita dos cosas que una vista
+   * guardada no lleva y que un viewpoint de BCF exige —el «arriba» real de la imagen y el alto de
+   * la vista ortogonal—.
+   *
+   * **El «arriba» se lee del cuaternión y no se supone.** La tentación es pasar el eje vertical del
+   * mundo, y con la cámara en planta —mirando recto hacia abajo, que es lo que hace el Modo 2D— eso
+   * es un vector paralelo a la dirección de vista: una cámara imposible. El giro real de la cámara
+   * sí lo sabe la propia cámara.
+   *
+   * La conversión al sistema del IFC no se hace acá: la hace `camaraBcfDesdeEscena` en `bim-core`,
+   * donde se puede probar sin navegador.
+   */
+  get cameraState(): SceneCameraState {
+    this.assertAlive();
+
+    const controls = this.world.camera.controls;
+    const camara = this.world.camera.three;
+
+    const arriba = new THREE.Vector3(0, 1, 0).applyQuaternion(camara.quaternion);
+
+    const ortogonal = (camara as THREE.OrthographicCamera).isOrthographicCamera;
+    if (ortogonal) {
+      const orto = camara as THREE.OrthographicCamera;
+      // El alto que de verdad se ve: el del frustum dividido por el zoom, que es lo que aplica
+      // Three.js. Sin el zoom, acercarse no cambiaría el número y el BCF abriría con otro encuadre.
+      const alto = Math.abs(orto.top - orto.bottom) / (orto.zoom || 1);
+      return {
+        position: toPoint3(controls.getPosition(new THREE.Vector3())),
+        target: toPoint3(controls.getTarget(new THREE.Vector3())),
+        up: toPoint3(arriba),
+        kind: "ortogonal",
+        viewHeightM: alto,
+      };
+    }
+
+    return {
+      position: toPoint3(controls.getPosition(new THREE.Vector3())),
+      target: toPoint3(controls.getTarget(new THREE.Vector3())),
+      up: toPoint3(arriba),
+      kind: "perspectiva",
+      fieldOfViewDeg: (camara as THREE.PerspectiveCamera).fov,
+    };
+  }
+
   async captureView(name: string): Promise<SavedView> {
     this.assertAlive();
 

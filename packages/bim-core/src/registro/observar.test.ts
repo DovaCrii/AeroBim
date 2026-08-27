@@ -102,3 +102,38 @@ describe("tituloPropuesto", () => {
     expect(largo).toHaveLength(250);
   });
 });
+
+describe("urlDeNuevaObservacion con cámara", () => {
+  const CAMARA = {
+    tipo: "perspectiva" as const,
+    punto: [10, -10, 10] as [number, number, number],
+    direccion: [-0.57735, 0.57735, -0.57735] as [number, number, number],
+    arriba: [-0.408248, 0.408248, 0.816497] as [number, number, number],
+    campoVisual: 60,
+  };
+
+  it("la lleva como un solo parámetro, y vuelve entera al leerla", () => {
+    // **Media cámara no se puede dibujar**: posición sin dirección no es un punto de vista. Va como
+    // un dato y no como seis números sueltos para que el servidor no tenga que comprobar que
+    // llegaron todos.
+    const url = urlDeNuevaObservacion(ORIGEN, VIGA, CAMARA) as string;
+    const crudo = new URL(url, "https://ejemplo.test").searchParams.get("camara");
+
+    expect(crudo).not.toBeNull();
+    expect(JSON.parse(crudo as string)).toEqual(CAMARA);
+  });
+
+  it("sin cámara, el parámetro no existe", () => {
+    // Una observación sin cámara sigue valiendo: el BCF sale con el elemento seleccionado.
+    const url = urlDeNuevaObservacion(ORIGEN, VIGA) as string;
+    expect(new URL(url, "https://ejemplo.test").searchParams.has("camara")).toBe(false);
+  });
+
+  it("el GUID y el título siguen intactos con la cámara puesta", () => {
+    const url = urlDeNuevaObservacion(ORIGEN, VIGA, CAMARA) as string;
+    const parametros = new URL(url, "https://ejemplo.test").searchParams;
+
+    expect(parametros.get("guid")).toBe(VIGA.guid);
+    expect(parametros.get("titulo")).toBe("IFCBEAM · Viga H 300x150");
+  });
+});

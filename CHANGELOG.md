@@ -5,6 +5,51 @@ Este proyecto sigue [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Añadido — El BCF abre mirando al problema, no solo señalándolo (`F4.1`, 2026-08-27)
+
+La observación abierta desde el visor se lleva **el punto de vista desde el que se vio el
+problema**, y el BCF exportado lo escribe como `PerspectiveCamera` u `OrthogonalCamera`. Quien lo
+abre en Solibri o en Navisworks aparece donde estaba quien lo encontró, en vez de tener que buscar
+el elemento seleccionado.
+
+**Esto era lo que faltaba y por qué faltaba.** `F4.4` se negó a exportar una cámara a propósito: la
+escena del visor tiene el eje **Y** hacia arriba y BCF espera las coordenadas del IFC, con **Z**.
+Exportar la posición sin la transformación produce un BCF que abre mirando bajo tierra, y eso es
+peor que uno sin cámara — afirma algo falso.
+
+**La transformación no se adivinó: ya estaba en el repositorio y comprobada.**
+[grid.ts:61](packages/viewer/src/grid.ts) dibuja los ejes de replanteo leyendo las coordenadas del
+IFC y poniéndolas en la escena como `(x, cota, -y)`, y los ejes **caen sobre el modelo**: si la
+regla fuera otra, las letras aparecerían a noventa grados del edificio. La misma la usa el plano DXF
+de referencia, que calza con error de milímetros. De ahí sale `escenaAIfc` en `bim-core`, con la
+prueba que fija las dos direcciones y la que la ata explícitamente a `grid.ts`.
+
+**Y el vector «arriba» se lee del cuaternión de la cámara.** La tentación es pasar el eje vertical
+del mundo, y con la cámara en planta —lo que hace el Modo 2D, o sea el caso más común— eso es
+paralelo a la dirección de vista: una cámara imposible que el XSD de BCF rechaza. Leyendo el giro
+real no hay convención que elegir ni caso degenerado que resolver a dedo.
+
+**La cámara se lee al pulsar, no al seleccionar.** Entre elegir el elemento y pulsar «Observar» uno
+gira para verlo mejor, y el punto de vista que hay que guardar es el de ese momento. El `href` del
+enlace lleva la versión sin cámara, que sigue siendo válida al copiarlo o abrirlo con el botón
+central.
+
+**Lo que llega por la URL se valida como dato hostil** (`camara.py`, 32 pruebas): tipo conocido,
+tres ternas de números finitos, vectores unitarios, «arriba» perpendicular a la dirección, y un tope
+de distancia que caza el fallo real de leer un modelo en milímetros como si fuera metros. Una cámara
+mala **se descarta y no da error**: quien abre la observación no escribió ese parámetro, y negarse a
+guardar un hallazgo real por un dato accesorio sería el peor de los dos errores. Y una cámara sin
+GUID no se guarda: sin el elemento al que apunta, un viewpoint dice «mira hacia acá» sin decir qué
+hay que mirar.
+
+**Un defecto que encontró el oráculo, y de los buenos.** `_camara` escribía sobre la marcha, así que
+una cámara a medias —de una versión anterior, o escrita por un script— dejaba un `PerspectiveCamera`
+sin sus hijos obligatorios, y con eso **`bcf-client` se niega a leer el archivo entero**: se caía la
+exportación de todo el proyecto por un registro. Ahora se comprueba todo antes de escribir nada. Y
+el orden importa en el otro sentido también: el XSD declara `Components` **antes** de la cámara.
+
+Total del día: 272 pruebas en la API, 214 en `bim-core`, gate en verde.
+
 ### Añadido — Del elemento del modelo a la observación, sin salir del visor (`F4.1`, 2026-08-26)
 
 Ver el problema y que alguien lo arregle eran dos aplicaciones. Ahora, con un modelo abierto desde
@@ -39,7 +84,8 @@ apuntaría a un GUID que ese archivo no contiene.
 **Lo que falta de `F4.1`, y por qué no está:** la cámara. La escena del visor tiene el eje **Y**
 hacia arriba y BCF espera las coordenadas del IFC, con **Z** arriba. Exportar la posición sin medir
 esa transformación produce un BCF que abre mirando bajo tierra, y eso es peor que uno sin cámara:
-afirma algo falso. Se mide antes de exportarla.
+afirma algo falso. Se mide antes de exportarla. _(Medido y cerrado el mismo día — ver la entrada de
+arriba.)_
 
 ### Añadido — La observación se lleva a Solibri o a Navisworks (`F4.4`, 2026-08-26)
 

@@ -334,3 +334,92 @@ def test_la_lista_de_observaciones_ofrece_el_enlace_solo_si_hay_algo_que_exporta
     )
 
     assert ruta in client.get(reverse("documents:observaciones")).content.decode()
+
+
+# --- La camara del viewpoint: `F4.1` -------------------------------------------------
+
+
+CAMARA = {
+    "tipo": "perspectiva",
+    "punto": [10.0, -10.0, 10.0],
+    "direccion": [-0.57735, 0.57735, -0.57735],
+    "arriba": [-0.408248, 0.408248, 0.816497],
+    "campoVisual": 60.0,
+}
+
+
+@pytest.mark.django_db
+def test_la_camara_guardada_viaja_al_viewpoint(observacion, tmp_path):
+    """**Es lo que hace que el BCF abra mirando al problema** y no solo seleccionandolo. La
+    camara la guarda el visor cuando alguien abre la observacion desde ahi, ya convertida al
+    sistema del IFC.
+
+    Y lo lee `bcf-client`, no nuestro propio codigo: si el orden de los hijos o el nombre de un
+    elemento estuviera mal, esto es lo que lo dice.
+    """
+    observacion.punto_de_vista = CAMARA
+    observacion.save(update_fields=["punto_de_vista"])
+
+    documento = leer(exportar([observacion], "716-LCD"), tmp_path)
+    [tema] = list(documento.topics.values())
+    vista = list(tema.viewpoints.values())[0].visualization_info
+
+    assert vista.perspective_camera is not None
+    assert vista.orthogonal_camera is None
+    punto = vista.perspective_camera.camera_view_point
+    assert (punto.x, punto.y, punto.z) == (10.0, -10.0, 10.0)
+    assert vista.perspective_camera.field_of_view == 60.0
+
+
+@pytest.mark.django_db
+def test_la_camara_ortogonal_lleva_su_escala(observacion, tmp_path):
+    """Una ortogonal sin `ViewToWorldScale` no se puede reproducir: la posicion dice desde donde se
+    mira y nada dice cuanto se ve."""
+    observacion.punto_de_vista = {
+        "tipo": "ortogonal",
+        "punto": [5.0, -5.0, 40.0],
+        "direccion": [0.0, 0.0, -1.0],
+        "arriba": [0.0, 1.0, 0.0],
+        "escala": 25.0,
+    }
+    observacion.save(update_fields=["punto_de_vista"])
+
+    documento = leer(exportar([observacion], "716-LCD"), tmp_path)
+    [tema] = list(documento.topics.values())
+    vista = list(tema.viewpoints.values())[0].visualization_info
+
+    assert vista.perspective_camera is None
+    assert vista.orthogonal_camera is not None
+    assert vista.orthogonal_camera.view_to_world_scale == 25.0
+
+
+@pytest.mark.django_db
+def test_el_elemento_sigue_seleccionado_con_camara(observacion, tmp_path):
+    """La camara **se suma al ancla, no la reemplaza**. Sin el GUID, un viewpoint dice «mira hacia
+    aca» sin decir que hay que mirar."""
+    observacion.punto_de_vista = CAMARA
+    observacion.save(update_fields=["punto_de_vista"])
+
+    documento = leer(exportar([observacion], "716-LCD"), tmp_path)
+    [tema] = list(documento.topics.values())
+    vista = list(tema.viewpoints.values())[0].visualization_info
+
+    assert [c.ifc_guid for c in vista.components.selection.component] == [GUID]
+    assert vista.perspective_camera is not None
+
+
+@pytest.mark.django_db
+def test_una_camara_a_medias_guardada_a_mano_no_rompe_la_exportacion(observacion, tmp_path):
+    """El formulario ya la valida, pero la base puede traer una vieja o editada por un script. Un
+    BCF con media camara seria peor que uno sin ella, y una exportacion que revienta es lo peor de
+    todo: se cae la de todo el proyecto por un registro."""
+    observacion.punto_de_vista = {"tipo": "perspectiva", "punto": [1.0, 2.0, 3.0]}
+    observacion.save(update_fields=["punto_de_vista"])
+
+    documento = leer(exportar([observacion], "716-LCD"), tmp_path)
+    [tema] = list(documento.topics.values())
+    vista = list(tema.viewpoints.values())[0].visualization_info
+
+    # Sin camara, y el ancla intacta: la observacion sigue valiendo.
+    assert vista.perspective_camera is None
+    assert [c.ifc_guid for c in vista.components.selection.component] == [GUID]

@@ -9,6 +9,7 @@ navegador.
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
+from apps.documents.camara import leer as leer_camara
 from apps.documents.ids import titulo_de_ids
 from apps.documents.models import (
     Actividad,
@@ -110,6 +111,14 @@ class ObservacionForm(forms.ModelForm):
             "ifc_guid": forms.HiddenInput,
         }
 
+    #: El punto de vista desde el que se vio el problema, si el visor lo mandó: `F4.1`.
+    #:
+    #: **Va como texto y se valida a mano**, no como el `JSONField` del modelo. Un `JSONField` en un
+    #: formulario acepta cualquier JSON bien formado —un diccionario vacío, una lista, un número— y
+    #: lo guarda: lo que hay que comprobar no es la sintaxis sino que sea una cámara reproducible.
+    #: Eso lo hace {@link apps.documents.camara.leer}, que además vive donde se puede probar sola.
+    camara = forms.CharField(required=False, widget=forms.HiddenInput)
+
     def __init__(self, *args, proyecto=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["revision"].required = False
@@ -143,6 +152,18 @@ class ObservacionForm(forms.ModelForm):
             raise forms.ValidationError(
                 _("An anchor on the document needs the revision it points at.")
             )
+
+        # **La cámara mala se descarta y no da error.** Quien abre la observación no escribió ese
+        # parámetro: llega del visor por la URL. Un error sobre él haría que el formulario se
+        # negara a guardar un hallazgo real por un dato accesorio, y sin cámara el BCF sale con el
+        # elemento seleccionado, que es lo que hacía antes de que esto existiera.
+        #
+        # Y **una cámara sin GUID no se guarda**. El punto de vista es la mitad del ancla en el
+        # modelo; sin el elemento al que apunta, un viewpoint dice «mira hacia acá» sin decir qué
+        # hay que mirar, y BCF lo escribiría como una vista sin componentes.
+        self.instance.punto_de_vista = (
+            leer_camara(datos.get("camara")) if datos.get("ifc_guid") else {}
+        )
 
         return datos
 

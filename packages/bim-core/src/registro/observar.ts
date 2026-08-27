@@ -13,6 +13,8 @@
  * a buscar el error donde no está.
  */
 
+import type { BcfCamera } from "./viewpoint.js";
+
 /** De qué revisión del registro salió el modelo que está abierto. */
 export interface RegistryOrigin {
   /** La revisión abierta. Es a lo que queda anclada la observación. */
@@ -67,6 +69,7 @@ export function tituloPropuesto(element: ObservableElement): string {
 export function urlDeNuevaObservacion(
   origin: RegistryOrigin | null,
   element: ObservableElement | null,
+  camera: BcfCamera | null = null,
 ): string | null {
   if (origin === null || !origin.puedeObservar) return null;
   if (element === null || element.guid === null) return null;
@@ -83,6 +86,17 @@ export function urlDeNuevaObservacion(
   ];
   const titulo = tituloPropuesto(element);
   if (titulo !== "") partes.push(`titulo=${encodeURIComponent(titulo)}`);
+
+  // **La cámara es opcional y su ausencia no es un fallo.** `camaraBcfDesdeEscena` devuelve `null`
+  // para las cámaras que no se pueden reproducir, y una observación sin cámara sigue valiendo: el
+  // BCF sale con el elemento seleccionado, que es lo que hacía `F4.4` antes de que esto existiera.
+  //
+  // Viaja como JSON en un parámetro y no como seis números sueltos porque **es un solo dato**: media
+  // cámara —posición sin dirección— no se puede dibujar, y con parámetros separados el servidor
+  // tendría que comprobar que llegaron todos. Así, o está o no está.
+  if (camera !== null) {
+    partes.push(`camara=${encodeURIComponent(JSON.stringify(camera))}`);
+  }
 
   return `/documentos/entregables/${origin.entregableId}/observar/?${partes.join("&")}`;
 }
