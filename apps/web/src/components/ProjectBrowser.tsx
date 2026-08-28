@@ -35,6 +35,7 @@ export function ProjectBrowser({
   drawingCount,
   cotas,
   vistas,
+  vistasDelProyecto,
   puedeGuardarVista,
   onToggleMeasurement,
   onDeleteMeasurement,
@@ -56,8 +57,10 @@ export function ProjectBrowser({
   readonly drawingCount: number;
   /** Las cotas dibujadas. La sección aparece sola cuando hay alguna. */
   readonly cotas: readonly DrawnMeasurement[];
-  /** Las vistas guardadas, en el orden en que se guardaron. */
+  /** Las vistas guardadas **en este navegador**, en el orden en que se guardaron. */
   readonly vistas: readonly SavedView[];
+  /** Las que sí se le pueden pasar a otra persona: viven en el registro y se piden por proyecto. */
+  readonly vistasDelProyecto: React.ReactNode;
   /** `false` sin modelo abierto: no hay vista que guardar. */
   readonly puedeGuardarVista: boolean;
   readonly onToggleMeasurement: (id: string, visible: boolean) => void;
@@ -192,6 +195,19 @@ export function ProjectBrowser({
         />
       </Seccion>
 
+      {/* **Las del proyecto van justo debajo de las locales**, y las dos existen a propósito: una
+          vista local es de trabajo y no cuesta nada —ni viaje al servidor ni permiso—; una
+          compartida es un acto explícito. Puestas juntas, la diferencia se lee sin explicarla. */}
+      <Seccion
+        titulo="Vistas del proyecto"
+        abierta={abiertas.has("vistas-proyecto")}
+        onAlternar={() => alternar("vistas-proyecto")}
+        alto={altos["vistas-proyecto"] ?? null}
+        onRedimensionar={(delta, actual) => redimensionar("vistas-proyecto", delta, actual)}
+      >
+        {vistasDelProyecto}
+      </Seccion>
+
       {cotas.length > 0 && (
         <Seccion
           // "Cotas dibujadas" era jerga y además decía menos de lo que la lista hace: acá están las
@@ -322,7 +338,8 @@ function Vistas({
       )}
 
       <p className="px-1 pt-2 text-nota leading-snug text-white/30">
-        Se guardan en este navegador. La Fase 3 les dará un sitio compartido.
+        Se guardan en este navegador y no salen del equipo. Para pasarle una a alguien, usa{" "}
+        <span className="text-white/45">Vistas del proyecto</span>.
       </p>
     </div>
   );

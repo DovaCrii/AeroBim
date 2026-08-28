@@ -12,6 +12,9 @@
 
 import {
   angleAtDeg,
+  camaraBcfDesdeEscena,
+  corteAEscena,
+  corteAIfc,
   countIfcEntities,
   distancePartsM,
   ifcAEscena,
@@ -40,6 +43,7 @@ import {
   type ViewNavigation,
   type ViewProjection,
   type VisibilidadBcf,
+  type VistaCompartida,
 } from "@aerobim/bim-core";
 import * as OBC from "@thatopen/components";
 import * as OBF from "@thatopen/components-front";
@@ -94,6 +98,7 @@ export type {
   SavedView,
   SceneCameraState,
   VisibilidadBcf,
+  VistaCompartida,
 } from "@aerobim/bim-core";
 
 /**
@@ -2498,6 +2503,73 @@ export class BimViewer {
       kind: "perspectiva",
       fieldOfViewDeg: (camara as THREE.PerspectiveCamera).fov,
     };
+  }
+
+  /**
+   * La vista de ahora mismo, **en la forma que se le puede pasar a otra persona**.
+   *
+   * A diferencia de {@link captureView}, que escribe en el idioma de esta sesión —coordenadas de la
+   * escena y `localId` del motor—, esta escribe en el del modelo: la cámara ya convertida al
+   * sistema del IFC, lo apagado por GUID y los cortes también en el sistema del IFC. Es lo que hace
+   * que la vista siga valiendo mañana, en otro equipo y con otra versión del visor.
+   *
+   * Devuelve `null` **solo si la cámara no se puede expresar**, que es el mismo caso que impide
+   * exportar un viewpoint: cámara y objetivo en el mismo punto, o un «arriba» paralelo a la
+   * dirección de vista. Sin cámara no hay vista que compartir.
+   */
+  async captureVistaCompartida(nombre: string): Promise<VistaCompartida | null> {
+    this.assertAlive();
+
+    const camara = camaraBcfDesdeEscena(this.cameraState);
+    if (camara === null) return null;
+
+    return {
+      nombre,
+      camara,
+      visibilidad: await this.captureVisibilityBcf(),
+      cortes: [...this.components.get(OBC.Clipper).list].map(([, plano]) =>
+        corteAIfc({ normal: toPoint3(plano.normal), origin: toPoint3(plano.origin) }),
+      ),
+    };
+  }
+
+  /**
+   * Aplica una vista compartida: deja la pantalla como la tenía quien la guardó.
+   *
+   * **El orden es el mismo que en {@link applyView} y por los mismos motivos**, con uno propio: la
+   * proyección va primero porque sustituye el objeto de cámara y pisaría la posición, y la
+   * visibilidad va antes que la cámara para que no se vea el modelo entero un instante.
+   *
+   * **Lo que no exista se ignora.** Los GUID que no estén en ningún modelo abierto no se buscan dos
+   * veces, y una vista guardada con tres disciplinas abiertas sigue sirviendo con dos.
+   */
+  async applyVistaCompartida(vista: VistaCompartida): Promise<void> {
+    this.assertAlive();
+
+    await this.setProjection(vista.camara.tipo === "ortogonal" ? "Orthographic" : "Perspective");
+
+    // Una vista dice qué se ve, entera: los aislamientos anteriores dejan de tener sentido como
+    // pasos que deshacer, porque lo que había antes ya no es lo que hay.
+    this.visibilityStack.length = 0;
+    if (vista.visibilidad !== null) await this.applyVisibilityBcf(vista.visibilidad);
+    else await this.showAll();
+
+    const clipper = this.components.get(OBC.Clipper);
+    clipper.deleteAll();
+    clipper.enabled = vista.cortes.length > 0;
+    for (const corte of vista.cortes) {
+      const { normal, origin } = corteAEscena(corte);
+      clipper.createFromNormalAndCoplanarPoint(
+        this.world,
+        new THREE.Vector3(...normal),
+        new THREE.Vector3(...origin),
+      );
+    }
+
+    // La cámara al final, con la conversión que ya usa `abrirObservacion`: es la misma pieza y no
+    // hay dos formas de leer un viewpoint.
+    this.aplicarCamaraBcf(vista.camara);
+    await this.refresh();
   }
 
   async captureView(name: string): Promise<SavedView> {

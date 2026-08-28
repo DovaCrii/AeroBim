@@ -158,3 +158,64 @@ class PaqueteWBS(BaseModel):
             partes.append(nodo.codigo)
             nodo = nodo.padre
         return " / ".join(reversed(partes))
+
+
+class VistaDeProyecto(BaseModel):
+    """Una vista del modelo que se le puede pasar a otra persona.
+
+    **Las vistas guardadas vivian en el navegador y ahi se quedaban.** Sobrevivian a recargar la
+    pagina y no salian del equipo, asi que dos personas revisando el mismo modelo no podian mirar
+    lo mismo — que es exactamente en lo que consiste coordinar. La limitacion paso de aceptable a
+    molesta en cuanto la coordinacion se metio dentro del visor.
+
+    **No es «la misma vista, pero en el servidor».** Una vista local esta escrita en el idioma de
+    esa sesion: coordenadas de la escena del visor y `localId` de Fragments, que es el
+    identificador del motor y cambia entre versiones del modelo. Esto esta escrito en el idioma del
+    **modelo**: la camara en el sistema del IFC, lo apagado por **GUID** y los cortes tambien en el
+    sistema del IFC. O sea, **es un viewpoint de BCF con nombre y con cortes**, y eso no es
+    casualidad: es lo que hace falta para que sobreviva a quien la escribio.
+
+    **Cuelga del proyecto y no de la revision**, por el mismo motivo que las observaciones del
+    modelo: una vista util para coordinar cruza disciplinas, y atarla a un archivo la haria
+    inservible en cuanto ese archivo tenga una version nueva.
+
+    Las vistas locales **no desaparecen**: siguen en el navegador, sin viaje al servidor y sin
+    permisos que pedir. Compartir es un acto explicito, y esa es la diferencia entre una vista de
+    trabajo y una que se le enseña a alguien.
+    """
+
+    # **El campo de la organizacion va explicito, aunque el proyecto ya la tenga.** Es lo que hace
+    # que `scope_queryset_to_organizacion` acote esta tabla sola: sin el, la consulta se devuelve
+    # intacta —el acotador no adivina caminos— y una vista de otro cliente saldria pidiendo su id.
+    organizacion = models.ForeignKey(
+        Organizacion, on_delete=models.PROTECT, related_name="vistas_de_proyecto"
+    )
+    proyecto = models.ForeignKey(Proyecto, on_delete=models.CASCADE, related_name="vistas")
+    nombre = models.CharField(max_length=120, verbose_name=_("name"))
+    autor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="vistas_compartidas",
+        verbose_name=_("author"),
+    )
+    #: La camara en el sistema del IFC, con la forma que escribe `camaraBcfDesdeEscena`.
+    camara = models.JSONField(default=dict, blank=True)
+    #: Que se veia, con la forma de un `Visibility` de BCF. Vacio es «sin restriccion».
+    visibilidad = models.JSONField(default=dict, blank=True)
+    #: Los planos de corte, tambien en el sistema del IFC: `[{"normal": [...], "origen": [...]}]`.
+    cortes = models.JSONField(default=list, blank=True)
+
+    class Meta:
+        verbose_name = _("project view")
+        verbose_name_plural = _("project views")
+        ordering = ["nombre"]
+        constraints = [
+            # **Un nombre por proyecto.** Dos vistas llamadas «Encuentro del eje C» en la misma
+            # lista no se distinguen, y quien las lee no puede saber cual le enseñaron.
+            models.UniqueConstraint(
+                fields=["proyecto", "nombre"], name="nombre_de_vista_unico_por_proyecto"
+            )
+        ]
+
+    def __str__(self):
+        return self.nombre

@@ -73,6 +73,9 @@ urlpatterns = [
     # el SPA detrás del login y las revisiones que puede abrir.
     path("visor/", include("apps.visor.urls")),
     path("api/", include("apps.documents.api_urls")),
+    # Las del proyecto —hoy, las vistas compartidas— van bajo el mismo prefijo: para el visor es
+    # una sola API, y separarlas por aplicacion es cosa nuestra, no suya.
+    path("api/", include("apps.projects.api_urls")),
     path("api-token/", TokenConThrottle.as_view(), name="api-token"),
     path("admin/", admin.site.urls),
 ]

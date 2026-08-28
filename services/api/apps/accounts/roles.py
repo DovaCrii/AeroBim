@@ -53,6 +53,10 @@ _LECTURA_DEL_PROYECTO = (
     "projects.view_proyecto",
     "projects.view_disciplina",
     "projects.view_paquetewbs",
+    # Las vistas compartidas del modelo. **Se leen desde cualquier rol, incluido el mandante**:
+    # una vista es como se le enseña algo a alguien, y el mandante es justamente a quien mas se le
+    # enseña. Compartir es otra cosa y va por rol.
+    "projects.view_vistadeproyecto",
     "documents.view_entregable",
     "documents.view_revision",
     "documents.view_observacion",
@@ -94,6 +98,11 @@ PERMISOS_POR_ROL: dict[str, tuple[str, ...]] = {
         "documents.add_requisitoids",
         "documents.change_requisitoids",
         "documents.add_validacionids",
+        # **Compartir una vista del modelo**, y borrar la propia. Va con quien trabaja el modelo y
+        # no con quien solo lo lee: una lista de vistas que cualquiera puede llenar deja de decir
+        # «mira esto» en cuanto tiene cincuenta filas.
+        "projects.add_vistadeproyecto",
+        "projects.delete_vistadeproyecto",
     ),
     # Sube revisiones y responde. **No cierra observaciones**: quien las abre las cierra,
     # o el registro se convierte en "yo mismo declaro que lo arregle".
@@ -105,6 +114,8 @@ PERMISOS_POR_ROL: dict[str, tuple[str, ...]] = {
         # **Puede validar contra el requisito, no escribirlo.** Es lo que le permite comprobar
         # su propio modelo antes de emitirlo, que es cuando corregirlo cuesta menos.
         "documents.add_validacionids",
+        "projects.add_vistadeproyecto",
+        "projects.delete_vistadeproyecto",
     ),
     # Abre y califica observaciones, y cambia el codigo de idoneidad de una revision —
     # que es su trabajo: decir para que sirve el documento.
@@ -114,6 +125,8 @@ PERMISOS_POR_ROL: dict[str, tuple[str, ...]] = {
         "documents.change_observacion",
         "documents.add_comentario",
         "documents.change_revision",
+        "projects.add_vistadeproyecto",
+        "projects.delete_vistadeproyecto",
     ),
     # **Lista blanca, no patron.** Lee el registro del proyecto y comenta; ni un permiso
     # de la administracion del sistema, y ni uno de escritura sobre el registro. Lo que

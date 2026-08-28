@@ -108,6 +108,16 @@ export {
 } from "./views/savedView.js";
 
 export {
+  corteAEscena,
+  corteAIfc,
+  leerVistaCompartida,
+  MAXIMO_CORTES,
+  NOMBRE_MAXIMO,
+  type CorteIfc,
+  type VistaCompartida,
+} from "./views/vistaCompartida.js";
+
+export {
   isDimensionlessIfcType,
   isTextIfcType,
   looksNumeric,

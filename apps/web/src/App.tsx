@@ -38,6 +38,7 @@ import { Ribbon, type RibbonTab } from "./components/Ribbon.js";
 import { SpatialTree } from "./components/SpatialTree.js";
 import { StatusBar } from "./components/StatusBar.js";
 import { ViewCube } from "./components/ViewCube.js";
+import { VistasCompartidas } from "./components/VistasCompartidas.js";
 
 /**
  * Lo que la interfaz da por oculto, en las tres listas que pinta.
@@ -1647,6 +1648,22 @@ export function App() {
               }
               cotas={drawn}
               vistas={views}
+              vistasDelProyecto={
+                <VistasCompartidas
+                  proyectoId={origen?.proyectoId ?? null}
+                  onCapturar={async (nombre) =>
+                    (await viewer.current?.captureVistaCompartida(nombre)) ?? null
+                  }
+                  onAplicar={async (vista) => {
+                    await viewer.current?.applyVistaCompartida(vista);
+                    // Una vista compartida puede traer medio modelo apagado, y la barra de estado
+                    // tiene que ofrecer la vuelta: es el mismo estado que anota `F4.7` al abrir una
+                    // observación.
+                    setVisibilidadDeObservacion(vista.visibilidad !== null);
+                    setHasSections(vista.cortes.length > 0);
+                  }}
+                />
+              }
               puedeGuardarVista={models.length > 0}
               onToggleMeasurement={onToggleMeasurement}
               onDeleteMeasurement={onDeleteMeasurement}

@@ -568,7 +568,9 @@ por dónde está cortado. Con solo la cámara, la vista que le pasas a otro mues
 que tú estabas viendo, que es justo lo contrario de para qué sirve.
 
 Se guardan por nombre en el navegador y **sobreviven a recargar la página** —verificado—. No van a un
-servidor: eso es Fase 3, y el pie de la sección lo dice para que nadie cuente con más de lo que hay.
+servidor, y eso **dejó de ser toda la historia el 2026-08-28**: `F3.12` añadió las **vistas del
+proyecto**, que sí se le pueden pasar a alguien porque van en GUID y en el sistema del IFC. Las
+locales se quedan como están, que es lo que las hace baratas.
 
 Dos decisiones que conviene tener escritas:
 
@@ -1066,9 +1068,75 @@ guardan por proyecto, con versiones y con quién subió qué.
 | `F3.8`  | **Roles y el contrato de permisos**: la matriz como dato, el guardián, y la prueba de 403            | ✅           |
 | `F3.9`  | **Los módulos y cómo se entra a cada uno**: portal por etapa de trabajo, filtrado por permiso        | ✅           |
 | `F3.11` | **Ponerlo en la VM**: driver de PostgreSQL, servidor de aplicación, `/health/` y unidades de systemd | ✅ ver abajo |
+| `F3.12` | **Vistas que se pueden pasar**: la vista del modelo sale del navegador y vive en el proyecto         | ✅ ver abajo |
 
 **Criterio de aceptación:** un modelo subido sobrevive al cierre del navegador, y
 la versión anterior sigue recuperable.
+
+### `F3.12`: una vista guardada que no se le puede pasar a nadie (2026-08-28)
+
+**Es el objetivo de salida de esta fase aplicado a lo que quedaba dentro de la pestaña.** Las vistas
+guardadas sobrevivían a recargar la página y **no salían del equipo** —lo decía el pie de su propia
+sección—, así que dos personas revisando el mismo modelo no podían mirar lo mismo. Coordinar es
+exactamente eso, y la limitación pasó de aceptable a molesta en cuanto la coordinación se metió
+dentro del visor.
+
+**No es «la misma vista, pero en el servidor», y esa es la decisión de fondo.** Una vista local está
+escrita en el idioma de **esa sesión**: coordenadas de la escena —con el eje Y hacia arriba, que es
+una convención de Three.js— y `localId` de Fragments para lo oculto, que es el identificador del
+motor y cambia entre versiones del modelo. `savedView.ts` ya lo dejó anotado hace días: su clave
+**no sirve** para un viewpoint. Guardar eso en una base de datos sería meter dos convenciones
+internas en un dato que va a durar más que ellas.
+
+Una vista compartida está escrita en el idioma del **modelo**:
+
+| Qué        | Cómo viaja                                                          |
+| ---------- | ------------------------------------------------------------------- |
+| La cámara  | Ya en el sistema del IFC — lo mismo que escribe `F4.1`              |
+| Lo apagado | Por **GUID**, con la forma de un `Visibility` — lo que cerró `F4.7` |
+| Los cortes | Normal y origen, también en el sistema del IFC                      |
+
+O sea: **es un viewpoint de BCF con nombre y con cortes**, y eso no es casualidad — es la
+consecuencia de exigirle que sobreviva a quien la escribió. **Por eso `F4.7` iba primero**, aunque
+en el orden de valor esta estaba antes: sin la visibilidad por GUID, una vista compartida solo
+habría podido llevar la cámara.
+
+**Las locales no desaparecen, y las dos secciones conviven a propósito.** Una vista local es de
+trabajo —«déjame esto como está mientras almuerzo»— y no cuesta nada: ni viaje al servidor ni
+permiso que pedir. Compartir es un acto explícito. Puestas una debajo de la otra en el navegador, la
+diferencia se lee sin explicarla.
+
+**Se comparte lo que se está mirando, no una vista local ya guardada.** No es una simplificación: a
+una vista local **le faltan dos datos** para armar un viewpoint —el «arriba» real de la imagen y el
+alto de la vista ortogonal—, que son justo los que BCF exige y los que una vista de trabajo no
+necesita. Convertirla obligaría a inventarlos.
+
+Tres decisiones más que conviene tener escritas:
+
+- **El modo de navegación no viaja.** Es cómo se mueve uno, no lo que se ve, y quien recibe la vista
+  está mirando, no recorriendo: ponerlo cambiaría el control del ratón de otra persona sin que nadie
+  se lo pidiera. La proyección sí, porque una ortográfica y una perspectiva del mismo sitio **no
+  muestran lo mismo**.
+- **Los cortes se descartan uno a uno; la cámara, entera.** Son independientes entre sí, y perder
+  una vista completa porque un corte venía mal sería peor que aplicarla con los que valen. La cámara
+  no admite eso porque media cámara no se dibuja — y una vista sin cámara se rechaza al compartirla,
+  en vez de dejar en la lista del otro una fila que se pulsa y no hace nada.
+- **La borra quien la compartió, y nadie más.** `delete_vistadeproyecto` dice «puede borrar vistas»,
+  no «puede borrar **estas**»: sin la comprobación del autor, cualquiera con el permiso quita la
+  vista que otro dejó preparada para una reunión.
+
+El contrato de permisos, sin atajos: `view_vistadeproyecto` está en la lectura del proyecto —también
+para el **mandante**, porque una vista es como se le enseña algo a alguien y él es a quien más se le
+enseña— y `add_`/`delete_` van con quien trabaja el modelo. Con su prueba de 403 y su prueba de
+aislamiento entre organizaciones, que son dos preguntas distintas.
+
+**Comprobado en el navegador sobre `Piso 5.ifc`**, con dos elementos apagados y un corte puesto: se
+captura, se deshace todo —modelo entero, sin cortes, cámara en otro sitio— y al aplicar la vista
+vuelven los dos ocultos, el corte y la cámara. La posición guardada en el sistema del IFC era
+`(13,404, −10,32, 14,863)` y la cámara acabó en `(13,404, 14,863, 10,32)` de la escena, que es
+`ifcAEscena` exacta.
+
+**439 pruebas en la API con 94,21 % de cobertura y 251 en `bim-core`**, gate en verde.
 
 ### `F3.11`: los tres huecos entre «pasa el gate» y «arranca en la VM» (2026-08-28)
 

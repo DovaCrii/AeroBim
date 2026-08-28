@@ -19,17 +19,28 @@
 >   El procedimiento entero está en **[docs/DEPLOY.md](docs/DEPLOY.md)**, que es lo que antes no
 >   existía. **404 pruebas, 94,18 %**, gate en verde.
 >
+> - **`F4.7` — la visibilidad en el viewpoint.** El BCF decía `DefaultVisibility="true"` siempre, y
+>   con el hallazgo encontrado aislando una planta eso era **falso**: se abría en Solibri con el
+>   edificio entero y el problema tapado. Ahora viaja el lado corto —lo apagado o lo visible, el que
+>   produzca menos componentes— por GUID, y **también vuelve**: abrir la observación deja la pantalla
+>   como estaba.
+> - **`F3.12` — vistas que se pueden pasar.** Las guardadas seguían en `localStorage`. Ahora hay
+>   **vistas del proyecto**, escritas en el idioma del modelo —cámara en el sistema del IFC, lo
+>   apagado por GUID, cortes— y por eso sobreviven a quien las escribió. Las locales se quedan: son
+>   de trabajo y no cuestan nada. `F4.7` fue primero **a propósito**: sin la visibilidad por GUID,
+>   una vista compartida solo habría podido llevar la cámara.
+>
 > **Lo que sigue, en orden de valor:**
 >
-> 1. **Las vistas guardadas siguen en `localStorage`** — dos personas no pueden pasarse una vista,
->    y eso pesa justo ahora que la coordinación vive dentro del visor.
-> 2. **`F4.7`** — visibilidad en el viewpoint: lo apagado y lo aislado, traducido de `localId` a GUID.
-> 3. **`F3.4` — Celery.** El `timeout` de gunicorn en 120 s es un parche con fecha: convertir un IFC
+> 1. **`F3.4` — Celery.** El `timeout` de gunicorn en 120 s es un parche con fecha: convertir un IFC
 >    grande y validar un IDS corren hoy dentro de la petición.
+> 2. **`F4.5`** — marcado sobre la vista (nube, flecha, texto) embebido en el viewpoint.
+> 3. **`F4.6`** — importar BCF, cuando haya uno de vuelta de verdad que mirar.
 >
-> **Y sigue sin verificarse el aspecto de tres pantallas**: la tarjeta de nota, la de cobertura de
-> psets, y la cinta de hoy. El panel del agente no compone fotogramas y la captura se agota — lo de
-> hoy se comprobó leyendo el DOM y la API del visor, que es comportamiento, no aspecto.
+> **Y sigue sin verificarse el aspecto de cuatro pantallas**: la tarjeta de nota, la de cobertura de
+> psets, la cinta y la sección **Vistas del proyecto**. El panel del agente no compone fotogramas y
+> la captura se agota — lo de hoy se comprobó leyendo el DOM y la API del visor, que es
+> comportamiento, no aspecto.
 
 **Ramas sin fusionar, y son dos:** `codex/fase-0-andamiaje` (34 commits) y
 `codex/fidelidad-2d` (6 commits, sale de la anterior). `AGENTS.md` es explícito: **no se fusiona
