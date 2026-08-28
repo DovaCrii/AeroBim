@@ -1267,6 +1267,12 @@ poniéndolos en la escena como `(x, cota, -y)`, y los ejes caen sobre el modelo 
 las letras aparecerían a noventa grados. La misma la usa el plano DXF de referencia, que calza
 con error de milímetros. De ahí sale `escenaAIfc`, en `bim-core`, con sus pruebas.
 
+> **Y quedó verificado de punta a punta el 2026-08-28.** Esa evidencia era **indirecta**: los ejes
+> cayendo sobre el modelo dicen que la transformación es correcta para dibujar, no que lo sea para
+> situar una cámara. El usuario abrió una observación en su navegador y **la cámara no queda bajo
+> tierra**. Es la comprobación que no se podía hacer desde el entorno de trabajo —su panel no
+> compone fotogramas— y cierra la duda: `escenaAIfc` e `ifcAEscena` valen de ida y de vuelta.
+
 **Y el vector «arriba» se lee del cuaternión de la cámara, no se supone.** La tentación es
 pasar el eje vertical del mundo, y con la cámara en planta —lo que hace el Modo 2D— eso es
 paralelo a la dirección de vista: una cámara imposible que BCF rechaza. Leyéndolo no hay

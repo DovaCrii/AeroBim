@@ -82,10 +82,15 @@ porque tener la misma regla en dos sitios es como se separan.
 
 359 pruebas en la API con 94,33% de cobertura, 221 en `bim-core`, gate en verde.
 
-**Lo que no se verificó, y es lo importante de este cambio:** que el clic mueva la cámara de verdad.
-El panel del navegador de trabajo **no compone fotogramas** y tiene su propia sesión, así que el
-vuelo de la cámara y la selección resaltada no se pueden mirar acá. Las piezas están probadas por
-separado —la conversión con su prueba, la búsqueda por GUID es de la librería— y el ensamblaje no.
+**Verificado por el usuario en su navegador, y era lo importante de este cambio.** Las piezas
+estaban probadas por separado —la conversión con su prueba, la búsqueda por GUID es de la librería—
+y el ensamblaje no: el panel del navegador de trabajo no compone fotogramas y tiene su propia
+sesión, así que el vuelo de la cámara no se podía mirar desde acá.
+
+Lo miró él y **la cámara no queda bajo tierra**. Eso cierra la única duda que quedaba abierta sobre
+la conversión de coordenadas: `escenaAIfc` e `ifcAEscena` son correctas de ida y de vuelta, y la
+transformación que se dedujo de `grid.ts` —los ejes de replanteo cayendo sobre el modelo— vale
+también para la cámara. Era evidencia indirecta y ahora es directa.
 
 ### Añadido — La puerta entre las dos mitades (`F8.10`, 2026-08-28)
 
