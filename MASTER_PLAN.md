@@ -1235,7 +1235,8 @@ una captura de pantalla.
 
 | #      | Tarea                                                                                  | Estado |
 | ------ | -------------------------------------------------------------------------------------- | ------ |
-| `F4.1` | Temas de observación con viewpoint: **cámara** y elementos involucrados por GUID       | 🟡     |
+| `F4.1` | Temas de observación con viewpoint: **cámara** y elementos involucrados por GUID       | ✅     |
+| `F4.8` | **Ver y abrir la observación dentro del visor**: la lista lleva la cámara y selecciona | ✅     |
 | `F4.2` | Metadatos y ciclo de vida: prioridad, responsable, fecha de vencimiento, estado        | ✅     |
 | `F4.3` | Comentarios ligados al viewpoint, con historial                                        | ✅     |
 | `F4.4` | **Exportar BCF 2.1** — escrito a mano, leído de vuelta por `bcf-client` en las pruebas | ✅     |

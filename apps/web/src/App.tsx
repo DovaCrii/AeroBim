@@ -31,6 +31,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DrawingsPanel } from "./components/DrawingsPanel.js";
 import { ModelsPanel } from "./components/ModelsPanel.js";
+import { Coordinacion, type ObservacionDelModelo } from "./components/Coordinacion.js";
 import { Origen } from "./components/Origen.js";
 import { PlansPanel } from "./components/PlansPanel.js";
 import { ProjectBrowser } from "./components/ProjectBrowser.js";
@@ -1123,6 +1124,29 @@ export function App() {
     };
   }, [origen, selected]);
 
+  /**
+   * Abre una observación del panel de coordinación: **lleva la cámara y selecciona el elemento**.
+   *
+   * Es la mitad que faltaba del ciclo: la observación se creaba desde el visor y para verla había
+   * que salir a otra pantalla. Devuelve `false` si el GUID no está en ningún modelo abierto —suele
+   * ser de otra disciplina—, y el panel lo dice junto a **esa** fila.
+   *
+   * Y deja la ficha abierta con el elemento: quien llega al problema quiere ver de qué elemento se
+   * habla, no solo dónde está.
+   */
+  const onAbrirObservacion = useCallback(async (observacion: ObservacionDelModelo) => {
+    const instancia = viewer.current;
+    if (instancia === null) return false;
+
+    const encontrado = await instancia.abrirObservacion(observacion.guid, observacion.camara);
+    if (encontrado === null) return false;
+
+    setSelected(encontrado);
+    setSelectedPlan(null);
+    setPanelIzquierdo(true);
+    return true;
+  }, []);
+
   /** Apaga o enciende **el elemento seleccionado**, que es lo que se pidió tener a un botón. */
   const onToggleSelectionVisible = useCallback(() => {
     const instance = viewer.current;
@@ -1442,6 +1466,12 @@ export function App() {
                   // Abrir dos modelos a la vez los cruza en el mismo worker: mientras carga uno,
                   // el resto de la lista no acepta clics.
                   deshabilitado={status.kind === "loading"}
+                />
+              }
+              coordinacion={
+                <Coordinacion
+                  proyectoId={origen?.proyectoId ?? null}
+                  onAbrir={onAbrirObservacion}
                 />
               }
               planCount={plans.length}

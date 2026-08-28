@@ -14,6 +14,7 @@ import {
   angleAtDeg,
   countIfcEntities,
   distancePartsM,
+  ifcAEscena,
   parseIfcGrids,
   emptyElementClasses,
   isIfcGuid,
@@ -25,6 +26,7 @@ import {
   perpendicularToPlane,
   polygonAreaM2,
   resolveUnitSymbol,
+  type BcfCamera,
   type IfcGridAxis,
   type IfcGuid,
   type IfcUnits,
@@ -434,6 +436,22 @@ const DEFAULT_WASM_PATH = "/wasm/";
 
 /** Un fotograma a 60 Hz, para forzar el avance de los controles de cámara. */
 const ONE_FRAME_S = 1 / 60;
+
+/**
+ * A qué distancia se pone el objetivo de la cámara al abrir una observación, en metros.
+ *
+ * **Un viewpoint de BCF guarda una dirección, no un punto al que mirar**, y `camera-controls` pide
+ * lo segundo. La dirección dice hacia dónde y no hasta dónde, así que la distancia es una elección
+ * nuestra: cambia sobre qué punto orbita después quien mira, y no cambia lo que se ve al llegar.
+ */
+const DISTANCIA_DE_MIRA = 10;
+
+/**
+ * Cuánto se aleja la cámara al encuadrar un elemento, como múltiplo de su lado mayor.
+ *
+ * Pegado a una viga no se ve de qué viga se habla: hace falta el vecino para reconocer el sitio.
+ */
+const HOLGURA_AL_ENCUADRAR = 3;
 
 /** Violeta de la marca, para el elemento seleccionado y para las cotas. */
 const SELECTION_COLOR = 0x9b5de5;
@@ -2514,6 +2532,109 @@ export class BimViewer {
     controls.update(ONE_FRAME_S);
 
     await this.refresh();
+  }
+
+  /**
+   * Abre una observación: **lleva la cámara al problema y selecciona el elemento**. `F4.1`.
+   *
+   * Es la mitad que faltaba del ciclo de coordinación. Hasta ahora la observación se **creaba**
+   * desde el visor y para **verla** había que salir a otra pantalla, así que quien coordinaba tenía
+   * el hallazgo en un sitio y el modelo en otro.
+   *
+   * Devuelve el elemento seleccionado, o `null` si el GUID no está en ningún modelo abierto — que
+   * es un caso normal y no un fallo: la observación puede ser de la disciplina de estructura y
+   * estar abierta la de arquitectura. Quien llama lo dice; **no se inventa una selección**.
+   *
+   * **Las dos piezas ya existían y aquí solo se ensamblan**, que es la regla del repositorio:
+   *
+   * - `getLocalIdsByGuids` lo trae `@thatopen/fragments`: la búsqueda por GUID no se escribe.
+   * - `ifcAEscena` de `bim-core` convierte la cámara guardada de vuelta al sistema de la escena, y
+   *   es la inversa exacta —con su prueba— de la que la escribió en el BCF.
+   */
+  async abrirObservacion(
+    guid: string,
+    camara: BcfCamera | null = null,
+  ): Promise<PickedItem | null> {
+    this.assertAlive();
+
+    // **La cámara se aplica aunque el elemento no esté**, y en este orden. Si la observación es de
+    // un modelo que no está abierto, llevar la vista al sitio del problema sigue sirviendo: se ve
+    // el hueco donde debería estar la viga.
+    if (camara !== null) this.aplicarCamaraBcf(camara);
+
+    for (const [modelId, model] of this.fragments.list) {
+      const [localId] = await model.getLocalIdsByGuids([guid]);
+      if (localId === null || localId === undefined) continue;
+
+      this.selection = { modelId, localId };
+      await this.applyHighlights();
+      // Sin cámara guardada se encuadra el elemento: es lo que se puede afirmar —dónde está— sin
+      // inventar desde dónde lo miraba quien lo encontró.
+      if (camara === null) await this.frameItem(modelId, localId);
+      return this.describeItemById(modelId, localId);
+    }
+
+    return null;
+  }
+
+  /**
+   * Pone la cámara donde dice un viewpoint de BCF, convirtiendo del sistema del IFC al de la escena.
+   *
+   * El IFC lleva la cota en **Z** y la escena de Three.js el «arriba» en **Y**: aplicar la posición
+   * sin convertir deja la cámara bajo tierra o de lado. La conversión es `ifcAEscena`, y su prueba
+   * la ata a la transformación con la que se dibujan los ejes de replanteo del modelo.
+   */
+  private aplicarCamaraBcf(camara: BcfCamera): void {
+    const [px, py, pz] = ifcAEscena(camara.punto);
+    const [dx, dy, dz] = ifcAEscena(camara.direccion);
+
+    // **El objetivo se calcula**, porque BCF guarda una dirección y `camera-controls` quiere un
+    // punto al que mirar. La distancia es una elección: la dirección dice hacia dónde y no hasta
+    // dónde, así que se pone el objetivo a una distancia razonable sobre esa recta.
+    const alcance =
+      camara.tipo === "ortogonal" ? (camara.escala ?? DISTANCIA_DE_MIRA) : DISTANCIA_DE_MIRA;
+    const controls = this.world.camera.controls;
+    void controls.setLookAt(
+      px,
+      py,
+      pz,
+      px + dx * alcance,
+      py + dy * alcance,
+      pz + dz * alcance,
+      true,
+    );
+    controls.update(ONE_FRAME_S);
+  }
+
+  /**
+   * Encuadra un elemento concreto.
+   *
+   * Existe para {@link abrirObservacion} cuando la observación no trae cámara: se puede afirmar
+   * dónde está el elemento, y no desde dónde lo miraba quien lo encontró.
+   */
+  private async frameItem(modelId: string, localId: number): Promise<void> {
+    const model = this.fragments.list.get(modelId);
+    if (!model) return;
+
+    const cajas = await model.getBoxes([localId]);
+    const caja = cajas?.[0];
+    if (!caja) return;
+
+    const centro = caja.getCenter(new THREE.Vector3());
+    const lado = caja.getSize(new THREE.Vector3());
+    // Un margen sobre el tamaño del elemento: pegado a una viga no se ve de qué viga se habla.
+    const distancia = Math.max(lado.x, lado.y, lado.z, 1) * HOLGURA_AL_ENCUADRAR;
+    const controls = this.world.camera.controls;
+    void controls.setLookAt(
+      centro.x + distancia,
+      centro.y + distancia,
+      centro.z + distancia,
+      centro.x,
+      centro.y,
+      centro.z,
+      true,
+    );
+    controls.update(ONE_FRAME_S);
   }
 
   /**

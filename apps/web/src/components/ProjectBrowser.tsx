@@ -26,6 +26,7 @@ import {
  */
 export function ProjectBrowser({
   registro,
+  coordinacion,
   estructura,
   modelos,
   planos,
@@ -43,6 +44,8 @@ export function ProjectBrowser({
 }: {
   /** Lo que el registro documental ofrece abrir, agrupado por obra. */
   readonly registro: React.ReactNode;
+  /** Las observaciones del modelo, con el clic que lleva al problema. */
+  readonly coordinacion: React.ReactNode;
   readonly estructura: React.ReactNode;
   readonly modelos: React.ReactNode;
   /** Los planos 2D cargados, con sus capas y su ajuste. */
@@ -64,7 +67,9 @@ export function ProjectBrowser({
   readonly onDeleteView: (id: string) => void;
 }) {
   const [abiertas, setAbiertas] = useState<ReadonlySet<string>>(
-    new Set(["estructura", "modelos", "planos", "generados", "cotas", "vistas"]),
+    // `registro` arranca plegada a propósito: es de donde se parte una vez, y con el modelo ya
+    // abierto solo empujaría al árbol, que es lo que se mira mientras se revisa.
+    new Set(["coordinacion", "estructura", "modelos", "planos", "generados", "cotas", "vistas"]),
   );
   /**
    * El alto que se le fijó a mano a cada sección, en píxeles.
@@ -104,6 +109,18 @@ export function ProjectBrowser({
         onRedimensionar={(delta, actual) => redimensionar("registro", delta, actual)}
       >
         {registro}
+      </Seccion>
+
+      {/* **La coordinación va arriba, junto al registro y antes del árbol.** Es de donde se parte
+          cuando se abre el modelo para revisar: primero qué hay que mirar, después el modelo. */}
+      <Seccion
+        titulo="Coordinación"
+        abierta={abiertas.has("coordinacion")}
+        onAlternar={() => alternar("coordinacion")}
+        alto={altos["coordinacion"] ?? null}
+        onRedimensionar={(delta, actual) => redimensionar("coordinacion", delta, actual)}
+      >
+        {coordinacion}
       </Seccion>
 
       <Seccion

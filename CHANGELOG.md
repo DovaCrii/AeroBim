@@ -5,6 +5,43 @@ Este proyecto sigue [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Añadido — La coordinación vive dentro del visor (`F4.8`, 2026-08-28)
+
+**Era la mitad que faltaba del ciclo.** La observación se creaba desde el visor —desde la ficha de
+un elemento, con su GUID y su cámara— y para **verla** había que salir a otra pantalla: quien
+coordinaba tenía el hallazgo en un sitio y el modelo en otro.
+
+Ahora el panel del proyecto tiene «Coordinación»: las observaciones abiertas de la obra ancladas a
+elementos, ordenadas por prioridad. **Un clic hace las dos cosas que hacen falta**: pone la cámara
+donde estaba quien lo encontró y selecciona el elemento, con su ficha abierta. Es lo que Solibri
+hace bien, y es lo que convierte una lista en una herramienta de coordinación.
+
+**Las dos piezas ya existían y aquí solo se ensamblan**, que es la regla del repositorio:
+`getLocalIdsByGuids` lo trae `@thatopen/fragments` —la búsqueda por GUID no se escribe, se llama— y
+`ifcAEscena` de `bim-core` es la **inversa exacta**, con su prueba, de la conversión que ayer
+escribió la cámara en el BCF. El IFC lleva la cota en Z y la escena el «arriba» en Y: aplicar la
+posición sin convertir deja la cámara bajo tierra.
+
+**Y sin cámara guardada se encuadra el elemento.** Es el caso de las observaciones que nacen de una
+validación IDS, y es lo que se puede afirmar —dónde está— sin inventar desde dónde lo miraba nadie.
+
+**Cuando el GUID no está en ningún modelo abierto se dice junto a esa fila**, no en un aviso suelto:
+con quince filas, «no se encontró» obliga a adivinar de cuál habla. Y suele tener una explicación
+concreta —la observación es de otra disciplina—, así que el mensaje la dice.
+
+La API va **por proyecto y no por revisión**: un hallazgo sobre una viga de la estructura importa
+mirando el modelo de arquitectura, que es de lo que trata coordinar. Solo devuelve las que llevan a
+algún sitio —con GUID y abiertas—; una observación sobre un PDF no tiene elemento que seleccionar y
+pondría en la lista una fila muerta. Y **la cámara viaja sin convertir**: la vuelta la hace el visor,
+porque tener la misma regla en dos sitios es como se separan.
+
+359 pruebas en la API con 94,33% de cobertura, 221 en `bim-core`, gate en verde.
+
+**Lo que no se verificó, y es lo importante de este cambio:** que el clic mueva la cámara de verdad.
+El panel del navegador de trabajo **no compone fotogramas** y tiene su propia sesión, así que el
+vuelo de la cámara y la selección resaltada no se pueden mirar acá. Las piezas están probadas por
+separado —la conversión con su prueba, la búsqueda por GUID es de la librería— y el ensamblaje no.
+
 ### Añadido — La puerta entre las dos mitades (`F8.10`, 2026-08-28)
 
 Cuatro huecos que hacían que el producto se sintiera como dos aplicaciones cosidas, y los cuatro

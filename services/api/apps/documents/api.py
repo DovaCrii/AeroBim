@@ -25,6 +25,7 @@ from django.http import FileResponse, Http404
 from rest_framework.generics import ListAPIView, RetrieveAPIView
 from rest_framework.views import APIView
 
+from apps.core.tenancy import scope_queryset_to_organizacion
 from apps.core.views import ViewModelPermissions
 from apps.documents import storage
 from apps.documents.abribles import VISOR_MODELO, abre_en, visor_de
@@ -209,6 +210,78 @@ class ObservacionesDeRevisionAPI(APIView):
                     }
                     for o in observaciones
                     if o.ancla_x is not None and o.ancla_y is not None
+                ],
+            }
+        )
+
+
+class ObservacionesDelModeloAPI(APIView):
+    """Las observaciones **ancladas al modelo** de un proyecto, para verlas en el visor. `F4.1`.
+
+    Es la contraparte de {@link ObservacionesDeRevisionAPI}, que a propósito solo devuelve las
+    ancladas a un documento —hace `exclude(pagina=None)`— porque las dibuja sobre una página de PDF.
+    Estas se dibujan en la escena: llevan **el GUID del elemento y la cámara**.
+
+    **Cierra la mitad que faltaba del ciclo.** La observación se creaba desde el visor y para verla
+    había que salir a otra pantalla, así que quien coordinaba tenía el hallazgo en un sitio y el
+    modelo en otro.
+
+    Pide `view_observacion` y se acota por organización, igual que el resto. Y va **por proyecto y
+    no por revisión**: un hallazgo sobre una viga de la estructura importa mirando el modelo de
+    arquitectura, que es de lo que trata coordinar.
+    """
+
+    permission_classes = [ViewModelPermissions]
+    queryset = Observacion.objects.none()
+
+    def get(self, request, *args, **kwargs):
+        from rest_framework.response import Response
+
+        from apps.projects.models import Proyecto
+
+        proyecto = (
+            scope_queryset_to_organizacion(Proyecto.objects.all(), request.user)
+            .filter(pk=kwargs["pk"])
+            .first()
+        )
+        if proyecto is None:
+            raise Http404
+
+        # **Solo las que tienen GUID.** Una observación sobre un PDF no tiene elemento que
+        # seleccionar, y mandarla acá pondría en la lista del visor filas que no llevan a ninguna
+        # parte. Se ven en su pantalla, que es donde se resuelven.
+        observaciones = (
+            Observacion.objects.filter(proyecto=proyecto)
+            .exclude(ifc_guid="")
+            .exclude(estado__in=(Observacion.CERRADA, Observacion.DESCARTADA))
+            .select_related("responsable", "autor")
+            .order_by("prioridad", "vence", "created_at")
+        )
+
+        return Response(
+            {
+                "proyecto": {"codigo": proyecto.codigo, "nombre": proyecto.nombre},
+                "puedeObservar": request.user.has_perm("documents.add_observacion"),
+                "observaciones": [
+                    {
+                        "id": str(o.pk),
+                        "titulo": o.titulo,
+                        "guid": o.ifc_guid,
+                        "prioridad": o.prioridad,
+                        "prioridadTexto": o.get_prioridad_display(),
+                        "estado": o.estado,
+                        "estadoTexto": o.get_estado_display(),
+                        "responsable": str(o.responsable),
+                        "vence": o.vence.isoformat() if o.vence else None,
+                        "vencida": o.vencida,
+                        # **La cámara viaja tal como se guardó: en el sistema del IFC.** La vuelta
+                        # al de la escena la hace `ifcAEscena` en el visor, que es la inversa exacta
+                        # —con su prueba— de la que la escribió. Convertir acá pondría la misma
+                        # regla en dos sitios, que es como se separan.
+                        "camara": o.punto_de_vista or None,
+                        "url": o.get_absolute_url(),
+                    }
+                    for o in observaciones
                 ],
             }
         )

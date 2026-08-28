@@ -24,4 +24,12 @@ urlpatterns = [
         api.ObservacionesDeRevisionAPI.as_view(),
         name="revision-observaciones",
     ),
+    # Las ancladas al modelo, para el panel de coordinación del visor. Van **por proyecto y no por
+    # revisión**: un hallazgo sobre una viga de la estructura importa mirando arquitectura, que es
+    # de lo que trata coordinar.
+    path(
+        "proyectos/<uuid:pk>/observaciones-modelo/",
+        api.ObservacionesDelModeloAPI.as_view(),
+        name="proyecto-observaciones-modelo",
+    ),
 ]
