@@ -55,6 +55,10 @@ def como_json(revision: Revision, user) -> dict:
             "disciplina": entregable.disciplina.codigo,
         },
         "proyecto": {
+            # **El id, y no solo el código.** Sin él el visor no puede enlazar de vuelta a la obra:
+            # es lo que lo saca de ser un callejón sin salida —se entraba y la única salida era el
+            # botón de atrás del navegador—.
+            "id": str(entregable.proyecto.pk),
             "codigo": entregable.proyecto.codigo,
             "nombre": entregable.proyecto.nombre,
         },
@@ -78,7 +82,17 @@ class RevisionesAbriblesAPI(ListAPIView):
     **Filtra por el visor concreto y no por «es abrible».** Desde `F8.6` un PDF también se abre
     —en otra pantalla—, y con el predicado general los PDFs entraban en esta lista: el visor 3D
     los habría intentado cargar como geometría y habría quedado en blanco.
+
+    **Y viene agrupada por obra.** Devolvía doscientas revisiones de todas las organizaciones
+    visibles en una sola lista plana: con un proyecto real de cientos de entregables eso es una
+    lista inservible, y el tope de doscientas cortaba **en silencio** — un modelo que no aparece
+    se lee como que no existe, no como que no cupo. Ahora el tope es por proyecto y la respuesta
+    dice cuándo recortó.
     """
+
+    #: Cuántas revisiones se devuelven por proyecto. Es un selector, no un inventario: si alguien
+    #: necesita ver las trescientas de una obra, la pantalla del proyecto es donde están.
+    TOPE_POR_PROYECTO = 60
 
     permission_classes = [ViewModelPermissions]
     queryset = Revision.objects.none()
@@ -86,12 +100,44 @@ class RevisionesAbriblesAPI(ListAPIView):
     def get(self, request, *args, **kwargs):
         from rest_framework.response import Response
 
-        abribles = [
-            como_json(r, request.user)
-            for r in revisiones_visibles(request.user).filter(es_vigente=True)[:200]
-            if abre_en(r, VISOR_MODELO)
-        ]
-        return Response({"revisiones": abribles})
+        consulta = revisiones_visibles(request.user).filter(es_vigente=True)
+        # El orden manda dentro de cada grupo, así que se pide acá y no se reordena en el visor.
+        consulta = consulta.order_by("entregable__proyecto__codigo", "entregable__codigo")
+
+        por_proyecto: dict[str, dict] = {}
+        recortados = 0
+        for revision in consulta:
+            if not abre_en(revision, VISOR_MODELO):
+                continue
+            proyecto = revision.entregable.proyecto
+            grupo = por_proyecto.setdefault(
+                str(proyecto.pk),
+                {
+                    "id": str(proyecto.pk),
+                    "codigo": proyecto.codigo,
+                    "nombre": proyecto.nombre,
+                    "revisiones": [],
+                },
+            )
+            if len(grupo["revisiones"]) >= self.TOPE_POR_PROYECTO:
+                recortados += 1
+                continue
+            grupo["revisiones"].append(como_json(revision, request.user))
+
+        return Response(
+            {
+                "proyectos": sorted(por_proyecto.values(), key=lambda p: p["codigo"]),
+                # **Se dice cuántas quedaron fuera.** Un recorte silencioso hace que alguien
+                # concluya que su modelo no está subido.
+                "recortados": recortados,
+                # La lista plana se mantiene, y **no por compatibilidad**: hasta hoy este endpoint
+                # no lo consumía nadie —el selector que describe su docstring nunca se cableó en el
+                # visor— así que no hay contrato antiguo que respetar. Se queda porque es la
+                # respuesta a «qué puedo abrir» sin importar de qué obra, que es lo que necesita el
+                # aviso de «no hay nada que abrir».
+                "revisiones": [r for g in por_proyecto.values() for r in g["revisiones"]],
+            }
+        )
 
 
 class RevisionAPI(RetrieveAPIView):

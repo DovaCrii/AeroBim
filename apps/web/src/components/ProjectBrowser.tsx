@@ -25,6 +25,7 @@ import {
  * panel con varias secciones.
  */
 export function ProjectBrowser({
+  registro,
   estructura,
   modelos,
   planos,
@@ -40,6 +41,8 @@ export function ProjectBrowser({
   onApplyView,
   onDeleteView,
 }: {
+  /** Lo que el registro documental ofrece abrir, agrupado por obra. */
+  readonly registro: React.ReactNode;
   readonly estructura: React.ReactNode;
   readonly modelos: React.ReactNode;
   /** Los planos 2D cargados, con sus capas y su ajuste. */
@@ -89,6 +92,20 @@ export function ProjectBrowser({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
+      {/* **Del registro, y va primero porque es de donde se parte.** Hasta hoy la única forma de
+          abrir una revisión era entrar desde su expediente: la API del selector existía desde
+          `F8.8` y no la consumía nadie. Arranca plegada para no empujar al árbol del modelo, que
+          es lo que se mira mientras se revisa. */}
+      <Seccion
+        titulo="Del registro"
+        abierta={abiertas.has("registro")}
+        onAlternar={() => alternar("registro")}
+        alto={altos["registro"] ?? null}
+        onRedimensionar={(delta, actual) => redimensionar("registro", delta, actual)}
+      >
+        {registro}
+      </Seccion>
+
       <Seccion
         titulo="Estructura del modelo"
         abierta={abiertas.has("estructura")}

@@ -31,9 +31,11 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DrawingsPanel } from "./components/DrawingsPanel.js";
 import { ModelsPanel } from "./components/ModelsPanel.js";
+import { Origen } from "./components/Origen.js";
 import { PlansPanel } from "./components/PlansPanel.js";
 import { ProjectBrowser } from "./components/ProjectBrowser.js";
 import { Resizer } from "./components/Resizer.js";
+import { Selector } from "./components/Selector.js";
 import { Plan2DCard, PropertiesPanel } from "./components/PropertiesPanel.js";
 import { Ribbon, type RibbonTab } from "./components/Ribbon.js";
 import { SpatialTree } from "./components/SpatialTree.js";
@@ -545,6 +547,7 @@ export function App() {
           correlativo: string;
           puedeObservar?: boolean;
           entregable: { id: string; codigo: string };
+          proyecto?: { id: string; codigo: string };
         };
 
         const etiqueta = `${datos.entregable.codigo} rev. ${datos.correlativo}`;
@@ -565,6 +568,18 @@ export function App() {
           revisionId,
           entregableId: datos.entregable.id,
           puedeObservar: datos.puedeObservar === true,
+          // **Lo que permite volver.** Sin esto el visor era un callejón sin salida: se entraba
+          // desde el registro y la única salida era el botón de atrás del navegador — que además
+          // descarta el modelo cargado, veinte megas y medio minuto de conversión.
+          //
+          // La obra va con `...` condicional y no como `proyecto?.id`: con
+          // `exactOptionalPropertyTypes`, una clave puesta a `undefined` **no es lo mismo** que una
+          // clave ausente, y la diferencia importa — `rutasDeVuelta` decide por presencia.
+          ...(datos.proyecto !== undefined
+            ? { proyectoId: datos.proyecto.id, proyectoCodigo: datos.proyecto.codigo }
+            : {}),
+          entregableCodigo: datos.entregable.codigo,
+          revisionCorrelativo: datos.correlativo,
         });
       } catch (error: unknown) {
         setStatus({ kind: "error", message: describe(error) });
@@ -1210,9 +1225,19 @@ export function App() {
     <div className="flex h-full w-full flex-col">
       <Ribbon
         brand={
-          <span className="flex items-center gap-2" title="AeroBim — visor y coordinador BIM">
-            <img src={RUTA_MARCA} alt="" className="h-6 w-auto" />
-            <span className="text-sm font-semibold">AeroBim</span>
+          <span className="flex min-w-0 items-center gap-3">
+            {/* La marca lleva al portal: es donde uno espera que lleve el logo, y desde acá era
+                lo único que faltaba para poder salir. */}
+            <a
+              href="/"
+              className="flex shrink-0 items-center gap-2 hover:opacity-80"
+              title="AeroBim — al portal"
+            >
+              <img src={RUTA_MARCA} alt="" className="h-6 w-auto" />
+              <span className="text-sm font-semibold">AeroBim</span>
+            </a>
+            {/* De dónde vino lo que está abierto. No se dibuja si es un archivo del disco. */}
+            <Origen origen={origen} />
           </span>
         }
         actions={
@@ -1411,6 +1436,14 @@ export function App() {
             className="min-w-0 shrink border-l border-white/10 bg-ink/50"
           >
             <ProjectBrowser
+              registro={
+                <Selector
+                  onAbrir={(revisionId) => void abrirRevision(revisionId)}
+                  // Abrir dos modelos a la vez los cruza en el mismo worker: mientras carga uno,
+                  // el resto de la lista no acepta clics.
+                  deshabilitado={status.kind === "loading"}
+                />
+              }
               planCount={plans.length}
               drawingCount={drawings.length}
               generados={

@@ -5,6 +5,56 @@ Este proyecto sigue [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Añadido — La puerta entre las dos mitades (`F8.10`, 2026-08-28)
+
+Cuatro huecos que hacían que el producto se sintiera como dos aplicaciones cosidas, y los cuatro
+eran de ida y vuelta:
+
+**El portal pasa de menú a punto de partida.** Encima de las tarjetas de módulo hay ahora
+«Continuar»: lo vencido, lo que vence esta semana, y las obras con su etapa y su avance. Un menú
+dice a qué sitios puedes entrar; esto dice **en qué ibas**, que es la pregunta que uno tiene al
+abrir la aplicación por la mañana. Sale de `pendientes_por_tramo`, la misma función que alimenta el
+resumen por correo, así que la pantalla y el correo **no pueden discrepar** sobre qué está vencido.
+
+**Las filas se pueden abrir, y eran texto plano.** En la bandeja se veía que algo vencía y no se
+podía ir — en la pantalla que se abre cada mañana. Funciona sin que la plantilla pregunte de qué
+tipo es cada fila porque `Observacion` y `Actividad` llevan ahora `get_absolute_url`, que es donde
+toca: «dónde vivo» es asunto del objeto, y la lista las mezcla a propósito porque para quien mira
+son lo mismo — algo con fecha y responsable.
+
+**Y una actividad no vivía en ninguna parte.** Había listado y alta, y ninguna pantalla de detalle:
+todas esas filas eran filas muertas. Ahora tiene la suya, con su paso a paso —**derivado de
+`STATUS_FLOW`**, no escrito en la plantilla— y un botón que avanza **un** paso. Un desplegable con
+los cinco estados deja pasar de «pendiente» a «hecha» de un salto, que es justo lo que el flujo
+existe para impedir; y el `POST` no pasa por el botón, así que la vista compara con lo que el flujo
+permite.
+
+**El visor deja de ser un callejón sin salida.** Se entraba desde el expediente de una revisión y
+la única salida era el botón de atrás del navegador — que además descarta el modelo cargado: veinte
+megas y medio minuto de conversión por querer mirar una lista. Ahora la cabecera lleva la obra y el
+entregable enlazados, y la marca lleva al portal. La asimetría era llamativa: el visor de PDF tenía
+tres enlaces de vuelta y el de modelos ninguno.
+
+**Y también se puede llegar sin enlace.** El panel del proyecto tiene «Del registro»: qué hay que
+puedas abrir, **agrupado por obra**. La API que lo alimenta existía desde `F8.8` y **no la consumía
+nadie** — el selector que su propia documentación describía nunca se había cableado. Devolvía
+doscientas revisiones de todas las organizaciones en una lista plana; con un proyecto real eso es
+inservible, y el tope cortaba **en silencio**: un modelo que no aparece se lee como que no está
+subido. Ahora el tope es por obra y la respuesta dice cuántas quedaron fuera.
+
+**El paso a paso es un parcial reutilizable**, porque **tres modelos avanzan** —`Proyecto`,
+`Revision` y `Actividad`— y ninguno lo dibujaba.
+
+**Y un incidente que vale contar, porque cambió cómo se toca el catálogo.** Un script mío dejó
+`msgid "S1 · Suitable for coordination"` con `msgstr "Pendiente"`: la traducción de otra entrada.
+Eso es **peor que una cadena sin traducir** —la pantalla afirma algo falso y nada falla— y ninguna
+de las cuatro pruebas del catálogo lo habría visto: el `msgstr` no está vacío, no es fuzzy y no
+repite el original. Se revirtió con `git checkout` y se rehizo con un escritor que recorre líneas y
+que **compara contra `HEAD` antes de escribir**: si toca una entrada que no estaba en la lista,
+aborta. La comprobación es la mitad del valor.
+
+351 pruebas, 94,30% de cobertura, gate en verde. 221 en `bim-core`.
+
 ### Añadido — La obra existe en la aplicación, y su pantalla dice dónde sigue (`F8.9`, 2026-08-28)
 
 `apps/projects` tenía sus modelos desde `F8.1` y **ni una vista**: un proyecto solo se podía crear

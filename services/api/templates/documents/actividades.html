@@ -28,7 +28,7 @@
     <tbody>
       {% for actividad in actividades %}
         <tr>
-          <td>{{ actividad.titulo }}</td>
+          <td><a href="{{ actividad.get_absolute_url }}">{{ actividad.titulo }}</a></td>
           <td>
             {% if actividad.entregable %}
               <a href="{% url 'documents:expediente' actividad.entregable.pk %}">

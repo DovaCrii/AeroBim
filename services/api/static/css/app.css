@@ -518,6 +518,73 @@ th.num {
   color: var(--ab-ok);
 }
 
+/* --- El paso a paso de un registro ------------------------------------------------ */
+
+/*
+ * Lo dibuja `generic/_pasos.html` y lo alimenta `StatusFlowMixin.status_steps()`. **Tres modelos
+ * avanzan y ninguno lo dibujaba**: proyecto, revisión y actividad.
+ */
+.pasos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  list-style: none;
+  margin: 0 0 18px;
+  padding: 0;
+  font-size: 0.85rem;
+}
+
+.paso {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px 6px 10px;
+  color: var(--ab-text-muted);
+}
+
+/* La flecha entre pasos: dice que hay un orden, que es la mitad del mensaje. */
+.paso + .paso::before {
+  content: "→";
+  margin-right: 8px;
+  color: var(--ab-border);
+}
+
+.paso .marca {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 2px solid currentcolor;
+}
+
+.paso.done {
+  color: var(--ab-ok);
+}
+
+.paso.done .marca {
+  background: currentcolor;
+}
+
+.paso.current {
+  color: var(--ab-primary);
+  font-weight: 700;
+}
+
+.paso.current .marca {
+  background: currentcolor;
+  box-shadow: 0 0 0 4px var(--ab-primary-soft);
+}
+
+/* Detenido: no es un paso hacia ningún sitio, es donde el flujo se paró. */
+.paso.blocked {
+  color: var(--ab-danger);
+  font-weight: 700;
+}
+
+.paso.blocked .marca {
+  border-radius: 2px;
+  background: currentcolor;
+}
+
 /* --- El interruptor de tema en la barra ------------------------------------------- */
 
 .barra button.tema {

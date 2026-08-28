@@ -9,6 +9,78 @@
     {% blocktranslate %}Only what your role can open is listed.{% endblocktranslate %}
   </p>
 
+  {% comment %}
+    **«Continuar» va encima de las tarjetas, y ese orden es la idea.** Un menú de módulos dice a
+    qué sitios puedes entrar; esto dice en qué ibas, que es la pregunta que uno tiene al abrir la
+    aplicación por la mañana.
+
+    Lo pendiente sale de `pendientes_por_tramo`, la misma función que alimenta el resumen por
+    correo: así la pantalla y el correo **no pueden discrepar** sobre qué está vencido.
+  {% endcomment %}
+  {% if mis_pendientes or mis_proyectos %}
+    <p class="grupo">{% translate "Continue" %}</p>
+
+    {% for etiqueta, items, urgente in mis_tramos %}
+      {% if items %}
+        <table>
+          <thead>
+            <tr>
+              <th scope="col" style="width: 130px">
+                {% if urgente %}⚠ {% endif %}{{ etiqueta }}
+              </th>
+              <th scope="col">{% translate "Title" %}</th>
+              <th scope="col" style="width: 160px">{% translate "Project" %}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in items %}
+              <tr>
+                <td>{{ item.vence|date:"Y-m-d" }}</td>
+                {% comment %}
+                  **La fila es un enlace, y hasta hoy era texto plano**: se veía que algo vencía y
+                  no se podía ir. Funciona sin preguntar de qué tipo es cada fila porque las dos
+                  —observación y actividad— llevan `get_absolute_url` en el modelo, que es donde
+                  toca: «dónde vivo» es asunto del objeto.
+                {% endcomment %}
+                <td><a href="{{ item.get_absolute_url }}">{{ item.titulo }}</a></td>
+                <td>{{ item.proyecto.codigo }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% endif %}
+    {% endfor %}
+
+    {% if mis_mas_alla %}
+      <p class="subtitulo">
+        {% blocktranslate count total=mis_mas_alla %}And one more due within the
+        month.{% plural %}And {{ total }} more due within the month.{% endblocktranslate %}
+        <a href="{% url 'documents:bandeja' %}">{% translate "My plate" %}</a>
+      </p>
+    {% elif not mis_pendientes %}
+      <div class="vacio">
+        {% blocktranslate %}Nothing assigned to you with a due date. What is on the board without a
+        date does not show up here.{% endblocktranslate %}
+      </div>
+    {% endif %}
+
+    {% if mis_proyectos %}
+      <div class="tarjetas">
+        {% for proyecto in mis_proyectos %}
+          <a class="tarjeta" href="{% url 'projects:proyecto' proyecto.pk %}">
+            <div class="titulo">{{ proyecto.codigo }}</div>
+            <div class="detalle">
+              {{ proyecto.nombre }}
+              · {{ proyecto.get_status_display }}
+              · {% blocktranslate with avance=proyecto.avance_fisico|floatformat:"-2" %}progress
+              {{ avance }}{% endblocktranslate %}
+            </div>
+          </a>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endif %}
+
   {% regroup modulos by grupo as por_grupo %}
   {% for grupo in por_grupo %}
     <p class="grupo">{{ grupo.grouper }}</p>

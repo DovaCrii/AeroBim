@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  nombreDeLoAbierto,
+  rutasDeVuelta,
   tituloPropuesto,
   urlDeNuevaObservacion,
   type ObservableElement,
@@ -135,5 +137,67 @@ describe("urlDeNuevaObservacion con cámara", () => {
 
     expect(parametros.get("guid")).toBe(VIGA.guid);
     expect(parametros.get("titulo")).toBe("IFCBEAM · Viga H 300x150");
+  });
+});
+
+describe("rutasDeVuelta", () => {
+  const COMPLETO: RegistryOrigin = {
+    ...ORIGEN,
+    proyectoId: "33333333-3333-3333-3333-333333333333",
+    proyectoCodigo: "716-LCD",
+    entregableCodigo: "716-LCD-ES-M-001",
+    revisionCorrelativo: "A1",
+  };
+
+  it("lleva a la obra y al expediente, en ese orden", () => {
+    // De lo general a lo concreto: es como se lee una miga de pan, y es el orden en que uno sube
+    // — del documento al proyecto.
+    const vueltas = rutasDeVuelta(COMPLETO);
+
+    expect(vueltas.map((v) => v.etiqueta)).toEqual(["716-LCD", "716-LCD-ES-M-001"]);
+    expect(vueltas[0]!.href).toBe(`/proyectos/${COMPLETO.proyectoId}/`);
+    expect(vueltas[1]!.href).toBe(`/documentos/entregables/${COMPLETO.entregableId}/`);
+  });
+
+  it("sin origen no hay a dónde volver, y eso no es un enlace roto", () => {
+    // Un modelo abierto del disco no vino de ninguna parte: la cabecera no se dibuja.
+    expect(rutasDeVuelta(null)).toEqual([]);
+  });
+
+  it("con datos a medias ofrece solo lo que puede cumplir", () => {
+    // **Es el caso que importa.** Un `href` armado con un id que no llegó lleva a
+    // `/proyectos/undefined/`, que es un 404 con aspecto de enlace bueno.
+    const vueltas = rutasDeVuelta({ ...ORIGEN, entregableCodigo: "716-LCD-ES-M-001" });
+
+    expect(vueltas.map((v) => v.etiqueta)).toEqual(["716-LCD-ES-M-001"]);
+    expect(vueltas.every((v) => !v.href.includes("undefined"))).toBe(true);
+  });
+
+  it("sin ningún dato de vuelta no ofrece nada", () => {
+    expect(rutasDeVuelta(ORIGEN)).toEqual([]);
+  });
+});
+
+describe("nombreDeLoAbierto", () => {
+  it("junta el entregable y la revisión", () => {
+    expect(
+      nombreDeLoAbierto({
+        ...ORIGEN,
+        entregableCodigo: "716-LCD-ES-M-001",
+        revisionCorrelativo: "A1",
+      }),
+    ).toBe("716-LCD-ES-M-001 rev. A1");
+  });
+
+  it("con solo uno de los dos no deja un «rev.» colgando", () => {
+    expect(nombreDeLoAbierto({ ...ORIGEN, entregableCodigo: "716-LCD-ES-M-001" })).toBe(
+      "716-LCD-ES-M-001",
+    );
+    expect(nombreDeLoAbierto({ ...ORIGEN, revisionCorrelativo: "A1" })).toBe("rev. A1");
+  });
+
+  it("sin datos queda vacío, y sin origen también", () => {
+    expect(nombreDeLoAbierto(ORIGEN)).toBe("");
+    expect(nombreDeLoAbierto(null)).toBe("");
   });
 });

@@ -1339,17 +1339,19 @@ aquí, MIT y local-first.
 **Objetivo de salida:** que el seguimiento de un proyecto —qué falta, quién lo tiene, qué se
 emitió y a quién— viva en un registro y no en la bandeja de correo de alguien.
 
-| #      | Tarea                                                                                                      | Estado |
-| ------ | ---------------------------------------------------------------------------------------------------------- | ------ |
-| `F8.1` | **El modelo**: proyecto, disciplina, WBS, entregable, revisión, transmittal, observación, actividad        | ✅     |
-| `F8.2` | **La observación comparte modelo con los temas BCF** de la Fase 4, con dos anclas                          | ✅     |
-| `F8.3` | **Subir y descargar**: validación de firma real, clave por sha256, y el nombre del cliente fuera del disco | ✅     |
-| `F8.4` | **Asignar, avisar y seguir**: correo al asignar, resumen por tramos, y el expediente                       | ✅     |
-| `F8.5` | **Trabajos programados** con su fila en `JobRun` y su vigilante                                            | ✅     |
-| `F8.6` | **Ver y comentar el PDF en el navegador** con EmbedPDF (MIT), sin descargarlo                              | ✅     |
-| `F8.7` | **Emitir el transmittal desde la pantalla**, con carátula y acuse                                          | ✅     |
-| `F8.8` | **El visor y el registro son el mismo producto**: abrir la revisión desde su expediente                    | ✅     |
-| `F8.9` | **La obra existe en la aplicación**: lista, alta y detalle de proyecto y disciplina                        | ✅     |
+| #       | Tarea                                                                                                      | Estado |
+| ------- | ---------------------------------------------------------------------------------------------------------- | ------ |
+| `F8.1`  | **El modelo**: proyecto, disciplina, WBS, entregable, revisión, transmittal, observación, actividad        | ✅     |
+| `F8.2`  | **La observación comparte modelo con los temas BCF** de la Fase 4, con dos anclas                          | ✅     |
+| `F8.3`  | **Subir y descargar**: validación de firma real, clave por sha256, y el nombre del cliente fuera del disco | ✅     |
+| `F8.4`  | **Asignar, avisar y seguir**: correo al asignar, resumen por tramos, y el expediente                       | ✅     |
+| `F8.5`  | **Trabajos programados** con su fila en `JobRun` y su vigilante                                            | ✅     |
+| `F8.6`  | **Ver y comentar el PDF en el navegador** con EmbedPDF (MIT), sin descargarlo                              | ✅     |
+| `F8.7`  | **Emitir el transmittal desde la pantalla**, con carátula y acuse                                          | ✅     |
+| `F8.8`  | **El visor y el registro son el mismo producto**: abrir la revisión desde su expediente                    | ✅     |
+| `F8.9`  | **La obra existe en la aplicación**: lista, alta y detalle de proyecto y disciplina                        | ✅     |
+| `F8.10` | **La puerta entre las dos mitades**: portal de partida, filas que se abren, y el visor con salida          | ✅     |
+| `F8.11` | **El tablero gráfico del proyecto**: tarjetas, línea de tiempo, calendario y avance por disciplina         | ✅     |
 
 ### `F8.9`: los modelos estaban y la pantalla no (2026-08-28)
 

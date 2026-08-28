@@ -55,6 +55,12 @@ urlpatterns = [
     ),
     path("actividades/", views.ActividadesView.as_view(), name="actividades"),
     path("actividades/nueva/", views.NuevaActividadView.as_view(), name="nueva-actividad"),
+    path("actividades/<uuid:pk>/", views.ActividadView.as_view(), name="actividad"),
+    path(
+        "actividades/<uuid:pk>/avanzar/",
+        views.AvanzarActividadView.as_view(),
+        name="avanzar-actividad",
+    ),
     path("transmittals/", views.TransmittalsView.as_view(), name="transmittals"),
     path("transmittals/nuevo/", views.NuevoTransmittalView.as_view(), name="nuevo-transmittal"),
     path("transmittals/<uuid:pk>/", views.TransmittalView.as_view(), name="transmittal"),

@@ -440,6 +440,19 @@ class Observacion(BaseModel):
     def __str__(self):
         return self.titulo
 
+    def get_absolute_url(self) -> str:
+        """Donde vive esta observacion.
+
+        **Va en el modelo y no en un ayudante de plantilla**, que es el idioma de Django y aca
+        importa: la bandeja y el portal muestran observaciones y actividades **mezcladas** en la
+        misma lista —para quien mira son lo mismo: algo con fecha y responsable— y sin esto la
+        plantilla tendria que preguntar de que tipo es cada fila para saber a donde enlazarla. Con
+        `get_absolute_url` en los dos modelos, la fila se enlaza sin saber que es.
+        """
+        from django.urls import reverse
+
+        return reverse("documents:observacion", args=[self.pk])
+
     @property
     def ancla(self) -> str:
         """Sobre que esta puesta: `documento`, `modelo` o `proyecto`."""
@@ -561,6 +574,17 @@ class Actividad(StatusFlowMixin, BaseModel):
 
     def __str__(self):
         return self.titulo
+
+    def get_absolute_url(self) -> str:
+        """Donde vive esta actividad. Ver {@link Observacion.get_absolute_url}.
+
+        **Hasta hoy no vivia en ninguna parte**: habia listado y alta, y ninguna pantalla de
+        detalle. Una fila que se ve vencer y no se puede abrir es una fila muerta, y la bandeja
+        estaba llena de ellas.
+        """
+        from django.urls import reverse
+
+        return reverse("documents:actividad", args=[self.pk])
 
     @property
     def vencida(self) -> bool:

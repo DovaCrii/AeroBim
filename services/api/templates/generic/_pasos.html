@@ -1,0 +1,23 @@
+{% comment %}
+  El avance de un registro, como pasos.
+
+  **Se deriva del propio modelo**: los pasos los da `status_steps()` de `StatusFlowMixin`, que los
+  arma desde `STATUS_FLOW`. Una lista de pasos teclada en una plantilla se separa de los estados
+  reales en el primer cambio, y entonces la pantalla afirma un avance que la base no tiene.
+
+  Es un parcial y no HTML suelto porque **tres modelos avanzan** —`Proyecto`, `Revision` y
+  `Actividad`— y ninguno lo dibujaba hasta hoy. Escrito una vez, se ve igual en los tres.
+
+  Uso: `{% include "generic/_pasos.html" with pasos=objeto.status_steps %}`
+
+  El estado va con **texto además de color**: el nombre del paso siempre se lee, y el color es
+  refuerzo. Uno de cada doce hombres no distingue rojo de verde.
+{% endcomment %}
+<ol class="pasos" aria-label="{{ etiqueta|default:'Avance' }}">
+  {% for paso in pasos %}
+    <li class="paso {{ paso.state }}">
+      <span class="marca" aria-hidden="true"></span>
+      <span class="nombre">{{ paso.label }}</span>
+    </li>
+  {% endfor %}
+</ol>

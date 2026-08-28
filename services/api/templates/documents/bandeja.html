@@ -18,7 +18,15 @@
         {% for item in clave %}
           <tr>
             <td style="width: 110px">{{ item.vence|date:"Y-m-d" }}</td>
-            <td>{{ item.titulo }}</td>
+            {% comment %}
+              **La fila es un enlace, y era texto plano**: se veía que algo vencía y no se podía
+              ir — la pantalla que se abre cada mañana no llevaba a ninguna parte.
+
+              Y funciona sin preguntar de qué tipo es cada fila: la lista mezcla observaciones y
+              actividades a propósito —para quien mira son lo mismo, algo con fecha y
+              responsable— y las dos llevan `get_absolute_url` en el modelo.
+            {% endcomment %}
+            <td><a href="{{ item.get_absolute_url }}">{{ item.titulo }}</a></td>
             <td>{{ item.proyecto }}</td>
           </tr>
         {% empty %}

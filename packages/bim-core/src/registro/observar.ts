@@ -22,6 +22,17 @@ export interface RegistryOrigin {
   /** El entregable del que cuelga. El formulario vive bajo él, no bajo la revisión. */
   readonly entregableId: string;
   /**
+   * La obra, para poder volver a ella.
+   *
+   * **Sin esto el visor es un callejón sin salida**: se entra desde el registro y la única salida
+   * es el botón de atrás del navegador. Son opcionales porque un modelo abierto del disco no tiene
+   * ninguno, y entonces no hay a dónde volver — que es distinto de que el enlace esté roto.
+   */
+  readonly proyectoId?: string;
+  readonly proyectoCodigo?: string;
+  readonly entregableCodigo?: string;
+  readonly revisionCorrelativo?: string;
+  /**
    * `true` si este usuario puede abrir observaciones.
    *
    * **Lo contesta el servidor**, que es el único que puede: depende de `add_observacion` y de la
@@ -40,6 +51,61 @@ export interface ObservableElement {
 
 /** Tope del título que acepta el formulario del registro. Más allá, el servidor lo recorta. */
 const TITULO_MAXIMO = 250;
+
+/** Un sitio del registro al que el visor puede volver, con su etiqueta ya resuelta. */
+export interface Vuelta {
+  readonly etiqueta: string;
+  readonly href: string;
+}
+
+/**
+ * Los sitios del registro a los que se puede volver desde el visor, de lo general a lo concreto.
+ *
+ * **Es lo que saca al visor de ser un callejón sin salida.** Se entraba desde el expediente de una
+ * revisión y la única salida era el botón de atrás del navegador — que además pierde el modelo
+ * cargado, veinte megas y medio minuto de conversión.
+ *
+ * Devuelve una lista vacía cuando el modelo se abrió de un archivo del disco: **no hay a dónde
+ * volver**, y eso es distinto de un enlace roto. La cabecera simplemente no se dibuja.
+ *
+ * Las rutas son las mismas de `urls.py` del otro lado, así que esto es un contrato — el mismo
+ * motivo por el que {@link urlDeNuevaObservacion} vive acá y no en el componente.
+ */
+export function rutasDeVuelta(origin: RegistryOrigin | null): Vuelta[] {
+  if (origin === null) return [];
+
+  const salida: Vuelta[] = [];
+  if (origin.proyectoId !== undefined && origin.proyectoCodigo !== undefined) {
+    salida.push({
+      etiqueta: origin.proyectoCodigo,
+      href: `/proyectos/${origin.proyectoId}/`,
+    });
+  }
+  if (origin.entregableCodigo !== undefined) {
+    salida.push({
+      etiqueta: origin.entregableCodigo,
+      href: `/documentos/entregables/${origin.entregableId}/`,
+    });
+  }
+  return salida;
+}
+
+/**
+ * Cómo se llama lo que está abierto: `716-LCD-ES-M-001 rev. A1`, o cadena vacía si no se sabe.
+ *
+ * Se separa de {@link rutasDeVuelta} porque **la revisión no tiene pantalla propia**: es una
+ * etiqueta, no un destino. Ponerla como enlace llevaría al expediente, que ya está en la lista, y
+ * dos enlaces al mismo sitio en la misma línea es una promesa que no se cumple.
+ */
+export function nombreDeLoAbierto(origin: RegistryOrigin | null): string {
+  if (origin === null) return "";
+  return [
+    origin.entregableCodigo,
+    origin.revisionCorrelativo && `rev. ${origin.revisionCorrelativo}`,
+  ]
+    .filter((parte): parte is string => typeof parte === "string" && parte !== "")
+    .join(" ");
+}
 
 /**
  * El título propuesto para la observación: la categoría y el nombre del elemento.

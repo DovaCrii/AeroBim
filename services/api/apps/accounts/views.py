@@ -15,6 +15,7 @@ from apps.core.exports import CsvExportMixin
 from apps.core.jobs import trabajos_colgados, ultima_corrida
 from apps.core.mail import mail_is_delivered, undelivered_reason
 from apps.core.models import AuditEvent, JobRun, Organizacion
+from apps.core.tenancy import scope_queryset_to_organizacion
 from apps.core.views import ModelViewPermissionRequiredMixin
 
 
@@ -33,7 +34,42 @@ class PortalView(LoginRequiredMixin, TemplateView):
         contexto["modulos"] = [
             m for m in (self._modulo(*args) for args in self._definicion()) if m is not None
         ]
+        self._continuar(contexto)
         return contexto
+
+    def _continuar(self, contexto) -> None:
+        """Lo que te espera, encima de las tarjetas de módulo.
+
+        **Un menú dice a qué sitios puedes entrar; esto dice en qué ibas**, que es otra pregunta y
+        es la que uno tiene al abrir la aplicación por la mañana.
+
+        Se reusa `pendientes_por_tramo`, que ya existe y ya alimenta el resumen por correo: así la
+        pantalla y el correo **no pueden discrepar** sobre qué está vencido. Escribir la consulta
+        otra vez acá es como se llega a un correo que dice tres y una pantalla que dice cuatro.
+        """
+        from apps.documents.notify import pendientes_por_tramo
+        from apps.projects.models import Proyecto
+
+        usuario = self.request.user
+        tramos = pendientes_por_tramo(usuario)
+        contexto["mis_tramos"] = [
+            (_("Overdue"), tramos["vencido"], True),
+            (_("Next 7 days"), tramos["en_7"], False),
+        ]
+        # Cuánto queda en total, para poder decir «y N más» sin listar treinta filas en la puerta.
+        contexto["mis_pendientes"] = sum(len(v) for v in tramos.values())
+        contexto["mis_mas_alla"] = len(tramos["en_15"]) + len(tramos["en_30"])
+
+        # **Las obras con lo que cada una necesita.** Solo si el rol puede leerlas: si no, la
+        # sección no existe en vez de aparecer vacía.
+        if usuario.has_perm("projects.view_proyecto"):
+            contexto["mis_proyectos"] = (
+                scope_queryset_to_organizacion(Proyecto.objects.all(), usuario)
+                .filter(is_active=True)
+                .exclude(status=Proyecto.ETAPA_CERRADO)
+                .prefetch_related("entregables__revisiones")
+                .order_by("codigo")[:6]
+            )
 
     def _definicion(self):
         """(grupo, titulo, url, permiso, descripcion) de cada entrada."""
