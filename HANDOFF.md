@@ -5,6 +5,32 @@
 
 ## Cómo seguir (leer esto primero)
 
+> ## Estado al 2026-08-28: la cinta auditada y la VM con sus tres huecos cerrados
+>
+> El trabajo vive en **`codex/visor-y-registro`**, `main` sin tocar. Lo de hoy, en orden:
+>
+> - **`F1.13` — auditoría de la cinta.** Se auditó botón por botón contra la API del visor en vez
+>   de esperar la respuesta del usuario. Siete desajustes, todos cerrados, y en los siete el código
+>   decía una cosa y la pantalla otra. El que más pesa: **con un DXF solo, medio Vista estaba en
+>   gris** aunque `frameAll` cuenta los planos a propósito. El detalle y las tres decisiones de
+>   nombre que quedan para el usuario, en `MASTER_PLAN.md`.
+> - **`F3.11` — la VM.** `psycopg` y `gunicorn` en un grupo `deploy`, `/health/` con las tres
+>   comprobaciones que delatan cómo se rompe esta máquina en silencio, y las unidades de systemd.
+>   El procedimiento entero está en **[docs/DEPLOY.md](docs/DEPLOY.md)**, que es lo que antes no
+>   existía. **404 pruebas, 94,18 %**, gate en verde.
+>
+> **Lo que sigue, en orden de valor:**
+>
+> 1. **Las vistas guardadas siguen en `localStorage`** — dos personas no pueden pasarse una vista,
+>    y eso pesa justo ahora que la coordinación vive dentro del visor.
+> 2. **`F4.7`** — visibilidad en el viewpoint: lo apagado y lo aislado, traducido de `localId` a GUID.
+> 3. **`F3.4` — Celery.** El `timeout` de gunicorn en 120 s es un parche con fecha: convertir un IFC
+>    grande y validar un IDS corren hoy dentro de la petición.
+>
+> **Y sigue sin verificarse el aspecto de tres pantallas**: la tarjeta de nota, la de cobertura de
+> psets, y la cinta de hoy. El panel del agente no compone fotogramas y la captura se agota — lo de
+> hoy se comprobó leyendo el DOM y la API del visor, que es comportamiento, no aspecto.
+
 **Ramas sin fusionar, y son dos:** `codex/fase-0-andamiaje` (34 commits) y
 `codex/fidelidad-2d` (6 commits, sale de la anterior). `AGENTS.md` es explícito: **no se fusiona
 sin permiso del usuario**, así que se dejan dichas.
