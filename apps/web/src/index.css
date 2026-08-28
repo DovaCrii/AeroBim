@@ -5,6 +5,20 @@
   --color-brand: #9b5de5;
   --color-ink: #1b2a4a;
   --color-shell: #161f2d;
+
+  /*
+   * Los dos tamaños de letra pequeña, **con nombre y en un solo sitio**.
+   *
+   * Había cuarenta y nueve tamaños escritos en píxeles a lo largo de la interfaz —`text-[11px]`
+   * treinta y una veces, `text-[10px]` quince— y un valor en píxeles **queda fuera de la escala**:
+   * no crece con el tamaño base ni con la preferencia de letra del navegador. Así que los
+   * rótulos pequeños eran los únicos que no respondían a nada.
+   *
+   * Ahora son dos tokens. Ajustar el tamaño de los rótulos es cambiar un número acá, y no
+   * cuarenta y nueve.
+   */
+  --text-nota: 0.62rem; /* la nota al pie de un panel, el pie de una sección */
+  --text-micro: 0.56rem; /* el rótulo de un grupo de la cinta, en mayúsculas */
 }
 
 html,
@@ -12,6 +26,27 @@ body,
 #root {
   height: 100%;
   margin: 0;
+}
+
+/*
+ * **La interfaz arranca un 10% más grande, y el número salió de dos mediciones del usuario.**
+ *
+ * Con el tamaño de fábrica —16 px— dijo que «se determina mejor» al 110 % o 120 %, y estaba
+ * trabajando al 125 %: o sea que el diseño pedía ese zoom para leerse, y eso es un defecto del
+ * tamaño, no una preferencia de quien mira. Se probó al **120 %** y la respuesta fue que «se ve muy
+ * cerca». Así que 110 %, que es el punto intermedio entre las dos observaciones y el extremo bajo
+ * del rango que él mismo nombró.
+ *
+ * Se hace con el tamaño de la raíz y no tocando clase por clase porque **toda la escala de
+ * Tailwind está en `rem`**: los tamaños de letra, los espaciados, los altos y los huecos crecen
+ * juntos con esta línea. Subir solo la letra habría dejado el texto apretado contra el mismo
+ * padding.
+ *
+ * Y va en porcentaje y no en píxeles a propósito: así sigue respetando a quien haya cambiado el
+ * tamaño de letra de su navegador, que es justamente quien más lo necesita.
+ */
+html {
+  font-size: 110%;
 }
 
 body {

@@ -119,7 +119,7 @@ function Cara({
         x={textoX}
         y={textoY}
         textAnchor="middle"
-        className="pointer-events-none fill-white/70 text-[9px] tracking-wide uppercase"
+        className="pointer-events-none fill-white/70 text-micro tracking-wide uppercase"
       >
         {etiqueta}
       </text>

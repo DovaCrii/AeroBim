@@ -263,7 +263,7 @@ function Pagina({
             title={`${observacion.titulo} · ${observacion.estadoTexto} · ${observacion.responsable}`}
             // El clic en la marca **no debe abrir una observación nueva**: se detiene aquí.
             onClick={(evento) => evento.stopPropagation()}
-            className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white text-[11px] font-bold text-white shadow"
+            className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white text-nota font-bold text-white shadow"
             style={{
               left: `${observacion.x * 100}%`,
               top: `${observacion.y * 100}%`,

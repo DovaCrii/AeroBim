@@ -172,11 +172,11 @@ function PlanoEnLista({
               cual — es una decisión discutible y quien mira el plano puede corregirla. */}
           <div>
             <div className="flex items-center gap-2">
-              <label className="w-16 shrink-0 text-[11px] text-white/45">Unidad</label>
+              <label className="w-16 shrink-0 text-nota text-white/45">Unidad</label>
               <select
                 value={String(t.metresPerUnit)}
                 onChange={(e) => onTransform(plan.id, { metresPerUnit: Number(e.target.value) })}
-                className="min-w-0 flex-1 rounded border border-white/15 bg-black/20 px-1.5 py-0.5 text-[11px] text-white/85"
+                className="min-w-0 flex-1 rounded border border-white/15 bg-black/20 px-1.5 py-0.5 text-nota text-white/85"
               >
                 {UNIDADES.map((unidad) => (
                   <option key={unidad.metros} value={String(unidad.metros)}>
@@ -198,7 +198,7 @@ function PlanoEnLista({
                 decide si acertó: una planta mide decenas de metros, no decenas de kilómetros. Va
                 justo debajo del selector y cambia con él, así que elegir mal se ve al instante en
                 vez de descubrirse cuando el plano desaparece de la pantalla. */}
-            <p className="pt-1 text-[11px] text-white/70">
+            <p className="pt-1 text-nota text-white/70">
               Con esta unidad el plano mide{" "}
               <span className={tamanoCreible(anchoM, altoM) ? "text-brand" : "text-amber-400"}>
                 {formato(anchoM)} × {formato(altoM)}
@@ -212,13 +212,13 @@ function PlanoEnLista({
               <button
                 type="button"
                 onClick={() => onTransform(plan.id, { metresPerUnit: plan.units.metresPerUnit })}
-                className="mt-1 rounded border border-brand/40 px-1.5 py-0.5 text-[10px] text-brand hover:bg-brand/15"
+                className="mt-1 rounded border border-brand/40 px-1.5 py-0.5 text-micro text-brand hover:bg-brand/15"
               >
                 Volver a {plan.units.unitName}, la unidad que se dedujo
               </button>
             )}
 
-            <p className="pt-1 text-[10px] leading-snug text-white/30">{plan.units.reason}</p>
+            <p className="pt-1 text-micro leading-snug text-white/30">{plan.units.reason}</p>
           </div>
 
           {/* **El tamaño del rótulo no puede salir del archivo.** Un plano anotativo escribe la
@@ -227,7 +227,7 @@ function PlanoEnLista({
               con cuatrocientos rótulos, a veces lo que hace falta es el dibujo limpio. */}
           <div>
             <div className="flex items-center gap-2">
-              <label className="w-16 shrink-0 text-[11px] text-white/45">Rótulos</label>
+              <label className="w-16 shrink-0 text-nota text-white/45">Rótulos</label>
               <select
                 value={String(alturaRotulo)}
                 onChange={(e) => {
@@ -235,7 +235,7 @@ function PlanoEnLista({
                   setAlturaRotulo(alto);
                   onLabelHeight(plan.id, alto);
                 }}
-                className="min-w-0 flex-1 rounded border border-white/15 bg-black/20 px-1.5 py-0.5 text-[11px] text-white/85"
+                className="min-w-0 flex-1 rounded border border-white/15 bg-black/20 px-1.5 py-0.5 text-nota text-white/85"
               >
                 <option value="0">ocultos</option>
                 <option value={String(sugerido)}>
@@ -249,7 +249,7 @@ function PlanoEnLista({
             {plan.textCount > 0 && (
               // Con cientos de rótulos el plano arranca sin ellos: dibujados todos sobre una planta
               // completa no se lee ninguno. Se dice, para que nadie los dé por perdidos.
-              <p className="pt-1 text-[10px] leading-snug text-white/30">
+              <p className="pt-1 text-micro leading-snug text-white/30">
                 {plan.textCount.toLocaleString("es-CL")} textos en el archivo
                 {plan.labelHeightM === 0 && " — apagados de entrada porque son muchos"}
               </p>
@@ -289,7 +289,7 @@ function PlanoEnLista({
             onChange={(v) => onTransform(plan.id, { rotationDeg: v })}
           />
 
-          <label className="flex items-center gap-2 text-[11px] text-white/60">
+          <label className="flex items-center gap-2 text-nota text-white/60">
             <input
               type="checkbox"
               checked={t.mirrored}
@@ -310,7 +310,7 @@ function PlanoEnLista({
               onClick={() => onAlign(plan.id, ajustarEscala)}
               disabled={alineando}
               className={[
-                "w-full rounded px-2 py-1 text-[11px] font-medium",
+                "w-full rounded px-2 py-1 text-nota font-medium",
                 alineando
                   ? "bg-brand/20 text-brand"
                   : "bg-brand text-white hover:opacity-90 disabled:opacity-40",
@@ -318,7 +318,7 @@ function PlanoEnLista({
             >
               {alineando ? "Señalando puntos… (Esc para salir)" : "Calzar con 2 puntos"}
             </button>
-            <label className="mt-1 flex items-center gap-2 text-[10px] text-white/50">
+            <label className="mt-1 flex items-center gap-2 text-micro text-white/50">
               <input
                 type="checkbox"
                 checked={ajustarEscala}
@@ -334,7 +334,7 @@ function PlanoEnLista({
             <button
               type="button"
               onClick={() => onSectionAtPlan(plan.id, t.elevationM + 1.2)}
-              className="mt-1 w-full rounded border border-white/15 px-2 py-1 text-[10px] text-white/70 hover:bg-white/10 hover:text-white"
+              className="mt-1 w-full rounded border border-white/15 px-2 py-1 text-micro text-white/70 hover:bg-white/10 hover:text-white"
               title="Pone un corte horizontal 1,20 m sobre la cota del plano, que es donde corta un plano de planta"
             >
               Cortar el modelo a la altura del plano
@@ -342,7 +342,7 @@ function PlanoEnLista({
           </div>
 
           <div>
-            <p className="pb-1 text-[10px] tracking-wide text-white/35 uppercase">
+            <p className="pb-1 text-micro tracking-wide text-white/35 uppercase">
               Capas ({plan.layers.length})
             </p>
             <ul>
@@ -373,14 +373,14 @@ function PlanoEnLista({
                     />
                     <span
                       className={[
-                        "min-w-0 flex-1 truncate text-[11px]",
+                        "min-w-0 flex-1 truncate text-nota",
                         encendida ? "text-white/80" : "text-white/30",
                       ].join(" ")}
                       title={`${capa.name} — ${capa.count} trazos`}
                     >
                       {capa.name}
                     </span>
-                    <span className="shrink-0 font-mono text-[10px] text-white/25">
+                    <span className="shrink-0 font-mono text-micro text-white/25">
                       {capa.count}
                     </span>
                   </li>
@@ -390,7 +390,7 @@ function PlanoEnLista({
           </div>
 
           {sinDibujar.length > 0 && (
-            <p className="border-t border-white/10 pt-1.5 text-[10px] leading-snug text-white/30">
+            <p className="border-t border-white/10 pt-1.5 text-micro leading-snug text-white/30">
               Sin dibujar:{" "}
               {sinDibujar.map(([tipo, n]) => `${tipo.toLowerCase()} (${n})`).join(", ")}. Son
               textos, rellenos y cotas del CAD: el plano se dibuja con su geometría de líneas.
@@ -448,7 +448,7 @@ function Numero({
 }) {
   return (
     <div className="flex items-center gap-2" title={ayuda}>
-      <label className="w-16 shrink-0 text-[11px] text-white/45">{etiqueta}</label>
+      <label className="w-16 shrink-0 text-nota text-white/45">{etiqueta}</label>
       <input
         type="number"
         value={Number.isFinite(valor) ? Number(valor.toFixed(3)) : 0}
@@ -457,9 +457,9 @@ function Numero({
           const n = Number(e.target.value);
           if (Number.isFinite(n)) onChange(n);
         }}
-        className="min-w-0 flex-1 rounded border border-white/15 bg-black/20 px-1.5 py-0.5 font-mono text-[11px] text-white/85"
+        className="min-w-0 flex-1 rounded border border-white/15 bg-black/20 px-1.5 py-0.5 font-mono text-nota text-white/85"
       />
-      <span className="w-3 shrink-0 text-[10px] text-white/30">{sufijo}</span>
+      <span className="w-3 shrink-0 text-micro text-white/30">{sufijo}</span>
     </div>
   );
 }

@@ -66,11 +66,18 @@ export function ProjectBrowser({
   readonly onApplyView: (view: SavedView) => void;
   readonly onDeleteView: (id: string) => void;
 }) {
-  const [abiertas, setAbiertas] = useState<ReadonlySet<string>>(
-    // `registro` arranca plegada a propósito: es de donde se parte una vez, y con el modelo ya
-    // abierto solo empujaría al árbol, que es lo que se mira mientras se revisa.
-    new Set(["coordinacion", "estructura", "modelos", "planos", "generados", "cotas", "vistas"]),
-  );
+  /**
+   * Qué secciones están desplegadas. **Todas arrancan plegadas.**
+   *
+   * Antes arrancaban abiertas casi todas, y con siete secciones eso llena la columna entera de
+   * listas vacías —«Ninguno», «Ninguna todavía»— que empujan hacia abajo la única que se está
+   * usando. Plegadas, la columna cabe de un vistazo y **se abre lo que se necesita**, que es lo que
+   * pidió el usuario con esas palabras.
+   *
+   * No se recuerda entre sesiones a propósito: qué sección hace falta depende de lo que se esté
+   * haciendo ahora, no de lo que se hacía ayer.
+   */
+  const [abiertas, setAbiertas] = useState<ReadonlySet<string>>(new Set());
   /**
    * El alto que se le fijó a mano a cada sección, en píxeles.
    *
@@ -276,7 +283,7 @@ function Vistas({
       </form>
 
       {vistas.length === 0 ? (
-        <p className="px-1 pt-2 text-[11px] leading-snug text-white/35">
+        <p className="px-1 pt-2 text-nota leading-snug text-white/35">
           Ninguna todavía. Una vista guarda la cámara, lo que está apagado y los cortes, y vuelve
           con un clic.
         </p>
@@ -314,7 +321,7 @@ function Vistas({
         </ul>
       )}
 
-      <p className="px-1 pt-2 text-[11px] leading-snug text-white/30">
+      <p className="px-1 pt-2 text-nota leading-snug text-white/30">
         Se guardan en este navegador. La Fase 3 les dará un sitio compartido.
       </p>
     </div>
@@ -373,9 +380,7 @@ function Seccion({
             <IconChevronRight className="h-3.5 w-3.5" />
           )}
         </span>
-        <h2 className="text-[11px] font-semibold tracking-wide text-white/60 uppercase">
-          {titulo}
-        </h2>
+        <h2 className="text-nota font-semibold tracking-wide text-white/60 uppercase">{titulo}</h2>
       </button>
 
       {abierta && <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>}

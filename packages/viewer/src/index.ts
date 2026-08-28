@@ -520,10 +520,35 @@ const REPINTADOS_POR_GESTO = 4;
  *
  * 0,45 deja los rincones oscuros sin que las caras a contraluz se vayan a negro.
  */
-const LUZ_AMBIENTE = 0.45;
+const LUZ_AMBIENTE = 0.25;
 
 /** La direccional sube para compensar el ambiente que baja: el modelo no se oscurece en total. */
 const LUZ_DIRECCIONAL = 2.2;
+
+/**
+ * La luz de cielo y suelo, y **es lo que arregla los interiores**.
+ *
+ * El equilibrio anterior —ambiente 0,45 y direccional 2,2— dejó los **exteriores** legibles y los
+ * **interiores** planos, y el motivo es geométrico: dentro de una sala **la direccional la tapa el
+ * techo**, así que a un muro interior solo le llegaba el término ambiente, que es igual en todas
+ * las direcciones. El resultado es lo que el usuario describió mirando una oficina del `Piso 5`:
+ * todo el mismo gris medio, sin saber dónde acaba un muro y empieza el techo.
+ *
+ * Una `HemisphereLight` da color de cielo a lo que mira hacia arriba y color de suelo a lo que mira
+ * hacia abajo. **Eso es información donde antes no había ninguna**: un techo y un piso dejan de
+ * tener el mismo valor sin necesidad de que les llegue una sombra. Y no proyecta sombras, así que
+ * no cuesta un mapa más.
+ *
+ * El ambiente baja de 0,45 a 0,25 para dejarle sitio: la suma de luz difusa se mantiene, y lo que
+ * cambia es que **ahora tiene arriba y abajo**.
+ */
+const LUZ_HEMISFERIO = 0.85;
+
+/** Azul muy pálido: el cielo. Saturarlo pinta el modelo de azul en vez de orientarlo. */
+const CIELO = 0xdfe8f5;
+
+/** Y un gris cálido oscuro para el suelo, que es lo que devuelve el rebote de un piso. */
+const SUELO = 0x4a4740;
 
 /**
  * Cuánto más grande que el modelo se hace el recuadro de sombra.
@@ -554,6 +579,13 @@ function encenderSombras(world: World): void {
     if ((luz as THREE.AmbientLight).isAmbientLight) luz.intensity = LUZ_AMBIENTE;
     else if (luz.castShadow) luz.intensity = LUZ_DIRECCIONAL;
   });
+
+  // **La luz de cielo y suelo, que la escena de la librería no trae.** Ver {@link LUZ_HEMISFERIO}:
+  // es lo que da orientación a un muro interior, donde la direccional no llega porque la tapa el
+  // techo. Se marca con un nombre para poder encontrarla en la auditoría de luces.
+  const hemisferio = new THREE.HemisphereLight(CIELO, SUELO, LUZ_HEMISFERIO);
+  hemisferio.name = "aerobim:hemisferio";
+  world.scene.three.add(hemisferio);
 }
 
 /**

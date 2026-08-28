@@ -645,7 +645,7 @@ function Grupo({
       className="flex shrink-0 flex-col border-r border-white/10 px-2 last:border-r-0"
     >
       <div className="flex flex-1 items-start gap-0.5">{children}</div>
-      <p className="text-center text-[9px] tracking-wide text-white/30 uppercase">{label}</p>
+      <p className="text-center text-micro tracking-wide text-white/30 uppercase">{label}</p>
     </section>
   );
 }
@@ -698,7 +698,7 @@ function Boton({
       >
         {icon}
       </span>
-      <span className="w-full text-center text-[9px] leading-tight break-words">{label}</span>
+      <span className="w-full text-center text-micro leading-tight break-words">{label}</span>
     </button>
   );
 }
@@ -722,7 +722,7 @@ function PanelToggle({
       aria-pressed={open}
       title={`${open ? "Ocultar" : "Mostrar"} el panel de ${label.toLowerCase()} (${side})`}
       className={[
-        "rounded px-2 py-1 text-[11px] transition-colors",
+        "rounded px-2 py-1 text-nota transition-colors",
         open ? "bg-white/10 text-white/80" : "text-white/40 hover:bg-white/10 hover:text-white/70",
       ].join(" ")}
     >

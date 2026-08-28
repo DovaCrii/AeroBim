@@ -54,7 +54,7 @@ export function StatusBar({
   readonly onShowAll: () => void;
 }) {
   return (
-    <footer className="flex h-7 shrink-0 items-center gap-4 border-t border-white/10 bg-ink/60 px-3 text-[11px]">
+    <footer className="flex h-7 shrink-0 items-center gap-4 border-t border-white/10 bg-ink/60 px-3 text-nota">
       <span className="shrink-0 text-white/45">
         <span className="text-white/30">Modo:</span>{" "}
         <span className="text-white/80">{ETIQUETA_MODO[measureMode ?? "select"]}</span>

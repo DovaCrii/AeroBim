@@ -50,7 +50,7 @@ export function DrawingsPanel({
             type="button"
             onClick={() => onGenerate(vista)}
             disabled={generating !== null}
-            className="flex-1 rounded bg-brand px-2 py-1 text-[11px] font-medium text-white hover:opacity-90 disabled:bg-white/10 disabled:text-white/30"
+            className="flex-1 rounded bg-brand px-2 py-1 text-nota font-medium text-white hover:opacity-90 disabled:bg-white/10 disabled:text-white/30"
             title={`Proyecta lo que está a la vista y arma el plano de ${nombre.toLowerCase()}`}
           >
             {nombre}
@@ -62,11 +62,11 @@ export function DrawingsPanel({
         // **Con salida.** Proyectar un modelo grande tarda, y si el aviso se queda quieto no hay
         // forma de saber si va lento o si se colgó: el botón devuelve la aplicación sin esperar.
         <div className="flex items-center gap-2 px-1 pt-2">
-          <p className="min-w-0 flex-1 truncate text-[11px] text-brand">{generating}</p>
+          <p className="min-w-0 flex-1 truncate text-nota text-brand">{generating}</p>
           <button
             type="button"
             onClick={onCancel}
-            className="shrink-0 rounded border border-white/15 px-1.5 py-0.5 text-[10px] text-white/60 hover:bg-white/10 hover:text-white"
+            className="shrink-0 rounded border border-white/15 px-1.5 py-0.5 text-micro text-white/60 hover:bg-white/10 hover:text-white"
             title="Deja de esperar la proyección y devuelve la aplicación"
           >
             Dejar de esperar
@@ -75,7 +75,7 @@ export function DrawingsPanel({
       )}
 
       {drawings.length === 0 && generating === null && (
-        <p className="px-1 pt-2 text-[11px] leading-snug text-white/35">
+        <p className="px-1 pt-2 text-nota leading-snug text-white/35">
           Ninguno. Un plano se saca proyectando las aristas de lo que está encendido: apaga lo que
           no quieras que salga y elige la vista.
         </p>
@@ -111,13 +111,13 @@ export function DrawingsPanel({
                 </button>
               </div>
 
-              <p className="pt-0.5 text-[10px] text-white/35">
+              <p className="pt-0.5 text-micro text-white/35">
                 {plano.sizeM[0].toFixed(1)} × {plano.sizeM[1].toFixed(1)} m ·{" "}
                 {plano.segments.toLocaleString("es-CL")} trazos ·{" "}
                 {(plano.elapsedMs / 1000).toFixed(1)} s en generarse
               </p>
 
-              <label className="flex items-center gap-2 pt-1 text-[10px] text-white/50">
+              <label className="flex items-center gap-2 pt-1 text-micro text-white/50">
                 <input
                   type="checkbox"
                   onChange={(e) => onToggleHidden(plano.id, e.target.checked)}
@@ -131,7 +131,7 @@ export function DrawingsPanel({
               <button
                 type="button"
                 onClick={() => onExport(plano.id)}
-                className="mt-1 w-full rounded border border-brand/40 px-2 py-1 text-[11px] text-brand hover:bg-brand/15"
+                className="mt-1 w-full rounded border border-brand/40 px-2 py-1 text-nota text-brand hover:bg-brand/15"
                 title="Descarga el plano en DXF, en milímetros y colocado en una hoja A3"
               >
                 Exportar a DXF (A3)

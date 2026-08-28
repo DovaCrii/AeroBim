@@ -1,4 +1,4 @@
-import { nombreDeLoAbierto, rutasDeVuelta, type RegistryOrigin } from "@aerobim/bim-core";
+import { rutasDeVuelta, type RegistryOrigin } from "@aerobim/bim-core";
 
 /**
  * De dónde vino lo que está abierto, y cómo volver.
@@ -17,7 +17,10 @@ export function Origen({ origen }: { readonly origen: RegistryOrigin | null }) {
   const vueltas = rutasDeVuelta(origen);
   if (vueltas.length === 0) return null;
 
-  const abierto = nombreDeLoAbierto(origen);
+  // **Solo el correlativo, no el nombre completo.** Antes se ponía «716-LCD-ES-M-001 rev. A1» al
+  // lado del enlace que ya dice «716-LCD-ES-M-001»: el código salía dos veces en la misma línea, y
+  // en una barra estrecha eso es la mitad del espacio gastado en repetirse.
+  const revision = origen?.revisionCorrelativo ?? "";
 
   return (
     <nav
@@ -39,7 +42,7 @@ export function Origen({ origen }: { readonly origen: RegistryOrigin | null }) {
       ))}
       {/* La revisión **no es un enlace**: no tiene pantalla propia, y llevarla al expediente sería
           un segundo enlace al mismo sitio en la misma línea — una promesa que no se cumple. */}
-      {abierto !== "" && <span className="truncate text-white/40">· {abierto}</span>}
+      {revision !== "" && <span className="shrink-0 text-white/40">· rev. {revision}</span>}
     </nav>
   );
 }

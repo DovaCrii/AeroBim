@@ -22,16 +22,12 @@ import {
   type SpatialNode,
   type StandardView,
 } from "@aerobim/viewer";
-import {
-  camaraBcfDesdeEscena,
-  parseSavedViews,
-  urlDeNuevaObservacion,
-  type RegistryOrigin,
-} from "@aerobim/bim-core";
+import { parseSavedViews, type RegistryOrigin } from "@aerobim/bim-core";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DrawingsPanel } from "./components/DrawingsPanel.js";
 import { ModelsPanel } from "./components/ModelsPanel.js";
 import { Coordinacion, type ObservacionDelModelo } from "./components/Coordinacion.js";
+import { NotaFlotante } from "./components/NotaFlotante.js";
 import { Origen } from "./components/Origen.js";
 import { PlansPanel } from "./components/PlansPanel.js";
 import { ProjectBrowser } from "./components/ProjectBrowser.js";
@@ -99,10 +95,26 @@ const CLAVE_VISTAS = "aerobim.vistas.v1";
 const CLAVE_CINTA = "aerobim.cinta.plegada.v1";
 
 /** Dónde se recuerdan los anchos de los paneles laterales. */
-const CLAVE_PANELES = "aerobim.paneles.ancho.v1";
+/**
+ * Dónde se recuerda el ancho de los paneles.
+ *
+ * **Sube a `v2` a propósito**: el ancho de fábrica cambió con la escala de la interfaz, y sin
+ * cambiar la clave quien ya la tuviera guardada se quedaría con los 288 px de antes y el texto un
+ * quinto más grande dentro. Se pierde el ancho que alguien hubiera ajustado a mano, una vez.
+ */
+const CLAVE_PANELES = "aerobim.paneles.ancho.v2";
 
-/** Cuánto puede medir un panel lateral: ni tan angosto que no quepa un nombre, ni media pantalla. */
-const ANCHO_PANEL = { minimo: 200, maximo: 620 } as const;
+/**
+ * Cuánto puede medir un panel lateral: ni tan angosto que no quepa un nombre, ni media pantalla.
+ *
+ * **Subidos un 20% con la escala de la interfaz.** El ancho de un panel se guarda en píxeles —lo
+ * arrastra el usuario— así que es lo único que **no** creció solo al subir el tamaño base: con el
+ * texto un quinto más grande y el mismo ancho, un código de entregable dejaba de caber.
+ */
+const ANCHO_PANEL = { minimo: 240, maximo: 620 } as const;
+
+/** El ancho de fábrica de cada panel, también escalado: 288 × 1,2. */
+const ANCHO_DE_FABRICA = 346;
 
 /** Lee el ancho guardado de un panel. Cualquier cosa rara devuelve el de fábrica. */
 function leerAncho(lado: "izquierda" | "derecha", porDefecto: number): number {
@@ -373,8 +385,10 @@ export function App() {
    * plano hace falta panel, midiendo hace falta lienzo. Se recuerdan en el navegador porque son una
    * preferencia de trabajo, no un estado de la sesión.
    */
-  const [anchoIzquierdo, setAnchoIzquierdo] = useState(() => leerAncho("izquierda", 288));
-  const [anchoDerecho, setAnchoDerecho] = useState(() => leerAncho("derecha", 288));
+  const [anchoIzquierdo, setAnchoIzquierdo] = useState(() =>
+    leerAncho("izquierda", ANCHO_DE_FABRICA),
+  );
+  const [anchoDerecho, setAnchoDerecho] = useState(() => leerAncho("derecha", ANCHO_DE_FABRICA));
 
   useEffect(() => {
     try {
@@ -1104,25 +1118,31 @@ export function App() {
    * trae GUID válido** — un ancla sin identidad no apunta a nada, y una observación que dice
    * «algo en este modelo» no es mejor que un correo.
    */
-  const observar = useMemo(() => {
-    const href = urlDeNuevaObservacion(origen, selected);
-    if (href === null) return null;
+  /**
+   * `true` si se puede dejar una nota sobre lo que está seleccionado.
+   *
+   * Tres motivos para que no, y los tres son «no hay dónde anotarlo», no «está deshabilitado»: el
+   * modelo se abrió del disco, el rol no puede abrir observaciones —lo contesta el servidor—, o el
+   * elemento no trae GUID válido. Un botón gris que no dice por qué manda a buscar el error donde
+   * no está, así que el botón no se dibuja.
+   */
+  const sePuedeAnotar =
+    origen !== null && origen.puedeObservar && selected !== null && selected.guid !== null;
 
-    return {
-      href,
-      // **La cámara se lee al pulsar, no al seleccionar.** Entre elegir el elemento y pulsar uno
-      // suele girar para verlo mejor, y el punto de vista que hay que guardar es el de ese momento.
-      // `camaraBcfDesdeEscena` la convierte al sistema del IFC —la escena tiene Y arriba y el IFC
-      // Z— y devuelve `null` para las cámaras que no se pueden reproducir: entonces se abre el
-      // enlace sin ella, que es una observación válida con su ancla por GUID.
-      conCamara: () => {
-        const instancia = viewer.current;
-        if (instancia === null) return href;
-        const camara = camaraBcfDesdeEscena(instancia.cameraState);
-        return urlDeNuevaObservacion(origen, selected, camara) ?? href;
-      },
-    };
-  }, [origen, selected]);
+  /** `true` mientras la tarjeta de nota está abierta encima del modelo. */
+  const [notaAbierta, setNotaAbierta] = useState(false);
+
+  /**
+   * Cambia cada vez que se guarda una nota, para que el panel de coordinación se recargue.
+   *
+   * Sin esto la nota se guarda y **la lista sigue igual**, que se lee como que no se guardó — y
+   * entonces alguien la escribe otra vez.
+   */
+  const [notasGuardadas, setNotasGuardadas] = useState(0);
+
+  // Cambiar de elemento cierra la tarjeta: estaba anclada al anterior, y dejarla abierta haría que
+  // la nota se guardara sobre un GUID distinto del que se está mirando.
+  useEffect(() => setNotaAbierta(false), [selected]);
 
   /**
    * Abre una observación del panel de coordinación: **lleva la cámara y selecciona el elemento**.
@@ -1368,7 +1388,7 @@ export function App() {
                 onToggleVisible={onToggleSelectionVisible}
                 onIsolate={onIsolateSelection}
                 onUndoIsolate={onUndoIsolate}
-                observar={observar}
+                observar={sePuedeAnotar ? () => setNotaAbierta(true) : null}
               />
             )}
           </aside>
@@ -1415,6 +1435,19 @@ export function App() {
             onDragLeave={() => setDragging(false)}
             onDrop={onDrop}
           />
+
+          {/* **La tarjeta de nota, encima del modelo.** Va acá —dentro del contenedor del lienzo—
+              y no en un panel, porque el punto entero es no dejar de ver lo que se está
+              describiendo. Se arrastra por su cabecera para destapar justo lo que hace falta. */}
+          {notaAbierta && selected !== null && origen !== null && (
+            <NotaFlotante
+              item={selected}
+              revisionId={origen.revisionId}
+              camaraDeAhora={() => viewer.current?.cameraState ?? null}
+              onCerrar={() => setNotaAbierta(false)}
+              onGuardada={() => setNotasGuardadas((cuantas) => cuantas + 1)}
+            />
+          )}
 
           <ViewCube
             view={standardView}
@@ -1472,6 +1505,8 @@ export function App() {
                 <Coordinacion
                   proyectoId={origen?.proyectoId ?? null}
                   onAbrir={onAbrirObservacion}
+                  recargar={notasGuardadas}
+                  sePuedeAnotar={sePuedeAnotar}
                 />
               }
               planCount={plans.length}

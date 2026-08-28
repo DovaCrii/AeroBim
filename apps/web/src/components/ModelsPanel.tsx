@@ -146,7 +146,7 @@ function ModelRow({
             del panel y estaba escondido tras un clic que nadie tenía por qué dar. */}
         {sinCargar > 0 && (
           <span
-            className="shrink-0 rounded bg-amber-500/20 px-1 text-[10px] text-amber-300 tabular-nums"
+            className="shrink-0 rounded bg-amber-500/20 px-1 text-micro text-amber-300 tabular-nums"
             title={`${sinCargar} elementos que el archivo declara y no se cargaron. Despliega la fila para ver de qué clases.`}
           >
             ⚠ {sinCargar}
@@ -238,11 +238,11 @@ function FaltaGeometria({
 
   return (
     <section className="mx-2 mb-2 rounded-md border border-amber-500/30 bg-amber-500/5 p-2">
-      <h4 className="text-[11px] font-semibold text-amber-300/90">
+      <h4 className="text-nota font-semibold text-amber-300/90">
         {titulo}: {total.toLocaleString("es-CL")}
       </h4>
-      <p className="mt-0.5 mb-1 text-[11px] leading-snug text-white/45">{explicacion}</p>
-      <ul className="space-y-0.5 text-[11px]">
+      <p className="mt-0.5 mb-1 text-nota leading-snug text-white/45">{explicacion}</p>
+      <ul className="space-y-0.5 text-nota">
         {clases.slice(0, 8).map((clase) => (
           <li key={clase.ifcClass} className="flex justify-between gap-2">
             <span className="min-w-0 truncate font-mono text-white/70">{clase.ifcClass}</span>
@@ -259,7 +259,7 @@ function FaltaGeometria({
         ))}
       </ul>
       {clases.length > 8 && (
-        <p className="mt-1 text-[11px] text-white/35">y {clases.length - 8} clases más</p>
+        <p className="mt-1 text-nota text-white/35">y {clases.length - 8} clases más</p>
       )}
     </section>
   );

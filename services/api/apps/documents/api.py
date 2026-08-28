@@ -22,9 +22,11 @@ Las tres reglas de acceso son las mismas que en las pantallas, y se escriben una
 """
 
 from django.http import FileResponse, Http404
+from django.utils.translation import gettext as _
 from rest_framework.generics import ListAPIView, RetrieveAPIView
 from rest_framework.views import APIView
 
+from apps.core.audit import set_audit_context
 from apps.core.tenancy import scope_queryset_to_organizacion
 from apps.core.views import ViewModelPermissions
 from apps.documents import storage
@@ -167,10 +169,118 @@ class ObservacionesDeRevisionAPI(APIView):
     rol puede ver los planos publicados y no tener nada que ver con los hallazgos internos. Y
     la revisión se busca por `revisiones_visibles`, así que sobre un documento que el usuario
     no puede ver no hay observaciones que listar, ni siquiera para decir cuántas hay.
+
+    **Y acepta `POST`**, que es lo que permite dejar una nota sin salir del visor: ver abajo.
     """
 
     permission_classes = [ViewModelPermissions]
     queryset = Observacion.objects.none()
+
+    def post(self, request, *args, **kwargs):
+        """Deja una nota sobre un elemento **sin salir del visor**. `F4.9`.
+
+        **El formulario de página completa era el problema, no una molestia.** Pulsar «Observar»
+        abría otra pantalla y, con las palabras del usuario, «al salir de lo que veo pierdo visión
+        de lo que estoy haciendo»: se anota mirando el modelo, y si hay que dejar de mirarlo para
+        escribir, se anota peor o no se anota.
+
+        **El responsable es opcional y por defecto es quien la abre.** Eso es lo que permite el
+        «luego en otra etapa pasarlo» que pidió: se deja la nota ahora, mirando, y se reparte
+        después desde la pantalla de observaciones. `Observacion.responsable` no acepta vacío —cada
+        observación tiene dueño, que es una regla del producto— así que el dueño es el autor hasta
+        que alguien la asigne, y eso **es cierto**: es suya mientras nadie más la tome.
+
+        Pide `add_observacion` —lo hace `ViewModelPermissions`, que mapea `POST` a `add_*`— y se
+        acota por organización a través de la revisión.
+        """
+        from rest_framework.response import Response
+
+        from apps.documents.camara import leer as leer_camara
+        from apps.documents.notify import avisar_asignacion
+
+        revision = revisiones_visibles(request.user).filter(pk=kwargs["pk"]).first()
+        if revision is None:
+            raise Http404
+
+        titulo = str(request.data.get("titulo") or "").strip()[:250]
+        if not titulo:
+            return Response({"error": _("The note needs a title.")}, status=400)
+
+        guid = str(request.data.get("guid") or "").strip()
+        # Misma comprobación de forma que el formulario: 22 caracteres del alfabeto de IFC. Guardar
+        # cualquier cosa dejaría un ancla que no apunta a nada.
+        if guid and not (len(guid) == 22 and all(c.isalnum() or c in "_$" for c in guid)):
+            return Response({"error": _("That is not a valid IFC GUID.")}, status=400)
+
+        prioridad = request.data.get("prioridad")
+        if prioridad not in dict(Observacion.PRIORIDADES):
+            prioridad = Observacion.MEDIA
+
+        entregable = revision.entregable
+        observacion = Observacion(
+            organizacion=entregable.organizacion,
+            proyecto=entregable.proyecto,
+            revision=revision,
+            titulo=titulo,
+            descripcion=str(request.data.get("descripcion") or "")[:4000],
+            prioridad=prioridad,
+            autor=request.user,
+            responsable=self._responsable(request, entregable),
+            ifc_guid=guid,
+            # La cámara llega ya en el sistema del IFC —la convierte el visor— y se valida igual
+            # que en el formulario. Una cámara mala se descarta y la nota se guarda sin ella.
+            punto_de_vista=leer_camara(request.data.get("camara")) if guid else {},
+        )
+        observacion.save()
+        set_audit_context(request, observacion, action="abrir_observacion")
+
+        # **Se avisa solo si tiene otro dueño.** Un correo diciéndote que te asignaste algo a ti
+        # mismo hace que la gente filtre el remitente, y entonces el aviso que importa tampoco se
+        # lee. Ver `mail.py`, que existe por esta misma lección.
+        avisada = False
+        if observacion.responsable_id != request.user.pk:
+            avisada = avisar_asignacion(observacion)
+
+        return Response(
+            {
+                "id": str(observacion.pk),
+                "titulo": observacion.titulo,
+                "url": observacion.get_absolute_url(),
+                "responsable": str(observacion.responsable),
+                # **Se dice si quedó a tu nombre**, para que la tarjeta pueda recordar que falta
+                # repartirla.
+                "esMia": observacion.responsable_id == request.user.pk,
+                "avisada": avisada,
+            },
+            status=201,
+        )
+
+    def _responsable(self, request, entregable):
+        """A quién le toca: el que pidan, si puede; el autor si no dicen nada.
+
+        **El id que llegue se comprueba contra la gente de la organización**, no se confía. Sin eso
+        se puede asignar una observación a un usuario de otro cliente escribiendo su id, y entonces
+        le llega un correo con el enlace a una obra que no es suya.
+        """
+        pedido = request.data.get("responsable")
+        if not pedido:
+            return request.user
+
+        from django.contrib.auth import get_user_model
+
+        from apps.core.models import Membresia
+
+        candidato = (
+            get_user_model()
+            .objects.filter(
+                pk__in=Membresia.objects.filter(organizacion=entregable.organizacion).values_list(
+                    "usuario_id", flat=True
+                )
+            )
+            .filter(pk=pedido)
+            .first()
+        )
+        return candidato or request.user
 
     def get(self, request, *args, **kwargs):
         from rest_framework.response import Response

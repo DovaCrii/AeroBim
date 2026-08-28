@@ -1,5 +1,5 @@
 import type { PickedItem, PlanHit, PropertyValue } from "@aerobim/viewer";
-import { IconEye, IconEyeOff, IconIsolate } from "./icons.js";
+import { IconEye, IconEyeOff, IconIsolate, IconNota } from "./icons.js";
 
 /**
  * La ficha de un elemento 2D del plano.
@@ -8,19 +8,6 @@ import { IconEye, IconEyeOff, IconIsolate } from "./icons.js";
  * GUID ni psets, tiene capa, plano de origen, largo y dónde está. Mezclarlo con la ficha del modelo
  * obligaría a llenar de "—" media pantalla; separarlo deja claro qué se está mirando.
  */
-/**
- * Cómo se abre una observación sobre el elemento seleccionado.
- *
- * Son dos porque son dos momentos: `href` es el enlace de verdad —el que se copia, el que abre el
- * botón central— y lleva el ancla por GUID; `conCamara` se llama **al pulsar** y añade el punto de
- * vista de ese instante, que es el que hay que guardar.
- */
-export interface EnlaceDeObservar {
-  readonly href: string;
-  /** La misma URL con la cámara de ahora, o `null` si esa cámara no se puede reproducir. */
-  readonly conCamara: () => string | null;
-}
-
 /** Cómo se llama en la ficha lo que se tocó del plano. */
 const ETIQUETA_2D: Record<"line" | "fill" | "text", string> = {
   line: "Trazo 2D",
@@ -92,7 +79,7 @@ export function Plan2DCard({
           </dl>
         </section>
 
-        <p className="border-t border-white/10 pt-2 text-[11px] leading-snug text-white/35">
+        <p className="border-t border-white/10 pt-2 text-nota leading-snug text-white/35">
           Un plano CAD no trae más datos que estos: lo que sabe del elemento es su capa y su
           geometría. Lo demás —tipo, material, cantidades— vive en el modelo IFC.
         </p>
@@ -141,7 +128,7 @@ export function PropertiesPanel({
    * el rol no puede abrirlas, o cuando el elemento no trae GUID válido. Un botón gris que no explica
    * por qué está gris manda a alguien a buscar el error donde no está.
    */
-  readonly observar?: EnlaceDeObservar | null;
+  readonly observar?: (() => void) | null;
 }) {
   // El panel **está siempre**, como en Revit: es un sitio fijo de la pantalla, y en cuanto se
   // selecciona algo se llena. Antes aparecía y desaparecía flotando sobre el modelo, lo que movía la
@@ -150,7 +137,7 @@ export function PropertiesPanel({
     return (
       <div className="flex h-full min-h-0 flex-col">
         <header className="border-b border-white/10 px-3 py-2">
-          <h2 className="text-[11px] font-semibold tracking-wide text-white/60 uppercase">
+          <h2 className="text-nota font-semibold tracking-wide text-white/60 uppercase">
             Propiedades
           </h2>
         </header>
@@ -244,34 +231,23 @@ export function PropertiesPanel({
             <Row label="Modelo" value={item.modelId} />
           </dl>
 
-          {/* **De ver el problema a que alguien lo arregle**, sin salir del visor (`F4.1`). El GUID
-              que se muestra arriba es el ancla: va en la URL, queda guardado en la observación y es
-              el que después viaja en el BCF que abre el mandante en Solibri.
+          {/* **De ver el problema a dejarlo anotado, sin salir del modelo** (`F4.9`). El GUID que
+              se muestra arriba es el ancla: queda guardado en la nota y es el que después viaja en
+              el BCF que abre el mandante en Solibri.
 
-              Es un enlace y no un botón porque **lleva a otra pantalla** —el formulario del
-              registro, con su responsable y su vencimiento—, y un enlace se puede abrir en otra
-              pestaña sin perder el modelo cargado, que es justo lo que uno quiere acá: son veinte
-              megas y medio minuto de conversión. */}
+              **Era un enlace a otra pantalla y eso era el problema**, no una molestia. Con las
+              palabras del usuario: «al salir de lo que veo pierdo visión de lo que estoy
+              haciendo». Ahora abre una tarjeta flotante encima del modelo. */}
           {observar !== null && (
-            <a
-              href={observar.href}
-              target="_blank"
-              rel="noopener"
-              onClick={(evento) => {
-                // **La cámara se lee al pulsar, no al seleccionar.** Entre elegir el elemento y
-                // pulsar acá uno suele girar para verlo mejor, y el punto de vista que hay que
-                // guardar es el de ahora — el `href` lleva la versión sin cámara, que es un enlace
-                // válido y es lo que sigue funcionando al copiarlo o abrirlo con el botón central.
-                const conCamara = observar.conCamara();
-                if (conCamara === null) return;
-                evento.preventDefault();
-                window.open(conCamara, "_blank", "noopener");
-              }}
-              className="mt-2 inline-flex items-center gap-1.5 rounded bg-brand/15 px-2 py-1 text-[11px] font-semibold text-brand hover:bg-brand/25"
-              title="Abre una observación del registro anclada al GUID de este elemento, con el punto de vista de ahora"
+            <button
+              type="button"
+              onClick={observar}
+              className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded bg-brand px-2 py-1.5 text-xs font-semibold text-white hover:opacity-90"
+              title="Deja una nota anclada al GUID de este elemento, sin salir del modelo"
             >
-              Observar este elemento
-            </a>
+              <IconNota className="h-3.5 w-3.5" />
+              Dejar una nota
+            </button>
           )}
         </section>
 
@@ -305,7 +281,7 @@ export function PropertiesPanel({
         )}
 
         {hayInferidas && (
-          <p className="border-t border-white/10 pt-2 text-[11px] leading-snug text-white/35">
+          <p className="border-t border-white/10 pt-2 text-nota leading-snug text-white/35">
             Las unidades atenuadas se deducen del nombre de la propiedad: el archivo declara el
             número sin decir de qué magnitud es.
           </p>

@@ -48,13 +48,22 @@ export function Coordinacion({
   proyectoId,
   onAbrir,
   recargar,
+  sePuedeAnotar = false,
 }: {
   /** La obra de la que está abierto el modelo, o `null` si vino de un archivo del disco. */
   readonly proyectoId: string | null;
   /** Lleva la cámara y selecciona. Devuelve `false` si el GUID no está en ningún modelo abierto. */
   readonly onAbrir: (observacion: ObservacionDelModelo) => Promise<boolean>;
-  /** Cambia para volver a pedir la lista: al crear una observación, por ejemplo. */
+  /** Cambia para volver a pedir la lista: al guardar una nota, por ejemplo. */
   readonly recargar?: number;
+  /**
+   * `true` si ahora mismo hay un elemento seleccionado sobre el que se puede anotar.
+   *
+   * **Es lo que permite que el panel enseñe el gesto en vez de solo decir que no hay nada.** El
+   * usuario preguntó «cómo puedo cargar una observación, no está claro eso» teniendo el botón a la
+   * vista: un estado vacío que no dice cómo llenarse deja a alguien buscando.
+   */
+  readonly sePuedeAnotar?: boolean;
 }) {
   const [estado, setEstado] = useState<Estado>({ kind: "sin-proyecto" });
   /** El GUID que no se encontró, para poder decirlo junto a su fila y no en un aviso suelto. */
@@ -142,10 +151,26 @@ export function Coordinacion({
 
   if (estado.observaciones.length === 0) {
     return (
-      <p className="p-3 text-xs leading-snug text-white/35">
-        Ninguna observación abierta anclada a un elemento. Las que están sobre un documento se ven
-        en su propia pantalla.
-      </p>
+      <div className="space-y-1.5 p-3 text-xs leading-snug text-white/40">
+        <p>Ninguna nota todavía sobre un elemento de esta obra.</p>
+        {/* **El estado vacío enseña el gesto.** Decir solo «no hay nada» deja a alguien buscando
+            cómo llenarlo, que es literalmente lo que pasó: «cómo puedo cargar una observación, no
+            está claro eso» — con el botón a la vista. */}
+        <p className="text-white/55">
+          {sePuedeAnotar ? (
+            <>
+              Pulsa <strong className="text-brand">Dejar una nota</strong> en la ficha del elemento
+              que tienes seleccionado, a la izquierda.
+            </>
+          ) : (
+            <>
+              Haz clic en un elemento del modelo y usa <strong>Dejar una nota</strong> en su ficha,
+              a la izquierda.
+            </>
+          )}
+        </p>
+        <p>Las notas sobre un documento se ven en su propia pantalla, no acá.</p>
+      </div>
     );
   }
 
@@ -163,7 +188,7 @@ export function Coordinacion({
               {/* La prioridad con texto y no solo con color: uno de cada doce hombres no
                   distingue rojo de verde. */}
               <span
-                className={`shrink-0 text-[10px] font-semibold uppercase ${TONO[observacion.prioridad] ?? "text-white/60"}`}
+                className={`shrink-0 text-micro font-semibold uppercase ${TONO[observacion.prioridad] ?? "text-white/60"}`}
               >
                 {observacion.prioridadTexto}
               </span>
@@ -178,7 +203,7 @@ export function Coordinacion({
           </button>
 
           {noEncontrada === observacion.id && (
-            <p className="px-2 pb-1 text-[11px] leading-snug text-amber-200/80">
+            <p className="px-2 pb-1 text-nota leading-snug text-amber-200/80">
               Ese elemento no está en ningún modelo abierto. Suele ser de otra disciplina: abre su
               modelo y vuelve a intentarlo.
             </p>
@@ -190,7 +215,7 @@ export function Coordinacion({
             href={observacion.url}
             target="_blank"
             rel="noopener"
-            className="ml-2 text-[11px] text-white/35 underline hover:text-white/70"
+            className="ml-2 text-nota text-white/35 underline hover:text-white/70"
           >
             abrir su ficha
           </a>

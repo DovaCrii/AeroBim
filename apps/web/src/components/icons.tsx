@@ -42,6 +42,23 @@ export function IconFrameAll(props: IconProps) {
   );
 }
 
+/**
+ * Una nota sobre un elemento: la hoja con su esquina doblada y dos renglones.
+ *
+ * Dibujada acá y no tomada de una librería por el mismo motivo que las demás: es el gesto propio de
+ * este producto —dejar un hallazgo sobre una pieza del modelo— y hace falta que se distinga del
+ * icono de documento del registro, que es otra cosa.
+ */
+export function IconNota(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M5 4.5h9.5L19 9v10.5H5z" />
+      <path d="M14.5 4.5V9H19" />
+      <path d="M8 12.5h7M8 15.5h5" />
+    </Svg>
+  );
+}
+
 /** Encuadrar la selección: una diana sobre un elemento. */
 export function IconFrameSelection(props: IconProps) {
   return (

@@ -122,7 +122,7 @@ export function Selector({
     <div className="min-h-0 overflow-y-auto p-2 text-xs">
       {estado.proyectos.map((obra) => (
         <section key={obra.id} className="mb-3">
-          <p className="px-1 pb-1 text-[10px] font-semibold tracking-wide text-white/45 uppercase">
+          <p className="px-1 pb-1 text-micro font-semibold tracking-wide text-white/45 uppercase">
             {obra.codigo}
             <span className="ml-1.5 font-normal normal-case">{obra.nombre}</span>
           </p>
@@ -154,7 +154,7 @@ export function Selector({
 
       {/* **El recorte se dice.** Callado, alguien concluye que su modelo no está subido. */}
       {estado.recortados > 0 && (
-        <p className="px-1 pt-1 text-[11px] leading-snug text-white/35">
+        <p className="px-1 pt-1 text-nota leading-snug text-white/35">
           {estado.recortados} revisiones más no caben en esta lista.{" "}
           <a href="/proyectos/" className="underline">
             Ábrelas desde su obra
