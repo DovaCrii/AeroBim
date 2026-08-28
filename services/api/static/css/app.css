@@ -8,11 +8,16 @@
  * los contrastes anotados al lado.
  */
 :root {
-  --ab-navy: #1b2a4a; /* marca */
-  --ab-violet: #9b5de5; /* marca — decorativo, 2,9:1 sobre blanco: no para texto */
+  /* **Los mismos tres tokens del visor**, no un violeta parecido. Están en
+     `apps/web/src/index.css` como `--color-brand`, `--color-ink` y `--color-shell`, y son lo que
+     hace que las dos mitades se lean como un producto: el portal y el visor comparten marca. */
+  --ab-navy: #1b2a4a; /* = --color-ink */
+  --ab-violet: #9b5de5; /* = --color-brand — decorativo, 2,9:1 sobre blanco: no para texto */
+  --ab-shell: #161f2d; /* = --color-shell, el fondo del visor */
 
   --ab-bg: #f4f7fb;
   --ab-surface: #ffffff;
+  --ab-surface-alt: #f8fafc; /* filas alternas y cabeceras: separa sin dibujar una línea más */
   --ab-border: #dbe3ee;
 
   --ab-text: #172238; /* 14,2:1 sobre --ab-surface */
@@ -31,9 +36,16 @@
   --ab-sidebar-width: 248px;
 }
 
+/*
+ * **Estos tokens eran código muerto hasta hoy.** Estaban escritos y ninguna plantilla ponía nunca
+ * `data-theme`, así que el tema oscuro no se podía alcanzar de ninguna forma — parecía funcionar y
+ * no existía. Ahora `base.html` lo pone desde `localStorage` antes de pintar, y el interruptor de
+ * la barra lo cambia.
+ */
 [data-theme="dark"] {
   --ab-bg: #131a26;
   --ab-surface: #1b2432;
+  --ab-surface-alt: #202b3b;
   --ab-border: #2b3648;
   --ab-text: #eef1f6;
   --ab-text-secondary: #b6c0d1;
@@ -41,6 +53,9 @@
   --ab-primary: #c3a6f0; /* sobre superficie oscura, 7,1:1 */
   --ab-primary-hover: #d5c2f6;
   --ab-primary-soft: #2a2140;
+  --ab-danger: #f08a97; /* el #c53b4d no llega a 4,5:1 sobre superficie oscura */
+  --ab-ok: #5fd3ae;
+  --ab-shadow: 0 10px 30px rgb(0 0 0 / 35%);
 }
 
 * {
@@ -103,7 +118,10 @@ a:hover {
 }
 
 main {
-  max-width: 1100px;
+  /* **Sube de 1100 a 1400 px.** Con 1100 en un monitor de 1900 quedaba media pantalla muerta, y
+     una línea de tiempo de un año necesita ancho para que las barras no se encimen. Sigue con
+     tope: una tabla de texto a 1900 px de ancho obliga a mover la cabeza para seguir una fila. */
+  max-width: 1400px;
   margin: 0 auto;
   padding: 24px 20px 60px;
 }
@@ -212,4 +230,334 @@ tbody tr:last-child td {
   background: var(--ab-surface);
   border: 1px dashed var(--ab-border);
   border-radius: var(--ab-radius);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════════
+ * El tablero del proyecto.
+ *
+ * **Sin una sola librería de gráficos**, y por eso todo esto es CSS: la rejilla del mes la genera
+ * el módulo `calendar` de Python, y las barras se posicionan con porcentajes que calcula
+ * `apps/projects/tablero.py`. Nada que vendorizar, ninguna licencia que revisar, y **imprime**.
+ * ═══════════════════════════════════════════════════════════════════════════════════ */
+
+/* --- Tarjetas de dato: lo que se mira en tres segundos ---------------------------- */
+
+.datos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.dato {
+  padding: 14px 16px;
+  background: var(--ab-surface);
+  border: 1px solid var(--ab-border);
+  border-left: 3px solid var(--ab-primary);
+  border-radius: var(--ab-radius);
+}
+
+/* El acento de la izquierda dice de qué habla el número sin gastar una palabra. */
+.dato.alerta {
+  border-left-color: var(--ab-danger);
+}
+
+.dato.bien {
+  border-left-color: var(--ab-ok);
+}
+
+.dato .cifra {
+  font-size: 1.7rem;
+  font-weight: 700;
+  line-height: 1.1;
+  /* Tabulares: en una fila de cuatro cifras, las proporcionales las descuadran. */
+  font-variant-numeric: tabular-nums;
+}
+
+.dato .rotulo {
+  color: var(--ab-text-muted);
+  font-size: 0.82rem;
+  margin-top: 2px;
+}
+
+/* --- La línea de tiempo ----------------------------------------------------------- */
+
+.linea-tiempo {
+  background: var(--ab-surface);
+  border: 1px solid var(--ab-border);
+  border-radius: var(--ab-radius);
+  padding: 8px 0 14px;
+  overflow-x: auto;
+}
+
+/* La escala de meses, arriba. Va pegada a la pista para que una barra se pueda leer contra ella. */
+.linea-tiempo .escala {
+  position: relative;
+  height: 22px;
+  margin: 0 14px 6px;
+  border-bottom: 1px solid var(--ab-border);
+}
+
+.linea-tiempo .escala span {
+  position: absolute;
+  transform: translateX(-50%);
+  font-size: 0.7rem;
+  color: var(--ab-text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.linea-tiempo .fila {
+  display: grid;
+  grid-template-columns: 190px 1fr;
+  align-items: center;
+  gap: 10px;
+  padding: 3px 14px;
+}
+
+.linea-tiempo .fila:hover {
+  background: var(--ab-surface-alt);
+}
+
+.linea-tiempo .nombre {
+  font-size: 0.8rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.linea-tiempo .pista {
+  position: relative;
+  height: 20px;
+  background: var(--ab-surface-alt);
+  border-radius: 4px;
+}
+
+.linea-tiempo .barra {
+  position: absolute;
+  top: 3px;
+  height: 14px;
+  min-width: 8px;
+  border-radius: 3px;
+  /* El color lo pone la plantilla desde `Disciplina.color`: es el estreno de ese campo. */
+  background: var(--ab-primary);
+}
+
+/* Lo cumplido, encima y más oscuro: la barra dice cuándo y el relleno dice cuánto. */
+.linea-tiempo .barra .cumplido {
+  position: absolute;
+  inset: 0;
+  width: 0;
+  border-radius: 3px;
+  background: rgb(0 0 0 / 35%);
+}
+
+/* Atrasado: contorno rojo en vez de relleno rojo, para no perder el color de la disciplina. */
+.linea-tiempo .barra.atrasada {
+  outline: 2px solid var(--ab-danger);
+  outline-offset: 1px;
+}
+
+/* Hoy, una línea vertical. Es la referencia que convierte «está a la mitad» en «va tarde». */
+.linea-tiempo .hoy {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--ab-danger);
+  opacity: 0.55;
+}
+
+/* --- El calendario del mes -------------------------------------------------------- */
+
+.calendario {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.calendario td {
+  height: 78px;
+  vertical-align: top;
+  border-right: 1px solid var(--ab-border);
+  font-size: 0.8rem;
+}
+
+.calendario td:last-child {
+  border-right: 0;
+}
+
+/* Los huecos del borde no son días: se apagan para que nadie lea un «0 de agosto». */
+.calendario td.fuera {
+  background: var(--ab-surface-alt);
+}
+
+.calendario td.hoy {
+  box-shadow: inset 0 0 0 2px var(--ab-primary);
+}
+
+.calendario .numero {
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  color: var(--ab-text-muted);
+}
+
+.calendario .marca {
+  display: block;
+  margin-top: 3px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--ab-primary-soft);
+  color: var(--ab-text);
+  font-size: 0.72rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-decoration: none;
+}
+
+.calendario .marca.vencida {
+  background: color-mix(in srgb, var(--ab-danger) 18%, transparent);
+}
+
+/* --- Avance por disciplina -------------------------------------------------------- */
+
+.barras {
+  background: var(--ab-surface);
+  border: 1px solid var(--ab-border);
+  border-radius: var(--ab-radius);
+  padding: 14px 16px;
+}
+
+.barras .fila {
+  display: grid;
+  grid-template-columns: 150px 1fr 58px;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0;
+  font-size: 0.85rem;
+}
+
+.barras .pista {
+  height: 12px;
+  background: var(--ab-surface-alt);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.barras .relleno {
+  height: 100%;
+  border-radius: 6px;
+}
+
+.barras .cifra {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--ab-text-secondary);
+}
+
+/* La pastilla de color de una disciplina, donde haga falta nombrarla. */
+.pastilla {
+  display: inline-block;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 3px;
+  vertical-align: -1px;
+  margin-right: 5px;
+}
+
+/* --- Tablas con jerarquía --------------------------------------------------------- */
+
+/* **La cabecera deja de ser lavanda.** Un fondo de color en la cabecera compite con el dato, que
+   es lo que hay que leer; el peso de la letra y una línea ya la separan. */
+thead th {
+  background: var(--ab-surface-alt);
+  color: var(--ab-text-secondary);
+  font-size: 0.78rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  border-bottom: 2px solid var(--ab-border);
+}
+
+tbody tr:hover {
+  background: var(--ab-surface-alt);
+}
+
+/* Los números se leen en columna, y las proporcionales descuadran una columna de cifras. */
+td.num,
+th.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Estados, con forma además de color ------------------------------------------ */
+
+/* **Nunca solo color.** Uno de cada doce hombres no distingue rojo de verde: la píldora lleva
+   texto siempre, y el color es refuerzo. */
+.pildora {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  border: 1px solid currentcolor;
+}
+
+.pildora.alta {
+  color: var(--ab-danger);
+}
+
+.pildora.media {
+  color: var(--ab-text-secondary);
+}
+
+.pildora.baja {
+  color: var(--ab-text-muted);
+}
+
+.pildora.ok {
+  color: var(--ab-ok);
+}
+
+/* --- El interruptor de tema en la barra ------------------------------------------- */
+
+.barra button.tema {
+  background: rgb(255 255 255 / 12%);
+  color: #fff;
+  border: 0;
+  border-radius: 8px;
+  padding: 4px 10px;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.barra button.tema:hover {
+  background: rgb(255 255 255 / 22%);
+}
+
+/* --- Al imprimir ------------------------------------------------------------------ */
+
+/*
+ * Una oficina técnica imprime el listado y lo lleva a la reunión. Sin esto, la barra de
+ * navegación gasta la primera pulgada de la hoja y los fondos se van en tinta.
+ */
+@media print {
+  .barra,
+  .paginacion,
+  .salto {
+    display: none;
+  }
+
+  main {
+    max-width: none;
+    padding: 0;
+  }
+
+  .dato,
+  .tarjeta,
+  .linea-tiempo,
+  .barras,
+  table {
+    box-shadow: none;
+  }
 }

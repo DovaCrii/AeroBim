@@ -6,12 +6,39 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{% block titulo %}AeroBim{% endblock %}</title>
     <link rel="stylesheet" href="{% static 'css/app.css' %}" />
+    {% comment %}
+      **El tema se aplica antes de pintar, y por eso está acá y no al final.** Puesto después del
+      contenido se ve un destello blanco en cada carga antes de que el oscuro entre: es el fallo
+      clásico y se nota en cada clic.
+
+      Va en `localStorage` y no en una cookie ni en el perfil: es una preferencia **de este
+      equipo** —la pantalla del taller y el portátil de casa no se miran igual— y guardarla en el
+      servidor la impondría en los dos.
+
+      Y en `try/catch` porque un navegador con el almacenamiento bloqueado lanza al *leer*, no al
+      escribir: sin la guarda, la página entera se queda sin pintar por una preferencia.
+    {% endcomment %}
+    <script src="{% static 'js/tema.js' %}"></script>
   </head>
   <body>
     <a class="salto" href="#contenido">{% translate "Skip to content" %}</a>
     <header class="barra">
       <a class="marca" href="/">AeroBim</a>
       <span class="separador"></span>
+      {% comment %}
+        El interruptor de tema. **Los tokens oscuros existían en `app.css` desde el primer día y
+        eran inalcanzables**: nada ponía nunca `data-theme`, así que había un tema oscuro escrito
+        que no se podía ver. El texto del botón y su nombre accesible los pone `tema.js`, porque
+        dependen del estado y el servidor no lo sabe.
+      {% endcomment %}
+      <button
+        type="button"
+        class="tema"
+        data-a-oscuro="{% translate 'Switch to the dark theme' %}"
+        data-a-claro="{% translate 'Switch to the light theme' %}"
+      >
+        ☾
+      </button>
       {% if user.is_authenticated %}
         <span>{{ user.get_username }}</span>
         <a href="{% url 'password_change' %}">{% translate "Change password" %}</a>

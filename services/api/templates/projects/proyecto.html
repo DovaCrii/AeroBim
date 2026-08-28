@@ -19,7 +19,127 @@
     **Esta pantalla contesta «¿dónde sigo?», no «qué hay».** El orden de los bloques es la
     respuesta: primero lo que exige una decisión hoy, después el trabajo de coordinación, y al
     final lo que se consulta. Un listado alfabético de doscientos entregables no dice nada.
+
+    Y el tablero va arriba porque es lo que se mira en tres segundos antes de decidir dónde entrar.
+    **Ninguno de estos gráficos usa una librería**: la rejilla del mes la genera el módulo
+    `calendar` de Python y las barras se posicionan con porcentajes que calcula `tablero.py`.
   {% endcomment %}
+
+  {# --- Lo que se mira en tres segundos --------------------------------------------- #}
+  <div class="datos">
+    <div class="dato">
+      <div class="cifra">{{ dato_avance }}%</div>
+      <div class="rotulo">{% translate "Physical progress" %}</div>
+    </div>
+    <div class="dato {% if dato_altas %}alerta{% endif %}">
+      <div class="cifra">{{ dato_abiertas }}</div>
+      <div class="rotulo">
+        {% blocktranslate with altas=dato_altas %}Open observations · {{ altas }} high{% endblocktranslate %}
+      </div>
+    </div>
+    <div class="dato {% if dato_vencidas %}alerta{% else %}bien{% endif %}">
+      <div class="cifra">{{ dato_vencidas }}</div>
+      <div class="rotulo">{% translate "Past their due date" %}</div>
+    </div>
+    <div class="dato {% if dato_sin_revision %}alerta{% else %}bien{% endif %}">
+      <div class="cifra">{{ dato_sin_revision }}</div>
+      <div class="rotulo">{% translate "Deliverables with nothing issued" %}</div>
+    </div>
+  </div>
+
+  {# --- La línea de tiempo ---------------------------------------------------------- #}
+  <p class="grupo">{% translate "Timeline" %}</p>
+  {% if ventana %}
+    <div class="linea-tiempo">
+      <div class="escala">
+        {% for etiqueta, posicion in ventana.marcas %}
+          <span style="left: {{ posicion }}%">{{ etiqueta }}</span>
+        {% endfor %}
+      </div>
+      {% for tramo in tramos %}
+        <div class="fila">
+          <div class="nombre" title="{{ tramo.detalle }}">
+            <span class="pastilla" style="background: {{ tramo.color }}"></span>
+            {% if tramo.url %}<a href="{{ tramo.url }}">{{ tramo.etiqueta }}</a>
+            {% else %}{{ tramo.etiqueta }}{% endif %}
+          </div>
+          <div class="pista">
+            {% comment %}
+              La barra dice **cuándo** —dónde está—, el relleno dice **cuánto lleva**, y el
+              contorno rojo dice **si va tarde**. El contorno y no el relleno: así no se pierde el
+              color de la disciplina, que es el otro dato que la barra lleva.
+            {% endcomment %}
+            <div
+              class="barra {% if tramo.atrasado %}atrasada{% endif %}"
+              style="left: {{ tramo.izquierda_pct }}%; width: {{ tramo.ancho_pct }}%"
+              title="{{ tramo.etiqueta }} · {{ tramo.avance_pct }}%"
+            >
+              <div class="cumplido" style="width: {{ tramo.avance_pct }}%"></div>
+            </div>
+            {% if hoy_pct is not None and forloop.first %}
+              <div class="hoy" style="left: {{ hoy_pct }}%" title="{% translate 'Today' %}"></div>
+            {% endif %}
+          </div>
+        </div>
+      {% empty %}
+        <div class="vacio" style="margin: 0 14px">
+          {% blocktranslate %}No deliverable has a planned date, so there is nothing to place on the
+          timeline.{% endblocktranslate %}
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="vacio">
+      {% blocktranslate %}The project has no dates and neither do its deliverables: there is no
+      interval to draw. Give the project a start and an end.{% endblocktranslate %}
+    </div>
+  {% endif %}
+
+  {# --- El calendario del mes ------------------------------------------------------- #}
+  <p class="grupo">{{ calendario_titulo|date:"F Y" }}</p>
+  <table class="calendario">
+    <thead>
+      <tr>
+        {% for dia in dias_semana %}<th scope="col">{{ dia }}</th>{% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for semana in calendario %}
+        <tr>
+          {% for dia in semana %}
+            <td class="{% if not dia.delMes %}fuera{% endif %} {% if dia.esHoy %}hoy{% endif %}">
+              {% if dia.delMes %}
+                <span class="numero">{{ dia.dia }}</span>
+                {% for cosa in dia.vencidos %}
+                  <span class="marca" title="{{ cosa }}">{{ cosa }}</span>
+                {% endfor %}
+              {% endif %}
+            </td>
+          {% endfor %}
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {# --- Avance por disciplina ------------------------------------------------------- #}
+  {% if barras_disciplina %}
+    <p class="grupo">{% translate "Progress by discipline" %}</p>
+    <div class="barras">
+      {% for barra in barras_disciplina %}
+        <div class="fila">
+          <div>
+            <span class="pastilla" style="background: {{ barra.color }}"></span>
+            {% if barra.codigo %}{{ barra.codigo }} · {{ barra.nombre }}
+            {% else %}<em>{% translate "No discipline" %}</em>{% endif %}
+          </div>
+          <div class="pista">
+            <div class="relleno" style="width: {{ barra.avance_pct }}%; background: {{ barra.color }}"></div>
+          </div>
+          <div class="cifra">{{ barra.avance_pct }}%</div>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
 
   {# --- Lo que falta, nombrado ------------------------------------------------------ #}
   {% if sin_revision %}
@@ -64,8 +184,7 @@
           <td>
             <a href="{% url 'documents:observacion' observacion.pk %}">{{ observacion.titulo }}</a>
           </td>
-          {# Sobre qué está puesta: el modelo, un documento o el proyecto en general. Es lo que
-             dice desde dónde se resuelve — una anclada al GUID de una viga, en el visor. #}
+          {# Sobre qué está puesta: dice desde dónde se resuelve. #}
           <td style="width: 110px">{{ observacion.ancla }}</td>
           <td>{{ observacion.responsable }}</td>
           <td style="width: 110px">{{ observacion.vence|date:"Y-m-d"|default:"—" }}</td>

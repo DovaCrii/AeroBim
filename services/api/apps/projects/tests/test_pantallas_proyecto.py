@@ -405,3 +405,133 @@ def test_el_portal_ofrece_los_proyectos_solo_a_quien_puede_leerlos(client, proye
 
     client.force_login(dar(proyectista, "projects.view_proyecto"))
     assert reverse("projects:proyectos") in client.get(reverse("portal")).content.decode()
+
+
+# --- El tablero grafico -------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_el_tablero_dibuja_la_linea_de_tiempo_con_su_escala(
+    client, proyectista, proyecto, entregable
+):
+    """La barra tiene que estar **y la escala tambien**: una barra al 40% sin meses al lado no dice
+    ninguna fecha."""
+    from datetime import date
+
+    proyecto.inicio = date(2026, 1, 1)
+    proyecto.termino = date(2026, 12, 31)
+    proyecto.save(update_fields=["inicio", "termino"])
+    entregable.fecha_planificada = date(2026, 6, 1)
+    entregable.save(update_fields=["fecha_planificada"])
+
+    client.force_login(dar(proyectista, "projects.view_proyecto"))
+    cuerpo = client.get(reverse("projects:proyecto", args=[proyecto.pk])).content.decode()
+
+    assert 'class="linea-tiempo"' in cuerpo
+    assert "06/26" in cuerpo  # una marca de mes de la escala
+    assert 'class="barra ' in cuerpo
+
+
+@pytest.mark.django_db
+def test_sin_ninguna_fecha_la_pantalla_lo_dice_en_vez_de_dibujar_un_marco_vacio(
+    client, proyectista, proyecto
+):
+    """Un grafico que no se puede dibujar no es un grafico vacio. Decirlo es lo que permite
+    arreglarlo: falta darle fechas al proyecto."""
+    client.force_login(dar(proyectista, "projects.view_proyecto"))
+
+    cuerpo = client.get(reverse("projects:proyecto", args=[proyecto.pk])).content.decode()
+
+    assert 'class="linea-tiempo"' not in cuerpo
+    assert 'class="vacio"' in cuerpo
+
+
+@pytest.mark.django_db
+def test_el_calendario_marca_lo_que_vence_ese_mes(
+    client, proyectista, proyecto, organizacion, revisor
+):
+    """Observaciones y actividades **en el mismo calendario**: para quien mira son lo mismo, algo
+    con fecha y responsable."""
+    from datetime import date
+
+    from apps.documents.models import Actividad
+
+    vence = date(2026, 9, 15)
+    Observacion.objects.create(
+        organizacion=organizacion,
+        proyecto=proyecto,
+        titulo="Cerrar el eje C",
+        autor=revisor,
+        responsable=proyectista,
+        prioridad=Observacion.ALTA,
+        vence=vence,
+    )
+    Actividad.objects.create(
+        organizacion=organizacion,
+        proyecto=proyecto,
+        titulo="Levantar el as-built",
+        responsable=proyectista,
+        creada_por=revisor,
+        vence=vence,
+    )
+
+    client.force_login(dar(proyectista, "projects.view_proyecto"))
+    cuerpo = client.get(
+        reverse("projects:proyecto", args=[proyecto.pk]), {"mes": "2026-09"}
+    ).content.decode()
+
+    assert "Cerrar el eje C" in cuerpo
+    assert "Levantar el as-built" in cuerpo
+
+
+@pytest.mark.django_db
+def test_un_mes_con_mala_forma_cae_al_de_hoy_y_no_revienta(client, proyectista, proyecto):
+    """Quien mira la pantalla no escribio ese parametro. Un error sobre el seria un error sobre
+    algo que no hizo."""
+    client.force_login(dar(proyectista, "projects.view_proyecto"))
+    ruta = reverse("projects:proyecto", args=[proyecto.pk])
+
+    for malo in ("2026-13", "hola", "2026", "0-0", "9999-99", ""):
+        assert client.get(ruta, {"mes": malo}).status_code == 200, malo
+
+
+@pytest.mark.django_db
+def test_las_tarjetas_cuentan_lo_vencido_y_lo_que_no_tiene_nada_emitido(
+    client, proyectista, proyecto, entregable, organizacion, revisor
+):
+    """Son las dos cifras que hacen entrar a alguien a la pantalla."""
+    from datetime import date, timedelta
+
+    Observacion.objects.create(
+        organizacion=organizacion,
+        proyecto=proyecto,
+        titulo="Vencida de verdad",
+        autor=revisor,
+        responsable=proyectista,
+        prioridad=Observacion.ALTA,
+        vence=date.today() - timedelta(days=3),
+    )
+
+    client.force_login(dar(proyectista, "projects.view_proyecto"))
+    respuesta = client.get(reverse("projects:proyecto", args=[proyecto.pk]))
+
+    assert respuesta.context["dato_vencidas"] == 1
+    assert respuesta.context["dato_altas"] == 1
+    # El entregable del fixture no tiene revision: cuenta como "nada emitido".
+    assert respuesta.context["dato_sin_revision"] == 1
+
+
+@pytest.mark.django_db
+def test_el_avance_por_disciplina_usa_el_color_guardado(
+    client, proyectista, proyecto, entregable, disciplina
+):
+    """**Es el estreno de `Disciplina.color`**: existe desde `F8.1` y hasta hoy solo se imprimia su
+    hexadecimal en una tabla."""
+    disciplina.color = "#c0392b"
+    disciplina.save(update_fields=["color"])
+
+    client.force_login(dar(proyectista, "projects.view_proyecto"))
+    cuerpo = client.get(reverse("projects:proyecto", args=[proyecto.pk])).content.decode()
+
+    assert 'class="barras"' in cuerpo
+    assert "#c0392b" in cuerpo

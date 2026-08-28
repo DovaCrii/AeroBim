@@ -11,9 +11,13 @@ clic. Es la misma idea del expediente de un entregable (`dossier.py` de AeroCont
 nivel: la del proyecto entero.
 """
 
+from datetime import date
+
 from django.contrib import messages
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from django.utils import timezone
 from django.utils.translation import gettext as _
 from django.views.generic import DetailView, ListView, View
 
@@ -27,7 +31,8 @@ from apps.core.views import (
     OrganizacionScopedQuerysetMixin,
 )
 from apps.documents.abribles import RUTA_POR_VISOR, visor_de
-from apps.documents.models import IDONEIDADES_PUBLICADAS, Observacion, Revision
+from apps.documents.models import IDONEIDADES_PUBLICADAS, Actividad, Observacion, Revision
+from apps.projects import tablero
 from apps.projects.forms import DisciplinaForm, ProyectoForm
 from apps.projects.models import Disciplina, Proyecto
 
@@ -145,12 +150,108 @@ class ProyectoView(ModelViewPermissionRequiredMixin, OrganizacionScopedQuerysetM
         contexto["requisitos_ids"] = proyecto.requisitos_ids.filter(is_active=True)
         contexto["disciplinas"] = proyecto.disciplinas.filter(is_active=True)
 
+        self._tablero(contexto, proyecto, list(entregables), abiertas)
+
         contexto["puede_crear_disciplina"] = usuario.has_perm("projects.add_disciplina")
         contexto["puede_crear_entregable"] = usuario.has_perm("documents.add_entregable")
         contexto["puede_exportar_bcf"] = (
             usuario.has_perm("documents.view_observacion") and abiertas.exists()
         )
         return contexto
+
+    def _tablero(self, contexto, proyecto, entregables, abiertas) -> None:
+        """Las cuatro piezas gráficas. El cálculo vive en `tablero.py`, y por eso se puede probar.
+
+        **Un mes se puede pedir por la URL** —`?mes=2026-09`— y se valida: un valor con mala forma
+        cae al mes de hoy en silencio, porque quien mira la pantalla no escribió ese parámetro.
+        """
+        hoy = timezone.localdate()
+
+        # Tarjetas: lo que se mira en tres segundos antes de decidir dónde entrar.
+        vencidas = [o for o in abiertas if o.vence is not None and o.vence < hoy]
+        contexto["dato_avance"] = round(proyecto.avance_fisico * 100)
+        contexto["dato_abiertas"] = len(abiertas)
+        contexto["dato_vencidas"] = len(vencidas)
+        contexto["dato_sin_revision"] = len(contexto["sin_revision"])
+        contexto["dato_altas"] = len([o for o in abiertas if o.prioridad == Observacion.ALTA])
+
+        # Línea de tiempo.
+        ventana = tablero.ventana_de(
+            proyecto.inicio, proyecto.termino, [e.fecha_planificada for e in entregables]
+        )
+        contexto["ventana"] = ventana
+        if ventana is not None:
+            contexto["tramos"] = tablero.tramos_de(
+                entregables,
+                ventana,
+                hoy,
+                url_de=lambda e: reverse("documents:expediente", args=[e.pk]),
+            )
+            # Dónde va la línea de «hoy». Fuera de la ventana no se dibuja en vez de pegarse a un
+            # borde, donde afirmaría que hoy es el final del proyecto.
+            contexto["hoy_pct"] = (
+                round(ventana.porcentaje(hoy), 2) if ventana.inicio <= hoy <= ventana.fin else None
+            )
+
+        # Calendario: el mes pedido, o el de hoy.
+        año, mes = self._mes_pedido(hoy)
+        contexto["calendario_año"], contexto["calendario_mes"] = año, mes
+        contexto["calendario_titulo"] = date(año, mes, 1)
+        contexto["calendario"] = tablero.mes_de(
+            año, mes, self._vencimientos(proyecto, año, mes), hoy
+        )
+        contexto["dias_semana"] = [
+            _("Mon"),
+            _("Tue"),
+            _("Wed"),
+            _("Thu"),
+            _("Fri"),
+            _("Sat"),
+            _("Sun"),
+        ]
+
+        contexto["barras_disciplina"] = tablero.avance_por_disciplina(entregables)
+
+    def _mes_pedido(self, hoy):
+        """`?mes=2026-09`, validado. Con mala forma se cae al mes de hoy, sin decir nada."""
+        crudo = (self.request.GET.get("mes") or "").strip()
+        try:
+            año, mes = crudo.split("-")
+            año, mes = int(año), int(mes)
+            # El rango de `date` es 1..9999, y un mes fuera de 1..12 revienta `monthdayscalendar`.
+            if 1 <= mes <= 12 and 1900 <= año <= 2200:
+                return año, mes
+        except (ValueError, AttributeError):
+            pass
+        return hoy.year, hoy.month
+
+    def _vencimientos(self, proyecto, año, mes):
+        """`{día: (texto, ...)}` de lo que vence ese mes: observaciones y actividades.
+
+        **Las dos juntas y no en dos calendarios**, porque para quien mira son lo mismo: algo que
+        tiene fecha y responsable. Que una nazca de un hallazgo y la otra de la planificación
+        importa al abrirla, no al ver qué semana viene cargada.
+        """
+        por_dia: dict[int, list] = {}
+
+        observaciones = (
+            Observacion.objects.filter(proyecto=proyecto, vence__year=año, vence__month=mes)
+            .exclude(estado__in=(Observacion.CERRADA, Observacion.DESCARTADA))
+            .select_related("responsable")
+        )
+        for observacion in observaciones:
+            por_dia.setdefault(observacion.vence.day, []).append(observacion.titulo)
+
+        # **`Actividad` cuelga del proyecto directamente** —no por su entregable, que es opcional—
+        # y su campo de estado se llama `status`, no `estado`: lo trae `StatusFlowMixin`. Los dos
+        # detalles se comprobaron contra el modelo, no supuestos.
+        actividades = Actividad.objects.filter(
+            proyecto=proyecto, vence__year=año, vence__month=mes
+        ).exclude(status__in=(Actividad.HECHA, Actividad.ANULADA))
+        for actividad in actividades:
+            por_dia.setdefault(actividad.vence.day, []).append(actividad.titulo)
+
+        return por_dia
 
     def _revisiones_publicadas(self, proyecto, usuario):
         """Las revisiones vigentes del proyecto que este usuario puede leer.

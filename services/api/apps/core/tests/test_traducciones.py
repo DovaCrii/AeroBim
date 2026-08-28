@@ -1,15 +1,16 @@
-"""El catálogo tiene que decir la verdad, y hay tres formas de que no la diga.
+"""El catálogo tiene que decir la verdad, y hay cuatro formas de que no la diga.
 
 Portado en su idea de `AeroControl/apps/core/test_translations.py`, que existe porque un
 catálogo se rompe **en silencio**: la aplicación sigue funcionando y solo muestra inglés donde
 debería mostrar español, y eso nadie lo nota hasta que un usuario lo dice.
 
-Las tres:
+Las cuatro:
 
 1. **El `fuzzy` de la cabecera.** `makemessages` lo pone al crear el archivo, y con él gettext
    **ignora el catálogo entero**: se traducen las 277 cadenas y no se ve ni una.
 2. **Una cadena sin traducir**, o traducida con el original.
-3. **El `.mo` separado del `.po`.** El binario es lo que lee Django; si alguien edita el `.po`
+3. **El `fuzzy` de una entrada suelta**, que es el que faltaba y costó una pantalla. Ver abajo.
+4. **El `.mo` separado del `.po`.** El binario es lo que lee Django; si alguien edita el `.po`
    y no compila, la pantalla sigue mostrando lo viejo sin que nada falle.
 """
 
@@ -59,6 +60,36 @@ def test_no_queda_ninguna_cadena_sin_traducir():
     vacias = [msgid for _b, msgid, msgstr in bloques() if not msgstr.strip()]
 
     assert vacias == [], f"Sin traducir: {vacias[:8]}"
+
+
+def test_ninguna_entrada_esta_marcada_fuzzy():
+    """**Es el hueco que costó una pantalla, y el peor de todos porque parece traducido.**
+
+    `makemessages` marca `#, fuzzy` cuando *adivina* la traducción de una cadena parecida, y
+    gettext **ignora esas entradas**: la pantalla sale en inglés teniendo el español escrito al
+    lado. Ninguna de las otras pruebas lo veía —el `msgstr` no está vacío ni repite el original— y
+    un `git diff` tampoco, porque la línea que lo delata es un comentario.
+
+    Y adivina mal, que es lo que lo hace peligroso: `"Open observations"` heredó
+    *«Abrir una observación»*, que es otra cosa; `"New discipline"` heredó *«disciplina»*. Si el
+    `fuzzy` se quitara sin leer, la pantalla mostraría un español equivocado en vez de inglés — y
+    eso ya no se nota.
+
+    Se encontraron **quince**, seis de ellas anteriores: `information requirement`,
+    `IDS validation`, `issued by` y `acknowledged` llevaban desde su día mostrándose en inglés.
+    """
+    texto = PO.read_text(encoding="utf-8")
+    marcadas = []
+    for bloque in texto.split("\n\n"):
+        if not re.search(r"(?m)^#, .*\bfuzzy\b", bloque):
+            continue
+        ids = re.search(r'(?ms)^msgid ((?:"[^"]*"\n?)+)', bloque)
+        marcadas.append("".join(re.findall(r'"([^"]*)"', ids.group(1))) if ids else bloque[:40])
+
+    assert marcadas == [], (
+        "Entradas fuzzy: gettext las ignora y la pantalla sale en inglés. Revisa la traducción "
+        f"que adivinó `makemessages` —suele estar mal— y quita la marca: {marcadas[:8]}"
+    )
 
 
 def test_ninguna_traduccion_repite_el_original():
