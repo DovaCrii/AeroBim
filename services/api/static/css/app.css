@@ -151,8 +151,24 @@ h1 {
   gap: 14px;
 }
 
+/*
+ * La tarjeta de un módulo.
+ *
+ * **Era una caja con dos líneas de texto y doce iguales seguidas**, y el usuario lo dijo así: «le
+ * falta diseño a la página principal, que tenga los símbolos y que sea menos plano». Tres cosas la
+ * sacan de plana, y ninguna es decoración:
+ *
+ * 1. **Un icono junto al título**, que deja reconocer la fila sin leerla — lo que sirve cuando ya
+ *    te sabes la pantalla y solo quieres entrar.
+ * 2. **Una franja de marca que aparece al pasar por encima**, para que se vea que es pulsable. Doce
+ *    cajas idénticas sin señal de estado no se leen como doce botones.
+ * 3. **Y se levanta un poco.** Es el único gesto de movimiento de la pantalla y basta: en una
+ *    aplicación de trabajo, la animación que se nota es la que estorba.
+ */
 .tarjeta {
   display: block;
+  position: relative;
+  overflow: hidden;
   padding: 16px 18px;
   background: var(--ab-surface);
   border: 1px solid var(--ab-border);
@@ -160,13 +176,47 @@ h1 {
   text-decoration: none;
   color: inherit;
   box-shadow: var(--ab-shadow);
+  transition:
+    transform 120ms ease,
+    border-color 120ms ease,
+    box-shadow 120ms ease;
 }
 
-.tarjeta:hover {
+/* La franja de la marca, a la izquierda. Escondida hasta que el cursor entra. */
+.tarjeta::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--ab-violet);
+  transform: scaleY(0);
+  transform-origin: top;
+  transition: transform 140ms ease;
+}
+
+/* `a.tarjeta` y no `.tarjeta`: una tarjeta sin enlace —el módulo que no se puede abrir— no debe
+   prometer nada al pasar por encima. */
+a.tarjeta:hover {
   border-color: var(--ab-primary);
+  transform: translateY(-2px);
+  box-shadow: 0 14px 34px rgb(18 34 59 / 14%);
+}
+
+a.tarjeta:hover::before {
+  transform: scaleY(1);
+}
+
+/* **Y el foco de teclado se ve.** Sin esto, quien navega con tabulador no sabe dónde está: el
+   `transform` del hover no le llega nunca. */
+a.tarjeta:focus-visible {
+  outline: 2px solid var(--ab-primary);
+  outline-offset: 2px;
 }
 
 .tarjeta .titulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-weight: 650;
   margin-bottom: 4px;
 }
@@ -174,6 +224,29 @@ h1 {
 .tarjeta .detalle {
   color: var(--ab-text-muted);
   font-size: 0.9rem;
+}
+
+/*
+ * Los iconos del portal. Ver `templates/generic/_iconos.html`.
+ *
+ * **De trazo y no de relleno**, y heredando el color: a 20 px un relleno es una mancha, y con
+ * `currentColor` el mismo símbolo sirve en violeta dentro de una tarjeta y en rojo dentro de un
+ * aviso sin duplicar el dibujo.
+ */
+.icono {
+  width: 1.15rem;
+  height: 1.15rem;
+  flex-shrink: 0;
+  fill: none;
+  stroke: var(--ab-violet);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* En la tarjeta, el icono se enciende con ella: es la misma señal de «esto se pulsa». */
+a.tarjeta:hover .icono {
+  stroke: var(--ab-primary);
 }
 
 table {

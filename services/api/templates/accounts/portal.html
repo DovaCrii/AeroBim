@@ -81,19 +81,41 @@
     {% endif %}
   {% endif %}
 
+  {% comment %}
+    Los símbolos se declaran una vez, acá, y las tarjetas los usan con `<use>`. Ver
+    `generic/_iconos.html`: ni una librería ni una petición más, y heredan el color de su tarjeta.
+  {% endcomment %}
+  {% include "generic/_iconos.html" %}
+
   {% regroup modulos by grupo as por_grupo %}
   {% for grupo in por_grupo %}
     <p class="grupo">{{ grupo.grouper }}</p>
     <div class="tarjetas">
       {% for modulo in grupo.list %}
+        {% comment %}
+          **El icono va con el título, no suelto arriba.** Un símbolo grande centrado en una
+          tarjeta la convierte en un botón de aplicación móvil; al lado del nombre hace lo que un
+          icono tiene que hacer: dejar reconocer la fila sin leerla, que es lo que sirve cuando ya
+          te sabes la pantalla y solo buscas entrar.
+        {% endcomment %}
         {% if modulo.url %}
           <a class="tarjeta" href="{{ modulo.url }}">
-            <div class="titulo">{{ modulo.titulo }}</div>
+            <div class="titulo">
+              {% if modulo.icono %}
+                <svg class="icono" aria-hidden="true"><use href="#{{ modulo.icono }}"></use></svg>
+              {% endif %}
+              {{ modulo.titulo }}
+            </div>
             <div class="detalle">{{ modulo.descripcion }}</div>
           </a>
         {% else %}
           <div class="tarjeta">
-            <div class="titulo">{{ modulo.titulo }}</div>
+            <div class="titulo">
+              {% if modulo.icono %}
+                <svg class="icono" aria-hidden="true"><use href="#{{ modulo.icono }}"></use></svg>
+              {% endif %}
+              {{ modulo.titulo }}
+            </div>
             <div class="detalle">{{ modulo.descripcion }}</div>
           </div>
         {% endif %}

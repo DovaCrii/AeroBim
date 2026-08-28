@@ -71,6 +71,24 @@ class PortalView(LoginRequiredMixin, TemplateView):
                 .order_by("codigo")[:6]
             )
 
+    #: El icono de cada entrada, por su ruta. **Va aparte de la definición a propósito**: la
+    #: matriz de módulos se lee para saber quién ve qué, y meterle una sexta columna de dibujo
+    #: haría más difícil leer lo que importa. Los símbolos viven en `generic/_iconos.html`.
+    ICONOS = {
+        "projects:proyectos": "i-proyecto",
+        "core:organizaciones": "i-organizacion",
+        "visor:visor": "i-modelo",
+        "documents:bandeja": "i-bandeja",
+        "documents:entregables": "i-entregable",
+        "documents:transmittals": "i-transmittal",
+        "documents:requisitos-ids": "i-requisito",
+        "documents:observaciones": "i-observacion",
+        "documents:actividades": "i-actividad",
+        "accounts:usuarios-roles": "i-usuarios",
+        "accounts:auditoria": "i-auditoria",
+        "accounts:trabajos": "i-trabajos",
+    }
+
     def _definicion(self):
         """(grupo, titulo, url, permiso, descripcion) de cada entrada."""
         return [
@@ -171,6 +189,8 @@ class PortalView(LoginRequiredMixin, TemplateView):
             "titulo": titulo,
             "url": reverse(ruta) if ruta else None,
             "descripcion": descripcion,
+            # Sin icono la tarjeta se dibuja igual: es un adorno con función, no un requisito.
+            "icono": self.ICONOS.get(ruta, ""),
         }
 
 

@@ -157,3 +157,35 @@ def test_una_obra_cerrada_no_ocupa_la_puerta(client, proyectista, proyecto):
     respuesta = client.get(reverse("portal"))
 
     assert list(respuesta.context["mis_proyectos"]) == []
+
+
+# --- Los iconos ---------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_cada_tarjeta_lleva_su_icono(client, proyectista):
+    """**El icono deja reconocer la fila sin leerla**, que es lo que sirve cuando ya te sabes la
+    pantalla y solo quieres entrar. Doce cajas de texto identicas no se distinguen de un vistazo.
+
+    Se comprueba por el `id` del simbolo y no por el dibujo: el trazo puede cambiar, la referencia
+    es el contrato entre la vista y el sprite.
+    """
+    client.force_login(dar(proyectista, "projects.view_proyecto"))
+
+    cuerpo = client.get(reverse("portal")).content.decode()
+
+    # El sprite se declara una vez.
+    assert 'id="i-proyecto"' in cuerpo
+    # Y la tarjeta lo usa.
+    assert 'href="#i-proyecto"' in cuerpo
+
+
+@pytest.mark.django_db
+def test_el_icono_de_un_modulo_que_no_se_ve_tampoco_se_dibuja(client, proyectista):
+    """La fila no existe sin su permiso, y su icono va dentro de la fila: si apareciera suelto,
+    diria que hay una pantalla que en realidad no se puede abrir."""
+    client.force_login(proyectista)
+
+    cuerpo = client.get(reverse("portal")).content.decode()
+
+    assert 'href="#i-auditoria"' not in cuerpo
