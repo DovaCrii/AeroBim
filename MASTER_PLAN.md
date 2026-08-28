@@ -244,24 +244,24 @@ Se decide con los números de `F0.5`, no por preferencia.
 **Objetivo de salida:** alguien de oficina técnica revisa un modelo sin abrir
 software de escritorio ni pedir una licencia.
 
-| #       | Tarea                                                                                                                                 | Estado       |
-| ------- | ------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
-| `F1.1`  | Árbol espacial navegable (proyecto → sitio → edificio → planta → elemento) con aislar y ocultar                                       | ✅ ver abajo |
-| `F1.2`  | Panel de propiedades y **psets** del elemento seleccionado                                                                            | ✅ ver abajo |
-| `F1.3`  | Planos de corte y secciones                                                                                                           | ✅ ver abajo |
-| `F1.4`  | Mediciones: distancia, área y ángulo                                                                                                  | ✅ ver abajo |
-| `F1.5`  | Cargar **varios modelos IFC a la vez** (arquitectura + estructura + instalaciones) y alternarlos                                      | ✅ ver abajo |
-| `F1.6`  | Vistas guardadas: cámara, visibilidad y cortes, recuperables por nombre                                                               | ✅ ver abajo |
-| `F1.7`  | **Modos de vista**: proyección perspectiva/ortográfica, navegación (órbita, planta, primera persona) y representación (sólido, malla) | ✅ ver abajo |
-| `F1.8`  | **Barra de herramientas y panel de modelos** — reubicar y agrupar las herramientas; ordenar, activar y desactivar lo cargado          | ✅ ver abajo |
-| `F1.9`  | **Unidades de las propiedades** — cada número con la unidad que declara el archivo                                                    | ✅ ver abajo |
-| `F1.10` | **Geometría que no se carga** — el conversor dejaba fuera `IfcProxy`: 433 elementos de 1.274                                          | ✅ ver abajo |
-| `F1.11` | **El picker caía desviado** el ancho del panel izquierdo: se seleccionaba otro elemento                                               | ✅ ver abajo |
-| `F1.12` | **Preselección al pasar el cursor** — se selecciona sin clicar y el usuario lo llama «poco práctico»                                  | ✅ ver abajo |
-| `F1.13` | **El panel de abajo no se entiende** — reubicar y agrupar las herramientas, mirando cómo lo resuelven Revit y AutoCAD                 | ❓ ver abajo |
-| `F1.14` | **La medición de distancia no funciona** en uso real, con el modelo del usuario                                                       | ✅ ver abajo |
-| `F1.15` | **El modo fantasma se cae al mover** la cámara                                                                                        | ✅ ver abajo |
-| `F1.16` | **El renderizado no da profundidad** — sin sombras creíbles, el modelo se lee peor de lo que debería                                  | ✅ ver abajo |
+| #       | Tarea                                                                                                                                 | Estado                                                                                                         |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `F1.1`  | Árbol espacial navegable (proyecto → sitio → edificio → planta → elemento) con aislar y ocultar                                       | ✅ ver abajo                                                                                                   |
+| `F1.2`  | Panel de propiedades y **psets** del elemento seleccionado                                                                            | ✅ ver abajo                                                                                                   |
+| `F1.3`  | Planos de corte y secciones                                                                                                           | ✅ ver abajo                                                                                                   |
+| `F1.4`  | Mediciones: distancia, área y ángulo                                                                                                  | ✅ ver abajo                                                                                                   |
+| `F1.5`  | Cargar **varios modelos IFC a la vez** (arquitectura + estructura + instalaciones) y alternarlos                                      | ✅ ver abajo                                                                                                   |
+| `F1.6`  | Vistas guardadas: cámara, visibilidad y cortes, recuperables por nombre                                                               | ✅ ver abajo                                                                                                   |
+| `F1.7`  | **Modos de vista**: proyección perspectiva/ortográfica, navegación (órbita, planta, primera persona) y representación (sólido, malla) | ✅ ver abajo                                                                                                   |
+| `F1.8`  | **Barra de herramientas y panel de modelos** — reubicar y agrupar las herramientas; ordenar, activar y desactivar lo cargado          | ✅ ver abajo                                                                                                   |
+| `F1.9`  | **Unidades de las propiedades** — cada número con la unidad que declara el archivo                                                    | ✅ ver abajo                                                                                                   |
+| `F1.10` | **Geometría que no se carga** — el conversor dejaba fuera `IfcProxy`: 433 elementos de 1.274                                          | ✅ ver abajo                                                                                                   |
+| `F1.11` | **El picker caía desviado** el ancho del panel izquierdo: se seleccionaba otro elemento                                               | ✅ ver abajo                                                                                                   |
+| `F1.12` | **Preselección al pasar el cursor** — se selecciona sin clicar y el usuario lo llama «poco práctico»                                  | ✅ ver abajo                                                                                                   |
+| `F1.13` | **El panel de abajo no se entiende** — reubicar y agrupar las herramientas, mirando cómo lo resuelven Revit y AutoCAD                 | ❓ auditada la cinta entera: siete desajustes cerrados y tres decisiones de nombre para el usuario — ver abajo |
+| `F1.14` | **La medición de distancia no funciona** en uso real, con el modelo del usuario                                                       | ✅ ver abajo                                                                                                   |
+| `F1.15` | **El modo fantasma se cae al mover** la cámara                                                                                        | ✅ ver abajo                                                                                                   |
+| `F1.16` | **El renderizado no da profundidad** — sin sombras creíbles, el modelo se lee peor de lo que debería                                  | ✅ ver abajo                                                                                                   |
 
 ### Lo que el usuario pidió el 2026-08-19 y no estaba en ningún tablero
 
@@ -509,6 +509,50 @@ Las dos cosas pasaron **el mismo día** que la nota (2026-08-19), así que lo m�
 ticket describa la pantalla de antes del rediseño. **Rediseñar el pie a ciegas sería inventar un
 problema**, y por eso queda en `❓`: falta que el usuario diga si lo que no se entiende sigue ahí y
 qué es exactamente.
+
+#### La auditoría de la cinta, hecha entera (2026-08-28)
+
+En vez de esperar la respuesta sin hacer nada, se auditó la cinta **botón por botón contra lo que el
+visor sabe hacer**. La pregunta no era de gusto —eso sigue siendo del usuario— sino comprobable:
+**¿lo que la cinta ofrece coincide con lo que el visor puede?** Salieron siete desajustes, y ninguno
+es de opinión: en los siete el código dice una cosa y la pantalla otra.
+
+| #   | Lo que se veía                                                                                          | Lo que era                                                                                                                                 |
+| --- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | Con un **DXF solo**, medio Vista en gris —encuadre, las cuatro vistas, proyección y navegación—         | `frameAll` cuenta los planos **a propósito**, con su comentario diciéndolo; la puerta de la cinta seguía siendo `models.length > 0`        |
+| 2   | Un área a medio contornear **no tenía salida**                                                          | `cancelMeasurement` estaba implementada y comprobada en `diag.html`, y **no la llamaba nadie**: la única salida era pulsar "Seleccionar"   |
+| 3   | **"Navegador" dos veces**: en la fila de pestañas y dentro del grupo _Visibilidad_ de la pestaña Modelo | El mismo `onTogglePanel("derecha")`, y en un grupo que habla de apagar elementos del modelo                                                |
+| 4   | **"Ver todo" con dos dibujos**: un árbol en la cinta, un ojo en la barra de estado                      | Mismo mandato. Dos iconos obligan a leer el rótulo, que es lo que un icono viene a evitar                                                  |
+| 5   | Un lector de pantalla anunciaba _"Todo, botón de alternancia, no pulsado"_                              | `aria-pressed` estaba en **todos** los botones, mandatos incluidos; y "Ver todo" y "Salir" usaban `active` para decir "hay algo que hacer" |
+| 6   | Salir del **Modo 2D** encendía modelos que estaban apagados a mano, y devolvía la cámara a perspectiva  | El interruptor no deshacía lo suyo: reponía un estado de fábrica en vez del que había antes de entrar                                      |
+| 7   | Escribiendo el nombre de una vista en modo Área, **`Enter` cerraba el contorno**                        | Los atajos escuchan en la ventana entera —que es lo que los hace funcionar sin pinchar el lienzo— y también oían a quien escribe           |
+
+Los siete están cerrados. Lo comprobado en el navegador, con `fidelidad-2d.dxf` y **sin ningún IFC
+abierto**, que es el caso que delataba el 1:
+
+- Encuadre, las cuatro vistas, proyección y navegación **habilitados**; "Planta" mueve la cámara de
+  `(50, 50, 50)` a `(0, 7.53, 0)` mirando al plano. _Aspecto_ y _Cortes_ siguen **en gris**, y es
+  correcto: pintan fragmentos y `addSection` se calcula desde la caja de los modelos.
+- Tres vértices puestos, `Esc` → **cero**, sin tocar las mediciones ya tomadas.
+- Los mismos `Esc` y `Enter` **desde dentro de un campo de texto**: tres vértices → tres.
+- Ortográfica → entrar al Modo 2D → salir → **Ortográfica**, donde antes salía Perspectiva.
+- `aria-pressed` solo en los interruptores: "Cerrar contorno", "Cancelar", "Borrar todas" y "Ver
+  todo" ya no lo llevan.
+
+**El aspecto no se pudo mirar**: el panel del agente no compone fotogramas y la captura se agota
+—la trampa ya escrita en `HANDOFF.md`—. Lo verificado acá es el comportamiento, leído del DOM y de
+la API del visor.
+
+**Y quedan tres decisiones que son del usuario**, porque son de nombre y de sitio, no de
+funcionamiento:
+
+1. El grupo **"Trabajo"** (Modo 2D + Ejes) no dice qué contiene. Los demás sí — _Encuadre_,
+   _Vistas_, _Proyección_.
+2. **Guardar una vista es un mandato y no tiene sitio en la cinta**: vive solo en el navegador de la
+   derecha. En Revit estaría en la pestaña Vista.
+3. Igual que el anterior, sin decidir: **calzar un plano**, **cortar a la altura del plano**,
+   **generar un plano** y **observar** son mandatos que hoy solo salen desde un panel o desde la
+   ficha del elemento.
 
 **Oráculo:** el mismo modelo abierto en **Bonsai/BlenderBIM** (o cualquier visor
 IFC de escritorio). El árbol, los psets y las mediciones deben coincidir — un

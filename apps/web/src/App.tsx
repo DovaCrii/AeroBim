@@ -234,6 +234,24 @@ const ETAPAS: Record<LoadStage, string> = {
  */
 const CLICK_TOLERANCE_PX = 8;
 
+/**
+ * `true` si la tecla se pulsó **escribiendo en un campo**.
+ *
+ * Los atajos del visor escuchan en la ventana entera, que es lo que hace que funcionen mirando el
+ * modelo sin haber pinchado nada antes. El precio es que también los oye quien está escribiendo el
+ * nombre de una vista o el texto de una observación, y ahí `Enter` y `Esc` son de quien escribe.
+ */
+function enUnCampo(evento: KeyboardEvent): boolean {
+  const destino = evento.target;
+  if (!(destino instanceof HTMLElement)) return false;
+  return (
+    destino instanceof HTMLInputElement ||
+    destino instanceof HTMLTextAreaElement ||
+    destino instanceof HTMLSelectElement ||
+    destino.isContentEditable
+  );
+}
+
 export function App() {
   const canvasHost = useRef<HTMLDivElement>(null);
   const viewer = useRef<BimViewer | null>(null);
@@ -328,6 +346,17 @@ export function App() {
   const [planSnap, setPlanSnap] = useState(true);
   /** `true` en modo 2D: los modelos apagados, la cámara en planta y proyección ortográfica. */
   const [modo2D, setModo2D] = useState(false);
+  /**
+   * Lo que había antes de entrar al modo 2D, para poder devolverlo al salir.
+   *
+   * Va en un `ref` y no en el estado a propósito: nada de la pantalla depende de esto mientras el
+   * modo está puesto, y solo se lee una vez, al salir.
+   */
+  const antesDel2D = useRef<{
+    readonly modelosApagados: ReadonlySet<string>;
+    readonly projection: Projection;
+    readonly navigation: NavigationMode;
+  } | null>(null);
   /** `true` con los ejes de replanteo del modelo a la vista. */
   const [gridVisible, setGridVisible] = useState(true);
   /** Los planos generados desde el modelo, en el orden en que se hicieron. */
@@ -748,7 +777,9 @@ export function App() {
   useEffect(() => {
     if (measureMode !== "area") return;
     const alPulsar = (evento: KeyboardEvent) => {
-      if (evento.key === "Enter") viewer.current?.finishMeasurement();
+      // Escribiendo el nombre de una vista, Enter envía **ese** formulario; sin esta puerta
+      // además cerraba el contorno que se estaba midiendo, sin que nadie lo pidiera.
+      if (evento.key === "Enter" && !enUnCampo(evento)) viewer.current?.finishMeasurement();
     };
     window.addEventListener("keydown", alPulsar);
     return () => window.removeEventListener("keydown", alPulsar);
@@ -804,6 +835,32 @@ export function App() {
     setDrawn(instance.listMeasurements());
     setMeasurementCount(instance.measurementCount);
   }, []);
+
+  /**
+   * Descarta la medida a medias y deja las tomadas donde estaban.
+   *
+   * **Estaba en el visor y no la llamaba nadie.** `cancelMeasurement` existe desde que las
+   * mediciones son propias y `diag.html` la comprueba —tres vértices puestos, cero después—, pero
+   * desde la pantalla la única salida de un área a medio contornear era pulsar "Seleccionar", que
+   * la descarta de rebote y encima cambia de modo.
+   */
+  const onCancelMeasurement = useCallback(() => {
+    viewer.current?.cancelMeasurement();
+    setMeasurePoints(0);
+    setMeasureMissed(false);
+  }, []);
+
+  // **`Esc` sale de una medida a medias**, que es el mismo gesto con el que ya se sale de un calce
+  // y el que espera cualquiera que venga de un CAD. No hace falta que haya puntos puestos: pulsarla
+  // sin nada empezado no rompe nada y ahorra tener que mirar si contó el primer clic.
+  useEffect(() => {
+    if (measureMode === null) return;
+    const alPulsar = (evento: KeyboardEvent) => {
+      if (evento.key === "Escape" && !enUnCampo(evento)) onCancelMeasurement();
+    };
+    window.addEventListener("keydown", alPulsar);
+    return () => window.removeEventListener("keydown", alPulsar);
+  }, [measureMode, onCancelMeasurement]);
 
   const onClearMeasurements = useCallback(() => {
     viewer.current?.clearMeasurements();
@@ -915,6 +972,12 @@ export function App() {
    * pone la cámara en planta y la proyección ortográfica, que es como se mira un plano.
    *
    * No borra nada: los modelos quedan **apagados**, y salir del modo —o "Ver todo"— los devuelve.
+   *
+   * **Salir devuelve lo que había, no un estado de fábrica**, y es la misma lección que ya se
+   * había pagado con el aislamiento: antes, salir encendía *todos* los modelos —incluido el que se
+   * había apagado a mano antes de entrar— y dejaba la cámara en perspectiva isométrica aunque se
+   * hubiera entrado desde una ortográfica. Un interruptor que no deshace lo suyo obliga a rehacer
+   * a mano lo que uno ya había decidido.
    */
   const onModo2D = useCallback(
     (activar: boolean) => {
@@ -923,6 +986,11 @@ export function App() {
 
       setModo2D(activar);
       if (activar) {
+        antesDel2D.current = {
+          modelosApagados: hiddenModels,
+          projection,
+          navigation,
+        };
         setHiddenModels(new Set(models.map((modelo) => modelo.id)));
         for (const modelo of models) void instance.setModelVisible(modelo.id, false);
         // La postproducción está para que se lea un modelo; sobre un dibujo de líneas plano filtra
@@ -937,17 +1005,26 @@ export function App() {
         return;
       }
 
-      setHiddenModels(new Set());
-      for (const modelo of models) void instance.setModelVisible(modelo.id, true);
+      const previo = antesDel2D.current;
+      const apagadosAntes = previo?.modelosApagados ?? new Set<string>();
+      setHiddenModels(apagadosAntes);
+      for (const modelo of models) {
+        void instance.setModelVisible(modelo.id, !apagadosAntes.has(modelo.id));
+      }
       instance.setPostproductionEnabled(true);
-      setProjection("Perspective");
-      void instance.setProjection("Perspective");
-      setNavigation("Orbit");
-      instance.setNavigationMode("Orbit");
+
+      const proyeccion = previo?.projection ?? "Perspective";
+      const navegacion = previo?.navigation ?? "Orbit";
+      setProjection(proyeccion);
+      void instance.setProjection(proyeccion);
+      setNavigation(navegacion);
+      instance.setNavigationMode(navegacion);
+      antesDel2D.current = null;
+
       setStandardView("iso");
       void instance.frameAll("iso");
     },
-    [models],
+    [models, hiddenModels, projection, navigation],
   );
 
   /**
@@ -1309,7 +1386,11 @@ export function App() {
         collapsed={ribbonCollapsed}
         onToggleCollapse={() => setRibbonCollapsed((actual) => !actual)}
         tab={tab}
-        enabled={models.length > 0}
+        // **Lo que habilita la cámara es que haya algo en la escena, no que haya un modelo.** Con
+        // un DXF solo, el cubo de vistas movía la cámara —`frameAll` cuenta los planos— y los
+        // botones de encuadre, vista, proyección y navegación de al lado estaban grises.
+        enabled={models.length > 0 || plans.length > 0}
+        hasModels={models.length > 0}
         projection={projection}
         navigation={navigation}
         style={style}
@@ -1336,6 +1417,7 @@ export function App() {
           viewer.current?.setPlanSnapEnabled(activo);
         }}
         measurementCount={measurementCount}
+        measureInProgress={measureMode !== null && measurePoints > 0}
         onTab={setTab}
         onToggleSelectionVisible={onToggleSelectionVisible}
         onIsolateSelection={onIsolateSelection}
@@ -1356,6 +1438,7 @@ export function App() {
         onSnapMode={onSnapMode}
         onDistanceMode={onDistanceMode}
         onFinishMeasurement={() => viewer.current?.finishMeasurement()}
+        onCancelMeasurement={onCancelMeasurement}
         onClearMeasurements={onClearMeasurements}
         onSection={onSection}
         onClearSections={onClearSections}

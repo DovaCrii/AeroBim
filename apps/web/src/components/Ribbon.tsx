@@ -25,7 +25,6 @@ import {
   IconFrameSelection,
   IconGhost,
   IconGrid,
-  IconLayers,
   IconOrbit,
   IconOrthographic,
   IconPan,
@@ -40,7 +39,6 @@ import {
   IconSnapVertex,
   IconSolid,
   IconTrash,
-  IconTree,
   IconUnisolate,
   IconViewFront,
   IconViewIso,
@@ -79,6 +77,7 @@ const TITULOS_PESTAÑA: Record<RibbonTab, string> = {
 export function Ribbon({
   tab,
   enabled,
+  hasModels,
   projection,
   navigation,
   style,
@@ -99,6 +98,7 @@ export function Ribbon({
   planSnap,
   onPlanSnap,
   measurementCount,
+  measureInProgress,
   onTab,
   onToggleSelectionVisible,
   onIsolateSelection,
@@ -113,6 +113,7 @@ export function Ribbon({
   onSnapMode,
   onDistanceMode,
   onFinishMeasurement,
+  onCancelMeasurement,
   onClearMeasurements,
   onSection,
   onClearSections,
@@ -126,8 +127,23 @@ export function Ribbon({
   actions,
 }: {
   readonly tab: RibbonTab;
-  /** `false` mientras no hay modelo: las herramientas se ven, pero no hay dónde aplicarlas. */
+  /**
+   * `false` con la escena vacía: las herramientas se ven, pero no hay dónde aplicarlas.
+   *
+   * **Es "hay algo abierto", no "hay un modelo abierto"**, y la diferencia se pagó: `frameAll`
+   * cuenta los planos 2D a propósito —lleva su comentario diciéndolo— pero esta puerta seguía
+   * mirando solo a los modelos. Con un DXF solo, el cubo de vistas giraba la cámara y los botones
+   * de al lado que hacen exactamente lo mismo estaban grises.
+   */
   readonly enabled: boolean;
+  /**
+   * `true` con al menos un modelo IFC cargado.
+   *
+   * Lo que de verdad necesita un modelo y no le basta un plano: el **aspecto** —sólido y fantasma
+   * pintan fragmentos— y los **cortes**, que `addSection` calcula desde la caja de los modelos y
+   * se va sin hacer nada si no hay ninguno.
+   */
+  readonly hasModels: boolean;
   readonly projection: Projection;
   readonly navigation: NavigationMode;
   readonly style: RenderStyle;
@@ -155,6 +171,8 @@ export function Ribbon({
   readonly planSnap: boolean;
   readonly onPlanSnap: (enabled: boolean) => void;
   readonly measurementCount: number;
+  /** `true` con una medición empezada y sin cerrar: hay algo que cancelar. */
+  readonly measureInProgress: boolean;
   readonly onTab: (tab: RibbonTab) => void;
   readonly onToggleSelectionVisible: () => void;
   readonly onIsolateSelection: () => void;
@@ -170,6 +188,8 @@ export function Ribbon({
   readonly onSnapMode: (mode: SnapMode) => void;
   readonly onDistanceMode: (mode: DistanceMode) => void;
   readonly onFinishMeasurement: () => void;
+  /** Descarta la medición a medias sin tocar las ya terminadas. */
+  readonly onCancelMeasurement: () => void;
   readonly onClearMeasurements: () => void;
   readonly onSection: (axis: SectionAxis) => void;
   readonly onClearSections: () => void;
@@ -390,21 +410,24 @@ export function Ribbon({
               />
             </Grupo>
 
+            {/* El aspecto pinta fragmentos: con un plano solo no hay a qué aplicárselo. */}
             <Grupo label="Aspecto">
               <Boton
                 icon={<IconSolid />}
                 label="Sólido"
-                hint="Con sombras y aristas"
+                hint={hasModels ? "Con sombras y aristas" : "Abre un modelo primero"}
                 active={style === "solid"}
-                disabled={!enabled}
+                disabled={!hasModels}
                 onClick={() => onStyle("solid")}
               />
               <Boton
                 icon={<IconGhost />}
                 label="Fantasma"
-                hint="Translúcido, para ver lo que hay detrás"
+                hint={
+                  hasModels ? "Translúcido, para ver lo que hay detrás" : "Abre un modelo primero"
+                }
                 active={style === "wireframe"}
-                disabled={!enabled}
+                disabled={!hasModels}
                 onClick={() => onStyle("wireframe")}
               />
             </Grupo>
@@ -446,31 +469,46 @@ export function Ribbon({
                 disabled={!enabled}
                 onClick={() => onMeasureMode("area")}
               />
+              {/* La perpendicular arranca de **una cara** y un plano 2D no tiene caras: es la
+                  única de las cuatro que necesita un modelo. */}
               <Boton
                 icon={<IconPerpendicular />}
                 label="Perpendicular"
-                hint="Primero una cara de referencia, luego el punto: da la distancia en ángulo recto"
+                hint={
+                  hasModels
+                    ? "Primero una cara de referencia, luego el punto: da la distancia en ángulo recto"
+                    : "Necesita una cara del modelo: abre un IFC primero"
+                }
                 active={measureMode === "perpendicular"}
-                disabled={!enabled}
+                disabled={!hasModels}
                 onClick={() => onMeasureMode("perpendicular")}
               />
             </Grupo>
 
             <Grupo label="Ajuste del cursor">
+              {/* Estos dos ajustan **al modelo**; el del plano es el tercero y se apaga aparte. */}
               <Boton
                 icon={<IconSnapVertex />}
                 label="A vértices"
-                hint="Se ajusta al vértice o la arista más cercana: dos personas miden lo mismo"
+                hint={
+                  hasModels
+                    ? "Se ajusta al vértice o la arista más cercana: dos personas miden lo mismo"
+                    : "Es el ajuste al modelo: abre un IFC primero"
+                }
                 active={snapMode === "vertex"}
-                disabled={!enabled}
+                disabled={!hasModels}
                 onClick={() => onSnapMode("vertex")}
               />
               <Boton
                 icon={<IconSnapFree />}
                 label="Libre"
-                hint="Punto libre sobre la cara, para medir en medio de un paño"
+                hint={
+                  hasModels
+                    ? "Punto libre sobre la cara, para medir en medio de un paño"
+                    : "Es el ajuste al modelo: abre un IFC primero"
+                }
                 active={snapMode === "face"}
-                disabled={!enabled}
+                disabled={!hasModels}
                 onClick={() => onSnapMode("face")}
               />
               {/* El ajuste del modelo y el del plano son dos cosas distintas y se apagan por
@@ -510,12 +548,29 @@ export function Ribbon({
             </Grupo>
 
             <Grupo label="Cotas">
+              {/* "Cerrar" a secas, con una ✕ al lado, se lee como cerrar algo —el panel, la
+                  aplicación—. Lo que cierra es **el contorno**, y el nombre lo dice ahora. */}
               <Boton
-                icon={<IconClose />}
-                label="Cerrar"
+                icon={<IconArea />}
+                label="Cerrar contorno"
                 hint="Cierra el contorno del área. También con Enter"
                 disabled={measureMode !== "area"}
                 onClick={onFinishMeasurement}
+              />
+              {/* **La salida de una medida a medias.** `cancelMeasurement` estaba implementada y
+                  comprobada en `diag.html`, y no la llamaba nadie desde la interfaz: con dos
+                  vértices de un área puestos, la única forma de salirse era pulsar "Seleccionar"
+                  —que la descarta de rebote— y volver a entrar a medir. */}
+              <Boton
+                icon={<IconClose />}
+                label="Cancelar"
+                hint={
+                  measureInProgress
+                    ? "Descarta la medida a medias, sin tocar las ya tomadas. También con Esc"
+                    : "No hay ninguna medida empezada"
+                }
+                disabled={!measureInProgress}
+                onClick={onCancelMeasurement}
               />
               <Boton
                 icon={<IconTrash />}
@@ -534,26 +589,33 @@ export function Ribbon({
 
         {tab === "modelo" && (
           <>
+            {/* **Los cortes se calculan desde la caja de los modelos**: `addSection` se va sin
+                hacer nada si no hay ninguno, así que con un plano solo el botón no puede quedar
+                encendido prometiendo un corte que no va a ocurrir. */}
             <Grupo label="Cortes">
               <Boton
                 icon={<IconSectionHorizontal />}
                 label="Horizontal"
-                hint="La planta, sin la cubierta encima. El plano se arrastra después"
-                disabled={!enabled}
+                hint={
+                  hasModels
+                    ? "La planta, sin la cubierta encima. El plano se arrastra después"
+                    : "Abre un modelo primero"
+                }
+                disabled={!hasModels}
                 onClick={() => onSection("horizontal")}
               />
               <Boton
                 icon={<IconSectionLongitudinal />}
                 label="Longitudinal"
-                hint="Corte vertical por el lado largo"
-                disabled={!enabled}
+                hint={hasModels ? "Corte vertical por el lado largo" : "Abre un modelo primero"}
+                disabled={!hasModels}
                 onClick={() => onSection("longitudinal")}
               />
               <Boton
                 icon={<IconSectionTransversal />}
                 label="Transversal"
-                hint="Corte vertical cruzando el modelo"
-                disabled={!enabled}
+                hint={hasModels ? "Corte vertical cruzando el modelo" : "Abre un modelo primero"}
+                disabled={!hasModels}
                 onClick={() => onSection("transversal")}
               />
               <Boton
@@ -599,24 +661,20 @@ export function Ribbon({
                     ? "Sale del aislamiento y vuelve a como estaba el modelo antes de aislar"
                     : "No hay ningún aislamiento del que salir"
                 }
-                active={isolated}
+                destacado={isolated}
                 disabled={!isolated}
                 onClick={onUndoIsolate}
               />
+              {/* **Mismo mandato, mismo icono.** Acá era un árbol —que es el icono de la
+                  estructura del modelo— y en la barra de estado un ojo. Dos dibujos para el mismo
+                  botón obligan a leerlos, que es justo lo que un icono viene a evitar. */}
               <Boton
-                icon={<IconTree />}
+                icon={<IconEye />}
                 label="Ver todo"
                 hint="Enciende todo el modelo, incluido lo que se apagó a mano"
-                active={hasHidden}
+                destacado={hasHidden}
                 disabled={!enabled}
                 onClick={onShowAll}
-              />
-              <Boton
-                icon={<IconLayers />}
-                label="Navegador"
-                hint="El árbol del modelo y los modelos abiertos"
-                active={panelDerecho}
-                onClick={() => onTogglePanel("derecha")}
               />
             </Grupo>
           </>
@@ -655,22 +713,41 @@ function Grupo({
  *
  * El nombre completo va en `title` y el corto debajo del icono. Los dos hacen falta: el corto para
  * reconocer la herramienta de un vistazo, el largo para saber qué hace exactamente antes de tocarla.
+ *
+ * **Hay dos clases de botón y antes eran una sola.** Un *interruptor* —Perspectiva, Órbita, Modo
+ * 2D— tiene estado y lo declara con `aria-pressed`; un *mandato* —Encuadrar, Aislar, Ver todo,
+ * Borrar— se pulsa y pasa algo, y no tiene estado que declarar. Todos llevaban `aria-pressed`, así
+ * que un lector de pantalla anunciaba "Todo, botón de alternancia, no pulsado" sobre un botón que
+ * no alterna nada. Ahora lo lleva **solo quien recibe `active`**.
  */
 function Boton({
   icon,
   label,
   hint,
   onClick,
-  active = false,
+  active,
+  destacado = false,
   disabled = false,
 }: {
   readonly icon: React.ReactNode;
   readonly label: string;
   readonly hint: string;
   readonly onClick: () => void;
+  /**
+   * Estado del interruptor. **Omitirlo declara que el botón es un mandato**, y entonces no se
+   * dibuja `aria-pressed`.
+   */
   readonly active?: boolean;
+  /**
+   * Resalta un **mandato** que ahora mismo tiene algo que hacer —"Ver todo" con cosas apagadas,
+   * "Salir" con un aislamiento puesto—. Pinta igual que un interruptor encendido y no dice nada
+   * de estado: seguir usando `active` para esto anunciaba "pulsado" un botón que nadie pulsó.
+   */
+  readonly destacado?: boolean;
   readonly disabled?: boolean;
 }) {
+  const encendido = active === true || destacado;
+
   return (
     <button
       type="button"
@@ -685,7 +762,7 @@ function Boton({
         "flex w-14 flex-col items-center gap-px rounded px-0.5 py-1 transition-colors",
         disabled
           ? "text-white/20"
-          : active
+          : encendido
             ? "bg-brand/25 text-white"
             : "text-white/70 hover:bg-white/10 hover:text-white",
       ].join(" ")}
@@ -693,7 +770,7 @@ function Boton({
       <span
         className={[
           "[&>svg]:h-[18px] [&>svg]:w-[18px]",
-          active && !disabled ? "text-brand" : "",
+          encendido && !disabled ? "text-brand" : "",
         ].join(" ")}
       >
         {icon}
