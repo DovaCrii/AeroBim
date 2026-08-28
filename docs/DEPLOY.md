@@ -189,9 +189,10 @@ de "reiniciado y sirviendo".
 
 ## Lo que todavía no está
 
-- **`F3.4` — Celery.** Convertir un IFC grande y validar un IDS pasan del minuto y hoy
-  corren dentro de la petición. El `timeout` de gunicorn está en 120 s por eso, que es un
-  parche con fecha de caducidad, no una solución.
+- **Trabajos en segundo plano (`F3.4`) — medido, y hoy no hace falta.** Sobre el IFC real de
+  32,7 MB: extraer metadatos 1,4 s, medir cobertura 1,5 s, validar un IDS 0,7 s. El `timeout`
+  de 120 s es holgura, no un parche. Si algún día un trabajo llega a 30 s sobre un archivo
+  real, ese es el momento de sacarlo de la petición.
 - **Copias de seguridad.** No hay nada escrito. Lo que hay que copiar son dos cosas y
   están separadas a propósito: la base de datos y `/var/lib/aerobim`.
 - **Qué dominio y si comparte VM** con AeroControl y AeroPlanner. Es una decisión del

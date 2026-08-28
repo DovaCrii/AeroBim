@@ -25,10 +25,15 @@ workers = int(os.environ.get("GUNICORN_WORKERS", multiprocessing.cpu_count() * 2
 # aplicacion en concurrente de verdad.
 threads = int(os.environ.get("GUNICORN_THREADS", 2))
 
-# **120 s, no 30.** Convertir un IFC grande o validar un IDS pasa del minuto, y con
-# el tiempo de fabrica gunicorn mata al worker a mitad y el usuario ve un 502 sin
-# explicacion. Lo que tarde mas que esto es trabajo para Celery (`F3.4`), no para
-# una peticion.
+# **120 s, no 30.** Medido sobre el IFC real de 32,7 MB: extraer los metadatos son 1,4 s,
+# medir la cobertura de psets 1,5 s y validar un IDS 0,7 s. O sea **dos ordenes de magnitud
+# de holgura**, y eso es a proposito: el tiempo de fabrica mata al worker a mitad y el
+# usuario ve un 502 sin explicacion, mientras que un tope generoso no cuesta nada mientras
+# nada lo alcance.
+#
+# **Si algo llegara a 30 s** —la cuarta parte de esto— sobre un archivo real, entonces si
+# toca sacarlo de la peticion: es el numero que `F3.4` estaba esperando, y esta escrito en
+# `MASTER_PLAN.md` para no tener que volver a discutirlo.
 timeout = int(os.environ.get("GUNICORN_TIMEOUT", 120))
 graceful_timeout = 30
 

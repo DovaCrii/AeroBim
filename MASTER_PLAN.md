@@ -1055,23 +1055,54 @@ artefacto se consume aquí. Es la misma división que ya existe con la ortofoto 
 **Objetivo de salida:** los modelos dejan de vivir en la pestaña del navegador: se
 guardan por proyecto, con versiones y con quién subió qué.
 
-| #       | Tarea                                                                                                | Estado       |
-| ------- | ---------------------------------------------------------------------------------------------------- | ------------ |
-| `F3.1`  | API en Python (Django + DRF, como AeroControl): proyectos, modelos, versiones, usuarios y permisos   | ✅ ver abajo |
-| `F3.2`  | Almacenamiento de archivos con validación de tipo, tamaño y nombre — nunca el nombre del cliente     | ✅ ver abajo |
-| `F3.3`  | Extracción de metadatos con `ifcopenshell`: esquema, unidades, georreferenciación, conteo por tipo   | ✅ ver abajo |
-| `F3.4`  | Jobs asíncronos (Celery) para lo que tarde: conversión, extracción, validación                       | ⬜           |
-| `F3.5`  | Validación **IDS** con `ifctester`: el modelo cumple o no el requisito de información del proyecto   | ✅ ver abajo |
-| `F3.10` | **El IDS de partida**: qué trae el modelo, medido, y el requisito que sale de esa medición           | ✅           |
-| `F3.6`  | **Levantar `services/api`**: Django 6 + uv, con la forma de AeroControl y base de datos propia       | ✅           |
-| `F3.7`  | **Portal de ingreso**: `django.contrib.auth` endurecido con axes, sin auto-registro                  | ✅           |
-| `F3.8`  | **Roles y el contrato de permisos**: la matriz como dato, el guardián, y la prueba de 403            | ✅           |
-| `F3.9`  | **Los módulos y cómo se entra a cada uno**: portal por etapa de trabajo, filtrado por permiso        | ✅           |
-| `F3.11` | **Ponerlo en la VM**: driver de PostgreSQL, servidor de aplicación, `/health/` y unidades de systemd | ✅ ver abajo |
-| `F3.12` | **Vistas que se pueden pasar**: la vista del modelo sale del navegador y vive en el proyecto         | ✅ ver abajo |
+| #       | Tarea                                                                                                | Estado                                  |
+| ------- | ---------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| `F3.1`  | API en Python (Django + DRF, como AeroControl): proyectos, modelos, versiones, usuarios y permisos   | ✅ ver abajo                            |
+| `F3.2`  | Almacenamiento de archivos con validación de tipo, tamaño y nombre — nunca el nombre del cliente     | ✅ ver abajo                            |
+| `F3.3`  | Extracción de metadatos con `ifcopenshell`: esquema, unidades, georreferenciación, conteo por tipo   | ✅ ver abajo                            |
+| `F3.4`  | Jobs asíncronos (Celery) para lo que tarde: conversión, extracción, validación                       | ❓ medido, y hoy no procede — ver abajo |
+| `F3.5`  | Validación **IDS** con `ifctester`: el modelo cumple o no el requisito de información del proyecto   | ✅ ver abajo                            |
+| `F3.10` | **El IDS de partida**: qué trae el modelo, medido, y el requisito que sale de esa medición           | ✅                                      |
+| `F3.6`  | **Levantar `services/api`**: Django 6 + uv, con la forma de AeroControl y base de datos propia       | ✅                                      |
+| `F3.7`  | **Portal de ingreso**: `django.contrib.auth` endurecido con axes, sin auto-registro                  | ✅                                      |
+| `F3.8`  | **Roles y el contrato de permisos**: la matriz como dato, el guardián, y la prueba de 403            | ✅                                      |
+| `F3.9`  | **Los módulos y cómo se entra a cada uno**: portal por etapa de trabajo, filtrado por permiso        | ✅                                      |
+| `F3.11` | **Ponerlo en la VM**: driver de PostgreSQL, servidor de aplicación, `/health/` y unidades de systemd | ✅ ver abajo                            |
+| `F3.12` | **Vistas que se pueden pasar**: la vista del modelo sale del navegador y vive en el proyecto         | ✅ ver abajo                            |
 
 **Criterio de aceptación:** un modelo subido sobrevive al cierre del navegador, y
 la versión anterior sigue recuperable.
+
+### `F3.4`: los tres trabajos «que tardan», medidos — y no tardan (2026-08-28)
+
+La fila pedía **Celery** para «lo que tarde: conversión, extracción, validación», y esa premisa
+nunca se había medido entera. Se midió, sobre los tres modelos y con los tres trabajos que hoy
+corren **dentro de la petición**:
+
+| Trabajo           | `muro-con-psets` (2 KB) | `Piso 5` (1,5 MB) | Real (**32,7 MB**) |
+| ----------------- | ----------------------- | ----------------- | ------------------ |
+| `ifc.extraer`     | 116 ms                  | 81 ms             | **1.397 ms**       |
+| `cobertura.medir` | 14 ms                   | 91 ms             | **1.529 ms**       |
+| `ids.validar`     | —                       | —                 | **668 ms**         |
+
+**Ninguno llega a dos segundos sobre el modelo real de la organización**, y los tres juntos no
+llegan a cuatro. Montar Celery para eso sería pagar un **broker, un proceso trabajador, su unidad de
+systemd y una forma nueva de fallar en silencio** —un trabajo encolado que nadie procesa no da
+error: simplemente no pasa nada, que es la lección que ya está escrita en `apps/core/jobs.py`— a
+cambio de ahorrar segundo y medio.
+
+**Y la «conversión» de la fila ya no vive aquí.** `F0.6` la movió a un **Web Worker del navegador**:
+son 9,5 s para el IFC de 32,7 MB y **ninguno de ellos ocurre en el servidor**. La fila se escribió
+antes de esa decisión y arrastraba el trabajo más pesado de los tres.
+
+**Qué haría falta para que proceda, dicho como número y no como intuición**: que un trabajo pase de
+**30 s** —la cuarta parte del `timeout` de gunicorn— sobre un archivo que la organización recibe de
+verdad. Los candidatos son un IFC federado bastante mayor que 32,7 MB, o un IDS de proyecto con
+cientos de especificaciones en vez de las que genera `F3.10`. **Ninguno de los dos existe todavía
+como archivo que mirar**, y es la misma razón por la que `F4.6` sigue en espera.
+
+Hasta entonces, el `timeout` de 120 s de `config/gunicorn.conf.py` deja de ser un parche con fecha y
+pasa a ser holgura: **dos órdenes de magnitud** sobre lo medido.
 
 ### `F3.12`: una vista guardada que no se le puede pasar a nadie (2026-08-28)
 

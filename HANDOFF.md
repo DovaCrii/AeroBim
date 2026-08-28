@@ -32,10 +32,13 @@
 >
 > **Lo que sigue, en orden de valor:**
 >
-> 1. **`F3.4` — Celery.** El `timeout` de gunicorn en 120 s es un parche con fecha: convertir un IFC
->    grande y validar un IDS corren hoy dentro de la petición.
-> 2. **`F4.5`** — marcado sobre la vista (nube, flecha, texto) embebido en el viewpoint.
-> 3. **`F4.6`** — importar BCF, cuando haya uno de vuelta de verdad que mirar.
+> 1. **`F4.5`** — marcado sobre la vista (nube, flecha, texto) embebido en el viewpoint.
+> 2. **`F4.6`** — importar BCF, cuando haya uno de vuelta de verdad que mirar.
+>
+> **`F3.4` (Celery) se midió y no procede.** Los tres trabajos que corren dentro de la petición, sobre
+> el IFC real de 32,7 MB: extraer 1,4 s, cobertura 1,5 s, validar IDS 0,7 s. Y la conversión —el más
+> pesado— ya no vive en el servidor desde `F0.6`. El número que lo reabriría está escrito: **30 s**
+> sobre un archivo real.
 >
 > **Y sigue sin verificarse el aspecto de cuatro pantallas**: la tarjeta de nota, la de cobertura de
 > psets, la cinta y la sección **Vistas del proyecto**. El panel del agente no compone fotogramas y
