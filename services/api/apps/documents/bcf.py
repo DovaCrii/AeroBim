@@ -25,6 +25,7 @@ un sitio que nadie decidio es peor que uno que simplemente **selecciona el eleme
 afirma algo falso, el segundo dice lo que sabe.
 """
 
+import logging
 import uuid
 import zipfile
 from io import BytesIO
@@ -38,8 +39,19 @@ from io import BytesIO
 # XML no confiable del que habla el aviso.
 from xml.etree import ElementTree as ET  # nosec B405
 
+from apps.documents import storage
+
+logger = logging.getLogger("aerobim.jobs")
+
 #: Version que se emite. Ver el docstring del modulo.
 VERSION = "2.1"
+
+#: Como se llama la foto dentro de la carpeta del tema.
+#:
+#: **`snapshot.png` y no un nombre nuestro.** El markup declara el nombre y cualquier lector lo
+#: respeta, pero este es el que usa todo el mercado desde BCF 1.0, y hay herramientas viejas que lo
+#: dan por supuesto en vez de leerlo. No cuesta nada ser el que no sorprende.
+NOMBRE_INSTANTANEA = "snapshot.png"
 
 #: El estado de una observacion, en el vocabulario de BCF.
 #:
@@ -81,9 +93,12 @@ def exportar(observaciones, proyecto_nombre: str) -> bytes:
             # BCF actualiza el tema en vez de duplicarlo, que es lo que pasa cuando cada exportacion
             # inventa identificadores.
             tema = str(observacion.pk)
-            zip_bcf.writestr(f"{tema}/markup.bcf", _markup(observacion, tema))
+            foto = _foto(observacion)
+            zip_bcf.writestr(f"{tema}/markup.bcf", _markup(observacion, tema, foto is not None))
             if observacion.ifc_guid:
                 zip_bcf.writestr(f"{tema}/viewpoint.bcfv", _viewpoint(observacion, tema))
+            if foto is not None:
+                zip_bcf.writestr(f"{tema}/{NOMBRE_INSTANTANEA}", foto)
 
     return memoria.getvalue()
 
@@ -105,7 +120,25 @@ def _proyecto(nombre: str) -> str:
     return _texto(raiz)
 
 
-def _markup(observacion, tema: str) -> str:
+def _foto(observacion) -> bytes | None:
+    """Los bytes de la instantanea, o `None` si no hay o si el archivo ya no esta.
+
+    **Un archivo que falta no puede tumbar la exportacion del proyecto entero.** La imagen vive en
+    el disco del operador y la fila solo guarda su clave: un montaje mal puesto, una copia
+    restaurada a medias o una limpieza dejan la clave apuntando a nada. El tema sale sin foto, que
+    es exactamente lo que salia antes de que las hubiera.
+    """
+    clave = getattr(observacion, "instantanea", "")
+    if not clave:
+        return None
+    try:
+        return storage.leer(clave)
+    except (OSError, storage.CargaRechazada):
+        logger.warning("bcf: la instantanea de %s no se pudo leer", observacion.pk)
+        return None
+
+
+def _markup(observacion, tema: str, con_foto: bool) -> str:
     """El tema: que se encontro, quien lo abrio, a quien le toca y para cuando.
 
     **El orden de los hijos no es libre**: el XSD de BCF 2.1 los declara en secuencia, y un
@@ -153,6 +186,11 @@ def _markup(observacion, tema: str) -> str:
     if observacion.ifc_guid:
         vista = ET.SubElement(raiz, "Viewpoints", {"Guid": tema})
         ET.SubElement(vista, "Viewpoint").text = "viewpoint.bcfv"
+        # **`Snapshot` va despues de `Viewpoint`**: el XSD de BCF 2.1 los declara en secuencia, y
+        # un lector estricto rechaza el markup entero si llegan al reves. Es la misma leccion que
+        # ya costo una vez con el orden de los hijos de `Topic`.
+        if con_foto:
+            ET.SubElement(vista, "Snapshot").text = NOMBRE_INSTANTANEA
 
     return _texto(raiz)
 

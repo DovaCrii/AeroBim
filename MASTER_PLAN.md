@@ -1429,22 +1429,60 @@ modelos que existen hoy — se completa con los entregables en `F8.1`.
 **Objetivo de salida:** una observación de coordinación deja de ser un correo con
 una captura de pantalla.
 
-| #      | Tarea                                                                                  | Estado |
-| ------ | -------------------------------------------------------------------------------------- | ------ |
-| `F4.1` | Temas de observación con viewpoint: **cámara** y elementos involucrados por GUID       | ✅     |
-| `F4.7` | Visibilidad en el viewpoint: lo apagado y lo aislado, traducido de `localId` a GUID    | ✅     |
-| `F4.8` | **Ver y abrir la observación dentro del visor**: la lista lleva la cámara y selecciona | ✅     |
-| `F4.2` | Metadatos y ciclo de vida: prioridad, responsable, fecha de vencimiento, estado        | ✅     |
-| `F4.3` | Comentarios ligados al viewpoint, con historial                                        | ✅     |
-| `F4.4` | **Exportar BCF 2.1** — escrito a mano, leído de vuelta por `bcf-client` en las pruebas | ✅     |
-| `F4.5` | Marcado sobre la vista (nube, flecha, texto) embebido en el viewpoint                  | ⬜     |
+| #       | Tarea                                                                                         | Estado       |
+| ------- | --------------------------------------------------------------------------------------------- | ------------ |
+| `F4.1`  | Temas de observación con viewpoint: **cámara** y elementos involucrados por GUID              | ✅           |
+| `F4.7`  | Visibilidad en el viewpoint: lo apagado y lo aislado, traducido de `localId` a GUID           | ✅           |
+| `F4.8`  | **Ver y abrir la observación dentro del visor**: la lista lleva la cámara y selecciona        | ✅           |
+| `F4.2`  | Metadatos y ciclo de vida: prioridad, responsable, fecha de vencimiento, estado               | ✅           |
+| `F4.3`  | Comentarios ligados al viewpoint, con historial                                               | ✅           |
+| `F4.4`  | **Exportar BCF 2.1** — escrito a mano, leído de vuelta por `bcf-client` en las pruebas        | ✅           |
+| `F4.10` | **La foto del hallazgo** en el viewpoint: sin ella, el otro extremo abre una lista de títulos | ✅ ver abajo |
+| `F4.5`  | Marcado sobre la vista (nube, flecha, texto) embebido en el viewpoint                         | ⬜           |
 
 **`F4.2` y `F4.3` las cerró la Fase 8, no esta.** Fue la apuesta del replanteo —«las
 observaciones comparten modelo con los temas BCF», `F8.2`— y salió: `Observacion` ya trae
 prioridad, responsable, vencimiento, estado y resolución, y `Comentario` el historial. No hay
 tabla nueva que escribir; el tablero decía ⬜ sobre código que existe desde hace días.
 
-**`F4.1`: el ancla por GUID, la cámara y —desde `F4.7`— la visibilidad.**
+### `F4.10` cerrada: el BCF salía sin una sola foto (2026-08-28)
+
+**`F4.4` estaba marcada ✅ y le faltaba lo primero que se ve.** Todo visor del mercado —Solibri,
+Navisworks, BCF Manager— dibuja la lista de temas **con su miniatura al lado**, y es lo que hace que
+quien recibe el archivo sepa de qué se le habla antes de cargar el modelo. Los nuestros salían sin
+ninguna: el mandante abría una lista de títulos.
+
+**La trampa está en cuándo se lee el lienzo, y no da error.** El búfer de dibujo de WebGL se borra
+en cuanto el navegador compone el cuadro; leerlo un instante tarde devuelve un rectángulo vacío y
+`toDataURL` **entrega un PNG perfectamente válido**, todo del mismo color. Así que se dibuja y se lee
+en el mismo turno, sin un solo `await` en medio.
+
+**Y aun así se comprueba lo que salió**, porque una miniatura en blanco dentro de un BCF afirma «así
+se ve el problema» sobre nada, y eso es peor que no llevar ninguna. `pareceEnBlanco` vive en
+`bim-core` —se prueba con píxeles escritos a mano, sin navegador— y mira el rango de color de una
+muestra: si la imagen es un rectángulo liso, el visor devuelve `null` y la nota se guarda sin foto.
+
+**El oráculo, comprobado en el navegador**: con el modelo a la vista, un PNG; con **todo el modelo
+apagado** —o sea, solo el fondo— la misma llamada devuelve `null`. Las dos cosas a la vez prueban que
+se están leyendo píxeles de verdad y que la comprobación hace su trabajo.
+
+Lo demás son las reglas de siempre del registro, sin excepciones nuevas:
+
+- **La firma manda, no la cabecera del `data:`**, que la escribe quien manda. Es la misma
+  comprobación con la que se cae `virus.exe` renombrado a `plano.pdf`, y se reutiliza `storage`
+  entero en vez de escribirla otra vez. Un `data:image/svg+xml` —que lleva scripts— no entra.
+- **En la fila va la clave, nunca los bytes.** Un `data:` de un megabyte dentro de un registro lo
+  vuelve imposible de listar y se duplica en cada copia de la base. La imagen vive donde viven los
+  documentos, con su clave por sha256 — así **dos notas tomadas desde la misma pantalla no duplican
+  el archivo**, y hay una prueba que lo dice.
+- **Nada de esto puede costar el hallazgo.** Una imagen ilegible, un disco lleno o un montaje de
+  solo lectura dejan la nota guardada sin foto. Y un archivo que ya no está en el disco **no tumba
+  la exportación del proyecto entero**: ese tema sale sin miniatura y los demás salen enteros.
+
+Medido sobre el IFC real de 32,7 MB con el lienzo a 1005 × 773: **100 ms** para capturar y **138 KB**
+de PNG. Un BCF de treinta temas queda en unos cuatro megas, que es un correo.
+
+**`F4.1`: el ancla por GUID, la cámara, la visibilidad —`F4.7`— y la foto —`F4.10`—.**
 
 Con un modelo abierto desde el registro, la ficha del elemento ofrece «Observar este elemento»
 y lleva al formulario con la revisión, el GUID y **el punto de vista de ese momento**. El

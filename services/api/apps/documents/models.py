@@ -435,6 +435,11 @@ class Observacion(BaseModel):
     # La forma es la de un `Visibility` de BCF: `{"porDefecto": bool, "excepciones": [guid, ...]}`.
     # Vacio significa **sin restriccion**, que es lo que el exportador escribia siempre.
     visibilidad = models.JSONField(default=dict, blank=True)
+    # **La foto de lo que se estaba mirando**, como clave de almacenamiento — nunca los bytes.
+    # Un `data:` de un megabyte dentro de una fila la vuelve imposible de listar, y ademas duplica
+    # el archivo en cada copia de seguridad de la base. Vive donde viven los documentos, que es
+    # fuera del repositorio y bajo el control del operador.
+    instantanea = models.CharField(max_length=300, blank=True)
 
     class Meta:
         verbose_name = _("observation")

@@ -88,6 +88,8 @@ export {
   type SceneCameraState,
 } from "./registro/viewpoint.js";
 
+export { MUESTRAS, pareceEnBlanco, RANGO_MINIMO } from "./registro/instantanea.js";
+
 export {
   ladoDeVisibilidad,
   MAXIMO_EXCEPCIONES,

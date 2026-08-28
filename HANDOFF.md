@@ -30,9 +30,16 @@
 >   de trabajo y no cuestan nada. `F4.7` fue primero **a propósito**: sin la visibilidad por GUID,
 >   una vista compartida solo habría podido llevar la cámara.
 >
+> - **`F4.10` — la foto del hallazgo.** `F4.4` estaba ✅ y el BCF salía **sin una sola imagen**,
+>   cuando todo visor del mercado dibuja la lista de temas con su miniatura. La trampa: el búfer de
+>   WebGL se borra al componer el cuadro y `toDataURL` devuelve un PNG válido y **en blanco** sin
+>   fallar, así que se dibuja y se lee en el mismo turno **y además se comprueba lo que salió**.
+>   Medido: 100 ms y 138 KB sobre el IFC de 32,7 MB.
+>
 > **Lo que sigue, en orden de valor:**
 >
-> 1. **`F4.5`** — marcado sobre la vista (nube, flecha, texto) embebido en el viewpoint.
+> 1. **`F4.5`** — marcado sobre la vista (nube, flecha, texto) embebido en el viewpoint. Ahora que
+>    hay instantánea, el marcado tiene dónde ir.
 > 2. **`F4.6`** — importar BCF, cuando haya uno de vuelta de verdad que mirar.
 >
 > **`F3.4` (Celery) se midió y no procede.** Los tres trabajos que corren dentro de la petición, sobre

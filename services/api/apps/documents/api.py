@@ -237,6 +237,13 @@ class ObservacionesDeRevisionAPI(APIView):
             visibilidad=leer_visibilidad(request.data.get("visibilidad")) if guid else {},
         )
         observacion.save()
+        # **La foto se guarda después de la observación y su fallo no la arrastra.** Lo que hay que
+        # conservar es el hallazgo: una imagen que no se pudo escribir —disco lleno, montaje de
+        # solo lectura— deja el tema sin miniatura, que es lo que salía antes de que las hubiera.
+        clave = self._guardar_instantanea(request, observacion, revision)
+        if clave:
+            observacion.instantanea = clave
+            observacion.save(update_fields=["instantanea", "updated_at"])
         set_audit_context(request, observacion, action="abrir_observacion")
 
         # **Se avisa solo si tiene otro dueño.** Un correo diciéndote que te asignaste algo a ti
@@ -259,6 +266,37 @@ class ObservacionesDeRevisionAPI(APIView):
             },
             status=201,
         )
+
+    def _guardar_instantanea(self, request, observacion, revision) -> str:
+        """Escribe la foto del visor y devuelve su clave, o `""` si no hay o no se pudo.
+
+        **Va al mismo almacén que los documentos**, con la misma clave construida —proyecto,
+        entregable y sha256— y nunca con un nombre que venga de fuera. El sha256 hace además que dos
+        observaciones tomadas desde la misma pantalla no dupliquen el archivo.
+        """
+        import logging
+
+        from apps.documents import instantanea as lector_instantanea
+
+        datos = lector_instantanea.leer(request.data.get("instantanea"))
+        if datos is None:
+            return ""
+
+        try:
+            extension, sha = storage.validar("captura.png", datos)
+            clave = storage.clave_para(
+                proyecto_codigo=revision.entregable.proyecto.codigo,
+                entregable_codigo=revision.entregable.codigo,
+                sha256=sha,
+                extension=extension,
+            )
+            storage.guardar(clave, datos)
+        except (storage.CargaRechazada, OSError):
+            logging.getLogger("aerobim.jobs").warning(
+                "no se pudo guardar la instantánea de la observación %s", observacion.pk
+            )
+            return ""
+        return clave
 
     def _responsable(self, request, entregable):
         """A quién le toca: el que pidan, si puede; el autor si no dicen nada.

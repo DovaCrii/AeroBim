@@ -50,6 +50,7 @@ export function NotaFlotante({
   revisionId,
   camaraDeAhora,
   visibilidadDeAhora,
+  fotoDeAhora,
   onCerrar,
   onGuardada,
 }: {
@@ -66,6 +67,13 @@ export function NotaFlotante({
    * contar.
    */
   readonly visibilidadDeAhora: () => Promise<VisibilidadBcf | null>;
+  /**
+   * La foto del lienzo, como PNG en un `data:`. `null` si no hay nada dibujado que enseñar.
+   *
+   * **Es lo que hace que el BCF se entienda sin abrir el modelo**: todo visor del mercado dibuja la
+   * lista de temas con su miniatura al lado.
+   */
+  readonly fotoDeAhora: () => string | null;
   readonly onCerrar: () => void;
   readonly onGuardada: (nota: NotaGuardada) => void;
 }) {
@@ -124,6 +132,10 @@ export function NotaFlotante({
     // tomada aislando una planta sale en el BCF con el edificio entero y el problema tapado por lo
     // que precisamente se había apagado.
     const visibilidad = await visibilidadDeAhora();
+    // **La tarjeta no sale en la foto, y eso es lo que la hace utilizable.** Se captura el lienzo
+    // del visor y esta tarjeta es HTML por encima: la imagen que llega al BCF es el modelo limpio,
+    // sin el formulario tapando media pantalla. Por eso no hay que cerrarla para tomarla.
+    const foto = fotoDeAhora();
 
     try {
       const respuesta = await fetch(`/api/revisiones/${revisionId}/observaciones/`, {
@@ -137,6 +149,7 @@ export function NotaFlotante({
           guid: item.guid ?? "",
           camara: camara === null ? null : JSON.stringify(camara),
           visibilidad: visibilidad === null ? null : JSON.stringify(visibilidad),
+          instantanea: foto,
         }),
       });
 

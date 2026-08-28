@@ -19,6 +19,7 @@ import {
   distancePartsM,
   ifcAEscena,
   ladoDeVisibilidad,
+  pareceEnBlanco,
   parseIfcGrids,
   seVe,
   visibilidadBcf,
@@ -462,6 +463,16 @@ const DISTANCIA_DE_MIRA = 10;
  * Pegado a una viga no se ve de qué viga se habla: hace falta el vecino para reconocer el sitio.
  */
 const HOLGURA_AL_ENCUADRAR = 3;
+
+/**
+ * Ancho de la instantánea que se guarda con una observación, en píxeles.
+ *
+ * **Es una miniatura de lista, no una lámina.** En Solibri o Navisworks esto se ve al lado del
+ * título del tema, y 1.200 px ya permite reconocer de qué elemento se habla al ampliarla. Guardar el
+ * lienzo entero de una pantalla grande multiplicaría por cuatro el peso del BCF sin que nadie mire
+ * el detalle: un archivo con treinta temas se manda por correo.
+ */
+const ANCHO_DE_INSTANTANEA = 1200;
 
 /** Violeta de la marca, para el elemento seleccionado y para las cotas. */
 const SELECTION_COLOR = 0x9b5de5;
@@ -2570,6 +2581,49 @@ export class BimViewer {
     // hay dos formas de leer un viewpoint.
     this.aplicarCamaraBcf(vista.camara);
     await this.refresh();
+  }
+
+  /**
+   * La foto de lo que se está mirando, como PNG en un `data:`. `null` si no hay nada que enseñar.
+   *
+   * **Es lo que le falta al BCF para que se entienda sin abrir el modelo.** Todo visor del mercado
+   * dibuja la lista de temas con su miniatura al lado; los nuestros salían sin ninguna, así que el
+   * mandante abría una lista de títulos.
+   *
+   * **Y la trampa está en cuándo se lee el lienzo.** El búfer de dibujo de WebGL se borra en cuanto
+   * el navegador compone el cuadro, y leerlo un instante tarde devuelve un rectángulo vacío **sin
+   * fallar**: `toDataURL` entrega un PNG perfectamente válido, todo del mismo color. Por eso acá se
+   * dibuja y se lee **en el mismo turno**, sin un solo `await` en medio — y por eso además se
+   * comprueba el resultado antes de devolverlo.
+   *
+   * Devolver `null` en vez de una imagen lisa es deliberado: una miniatura en blanco dentro de un
+   * BCF afirma «así se ve el problema» sobre nada, y es peor que no llevar ninguna.
+   */
+  capturarImagen(anchoMaximo = ANCHO_DE_INSTANTANEA): string | null {
+    this.assertAlive();
+
+    const lienzo = this.world.renderer?.three.domElement;
+    if (!lienzo || lienzo.width === 0 || lienzo.height === 0) return null;
+
+    // Se dibuja justo antes de leer. Nada de `await` entre esta línea y el `drawImage`.
+    this.world.renderer?.update();
+
+    const escala = Math.min(1, anchoMaximo / lienzo.width);
+    const ancho = Math.max(1, Math.round(lienzo.width * escala));
+    const alto = Math.max(1, Math.round(lienzo.height * escala));
+
+    const destino = document.createElement("canvas");
+    destino.width = ancho;
+    destino.height = alto;
+    const pincel = destino.getContext("2d", { willReadFrequently: true });
+    if (pincel === null) return null;
+    pincel.drawImage(lienzo, 0, 0, ancho, alto);
+
+    // La comprobación va sobre la imagen **ya reducida**: son cien veces menos píxeles y la
+    // pregunta —¿hay algo dibujado?— se contesta igual.
+    if (pareceEnBlanco(pincel.getImageData(0, 0, ancho, alto).data)) return null;
+
+    return destino.toDataURL("image/png");
   }
 
   async captureView(name: string): Promise<SavedView> {
