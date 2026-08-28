@@ -1009,17 +1009,18 @@ artefacto se consume aquí. Es la misma división que ya existe con la ortofoto 
 **Objetivo de salida:** los modelos dejan de vivir en la pestaña del navegador: se
 guardan por proyecto, con versiones y con quién subió qué.
 
-| #      | Tarea                                                                                              | Estado       |
-| ------ | -------------------------------------------------------------------------------------------------- | ------------ |
-| `F3.1` | API en Python (Django + DRF, como AeroControl): proyectos, modelos, versiones, usuarios y permisos | ✅ ver abajo |
-| `F3.2` | Almacenamiento de archivos con validación de tipo, tamaño y nombre — nunca el nombre del cliente   | ✅ ver abajo |
-| `F3.3` | Extracción de metadatos con `ifcopenshell`: esquema, unidades, georreferenciación, conteo por tipo | ✅ ver abajo |
-| `F3.4` | Jobs asíncronos (Celery) para lo que tarde: conversión, extracción, validación                     | ⬜           |
-| `F3.5` | Validación **IDS** con `ifctester`: el modelo cumple o no el requisito de información del proyecto | ✅ ver abajo |
-| `F3.6` | **Levantar `services/api`**: Django 6 + uv, con la forma de AeroControl y base de datos propia     | ✅           |
-| `F3.7` | **Portal de ingreso**: `django.contrib.auth` endurecido con axes, sin auto-registro                | ✅           |
-| `F3.8` | **Roles y el contrato de permisos**: la matriz como dato, el guardián, y la prueba de 403          | ✅           |
-| `F3.9` | **Los módulos y cómo se entra a cada uno**: portal por etapa de trabajo, filtrado por permiso      | ✅           |
+| #       | Tarea                                                                                              | Estado       |
+| ------- | -------------------------------------------------------------------------------------------------- | ------------ |
+| `F3.1`  | API en Python (Django + DRF, como AeroControl): proyectos, modelos, versiones, usuarios y permisos | ✅ ver abajo |
+| `F3.2`  | Almacenamiento de archivos con validación de tipo, tamaño y nombre — nunca el nombre del cliente   | ✅ ver abajo |
+| `F3.3`  | Extracción de metadatos con `ifcopenshell`: esquema, unidades, georreferenciación, conteo por tipo | ✅ ver abajo |
+| `F3.4`  | Jobs asíncronos (Celery) para lo que tarde: conversión, extracción, validación                     | ⬜           |
+| `F3.5`  | Validación **IDS** con `ifctester`: el modelo cumple o no el requisito de información del proyecto | ✅ ver abajo |
+| `F3.10` | **El IDS de partida**: qué trae el modelo, medido, y el requisito que sale de esa medición         | ✅           |
+| `F3.6`  | **Levantar `services/api`**: Django 6 + uv, con la forma de AeroControl y base de datos propia     | ✅           |
+| `F3.7`  | **Portal de ingreso**: `django.contrib.auth` endurecido con axes, sin auto-registro                | ✅           |
+| `F3.8`  | **Roles y el contrato de permisos**: la matriz como dato, el guardián, y la prueba de 403          | ✅           |
+| `F3.9`  | **Los módulos y cómo se entra a cada uno**: portal por etapa de trabajo, filtrado por permiso      | ✅           |
 
 **Criterio de aceptación:** un modelo subido sobrevive al cierre del navegador, y
 la versión anterior sigue recuperable.

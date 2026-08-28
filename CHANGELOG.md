@@ -5,6 +5,51 @@ Este proyecto sigue [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Añadido — El IDS de partida, medido desde el modelo (`F3.10`, 2026-08-28)
+
+Validar contra un IDS funciona desde `F3.5` y **lo que faltaba era el archivo**: nadie tiene un IDS
+escrito para su obra, y escribirlo a ciegas produce una de dos cosas — un requisito que el modelo ya
+cumple entero, que no dice nada, o uno que no cumple en absoluto, que se ignora desde el primer día.
+Los dos enseñan a no mirar el informe de validación.
+
+Así que **primero se mide.** Una pantalla nueva dice, clase por clase: cuántos elementos hay, qué
+psets aparecen y **en cuántos**. Con esos números el requisito lo decide alguien mirando datos, y el
+criterio va escrito en la propia pantalla —no solo en el código— porque quien decide tiene que poder
+discutir la regla con la que se lo propusieron.
+
+**Se propone lo que está en la franja alta pero incompleta.** 802 de 805 vigas con su pset es una
+brecha real y exigirlo la cierra; cobertura total no hace falta exigirla, y cobertura cero sería
+inventarle al proyecto una obligación que nadie pidió. Y con menos de cinco elementos no se propone
+nada: «tres de cuatro» no es una tendencia, es una anécdota.
+
+Un botón genera el IDS y lo deja como requisito del proyecto. **Cada especificación lleva escrito de
+dónde salió** —«propuesto porque 4 de 5 ya lo traen»— y el archivo lleva su propósito en el
+`purpose`: un requisito que llega sin explicación se firma sin leer o se rechaza entero.
+
+Tres decisiones que vale nombrar:
+
+- **Se exige que el pset exista, no un valor.** Cuál debe ser el valor no lo sabe el modelo ni lo
+  sabe esta función: lo acuerda el mandante. Lo objetivo es que el dato **esté**.
+- **Se declara el esquema del propio modelo**, no uno fijo. Un IDS que dice `IFC4` sobre un archivo
+  IFC2X3 no aplica, y el informe saldría vacío diciendo que cumple — el fallo que `F3.5` ya
+  documentó: «si no aplicó ninguna, no se cumple nada».
+- **Y no se genera un IDS vacío.** Sin especificaciones es inválido según el XSD, así que el botón
+  no se ofrece y el `POST` a mano lo dice en vez de guardar un archivo que ninguna herramienta
+  acepta.
+
+**El oráculo es la librería de otro**, como en el BCF: el archivo se escribe a mano con
+`ElementTree` y se lee de vuelta con `ifctester`. Y una prueba cierra el círculo: **el IDS generado
+valida contra el modelo del que salió**, con 5 aplicables y 1 fallo — la brecha exacta que se quería
+exigir. Es el oráculo que el plan declaró para este bloque.
+
+Dos cosas que corrigió el propio proceso: el XSD rechazó la primera versión y **dijo por qué**
+—`description` es un atributo y no un hijo, y `specification` no acepta `minOccurs`—; y bandit señaló
+un `except: continue` que se tragaba los elementos ilegibles. El arreglo no fue callarlo: se cuentan
+y **se dicen**, porque si fallaron cuatrocientos de ochocientos la cobertura no significa nada y un
+`continue` a secas convierte un archivo roto en una tabla de ceros creíble.
+
+393 pruebas en la API con 94,33% de cobertura, 226 en `bim-core`, gate en verde.
+
 ### Añadido — La coordinación vive dentro del visor (`F4.8`, 2026-08-28)
 
 **Era la mitad que faltaba del ciclo.** La observación se creaba desde el visor —desde la ficha de

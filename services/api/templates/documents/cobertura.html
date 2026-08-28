@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block titulo %}{% translate "What the model carries" %} · AeroBim{% endblock %}
+
+{% block contenido %}
+  <h1>{% translate "What the model carries" %}</h1>
+  <p class="subtitulo">
+    {{ revision.entregable.codigo }} rev. {{ revision.correlativo }} · {{ revision.nombre_original }}
+    <br />
+    {% blocktranslate %}Before requiring anything, this is what the model already has. A requirement
+    written blind is either one the model already meets — which says nothing — or one it does not
+    meet at all, which gets ignored from day one.{% endblocktranslate %}
+  </p>
+
+  {% if medicion.error %}
+    <div class="aviso">{{ medicion.error }}</div>
+  {% else %}
+    <div class="datos">
+      <div class="dato">
+        <div class="cifra">{{ medicion.elementos }}</div>
+        <div class="rotulo">{% translate "Elements" %}</div>
+      </div>
+      <div class="dato">
+        <div class="cifra">{{ medicion.clases|length }}</div>
+        <div class="rotulo">{% translate "Classes" %}</div>
+      </div>
+      <div class="dato {% if candidatos %}bien{% endif %}">
+        <div class="cifra">{{ candidatos }}</div>
+        <div class="rotulo">{% translate "Worth requiring" %}</div>
+      </div>
+      <div class="dato">
+        <div class="cifra">{{ medicion.esquema }}</div>
+        <div class="rotulo">{% translate "Schema" %}</div>
+      </div>
+    </div>
+
+    {% if medicion.ilegibles %}
+      {% comment %}
+        **Si muchos elementos no se pudieron leer, la cobertura de arriba no significa nada.**
+        Callarlo convertiría un archivo roto en una tabla de ceros creíble.
+      {% endcomment %}
+      <div class="aviso">
+        {% blocktranslate with total=medicion.ilegibles %}{{ total }} elements could not be read:
+        their relations are broken in the file. The coverage above counts them as carrying nothing,
+        so treat it with care.{% endblocktranslate %}
+      </div>
+    {% endif %}
+
+    {% comment %}
+      **El criterio va escrito en la pantalla, no solo en el código.** Quien decide un requisito
+      tiene que poder discutir la regla con la que se lo propusieron; si la regla está escondida, o
+      se acepta la lista entera o se descarta entera.
+    {% endcomment %}
+    <p class="subtitulo">
+      {% blocktranslate %}A pset is proposed as a requirement when it appears in most elements of its
+      class but not in all of them: that is a real gap. Full coverage needs no requirement — it is
+      already met. Zero coverage would be inventing an obligation nobody asked for.{% endblocktranslate %}
+    </p>
+
+    {% if candidatos and puede_crear %}
+      <form method="post" action="{% url 'documents:generar-ids' revision.pk %}">
+        {% csrf_token %}
+        <button type="submit">
+          {% blocktranslate count total=candidatos %}Generate a starting IDS with 1
+          requirement{% plural %}Generate a starting IDS with {{ total }}
+          requirements{% endblocktranslate %}
+        </button>
+      </form>
+    {% elif not candidatos %}
+      <div class="vacio">
+        {% blocktranslate %}Nothing to propose: either every class already carries its psets in full,
+        or none carries any. An IDS with no specifications is invalid, so none is
+        generated.{% endblocktranslate %}
+      </div>
+    {% endif %}
+
+    {% for clase in medicion.clases %}
+      <p class="grupo">{{ clase.clase }} · {{ clase.cuantos }}</p>
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">{% translate "Property set" %}</th>
+            <th scope="col" class="num" style="width: 120px">{% translate "Carry it" %}</th>
+            <th scope="col" class="num" style="width: 120px">{% translate "Coverage" %}</th>
+            <th scope="col" style="width: 200px">{% translate "Worth requiring" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for pset in clase.psets %}
+            <tr>
+              <td>{{ pset.nombre }}</td>
+              <td class="num">{{ pset.cuantos }}</td>
+              <td class="num">{{ pset.cobertura|floatformat:"-2" }}</td>
+              <td>
+                {% if pset.candidato %}
+                  <span class="pildora ok">{% translate "yes: real gap" %}</span>
+                {% elif pset.cobertura >= 1 %}
+                  <span class="pildora baja">{% translate "already met" %}</span>
+                {% else %}
+                  <span class="pildora baja">{% translate "too low to require" %}</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="4">
+                {% blocktranslate %}This class carries no property set at all. Many exporters leave
+                them out — it is a checkbox in the exporter, not a problem with the
+                model.{% endblocktranslate %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endfor %}
+
+    {% if medicion.clasesOmitidas %}
+      <p class="subtitulo">
+        {% blocktranslate with total=medicion.clasesOmitidas %}And {{ total }} more classes with
+        fewer elements, left out so the noise does not hide the ones that
+        matter.{% endblocktranslate %}
+      </p>
+    {% endif %}
+  {% endif %}
+
+  <p><a href="{% url 'documents:expediente' revision.entregable_id %}">{% translate "Back" %}</a></p>
+{% endblock %}

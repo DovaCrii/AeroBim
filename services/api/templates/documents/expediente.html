@@ -89,6 +89,17 @@
                 <a href="{% url revision.visor_ruta %}?revision={{ revision.pk }}">
                   {% translate "Open in the viewer" %} →
                 </a>
+                {% comment %}
+                  **Qué trae el modelo, antes de exigirle algo** (`F3.10`). Va junto a «abrir en el
+                  visor» porque son las dos cosas que se hacen con un IFC recién subido: mirarlo y
+                  ver qué datos trae.
+                {% endcomment %}
+                {% if revision.metadatos.esquema %}
+                  <br />
+                  <a href="{% url 'documents:cobertura' revision.pk %}">
+                    {% translate "What it carries" %} →
+                  </a>
+                {% endif %}
               {% endif %}
               <br /><small>sha256 {{ revision.sha256|slice:":12" }}…</small>
 

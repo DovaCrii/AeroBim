@@ -36,6 +36,13 @@ urlpatterns = [
         views.ValidarIdsView.as_view(),
         name="validar-ids",
     ),
+    # Qué trae el modelo, **antes** de exigirle algo, y el IDS de partida que sale de ahí (`F3.10`).
+    path("revisiones/<uuid:pk>/cobertura/", views.CoberturaView.as_view(), name="cobertura"),
+    path(
+        "revisiones/<uuid:pk>/generar-ids/",
+        views.GenerarIdsView.as_view(),
+        name="generar-ids",
+    ),
     path("observaciones/", views.ObservacionesView.as_view(), name="observaciones"),
     path(
         "proyectos/<uuid:pk>/observaciones.bcf",

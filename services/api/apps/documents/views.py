@@ -349,6 +349,124 @@ class ExportarBcfView(ModelViewPermissionRequiredMixin, View):
         )
 
 
+class CoberturaView(ModelViewPermissionRequiredMixin, View):
+    """Qué trae de verdad el modelo, clase por clase, **antes de exigirle algo**. `F3.10`.
+
+    Subir un IDS y validar contra él funciona desde `F3.5`, y lo que faltaba era **el archivo**:
+    nadie tiene un IDS escrito para su obra, y escribirlo a ciegas produce un requisito que el
+    modelo ya cumple entero —que no dice nada— o uno que no cumple en absoluto, que se ignora desde
+    el primer día. Los dos enseñan a no mirar el informe de validación.
+
+    Así que primero se mide, y la pantalla muestra los números: cuántos elementos de cada clase, qué
+    psets aparecen y en cuántos. **El requisito lo decide alguien mirando datos.**
+    """
+
+    model = Revision
+    template_name = "documents/cobertura.html"
+
+    def revision(self, request, pk):
+        revision = revisiones_visibles(request.user).filter(pk=pk).first()
+        if revision is None:
+            raise Http404
+        return revision
+
+    def get(self, request, *args, **kwargs):
+        from django.shortcuts import render
+
+        from apps.documents import cobertura
+
+        revision = self.revision(request, kwargs["pk"])
+        if storage.extension_de(revision.nombre_original) != "ifc":
+            messages.error(request, _("Coverage can only be measured on an IFC model."))
+            return redirect("documents:expediente", pk=revision.entregable_id)
+
+        try:
+            medicion = cobertura.medir(storage.ruta_de(revision.clave_archivo))
+        except (OSError, storage.CargaRechazada) as error:
+            raise Http404 from error
+
+        return render(
+            request,
+            self.template_name,
+            {
+                "revision": revision,
+                "medicion": medicion,
+                # **Cuántos hay que proponer**, para no ofrecer generar un IDS vacío: un archivo sin
+                # especificaciones es inválido y ninguna herramienta lo acepta.
+                "candidatos": sum(
+                    1
+                    for clase in medicion.get("clases", [])
+                    for pset in clase.get("psets", [])
+                    if pset.get("candidato")
+                ),
+                "puede_crear": request.user.has_perm("documents.add_requisitoids"),
+            },
+        )
+
+
+class GenerarIdsView(ModelPermissionRequiredMixin, View):
+    """Genera el IDS de partida desde el modelo y lo deja como requisito del proyecto.
+
+    **Pide `add_requisitoids`**, el mismo permiso que subirlo a mano: es la misma acción —poner el
+    requisito de información del proyecto— y quien puede una puede la otra.
+    """
+
+    model = RequisitoIds
+    permission_action = "add"
+
+    def post(self, request, *args, **kwargs):
+        from apps.documents import cobertura, ids_de_partida
+        from apps.documents.ids import titulo_de_ids
+
+        revision = revisiones_visibles(request.user).filter(pk=kwargs["pk"]).first()
+        if revision is None:
+            raise Http404
+
+        proyecto = revision.entregable.proyecto
+        try:
+            medicion = cobertura.medir(storage.ruta_de(revision.clave_archivo))
+            contenido = ids_de_partida.generar(
+                medicion,
+                titulo=_("Information requirement of %(codigo)s") % {"codigo": proyecto.codigo},
+                autor=(request.user.email or request.user.get_username()),
+            )
+        except ValueError as fallo:
+            # No hay nada que proponer: se dice, en vez de guardar un archivo inválido.
+            messages.error(request, str(fallo))
+            return redirect("documents:cobertura", pk=revision.pk)
+        except (OSError, storage.CargaRechazada) as error:
+            raise Http404 from error
+
+        nombre = f"{proyecto.codigo}-partida.ids"
+        # **Se pasa por la misma validación que un archivo subido a mano.** No es ceremonia: es lo
+        # que calcula el sha con el que se guarda —la clave es el contenido— y así un IDS generado
+        # dos veces desde el mismo modelo no crea dos archivos en el disco.
+        extension, sha = storage.validar(nombre, contenido)
+        clave = storage.clave_para(
+            proyecto_codigo=proyecto.codigo,
+            entregable_codigo=proyecto.codigo,
+            sha256=sha,
+            extension=extension,
+        )
+        storage.guardar(clave, contenido)
+
+        requisito = RequisitoIds.objects.create(
+            organizacion=proyecto.organizacion,
+            proyecto=proyecto,
+            titulo=titulo_de_ids(contenido) or nombre,
+            clave_archivo=clave,
+            nombre_original=nombre,
+            sha256=sha,
+            subido_por=request.user,
+        )
+        set_audit_context(request, requisito, action="generar_ids_de_partida")
+        messages.success(
+            request,
+            _("Starting IDS generated. Review it before agreeing it with the client."),
+        )
+        return redirect("documents:requisitos-ids")
+
+
 class RequisitosIdsView(
     ModelViewPermissionRequiredMixin,
     OrganizacionScopedQuerysetMixin,
