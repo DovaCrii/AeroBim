@@ -89,6 +89,15 @@ export {
 } from "./registro/viewpoint.js";
 
 export {
+  ladoDeVisibilidad,
+  MAXIMO_EXCEPCIONES,
+  seVe,
+  visibilidadBcf,
+  type LadoDeVisibilidad,
+  type VisibilidadBcf,
+} from "./registro/visibilidad.js";
+
+export {
   parseSavedViews,
   readSavedView,
   type SavedCamera,

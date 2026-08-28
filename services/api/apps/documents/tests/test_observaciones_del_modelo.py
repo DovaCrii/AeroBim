@@ -198,3 +198,54 @@ def test_dice_si_este_usuario_puede_abrir_observaciones(client, proyectista, pro
 
     client.force_login(dar(proyectista, "documents.add_observacion"))
     assert client.get(ruta_de(proyecto)).json()["puedeObservar"] is True
+
+
+# --- Que se veia: la visibilidad del viewpoint, `F4.7` -------------------------------
+
+
+@pytest.mark.django_db
+def test_la_visibilidad_guardada_viaja_al_visor(
+    client, proyectista, proyecto, organizacion, revisor
+):
+    """**Es lo que permite que abrir la observacion deje la pantalla como estaba.** Con solo la
+    camara, un hallazgo encontrado aislando una planta se abre con el edificio entero encima: se
+    mira desde el mismo sitio y no se ve lo mismo."""
+    visibilidad = {"porDefecto": False, "excepciones": [GUID]}
+    Observacion.objects.create(
+        organizacion=organizacion,
+        proyecto=proyecto,
+        titulo="Encontrada aislando la planta 5",
+        autor=revisor,
+        responsable=proyectista,
+        prioridad=Observacion.ALTA,
+        ifc_guid=GUID,
+        visibilidad=visibilidad,
+    )
+
+    client.force_login(dar(proyectista, "documents.view_observacion"))
+    datos = client.get(ruta_de(proyecto)).json()
+
+    [una] = datos["observaciones"]
+    assert una["visibilidad"] == visibilidad
+
+
+@pytest.mark.django_db
+def test_una_sin_visibilidad_lo_dice_con_null(client, proyectista, proyecto, organizacion, revisor):
+    """`null` es «sin restriccion», y el visor no toca lo que este apagado: quien la abre sigue
+    viendo lo que tenia. Un diccionario vacio ahi obligaria al visor a distinguir dos formas del
+    mismo estado."""
+    Observacion.objects.create(
+        organizacion=organizacion,
+        proyecto=proyecto,
+        titulo="Sin pantalla que describir",
+        autor=revisor,
+        responsable=proyectista,
+        prioridad=Observacion.BAJA,
+        ifc_guid=GUID,
+    )
+
+    client.force_login(dar(proyectista, "documents.view_observacion"))
+    datos = client.get(ruta_de(proyecto)).json()
+
+    [una] = datos["observaciones"]
+    assert una["visibilidad"] is None

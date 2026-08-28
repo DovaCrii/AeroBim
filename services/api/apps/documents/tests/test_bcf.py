@@ -423,3 +423,74 @@ def test_una_camara_a_medias_guardada_a_mano_no_rompe_la_exportacion(observacion
     # Sin camara, y el ancla intacta: la observacion sigue valiendo.
     assert vista.perspective_camera is None
     assert [c.ifc_guid for c in vista.components.selection.component] == [GUID]
+
+
+# --- Que se veia: la visibilidad del viewpoint, `F4.7` -------------------------------
+
+OTRO_GUID = "1KJm3fT2n9wPz$Lq7BvXcD"
+
+
+@pytest.mark.django_db
+def test_sin_visibilidad_guardada_el_modelo_sale_entero(observacion, tmp_path):
+    """**Es una decision, no una omision**, y la misma que con la camara: una observacion que no
+    viene del visor —de una validacion IDS, de un clic sobre un PDF— no tiene una pantalla que
+    describir. El elemento va seleccionado, no aislado: aislar decidiria por quien revisa que lo
+    demas no importa, y a veces el problema es justamente el vecino."""
+    documento = leer(exportar([observacion], "716-LCD"), tmp_path)
+    [tema] = list(documento.topics.values())
+    vista = list(tema.viewpoints.values())[0].visualization_info
+
+    assert vista.components.visibility.default_visibility is True
+    assert vista.components.visibility.exceptions.component == []
+
+
+@pytest.mark.django_db
+def test_lo_apagado_a_mano_viaja_como_excepcion(observacion, tmp_path):
+    """El caso corriente: se apagan dos elementos que estorban y se anota. `DefaultVisibility` sigue
+    en verdadero —se ve todo— y lo apagado se enumera."""
+    observacion.visibilidad = {"porDefecto": True, "excepciones": [OTRO_GUID]}
+    observacion.save(update_fields=["visibilidad"])
+
+    documento = leer(exportar([observacion], "716-LCD"), tmp_path)
+    [tema] = list(documento.topics.values())
+    vista = list(tema.viewpoints.values())[0].visualization_info
+
+    assert vista.components.visibility.default_visibility is True
+    assert [c.ifc_guid for c in vista.components.visibility.exceptions.component] == [OTRO_GUID]
+
+
+@pytest.mark.django_db
+def test_un_aislamiento_viaja_como_el_lado_corto(observacion, tmp_path):
+    """**Es lo que antes se perdia entero.** Un hallazgo encontrado aislando una planta salia con el
+    edificio completo encima: el BCF afirmaba algo falso y tapaba justo el problema. Aislar se
+    escribe con `DefaultVisibility` en falso y lo que se ve como excepcion."""
+    observacion.visibilidad = {"porDefecto": False, "excepciones": [GUID, OTRO_GUID]}
+    observacion.save(update_fields=["visibilidad"])
+
+    documento = leer(exportar([observacion], "716-LCD"), tmp_path)
+    [tema] = list(documento.topics.values())
+    vista = list(tema.viewpoints.values())[0].visualization_info
+
+    assert vista.components.visibility.default_visibility is False
+    assert [c.ifc_guid for c in vista.components.visibility.exceptions.component] == [
+        GUID,
+        OTRO_GUID,
+    ]
+    # Y el ancla sigue intacta: la visibilidad se suma al elemento, no lo reemplaza.
+    assert [c.ifc_guid for c in vista.components.selection.component] == [GUID]
+
+
+@pytest.mark.django_db
+def test_una_visibilidad_a_medias_guardada_a_mano_no_apaga_el_modelo(observacion, tmp_path):
+    """La base puede traer una escrita por un script. **El fallo que hay que evitar es el peor
+    posible**: `DefaultVisibility="false"` con la lista vacia es un viewpoint que se abre en negro,
+    y el problema no se ve por culpa del archivo que venia a mostrarlo."""
+    observacion.visibilidad = {"porDefecto": False, "excepciones": []}
+    observacion.save(update_fields=["visibilidad"])
+
+    documento = leer(exportar([observacion], "716-LCD"), tmp_path)
+    [tema] = list(documento.topics.values())
+    vista = list(tema.viewpoints.values())[0].visualization_info
+
+    assert vista.components.visibility.default_visibility is True
+    assert vista.components.visibility.exceptions.component == []

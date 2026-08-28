@@ -164,5 +164,12 @@ export function urlDeNuevaObservacion(
     partes.push(`camara=${encodeURIComponent(JSON.stringify(camera))}`);
   }
 
+  // **La visibilidad (`F4.7`) no viaja por acá, y es una decisión.** Una cámara son doscientos
+  // caracteres; la visibilidad puede ser una lista de miles de GUID, y los navegadores y los proxys
+  // cortan las URL largas **sin avisar** — la observación se abriría con media lista y describiría
+  // una pantalla que nadie vio. Va por el cuerpo del POST, que es el camino de la tarjeta flotante;
+  // este enlace abre el formulario de página completa, y esa nota sale sin restricción de
+  // visibilidad, que es lo mismo que hacía antes de que `F4.7` existiera.
+
   return `/documentos/entregables/${origin.entregableId}/observar/?${partes.join("&")}`;
 }

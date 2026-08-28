@@ -1,4 +1,8 @@
-import { camaraBcfDesdeEscena, type SceneCameraState } from "@aerobim/bim-core";
+import {
+  camaraBcfDesdeEscena,
+  type SceneCameraState,
+  type VisibilidadBcf,
+} from "@aerobim/bim-core";
 import type { PickedItem } from "@aerobim/viewer";
 import { useEffect, useRef, useState } from "react";
 import { cabecerasDeEscritura } from "../csrf.js";
@@ -45,6 +49,7 @@ export function NotaFlotante({
   item,
   revisionId,
   camaraDeAhora,
+  visibilidadDeAhora,
   onCerrar,
   onGuardada,
 }: {
@@ -53,6 +58,14 @@ export function NotaFlotante({
   readonly revisionId: string;
   /** La cámara de este instante. Se lee al abrir la tarjeta, no al seleccionar. */
   readonly camaraDeAhora: () => SceneCameraState | null;
+  /**
+   * Qué se está viendo ahora mismo, en GUID y en la forma de un viewpoint. `F4.7`.
+   *
+   * Se lee igual que la cámara —al guardar, no al seleccionar—, y por el mismo motivo: entre elegir
+   * el elemento y escribir la nota uno apaga lo que estorba, y eso es parte de lo que hay que
+   * contar.
+   */
+  readonly visibilidadDeAhora: () => Promise<VisibilidadBcf | null>;
   readonly onCerrar: () => void;
   readonly onGuardada: (nota: NotaGuardada) => void;
 }) {
@@ -107,6 +120,10 @@ export function NotaFlotante({
     // nota uno gira para verlo mejor, y el punto de vista que hay que guardar es el de ahora.
     const escena = camaraDeAhora();
     const camara = escena === null ? null : camaraBcfDesdeEscena(escena);
+    // **Y qué se estaba viendo**, que es la otra mitad del punto de vista. Sin esto, una nota
+    // tomada aislando una planta sale en el BCF con el edificio entero y el problema tapado por lo
+    // que precisamente se había apagado.
+    const visibilidad = await visibilidadDeAhora();
 
     try {
       const respuesta = await fetch(`/api/revisiones/${revisionId}/observaciones/`, {
@@ -119,6 +136,7 @@ export function NotaFlotante({
           prioridad,
           guid: item.guid ?? "",
           camara: camara === null ? null : JSON.stringify(camara),
+          visibilidad: visibilidad === null ? null : JSON.stringify(visibilidad),
         }),
       });
 

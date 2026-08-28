@@ -197,6 +197,7 @@ class ObservacionesDeRevisionAPI(APIView):
 
         from apps.documents.camara import leer as leer_camara
         from apps.documents.notify import avisar_asignacion
+        from apps.documents.visibilidad import leer as leer_visibilidad
 
         revision = revisiones_visibles(request.user).filter(pk=kwargs["pk"]).first()
         if revision is None:
@@ -230,6 +231,10 @@ class ObservacionesDeRevisionAPI(APIView):
             # La cámara llega ya en el sistema del IFC —la convierte el visor— y se valida igual
             # que en el formulario. Una cámara mala se descarta y la nota se guarda sin ella.
             punto_de_vista=leer_camara(request.data.get("camara")) if guid else {},
+            # **Y qué se estaba viendo**, no solo desde dónde — `F4.7`. Sin esto, una observación
+            # encontrada aislando una planta salía en el BCF con el modelo entero a la vista, o sea
+            # con el problema tapado por lo que precisamente se había apagado.
+            visibilidad=leer_visibilidad(request.data.get("visibilidad")) if guid else {},
         )
         observacion.save()
         set_audit_context(request, observacion, action="abrir_observacion")
@@ -389,6 +394,11 @@ class ObservacionesDelModeloAPI(APIView):
                         # —con su prueba— de la que la escribió. Convertir acá pondría la misma
                         # regla en dos sitios, que es como se separan.
                         "camara": o.punto_de_vista or None,
+                        # **Y qué se veía** — `F4.7`. Es lo que permite que abrir la observación
+                        # deje la pantalla como la tenía quien la escribió, y no solo la cámara: un
+                        # hallazgo encontrado aislando una planta no se entiende con el edificio
+                        # entero encima, aunque se mire desde el mismo sitio.
+                        "visibilidad": o.visibilidad or None,
                         "url": o.get_absolute_url(),
                     }
                     for o in observaciones

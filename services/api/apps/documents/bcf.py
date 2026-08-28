@@ -213,6 +213,41 @@ def _camara(raiz: ET.Element, camara: dict) -> None:
         ET.SubElement(nodo, "ViewToWorldScale").text = repr(escala)
 
 
+def _visibilidad(componentes: ET.Element, guardada: dict) -> None:
+    """Que se veia cuando se abrio la observacion. `F4.7`.
+
+    **Sin dato se escribe el modelo entero, y eso es lo correcto.** Una observacion que no viene del
+    visor —de una validacion IDS, de un clic sobre un PDF— no tiene una pantalla que describir, y el
+    elemento va **seleccionado, no aislado**: aislar decidiria por quien revisa que lo demas no
+    importa, y a veces el problema es justamente el vecino.
+
+    Con dato se escribe lo que se estaba viendo. El sentido de `DefaultVisibility` no se decide
+    aca: lo trae el propio dato, calculado en `bim-core` eligiendo el lado que produce menos
+    componentes, y validado al entrar por `visibilidad.py`.
+
+    **`Exceptions` va siempre**, incluso vacio: el XSD de BCF 2.1 lo declara dentro de `Visibility`,
+    y un lector estricto rechaza el viewpoint sin el.
+    """
+    por_defecto = guardada.get("porDefecto")
+    excepciones = guardada.get("excepciones")
+
+    # Se comprueba todo antes de escribir nada, por la misma leccion que la camara: una visibilidad
+    # a medias dejaria un `Visibility` invalido y `bcf-client` se niega a leer el archivo entero.
+    utiles: list[str] = []
+    if isinstance(por_defecto, bool) and isinstance(excepciones, list):
+        utiles = [guid for guid in excepciones if isinstance(guid, str) and guid]
+
+    if not utiles:
+        por_defecto = True
+
+    nodo = ET.SubElement(
+        componentes, "Visibility", {"DefaultVisibility": "true" if por_defecto else "false"}
+    )
+    salida = ET.SubElement(nodo, "Exceptions")
+    for guid in utiles:
+        ET.SubElement(salida, "Component", {"IfcGuid": guid})
+
+
 def _viewpoint(observacion, tema: str) -> str:
     """El punto de vista: el elemento seleccionado, y **la camara solo si alguien la eligio**.
 
@@ -223,11 +258,7 @@ def _viewpoint(observacion, tema: str) -> str:
     componentes = ET.SubElement(raiz, "Components")
     seleccion = ET.SubElement(componentes, "Selection")
     ET.SubElement(seleccion, "Component", {"IfcGuid": observacion.ifc_guid})
-    # `Visibility` con `DefaultVisibility` en verdadero: se ve el modelo entero y **el elemento va
-    # seleccionado, no aislado**. Aislar decidiria por quien revisa que lo demas no importa, y a
-    # veces el problema es justamente el vecino.
-    visibilidad = ET.SubElement(componentes, "Visibility", {"DefaultVisibility": "true"})
-    ET.SubElement(visibilidad, "Exceptions")
+    _visibilidad(componentes, getattr(observacion, "visibilidad", None) or {})
 
     # **Despues de `Components`, no antes**: el XSD de BCF 2.1 declara la secuencia
     # `Components`, `OrthogonalCamera`, `PerspectiveCamera`, y un lector estricto rechaza el

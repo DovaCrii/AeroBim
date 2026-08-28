@@ -15,7 +15,10 @@ import {
   countIfcEntities,
   distancePartsM,
   ifcAEscena,
+  ladoDeVisibilidad,
   parseIfcGrids,
+  seVe,
+  visibilidadBcf,
   emptyElementClasses,
   isIfcGuid,
   looksNumeric,
@@ -36,6 +39,7 @@ import {
   type SceneCameraState,
   type ViewNavigation,
   type ViewProjection,
+  type VisibilidadBcf,
 } from "@aerobim/bim-core";
 import * as OBC from "@thatopen/components";
 import * as OBF from "@thatopen/components-front";
@@ -89,6 +93,7 @@ export type {
   SavedSection,
   SavedView,
   SceneCameraState,
+  VisibilidadBcf,
 } from "@aerobim/bim-core";
 
 /**
@@ -2586,8 +2591,14 @@ export class BimViewer {
   async abrirObservacion(
     guid: string,
     camara: BcfCamera | null = null,
+    visibilidad: VisibilidadBcf | null = null,
   ): Promise<PickedItem | null> {
     this.assertAlive();
+
+    // **La visibilidad va primero, antes de la cámara y antes de buscar el elemento.** Es lo que
+    // hace que el encuadre siguiente se calcule sobre lo que de verdad va a quedar en pantalla, y
+    // además evita el parpadeo de ver el modelo entero y que se apague medio segundo después.
+    if (visibilidad !== null) await this.applyVisibilityBcf(visibilidad);
 
     // **La cámara se aplica aunque el elemento no esté**, y en este orden. Si la observación es de
     // un modelo que no está abierto, llevar la vista al sitio del problema sigue sirviendo: se ve
@@ -3589,6 +3600,96 @@ export class BimViewer {
       if (ocultos !== undefined && ocultos.length > 0) await model.setVisible([...ocultos], false);
     }
     await this.refresh();
+  }
+
+  /**
+   * Qué se está viendo ahora mismo, **en GUID y en la forma de un viewpoint de BCF**. `F4.7`.
+   *
+   * Es lo que faltaba para que una observación diga la verdad fuera de acá. {@link captureVisibility}
+   * ya sabía qué está apagado, pero lo dice en `localId` —el identificador del motor—, que sirve
+   * para una vista de trabajo y **no sirve para un BCF**: cambia entre versiones del modelo y entre
+   * herramientas, así que un viewpoint anclado a él queda huérfano en la siguiente exportación.
+   *
+   * **La cuenta va antes que la traducción, y por eso se pregunta dos veces al modelo.** Resolver un
+   * GUID cuesta una consulta por elemento; sabiendo primero cuántos hay de cada lado, se traduce
+   * solo el lado que se va a escribir. Con tres vigas apagadas de veinte mil elementos son tres
+   * búsquedas y no veinte mil.
+   *
+   * Devuelve `null` cuando no hay nada que afirmar —el modelo entero a la vista— o cuando ni
+   * siquiera el lado corto cabe en un viewpoint razonable. Las dos son respuestas normales: quien
+   * llama no escribe visibilidad, que es exactamente lo que hacía antes de que esto existiera.
+   */
+  async captureVisibilityBcf(): Promise<VisibilidadBcf | null> {
+    this.assertAlive();
+
+    const ocultosPorModelo: { model: FRAGS.FragmentsModel; ids: number[] }[] = [];
+    const visiblesPorModelo: { model: FRAGS.FragmentsModel; ids: number[] }[] = [];
+    let ocultos = 0;
+    let visibles = 0;
+
+    for (const [, model] of this.fragments.list) {
+      const apagados = await model.getItemsByVisibility(false);
+      const encendidos = await model.getItemsByVisibility(true);
+      ocultosPorModelo.push({ model, ids: apagados });
+      visiblesPorModelo.push({ model, ids: encendidos });
+      ocultos += apagados.length;
+      visibles += encendidos.length;
+    }
+
+    const lado = ladoDeVisibilidad(ocultos, visibles);
+    if (lado === null) return null;
+
+    const elegidos = lado === "ocultos" ? ocultosPorModelo : visiblesPorModelo;
+    const guids: (string | null)[] = [];
+    for (const { model, ids } of elegidos) {
+      if (ids.length === 0) continue;
+      guids.push(...(await model.getGuidsByLocalIds(ids)));
+    }
+
+    return visibilidadBcf(lado, guids);
+  }
+
+  /**
+   * Deja la pantalla como estaba quien anotó, leyendo la visibilidad de una observación. `F4.7`.
+   *
+   * **Lo que no está abierto no es un fallo.** Una observación puede haberse tomado con estructura
+   * y arquitectura a la vista y abrirse hoy con una sola: lo que hay se ajusta y lo que falta se
+   * ignora, igual que al aplicar una vista guardada.
+   *
+   * Devuelve cuántos elementos quedaron apagados, que es lo que permite decirlo en pantalla — «se
+   * apagaron 340 elementos para dejarlo como estaba» — en vez de que la vista cambie sola sin
+   * explicación.
+   */
+  async applyVisibilityBcf(visibilidad: VisibilidadBcf): Promise<number> {
+    this.assertAlive();
+
+    let apagados = 0;
+    for (const [, model] of this.fragments.list) {
+      // **Se parte del modelo entero encendido.** Sin esto, aplicar una observación encima de otra
+      // acumula lo apagado por las dos y la vista deja de ser la que dice el viewpoint.
+      await model.setVisible(undefined, true);
+
+      const todos = await model.getLocalIds();
+      if (todos.length === 0) continue;
+      const guids = await model.getGuidsByLocalIds(todos);
+
+      const ocultar: number[] = [];
+      todos.forEach((localId, i) => {
+        const guid = guids[i];
+        // Un elemento sin GUID no puede estar nombrado en el viewpoint, así que le toca el valor
+        // por defecto — que es lo mismo que le pasaría a cualquier elemento no enumerado.
+        const visible = typeof guid === "string" ? seVe(visibilidad, guid) : visibilidad.porDefecto;
+        if (!visible) ocultar.push(localId);
+      });
+
+      if (ocultar.length > 0) {
+        await model.setVisible(ocultar, false);
+        apagados += ocultar.length;
+      }
+    }
+
+    await this.refresh();
+    return apagados;
   }
 
   /** Cuántos aislamientos hay sin deshacer. Cero significa que no se está mirando nada aislado. */

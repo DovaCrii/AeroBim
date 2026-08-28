@@ -319,6 +319,15 @@ export function App() {
    */
   const [isolations, setIsolations] = useState<readonly HiddenState[]>([]);
   /**
+   * `true` si lo que está apagado lo apagó **el punto de vista de una observación**. `F4.7`.
+   *
+   * Hace falta un estado propio porque esa visibilidad no pasa por ninguno de los conjuntos de
+   * arriba: llega en GUID desde el registro y la aplica el visor de una vez. Sin esto, `hasHidden`
+   * daría `false` con medio modelo apagado y **la barra de estado no ofrecería la vuelta**, que es
+   * exactamente el caso que ya costó una sesión aprender aislando desde la ficha.
+   */
+  const [visibilidadDeObservacion, setVisibilidadDeObservacion] = useState(false);
+  /**
    * De qué revisión del registro salió lo que está abierto, o `null` si es un archivo del disco.
    *
    * **Es lo que permite abrir una observación desde el visor** (`F4.1`): una observación cuelga de un
@@ -1130,6 +1139,7 @@ export function App() {
     setHiddenModels(new Set());
     setHiddenElements(new Set());
     setIsolations([]);
+    setVisibilidadDeObservacion(false);
     void viewer.current?.showAll();
 
     for (const plan of plans) {
@@ -1180,7 +1190,8 @@ export function App() {
     hiddenModels.size > 0 ||
     hiddenElements.size > 0 ||
     hiddenPlans.size > 0 ||
-    hiddenPlanLayers.size > 0;
+    hiddenPlanLayers.size > 0 ||
+    visibilidadDeObservacion;
 
   /**
    * A dónde lleva «Observar» con este elemento seleccionado, o `null` si no lleva a ninguna parte.
@@ -1235,7 +1246,18 @@ export function App() {
     const instancia = viewer.current;
     if (instancia === null) return false;
 
-    const encontrado = await instancia.abrirObservacion(observacion.guid, observacion.camara);
+    const encontrado = await instancia.abrirObservacion(
+      observacion.guid,
+      observacion.camara,
+      observacion.visibilidad,
+    );
+
+    // **Lo apagado por el viewpoint se anota aunque el elemento no aparezca.** La visibilidad se
+    // aplica antes de buscarlo —así el encuadre se calcula sobre lo que va a quedar en pantalla— y
+    // si la fila se descarta acá sin registrarlo, la barra de estado no ofrece la vuelta y medio
+    // modelo queda apagado sin nada que diga por qué. Es la misma lección de `F1.5`.
+    if (observacion.visibilidad !== null) setVisibilidadDeObservacion(true);
+
     if (encontrado === null) return false;
 
     setSelected(encontrado);
@@ -1527,6 +1549,9 @@ export function App() {
               item={selected}
               revisionId={origen.revisionId}
               camaraDeAhora={() => viewer.current?.cameraState ?? null}
+              visibilidadDeAhora={async () =>
+                (await viewer.current?.captureVisibilityBcf()) ?? null
+              }
               onCerrar={() => setNotaAbierta(false)}
               onGuardada={() => setNotasGuardadas((cuantas) => cuantas + 1)}
             />

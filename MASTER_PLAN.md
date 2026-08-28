@@ -1333,6 +1333,7 @@ una captura de pantalla.
 | #      | Tarea                                                                                  | Estado |
 | ------ | -------------------------------------------------------------------------------------- | ------ |
 | `F4.1` | Temas de observación con viewpoint: **cámara** y elementos involucrados por GUID       | ✅     |
+| `F4.7` | Visibilidad en el viewpoint: lo apagado y lo aislado, traducido de `localId` a GUID    | ✅     |
 | `F4.8` | **Ver y abrir la observación dentro del visor**: la lista lleva la cámara y selecciona | ✅     |
 | `F4.2` | Metadatos y ciclo de vida: prioridad, responsable, fecha de vencimiento, estado        | ✅     |
 | `F4.3` | Comentarios ligados al viewpoint, con historial                                        | ✅     |
@@ -1344,7 +1345,7 @@ observaciones comparten modelo con los temas BCF», `F8.2`— y salió: `Observa
 prioridad, responsable, vencimiento, estado y resolución, y `Comentario` el historial. No hay
 tabla nueva que escribir; el tablero decía ⬜ sobre código que existe desde hace días.
 
-**`F4.1`: el ancla por GUID y la cámara están; lo que queda es la visibilidad.**
+**`F4.1`: el ancla por GUID, la cámara y —desde `F4.7`— la visibilidad.**
 
 Con un modelo abierto desde el registro, la ficha del elemento ofrece «Observar este elemento»
 y lleva al formulario con la revisión, el GUID y **el punto de vista de ese momento**. El
@@ -1374,16 +1375,68 @@ pasar el eje vertical del mundo, y con la cámara en planta —lo que hace el Mo
 paralelo a la dirección de vista: una cámara imposible que BCF rechaza. Leyéndolo no hay
 convención que elegir ni caso degenerado que resolver a dedo.
 
-Lo que falta: **la visibilidad**. Hoy el viewpoint dice «el modelo entero, con este elemento
-seleccionado», que es una afirmación cierta y deliberada —aislar decidiría por quien revisa que
-lo demás no importa, y a veces el problema es justamente el vecino—. Llevar lo que estaba
-apagado exige traducir identificadores del motor a GUID, que es justo lo que
-[savedView.ts:50](packages/bim-core/src/views/savedView.ts) dejó anotado: su clave **no sirve**
-para un viewpoint BCF. Queda como `F4.7`.
+| #      | Tarea                                                                               | Estado       |
+| ------ | ----------------------------------------------------------------------------------- | ------------ |
+| `F4.7` | Visibilidad en el viewpoint: lo apagado y lo aislado, traducido de `localId` a GUID | ✅ ver abajo |
 
-| #      | Tarea                                                                               | Estado |
-| ------ | ----------------------------------------------------------------------------------- | ------ |
-| `F4.7` | Visibilidad en el viewpoint: lo apagado y lo aislado, traducido de `localId` a GUID | ⬜     |
+### `F4.7` cerrada: el viewpoint decía «se ve todo» y a veces era falso (2026-08-28)
+
+**Era la otra mitad del punto de vista.** `F4.1` cerró la cámara —desde dónde se miraba— y el BCF
+seguía saliendo con `DefaultVisibility="true"` y las excepciones vacías. Con la nota tomada sobre un
+modelo entero eso es cierto; **con el hallazgo encontrado aislando una planta es una afirmación
+falsa**, y de la peor clase: quien abre el archivo en Solibri ve el edificio completo con el
+problema tapado justo por lo que se había apagado para verlo.
+
+**BCF no guarda «lo que se ve»: guarda un valor por defecto y sus excepciones**, y los dos lados
+describen la misma pantalla.
+
+| `DefaultVisibility` | Qué significa                                           |
+| ------------------- | ------------------------------------------------------- |
+| `true`              | Se ve todo **menos** los componentes de `Exceptions`    |
+| `false`             | No se ve nada **salvo** los componentes de `Exceptions` |
+
+Lo que cambia entre los dos es **cuántos componentes hay que escribir**, y ahí está la única
+decisión de fondo: **se escribe el lado corto**. Apagando tres vigas de un modelo de veinte mil
+elementos, el lado `true` escribe tres líneas y el `false` escribiría 19 997; aislando una planta es
+al revés. La regla vive en `bim-core` con sus pruebas, y **recibe cuentas y no listas a propósito**:
+resolver un GUID cuesta una consulta por elemento, así que el visor cuenta primero y **traduce solo
+el lado que va a escribir**. Tres búsquedas en vez de veinte mil.
+
+**Y hay un tope de 5.000 excepciones**, que no es del formato —BCF no pone ninguno— sino el punto en
+que el archivo deja de ser útil. Pasado el tope por los dos lados no se escribe visibilidad y el
+viewpoint vuelve al modelo entero, que **es lo honesto**: uno que ningún visor termina de leer no
+informa de nada. El mismo número está en `apps/documents/visibilidad.py`, que es quien lo hace
+cumplir de verdad — lo que llega al servidor lo escribe cualquiera, igual que la cámara.
+
+**El peor archivo posible se comprueba explícitamente**: `DefaultVisibility="false"` con la lista
+vacía es un viewpoint que **apaga el modelo entero y se abre en negro**. El validador lo descarta,
+el exportador lo reescribe como modelo entero, y las dos cosas tienen su prueba.
+
+**Va en su propio campo y no dentro de `punto_de_vista`.** Son dos datos con vidas distintas: la
+cámara se descarta entera si un vector no es unitario, la visibilidad se limpia excepción por
+excepción. Mezclados, una cámara mala se llevaría por delante la visibilidad buena.
+
+**Y también vuelve.** Abrir la observación desde el panel de coordinación aplica la visibilidad
+**antes** de la cámara —así el encuadre se calcula sobre lo que va a quedar en pantalla, y no hay
+parpadeo de ver el modelo entero y que se apague medio segundo después—. Lo apagado por el viewpoint
+se anota en el estado de la aplicación aunque el elemento no aparezca: sin eso, `hasHidden` daría
+`false` con medio modelo apagado y la barra de estado no ofrecería la vuelta.
+
+**Lo que no viaja por la URL, y es una decisión.** `urlDeNuevaObservacion` —el formulario de página
+completa— lleva la cámara y **no** la visibilidad: una cámara son doscientos caracteres y una
+visibilidad puede ser miles de GUID, y los navegadores y los proxys cortan las URL largas **sin
+avisar**. Iría por el cuerpo del POST, que es el camino de la tarjeta flotante.
+
+**Comprobado de las dos formas.** El archivo, con `bcf-client` —el lector de buildingSMART— leyendo
+de vuelta los cuatro casos: sin dato, lo apagado a mano, el aislamiento y la visibilidad a medias. Y
+el viaje de ida y vuelta en el navegador sobre `Piso 5.ifc`, 564 elementos:
+
+- Tres apagados → `porDefecto: true` con tres GUID → "Ver todo" (cero ocultos) → aplicar → **los
+  mismos tres**.
+- Un elemento aislado → 563 ocultos y 1 visible → elige el lado corto, `porDefecto: false` con **un**
+  GUID → aplicar → exactamente ese elemento a la vista.
+
+**425 pruebas en la API con 94,28 % de cobertura y 240 en `bim-core`**, gate en verde.
 
 **Y la importación quedó fuera de `F4.4` a propósito**, así que la fila dice «Exportar» y no
 «Exportar e importar». Exportar es lo que desbloquea al mandante hoy; importar exige decidir

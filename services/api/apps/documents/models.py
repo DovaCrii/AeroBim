@@ -427,6 +427,14 @@ class Observacion(BaseModel):
     # `AGENTS.md`— y es lo que viaja en un BCF.
     ifc_guid = models.CharField(max_length=22, blank=True, db_index=True)
     punto_de_vista = models.JSONField(default=dict, blank=True)
+    # **Que se estaba viendo, no solo desde donde** — `F4.7`. Va en su propio campo y no dentro de
+    # `punto_de_vista` porque son dos datos con vidas distintas: la camara se descarta entera si un
+    # vector no es unitario, y la visibilidad se limpia excepcion por excepcion. Mezclados, una
+    # camara mala se llevaria por delante la visibilidad buena.
+    #
+    # La forma es la de un `Visibility` de BCF: `{"porDefecto": bool, "excepciones": [guid, ...]}`.
+    # Vacio significa **sin restriccion**, que es lo que el exportador escribia siempre.
+    visibilidad = models.JSONField(default=dict, blank=True)
 
     class Meta:
         verbose_name = _("observation")

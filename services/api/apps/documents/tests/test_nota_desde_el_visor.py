@@ -287,3 +287,58 @@ def test_al_asignarla_a_otro_si_se_avisa(client, proyectista, revision_ifc, revi
 
     assert len(mailoutbox) == 1
     assert revisor.email in mailoutbox[0].to
+
+
+# --- Que se veia: la visibilidad del viewpoint, `F4.7` -------------------------------
+
+VISIBILIDAD = {"porDefecto": False, "excepciones": [GUID]}
+
+
+@pytest.mark.django_db
+def test_la_visibilidad_queda_guardada_con_la_camara(client, proyectista, revision_ifc):
+    """**La camara sola no basta.** Un hallazgo encontrado aislando una planta no se entiende con el
+    edificio entero encima, aunque se mire desde el mismo sitio: el BCF salia afirmando que se veia
+    todo y tapaba justo el problema."""
+    client.force_login(dar(proyectista, "documents.add_observacion"))
+
+    respuesta = client.post(
+        ruta_de(revision_ifc),
+        nota(camara=json.dumps(CAMARA), visibilidad=json.dumps(VISIBILIDAD)),
+        content_type="application/json",
+    )
+
+    guardada = Observacion.objects.get(pk=respuesta.json()["id"])
+    assert guardada.punto_de_vista == CAMARA
+    assert guardada.visibilidad == VISIBILIDAD
+
+
+@pytest.mark.django_db
+def test_una_visibilidad_mala_no_impide_guardar_el_hallazgo(client, proyectista, revision_ifc):
+    """Mismo criterio que con la camara: lo que hay que conservar es el hallazgo. Quien escribe la
+    nota no compuso esa cadena."""
+    client.force_login(dar(proyectista, "documents.add_observacion"))
+
+    respuesta = client.post(
+        ruta_de(revision_ifc),
+        nota(visibilidad='{"porDefecto": "si"}'),
+        content_type="application/json",
+    )
+
+    assert respuesta.status_code == 201
+    assert Observacion.objects.get(pk=respuesta.json()["id"]).visibilidad == {}
+
+
+@pytest.mark.django_db
+def test_sin_guid_no_se_guarda_visibilidad(client, proyectista, revision_ifc):
+    """Una nota sin ancla en el modelo **no tiene viewpoint**, asi que describir una pantalla no
+    dice nada de ella: la visibilidad se guarda solo cuando hay elemento al que acompanar."""
+    client.force_login(dar(proyectista, "documents.add_observacion"))
+
+    respuesta = client.post(
+        ruta_de(revision_ifc),
+        {"titulo": "Algo de esta revision", "guid": "", "visibilidad": json.dumps(VISIBILIDAD)},
+        content_type="application/json",
+    )
+
+    assert respuesta.status_code == 201
+    assert Observacion.objects.get(pk=respuesta.json()["id"]).visibilidad == {}

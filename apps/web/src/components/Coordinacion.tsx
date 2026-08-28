@@ -1,4 +1,4 @@
-import type { BcfCamera } from "@aerobim/bim-core";
+import type { BcfCamera, VisibilidadBcf } from "@aerobim/bim-core";
 import { useCallback, useEffect, useState } from "react";
 
 /** Una observación anclada al modelo, tal como la manda el registro. */
@@ -13,6 +13,13 @@ export interface ObservacionDelModelo {
   readonly vence: string | null;
   readonly vencida: boolean;
   readonly camara: BcfCamera | null;
+  /**
+   * Qué se veía cuando se anotó, o `null` si no se guardó ninguna restricción.
+   *
+   * **La cámara sola no basta**: un hallazgo encontrado aislando una planta no se entiende con el
+   * edificio entero encima, aunque se mire desde el mismo sitio.
+   */
+  readonly visibilidad: VisibilidadBcf | null;
   readonly url: string;
 }
 
