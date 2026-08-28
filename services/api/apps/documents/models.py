@@ -156,8 +156,16 @@ class Entregable(BaseModel):
 
     @property
     def observaciones_abiertas(self):
+        """Las que todavia piden trabajo sobre este entregable.
+
+        **Descartada tambien queda fuera**, y antes no: excluia solo `CERRADA`, asi que una
+        observacion que alguien descarto seguia contando como pendiente. El resto del codigo
+        —`notify.py`, la lista de observaciones y `esta_vencida`— excluye las dos, y esta era la
+        unica que discrepaba. No lo delato ninguna prueba porque **la propiedad no la usaba nadie**;
+        la estrena la pantalla del proyecto.
+        """
         return Observacion.objects.filter(revision__entregable=self).exclude(
-            estado=Observacion.CERRADA
+            estado__in=[Observacion.CERRADA, Observacion.DESCARTADA]
         )
 
     @property

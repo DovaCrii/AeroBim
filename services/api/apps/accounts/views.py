@@ -40,6 +40,13 @@ class PortalView(LoginRequiredMixin, TemplateView):
         return [
             (
                 _("Project"),
+                _("Projects"),
+                "projects:proyectos",
+                "projects.view_proyecto",
+                _("The works. Where the work continues, project by project."),
+            ),
+            (
+                _("Project"),
                 _("Organisations"),
                 "core:organizaciones",
                 "core.view_organizacion",

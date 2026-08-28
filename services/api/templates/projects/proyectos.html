@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block titulo %}{% translate "Projects" %} · AeroBim{% endblock %}
+
+{% block contenido %}
+  <h1>{% translate "Projects" %}</h1>
+  <p class="subtitulo">
+    {% blocktranslate %}The works. Every deliverable, observation and model hangs off one of
+    these.{% endblocktranslate %}
+    {% for clave, etiqueta in etapas %}
+      <a href="?etapa={{ clave }}">{{ etiqueta }}</a> ·
+    {% endfor %}
+    <a href="{% url 'projects:proyectos' %}">{% translate "All" %}</a>
+    {% if puede_crear %}
+      · <a href="{% url 'projects:nuevo-proyecto' %}">{% translate "New project" %}</a>
+    {% endif %}
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">{% translate "Code" %}</th>
+        <th scope="col">{% translate "Name" %}</th>
+        <th scope="col">{% translate "Client" %}</th>
+        <th scope="col">{% translate "Stage" %}</th>
+        <th scope="col">{% translate "Progress" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for proyecto in proyectos %}
+        <tr>
+          <td><a href="{% url 'projects:proyecto' proyecto.pk %}">{{ proyecto.codigo }}</a></td>
+          <td>{{ proyecto.nombre }}</td>
+          <td>{{ proyecto.cliente|default:"—" }}</td>
+          <td>{{ proyecto.get_status_display }}</td>
+          {# El avance es la suma del peso de cada entregable por el de su revision vigente:
+             se puede auditar entregable por entregable, y no es un numero que alguien teclea. #}
+          <td>{{ proyecto.avance_fisico|floatformat:"-2" }}</td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="5">
+            {% if puede_crear %}
+              {% blocktranslate %}No project yet. Create the first one to start
+              registering.{% endblocktranslate %}
+            {% else %}
+              {% translate "No project registered yet." %}
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% include "generic/_paginacion.html" %}
+{% endblock %}

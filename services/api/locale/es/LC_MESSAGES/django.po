@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-26 12:31-0400\n"
+"POT-Creation-Date: 2026-08-28 09:15-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,1074 +17,1065 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
 #: .\apps\accounts\apps.py:8
 msgid "Accounts"
-msgstr ""
+msgstr "Cuentas"
 
 #: .\apps\accounts\roles.py:31
 msgid "Everything, including system administration."
 msgstr "Todo, incluida la administración del sistema."
 
-
 #: .\apps\accounts\roles.py:33
 msgid ""
 "Creates projects and deliverables, assigns owners, issues transmittals, "
 "closes observations."
-msgstr "Crea proyectos y entregables, asigna responsables, emite transmittals y cierra observaciones."
-
+msgstr ""
+"Crea proyectos y entregables, asigna responsables, emite transmittals y "
+"cierra observaciones."
 
 #: .\apps\accounts\roles.py:36
 msgid "Uploads revisions of their own deliverables and answers observations."
 msgstr "Sube revisiones de sus propios entregables y responde observaciones."
 
-
 #: .\apps\accounts\roles.py:37
 msgid "Opens and grades observations, changes a revision's suitability code."
-msgstr "Abre y califica observaciones, y cambia el código de idoneidad de una revisión."
-
+msgstr ""
+"Abre y califica observaciones, y cambia el código de idoneidad de una "
+"revisión."
 
 #: .\apps\accounts\roles.py:38
 msgid "Reads published deliverables, downloads them and comments."
 msgstr "Lee los entregables publicados, los descarga y comenta."
 
-
 #: .\apps\accounts\roles.py:39
 msgid "Not a role: notification group for the executive summary."
 msgstr "No es un rol: grupo de notificación para el resumen ejecutivo."
 
-
-#: .\apps\accounts\views.py:42
+#: .\apps\accounts\views.py:42 .\apps\accounts\views.py:49
+#: .\templates\documents\requisitos_ids.html:22
 msgid "Project"
 msgstr "Proyecto"
 
+#: .\apps\accounts\views.py:43 .\apps\projects\apps.py:8
+#: .\templates\projects\proyectos.html:4 .\templates\projects\proyectos.html:7
+msgid "Projects"
+msgstr "Proyectos"
 
-#: .\apps\accounts\views.py:43 .\templates\accounts\organizaciones.html:4
+#: .\apps\accounts\views.py:46
+msgid "The works. Where the work continues, project by project."
+msgstr "Las obras. Donde sigue el trabajo, proyecto por proyecto."
+
+#: .\apps\accounts\views.py:50 .\templates\accounts\organizaciones.html:4
 #: .\templates\accounts\organizaciones.html:7
 msgid "Organisations"
 msgstr "Organizaciones"
 
-
-#: .\apps\accounts\views.py:46
+#: .\apps\accounts\views.py:53
 msgid "Who the project data belongs to."
 msgstr "A quién pertenecen los datos del proyecto."
 
-
-#: .\apps\accounts\views.py:49 .\apps\documents\models.py:70
+#: .\apps\accounts\views.py:56 .\apps\documents\models.py:70
 msgid "Model"
 msgstr "Modelo"
 
-
-#: .\apps\accounts\views.py:50
+#: .\apps\accounts\views.py:57
 msgid "BIM viewer"
 msgstr "Visor BIM"
 
-
-#: .\apps\accounts\views.py:56
+#: .\apps\accounts\views.py:63
 msgid "The IFC and DXF viewer. What it can open depends on your role."
 msgstr "El visor de IFC y DXF. Lo que puede abrir depende de tu rol."
 
-
-#: .\apps\accounts\views.py:59 .\apps\accounts\views.py:66
-#: .\apps\accounts\views.py:73 .\apps\documents\apps.py:8
+#: .\apps\accounts\views.py:66 .\apps\accounts\views.py:73
+#: .\apps\accounts\views.py:80 .\apps\accounts\views.py:87
+#: .\apps\documents\apps.py:8 .\templates\documents\transmittal.html:62
 msgid "Documents"
 msgstr "Documentos"
 
-
-#: .\apps\accounts\views.py:60 .\templates\documents\bandeja.html:4
+#: .\apps\accounts\views.py:67 .\templates\documents\bandeja.html:4
 #: .\templates\documents\bandeja.html:7
 msgid "My plate"
 msgstr "Lo mío"
 
-
-#: .\apps\accounts\views.py:63
+#: .\apps\accounts\views.py:70
 msgid "What is assigned to you, by how soon it is due."
 msgstr "Lo que tienes asignado, ordenado por lo pronto que vence."
 
-
-#: .\apps\accounts\views.py:67 .\templates\documents\entregables.html:4
+#: .\apps\accounts\views.py:74 .\templates\documents\entregables.html:4
 #: .\templates\documents\entregables.html:7
+#: .\templates\projects\proyecto.html:120
 msgid "Deliverables"
 msgstr "Entregables"
 
-
-#: .\apps\accounts\views.py:70
+#: .\apps\accounts\views.py:77
 msgid "The register: what has to be delivered and how far along it is."
 msgstr "El registro: qué hay que entregar y en qué va."
 
-
-#: .\apps\accounts\views.py:74 .\templates\documents\transmittals.html:4
+#: .\apps\accounts\views.py:81 .\templates\documents\transmittals.html:4
 #: .\templates\documents\transmittals.html:7
 msgid "Transmittals"
 msgstr "Transmittals"
 
-
-#: .\apps\accounts\views.py:77
+#: .\apps\accounts\views.py:84
 msgid "What was issued, to whom and when."
 msgstr "Qué se emitió, a quién y cuándo."
 
+#: .\apps\accounts\views.py:88 .\templates\documents\requisitos_ids.html:4
+#: .\templates\documents\requisitos_ids.html:7
+#: .\templates\projects\proyecto.html:189
+#: .\templates\projects\proyecto.html:202
+msgid "Information requirements"
+msgstr "Requisitos de información"
 
-#: .\apps\accounts\views.py:80 .\apps\accounts\views.py:87
+#: .\apps\accounts\views.py:91
+msgid "What the client requires each model to carry, in IDS."
+msgstr "Lo que el mandante exige que traiga cada modelo, en IDS."
+
+#: .\apps\accounts\views.py:94 .\apps\accounts\views.py:101
 msgid "Coordination"
 msgstr "Coordinación"
 
-
-#: .\apps\accounts\views.py:81 .\templates\documents\expediente.html:106
+#: .\apps\accounts\views.py:95 .\templates\documents\expediente.html:220
 #: .\templates\documents\observaciones.html:4
 #: .\templates\documents\observaciones.html:7
 msgid "Observations"
 msgstr "Observaciones"
 
-
-#: .\apps\accounts\views.py:84
+#: .\apps\accounts\views.py:98
 msgid "Findings and errors, with an owner and a due date."
 msgstr "Hallazgos y errores, con responsable y fecha de vencimiento."
 
-
-#: .\apps\accounts\views.py:88 .\templates\documents\actividades.html:4
+#: .\apps\accounts\views.py:102 .\templates\documents\actividades.html:4
 #: .\templates\documents\actividades.html:7
-#: .\templates\documents\expediente.html:135
+#: .\templates\documents\expediente.html:249
 msgid "Activities"
 msgstr "Actividades"
 
-
-#: .\apps\accounts\views.py:91
+#: .\apps\accounts\views.py:105
 msgid "Planned work: who does what, and by when."
 msgstr "Trabajo planificado: quién hace qué, y para cuándo."
 
-
-#: .\apps\accounts\views.py:94 .\apps\accounts\views.py:101
-#: .\apps\accounts\views.py:108
+#: .\apps\accounts\views.py:108 .\apps\accounts\views.py:115
+#: .\apps\accounts\views.py:122
 msgid "Administration"
 msgstr "Administración"
 
-
-#: .\apps\accounts\views.py:95 .\templates\accounts\usuarios_roles.html:4
+#: .\apps\accounts\views.py:109 .\templates\accounts\usuarios_roles.html:4
 #: .\templates\accounts\usuarios_roles.html:7
 msgid "Users and roles"
 msgstr "Usuarios y roles"
 
-
-#: .\apps\accounts\views.py:98
+#: .\apps\accounts\views.py:112
 msgid "Who holds which role. Read-only."
 msgstr "Quién tiene qué rol. Solo lectura."
 
-
-#: .\apps\accounts\views.py:102 .\templates\accounts\auditoria.html:4
+#: .\apps\accounts\views.py:116 .\templates\accounts\auditoria.html:4
 #: .\templates\accounts\auditoria.html:7
 msgid "Audit trail"
 msgstr "Auditoría"
 
-
-#: .\apps\accounts\views.py:105
+#: .\apps\accounts\views.py:119
 msgid "Every change, append-only."
 msgstr "Cada cambio, de solo agregar."
 
-
-#: .\apps\accounts\views.py:109 .\templates\accounts\trabajos.html:4
+#: .\apps\accounts\views.py:123 .\templates\accounts\trabajos.html:4
 #: .\templates\accounts\trabajos.html:7
 msgid "Scheduled jobs"
 msgstr "Trabajos programados"
 
-
-#: .\apps\accounts\views.py:112
+#: .\apps\accounts\views.py:126
 msgid "Whether the nightly work actually ran."
 msgstr "Si el trabajo de la noche corrió de verdad."
-
 
 #: .\apps\core\apps.py:8
 msgid "Core"
 msgstr "Núcleo"
 
-
 #: .\apps\core\models.py:27
 msgid "active"
 msgstr "activo"
 
-
 #: .\apps\core\models.py:28
 msgid "notes"
 msgstr "notas"
-
 
 #: .\apps\core\models.py:113 .\apps\projects\models.py:44
 #: .\apps\projects\models.py:92 .\apps\projects\models.py:125
 msgid "name"
 msgstr "nombre"
 
-
 #: .\apps\core\models.py:122
 msgid "organisation"
 msgstr "organización"
-
 
 #: .\apps\core\models.py:123
 msgid "organisations"
 msgstr "organizaciones"
 
-
 #: .\apps\core\models.py:131
 msgid "Member"
 msgstr "Miembro"
-
 
 #: .\apps\core\models.py:131
 msgid "Admin"
 msgstr "Administrador"
 
-
 #: .\apps\core\models.py:138
 msgid "membership"
 msgstr "membresía"
-
 
 #: .\apps\core\models.py:139
 msgid "memberships"
 msgstr "membresías"
 
-
 #: .\apps\core\models.py:196
 msgid "audit event"
 msgstr "evento de auditoría"
-
 
 #: .\apps\core\models.py:197
 msgid "audit events"
 msgstr "eventos de auditoría"
 
-
 #: .\apps\core\models.py:230
 msgid "Running"
 msgstr "En curso"
-
 
 #: .\apps\core\models.py:231
 msgid "Completed"
 msgstr "Completado"
 
-
 #: .\apps\core\models.py:232
 msgid "Failed"
 msgstr "Falló"
-
 
 #: .\apps\core\models.py:247
 msgid "job run"
 msgstr "corrida de trabajo"
 
-
 #: .\apps\core\models.py:248
 msgid "job runs"
 msgstr "corridas de trabajo"
 
-
-#: .\apps\documents\forms.py:44 .\templates\documents\expediente.html:48
+#: .\apps\documents\forms.py:54 .\templates\documents\expediente.html:48
+#: .\templates\documents\requisitos_ids.html:23
 msgid "File"
 msgstr "Archivo"
 
-
-#: .\apps\documents\forms.py:45
+#: .\apps\documents\forms.py:55
 #, python-format
 msgid "Accepted: %(exts)s"
 msgstr "Se aceptan: %(exts)s"
 
+#: .\apps\documents\forms.py:140
+msgid "An anchor on the document needs the page and both coordinates."
+msgstr "Un ancla en el documento necesita la página y las dos coordenadas."
 
-#: .\apps\documents\forms.py:91
+#: .\apps\documents\forms.py:148
+msgid "The position must be a fraction of the page, 0 to 1."
+msgstr "La posición tiene que ser una fracción de la página, de 0 a 1."
+
+#: .\apps\documents\forms.py:153
+msgid "An anchor on the document needs the revision it points at."
+msgstr "Un ancla en el documento necesita la revisión a la que apunta."
+
+#: .\apps\documents\forms.py:175
 msgid "How it was resolved"
 msgstr "Cómo se resolvió"
 
-
-#: .\apps\documents\forms.py:99
+#: .\apps\documents\forms.py:183
 msgid "Comment"
 msgstr "Comentario"
 
-
-#: .\apps\documents\forms.py:121 .\templates\documents\entregables.html:26
+#: .\apps\documents\forms.py:205 .\templates\documents\entregables.html:26
 #: .\templates\documents\expediente.html:45
 #: .\templates\documents\expediente.html:61
+#: .\templates\documents\transmittal.html:69
 msgid "Suitability"
 msgstr "Idoneidad"
 
+#: .\apps\documents\forms.py:215
+msgid "IDS file"
+msgstr "Archivo IDS"
+
+#: .\apps\documents\forms.py:215
+msgid "buildingSMART IDS, .ids"
+msgstr "IDS de buildingSMART, .ids"
+
+#: .\apps\documents\forms.py:225
+msgid "Optional: taken from the IDS if left empty."
+msgstr "Opcional: se toma del IDS si se deja vacío."
+
+#: .\apps\documents\forms.py:238
+msgid "The information requirement must be an .ids file."
+msgstr "El requisito de información tiene que ser un archivo .ids."
+
+#: .\apps\documents\forms.py:245
+msgid "This file is not a readable IDS."
+msgstr "Este archivo no es un IDS que se pueda leer."
+
+#: .\apps\documents\forms.py:285
+msgid "All revisions in one transmittal must belong to the same project."
+msgstr ""
+"Todas las revisiones de un transmittal tienen que ser del mismo proyecto."
 
 #: .\apps\documents\models.py:36
 msgid "S0 · Work in progress"
 msgstr "S0 · Trabajo en curso"
 
-
 #: .\apps\documents\models.py:37
 msgid "S1 · Suitable for coordination"
 msgstr "S1 · Apto para coordinación"
-
 
 #: .\apps\documents\models.py:38
 msgid "S2 · Suitable for information"
 msgstr "S2 · Apto para información"
 
-
 #: .\apps\documents\models.py:39
 msgid "S3 · Suitable for review and comment"
 msgstr "S3 · Apto para revisión y comentario"
-
 
 #: .\apps\documents\models.py:40
 msgid "S4 · Suitable for stage approval"
 msgstr "S4 · Apto para aprobación de etapa"
 
-
 #: .\apps\documents\models.py:41
 msgid "S6 · Suitable for PIM authorisation"
 msgstr "S6 · Apto para autorización del PIM"
-
 
 #: .\apps\documents\models.py:42
 msgid "S7 · Suitable for AIM authorisation"
 msgstr "S7 · Apto para autorización del AIM"
 
-
 #: .\apps\documents\models.py:43
 msgid "A · Published and authorised"
 msgstr "A · Publicado y autorizado"
-
 
 #: .\apps\documents\models.py:44
 msgid "B · Published with comments"
 msgstr "B · Publicado con comentarios"
 
-
 #: .\apps\documents\models.py:68
 msgid "Drawing"
 msgstr "Plano"
-
 
 #: .\apps\documents\models.py:69
 msgid "Report"
 msgstr "Memoria"
 
-
 #: .\apps\documents\models.py:71
 msgid "Specification"
 msgstr "Especificación"
 
-
 #: .\apps\documents\models.py:72
 msgid "Other"
 msgstr "Otro"
-
 
 #: .\apps\documents\models.py:97 .\apps\projects\models.py:43
 #: .\apps\projects\models.py:91 .\apps\projects\models.py:124
 msgid "code"
 msgstr "código"
 
-
-#: .\apps\documents\models.py:98 .\apps\documents\models.py:354
-#: .\apps\documents\models.py:495
+#: .\apps\documents\models.py:98 .\apps\documents\models.py:394
+#: .\apps\documents\models.py:535 .\apps\documents\models.py:588
 msgid "title"
 msgstr "título"
 
-
-#: .\apps\documents\models.py:106 .\apps\documents\models.py:366
-#: .\apps\documents\models.py:501 .\apps\projects\models.py:132
+#: .\apps\documents\models.py:106 .\apps\documents\models.py:406
+#: .\apps\documents\models.py:541 .\apps\projects\models.py:132
 #: .\templates\documents\expediente.html:10
 #: .\templates\documents\observacion.html:10
 msgid "owner"
 msgstr "responsable"
 
-
 #: .\apps\documents\models.py:108
 msgid "planned date"
 msgstr "fecha planificada"
-
 
 #: .\apps\documents\models.py:111
 msgid "weight"
 msgstr "peso"
 
-
 #: .\apps\documents\models.py:114
 msgid "deliverable"
 msgstr "entregable"
-
 
 #: .\apps\documents\models.py:115
 msgid "deliverables"
 msgstr "entregables"
 
-
-#: .\apps\documents\models.py:180 .\apps\documents\models.py:203
+#: .\apps\documents\models.py:188 .\apps\documents\models.py:220
 msgid "revision"
 msgstr "revisión"
 
-
-#: .\apps\documents\models.py:182
+#: .\apps\documents\models.py:190
 msgid "suitability"
 msgstr "idoneidad"
 
-
-#: .\apps\documents\models.py:199
+#: .\apps\documents\models.py:207
 msgid "issued"
 msgstr "emitida"
 
-
-#: .\apps\documents\models.py:200
+#: .\apps\documents\models.py:208
 msgid "current"
 msgstr "vigente"
 
-
-#: .\apps\documents\models.py:204
+#: .\apps\documents\models.py:221
 msgid "revisions"
 msgstr "revisiones"
 
-
-#: .\apps\documents\models.py:246
+#: .\apps\documents\models.py:263
 msgid "Draft"
 msgstr "Borrador"
 
-
-#: .\apps\documents\models.py:247 .\templates\documents\expediente.html:46
-#: .\templates\documents\transmittals.html:22
+#: .\apps\documents\models.py:264 .\templates\documents\expediente.html:46
+#: .\templates\documents\transmittal.html:34
+#: .\templates\documents\transmittals.html:26
 msgid "Issued"
 msgstr "Emitido"
 
-
-#: .\apps\documents\models.py:248
+#: .\apps\documents\models.py:265
 msgid "Acknowledged"
 msgstr "Acusado"
 
-
-#: .\apps\documents\models.py:249 .\apps\documents\models.py:471
+#: .\apps\documents\models.py:266 .\apps\documents\models.py:511
 msgid "Cancelled"
 msgstr "Anulado"
 
-
-#: .\apps\documents\models.py:258
+#: .\apps\documents\models.py:275
 msgid "reference"
 msgstr "folio"
 
-
-#: .\apps\documents\models.py:259
+#: .\apps\documents\models.py:276
 msgid "subject"
 msgstr "asunto"
 
-
-#: .\apps\documents\models.py:272
+#: .\apps\documents\models.py:289
 msgid "transmittal"
 msgstr "transmittal"
 
-
-#: .\apps\documents\models.py:273
+#: .\apps\documents\models.py:290
 msgid "transmittals"
 msgstr "transmittals"
 
-
-#: .\apps\documents\models.py:330
+#: .\apps\documents\models.py:370 .\templates\projects\proyecto.html:128
 msgid "Open"
 msgstr "Abierta"
 
-
-#: .\apps\documents\models.py:331
+#: .\apps\documents\models.py:371
 msgid "Answered"
 msgstr "Respondida"
 
-
-#: .\apps\documents\models.py:332 .\apps\projects\models.py:29
+#: .\apps\documents\models.py:372 .\apps\projects\models.py:29
 #: .\templates\documents\observacion.html:33
 msgid "Closed"
 msgstr "Cerrada"
 
-
-#: .\apps\documents\models.py:333
+#: .\apps\documents\models.py:373
 msgid "Dismissed"
 msgstr "Descartada"
 
-
-#: .\apps\documents\models.py:339
+#: .\apps\documents\models.py:379
 msgid "High"
 msgstr "Alta"
 
-
-#: .\apps\documents\models.py:339
+#: .\apps\documents\models.py:379
 msgid "Medium"
 msgstr "Media"
 
-
-#: .\apps\documents\models.py:339
+#: .\apps\documents\models.py:379
 msgid "Low"
 msgstr "Baja"
 
-
-#: .\apps\documents\models.py:355 .\apps\documents\models.py:496
+#: .\apps\documents\models.py:395 .\apps\documents\models.py:536
 msgid "description"
 msgstr "descripción"
 
-
-#: .\apps\documents\models.py:368 .\apps\documents\models.py:510
+#: .\apps\documents\models.py:408 .\apps\documents\models.py:550
 #: .\templates\documents\observacion.html:12
 msgid "due"
 msgstr "vence"
 
-
-#: .\apps\documents\models.py:379
+#: .\apps\documents\models.py:419
 msgid "resolution"
 msgstr "resolución"
 
-
-#: .\apps\documents\models.py:392 .\apps\documents\notify.py:58
+#: .\apps\documents\models.py:432 .\apps\documents\notify.py:58
 msgid "observation"
 msgstr "observación"
 
-
-#: .\apps\documents\models.py:393
+#: .\apps\documents\models.py:433
 msgid "observations"
 msgstr "observaciones"
 
-
-#: .\apps\documents\models.py:446
+#: .\apps\documents\models.py:486
 msgid "comment"
 msgstr "comentario"
 
-
-#: .\apps\documents\models.py:447
+#: .\apps\documents\models.py:487
 msgid "comments"
 msgstr "comentarios"
 
-
-#: .\apps\documents\models.py:467
+#: .\apps\documents\models.py:507
 msgid "Pending"
 msgstr "Pendiente"
 
-
-#: .\apps\documents\models.py:468
+#: .\apps\documents\models.py:508
 msgid "In progress"
 msgstr "En curso"
 
-
-#: .\apps\documents\models.py:469
+#: .\apps\documents\models.py:509
 msgid "Under review"
 msgstr "En revisión"
 
-
-#: .\apps\documents\models.py:470
+#: .\apps\documents\models.py:510
 msgid "Done"
 msgstr "Hecha"
 
-
-#: .\apps\documents\models.py:514 .\apps\documents\notify.py:62
+#: .\apps\documents\models.py:554 .\apps\documents\notify.py:62
 msgid "activity"
 msgstr "actividad"
 
-
-#: .\apps\documents\models.py:515
+#: .\apps\documents\models.py:555
 msgid "activities"
 msgstr "actividades"
 
+#: .\apps\documents\models.py:601
+#, fuzzy
+#| msgid "Information requirements"
+msgid "information requirement"
+msgstr "Requisitos de información"
+
+#: .\apps\documents\models.py:602
+#, fuzzy
+#| msgid "Information requirements"
+msgid "information requirements"
+msgstr "Requisitos de información"
+
+#: .\apps\documents\models.py:632
+msgid "complies"
+msgstr "cumple"
+
+#: .\apps\documents\models.py:638
+#, fuzzy
+#| msgid "Validations"
+msgid "IDS validation"
+msgstr "Validaciones"
+
+#: .\apps\documents\models.py:639
+#, fuzzy
+#| msgid "Validations"
+msgid "IDS validations"
+msgstr "Validaciones"
 
 #: .\apps\documents\notify.py:56
 #, python-format
 msgid "[AeroBim] Observation assigned: %(titulo)s"
 msgstr "[AeroBim] Observación asignada: %(titulo)s"
 
-
 #: .\apps\documents\notify.py:60
 #, python-format
 msgid "[AeroBim] Activity assigned: %(titulo)s"
 msgstr "[AeroBim] Actividad asignada: %(titulo)s"
 
-
 #: .\apps\documents\notify.py:64
 msgid "no due date"
 msgstr "sin fecha de vencimiento"
-
 
 #: .\apps\documents\notify.py:67
 #, python-format
 msgid "You have been assigned a %(que)s in AeroBim."
 msgstr "Te asignaron una %(que)s en AeroBim."
 
-
-#: .\apps\documents\notify.py:71
+#: .\apps\documents\notify.py:71 .\apps\documents\notify.py:116
 #, python-format
 msgid "Project: %(p)s"
 msgstr "Proyecto: %(p)s"
-
 
 #: .\apps\documents\notify.py:72
 #, python-format
 msgid "Due: %(v)s"
 msgstr "Vence: %(v)s"
 
+#: .\apps\documents\notify.py:111
+#, python-format
+msgid "%(quien)s has issued a transmittal to you in AeroBim."
+msgstr "%(quien)s te emitió un transmittal en AeroBim."
 
-#: .\apps\documents\notify.py:138 .\apps\documents\views.py:374
+#: .\apps\documents\notify.py:117
+#, python-format
+msgid "Documents (%(n)s):"
+msgstr "Documentos (%(n)s):"
+
+#: .\apps\documents\notify.py:123
+#, python-format
+msgid "[AeroBim] Transmittal %(folio)s: %(asunto)s"
+msgstr "[AeroBim] Transmittal %(folio)s: %(asunto)s"
+
+#: .\apps\documents\notify.py:200 .\apps\documents\views.py:783
 msgid "Overdue"
 msgstr "Vencido"
 
-
-#: .\apps\documents\notify.py:139 .\apps\documents\views.py:375
+#: .\apps\documents\notify.py:201 .\apps\documents\views.py:784
 msgid "Next 7 days"
 msgstr "Próximos 7 días"
 
-
-#: .\apps\documents\notify.py:140 .\apps\documents\views.py:376
+#: .\apps\documents\notify.py:202 .\apps\documents\views.py:785
 msgid "Next 15 days"
 msgstr "Próximos 15 días"
 
-
-#: .\apps\documents\notify.py:141 .\apps\documents\views.py:377
+#: .\apps\documents\notify.py:203 .\apps\documents\views.py:786
 msgid "Next 30 days"
 msgstr "Próximos 30 días"
 
-
-#: .\apps\documents\notify.py:143
+#: .\apps\documents\notify.py:205
 msgid "What is on your plate in AeroBim."
 msgstr "Lo que tienes pendiente en AeroBim."
 
-
-#: .\apps\documents\notify.py:155
+#: .\apps\documents\notify.py:217
 #, python-format
 msgid "[AeroBim] %(n)s items on your plate"
 msgstr "[AeroBim] %(n)s pendientes"
 
-
-#: .\apps\documents\storage.py:70
+#: .\apps\documents\storage.py:87
 msgid "The storage key is empty or padded with spaces."
 msgstr "La clave de almacenamiento está vacía o lleva espacios de más."
 
-
-#: .\apps\documents\storage.py:72
+#: .\apps\documents\storage.py:89
 msgid "The storage key cannot be an absolute path."
 msgstr "La clave de almacenamiento no puede ser una ruta absoluta."
 
-
-#: .\apps\documents\storage.py:78
+#: .\apps\documents\storage.py:95
 msgid "The storage key cannot walk out of its folder."
 msgstr "La clave de almacenamiento no puede salirse de su carpeta."
 
-
-#: .\apps\documents\storage.py:88
+#: .\apps\documents\storage.py:105
 msgid "The file is empty."
 msgstr "El archivo está vacío."
 
-
-#: .\apps\documents\storage.py:91
+#: .\apps\documents\storage.py:108
 #, python-format
 msgid "The file is larger than the %(mb)s MB limit."
 msgstr "El archivo pasa del límite de %(mb)s MB."
 
-
-#: .\apps\documents\storage.py:98
+#: .\apps\documents\storage.py:116
 #, python-format
 msgid "Files with extension «%(ext)s» are not accepted."
 msgstr "No se aceptan archivos con extensión «%(ext)s»."
 
-
-#: .\apps\documents\storage.py:106
+#: .\apps\documents\storage.py:125
 #, python-format
 msgid "The content does not match a «%(ext)s» file."
 msgstr "El contenido no corresponde a un archivo «%(ext)s»."
 
-
-#: .\apps\documents\storage.py:109
+#: .\apps\documents\storage.py:130
 #, python-format
 msgid "A «%(ext)s» file has to be text."
 msgstr "Un archivo «%(ext)s» tiene que ser texto."
 
-
-#: .\apps\documents\views.py:120
+#: .\apps\documents\views.py:177
 msgid "There is no revision yet: nothing has been issued."
 msgstr "Todavía no hay ninguna revisión: no se ha emitido nada."
 
-
-#: .\apps\documents\views.py:126 .\templates\documents\expediente.html:39
+#: .\apps\documents\views.py:183 .\templates\documents\expediente.html:39
 #: .\templates\documents\subir_revision.html:4
 #: .\templates\documents\subir_revision.html:7
 msgid "Upload a revision"
 msgstr "Subir una revisión"
 
-
-#: .\apps\documents\views.py:132
+#: .\apps\documents\views.py:189
 msgid "The current revision is not published (no A or B code yet)."
 msgstr "La revisión vigente no está publicada (todavía sin código A ni B)."
 
-
-#: .\apps\documents\views.py:141
+#: .\apps\documents\views.py:198
 #, python-format
 msgid "%(n)s open observations."
 msgstr "%(n)s observaciones abiertas."
 
-
-#: .\apps\documents\views.py:143
+#: .\apps\documents\views.py:200
 msgid "See them"
 msgstr "Verlas"
 
-
-#: .\apps\documents\views.py:147
+#: .\apps\documents\views.py:204
 msgid "No planned date."
 msgstr "Sin fecha planificada."
 
-
-#: .\apps\documents\views.py:205
+#: .\apps\documents\views.py:268
 #, python-format
 msgid "Revision %(rev)s uploaded (%(kb)s KB)."
 msgstr "Revisión %(rev)s subida (%(kb)s KB)."
 
+#: .\apps\documents\views.py:328
+msgid "This project has no observations to export."
+msgstr "Este proyecto no tiene observaciones que exportar."
 
-#: .\apps\documents\views.py:300
+#: .\apps\documents\views.py:412
+msgid "Untitled"
+msgstr "Sin título"
+
+#: .\apps\documents\views.py:420
+msgid "Information requirement uploaded."
+msgstr "Requisito de información subido."
+
+#: .\apps\documents\views.py:440
+msgid "Only an IFC can be validated against an IDS."
+msgstr "Contra un IDS solo se puede validar un IFC."
+
+#: .\apps\documents\views.py:448
+msgid "This project has no information requirement yet: upload an IDS first."
+msgstr ""
+"Este proyecto todavía no tiene requisito de información: primero hay que "
+"subir un IDS."
+
+#: .\apps\documents\views.py:472
+#, python-format
+msgid "Validated against %(total)s requirements: %(ok)s comply."
+msgstr "Validado contra %(total)s requisitos: %(ok)s cumplen."
+
+#: .\apps\documents\views.py:553
 msgid "The comment cannot be empty."
 msgstr "El comentario no puede estar vacío."
 
-
-#: .\apps\documents\views.py:312
+#: .\apps\documents\views.py:565
 msgid "An observation is not closed without saying how."
 msgstr "Una observación no se cierra sin decir cómo se resolvió."
 
-
-#: .\apps\documents\views.py:317
+#: .\apps\documents\views.py:570
 msgid "Observation closed."
 msgstr "Observación cerrada."
 
+#: .\apps\documents\views.py:655
+msgid "Add at least one revision."
+msgstr "Agregar al menos una revisión."
 
-#: .\apps\documents\views.py:394
+#: .\apps\documents\views.py:657
+msgid "Add at least one recipient."
+msgstr "Agregar al menos un destinatario."
+
+#: .\apps\documents\views.py:702
+msgid "Draft transmittal created. Review the cover and issue it."
+msgstr "Transmittal creado en borrador. Revisa la carátula y emítelo."
+
+#: .\apps\documents\views.py:732
+#, python-format
+msgid "Transmittal %(folio)s issued, %(n)s recipients notified."
+msgstr "Transmittal %(folio)s emitido, %(n)s destinatarios avisados."
+
+#: .\apps\documents\views.py:741
+#, python-format
+msgid "No email address for %(quienes)s: they were not notified."
+msgstr "Sin dirección de correo para %(quienes)s: no se les avisó."
+
+#: .\apps\documents\views.py:764
+msgid "Receipt acknowledged."
+msgstr "Recibo acusado."
+
+#: .\apps\documents\views.py:803
 #, python-format
 msgid "Saved, but %(quien)s has no email address: nobody was notified."
 msgstr "Se guardó, pero %(quien)s no tiene correo: no se avisó a nadie."
 
-
-#: .\apps\documents\views.py:435
+#: .\apps\documents\views.py:896
 msgid "Observation opened and the owner notified."
 msgstr "Observación abierta, y se avisó al responsable."
 
-
-#: .\apps\documents\views.py:459
+#: .\apps\documents\views.py:920
 msgid "Pick the deliverable the activity belongs to."
 msgstr "Elige el entregable al que pertenece la actividad."
 
-
-#: .\apps\documents\views.py:465
+#: .\apps\documents\views.py:926
 msgid "Activity created and the owner notified."
 msgstr "Actividad creada, y se avisó al responsable."
 
-
-#: .\apps\documents\views.py:489
+#: .\apps\documents\views.py:950
 #, python-format
 msgid "Revision %(rev)s is now %(cod)s."
 msgstr "La revisión %(rev)s queda en %(cod)s."
 
-
-#: .\apps\documents\views.py:518
+#: .\apps\documents\views.py:979
 msgid "Deliverable created."
 msgstr "Entregable creado."
 
+#: .\apps\projects\forms.py:60
+msgid "The end date cannot be before the start date."
+msgstr "La fecha de término no puede ser anterior a la de inicio."
 
-#: .\apps\projects\apps.py:8
-msgid "Projects"
-msgstr "Proyectos"
-
+#: .\apps\projects\forms.py:89
+msgid "The colour must be in #rrggbb form, e.g. #5b3a9e."
+msgstr "El color va en forma #rrggbb, por ejemplo #5b3a9e."
 
 #: .\apps\projects\models.py:25
 msgid "Concept"
 msgstr "Anteproyecto"
 
-
 #: .\apps\projects\models.py:26
 msgid "Scheme design"
 msgstr "Proyecto básico"
-
 
 #: .\apps\projects\models.py:27
 msgid "Detailed design"
 msgstr "Proyecto de detalle"
 
-
 #: .\apps\projects\models.py:28
 msgid "Construction"
 msgstr "Construcción"
-
 
 #: .\apps\projects\models.py:45
 msgid "client"
 msgstr "cliente"
 
-
 #: .\apps\projects\models.py:47
 msgid "start"
 msgstr "inicio"
-
 
 #: .\apps\projects\models.py:48
 msgid "end"
 msgstr "término"
 
-
 #: .\apps\projects\models.py:51
 msgid "project"
 msgstr "proyecto"
-
 
 #: .\apps\projects\models.py:52
 msgid "projects"
 msgstr "proyectos"
 
-
 #: .\apps\projects\models.py:95
 msgid "colour"
 msgstr "color"
-
 
 #: .\apps\projects\models.py:98
 msgid "discipline"
 msgstr "disciplina"
 
-
 #: .\apps\projects\models.py:99
 msgid "disciplines"
 msgstr "disciplinas"
-
 
 #: .\apps\projects\models.py:136
 msgid "WBS package"
 msgstr "paquete WBS"
 
-
 #: .\apps\projects\models.py:137
 msgid "WBS packages"
 msgstr "paquetes WBS"
 
+#: .\apps\projects\views.py:200
+msgid "You cannot create a project for that organisation."
+msgstr "No puedes crear un proyecto para esa organización."
+
+#: .\apps\projects\views.py:205
+#, python-format
+msgid "Project %(codigo)s created."
+msgstr "Proyecto %(codigo)s creado."
+
+#: .\apps\projects\views.py:245
+msgid "That code is already used in this project."
+msgstr "Ese código ya está usado en este proyecto."
+
+#: .\apps\projects\views.py:256
+#, python-format
+msgid "Discipline %(codigo)s created."
+msgstr "Disciplina %(codigo)s creada."
 
 #: .\apps\visor\apps.py:8
 msgid "Viewer"
 msgstr "Visor"
 
-
-#: .\apps\visor\views.py:49
+#: .\apps\visor\views.py:60
 msgid "Viewer not built"
 msgstr "Visor sin construir"
 
-
-#: .\apps\visor\views.py:51
+#: .\apps\visor\views.py:62
 msgid "The viewer is not built"
 msgstr "El visor no está construido"
 
-
-#: .\apps\visor\views.py:52
+#: .\apps\visor\views.py:63
 msgid "Build it from the repository root:"
 msgstr "Constrúyelo desde la raíz del repositorio:"
 
-
-#: .\apps\visor\views.py:54
+#: .\apps\visor\views.py:65
 msgid "Or point VISOR_DEV_URL at the Vite dev server while you work on it."
 msgstr "O apunta VISOR_DEV_URL al servidor de Vite mientras trabajas en él."
 
-
-#: .\apps\visor\views.py:55
+#: .\apps\visor\views.py:66
 #: .\templates\registration\password_change_done.html:8
 msgid "Back to the portal"
 msgstr "Volver al portal"
-
 
 #: .\config\settings\base.py:128
 msgid "Spanish"
 msgstr "Español"
 
-
 #: .\config\settings\base.py:128
 msgid "English"
 msgstr "Inglés"
-
 
 #: .\templates\accounts\auditoria.html:9
 msgid ""
 "Append-only: nothing here can be edited or deleted from the\n"
 "    application."
-msgstr "De solo agregar: nada de esto se puede editar ni borrar desde la aplicación."
-
+msgstr ""
+"De solo agregar: nada de esto se puede editar ni borrar desde la aplicación."
 
 #: .\templates\accounts\auditoria.html:17
 msgid "When"
 msgstr "Cuándo"
 
-
 #: .\templates\accounts\auditoria.html:18
 msgid "Who"
 msgstr "Quién"
-
 
 #: .\templates\accounts\auditoria.html:19
 msgid "Action"
 msgstr "Acción"
 
-
 #: .\templates\accounts\auditoria.html:20
 msgid "Path"
 msgstr "Ruta"
-
 
 #: .\templates\accounts\auditoria.html:21
 msgid "Status"
 msgstr "Código"
 
-
 #: .\templates\accounts\auditoria.html:36
 msgid "Nothing recorded yet."
 msgstr "Todavía no hay nada registrado."
-
 
 #: .\templates\accounts\organizaciones.html:9
 msgid ""
 "Who the project data belongs to. Every query is scoped by this.\n"
 "    "
-msgstr "A quién pertenecen los datos del proyecto. Toda consulta se acota por esto."
-
+msgstr ""
+"A quién pertenecen los datos del proyecto. Toda consulta se acota por esto."
 
 #: .\templates\accounts\organizaciones.html:16
 #: .\templates\accounts\usuarios_roles.html:17
+#: .\templates\projects\proyectos.html:24
 msgid "Name"
 msgstr "Nombre"
-
 
 #: .\templates\accounts\organizaciones.html:17
 msgid "Slug"
 msgstr "Identificador"
 
-
 #: .\templates\accounts\organizaciones.html:18
 msgid "Members"
 msgstr "Miembros"
-
 
 #: .\templates\accounts\organizaciones.html:30
 msgid "No organisation created yet."
 msgstr "Todavía no hay ninguna organización."
 
-
 #: .\templates\accounts\portal.html:4 .\templates\accounts\portal.html:7
 msgid "Portal"
 msgstr "Portal"
-
 
 #: .\templates\accounts\portal.html:9
 msgid "Only what your role can open is listed."
 msgstr "Solo se lista lo que tu rol puede abrir."
 
-
 #: .\templates\accounts\portal.html:32
 msgid ""
 "Your account has no module assigned yet. Ask an administrator for a\n"
 "      role."
-msgstr "Tu cuenta todavía no tiene ningún módulo asignado. Pide un rol a un administrador."
-
+msgstr ""
+"Tu cuenta todavía no tiene ningún módulo asignado. Pide un rol a un "
+"administrador."
 
 #: .\templates\accounts\trabajos.html:9
 msgid ""
 "A job that stops running raises no error: nothing happens, and the\n"
 "    notices it owed are simply not sent."
-msgstr "Un trabajo que deja de correr no da error: simplemente no pasa nada, y los avisos que debía no se envían."
-
+msgstr ""
+"Un trabajo que deja de correr no da error: simplemente no pasa nada, y los "
+"avisos que debía no se envían."
 
 #: .\templates\accounts\trabajos.html:21
 msgid "Mail is not being delivered."
 msgstr "El correo no se está entregando."
 
-
 #: .\templates\accounts\trabajos.html:28
 msgid "Jobs stuck mid-run:"
 msgstr "Trabajos colgados a mitad:"
-
 
 #: .\templates\accounts\trabajos.html:33
 msgid "Expected jobs"
 msgstr "Trabajos esperados"
 
-
 #: .\templates\accounts\trabajos.html:37 .\templates\accounts\trabajos.html:63
 msgid "Command"
 msgstr "Comando"
-
 
 #: .\templates\accounts\trabajos.html:38
 msgid "Last run"
 msgstr "Última corrida"
 
-
 #: .\templates\accounts\trabajos.html:39 .\templates\accounts\trabajos.html:66
 msgid "Result"
 msgstr "Resultado"
-
 
 #: .\templates\accounts\trabajos.html:50
 msgid "never ran"
 msgstr "nunca corrió"
 
-
 #: .\templates\accounts\trabajos.html:59
 msgid "History"
 msgstr "Historial"
-
 
 #: .\templates\accounts\trabajos.html:64
 msgid "Started"
 msgstr "Empezó"
 
-
 #: .\templates\accounts\trabajos.html:65
 msgid "Seconds"
 msgstr "Segundos"
-
 
 #: .\templates\accounts\trabajos.html:67
 msgid "Summary"
 msgstr "Resumen"
 
-
 #: .\templates\accounts\trabajos.html:81
 msgid "No job has run yet."
 msgstr "Todavía no ha corrido ningún trabajo."
-
 
 #: .\templates\accounts\usuarios_roles.html:9
 msgid "Read-only."
 msgstr "Solo lectura."
 
-
 #: .\templates\accounts\usuarios_roles.html:10
 msgid "Download CSV"
 msgstr "Descargar CSV"
-
 
 #: .\templates\accounts\usuarios_roles.html:16
 #: .\templates\registration\login.html:111
 msgid "Username"
 msgstr "Nombre de usuario"
 
-
 #: .\templates\accounts\usuarios_roles.html:18
 msgid "Email"
 msgstr "Correo"
-
 
 #: .\templates\accounts\usuarios_roles.html:19
 msgid "Roles"
 msgstr "Roles"
 
-
 #: .\templates\accounts\usuarios_roles.html:20
 msgid "Active"
 msgstr "Activo"
 
-
 #: .\templates\accounts\usuarios_roles.html:30
-#: .\templates\documents\expediente.html:96
+#: .\templates\documents\expediente.html:210
 msgid "Yes"
 msgstr "Sí"
-
 
 #: .\templates\accounts\usuarios_roles.html:30
 msgid "No"
 msgstr "No"
 
-
 #: .\templates\base.html:11
 msgid "Skip to content"
 msgstr "Ir al contenido"
-
 
 #: .\templates\base.html:17
 #: .\templates\registration\password_change_form.html:4
@@ -1093,24 +1084,22 @@ msgstr "Ir al contenido"
 msgid "Change password"
 msgstr "Cambiar la contraseña"
 
-
 #: .\templates\base.html:20
 msgid "Sign out"
 msgstr "Salir"
-
 
 #: .\templates\base.html:23 .\templates\registration\login.html:7
 #: .\templates\registration\login.html:130
 msgid "Sign in"
 msgstr "Entrar"
 
-
 #: .\templates\documents\actividades.html:9
 msgid ""
 "Planned work: who does what, and by when. Not every task comes from a\n"
 "    finding."
-msgstr "Trabajo planificado: quién hace qué, y para cuándo. No toda tarea nace de un hallazgo."
-
+msgstr ""
+"Trabajo planificado: quién hace qué, y para cuándo. No toda tarea nace de un "
+"hallazgo."
 
 #: .\templates\documents\actividades.html:11
 #: .\templates\documents\entregables.html:11
@@ -1118,13 +1107,12 @@ msgstr "Trabajo planificado: quién hace qué, y para cuándo. No toda tarea nac
 msgid "Only mine"
 msgstr "Solo las mías"
 
-
 #: .\templates\documents\actividades.html:12
 #: .\templates\documents\entregables.html:12
 #: .\templates\documents\observaciones.html:12
+#: .\templates\projects\proyectos.html:14
 msgid "All"
 msgstr "Todas"
-
 
 #: .\templates\documents\actividades.html:14
 #: .\templates\documents\nueva_actividad.html:4
@@ -1132,53 +1120,52 @@ msgstr "Todas"
 msgid "New activity"
 msgstr "Nueva actividad"
 
-
 #: .\templates\documents\actividades.html:21
 #: .\templates\documents\bandeja.html:38
 #: .\templates\documents\entregables.html:22
-#: .\templates\documents\expediente.html:113
-#: .\templates\documents\expediente.html:139
-#: .\templates\documents\observaciones.html:18
+#: .\templates\documents\expediente.html:227
+#: .\templates\documents\expediente.html:253
+#: .\templates\documents\observaciones.html:35
+#: .\templates\documents\requisitos_ids.html:21
+#: .\templates\documents\transmittal.html:67
+#: .\templates\projects\proyecto.html:55 .\templates\projects\proyecto.html:125
 msgid "Title"
 msgstr "Título"
-
 
 #: .\templates\documents\actividades.html:22
 msgid "Deliverable"
 msgstr "Entregable"
 
-
 #: .\templates\documents\actividades.html:23
 #: .\templates\documents\entregables.html:24
-#: .\templates\documents\expediente.html:114
-#: .\templates\documents\expediente.html:140
-#: .\templates\documents\observaciones.html:21
+#: .\templates\documents\expediente.html:228
+#: .\templates\documents\expediente.html:254
+#: .\templates\documents\observaciones.html:38
+#: .\templates\projects\proyecto.html:57
 msgid "Owner"
 msgstr "Responsable"
 
-
 #: .\templates\documents\actividades.html:24
-#: .\templates\documents\expediente.html:115
-#: .\templates\documents\expediente.html:141
-#: .\templates\documents\observaciones.html:22
+#: .\templates\documents\expediente.html:229
+#: .\templates\documents\expediente.html:255
+#: .\templates\documents\observaciones.html:39
+#: .\templates\projects\proyecto.html:58
 msgid "Due"
 msgstr "Vence"
 
-
 #: .\templates\documents\actividades.html:25
-#: .\templates\documents\expediente.html:116
-#: .\templates\documents\expediente.html:142
-#: .\templates\documents\observaciones.html:23
-#: .\templates\documents\transmittals.html:21
+#: .\templates\documents\expediente.html:230
+#: .\templates\documents\expediente.html:256
+#: .\templates\documents\observaciones.html:40
+#: .\templates\documents\transmittal.html:19
+#: .\templates\documents\transmittals.html:25
 msgid "State"
 msgstr "Estado"
 
-
 #: .\templates\documents\actividades.html:47
-#: .\templates\documents\observaciones.html:44
+#: .\templates\documents\observaciones.html:61
 msgid "Nothing here."
 msgstr "Nada por acá."
-
 
 #: .\templates\documents\bandeja.html:9
 msgid ""
@@ -1186,41 +1173,43 @@ msgid ""
 "    daily digest uses: what is overdue and what is due in a month need "
 "different\n"
 "    reactions."
-msgstr "Lo que tienes asignado, ordenado por lo pronto que vence. Es el mismo reparto que usa el resumen diario: lo que venció y lo que vence en un mes piden reacciones distintas."
-
+msgstr ""
+"Lo que tienes asignado, ordenado por lo pronto que vence. Es el mismo "
+"reparto que usa el resumen diario: lo que venció y lo que vence en un mes "
+"piden reacciones distintas."
 
 #: .\templates\documents\bandeja.html:26
 msgid "Nothing."
 msgstr "Nada."
 
-
 #: .\templates\documents\bandeja.html:33
 msgid "Deliverables you own"
 msgstr "Entregables a tu cargo"
 
-
 #: .\templates\documents\bandeja.html:37
 #: .\templates\documents\entregables.html:21
+#: .\templates\documents\transmittal.html:66
+#: .\templates\projects\proyecto.html:124
+#: .\templates\projects\proyectos.html:23
 msgid "Code"
 msgstr "Código"
 
-
 #: .\templates\documents\bandeja.html:39
 #: .\templates\documents\entregables.html:25
+#: .\templates\projects\proyecto.html:127
 msgid "Current revision"
 msgstr "Revisión vigente"
 
-
 #: .\templates\documents\bandeja.html:40
 #: .\templates\documents\entregables.html:27
+#: .\templates\projects\proyecto.html:129
+#: .\templates\projects\proyectos.html:27
 msgid "Progress"
 msgstr "Avance"
-
 
 #: .\templates\documents\bandeja.html:56
 msgid "You do not own any deliverable."
 msgstr "No tienes ningún entregable a tu cargo."
-
 
 #: .\templates\documents\entregables.html:9
 msgid ""
@@ -1228,185 +1217,258 @@ msgid ""
 "    is."
 msgstr "El registro: qué hay que entregar, quién lo tiene a cargo y en qué va."
 
-
 #: .\templates\documents\entregables.html:14
 #: .\templates\documents\nuevo_entregable.html:4
 #: .\templates\documents\nuevo_entregable.html:7
 msgid "New deliverable"
 msgstr "Nuevo entregable"
 
-
 #: .\templates\documents\entregables.html:23
+#: .\templates\projects\proyecto.html:126
 msgid "Discipline"
 msgstr "Disciplina"
 
-
 #: .\templates\documents\entregables.html:44
+#: .\templates\projects\proyecto.html:151
 msgid "No deliverable registered yet."
 msgstr "Todavía no hay ningún entregable registrado."
-
 
 #: .\templates\documents\expediente.html:19
 msgid "What is missing"
 msgstr "Lo que falta"
 
-
 #: .\templates\documents\expediente.html:34
 msgid "Nothing missing: complete and documented."
 msgstr "No falta nada: completo y documentado."
 
-
 #: .\templates\documents\expediente.html:37
-#: .\templates\documents\transmittals.html:20
+#: .\templates\documents\transmittals.html:24
 msgid "Revisions"
 msgstr "Revisiones"
 
-
 #: .\templates\documents\expediente.html:44
+#: .\templates\documents\transmittal.html:68
 msgid "Revision"
 msgstr "Revisión"
-
 
 #: .\templates\documents\expediente.html:47
 msgid "By"
 msgstr "Por"
 
-
 #: .\templates\documents\expediente.html:49
 msgid "Current"
 msgstr "Vigente"
-
 
 #: .\templates\documents\expediente.html:68
 msgid "Change"
 msgstr "Cambiar"
 
-
-#: .\templates\documents\expediente.html:88
+#: .\templates\documents\expediente.html:92
 msgid "Open in the viewer"
 msgstr "Abrir en el visor"
 
+#: .\templates\documents\expediente.html:111
+msgid "elements"
+msgstr "elementos"
 
-#: .\templates\documents\expediente.html:100
-#: .\templates\documents\transmittals.html:50
+#: .\templates\documents\expediente.html:114
+msgid "georeferenced"
+msgstr "georreferenciado"
+
+#: .\templates\documents\expediente.html:116
+msgid "not georeferenced"
+msgstr "sin georreferenciar"
+
+#: .\templates\documents\expediente.html:121
+msgid "the file's own data could not be read"
+msgstr "no se pudieron leer los datos del propio archivo"
+
+#: .\templates\documents\expediente.html:142
+msgid "nothing was checked"
+msgstr "no se comprobó nada"
+
+#: .\templates\documents\expediente.html:145
+#: .\templates\documents\expediente.html:169
+msgid "of"
+msgstr "de"
+
+#: .\templates\documents\expediente.html:146
+msgid "specifications fail"
+msgstr "especificaciones fallan"
+
+#: .\templates\documents\expediente.html:158
+msgid "did not apply to this model"
+msgstr "no aplicaron a este modelo"
+
+#: .\templates\documents\expediente.html:180
+msgid "open an observation"
+msgstr "abrir una observación"
+
+#: .\templates\documents\expediente.html:187
+msgid "in total"
+msgstr "en total"
+
+#: .\templates\documents\expediente.html:203
+msgid "Validate against the IDS"
+msgstr "Validar contra el IDS"
+
+#: .\templates\documents\expediente.html:214
+#: .\templates\documents\transmittals.html:56
 msgid "Nothing issued yet."
 msgstr "Todavía no se ha emitido nada."
 
-
-#: .\templates\documents\expediente.html:108
+#: .\templates\documents\expediente.html:222
 #: .\templates\documents\nueva_observacion.html:4
 #: .\templates\documents\nueva_observacion.html:7
 msgid "Open an observation"
 msgstr "Abrir una observación"
 
-
-#: .\templates\documents\expediente.html:129
+#: .\templates\documents\expediente.html:243
 msgid "No observation."
 msgstr "Sin observaciones."
 
-
-#: .\templates\documents\expediente.html:155
+#: .\templates\documents\expediente.html:269
 msgid "No activity."
 msgstr "Sin actividades."
 
-
 #: .\templates\documents\nueva_actividad.html:9
 msgid "The owner gets an email with the link and the due date."
-msgstr "Al responsable le llega un correo con el enlace y la fecha de vencimiento."
-
+msgstr ""
+"Al responsable le llega un correo con el enlace y la fecha de vencimiento."
 
 #: .\templates\documents\nueva_actividad.html:15
 msgid "Create and notify"
 msgstr "Crear y avisar"
 
-
 #: .\templates\documents\nueva_actividad.html:17
 #: .\templates\documents\nueva_observacion.html:19
 #: .\templates\documents\nuevo_entregable.html:18
+#: .\templates\documents\nuevo_requisito_ids.html:19
+#: .\templates\documents\nuevo_transmittal.html:19
 #: .\templates\documents\subir_revision.html:22
+#: .\templates\documents\transmittal.html:129
+#: .\templates\projects\nueva_disciplina.html:19
+#: .\templates\projects\nuevo_proyecto.html:18
 msgid "Back"
 msgstr "Volver"
-
 
 #: .\templates\documents\nueva_observacion.html:10
 msgid ""
 "The owner gets an email with the link, the due date and the\n"
 "    description."
-msgstr "Al responsable le llega un correo con el enlace, la fecha de vencimiento y la descripción."
-
+msgstr ""
+"Al responsable le llega un correo con el enlace, la fecha de vencimiento y "
+"la descripción."
 
 #: .\templates\documents\nueva_observacion.html:17
 msgid "Open and notify"
 msgstr "Abrir y avisar"
 
-
 #: .\templates\documents\nuevo_entregable.html:9
 msgid ""
 "A deliverable exists from the moment it is planned, long before its first\n"
 "    file. That is what lets the register say what is missing."
-msgstr "Un entregable existe desde que se planifica, mucho antes de su primer archivo. Es lo que le permite al registro decir qué falta."
-
+msgstr ""
+"Un entregable existe desde que se planifica, mucho antes de su primer "
+"archivo. Es lo que le permite al registro decir qué falta."
 
 #: .\templates\documents\nuevo_entregable.html:16
+#: .\templates\projects\nueva_disciplina.html:17
+#: .\templates\projects\nuevo_proyecto.html:16
 msgid "Create"
 msgstr "Crear"
 
+#: .\templates\documents\nuevo_requisito_ids.html:4
+#: .\templates\documents\nuevo_requisito_ids.html:7
+#: .\templates\documents\requisitos_ids.html:15
+msgid "Upload a requirement"
+msgstr "Subir un requisito"
+
+#: .\templates\documents\nuevo_requisito_ids.html:9
+msgid ""
+"An IDS declares, for a set of elements, what data they must carry. The file "
+"is\n"
+"    checked before it is stored: a requirement that cannot be read would not "
+"reject anything nor\n"
+"    approve anything — it would just fail on every validation."
+msgstr ""
+"Un IDS declara, para un conjunto de elementos, qué datos tienen que traer. "
+"El archivo se comprueba antes de guardarlo: un requisito que no se puede "
+"leer no rechazaría nada ni aprobaría nada, solo daría error en cada "
+"validación."
+
+#: .\templates\documents\nuevo_requisito_ids.html:17
+#: .\templates\documents\subir_revision.html:20
+msgid "Upload"
+msgstr "Subir"
+
+#: .\templates\documents\nuevo_transmittal.html:4
+#: .\templates\documents\nuevo_transmittal.html:7
+#: .\templates\documents\transmittals.html:14
+msgid "New transmittal"
+msgstr "Nuevo transmittal"
+
+#: .\templates\documents\nuevo_transmittal.html:9
+msgid ""
+"Pick the revisions that go out and who they go to. The project is taken "
+"from\n"
+"    the revisions. It is created as a draft: issuing it is a separate step, "
+"so somebody can read the\n"
+"    cover before it leaves."
+msgstr ""
+"Elige las revisiones que salen y a quién van. El proyecto lo dicen las "
+"revisiones. Nace como borrador: emitirlo es un paso aparte, para que alguien "
+"pueda leer la carátula antes de que salga."
+
+#: .\templates\documents\nuevo_transmittal.html:17
+msgid "Create draft"
+msgstr "Crear borrador"
 
 #: .\templates\documents\observacion.html:11
 msgid "opened by"
 msgstr "abierta por"
 
-
 #: .\templates\documents\observacion.html:13
 msgid "overdue"
 msgstr "vencida"
 
-
 #: .\templates\documents\observacion.html:20
-#: .\templates\documents\observaciones.html:19
+#: .\templates\documents\observaciones.html:36
+#: .\templates\projects\proyecto.html:56
 msgid "On"
 msgstr "Sobre"
-
 
 #: .\templates\documents\observacion.html:24
 msgid "page"
 msgstr "página"
 
-
 #: .\templates\documents\observacion.html:28
 msgid "On the model"
 msgstr "Sobre el modelo"
-
 
 #: .\templates\documents\observacion.html:34
 msgid "by"
 msgstr "por"
 
-
 #: .\templates\documents\observacion.html:39
 msgid "Thread"
 msgstr "Hilo"
-
 
 #: .\templates\documents\observacion.html:52
 msgid "Nothing said yet."
 msgstr "Todavía no se ha dicho nada."
 
-
 #: .\templates\documents\observacion.html:64
 msgid "Answer"
 msgstr "Responder"
-
 
 #: .\templates\documents\observacion.html:68
 msgid "Post"
 msgstr "Publicar"
 
-
 #: .\templates\documents\observacion.html:73
 msgid "Close"
 msgstr "Cerrar"
-
 
 #: .\templates\documents\observacion.html:75
 msgid ""
@@ -1414,71 +1476,143 @@ msgid ""
 "      what tells a resolved one apart from one somebody ticked to bring the "
 "count\n"
 "      down."
-msgstr "Una observación no se cierra sin decir cómo se resolvió: eso es lo que distingue una resuelta de una que alguien marcó para bajar el contador."
-
+msgstr ""
+"Una observación no se cierra sin decir cómo se resolvió: eso es lo que "
+"distingue una resuelta de una que alguien marcó para bajar el contador."
 
 #: .\templates\documents\observacion.html:82
 msgid "Close observation"
 msgstr "Cerrar la observación"
 
-
 #: .\templates\documents\observaciones.html:9
 msgid "Findings and errors, each with an owner and a due date."
-msgstr "Hallazgos y errores, cada uno con su responsable y su fecha de vencimiento."
-
+msgstr ""
+"Hallazgos y errores, cada uno con su responsable y su fecha de vencimiento."
 
 #: .\templates\documents\observaciones.html:11
 msgid "Only open"
 msgstr "Solo abiertas"
 
+#: .\templates\documents\observaciones.html:25
+#: .\templates\projects\proyecto.html:14
+msgid "Export to BCF 2.1"
+msgstr "Exportar a BCF 2.1"
 
-#: .\templates\documents\observaciones.html:20
+#: .\templates\documents\observaciones.html:37
+#: .\templates\projects\proyecto.html:54
 msgid "Priority"
 msgstr "Prioridad"
 
+#: .\templates\documents\requisitos_ids.html:9
+msgid ""
+"What the client requires each model to carry, written in IDS — the\n"
+"    buildingSMART standard. Revisar a mano si cada elemento trae el pset "
+"exigido no escala; un IDS lo\n"
+"    verifica en segundos."
+msgstr ""
+"Lo que el mandante exige que traiga cada modelo, escrito en IDS, el estándar "
+"de buildingSMART. Revisar a mano si cada elemento trae el pset exigido no "
+"escala; un IDS lo verifica en segundos."
 
-#: .\templates\documents\subir_revision.html:20
-msgid "Upload"
-msgstr "Subir"
+#: .\templates\documents\requisitos_ids.html:24
+msgid "Uploaded by"
+msgstr "Subido por"
 
+#: .\templates\documents\requisitos_ids.html:25
+msgid "Validations"
+msgstr "Validaciones"
+
+#: .\templates\documents\requisitos_ids.html:46
+msgid "No requirement yet: nothing is being verified against the model."
+msgstr ""
+"Todavía no hay requisito: no se está verificando nada contra el modelo."
+
+#: .\templates\documents\transmittal.html:10
+#, fuzzy
+#| msgid "Issued by"
+msgid "issued by"
+msgstr "Emitido por"
+
+#: .\templates\documents\transmittal.html:34
+#, fuzzy
+#| msgid "Acknowledged"
+msgid "acknowledged"
+msgstr "Acusado"
+
+#: .\templates\documents\transmittal.html:36
+msgid "Not issued yet."
+msgstr "Todavía no se emitió."
+
+#: .\templates\documents\transmittal.html:40
+#: .\templates\documents\transmittals.html:23
+msgid "Recipients"
+msgstr "Destinatarios"
+
+#: .\templates\documents\transmittal.html:52
+msgid "no email address"
+msgstr "sin dirección de correo"
+
+#: .\templates\documents\transmittal.html:56
+msgid "Nobody yet."
+msgstr "Todavía nadie."
+
+#: .\templates\documents\transmittal.html:86
+msgid "Nothing attached yet."
+msgstr "Todavía no lleva nada."
+
+#: .\templates\documents\transmittal.html:99
+msgid "What is missing to issue it"
+msgstr "Qué falta para emitirlo"
+
+#: .\templates\documents\transmittal.html:110
+msgid "Issue"
+msgstr "Emitir"
+
+#: .\templates\documents\transmittal.html:112
+msgid ""
+"Every recipient gets an email with the list of documents and the\n"
+"      link."
+msgstr ""
+"A cada destinatario le llega un correo con la lista de documentos y el "
+"enlace."
+
+#: .\templates\documents\transmittal.html:117
+msgid "Issue and notify"
+msgstr "Emitir y avisar"
+
+#: .\templates\documents\transmittal.html:122
+#: .\templates\documents\transmittal.html:125
+msgid "Acknowledge receipt"
+msgstr "Acusar recibo"
 
 #: .\templates\documents\transmittals.html:9
 msgid ""
 "What was issued, to whom and when. It is what turns «I emailed it» into a\n"
 "    record."
-msgstr "Qué se emitió, a quién y cuándo. Es lo que convierte «se lo mandé por correo» en un registro."
+msgstr ""
+"Qué se emitió, a quién y cuándo. Es lo que convierte «se lo mandé por "
+"correo» en un registro."
 
-
-#: .\templates\documents\transmittals.html:16
+#: .\templates\documents\transmittals.html:20
 msgid "Reference"
 msgstr "Folio"
 
-
-#: .\templates\documents\transmittals.html:17
+#: .\templates\documents\transmittals.html:21
 msgid "Subject"
 msgstr "Asunto"
 
-
-#: .\templates\documents\transmittals.html:18
+#: .\templates\documents\transmittals.html:22
 msgid "Issued by"
 msgstr "Emitido por"
-
-
-#: .\templates\documents\transmittals.html:19
-msgid "Recipients"
-msgstr "Destinatarios"
-
 
 #: .\templates\generic\_paginacion.html:14
 msgid "Pages"
 msgstr "Páginas"
 
-
 #: .\templates\generic\_paginacion.html:17
 #: .\templates\generic\_paginacion.html:20
 msgid "Previous"
 msgstr "Anterior"
-
 
 #: .\templates\generic\_paginacion.html:24
 #, python-format
@@ -1490,336 +1624,161 @@ msgstr ""
 "\n"
 "Página %(actual)s de %(total)s · %(n)s filas"
 
-
 #: .\templates\generic\_paginacion.html:31
 #: .\templates\generic\_paginacion.html:34
 msgid "Next"
 msgstr "Siguiente"
 
+#: .\templates\projects\nueva_disciplina.html:4
+#: .\templates\projects\nueva_disciplina.html:7
+#: .\templates\projects\proyecto.html:162
+#, fuzzy
+#| msgid "discipline"
+msgid "New discipline"
+msgstr "disciplina"
+
+#: .\templates\projects\nueva_disciplina.html:10
+msgid ""
+"The colour is used by the board, the listing and the report, so it lives\n"
+"    here once instead of being copied into each of them."
+msgstr "El color lo usan el tablero, el listado y el informe, así que vive acá una sola vez en vez de copiarse en cada uno."
+
+#: .\templates\projects\nuevo_proyecto.html:4
+#: .\templates\projects\nuevo_proyecto.html:7
+#: .\templates\projects\proyectos.html:16
+#, fuzzy
+#| msgid "project"
+msgid "New project"
+msgstr "proyecto"
+
+#: .\templates\projects\nuevo_proyecto.html:9
+msgid ""
+"The code is what will be read on every drawing and every transmittal, so it\n"
+"    is stored in upper case and cannot repeat within the organisation."
+msgstr "El código es lo que se leerá en cada plano y en cada transmittal, así que se guarda en mayúsculas y no puede repetirse dentro de la organización."
+
+#: .\templates\projects\proyecto.html:11
+#, python-format
+msgid ""
+"Progress\n"
+"    %(avance)s"
+msgstr "Avance %(avance)s"
+
+#: .\templates\projects\proyecto.html:27
+#, fuzzy
+#| msgid "Nothing issued yet."
+msgid "Nothing issued yet"
+msgstr "Todavía no se ha emitido nada."
+
+#: .\templates\projects\proyecto.html:29
+#, fuzzy, python-format
+#| msgid "There is no revision yet: nothing has been issued."
+msgid ""
+"One deliverable has no revision: nothing\n"
+"      has been issued for it."
+msgid_plural ""
+"%(total)s deliverables have no revision: nothing has been\n"
+"      issued for them."
+msgstr[0] "Todavía no hay ninguna revisión: no se ha emitido nada."
+msgstr[1] "Todavía no hay ninguna revisión: no se ha emitido nada."
+
+#: .\templates\projects\proyecto.html:50
+#, fuzzy
+#| msgid "Open an observation"
+msgid "Open observations"
+msgstr "Abrir una observación"
+
+#: .\templates\projects\proyecto.html:76
+#, fuzzy
+#| msgid "Nothing here."
+msgid "Nothing open."
+msgstr "Nada por acá."
+
+#: .\templates\projects\proyecto.html:83
+msgid "Models and drawings you can open"
+msgstr "Modelos y planos que puedes abrir"
+
+#: .\templates\projects\proyecto.html:114
+msgid ""
+"No model or drawing published yet. An IFC or a DXF uploaded as a revision\n"
+"      opens here."
+msgstr "Todavía no hay ningún modelo ni plano publicado. Un IFC o un DXF subido como revisión se abre acá."
+
+#: .\templates\projects\proyecto.html:149
+msgid "Register the first deliverable"
+msgstr "Registrar el primer entregable"
+
+#: .\templates\projects\proyecto.html:160
+#, fuzzy
+#| msgid "Discipline"
+msgid "Disciplines"
+msgstr "Disciplina"
+
+#: .\templates\projects\proyecto.html:181
+msgid ""
+"No discipline yet. A deliverable needs one to be\n"
+"            registered."
+msgstr "Todavía no hay ninguna disciplina. Un entregable necesita una para poder registrarse."
+
+#: .\templates\projects\proyecto.html:200
+msgid ""
+"No IDS loaded: nothing is being checked against the client's\n"
+"            requirement."
+msgstr "Ningún IDS cargado: no se está comprobando nada contra el requisito del mandante."
+
+#: .\templates\projects\proyectos.html:9
+msgid ""
+"The works. Every deliverable, observation and model hangs off one of\n"
+"    these."
+msgstr "Las obras. Todo entregable, observación y modelo cuelga de una de estas."
+
+#: .\templates\projects\proyectos.html:25
+#, fuzzy
+#| msgid "client"
+msgid "Client"
+msgstr "cliente"
+
+#: .\templates\projects\proyectos.html:26
+msgid "Stage"
+msgstr "Etapa"
+
+#: .\templates\projects\proyectos.html:45
+msgid ""
+"No project yet. Create the first one to start\n"
+"              registering."
+msgstr "Todavía no hay ningún proyecto. Crea el primero para empezar a registrar."
+
+#: .\templates\projects\proyectos.html:48
+#, fuzzy
+#| msgid "No deliverable registered yet."
+msgid "No project registered yet."
+msgstr "Todavía no hay ningún entregable registrado."
 
 #: .\templates\registration\login.html:100
 msgid "Model, plans and document control."
 msgstr "Modelo, planos y control documental."
 
-
 #: .\templates\registration\login.html:108
 msgid "Invalid username or password. Try again."
 msgstr "Usuario o contraseña inválidos. Inténtalo de nuevo."
-
 
 #: .\templates\registration\login.html:121
 msgid "Password"
 msgstr "Contraseña"
 
-
 #: .\templates\registration\login.html:134
 msgid "There is no self sign-up: an administrator creates the accounts."
 msgstr "No hay auto-registro: las cuentas las crea un administrador."
-
 
 #: .\templates\registration\password_change_done.html:4
 #: .\templates\registration\password_change_done.html:7
 msgid "Password changed"
 msgstr "Contraseña cambiada"
 
-
 #: .\templates\registration\password_change_form.html:9
 msgid ""
 "Inside the application, so nobody needs the technical admin site to\n"
 "    rotate their own credential."
-msgstr "Dentro de la aplicación, para que nadie tenga que entrar al administrador técnico a cambiar su propia credencial."
-
-
-#: .\apps\documents\forms.py
-msgid "All revisions in one transmittal must belong to the same project."
-msgstr "Todas las revisiones de un transmittal tienen que ser del mismo proyecto."
-
-
-#: .\apps\documents\notify.py
-msgid "%(quien)s has issued a transmittal to you in AeroBim."
-msgstr "%(quien)s te emitió un transmittal en AeroBim."
-
-
-#: .\apps\documents\notify.py
-msgid "[AeroBim] Transmittal %(folio)s: %(asunto)s"
-msgstr "[AeroBim] Transmittal %(folio)s: %(asunto)s"
-
-
-#: .\apps\documents\notify.py
-msgid "Documents (%(n)s):"
-msgstr "Documentos (%(n)s):"
-
-
-#: .\apps\documents\views.py
-msgid "Add at least one revision."
-msgstr "Agregar al menos una revisión."
-
-
-#: .\apps\documents\views.py
-msgid "Add at least one recipient."
-msgstr "Agregar al menos un destinatario."
-
-
-#: .\apps\documents\views.py
-msgid "Draft transmittal created. Review the cover and issue it."
-msgstr "Transmittal creado en borrador. Revisa la carátula y emítelo."
-
-
-#: .\apps\documents\views.py
-msgid "Transmittal %(folio)s issued, %(n)s recipients notified."
-msgstr "Transmittal %(folio)s emitido, %(n)s destinatarios avisados."
-
-
-#: .\apps\documents\views.py
-msgid "No email address for %(quienes)s: they were not notified."
-msgstr "Sin dirección de correo para %(quienes)s: no se les avisó."
-
-
-#: .\apps\documents\views.py
-msgid "Receipt acknowledged."
-msgstr "Recibo acusado."
-
-
-#: .\templates\documents\nuevo_transmittal.html:4
-#: .\templates\documents\nuevo_transmittal.html:7
-#: .\templates\documents\transmittals.html:14
-msgid "New transmittal"
-msgstr "Nuevo transmittal"
-
-
-#: .\templates\documents\nuevo_transmittal.html:9
-msgid ""
-"Pick the revisions that go out and who they go to. The project is taken from\n"
-"    the revisions. It is created as a draft: issuing it is a separate step, so somebody can read the\n"
-"    cover before it leaves."
-msgstr "Elige las revisiones que salen y a quién van. El proyecto lo dicen las revisiones. Nace como borrador: emitirlo es un paso aparte, para que alguien pueda leer la carátula antes de que salga."
-
-
-#: .\templates\documents\nuevo_transmittal.html:15
-msgid "Create draft"
-msgstr "Crear borrador"
-
-
-#: .\templates\documents\transmittal.html:34
-msgid "Not issued yet."
-msgstr "Todavía no se emitió."
-
-
-#: .\templates\documents\transmittal.html:48
-msgid "no email address"
-msgstr "sin dirección de correo"
-
-
-#: .\templates\documents\transmittal.html:53
-msgid "Nobody yet."
-msgstr "Todavía nadie."
-
-
-#: .\templates\documents\transmittal.html:80
-msgid "Nothing attached yet."
-msgstr "Todavía no lleva nada."
-
-
-#: .\templates\documents\transmittal.html:92
-msgid "What is missing to issue it"
-msgstr "Qué falta para emitirlo"
-
-
-#: .\templates\documents\transmittal.html:103
-msgid "Issue"
-msgstr "Emitir"
-
-
-#: .\templates\documents\transmittal.html:105
-msgid ""
-"Every recipient gets an email with the list of documents and the\n"
-"      link."
-msgstr "A cada destinatario le llega un correo con la lista de documentos y el enlace."
-
-
-#: .\templates\documents\transmittal.html:110
-msgid "Issue and notify"
-msgstr "Emitir y avisar"
-
-
-#: .\templates\documents\transmittal.html:115
-#: .\templates\documents\transmittal.html:118
-msgid "Acknowledge receipt"
-msgstr "Acusar recibo"
-
-
-#: .\apps\documents\forms.py
-msgid "An anchor on the document needs the page and both coordinates."
-msgstr "Un ancla en el documento necesita la página y las dos coordenadas."
-
-
-#: .\apps\documents\forms.py
-msgid "The position must be a fraction of the page, 0 to 1."
-msgstr "La posición tiene que ser una fracción de la página, de 0 a 1."
-
-
-#: .\apps\documents\forms.py
-msgid "An anchor on the document needs the revision it points at."
-msgstr "Un ancla en el documento necesita la revisión a la que apunta."
-
-
-#: .\templates\documents\expediente.html:102
-msgid "elements"
-msgstr "elementos"
-
-
-#: .\templates\documents\expediente.html:105
-msgid "georeferenced"
-msgstr "georreferenciado"
-
-
-#: .\templates\documents\expediente.html:107
-msgid "not georeferenced"
-msgstr "sin georreferenciar"
-
-
-#: .\templates\documents\expediente.html:112
-msgid "the file's own data could not be read"
-msgstr "no se pudieron leer los datos del propio archivo"
-
-
-#: .\apps\accounts\views.py
-#: .\templates\documents\requisitos_ids.html
-msgid "Information requirements"
-msgstr "Requisitos de información"
-
-
-#: .\apps\accounts\views.py
-msgid "What the client requires each model to carry, in IDS."
-msgstr "Lo que el mandante exige que traiga cada modelo, en IDS."
-
-
-#: .\apps\documents\forms.py
-msgid "IDS file"
-msgstr "Archivo IDS"
-
-
-#: .\apps\documents\forms.py
-msgid "buildingSMART IDS, .ids"
-msgstr "IDS de buildingSMART, .ids"
-
-
-#: .\apps\documents\forms.py
-msgid "Optional: taken from the IDS if left empty."
-msgstr "Opcional: se toma del IDS si se deja vacío."
-
-
-#: .\apps\documents\forms.py
-msgid "The information requirement must be an .ids file."
-msgstr "El requisito de información tiene que ser un archivo .ids."
-
-
-#: .\apps\documents\forms.py
-msgid "This file is not a readable IDS."
-msgstr "Este archivo no es un IDS que se pueda leer."
-
-
-#: .\apps\documents\views.py
-msgid "Untitled"
-msgstr "Sin título"
-
-
-#: .\apps\documents\views.py
-msgid "Information requirement uploaded."
-msgstr "Requisito de información subido."
-
-
-#: .\apps\documents\views.py
-msgid "Only an IFC can be validated against an IDS."
-msgstr "Contra un IDS solo se puede validar un IFC."
-
-
-#: .\apps\documents\views.py
-msgid "This project has no information requirement yet: upload an IDS first."
-msgstr "Este proyecto todavía no tiene requisito de información: primero hay que subir un IDS."
-
-
-#: .\apps\documents\views.py
-msgid "Validated against %(total)s requirements: %(ok)s comply."
-msgstr "Validado contra %(total)s requisitos: %(ok)s cumplen."
-
-
-#: .\templates\documents\requisitos_ids.html
-msgid "Upload a requirement"
-msgstr "Subir un requisito"
-
-
-#: .\templates\documents\requisitos_ids.html
-msgid "Uploaded by"
-msgstr "Subido por"
-
-
-#: .\templates\documents\requisitos_ids.html
-msgid "Validations"
-msgstr "Validaciones"
-
-
-#: .\templates\documents\requisitos_ids.html
-msgid "No requirement yet: nothing is being verified against the model."
-msgstr "Todavía no hay requisito: no se está verificando nada contra el modelo."
-
-
-#: .\templates\documents\requisitos_ids.html
-msgid ""
-"What the client requires each model to carry, written in IDS — the\n"
-"    buildingSMART standard. Revisar a mano si cada elemento trae el pset exigido no escala; un IDS lo\n"
-"    verifica en segundos."
-msgstr "Lo que el mandante exige que traiga cada modelo, escrito en IDS, el estándar de buildingSMART. Revisar a mano si cada elemento trae el pset exigido no escala; un IDS lo verifica en segundos."
-
-
-#: .\templates\documents\nuevo_requisito_ids.html
-msgid ""
-"An IDS declares, for a set of elements, what data they must carry. The file is\n"
-"    checked before it is stored: a requirement that cannot be read would not reject anything nor\n"
-"    approve anything — it would just fail on every validation."
-msgstr "Un IDS declara, para un conjunto de elementos, qué datos tienen que traer. El archivo se comprueba antes de guardarlo: un requisito que no se puede leer no rechazaría nada ni aprobaría nada, solo daría error en cada validación."
-
-
-#: .\templates\documents\expediente.html
-msgid "nothing was checked"
-msgstr "no se comprobó nada"
-
-
-#: .\templates\documents\expediente.html
-msgid "of"
-msgstr "de"
-
-
-#: .\templates\documents\expediente.html
-msgid "specifications fail"
-msgstr "especificaciones fallan"
-
-
-#: .\templates\documents\expediente.html
-msgid "open an observation"
-msgstr "abrir una observación"
-
-
-#: .\templates\documents\expediente.html
-msgid "in total"
-msgstr "en total"
-
-
-#: .\templates\documents\expediente.html
-msgid "Validate against the IDS"
-msgstr "Validar contra el IDS"
-
-
-#: .\templates\documents\expediente.html
-msgid "did not apply to this model"
-msgstr "no aplicaron a este modelo"
-
-
-#: .\templates\documents\observaciones.html
-msgid "Export to BCF 2.1"
-msgstr "Exportar a BCF 2.1"
-
-
-#: .\apps\documents\views.py
-msgid "This project has no observations to export."
-msgstr "Este proyecto no tiene observaciones que exportar."
+msgstr ""
+"Dentro de la aplicación, para que nadie tenga que entrar al administrador "
+"técnico a cambiar su propia credencial."

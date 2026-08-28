@@ -1,10 +1,25 @@
-"""Un proyecto con un entregable, que es el escenario de casi toda prueba de aqui."""
+"""El escenario que comparte la suite: una organizacion, su gente, una obra y un entregable.
+
+**Estaba en `apps/documents/tests/conftest.py` y ahi solo lo veia esa aplicacion**, con un archivo
+en `apps/visor/tests` que reenviaba los siete nombres. Al aparecer las pantallas de proyecto
+—`apps/projects`— habia que elegir entre un tercer reenvio, duplicarlo, o subirlo. Duplicarlo es
+como dos escenarios parecidos se separan sin que nadie se entere: una prueba pasa con un usuario
+que en el otro archivo ya no tiene membresia.
+
+**El motivo que tenia escrito el reenvio era equivocado**: decia que «un fixture global lo carga
+toda la suite», y no es asi — las fixturas de pytest son perezosas y solo se construyen cuando una
+prueba las pide. Con ese motivo caido, viven aca.
+
+`Entregable` y `Revision` son modelos de `documents` y aun asi estan aca, porque **las tres
+aplicaciones los necesitan**: el visor abre una revision, la pantalla del proyecto las lista, y el
+registro es su casa. Lo que use una sola aplicacion se queda en su propio `conftest.py`.
+"""
 
 import pytest
 from django.contrib.auth import get_user_model
 
 from apps.core.models import Membresia, Organizacion
-from apps.documents.models import Entregable, Revision
+from apps.documents.models import Entregable, Idoneidad, Revision
 from apps.projects.models import Disciplina, Proyecto
 
 
@@ -58,8 +73,6 @@ def entregable(db, organizacion, proyecto, disciplina, proyectista):
 
 @pytest.fixture
 def revision(db, entregable, proyectista):
-    from apps.documents.models import Idoneidad
-
     return Revision.objects.create(
         entregable=entregable,
         correlativo="P01",

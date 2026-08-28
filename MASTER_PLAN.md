@@ -1349,6 +1349,22 @@ emitió y a quién— viva en un registro y no en la bandeja de correo de alguie
 | `F8.6` | **Ver y comentar el PDF en el navegador** con EmbedPDF (MIT), sin descargarlo                              | ✅     |
 | `F8.7` | **Emitir el transmittal desde la pantalla**, con carátula y acuse                                          | ✅     |
 | `F8.8` | **El visor y el registro son el mismo producto**: abrir la revisión desde su expediente                    | ✅     |
+| `F8.9` | **La obra existe en la aplicación**: lista, alta y detalle de proyecto y disciplina                        | ✅     |
+
+### `F8.9`: los modelos estaban y la pantalla no (2026-08-28)
+
+**El segundo hueco que no figuraba en ninguna lista.** `apps/projects` tenía sus tres modelos
+desde `F8.1` y **ni una vista ni una URL**: un proyecto se creaba entrando al `/admin/` técnico de
+Django, y sus disciplinas igual. Con una obra real eso significa que el trabajo empieza fuera de la
+aplicación — y que la pregunta «¿dónde sigo?» no tiene entre qué elegir.
+
+**La pantalla de detalle contesta esa pregunta, y por eso su orden no es alfabético**: primero los
+entregables sin nada emitido —nombrados uno por uno, no contados—, después las observaciones
+abiertas por prioridad, después **el salto directo al visor**, y al final lo que se consulta. Es la
+idea del expediente de un entregable subida un nivel: la del proyecto entero.
+
+`bootstrap_roles` no necesitó nada: los permisos de `Proyecto` y `Disciplina` ya estaban en la
+matriz de `roles.py`.
 
 ### `F8.8`: el hueco que no estaba en ninguna lista (2026-08-26)
 

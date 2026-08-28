@@ -59,6 +59,9 @@ urlpatterns = [
     ),
     path("administracion/", include("apps.accounts.urls")),
     path("proyecto/", include("apps.core.urls")),
+    # Los proyectos. **Es de donde cuelga todo lo demás**, y hasta hoy solo se podían crear
+    # entrando al `/admin/` técnico: con una obra real, el trabajo empezaba fuera de la aplicación.
+    path("proyectos/", include("apps.projects.urls")),
     path("documentos/", include("apps.documents.urls")),
     # El visor y la API que lo alimenta. Van juntos porque son las dos mitades de lo mismo:
     # el SPA detrás del login y las revisiones que puede abrir.

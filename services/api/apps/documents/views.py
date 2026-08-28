@@ -287,14 +287,17 @@ class DescargarRevisionView(ModelViewPermissionRequiredMixin, View):
         except (OSError, storage.CargaRechazada) as error:
             raise Http404 from error
 
-        respuesta = FileResponse(
-            iter([contenido]),
+        # **Va un `BytesIO`, no un iterador**, y no es estilo: `FileResponse` solo llama a
+        # `set_headers` cuando el contenido tiene `read`, así que con `iter([bytes])` se tragaba
+        # `as_attachment` y `filename` **sin avisar** — el nombre que este comentario promete no
+        # llegaba al navegador. Es el mismo defecto que apareció en la exportación a BCF.
+        return FileResponse(
+            BytesIO(contenido),
             as_attachment=True,
             # Se le devuelve **el nombre que traía**, que es el que la persona reconoce,
             # aunque en el disco viva con otro.
             filename=revision.nombre_original or f"{revision.entregable.codigo}.bin",
         )
-        return respuesta
 
 
 class ExportarBcfView(ModelViewPermissionRequiredMixin, View):

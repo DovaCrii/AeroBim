@@ -5,6 +5,59 @@ Este proyecto sigue [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Añadido — La obra existe en la aplicación, y su pantalla dice dónde sigue (`F8.9`, 2026-08-28)
+
+`apps/projects` tenía sus modelos desde `F8.1` y **ni una vista**: un proyecto solo se podía crear
+entrando al `/admin/` técnico de Django, y sus disciplinas igual. Con una obra real eso no es una
+incomodidad, es que el trabajo empieza fuera de la aplicación.
+
+**La pantalla de detalle contesta «dónde sigo»**, que es una pregunta distinta de «qué hay». El
+orden de los bloques es la respuesta: primero los entregables sin nada emitido —**nombrados, no
+contados**—, después las observaciones abiertas por prioridad, después el salto directo al visor, y
+al final lo que se consulta. Un listado alfabético de doscientos entregables no dice nada.
+
+**El salto al visor es la costura que faltaba.** Hasta hoy obligaba a pasar por el listado de
+entregables y buscar a mano. Y abierto así el visor sabe de qué revisión viene, que es lo que le
+permite ofrecer «Observar este elemento» sobre un GUID.
+
+La organización **se pregunta solo cuando hay algo que preguntar**: con una sola membresía se pone
+sola y el campo va oculto. Y el POST no pasa por el desplegable, así que la vista comprueba la
+organización contra la lista de verdad — hay prueba de que escribir a mano el id de otro cliente no
+cuela. El código se normaliza en mayúsculas porque es un identificador y no un texto: `716-lcd` y
+`716-LCD` son la misma obra, y la restricción de unicidad de la base distingue.
+
+`bootstrap_roles` no necesitó ni una línea: los permisos de `Proyecto` y `Disciplina` ya estaban en
+la matriz de `roles.py`.
+
+**Cuatro defectos que aparecieron por el camino:**
+
+- **`DescargarRevisionView` tenía el mismo defecto que el BCF de ayer.** `FileResponse` con un
+  iterador se traga `as_attachment` y `filename` sin avisar, así que el nombre que su propio
+  comentario prometía devolver nunca llegaba al navegador.
+- **`Entregable.observaciones_abiertas` excluía solo `CERRADA`, no `DESCARTADA`.** El resto del
+  código —`notify.py`, la lista, `esta_vencida`— excluye las dos, y esta era la única que
+  discrepaba. No lo delató ninguna prueba porque **la propiedad no la usaba nadie**: la estrena esta
+  pantalla.
+- **Las fixturas compartidas vivían en `apps/documents/tests/conftest.py`** con un reenvío en
+  `apps/visor/tests`, y el motivo escrito era equivocado: decía que «un fixture global lo carga toda
+  la suite», y las fixturas de pytest son perezosas. Suben a la raíz y los dos reenvíos desaparecen.
+- **El catálogo tenía `"Accounts"` sin traducir y la prueba no podía verlo**: la cadena estaba en el
+  código y **nunca se había extraído**, así que no figuraba en el `.po`. Queda dicho porque es un
+  hueco real: `test_no_queda_ninguna_cadena_sin_traducir` solo vigila lo que ya está en el catálogo.
+
+Y dos trampas de plantilla, con su motivo escrito donde toca: `visor_ruta` es un **nombre de ruta y
+no una URL** —hay que resolverlo con la etiqueta `url`, y sin eso el enlace no lleva a ninguna parte
+sin que nada falle—, y los comentarios `{# #}` son **de una sola línea**: repartido en dos, Django
+parsea las etiquetas de la segunda.
+
+21 pruebas nuevas: 403 por vista, aislamiento entre organizaciones, y que la pantalla no ofrezca
+botones que terminan en 403. Gate en verde con 293 y 93,76% de cobertura, y las 19 cadenas nuevas
+traducidas sin perder ninguna de las 335 que había.
+
+**Lo que no se verificó:** el aspecto de las dos pantallas en el navegador. Responden por HTTP —302
+a `/accounts/login/?next=/proyectos/`, sin ningún 500— y las 21 pruebas las ejercen de punta a
+punta, pero no hay usuario en la base.
+
 ### Añadido — El BCF abre mirando al problema, no solo señalándolo (`F4.1`, 2026-08-27)
 
 La observación abierta desde el visor se lleva **el punto de vista desde el que se vio el

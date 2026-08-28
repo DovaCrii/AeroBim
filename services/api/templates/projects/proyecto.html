@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block titulo %}{{ proyecto.codigo }} · AeroBim{% endblock %}
+
+{% block contenido %}
+  <h1>{{ proyecto.codigo }} · {{ proyecto.nombre }}</h1>
+  <p class="subtitulo">
+    {{ proyecto.get_status_display }}
+    {% if proyecto.cliente %} · {{ proyecto.cliente }}{% endif %}
+    · {% blocktranslate with avance=proyecto.avance_fisico|floatformat:"-2" %}Progress
+    {{ avance }}{% endblocktranslate %}
+    {% if puede_exportar_bcf %}
+      · <a href="{% url 'documents:exportar-bcf' proyecto.pk %}">{% translate "Export to BCF 2.1" %}</a>
+    {% endif %}
+  </p>
+
+  {% comment %}
+    **Esta pantalla contesta «¿dónde sigo?», no «qué hay».** El orden de los bloques es la
+    respuesta: primero lo que exige una decisión hoy, después el trabajo de coordinación, y al
+    final lo que se consulta. Un listado alfabético de doscientos entregables no dice nada.
+  {% endcomment %}
+
+  {# --- Lo que falta, nombrado ------------------------------------------------------ #}
+  {% if sin_revision %}
+    <p class="grupo">{% translate "Nothing issued yet" %}</p>
+    <div class="aviso">
+      {% blocktranslate count total=sin_revision|length %}One deliverable has no revision: nothing
+      has been issued for it.{% plural %}{{ total }} deliverables have no revision: nothing has been
+      issued for them.{% endblocktranslate %}
+    </div>
+    <table>
+      <tbody>
+        {% for entregable in sin_revision %}
+          <tr>
+            <td style="width: 140px">
+              <a href="{% url 'documents:expediente' entregable.pk %}">{{ entregable.codigo }}</a>
+            </td>
+            <td>{{ entregable.titulo }}</td>
+            <td>{{ entregable.responsable }}</td>
+            <td style="width: 120px">{{ entregable.fecha_planificada|date:"Y-m-d"|default:"—" }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+
+  {# --- Coordinación: lo que hay que resolver -------------------------------------- #}
+  <p class="grupo">{% translate "Open observations" %}</p>
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">{% translate "Priority" %}</th>
+        <th scope="col">{% translate "Title" %}</th>
+        <th scope="col">{% translate "On" %}</th>
+        <th scope="col">{% translate "Owner" %}</th>
+        <th scope="col">{% translate "Due" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for observacion in observaciones %}
+        <tr>
+          <td style="width: 90px">{{ observacion.get_prioridad_display }}</td>
+          <td>
+            <a href="{% url 'documents:observacion' observacion.pk %}">{{ observacion.titulo }}</a>
+          </td>
+          {# Sobre qué está puesta: el modelo, un documento o el proyecto en general. Es lo que
+             dice desde dónde se resuelve — una anclada al GUID de una viga, en el visor. #}
+          <td style="width: 110px">{{ observacion.ancla }}</td>
+          <td>{{ observacion.responsable }}</td>
+          <td style="width: 110px">{{ observacion.vence|date:"Y-m-d"|default:"—" }}</td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="5">{% translate "Nothing open." %}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {# --- El salto al visor ---------------------------------------------------------- #}
+  <p class="grupo">{% translate "Models and drawings you can open" %}</p>
+  {% if abribles %}
+    <div class="tarjetas">
+      {% for revision in abribles %}
+        {% comment %}
+          **El salto directo al visor**, que hasta hoy obligaba a pasar por el listado de
+          entregables y buscar a mano. Y abierto así el visor sabe de qué revisión viene, que es
+          lo que le permite ofrecer «Observar este elemento» sobre un GUID.
+        {% endcomment %}
+        {% comment %}
+          `visor_ruta` es un **nombre de ruta**, no una URL: hay que resolverlo con la etiqueta
+          `url`. Interpolarlo tal cual deja un `href="visor:visor?revision=…"` que no lleva a
+          ninguna parte, y nada falla — el enlace simplemente no va a ningún sitio.
+
+          Y este comentario es `{% comment %}` y no `{# #}` **porque el de llaves es de una sola
+          línea**: repartido en dos, Django parsea las etiquetas de la segunda.
+        {% endcomment %}
+        <a class="tarjeta" href="{% url revision.visor_ruta %}?revision={{ revision.pk }}">
+          <div class="titulo">{{ revision.entregable.codigo }} rev. {{ revision.correlativo }}</div>
+          <div class="detalle">
+            {{ revision.nombre_original }}
+            · {{ revision.idoneidad }}
+            {% if revision.entregable.disciplina %} · {{ revision.entregable.disciplina.codigo }}{% endif %}
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="vacio">
+      {% blocktranslate %}No model or drawing published yet. An IFC or a DXF uploaded as a revision
+      opens here.{% endblocktranslate %}
+    </div>
+  {% endif %}
+
+  {# --- Lo que se consulta --------------------------------------------------------- #}
+  <p class="grupo">{% translate "Deliverables" %}</p>
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">{% translate "Code" %}</th>
+        <th scope="col">{% translate "Title" %}</th>
+        <th scope="col">{% translate "Discipline" %}</th>
+        <th scope="col">{% translate "Current revision" %}</th>
+        <th scope="col">{% translate "Open" %}</th>
+        <th scope="col">{% translate "Progress" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for entregable in entregables %}
+        <tr>
+          <td><a href="{% url 'documents:expediente' entregable.pk %}">{{ entregable.codigo }}</a></td>
+          <td>{{ entregable.titulo }}</td>
+          <td>{{ entregable.disciplina.codigo|default:"—" }}</td>
+          <td>
+            {{ entregable.revision_vigente.correlativo|default:"—" }}
+            {{ entregable.revision_vigente.idoneidad|default:"" }}
+          </td>
+          <td>{{ entregable.cuantas_abiertas }}</td>
+          <td>{{ entregable.avance|floatformat:"-2" }}</td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="6">
+            {% if puede_crear_entregable %}
+              <a href="{% url 'documents:nuevo-entregable' %}">{% translate "Register the first deliverable" %}</a>
+            {% else %}
+              {% translate "No deliverable registered yet." %}
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <p class="grupo">
+    {% translate "Disciplines" %}
+    {% if puede_crear_disciplina %}
+      · <a href="{% url 'projects:nueva-disciplina' proyecto.pk %}">{% translate "New discipline" %}</a>
+    {% endif %}
+  </p>
+  <table>
+    <tbody>
+      {% for disciplina in disciplinas %}
+        <tr>
+          <td style="width: 90px">{{ disciplina.codigo }}</td>
+          <td>{{ disciplina.nombre }}</td>
+          {# El color es el mismo que usa el tablero y el informe: una sola copia, en la base. #}
+          <td style="width: 90px">
+            <span style="display:inline-block;width:1rem;height:1rem;vertical-align:middle;
+                         border-radius:3px;background:{{ disciplina.color }}"></span>
+            {{ disciplina.color }}
+          </td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="3">
+            {% blocktranslate %}No discipline yet. A deliverable needs one to be
+            registered.{% endblocktranslate %}
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <p class="grupo">{% translate "Information requirements" %}</p>
+  <table>
+    <tbody>
+      {% for requisito in requisitos_ids %}
+        <tr>
+          <td>{{ requisito.titulo }}</td>
+          <td style="width: 160px">{{ requisito.created_at|date:"Y-m-d" }}</td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td>
+            {% blocktranslate %}No IDS loaded: nothing is being checked against the client's
+            requirement.{% endblocktranslate %}
+            <a href="{% url 'documents:requisitos-ids' %}">{% translate "Information requirements" %}</a>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}
