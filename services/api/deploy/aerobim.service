@@ -1,0 +1,64 @@
+# La API y el portal de AeroBim, servidos por gunicorn.
+#
+# Instalar en /etc/systemd/system/aerobim.service
+#
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now aerobim.socket aerobim.service
+#
+# **`Type=notify` y no `simple`.** Con `simple`, systemd da el servicio por arrancado
+# en cuanto el proceso existe, o sea antes de que Django haya cargado los ajustes:
+# un `SECRET_KEY` que falta o un `psycopg` que no esta se ven como "active" y el
+# fallo aparece en la primera peticion. Con `notify`, gunicorn avisa cuando sus
+# workers estan listos, y un arranque roto queda como arranque roto.
+
+[Unit]
+Description=API y portal de AeroBim
+Requires=aerobim.socket
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=notify
+User=aerobim
+Group=aerobim
+WorkingDirectory=/opt/aerobim/services/api
+
+# Los ajustes viven en el `.env` del operador, fuera del repositorio y fuera de git.
+# `EnvironmentFile` con `-` no toleraria su ausencia a proposito: sin `.env` no hay
+# `SECRET_KEY`, y arrancar sin ella es exactamente lo que no debe pasar.
+EnvironmentFile=/opt/aerobim/services/api/.env
+Environment=DJANGO_SETTINGS_MODULE=config.settings.prod
+Environment=PYTHONUNBUFFERED=1
+
+# **El gunicorn del entorno, no `uv run`.** `uv run` comprueba y sincroniza el
+# entorno antes de ejecutar, y con `ProtectSystem=strict` el disco esta de solo
+# lectura: el servicio no arrancaria, o peor, arrancaria a veces. El `uv sync` es
+# parte del despliegue, no del arranque.
+ExecStart=/opt/aerobim/services/api/.venv/bin/gunicorn \
+    --config config/gunicorn.conf.py config.wsgi:application
+
+ExecReload=/bin/kill -s HUP $MAINPID
+KillMode=mixed
+TimeoutStopSec=30
+Restart=on-failure
+RestartSec=5
+
+# ── Lo que este servicio no necesita poder hacer ────────────────────────────────
+# Un endurecimiento minimo y comprobable. `ProtectSystem=strict` deja todo el disco
+# de solo lectura salvo lo que se nombra abajo, que son los tres sitios donde esta
+# aplicacion escribe: el socket, los documentos y los logs.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+# **Los dos que si se escriben.** `DOCUMENTS_DIR` y `LOGS_DIR` del `.env` tienen que
+# caer dentro de estas rutas, o el servicio arranca y falla al guardar el primer
+# documento — que es el fallo que `/health/` esta puesto para delatar antes.
+ReadWritePaths=/var/lib/aerobim /var/log/aerobim
+
+[Install]
+WantedBy=multi-user.target

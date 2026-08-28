@@ -24,6 +24,19 @@ dev = [
     "bandit>=1.8",
     "pip-audit>=2.9",
 ]
+# **Lo que solo hace falta en la VM**, y va aparte por eso: `gunicorn` no instala en
+# Windows —depende de `fcntl`— y `psycopg[binary]` arrastra una rueda con la libreria
+# de PostgreSQL dentro. Ninguna de las dos tiene por que estar en el equipo de quien
+# desarrolla con SQLite y `runserver`.
+#
+# En la VM: `uv sync --no-default-groups --group deploy`.
+deploy = [
+    # Django 6 habla con PostgreSQL por psycopg 3. Sin esto, `DB_ENGINE=postgresql`
+    # revienta al arrancar, y el mensaje de Django nombra `psycopg2` —el paquete
+    # anterior—, que manda a instalar justamente el que no es.
+    "psycopg[binary]>=3.2",
+    "gunicorn>=23.0",
+]
 
 [tool.uv]
 package = false

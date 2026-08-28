@@ -1053,21 +1053,73 @@ artefacto se consume aquí. Es la misma división que ya existe con la ortofoto 
 **Objetivo de salida:** los modelos dejan de vivir en la pestaña del navegador: se
 guardan por proyecto, con versiones y con quién subió qué.
 
-| #       | Tarea                                                                                              | Estado       |
-| ------- | -------------------------------------------------------------------------------------------------- | ------------ |
-| `F3.1`  | API en Python (Django + DRF, como AeroControl): proyectos, modelos, versiones, usuarios y permisos | ✅ ver abajo |
-| `F3.2`  | Almacenamiento de archivos con validación de tipo, tamaño y nombre — nunca el nombre del cliente   | ✅ ver abajo |
-| `F3.3`  | Extracción de metadatos con `ifcopenshell`: esquema, unidades, georreferenciación, conteo por tipo | ✅ ver abajo |
-| `F3.4`  | Jobs asíncronos (Celery) para lo que tarde: conversión, extracción, validación                     | ⬜           |
-| `F3.5`  | Validación **IDS** con `ifctester`: el modelo cumple o no el requisito de información del proyecto | ✅ ver abajo |
-| `F3.10` | **El IDS de partida**: qué trae el modelo, medido, y el requisito que sale de esa medición         | ✅           |
-| `F3.6`  | **Levantar `services/api`**: Django 6 + uv, con la forma de AeroControl y base de datos propia     | ✅           |
-| `F3.7`  | **Portal de ingreso**: `django.contrib.auth` endurecido con axes, sin auto-registro                | ✅           |
-| `F3.8`  | **Roles y el contrato de permisos**: la matriz como dato, el guardián, y la prueba de 403          | ✅           |
-| `F3.9`  | **Los módulos y cómo se entra a cada uno**: portal por etapa de trabajo, filtrado por permiso      | ✅           |
+| #       | Tarea                                                                                                | Estado       |
+| ------- | ---------------------------------------------------------------------------------------------------- | ------------ |
+| `F3.1`  | API en Python (Django + DRF, como AeroControl): proyectos, modelos, versiones, usuarios y permisos   | ✅ ver abajo |
+| `F3.2`  | Almacenamiento de archivos con validación de tipo, tamaño y nombre — nunca el nombre del cliente     | ✅ ver abajo |
+| `F3.3`  | Extracción de metadatos con `ifcopenshell`: esquema, unidades, georreferenciación, conteo por tipo   | ✅ ver abajo |
+| `F3.4`  | Jobs asíncronos (Celery) para lo que tarde: conversión, extracción, validación                       | ⬜           |
+| `F3.5`  | Validación **IDS** con `ifctester`: el modelo cumple o no el requisito de información del proyecto   | ✅ ver abajo |
+| `F3.10` | **El IDS de partida**: qué trae el modelo, medido, y el requisito que sale de esa medición           | ✅           |
+| `F3.6`  | **Levantar `services/api`**: Django 6 + uv, con la forma de AeroControl y base de datos propia       | ✅           |
+| `F3.7`  | **Portal de ingreso**: `django.contrib.auth` endurecido con axes, sin auto-registro                  | ✅           |
+| `F3.8`  | **Roles y el contrato de permisos**: la matriz como dato, el guardián, y la prueba de 403            | ✅           |
+| `F3.9`  | **Los módulos y cómo se entra a cada uno**: portal por etapa de trabajo, filtrado por permiso        | ✅           |
+| `F3.11` | **Ponerlo en la VM**: driver de PostgreSQL, servidor de aplicación, `/health/` y unidades de systemd | ✅ ver abajo |
 
 **Criterio de aceptación:** un modelo subido sobrevive al cierre del navegador, y
 la versión anterior sigue recuperable.
+
+### `F3.11`: los tres huecos entre «pasa el gate» y «arranca en la VM» (2026-08-28)
+
+Los tres se habían localizado leyendo el despliegue, no ejecutándolo, y los tres tienen la misma
+forma: **la aplicación funciona en el equipo de desarrollo justamente porque ahí no se usan.**
+
+- **`psycopg` no estaba declarado.** `DB_ENGINE=postgresql` reventaba al arrancar, y peor que
+  reventar: el mensaje de Django nombra **`psycopg2`** —el paquete anterior—, así que manda a
+  instalar el que no es. Ahora psycopg 3 y gunicorn viven en un grupo `deploy` aparte —ninguno de
+  los dos pinta nada en un equipo con SQLite, y gunicorn ni siquiera instala en Windows— y
+  `base.py` comprueba el driver **al cargar los ajustes**, con el comando exacto en el mensaje. La
+  diferencia importa: fallando en la primera consulta, `systemctl start` informa `active` sobre un
+  servicio que no sirve.
+- **No había servidor de aplicación.** `config/gunicorn.conf.py`, con socket de UNIX en vez de
+  puerto —un puerto local deja saltarse el proxy, y con él la terminación TLS y las cabeceras que
+  pone— y `timeout` en **120 s**, no en los 30 de fábrica: convertir un IFC grande pasa del minuto
+  y con el tiempo por defecto gunicorn mata al worker a mitad y sale un 502 sin explicación. Es un
+  parche con fecha: lo que tarde más que eso es trabajo de `F3.4`.
+- **No había `/health/` ni unidades.** Ahora hay las dos cosas, y una decisión escrita en cada una.
+
+**`/health/` es la única ruta sin login, y por qué eso no rompe el contrato de `AGENTS.md`.** La
+regla del `view_*` explícito se sostiene porque una superficie de lectura entrega **datos de
+alguien**; esta no entrega ninguno. Contesta una sola pregunta —¿este proceso puede atender?— y la
+tiene que poder hacer quien todavía no puede autenticarse. Por lo mismo **no dice de más**: sin
+autenticar la respuesta no lleva rutas, ni versiones, ni el texto de una excepción, y hay una
+prueba que lo comprueba con un nombre de carpeta reconocible. El detalle va al journal.
+
+Comprueba las **tres formas en que esta VM se rompe callada**, y no todas pesan igual:
+
+| Comprobación             | Si falla              | Por qué                                                                                                                                 |
+| ------------------------ | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Base de datos            | `503`                 | Con `CONN_MAX_AGE` puesto hay que preguntarle de verdad: la conexión puede seguir abierta contra un servidor que ya se fue              |
+| Directorio de documentos | `503`                 | **Es el que destruye datos en silencio.** Sin el montaje, Django no falla: escribe en el disco local y lo subido se pierde al reiniciar |
+| Visor construido         | `200` con `degradado` | El portal, el registro y la API funcionan sin el SPA. Un 503 sacaría de servicio la aplicación entera por una mitad que no lo está      |
+
+**Las unidades: dos decisiones que se pagan si se hacen de otro modo.** `Type=notify` y no `simple`
+—con `simple`, systemd da por arrancado el servicio en cuanto el proceso existe, o sea antes de que
+Django cargue los ajustes, y un `SECRET_KEY` que falta se ve como `active`—; y el gunicorn del
+entorno en el `ExecStart`, **no `uv run`**, que sincroniza el entorno antes de ejecutar y con
+`ProtectSystem=strict` el disco está de solo lectura: el servicio no arrancaría, o peor, arrancaría
+a veces.
+
+Todo el procedimiento, con lo que hay que cambiar del `.env` y cómo comprobarlo, en
+[docs/DEPLOY.md](docs/DEPLOY.md). **404 pruebas y 94,18 % de cobertura**, gate en verde. Las
+líneas 89–101 de `base.py` —la comprobación del driver— salen sin cubrir a propósito: se ejercitan
+en un proceso aparte, que es la única forma de probar algo que ocurre al **importar** el módulo de
+ajustes, y coverage no sigue subprocesos.
+
+**Lo que queda del bloque y no es código**: qué dominio, si comparte VM con AeroControl y
+AeroPlanner, y las copias de seguridad —de las que no hay nada escrito, y son dos cosas separadas a
+propósito: la base y el directorio de documentos—.
 
 ### `F3.5` cerrada: el modelo cumple o no el requisito del proyecto (2026-08-26)
 

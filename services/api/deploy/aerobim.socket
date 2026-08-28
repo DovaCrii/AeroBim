@@ -1,0 +1,24 @@
+# El socket de AeroBim, creado por systemd y no por gunicorn.
+#
+# **Por que systemd lo crea y no el servicio.** Asi el socket existe con el
+# propietario y los permisos correctos antes de que arranque nada, y nginx puede
+# quedarse esperando en el en vez de dar 502 durante el reinicio de la aplicacion.
+#
+# Instalar en /etc/systemd/system/aerobim.socket
+
+[Unit]
+Description=Socket de la API de AeroBim
+PartOf=aerobim.service
+
+[Socket]
+# **Directo en `/run` y no en un subdirectorio.** Un `/run/aerobim/` habria que
+# crearlo antes de que el socket se abra, y esa dependencia entre unidades es una
+# forma barata de tener un servicio que arranca a veces.
+ListenStream=/run/aerobim.sock
+SocketUser=aerobim
+# El grupo es el del servidor web: es quien tiene que poder escribir en el socket.
+SocketGroup=www-data
+SocketMode=0660
+
+[Install]
+WantedBy=sockets.target

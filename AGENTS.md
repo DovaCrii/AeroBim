@@ -192,6 +192,7 @@ entregable roto.
 
 - Plan de trabajo por fases: `MASTER_PLAN.md` (fuente de verdad de qué sigue).
 - Punto de retome: `HANDOFF.md`.
+- Puesta en la VM, con las dos trampas del despliegue al principio: `docs/DEPLOY.md`.
 - Arquitectura y límites entre paquetes: `docs/ARCHITECTURE.md`.
 - Alcance del MVP y lo explícitamente excluido: `docs/MVP.md`.
 - Proyectos de referencia, licencias y qué se toma de cada uno: `docs/REFERENCES.md`.

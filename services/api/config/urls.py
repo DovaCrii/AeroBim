@@ -14,6 +14,7 @@ from rest_framework.authtoken import views as token_views
 from rest_framework.throttling import AnonRateThrottle
 
 from apps.accounts.views import PortalView
+from apps.core.health import SaludView
 
 
 class TokenConThrottle(token_views.ObtainAuthToken):
@@ -29,6 +30,11 @@ class TokenConThrottle(token_views.ObtainAuthToken):
 
 urlpatterns = [
     path("", PortalView.as_view(), name="portal"),
+    # **La unica ruta sin login, y a proposito.** La pregunta que contesta —¿este
+    # proceso puede atender?— tiene que poder hacerla quien todavia no puede
+    # autenticarse: systemd al arrancar la unidad y el proxy antes de la primera
+    # peticion. No entrega ningun dato; el motivo largo esta en `apps/core/health.py`.
+    path("health/", SaludView.as_view(), name="salud"),
     # El portal de ingreso. Plantilla propia, error genérico y ninguna pista de si el
     # usuario existe: enumerar usuarios es la mitad del trabajo de quien ataca.
     path(

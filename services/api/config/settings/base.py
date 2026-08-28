@@ -81,6 +81,19 @@ ASGI_APPLICATION = "config.asgi.application"
 
 DB_ENGINE = config("DB_ENGINE", default="sqlite3")
 if DB_ENGINE in {"postgres", "postgresql"}:
+    # **El driver se comprueba aqui y no se descubre en la primera consulta.**
+    # Sin `psycopg`, Django arranca igual y falla al abrir la conexion con un
+    # `ImproperlyConfigured` que nombra **`psycopg2`** —el paquete anterior—, o sea
+    # que manda a instalar el que no es. Y como pasa en la primera peticion y no al
+    # arrancar, `systemctl start` informa "active" sobre un servicio que no sirve.
+    try:
+        import psycopg  # noqa: F401
+    except ModuleNotFoundError as falta:
+        raise ImportError(
+            "DB_ENGINE=postgresql necesita psycopg 3, que va en el grupo `deploy`: "
+            "`uv sync --no-default-groups --group deploy`."
+        ) from falta
+
     _db_options = {}
     _sslmode = config("DB_SSLMODE", default="")
     if _sslmode:
