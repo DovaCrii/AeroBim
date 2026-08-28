@@ -107,6 +107,49 @@ describe("resolveUnitSymbol — el nombre como respaldo", () => {
   });
 });
 
+describe("una magnitud por unidad de otra no lleva la unidad simple", () => {
+  // **Encontrado en la pantalla, sobre el modelo real del usuario.** La ficha de un perfil de acero
+  // mostraba `UnitWeight 85,3 g` y `MaterialDensity 7850 g`: los dos son cocientes —kg/m el
+  // primero, kg/m³ el segundo— y en el archivo viajan como `IFCLABEL`, así que la unidad la ponía
+  // la deducción por el nombre.
+  //
+  // El módulo ya rechazaba los cocientes con `/` o con `per` por este mismo motivo escrito:
+  // «Weight/Length es kg/m, no kg». Estos son el mismo cociente sin la barra.
+
+  it("UnitWeight no es una masa", () => {
+    expect(quantityKindFromName("UnitWeight")).toBeNull();
+    expect(
+      resolveUnitSymbol({ ifcType: "IFCLABEL", name: "UnitWeight", units: UNIDADES }),
+    ).toBeNull();
+  });
+
+  it("una densidad tampoco, ni con calificativo delante", () => {
+    expect(quantityKindFromName("Density")).toBeNull();
+    expect(quantityKindFromName("MaterialDensity")).toBeNull();
+    expect(
+      resolveUnitSymbol({ ifcType: "IFCLABEL", name: "MaterialDensity", units: UNIDADES }),
+    ).toBeNull();
+  });
+
+  it("pero un producto que SÍ da una masa la conserva", () => {
+    // **Es la distinción que importa**, y por eso la comparación es con el nombre completo y no
+    // como sufijo: `LengthXUnitWeight` termina en `unitweight` y es metro por kg/m, o sea kg.
+    // Rechazarlo por el sufijo le quitaría una unidad que sí le corresponde.
+    expect(quantityKindFromName("LengthXUnitWeight")).toBe("mass");
+  });
+
+  it("y un peso a secas sigue siendo una masa", () => {
+    expect(quantityKindFromName("Weight")).toBe("mass");
+    expect(quantityKindFromName("WeightNet")).toBe("mass");
+  });
+
+  it("las demás magnitudes por unidad también se callan", () => {
+    for (const nombre of ["UnitMass", "SpecificWeight", "SpecificGravity", "UnitArea"]) {
+      expect(quantityKindFromName(nombre)).toBeNull();
+    }
+  });
+});
+
 describe("looksNumeric", () => {
   it("reconoce un número escrito como texto, que es lo que hay que rescatar", () => {
     expect(looksNumeric("579.84")).toBe(true);

@@ -82,22 +82,36 @@ def _primer_nombre(archivo, clase: str) -> str:
     return ""
 
 
+def _nombre_de_unidad(archivo, tipo: str) -> str:
+    """`MILLIMETRE`, `KILOGRAM`... el prefijo y el nombre juntos, o vacio si no lo declara."""
+    import ifcopenshell.util.unit
+
+    unidad = ifcopenshell.util.unit.get_project_unit(archivo, tipo)
+    if unidad is None:
+        return ""
+    prefijo = getattr(unidad, "Prefix", None) or ""
+    return f"{prefijo}{getattr(unidad, 'Name', '') or ''}".strip()
+
+
 def _unidades(archivo) -> dict:
-    """La unidad de longitud declarada y su factor a metros.
+    """Las unidades declaradas, y el factor de la longitud a metros.
 
     El factor importa mas que el nombre: es lo que dice si un numero del archivo son metros o
     milimetros, y es la diferencia entre un muro de 20 cm y uno de 200 m.
+
+    **Y se guarda tambien la masa, que no es un adorno.** Un modelo real del usuario declara
+    `MASSUNIT` como `GRAM` **sin prefijo** mientras escribe valores que son kilos: la ficha de un
+    perfil de acero mostraba `UnitWeight 85,3 g`. La lectura es fiel al archivo y el dato malo es
+    del exportador, asi que **no se corrige pasando por encima** —seria el mismo error de tres
+    ordenes de magnitud que este proyecto se cuida de no cometer, solo al reves—. Lo que si se hace
+    es **dejarlo a la vista**: con la unidad declarada en el expediente, quien recibe el modelo
+    puede verla y pedir la correccion a quien lo exporto.
     """
     import ifcopenshell.util.unit
 
-    unidad = ifcopenshell.util.unit.get_project_unit(archivo, "LENGTHUNIT")
-    nombre = ""
-    if unidad is not None:
-        prefijo = getattr(unidad, "Prefix", None) or ""
-        nombre = f"{prefijo}{getattr(unidad, 'Name', '') or ''}".strip()
-
     return {
-        "longitud": nombre,
+        "longitud": _nombre_de_unidad(archivo, "LENGTHUNIT"),
+        "masa": _nombre_de_unidad(archivo, "MASSUNIT"),
         "metrosPorUnidad": float(ifcopenshell.util.unit.calculate_unit_scale(archivo)),
     }
 

@@ -105,6 +105,14 @@
                   <br /><small class="subtitulo">
                     {{ meta.esquema }}
                     {% if meta.unidades.longitud %}· {{ meta.unidades.longitud|lower }}{% endif %}
+                    {% comment %}
+                      **La unidad de masa también se muestra, y no es un adorno.** Un modelo real
+                      declara `GRAM` sin prefijo mientras escribe valores que son kilos, y la ficha
+                      del elemento acaba diciendo «85,3 g» para un perfil de acero. La lectura es
+                      fiel al archivo, así que no se corrige por encima: se deja a la vista para
+                      que quien lo recibe pueda pedirle la corrección a quien lo exportó.
+                    {% endcomment %}
+                    {% if meta.unidades.masa %}· {{ meta.unidades.masa|lower }}{% endif %}
                     {% if meta.elementos %}· {{ meta.elementos }} {% translate "elements" %}{% endif %}
                     ·
                     {% if meta.georreferencia.georreferenciado %}

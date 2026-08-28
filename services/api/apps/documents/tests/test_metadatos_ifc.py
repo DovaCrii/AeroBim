@@ -52,6 +52,37 @@ def escribir(tmp_path, texto: str):
     return ruta
 
 
+#: El mismo proyecto, declarando la masa en **gramos sin prefijo**.
+#:
+#: **No es un caso inventado**: es lo que declara un modelo real del usuario mientras escribe
+#: valores que son kilos, y por eso la ficha de un perfil de acero mostraba `UnitWeight 85,3 g`.
+CON_MASA_EN_GRAMOS = BASE_2X3.replace(
+    "#10=IFCUNITASSIGNMENT((#11));",
+    "#10=IFCUNITASSIGNMENT((#11,#12));\n#12=IFCSIUNIT(*,.MASSUNIT.,$,.GRAM.);",
+)
+
+
+def test_se_lee_la_unidad_de_masa_declarada_tal_como_esta(tmp_path):
+    """**Se guarda para que se vea, no para corregirla.**
+
+    Un exportador que declara `GRAM` mientras escribe kilos produce un dato malo, y la lectura fiel
+    lo muestra tal cual: `85,3 g` para un perfil. Cambiarlo por `kg` desde acá seria inventar el
+    mismo error de tres ordenes de magnitud que este proyecto se cuida de no cometer, solo al
+    reves. Lo que se hace es dejarlo a la vista en el expediente, para que quien recibe el modelo
+    pueda pedirle la correccion a quien lo exporto.
+    """
+    datos = extraer(escribir(tmp_path, ifc("IFC2X3", CON_MASA_EN_GRAMOS)))
+
+    assert datos["unidades"]["masa"] == "GRAM"
+
+
+def test_un_archivo_que_no_declara_masa_no_inventa_una(tmp_path):
+    """Callar es la respuesta correcta: la unidad que no esta, no esta."""
+    datos = extraer(escribir(tmp_path, ifc("IFC2X3", BASE_2X3)))
+
+    assert datos["unidades"]["masa"] == ""
+
+
 def test_lee_el_esquema_las_unidades_y_el_proyecto(tmp_path):
     datos = extraer(escribir(tmp_path, ifc("IFC2X3", BASE_2X3)))
 

@@ -107,6 +107,31 @@ const CALIFICATIVOS = ["gross", "net", "total", "nominal", "actual", "min", "max
 /** Sufijos que descartan la propiedad entera: no son medidas aunque el nombre confunda. */
 const NO_ES_MEDIDA = ["id", "class", "type", "name", "status", "code", "ref", "reference"];
 
+/**
+ * Nombres que son **una magnitud por unidad de otra**, y por eso no llevan la unidad simple.
+ *
+ * **Encontrado en la pantalla, sobre el modelo real del usuario.** La ficha de un perfil de acero
+ * mostraba `UnitWeight 85,3 g` y `MaterialDensity 7850 g`: los dos son cocientes —kg/m el primero,
+ * kg/m³ el segundo— y les caía la unidad de masa porque el nombre acaba en `weight` y en `density`
+ * no acaba en nada conocido pero el **tipo** declarado era una medida de masa.
+ *
+ * El módulo ya rechazaba los cocientes escritos con `/` o con `per`, y el motivo escrito era
+ * exactamente este: «`Weight/Length` es kg/m, no kg». Estos son el mismo cociente **sin la barra**,
+ * que es como los escribe una herramienta de estructuras.
+ *
+ * **Se comparan con el nombre completo, no como sufijo**, y esa distinción es la que importa:
+ * `LengthXUnitWeight` termina en `unitweight` y **sí** es una masa —metro por kg/m da kg—, así que
+ * rechazarlo por el sufijo le quitaría una unidad que sí le corresponde.
+ */
+const ES_POR_UNIDAD = new Set([
+  "unitweight",
+  "unitmass",
+  "specificweight",
+  "specificgravity",
+  "unitvolume",
+  "unitarea",
+]);
+
 /** La magnitud que declara un tipo de IFC, o `null` si el tipo no dice nada de la magnitud. */
 export function quantityKindFromIfcType(ifcType: string): QuantityKind | null {
   return MAGNITUD_POR_TIPO[ifcType.trim().toUpperCase()] ?? null;
@@ -147,6 +172,15 @@ export function quantityKindFromName(name: string): QuantityKind | null {
 
   let normalizado = crudo.replaceAll(/[^a-z]/g, "");
   if (normalizado === "") return null;
+
+  // Una magnitud **por unidad de otra** no lleva la unidad simple. Ver {@link ES_POR_UNIDAD}: se
+  // compara el nombre completo a propósito, porque `LengthXUnitWeight` sí es una masa.
+  if (ES_POR_UNIDAD.has(normalizado)) return null;
+
+  // **Una densidad nunca es una masa.** Cubre `Density`, `MaterialDensity` y los productos como
+  // `VolumeGrossXDensity` —que geométricamente sí dan una masa, y aun así se callan: deducirlo
+  // exigiría entender la convención de producto de cada exportador, y hoy tampoco llevan unidad—.
+  if (normalizado.endsWith("density")) return null;
 
   for (const sufijo of NO_ES_MEDIDA) {
     if (normalizado.endsWith(sufijo)) return null;
