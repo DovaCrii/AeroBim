@@ -5,6 +5,65 @@ Este proyecto sigue [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Añadido — La foto del hallazgo viaja en el BCF (`F4.10`, 2026-08-28)
+
+`F4.4` estaba marcada cerrada y le faltaba lo primero que se ve. Todo visor del mercado —Solibri,
+Navisworks, BCF Manager— dibuja la lista de temas **con su miniatura al lado**, y es lo que hace que
+quien recibe el archivo sepa de qué se le habla antes de cargar el modelo. Los nuestros salían con
+títulos y nada más.
+
+**La trampa está en cuándo se lee el lienzo, y no da error.** El búfer de dibujo de WebGL se borra
+en cuanto el navegador compone el cuadro; leerlo un instante tarde devuelve un rectángulo vacío y
+`toDataURL` entrega un PNG **perfectamente válido**, todo del mismo color. Se dibuja y se lee en el
+mismo turno, sin un `await` en medio — y **aun así se comprueba lo que salió**, porque una miniatura
+en blanco dentro de un BCF afirma «así se ve el problema» sobre nada.
+
+El oráculo: con el modelo a la vista sale un PNG; con **todo el modelo apagado** —o sea solo el
+fondo— la misma llamada devuelve `null`. Medido sobre el IFC real de 32,7 MB: **100 ms** y
+**138 KB**. En la fila va la clave y nunca el megabyte de bytes, con su sha256, así que dos notas
+desde la misma pantalla no duplican el archivo.
+
+### Añadido — Una vista del modelo se le puede pasar a alguien (`F3.12`, 2026-08-28)
+
+Las vistas guardadas sobrevivían a recargar la página y **no salían del equipo**, así que dos
+personas revisando el mismo modelo no podían mirar lo mismo. Coordinar es exactamente eso.
+
+**No es «la misma vista, pero en el servidor».** Una vista local está escrita en el idioma de esa
+sesión —coordenadas de la escena y `localId` de Fragments, que cambia entre versiones del modelo—.
+Una compartida está escrita en el idioma del **modelo**: cámara en el sistema del IFC, lo apagado
+por **GUID** y los cortes también en el sistema del IFC. O sea, es un viewpoint de BCF con nombre y
+con cortes. Las locales se quedan: son de trabajo y no cuestan nada.
+
+### Añadido — La visibilidad en el viewpoint (`F4.7`, 2026-08-28)
+
+El BCF salía con `DefaultVisibility="true"` siempre. Con la nota tomada sobre el modelo entero eso
+es cierto; **con el hallazgo encontrado aislando una planta es falso**, y quien lo abre ve el
+edificio completo con el problema tapado justo por lo que se había apagado para verlo.
+
+Ahora viaja **el lado corto** —lo apagado o lo visible, el que produzca menos componentes— por GUID.
+Apagando tres vigas de veinte mil elementos, un lado escribe tres líneas y el otro 19.997. Y también
+vuelve: abrir la observación deja la pantalla como estaba.
+
+### Añadido — La VM deja de depender de lo que no está escrito (`F3.11`, 2026-08-28)
+
+Tres huecos con la misma forma: la aplicación funciona en el equipo de desarrollo justamente porque
+ahí no se usan. Faltaba **`psycopg`** —y el mensaje de Django nombra `psycopg2`, o sea que mandaba a
+instalar el que no es—, faltaba **`gunicorn`**, y no había **endpoint de salud ni unidades de
+systemd**.
+
+El endpoint mira las tres formas en que esa máquina se rompe callada, y la que más importa es el
+**directorio de documentos**: sin el montaje Django no falla, escribe en el disco local y lo subido
+se pierde al reiniciar. Procedimiento entero en [docs/DEPLOY.md](docs/DEPLOY.md).
+
+### Corregido — La cinta ofrece lo que el visor puede, y no menos (`F1.13`, 2026-08-28)
+
+Auditada botón por botón contra la API del visor. Siete desajustes, y en los siete el código decía
+una cosa y la pantalla otra. El que más pesa: **con un DXF solo, medio Vista estaba en gris** aunque
+`frameAll` cuenta los planos a propósito. Además, una medida a medias no tenía salida
+(`cancelMeasurement` estaba implementada y no la llamaba nadie), «Navegador» estaba dos veces, «Ver
+todo» tenía dos iconos distintos, y `aria-pressed` estaba en **todos** los botones — un lector de
+pantalla anunciaba «Todo, botón de alternancia, no pulsado».
+
 ### Añadido — El IDS de partida, medido desde el modelo (`F3.10`, 2026-08-28)
 
 Validar contra un IDS funciona desde `F3.5` y **lo que faltaba era el archivo**: nadie tiene un IDS

@@ -42,6 +42,11 @@ normal es **4,5:1**.
 | `border-white/10`       |      20 | **1,36** | Sostiene la estructura del shell y prácticamente no se ve      |
 |                         | **123** |          | usos de texto por debajo del mínimo, en 22 archivos            |
 
+> **Dos cifras y no una** (comprobado el 2026-09-02, al ir a ejecutar la fase). Los **123** de
+> arriba son los usos de **texto** que no pasan AA, que es el problema. Las apariciones de
+> `white/NN` **en total** —contando bordes y fondos, que no son un problema de contraste pero sí
+> hay que traducirlas— son **230**, en 17 archivos. El oráculo de `F9.3` es el segundo número.
+
 Y dos cosas que no son contraste:
 
 - **Cero coincidencias de `focus` en `apps/web`.** Quien navega con tabulador no sabe nunca
@@ -50,6 +55,13 @@ Y dos cosas que no son contraste:
   11 px (`--text-nota` 0,62rem y `--text-micro` 0,56rem) y la raíz subida para compensarlos.
   Eso agranda también la cinta, que es de lo que menos sobra. La escala está mal calibrada;
   el zoom no la calibra.
+
+  > **Con un matiz que hay que respetar** (2026-09-02). Ese 110% no es un descuido: salió de dos
+  > mediciones del usuario en su pantalla, y está documentado en `index.css`. Y **toda la escala de
+  > Tailwind está en `rem`**, así que bajar la raíz encoge también paddings, altos y huecos un 10%.
+  > Quitar el zoom sin más no calibra la escala: la aprieta. Se quita **y** se sube `--spacing` de
+  > 0,25rem a 0,275rem, de forma que la unidad de espaciado siga midiendo los mismos 4,4 px. Ver
+  > `F9.2` en `MASTER_PLAN.md`.
 
 ## Color
 

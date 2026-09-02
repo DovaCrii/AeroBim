@@ -3,7 +3,7 @@
 > **Fuente única de verdad del trabajo pendiente.** Consolida el estudio de
 > alternativas open-source (verificado el 2026-08-18 contra la API de GitHub y los
 > registros de npm/PyPI) en un tablero ejecutable con seguimiento de estado.
-> **Creado:** 2026-08-18 · **Actualizado:** 2026-09-01 (Fase 9: sistema de diseño y accesibilidad)
+> **Creado:** 2026-08-18 · **Actualizado:** 2026-09-02 (tablero de lo abierto, y la Fase 9 en marcha)
 > **Rama base:** `main`
 > **Regla de oro:** cada fase termina en algo **que alguien puede usar**. No se abre
 > una fase nueva con la anterior a medio cerrar, y no se agrega alcance fuera de lo
@@ -13,15 +13,53 @@
 
 ## Por dónde se empieza
 
-**La Fase 0 está completa salvo `F0.6`.** Un IFC de obra real —1,52 MB, exportado por
-BricsCAD— abre en la aplicación y se ve en **poco más de un segundo**, con el Fragments
-pesando 13,7 veces menos que el IFC. La premisa técnica del stack está confirmada con
-cifras, no con promesas de documentación.
+**Lo que sigue es la Fase 9: el sistema de diseño en el visor.** `F9.1` a `F9.3` — tokens,
+escala tipográfica y foco con los textos que no pasan AA. Son defectos, no rediseño, y ninguna
+mueve un componente de sitio.
 
-**Lo que sigue es `F0.6`:** decidir dónde corre la conversión. Con medio segundo por
-modelo en el navegador la respuesta se inclina a dejarla del lado del cliente, pero
-conviene medir antes un modelo grande (>50 MB), porque la conversión ocurre en el hilo
-principal y ahí sí podría congelar la interfaz.
+> **Esta sección decía «lo que sigue es `F0.6`» hasta el 2026-09-02**, y `F0.6` se cerró el
+> 2026-08-19. La fuente única de verdad apuntaba a una tarea muerta durante dos semanas, mientras
+> lo que quedaba de verdad había que ir a buscarlo por dos mil cuatrocientas líneas. De ahí el
+> tablero de abajo: **una sola tabla con todo lo abierto**, que se actualiza al cerrar una fila.
+
+**Lo cerrado en la semana del 2026-08-26 al 09-02**, para no volver a abrirlo: la auditoría entera
+de la cinta (`F1.13`, siete desajustes), la puesta en la VM (`F3.11` — driver, gunicorn, `/health/`
+y systemd), las vistas que se pueden pasar a otra persona (`F3.12`), la visibilidad en el viewpoint
+(`F4.7`), la foto del hallazgo en el BCF (`F4.10`) y la medición que dejó `F3.4` sin proceder.
+
+## Lo que queda, por fase
+
+Las **veintinueve** filas abiertas, de una vez. `⬜` no empezada · `❓` medida y esperando algo ·
+`⛔` bloqueada por una decisión del usuario.
+
+| Fase                    | Filas abiertas                                                                                                            |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| **9 — Diseño**          | `F9.1` `F9.2` `F9.3` `F9.4` `F9.5` ⬜ · `F9.6` ⛔                                                                         |
+| **4 — Coordinación**    | `F4.5` marcado sobre la vista ⬜ · `F4.6` importar BCF ⬜                                                                 |
+| **7 — Planos, salida**  | `F7.2` viewports y capas · `F7.3` acotado y anotaciones · `F7.5` exportar a PDF ⬜                                        |
+| **2 — Nubes de puntos** | `F2.1` a `F2.6` ⬜ — cargar, alinear, visualizar, medir contra el modelo, documentar el pipeline, y el gaussian splatting |
+| **5 — Interferencias**  | `F5.1` a `F5.5` ⬜ — grupos, `ifcclash`, resultados navegables, a BCF, y silenciar falsos positivos                       |
+| **6 — Geo + BIM**       | `F6.1` a `F6.5` ⬜ — Cesium, ortofoto y terreno propios, situar el IFC, 3D Tiles, y recibir de AeroPlanner                |
+| **1 — Visor**           | `F1.13` ❓ — auditada; quedan tres nombres que decide el usuario                                                          |
+| **3 — Backend**         | `F3.4` ❓ — medida y hoy no procede; se reabre con un número, no con una intuición                                        |
+
+**El orden no es el número de la fase.** Va primero lo que deja la aplicación entera y usable con
+lo que ya hay —la Fase 9— y después lo que abre frente nuevo. Las fases 2, 5 y 6 son las tres
+grandes que quedan por empezar, y ninguna se abre con la anterior a medio cerrar.
+
+## Las decisiones que solo el usuario puede tomar
+
+No son tareas: son preguntas abiertas que bloquean o desvían trabajo, y hasta hoy estaban
+repartidas por el documento.
+
+| #                                 | Qué hay que decidir                                                                                                                                                                                                                                                                                              |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `F9.6` — **tres**, y por separado | Si el navegador de la derecha **se reparte** en un rail de destinos; si algo **puede flotar** sobre el modelo; si propiedades **se ancla** al elemento. Las tres contradicen una línea escrita de `UX.md`. Se puede aceptar una y rechazar las otras dos, y **si se acepta alguna se reescribe `UX.md` primero** |
+| `F1.13` — **tres nombres**        | El grupo «Trabajo» de la cinta no dice qué contiene; **«Guardar vista»** es un mandato y solo vive en el panel derecho; y **calzar un plano, cortar a su altura, generar un plano y observar** son mandatos que hoy solo salen de un panel o de una ficha                                                        |
+| `F3.4` — **el umbral**            | Ya está el número que la reabre: **30 s** sobre un archivo real. Hoy lo más lento son 1,5 s                                                                                                                                                                                                                      |
+| Despliegue                        | Qué dominio (`bim.<dominio>`), y si comparte VM con AeroControl y AeroPlanner                                                                                                                                                                                                                                    |
+| Copias de seguridad               | No hay nada escrito. Son dos cosas separadas a propósito: la base y `/var/lib/aerobim`                                                                                                                                                                                                                           |
+| Modelos de prueba                 | Falta uno **> 50 MB** y uno de instalaciones. Son los dos que decidirían si `F3.4` procede                                                                                                                                                                                                                       |
 
 > **La trampa que más cara salió, para no repetirla:** el despliegue **no debe servir**
 > las cabeceras COOP/COEP. Con aislamiento de origen, `web-ifc` elige su WASM multihilo,
@@ -2333,14 +2371,14 @@ que abre un modelo desde su expediente.
 texto de la aplicación quede por debajo de AA, y que se pueda usar el visor entero con el
 teclado sabiendo dónde se está.
 
-| #      | Tarea                                                                                                  | Estado |
-| ------ | ------------------------------------------------------------------------------------------------------ | ------ |
-| `F9.1` | **Los tokens en `index.css`**: superficies, texto, marca/acción/acento y estado, con su ratio anotado  | ⬜     |
-| `F9.2` | **La escala tipográfica** y fuera el `font-size: 110%`: suelo de 11 px, cuerpo 15, raíz de vuelta a 16 | ⬜     |
-| `F9.3` | **`:focus-visible` global** y los 123 usos de `white/NN` reemplazados por texto con nombre             | ⬜     |
-| `F9.4` | **Las acciones dejan de esconderse**: fuera `opacity-0 group-hover`, áreas de toque a 44 px            | ⬜     |
-| `F9.5` | **Estados vacíos con puerta de entrada**, y escala de radio y elevación compartida con el portal       | ⬜     |
-| `F9.6` | **Reordenar el shell del visor** — _bloqueada: contradice `docs/UX.md`, la decide el usuario_          | ⛔     |
+| #      | Tarea                                                                                                 | Estado |
+| ------ | ----------------------------------------------------------------------------------------------------- | ------ |
+| `F9.1` | **Los tokens en `index.css`**: superficies, texto, marca/acción/acento y estado, con su ratio anotado | ⬜     |
+| `F9.2` | **La escala tipográfica** y fuera el `font-size: 110%`: suelo de 11 px, y la densidad intacta         | ⬜     |
+| `F9.3` | **`:focus-visible` global** y los **230** usos de `white/NN` reemplazados por papel con nombre        | ⬜     |
+| `F9.4` | **Las acciones dejan de esconderse**: fuera `opacity-0 group-hover`, áreas de toque a 44 px           | ⬜     |
+| `F9.5` | **Estados vacíos con puerta de entrada**, y escala de radio y elevación compartida con el portal      | ⬜     |
+| `F9.6` | **Reordenar el shell del visor** — _bloqueada: contradice `docs/UX.md`, la decide el usuario_         | ⛔     |
 
 **Oráculo:** ningún par texto/fondo de la aplicación por debajo de 4,5:1 medido con la fórmula
 de WCAG 2.1 (los rótulos deshabilitados quedan exentos, con suelo propio de 3:1); recorrer el
@@ -2350,6 +2388,54 @@ devolviendo cero.
 **`F9.1` a `F9.5` no mueven un solo componente de sitio.** Son defectos, no rediseño, y por eso
 van primero: cada una deja la aplicación entera y usable, y ninguna depende de que se resuelva
 la discusión de `F9.6`.
+
+### Dos cifras de la revisión, corregidas al ir a ejecutarlas (2026-09-02)
+
+**`F9.3` conflacionaba dos medidas distintas**, y las dos importan por separado:
+
+| Qué se cuenta                                                | Cuántos                                                                             |
+| ------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
+| Usos de **texto por debajo de AA**                           | **123** — 89 de `white/30`–`45`, 24 de `text-brand` y 10 de blanco sobre `bg-brand` |
+| Apariciones de `white/NN` **en total**, texto, borde y fondo | **230**, en 17 archivos y 180 líneas                                                |
+
+Los 123 son el problema de accesibilidad; los 230 son el trabajo. El oráculo que la propia fase
+declara —`grep` de `white/` devolviendo cero— exige los 230, así que la fila dice ese número y la
+tabla de `DESIGN_SYSTEM.md` conserva el otro, que es el que explica **por qué** hay que hacerlo.
+
+**Y `F9.2` tenía una consecuencia que no estaba dicha.** [index.css:40-46](apps/web/src/index.css)
+ya dejó escrito que **toda la escala de Tailwind está en `rem`**: bajar la raíz de 110% a 100%
+encogería también los paddings, los altos y los huecos **un 10%**, con la letra casi igual. Eso
+deshace la densidad que el usuario fijó midiendo en su pantalla —dijo que al tamaño de fábrica
+«pedía zoom para leerse», y que al 120% «se ve muy cerca»—, y esa medición no se tira porque el
+documento de diseño no la conociera.
+
+La salida no es elegir entre las dos cosas: **la raíz vuelve a 16 y `--spacing` sube un 10%**
+(0,25rem → 0,275rem), así que la unidad de espaciado sigue midiendo los mismos 4,4 px. Con eso se
+cumplen las dos: el suelo de 11 px que pide el sistema, y la densidad que pidió quien lo usa. La
+tabla de mapeo está en la propia `F9.2`, más abajo.
+
+### `F9.2`: la escala se **mapea**, no se borra
+
+Quitar el `font-size: 110%` y dejar que cada clase caiga donde caiga encogería la interfaz. Las
+cifras, con la raíz de hoy (17,6 px) contra la de destino (16 px):
+
+| Token          | Hoy               | Pasa a             | Y en el sistema es |
+| -------------- | ----------------- | ------------------ | ------------------ |
+| `--text-micro` | 0,56rem = 9,9 px  | 0,6875rem = **11** | `--fs-micro`       |
+| `--text-nota`  | 0,62rem = 10,9 px | 0,75rem = **12**   | `--fs-xs`          |
+| `--text-xs`    | 0,75rem = 13,2 px | 0,8125rem = **13** | `--fs-sm`          |
+| `--text-sm`    | 0,875rem = 15,4   | 0,9375rem = **15** | `--fs-base`        |
+| `--text-base`  | 1rem = 17,6 px    | 1,0625rem = **17** | `--fs-lg`          |
+| `--spacing`    | 0,25rem = 4,4 px  | **0,275rem** = 4,4 | —                  |
+
+**Ningún tamaño baja más de medio píxel**, los dos que estaban por debajo del suelo de 11 px suben,
+y padding, altos y huecos quedan idénticos. La raíz vuelve a 16, que es la mitad buena del 110%:
+así vuelve a respetar a quien haya cambiado el tamaño de letra de su navegador — que es justamente
+quien más lo necesita, y lo que el propio comentario de `index.css` daba como razón.
+
+**Los nombres `nota` y `micro` se quedan** en vez de renombrarse a `--fs-*`: ya son semánticos, ya
+están documentados, y renombrarlos serían noventa y siete ediciones que no cambian un píxel. La
+equivalencia queda en la tabla de arriba.
 
 ### `F9.6`: por qué está bloqueada y no simplemente pendiente
 
