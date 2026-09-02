@@ -728,3 +728,58 @@ class ValidacionIds(BaseModel):
         IDS escrito para otra disciplina no dice nada del modelo, ni bien ni mal.
         """
         return bool(self.resumen.get("seComprobo"))
+
+
+class MarcaDeCoordinacion(BaseModel):
+    """Hasta cuando ha mirado **esta persona** la coordinacion de **esta obra**. `F5.5`.
+
+    **Es lo unico que separa lo nuevo de lo ya visto, y sin ello una corrida se pierde en la
+    lista.** Los filtros del visor separan lo mio, los choques y las notas; ninguno contesta «¿que
+    apareció desde que mire?». Con treinta y cinco filas abiertas y trece problemas nuevos de la
+    corrida de hoy, sin esa respuesta hay que releer la lista entera para encontrar lo que cambio.
+
+    **Por persona y no por obra**, que es la unica forma en que la pregunta tiene sentido: dos
+    coordinadores no han mirado lo mismo, y una marca compartida haria que el primero en abrir el
+    panel se llevara por delante lo nuevo del segundo.
+
+    **La marca se crea sola la primera vez y despues solo la mueve quien lo pide.** Las dos mitades
+    importan:
+
+    - Si no se creara sola, la primera vez todo seria nuevo —treinta y cinco de treinta y cinco—,
+      que es exactamente el ruido del que se venia huyendo.
+    - Si se moviera en cada lectura, nada seria nuevo nunca: abrir el panel marcaria como visto lo
+      que se acaba de descubrir, antes de poder hacer nada con ello.
+    """
+
+    organizacion = models.ForeignKey(
+        Organizacion, on_delete=models.CASCADE, related_name="marcas_de_coordinacion"
+    )
+    proyecto = models.ForeignKey(
+        Proyecto, on_delete=models.CASCADE, related_name="marcas_de_coordinacion"
+    )
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="marcas_de_coordinacion",
+    )
+    #: Hasta cuando se ha mirado. Lo posterior a esto es «nuevo».
+    #:
+    #: Va aparte de `updated_at` a proposito: `updated_at` se mueve con cualquier escritura de la
+    #: fila —hoy no hay otra, pero la habra— y entonces «hasta cuando mire» empezaria a significar
+    #: «cuando se toco esta fila por ultima vez», que no es lo mismo.
+    visto_en = models.DateTimeField(default=timezone.now, verbose_name=_("seen up to"))
+
+    class Meta:
+        verbose_name = _("coordination mark")
+        verbose_name_plural = _("coordination marks")
+        ordering = ["-visto_en"]
+        # **Una por persona y obra.** Sin esto, dos peticiones simultaneas dejan dos filas y la
+        # pregunta pasa a tener dos respuestas distintas segun cual se lea.
+        constraints = [
+            models.UniqueConstraint(
+                fields=["proyecto", "usuario"], name="marca_unica_por_persona_y_obra"
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.usuario} · {self.proyecto} · {self.visto_en:%Y-%m-%d %H:%M}"

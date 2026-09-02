@@ -59,10 +59,16 @@ que estorban:
    sobre el par real: **35 interferencias en 13 problemas**, y el cúmulo mayor de 6. Con eso la
    Fase 5 queda cerrada entera.
 
+5. ~~**La lista no distinguía lo nuevo de lo ya visto.**~~ **Cerrado el 2026-09-02**: filtro
+   «Nuevas» con su cuenta, filo y palabra en las tarjetas nuevas, y un «ya lo vi» que solo aparece
+   cuando hay algo que ver. La marca es **por persona y por obra**.
+
 **Lo que sigue**, entonces: el **trazo libre** de `F4.5` si la cota no alcanza —eso lo dice el
-usuario mirando un BCF exportado— y en la lista de coordinación, **lo nuevo frente a lo ya visto**.
-La coordinación ya hace el ciclo completo: detectar, agrupar, repartir, descartar, exportar e
-importar.
+usuario mirando un BCF exportado— y la **Fase 10**, que el usuario abrió el 2026-09-02: etiquetas,
+informes y tablas en los planos.
+
+La coordinación ya hace el ciclo completo: detectar, agrupar, repartir, descartar, distinguir lo
+nuevo, exportar e importar.
 
 > **Esta sección decía «lo que sigue es `F0.6`» hasta el 2026-09-02**, y `F0.6` se cerró el
 > 2026-08-19. La fuente única de verdad apuntaba a una tarea muerta durante dos semanas, mientras
@@ -81,16 +87,17 @@ Las **veintinueve** filas abiertas, de una vez. `⬜` no empezada · `❓` medid
 
 **Y en el orden de prioridad del 2026-09-02**, no en el de los números de fase.
 
-| Fase                    | Filas abiertas                                                                                                            |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| **5 — Interferencias**  | ✅ **la fase entera** — `F5.5` cierra con las dos mitades: silenciar y agrupar _(35 interferencias en 13 problemas)_      |
-| **4 — Coordinación** ⭐ | `F4.5` ◐ falta el trazo libre; las cotas ya viajan _(`F4.6` cerrada: el ciclo va y vuelve)_                               |
-| **3 — Backend**         | `F3.4` ✅ decidida por el usuario el 2026-09-02: **la petición espera**, y por qué                                        |
-| **9 — Diseño** ⭐       | `F9.6` ⛔ — la decide el usuario, y son tres decisiones _(`F9.1` a `F9.5` cerradas)_                                      |
-| **1 — Visor**           | `F1.13` ❓ — auditada; quedan tres nombres que decide el usuario                                                          |
-| **7 — Planos, salida**  | `F7.2` viewports y capas · `F7.3` acotado y anotaciones · `F7.5` exportar a PDF ⬜                                        |
-| **2 — Nubes de puntos** | `F2.1` a `F2.6` ⬜ — cargar, alinear, visualizar, medir contra el modelo, documentar el pipeline, y el gaussian splatting |
-| **6 — Geo + BIM**       | `F6.1` a `F6.5` ⬜ — Cesium, ortofoto y terreno propios, situar el IFC, 3D Tiles, y recibir de AeroPlanner                |
+| Fase                                     | Filas abiertas                                                                                                            |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| **5 — Interferencias**                   | ✅ **la fase entera** — `F5.5` cierra con las dos mitades: silenciar y agrupar _(35 interferencias en 13 problemas)_      |
+| **4 — Coordinación** ⭐                  | `F4.5` ◐ falta el trazo libre; las cotas ya viajan _(`F4.6` cerrada: el ciclo va y vuelve)_                               |
+| **3 — Backend**                          | `F3.4` ✅ decidida por el usuario el 2026-09-02: **la petición espera**, y por qué                                        |
+| **9 — Diseño** ⭐                        | `F9.6` ⛔ — la decide el usuario, y son tres decisiones _(`F9.1` a `F9.5` cerradas)_                                      |
+| **10 — Etiquetas, informes y tablas** ⭐ | `F10.1` a `F10.5` ⬜ — la abrió el usuario el 2026-09-02: etiquetar, anotar, sacar informes y llevar tablas al plano      |
+| **1 — Visor**                            | `F1.13` ❓ — auditada; quedan tres nombres que decide el usuario                                                          |
+| **7 — Planos, salida**                   | `F7.2` viewports y capas · `F7.3` acotado y anotaciones · `F7.5` exportar a PDF ⬜                                        |
+| **2 — Nubes de puntos**                  | `F2.1` a `F2.6` ⬜ — cargar, alinear, visualizar, medir contra el modelo, documentar el pipeline, y el gaussian splatting |
+| **6 — Geo + BIM**                        | `F6.1` a `F6.5` ⬜ — Cesium, ortofoto y terreno propios, situar el IFC, 3D Tiles, y recibir de AeroPlanner                |
 
 ⭐ = prioridad del 2026-09-02. Las fases 2 y 6 **no se descartan, se posponen**: son las dos que no
 tienen ni un archivo con el que verificarse hoy —no hay nube de puntos ni ortofoto en el
@@ -105,14 +112,16 @@ grandes que quedan por empezar, y ninguna se abre con la anterior a medio cerrar
 No son tareas: son preguntas abiertas que bloquean o desvían trabajo, y hasta hoy estaban
 repartidas por el documento.
 
-| #                                 | Qué hay que decidir                                                                                                                                                                                                                                                                                              |
-| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `F9.6` — **tres**, y por separado | Si el navegador de la derecha **se reparte** en un rail de destinos; si algo **puede flotar** sobre el modelo; si propiedades **se ancla** al elemento. Las tres contradicen una línea escrita de `UX.md`. Se puede aceptar una y rechazar las otras dos, y **si se acepta alguna se reescribe `UX.md` primero** |
-| `F1.13` — **tres nombres**        | El grupo «Trabajo» de la cinta no dice qué contiene; **«Guardar vista»** es un mandato y solo vive en el panel derecho; y **calzar un plano, cortar a su altura, generar un plano y observar** son mandatos que hoy solo salen de un panel o de una ficha                                                        |
-| `F3.4` — **el umbral**            | Ya está el número que la reabre: **30 s** sobre un archivo real. Hoy lo más lento son 1,5 s                                                                                                                                                                                                                      |
-| Despliegue                        | Qué dominio (`bim.<dominio>`), y si comparte VM con AeroControl y AeroPlanner                                                                                                                                                                                                                                    |
-| Copias de seguridad               | No hay nada escrito. Son dos cosas separadas a propósito: la base y `/var/lib/aerobim`                                                                                                                                                                                                                           |
-| Modelos de prueba                 | Falta uno **> 50 MB** y uno de instalaciones. Son los dos que decidirían si `F3.4` procede                                                                                                                                                                                                                       |
+| #                                 | Qué hay que decidir                                                                                                                                                                                                                                                                                                                                                                     |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `F9.6` — **tres**, y por separado | Si el navegador de la derecha **se reparte** en un rail de destinos; si algo **puede flotar** sobre el modelo; si propiedades **se ancla** al elemento. Las tres contradicen una línea escrita de `UX.md`. Se puede aceptar una y rechazar las otras dos, y **si se acepta alguna se reescribe `UX.md` primero**                                                                        |
+| `F1.13` — **tres nombres**        | El grupo «Trabajo» de la cinta no dice qué contiene; **«Guardar vista»** es un mandato y solo vive en el panel derecho; y **calzar un plano, cortar a su altura, generar un plano y observar** son mandatos que hoy solo salen de un panel o de una ficha                                                                                                                               |
+| `F3.4` — **el umbral**            | Ya está el número que la reabre: **30 s** sobre un archivo real. Hoy lo más lento son 1,5 s                                                                                                                                                                                                                                                                                             |
+| `F10.2` — **qué es «una nota»**   | Un hallazgo ya guarda tres textos de personas: el hilo de comentarios, la resolución al cerrar y el motivo al descartar. Así que «poner notas» puede ser (1) que lo que ya hay se vea mejor y salga en el informe, (2) un campo del hallazgo que se **edita** en vez de una conversación que crece, o (3) una bitácora **de la obra** y no del hallazgo. Son tres desarrollos distintos |
+| `F10.3` — **el papel**            | Informe en **PDF desde el servidor** —controla los saltos de página y trae una dependencia nueva— o **impresión del navegador** con una hoja `@media print`, que es gratis y no los controla. Mismo criterio que `F3.4`: se mide antes de pagar                                                                                                                                         |
+| Despliegue                        | Qué dominio (`bim.<dominio>`), y si comparte VM con AeroControl y AeroPlanner                                                                                                                                                                                                                                                                                                           |
+| Copias de seguridad               | No hay nada escrito. Son dos cosas separadas a propósito: la base y `/var/lib/aerobim`                                                                                                                                                                                                                                                                                                  |
+| Modelos de prueba                 | Falta uno **> 50 MB** y uno de instalaciones. Son los dos que decidirían si `F3.4` procede                                                                                                                                                                                                                                                                                              |
 
 > **La trampa que más cara salió, para no repetirla:** el despliegue **no debe servir**
 > las cabeceras COOP/COEP. Con aislamiento de origen, `web-ifc` elige su WASM multihilo,
@@ -2946,6 +2955,79 @@ No entran sin que el usuario lo pida explícitamente:
 | **4D / planificación de obra**                 | Otro producto. Primero hay que ver el modelo bien                                                                   |
 | **Cómputos y presupuesto (5D)**                | Ídem. `ifccsv` deja la puerta abierta, pero no es el MVP                                                            |
 | **Compartir base de datos con las hermanas**   | Regla de la familia: la integración es por archivo y por API, nunca por base de datos                               |
+
+---
+
+## FASE 10 — Etiquetas, informes y tablas en el plano
+
+**La abrió el usuario el 2026-09-02**, y esto es lo que dijo, sin traducir:
+
+> «lo importante ademas sumar a las decisiones poder poner etiquetas notas y sacar informes o
+> reportes de los mismos para tener impreso o poder implmentar planos con tablas para sacar desde el
+> software seria un buen camino interno»
+
+**Es la salida de todo lo anterior, y hasta ahora no existía.** Las nueve fases construyen la
+coordinación entera —detectar, agrupar, repartir, descartar, distinguir lo nuevo, exportar e
+importar BCF— y **todo eso vive dentro de la aplicación**. El único papel que sale hoy es el BCF, y
+un BCF no se lleva a una reunión de obra ni se archiva en una carpeta: se abre en otro software. Lo
+que falta es lo que se imprime, se firma y se cuelga.
+
+| #       | Tarea                                                                                  | Estado |
+| ------- | -------------------------------------------------------------------------------------- | ------ |
+| `F10.1` | Etiquetas de proyecto: vocabulario controlado, asignables a un hallazgo, y se filtra   | ⬜     |
+| `F10.2` | La nota de la decisión: qué se guarda además del hilo de comentarios                   | ⛔     |
+| `F10.3` | Informe de coordinación imprimible, con la foto del hallazgo y las mismas cifras       | ⬜     |
+| `F10.4` | Tablas en el plano: el cuadro de hallazgos o de elementos dentro de la lámina que sale | ⬜     |
+| `F10.5` | Tablas desde el modelo: cuadros por categoría con sus psets, y su exportación          | ⬜     |
+
+**Oráculo de la fase, y es exigente a propósito:** un informe **impreso en A4** que alguien lleva a
+una reunión de obra y con el que puede trabajar sin abrir la aplicación. Si hay que volver a la
+pantalla para entender una fila, el informe no sirve.
+
+### `F10.1` — Etiquetas, y por qué **no** son texto libre
+
+Un campo de texto libre se fragmenta a la tercera semana: «estructura», «Estructura», «estruct» y
+«EE» son cuatro etiquetas para una cosa, y entonces **filtrar por etiqueta deja de encontrar** lo que
+hay. Así que el vocabulario lo define el proyecto —como las disciplinas, que ya funcionan así— y el
+hallazgo elige de esa lista.
+
+Lo que esto desbloquea, y es la razón de que vaya primero: **el informe se pide por etiqueta.**
+«Todo lo de instalaciones que sigue abierto» es la consulta que hoy no se puede escribir.
+
+### `F10.2` — ⛔ La nota de la decisión: es una decisión del usuario, no una tarea
+
+**Hay que preguntar antes de construir, porque puede que ya exista.** Hoy un hallazgo guarda tres
+cosas escritas por personas: el hilo de comentarios (`Comentario`), la resolución al cerrar y el
+motivo al descartar. Las tres se exportan en el BCF.
+
+Así que «poner notas» puede querer decir tres cosas distintas:
+
+1. **Ya está hecho** y lo que falta es que se vea mejor o que salga en el informe.
+2. Una nota **que no es un mensaje en un hilo**: un campo del hallazgo que se edita, no una
+   conversación que crece. Es distinto de un comentario y sirve para otra cosa.
+3. Una nota **sobre el proyecto**, no sobre un hallazgo: la bitácora de la obra.
+
+Las tres son razonables y son tres desarrollos distintos. **No se elige por adivinanza.**
+
+### `F10.3` — El informe, y la trampa que ya se conoce
+
+Un informe es una consulta con un papel encima, y el papel es lo difícil. Lo que hay a favor: la
+**foto del hallazgo** ya se guarda desde `F4.10`, así que el informe puede llevar miniatura sin
+inventar nada, y las cifras del resumen ya están calculadas y probadas.
+
+Y lo que hay que decidir con el usuario: **PDF desde el servidor o impresión del navegador.** La
+segunda es gratis —una hoja de estilos `@media print` y `Ctrl+P`— y no controla los saltos de
+página. La primera controla el papel y **trae una dependencia nueva** con su forma de fallar. `F3.4`
+dejó escrito el criterio para decisiones así: se mide antes de pagar.
+
+### `F10.4` y `F10.5` — Las tablas, que se apoyan en la Fase 7
+
+**`F10.4` no se puede cerrar antes que `F7.2`**: una tabla en una lámina necesita que la lámina
+exista, con sus viewports y su cajetín. Va después, y va dicho para que no se prometa antes.
+
+`F10.5` es la otra mitad y **el camino más corto a algo que se usa hoy**: un cuadro de elementos por
+categoría con sus psets es exactamente lo que `F3.10` ya sabe leer del modelo —la cobertura de psets
+lo recorre entero— así que la consulta está resuelta y lo que falta es la tabla y su salida.
 
 ---
 

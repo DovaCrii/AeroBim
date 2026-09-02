@@ -113,8 +113,30 @@ a:hover {
 }
 
 .barra .marca {
+  display: flex;
+  align-items: center;
+  gap: 9px;
   font-weight: 700;
   letter-spacing: 0.02em;
+}
+
+/*
+ * **La marca va sobre su propia placa clara, y es una necesidad medida y no un adorno.**
+ *
+ * El relleno oscuro del dibujo es `#1B2A4A` y el fondo de esta barra es `--ab-navy`, que es
+ * **exactamente el mismo hexadecimal**: contraste 1,00:1. Puesto directamente sobre la barra, el
+ * cuerpo del dron y las caras del cubo desaparecen y solo quedan los trazos violetas — o sea media
+ * marca. Sobre blanco se lee entera: el violeta da 4,1:1 y el relleno 14,2:1.
+ *
+ * La placa se pone aquí y no en el archivo porque **el archivo lo comparten el portal y el visor**,
+ * y en la cinta del visor —fondo `--color-surface`, mucho más claro— el dibujo ya se ve. Cambiar el
+ * SVG arreglaría un sitio y rompería el otro.
+ */
+.barra .marca img {
+  display: block;
+  padding: 3px;
+  border-radius: 6px;
+  background: #fff;
 }
 
 .barra .separador {

@@ -60,6 +60,21 @@
 >   en **13 problemas**; a 2 m un solo cúmulo se come 17 de las 35, porque la unión es transitiva.
 >   Y la cláusula que obligó a añadir el propio oráculo: **la misma pareja de GUID es siempre el
 >   mismo problema** — la detección la informa dos veces con los contactos a 1,95 m.
+> - **La lista ya distingue lo nuevo de lo ya visto**, que era la última pregunta que ningún filtro
+>   contestaba: chip «Nuevas» con su cuenta, filo y palabra en las tarjetas, y un «ya lo vi» que solo
+>   aparece cuando hay algo que ver. La marca es **por persona y por obra**, se crea sola en la
+>   primera lectura y **no se mueve al leer** — si se moviera, abrir el panel marcaría como visto lo
+>   que se acaba de descubrir.
+> - **La escala del panel de coordinación, revisada midiendo.** El título y los metadatos estaban
+>   los dos en 13 px, así que la jerarquía la llevaba solo el color: título a 15, metadatos a 12,
+>   chips a 12, y el título envuelve a dos líneas en vez de cortarse. El contraste ya estaba bien
+>   —el peor par da 5,5:1—.
+> - **La marca, que faltaba en dos pantallas y no se veía en la tercera.** El portal no tenía icono
+>   de pestaña ni dibujo en la cabecera, y la de ingreso tampoco. Y el relleno del dibujo es
+>   `#1B2A4A`: sobre los fondos oscuros del producto daba **1,00–1,15:1**, o sea que el cuerpo del
+>   dron y las caras del cubo eran agujeros —el visor lo arrastraba desde el primer día—. Va sobre
+>   placa clara en las tres pantallas, y la placa está en el CSS y no en el archivo porque el
+>   archivo lo comparten las dos mitades.
 > - **`F4.6` cerrada: el ciclo del BCF va y vuelve.** La pantalla de la obra importa el BCF del
 >   mandante —«Importar una respuesta BCF»—, los temas nuevos entran como observaciones y las
 >   respuestas a las nuestras se suman a su hilo **sin pisar nada**. El oráculo es `bcf-client`, que
@@ -78,8 +93,13 @@
 >
 > **Lo que sigue, en ese orden:**
 >
-> 1. **El trazo libre de `F4.5`**, si la cota no alcanza — eso lo dice el usuario mirando un BCF.
-> 2. **Lo nuevo frente a lo ya visto** en la lista de coordinación (ver abajo).
+> 1. **La Fase 10, que abrió el usuario el 2026-09-02**: etiquetar los hallazgos, sacar informes
+>    imprimibles y llevar tablas al plano. Es la salida de todo lo anterior — hoy lo único que sale
+>    en papel es nada, y el BCF no se lleva a una reunión de obra. `F10.1` (etiquetas) va primero
+>    porque es lo que permite pedir el informe: «todo lo de instalaciones que sigue abierto» es la
+>    consulta que hoy no se puede escribir. **Y dos de sus filas son preguntas al usuario**, no
+>    tareas: qué significa «una nota» y si el informe es PDF del servidor o impresión del navegador.
+> 2. **El trazo libre de `F4.5`**, si la cota no alcanza — eso lo dice el usuario mirando un BCF.
 >
 > Y una cosa que la lista de coordinación **sigue sin distinguir**: lo nuevo de lo ya visto. Los
 > filtros separan lo mío, los choques y las notas, pero no «esto apareció en la corrida de hoy».

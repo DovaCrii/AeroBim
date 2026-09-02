@@ -1377,7 +1377,14 @@ export function App() {
               className="flex shrink-0 items-center gap-2 hover:opacity-80"
               title="AeroBim — al portal"
             >
-              <img src={RUTA_MARCA} alt="" className="h-6 w-auto" />
+              {/* **La placa clara no es un adorno, y esto llevaba mal desde el primer día.** El
+                  relleno del dibujo es `#1B2A4A` y la cinta es `--color-surface` (`#18202f`):
+                  contraste **1,15:1**, o sea que el cuerpo del dron y las caras del cubo eran
+                  agujeros y solo se veían los trazos violetas. La marca está dibujada para fondo
+                  claro y el producto es oscuro; sobre blanco da 14,2:1. Se plateó igual en las
+                  tres pantallas donde aparece —cinta, barra del portal y tarjeta de ingreso— para
+                  que sea la misma marca y no tres. */}
+              <img src={RUTA_MARCA} alt="" className="h-7 w-auto rounded-sm bg-white p-0.5" />
               <span className="text-sm font-semibold">AeroBim</span>
             </a>
             {/* De dónde vino lo que está abierto. No se dibuja si es un archivo del disco. */}

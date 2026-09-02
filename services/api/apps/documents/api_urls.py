@@ -32,6 +32,13 @@ urlpatterns = [
         api.ObservacionesDelModeloAPI.as_view(),
         name="proyecto-observaciones-modelo",
     ),
+    # **«Ya miré esto».** Es lo único que separa lo nuevo de lo ya visto, y sin ello una corrida de
+    # trece problemas nuevos se pierde entre treinta y cinco filas abiertas.
+    path(
+        "proyectos/<uuid:pk>/coordinacion-vista/",
+        api.MarcarCoordinacionVistaAPI.as_view(),
+        name="proyecto-coordinacion-vista",
+    ),
     # **Descartar sin salir del visor.** Es lo que hace que una corrida de interferencias sirva dos
     # veces: triar decenas de conflictos abriendo la ficha de cada uno en otra pestaña no lo hace
     # nadie, y a la corrida siguiente vuelven todos.

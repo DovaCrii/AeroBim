@@ -5,6 +5,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{% translate "Sign in" %} · AeroBim</title>
+    <link rel="icon" type="image/svg+xml" href="{% static 'img/aerobim-mark.svg' %}" />
     {% comment %}
       **Autocontenida a proposito.** No extiende `base.html` ni carga `app.css`: la
       pagina de ingreso es lo primero que alguien ve y no tiene que depender de que el
@@ -55,6 +56,24 @@
         border-radius: 14px;
         box-shadow: 0 10px 30px rgb(18 34 59 / 10%);
       }
+      {% comment %}
+        **La marca en la primera pantalla, que es donde más hace falta y donde no estaba.**
+
+        Y sobre placa clara, que **no es un adorno**: el relleno del dibujo es `#1B2A4A` y contra
+        los fondos oscuros del producto da 1,00:1 en la barra del portal, 1,10:1 en esta tarjeta en
+        modo oscuro y 1,15:1 en la cinta del visor. O sea que el cuerpo del dron y las caras del
+        cubo desaparecen y queda media marca. Sobre blanco se lee entera: 14,2:1 el relleno y
+        4,1:1 el trazo violeta.
+      {% endcomment %}
+      .marca {
+        display: block;
+        width: 48px;
+        height: 37px;
+        margin-bottom: 14px;
+        padding: 3px;
+        border-radius: 8px;
+        background: #fff;
+      }
       h1 { margin: 0 0 4px; font-size: 1.35rem; }
       p.sub { margin: 0 0 22px; color: var(--login-muted); font-size: 0.92rem; }
       label { display: block; margin-bottom: 4px; font-size: 0.88rem; font-weight: 600; }
@@ -95,6 +114,7 @@
   <body>
     <form class="tarjeta" method="post">
       {% csrf_token %}
+      <img class="marca" src="{% static 'img/aerobim-mark.svg' %}" alt="" />
       <h1>AeroBim</h1>
       <p class="sub">{% translate "Model, plans and document control." %}</p>
 

@@ -5,6 +5,13 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{% block titulo %}AeroBim{% endblock %}</title>
+    {% comment %}
+      **El portal no tenía icono de pestaña**, y el visor sí desde el primer día: con cuatro
+      pestañas abiertas —el expediente, el tablero, una observación y el modelo— la única que se
+      reconocía era la del visor. Es el mismo archivo de marca, y una prueba comprueba que las dos
+      copias no se separen.
+    {% endcomment %}
+    <link rel="icon" type="image/svg+xml" href="{% static 'img/aerobim-mark.svg' %}" />
     <link rel="stylesheet" href="{% static 'css/app.css' %}" />
     {% comment %}
       **El tema se aplica antes de pintar, y por eso está acá y no al final.** Puesto después del
@@ -23,7 +30,25 @@
   <body>
     <a class="salto" href="#contenido">{% translate "Skip to content" %}</a>
     <header class="barra">
-      <a class="marca" href="/">AeroBim</a>
+      {% comment %}
+        **La marca, que en el portal era solo la palabra.** El visor lleva el dibujo en su cinta
+        desde el primer día, así que quien cruzaba del expediente al modelo veía aparecer un logo
+        que en la pantalla anterior no estaba.
+
+        `alt=""` a propósito: el nombre va escrito al lado en texto, así que un lector de pantalla
+        que lea las dos cosas diría «AeroBim AeroBim». El dibujo es decoración de lo que ya se dice.
+      {% endcomment %}
+      <a class="marca" href="/">
+        {% comment %}
+          El tamaño incluye la placa: `box-sizing: border-box` mete el relleno dentro, así que con
+          28 px el dibujo se quedaba en 22 y la cabina del dron no se distinguía.
+
+          Y va con `{% comment %}` y no con `{# #}`: **el de las llaves es de una sola línea**, y
+          uno de varias se imprime tal cual en la cabecera. Se vio en la pantalla.
+        {% endcomment %}
+        <img src="{% static 'img/aerobim-mark.svg' %}" alt="" width="34" height="26" />
+        AeroBim
+      </a>
       <span class="separador"></span>
       {% comment %}
         El interruptor de tema. **Los tokens oscuros existían en `app.css` desde el primer día y

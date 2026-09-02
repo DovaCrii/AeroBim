@@ -117,3 +117,24 @@ class ChangeModelPermissions(ViewModelPermissions):
         **ViewModelPermissions.perms_map,
         "POST": ["%(app_label)s.change_%(model_name)s"],
     }
+
+
+class PersonalStatePermissions(ViewModelPermissions):
+    """Para un `POST` que solo escribe **lo que esta persona ha visto**, no el dato compartido.
+
+    «Ya mire la coordinacion de esta obra» llega por `POST` y no cambia ninguna observacion: cambia
+    **mi** marca. Asi que el permiso que corresponde es el de **leer**, y no el de escribir.
+
+    **Y la diferencia se nota en quien queda fuera.** Con `add_*` o `change_*`, un rol de solo
+    lectura —el mandante que revisa, el inspector que mira— no podria ordenar su propia lista: para
+    el, todo seguiria siendo nuevo para siempre. Es justamente quien mas necesita saber que cambio.
+
+    No se puede marcar como visto lo que no se puede ver: la vista acota la consulta por
+    organizacion igual que la lectura, asi que el permiso y el alcance siguen siendo dos preguntas
+    contestadas por separado.
+    """
+
+    perms_map = {
+        **ViewModelPermissions.perms_map,
+        "POST": ["%(app_label)s.view_%(model_name)s"],
+    }

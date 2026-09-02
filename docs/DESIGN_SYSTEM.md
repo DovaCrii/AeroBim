@@ -170,6 +170,34 @@ Dos familias, declaradas igual en las dos mitades:
   `e-2` `0 8px 24px -6px rgb(0 0 0 / 45%)` · `e-3` `0 20px 48px -12px rgb(0 0 0 / 60%)`.
   En claro se conserva el `--ab-shadow` del portal.
 
+## La marca, y por qué va sobre placa clara
+
+`aerobim-mark.svg` —el dron sobre el cubo isométrico— está dibujado con trazo `#9B5DE5` y **relleno
+`#1B2A4A`**, y ese relleno es el mismo hexadecimal que `--ab-navy` / `--color-ink`. O sea que **está
+dibujado para fondo claro y el producto es oscuro**. Medido contra las tres superficies donde
+aparece:
+
+| Dónde aparece                        | Trazo violeta | Relleno `#1B2A4A` |
+| ------------------------------------ | ------------- | ----------------- |
+| Cinta del visor, `#18202f`           | 3,96:1        | **1,15:1**        |
+| Barra del portal, `#1b2a4a`          | 3,45:1        | **1,00:1**        |
+| Tarjeta de ingreso oscura, `#1b2432` | 3,79:1        | **1,10:1**        |
+| Sobre blanco                         | 4,13:1        | 14,22:1           |
+
+**El trazo aguanta —los tres pasan el mínimo de 3:1 de un gráfico no textual— y el relleno
+desaparece**: el cuerpo del dron y las caras del cubo quedan como agujeros y llega media marca. En
+la cinta del visor eso venía pasando desde el primer día.
+
+**La regla, entonces: la marca va siempre sobre una placa clara** —blanco, radio 6–8 px, 3 px de
+aire— en las tres pantallas, para que sea la misma marca y no tres. La placa vive en el CSS de cada
+pantalla y **no en el archivo**, porque el archivo lo comparten el portal y el visor: cambiar el SVG
+arreglaría un sitio y rompería el otro.
+
+**Y queda una decisión que no es de diseño de pantalla sino de marca**, así que la deja escrita en
+vez de tomarla: si el relleno del dibujo pasara a un tono que funcione sobre oscuro, la placa
+dejaría de hacer falta y la marca se integraría en la barra en vez de posarse encima. Eso lo decide
+quien es dueño de la marca.
+
 ## Foco y áreas de toque
 
 **Una regla global, y es la que el portal ya tiene:**

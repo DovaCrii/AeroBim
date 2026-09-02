@@ -5,6 +5,43 @@ Este proyecto sigue [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Añadido — lo nuevo frente a lo ya visto en la coordinación (`F5.5`, 2026-09-02)
+
+**Es lo único que ningún otro filtro contestaba.** «Mías», «Choques» y «Notas» separan de quién es y
+de dónde viene cada hallazgo; ninguno decía **qué apareció desde que miré**. Con treinta y cinco
+filas abiertas y trece problemas nuevos de la corrida de hoy, había que releer la lista entera.
+
+El panel tiene un filtro **«Nuevas»** con su cuenta, las tarjetas nuevas llevan un filo violeta y la
+palabra «nueva», y un **«ya lo vi»** que solo aparece cuando hay algo nuevo que ver.
+
+La marca de hasta cuándo se ha mirado es **por persona y por obra**: dos coordinadores no han mirado
+lo mismo. Se crea sola la primera vez —si no, la primera visita marcaría treinta y cinco de treinta
+y cinco como nuevas, que es el ruido del que se venía huyendo— y **no se mueve al leer**, porque
+entonces abrir el panel marcaría como visto justo lo que se acaba de descubrir.
+
+### Corregido — la lista de coordinación tenía el título del mismo tamaño que los metadatos (2026-09-02)
+
+Medido en pantalla: el título y la línea de abajo estaban los dos en **13 px**, así que la jerarquía
+la llevaba solo el color y la tarjeta se leía como un bloque gris. El título sube a **15 px**, los
+metadatos bajan a **12** y los chips suben de 11 a 12. El contraste no era el problema —el peor par
+da 5,5:1—, era el tamaño.
+
+Y el título ya no se corta con puntos suspensivos: **envuelve a dos líneas**. «Muro cortina eje 4 ×
+Conducto de extrac…» se cortaba justo donde dejaba de distinguirse de la fila siguiente, y el título
+es la identidad del problema. El coste medido es 21 px por tarjeta envuelta.
+
+### Corregido — la marca no estaba donde tenía que estar, y donde estaba no se veía (2026-09-02)
+
+**El portal no tenía icono de pestaña** y la pantalla de ingreso no tenía marca: con cuatro pestañas
+abiertas, la única reconocible era la del visor. Las dos la llevan ya.
+
+Y un defecto que arrastraba el visor desde el primer día: el relleno del dibujo es `#1B2A4A`, que
+sobre los fondos oscuros del producto da **1,15:1 en la cinta, 1,00:1 en la barra del portal y
+1,10:1 en la tarjeta de ingreso oscura**. El trazo violeta aguantaba, pero el cuerpo del dron y las
+caras del cubo eran agujeros: llegaba media marca. Ahora va sobre placa clara en las tres pantallas,
+donde se lee entera —14,2:1—. La placa está en el CSS y no en el archivo, porque el archivo lo
+comparten el portal y el visor.
+
 ### Añadido — veinte tornillos contra la misma viga son un problema, no veinte (`F5.5`, 2026-09-02)
 
 **Una corrida que devuelve treinta y cinco filas cuando hay trece problemas no se tría: se

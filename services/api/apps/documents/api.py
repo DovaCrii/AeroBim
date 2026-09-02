@@ -22,16 +22,21 @@ Las tres reglas de acceso son las mismas que en las pantallas, y se escriben una
 """
 
 from django.http import FileResponse, Http404
+from django.utils import timezone
 from django.utils.translation import gettext as _
 from rest_framework.generics import ListAPIView, RetrieveAPIView
 from rest_framework.views import APIView
 
 from apps.core.audit import set_audit_context
 from apps.core.tenancy import scope_queryset_to_organizacion
-from apps.core.views import ChangeModelPermissions, ViewModelPermissions
+from apps.core.views import (
+    ChangeModelPermissions,
+    PersonalStatePermissions,
+    ViewModelPermissions,
+)
 from apps.documents import storage
 from apps.documents.abribles import VISOR_MODELO, abre_en, visor_de
-from apps.documents.models import Observacion, Revision
+from apps.documents.models import MarcaDeCoordinacion, Observacion, Revision
 from apps.documents.views import revisiones_visibles
 
 
@@ -416,9 +421,20 @@ class ObservacionesDelModeloAPI(APIView):
             .order_by("prioridad", "vence", "created_at")
         )
 
+        # **Hasta cuándo ha mirado esta persona esta obra.** Se crea sola la primera vez y no se
+        # mueve al leer: ver el docstring de `MarcaDeCoordinacion`, donde están las dos razones.
+        marca, _nueva = MarcaDeCoordinacion.objects.get_or_create(
+            proyecto=proyecto,
+            usuario=request.user,
+            defaults={"organizacion": proyecto.organizacion},
+        )
+
         return Response(
             {
                 "proyecto": {"codigo": proyecto.codigo, "nombre": proyecto.nombre},
+                # **Desde cuándo se cuenta lo nuevo**, para poder decirlo en la pantalla en vez de
+                # que el usuario adivine qué significa la marca.
+                "vistoEn": marca.visto_en.isoformat(),
                 "puedeObservar": request.user.has_perm("documents.add_observacion"),
                 # **Descartar es lo que hace que una corrida de interferencias sirva dos veces**, y
                 # tiene su propio permiso: cambiar una observación, no abrirla.
@@ -436,6 +452,10 @@ class ObservacionesDelModeloAPI(APIView):
                         "contra": o.interferencia_con or None,
                         # **Y si es mía**, que es lo primero que se filtra en una lista larga.
                         "esMia": o.responsable_id == request.user.pk,
+                        # **Si apareció desde la última vez que esta persona miró.** Es la pregunta
+                        # que ningún otro filtro contesta: con treinta y cinco filas abiertas, «qué
+                        # cambió» no se responde releyendo la lista entera.
+                        "esNueva": o.created_at > marca.visto_en,
                         "prioridad": o.prioridad,
                         "prioridadTexto": o.get_prioridad_display(),
                         "estado": o.estado,
@@ -459,6 +479,49 @@ class ObservacionesDelModeloAPI(APIView):
                 ],
             }
         )
+
+
+class MarcarCoordinacionVistaAPI(APIView):
+    """«Ya miré esto»: mueve la marca de esta persona a ahora. `F5.5`.
+
+    **El gesto es explícito a propósito.** La marca no se mueve al leer la lista: si se moviera,
+    abrir el panel marcaría como visto justo lo que se acaba de descubrir, y nada sería nuevo nunca.
+    Así que quien tría decide cuándo ha terminado de mirar.
+
+    **Pide `view_observacion` y no `change_observacion`**, y no es un descuido: esto no cambia una
+    observación, cambia **mi** marca. Exigir permiso de escritura sobre las observaciones dejaría
+    sin poder ordenar su propia lista a un rol de solo lectura, que es justamente quien más
+    necesita saber qué cambió. Y no se puede marcar como visto lo que no se puede ver: la consulta
+    va acotada por organización igual que la lectura.
+
+    De ahí `PersonalStatePermissions`: el mapa de fábrica de DRF hace que un `POST` pida `add_*`, y
+    **lo descubrió la prueba de 403 de este mismo endpoint**. Es la tercera vez que el mapa por
+    defecto acierta el verbo y falla el permiso.
+    """
+
+    permission_classes = [PersonalStatePermissions]
+    queryset = Observacion.objects.none()
+
+    def post(self, request, *args, **kwargs):
+        from rest_framework.response import Response
+
+        from apps.projects.models import Proyecto
+
+        proyecto = (
+            scope_queryset_to_organizacion(Proyecto.objects.all(), request.user)
+            .filter(pk=kwargs["pk"])
+            .first()
+        )
+        if proyecto is None:
+            raise Http404
+
+        ahora = timezone.now()
+        MarcaDeCoordinacion.objects.update_or_create(
+            proyecto=proyecto,
+            usuario=request.user,
+            defaults={"organizacion": proyecto.organizacion, "visto_en": ahora},
+        )
+        return Response({"vistoEn": ahora.isoformat(), "nuevas": 0})
 
 
 class DescartarObservacionAPI(APIView):

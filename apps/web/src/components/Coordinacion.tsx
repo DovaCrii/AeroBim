@@ -33,20 +33,33 @@ export interface ObservacionDelModelo {
   readonly contra: string | null;
   /** `true` si está a nombre de quien mira. Es lo primero que se filtra en una lista larga. */
   readonly esMia: boolean;
+  /**
+   * `true` si apareció desde la última vez que **esta persona** miró esta obra.
+   *
+   * **Es la pregunta que ningún otro filtro contesta.** «Mías», «Choques» y «Notas» separan de
+   * quién es y de dónde viene cada hallazgo; ninguno dice qué cambió. Con treinta y cinco filas
+   * abiertas y trece problemas nuevos de la corrida de hoy, sin esto hay que releer la lista
+   * entera para encontrarlos.
+   */
+  readonly esNueva: boolean;
   readonly url: string;
 }
 
 /** Qué se está mirando de la lista. */
-type Filtro = "todas" | "mias" | "interferencias" | "notas";
+type Filtro = "todas" | "nuevas" | "mias" | "interferencias" | "notas";
 
 const FILTROS: readonly { readonly cual: Filtro; readonly texto: string }[] = [
   { cual: "todas", texto: "Todas" },
+  // **«Nuevas» va justo después de «Todas»**, y antes que «Mías»: al abrir el panel después de una
+  // corrida, «qué cambió» es la primera pregunta, y repartir viene después de saber qué hay.
+  { cual: "nuevas", texto: "Nuevas" },
   { cual: "mias", texto: "Mías" },
   { cual: "interferencias", texto: "Choques" },
   { cual: "notas", texto: "Notas" },
 ];
 
 function pasa(observacion: ObservacionDelModelo, filtro: Filtro): boolean {
+  if (filtro === "nuevas") return observacion.esNueva;
   if (filtro === "mias") return observacion.esMia;
   if (filtro === "interferencias") return observacion.esInterferencia;
   if (filtro === "notas") return !observacion.esInterferencia;
@@ -118,6 +131,14 @@ export function Coordinacion({
   const [descartando, setDescartando] = useState<{ id: string; motivo: string } | null>(null);
   /** Las que se descartaron en esta sesión: se van de la lista sin volver a pedirla. */
   const [descartadas, setDescartadas] = useState<ReadonlySet<string>>(new Set());
+  /**
+   * `true` si se acaba de decir «ya lo vi todo».
+   *
+   * Espeja lo que hizo el servidor —mover la marca a ahora— sin volver a pedir la lista, por la
+   * misma razón que al descartar: recargarla entera pierde el sitio y la posición del
+   * desplazamiento, y triando treinta y cinco filas eso se nota.
+   */
+  const [todoVisto, setTodoVisto] = useState(false);
 
   useEffect(() => {
     if (proyectoId === null) {
@@ -127,6 +148,9 @@ export function Coordinacion({
 
     let cancelado = false;
     setEstado({ kind: "cargando" });
+    // **La lista que llega trae su propio «qué es nuevo»**, así que el espejo local se olvida: si
+    // no, después de recargar seguiría diciendo que no hay nada nuevo.
+    setTodoVisto(false);
 
     void (async () => {
       try {
@@ -229,9 +253,29 @@ export function Coordinacion({
     );
   }
 
-  const vivas = estado.observaciones.filter((una) => !descartadas.has(una.id));
+  const vivas = estado.observaciones
+    .filter((una) => !descartadas.has(una.id))
+    // **El espejo se aplica aquí y no en cada sitio que pregunta.** Con `esNueva` ya resuelto, el
+    // filtro, la cuenta del chip y la marca de la fila leen todos el mismo valor; comprobar
+    // `todoVisto` en los tres es la forma segura de que uno se olvide.
+    .map((una) => (todoVisto && una.esNueva ? { ...una, esNueva: false } : una));
   const visibles = vivas.filter((una) => pasa(una, filtro));
   const cuantas = (cual: Filtro) => vivas.filter((una) => pasa(una, cual)).length;
+  const nuevas = cuantas("nuevas");
+
+  async function marcarVisto() {
+    const respuesta = await fetch(`/api/proyectos/${proyectoId}/coordinacion-vista/`, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: cabecerasDeEscritura(),
+      body: "{}",
+    });
+    if (!respuesta.ok) return;
+    setTodoVisto(true);
+    // **Y se sale del filtro «nuevas»**, que se acaba de quedar vacío: dejarlo puesto enseñaría
+    // «Nada con este filtro» justo después de un gesto que funcionó.
+    if (filtro === "nuevas") setFiltro("todas");
+  }
 
   async function descartar(id: string, motivo: string) {
     const respuesta = await fetch(`/api/observaciones/${id}/descartar/`, {
@@ -268,7 +312,10 @@ export function Coordinacion({
               aria-pressed={filtro === cual}
               disabled={total === 0 && cual !== "todas"}
               className={[
-                "rounded-sm px-1.5 py-0.5 text-micro transition-colors",
+                // 12 px y no 11: es la navegación del panel y lleva una cifra dentro. El micro
+                // queda para las etiquetas de una palabra —la prioridad, el «choque»—, que se
+                // reconocen por su forma antes de leerse.
+                "rounded-sm px-1.5 py-0.5 text-nota transition-colors",
                 filtro === cual
                   ? "bg-action/30 text-fg"
                   : total === 0 && cual !== "todas"
@@ -280,6 +327,20 @@ export function Coordinacion({
             </button>
           );
         })}
+
+        {/* **«Ya lo vi» solo aparece cuando hay algo nuevo que ver.** Un botón permanente para
+            marcar como visto una lista sin novedades es un control que no hace nada, y de paso
+            invita a pulsarlo antes de mirar. */}
+        {nuevas > 0 && (
+          <button
+            type="button"
+            onClick={() => void marcarVisto()}
+            title="Deja de marcar como nuevas las que están en la lista ahora"
+            className="ml-auto rounded-sm px-1.5 py-0.5 text-micro text-fg-3 underline transition-colors hover:bg-surface-3 hover:text-fg-2"
+          >
+            ya lo vi
+          </button>
+        )}
       </div>
 
       {visibles.length === 0 ? (
@@ -302,7 +363,14 @@ export function Coordinacion({
                se arregla **dibujando el grupo**: un papel propio por hallazgo, con su borde. */
             <li
               key={observacion.id}
-              className="mb-1.5 rounded-sm bg-surface-2 transition-colors hover:bg-surface-3"
+              /* **Lo nuevo se marca con un filo y con una palabra**, no con una sola de las dos.
+                 El filo es lo que se recorre con la vista bajando por treinta y cinco tarjetas —una
+                 palabra en la segunda línea no se ve en ese barrido—, y la palabra es lo que
+                 sobrevive a que uno de cada doce hombres no distinga el color. */
+              className={[
+                "mb-1.5 rounded-sm bg-surface-2 transition-colors hover:bg-surface-3",
+                observacion.esNueva ? "border-l-2 border-accent" : "",
+              ].join(" ")}
             >
               <button
                 type="button"
@@ -310,7 +378,7 @@ export function Coordinacion({
                 className="w-full rounded-sm px-2 pt-1.5 text-left"
                 title={`${observacion.titulo} · ${observacion.guid}`}
               >
-                <span className="flex items-baseline gap-1.5">
+                <span className="flex items-start gap-1.5">
                   {/* La prioridad con texto y no solo con color: uno de cada doce hombres no
                       distingue rojo de verde. */}
                   <span
@@ -325,9 +393,19 @@ export function Coordinacion({
                       choque
                     </span>
                   )}
-                  <span className="truncate">{observacion.titulo}</span>
+                  {/* **El título sube a 15 px y la línea de abajo baja a 12**, y salió de medir la
+                      pantalla: los dos estaban en 13 px, así que la jerarquía la llevaba solo el
+                      color y la tarjeta se leía como un bloque gris. El título es lo que se recorre
+                      treinta y cinco veces; lo demás es metadato y se lee cuando ya te fijaste en
+                      uno. El contraste no era el problema —el peor par da 5,5:1—, era el tamaño. */}
+                  {/* **Dos líneas y no puntos suspensivos.** Con el título a 15 px en un panel
+                      estrecho, «Muro cortina eje 4 × Conducto de extrac…» se corta justo donde
+                      dejaría de distinguirse de la fila siguiente, y el título es la identidad del
+                      problema. El tope de dos líneas evita que una tarjeta se estire sola. */}
+                  <span className="line-clamp-2 text-sm">{observacion.titulo}</span>
                 </span>
-                <span className="mt-0.5 block truncate text-fg-3">
+                <span className="mt-0.5 block truncate text-nota text-fg-3">
+                  {observacion.esNueva && <span className="text-accent">nueva · </span>}
                   {observacion.responsable}
                   {observacion.esMia && " · tuya"}
                   {observacion.vence !== null && ` · vence ${observacion.vence}`}
