@@ -74,7 +74,7 @@ Las **veintinueve** filas abiertas, de una vez. `⬜` no empezada · `❓` medid
 
 | Fase                      | Filas abiertas                                                                                                            |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| **5 — Interferencias** ⭐ | `F5.5` ◐ falta agrupar por proximidad _(1 a 4 cerradas)_                                                                  |
+| **5 — Interferencias** ⭐ | `F5.5` ◐ falta agrupar por proximidad; **descartar ya se puede desde el visor** _(1 a 4 cerradas)_                        |
 | **4 — Coordinación** ⭐   | `F4.6` importar BCF ⬜ — la vuelta del ciclo · `F4.5` ◐ falta el trazo libre; las cotas ya viajan                         |
 | **3 — Backend**           | `F3.4` ✅ decidida por el usuario el 2026-09-02: **la petición espera**, y por qué                                        |
 | **9 — Diseño** ⭐         | `F9.6` ⛔ — la decide el usuario, y son tres decisiones _(`F9.1` a `F9.5` cerradas)_                                      |
@@ -1759,7 +1759,7 @@ llegan a la coordinación como temas, no como una lista en una planilla.
 | `F5.2` | Ejecutar `ifcclash` como job de backend, con tolerancia de holgura configurable        | ✅ ver abajo                                                           |
 | `F5.3` | Resultados navegables: la lista lleva la cámara al conflicto y aísla los dos elementos | ✅ **sale de la Fase 4** — ver abajo                                   |
 | `F5.4` | Convertir un resultado en tema BCF de la Fase 4, con su viewpoint ya apuntado          | ✅ ver abajo                                                           |
-| `F5.5` | Agrupar y silenciar falsos positivos, y conservarlos entre corridas                    | ✅ silenciar sí; agrupar por proximidad, no                            |
+| `F5.5` | Agrupar y silenciar falsos positivos, y conservarlos entre corridas                    | ✅ silenciar, con camino en el visor; agrupar por proximidad, no       |
 
 **Oráculo:** un conjunto de prueba con interferencias conocidas y colocadas a
 propósito; se cuentan las encontradas y las perdidas. Contra software comercial si
@@ -1827,6 +1827,32 @@ Con esa pareja, **descartar un falso positivo es dejar su observación en `desca
 siguiente no la vuelve a abrir**. `F5.5` sale de `F4.2` sin una tabla nueva. Lo que falta es agrupar
 los conflictos vecinos —veinte tornillos contra la misma viga son un problema, no veinte—, y eso
 pide ver una corrida real sobre dos disciplinas de verdad.
+
+**El camino a `descartada` ya existe, y hasta el 2026-09-02 no existía.** El estado estaba en el
+modelo y **nada lo ponía**: la mitad que decide si la herramienta se usa una segunda vez estaba
+escrita y no se podía usar. Lo que se añadió:
+
+| Pieza                                                  | Qué resuelve                                                                                                             |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| `Observacion.descartar(por, motivo)`                   | Exige el motivo. Es permanente —la pareja de GUID impide que la corrida siguiente reabra—, así que es lo único que queda |
+| `POST /api/observaciones/<id>/descartar/`              | Se tría **sin salir del visor**. Abrir la ficha de cada conflicto en otra pestaña no lo hace nadie                       |
+| `ChangeModelPermissions`                               | Descartar es **cambiar**, no crear. Ver abajo                                                                            |
+| Filtros «Todas / Mías / Choques / Notas» con su cuenta | Una corrida abre decenas y las mezcla con las pocas que escribió una persona                                             |
+
+**El permiso iba en la dirección mala, y lo descubrió su propia prueba de 403.**
+`DjangoModelPermissions` asume que `POST` es crear, y eso vale en una API de recursos pero no en una
+de acciones: «descartar» llega por `POST` y lo que pide es `change_observacion`. Con el mapa de
+fábrica, un rol que puede **abrir** hallazgos podría descartar los ajenos, y uno que puede
+cambiarlos no podría. `ChangeModelPermissions` es la clase que lo corrige, y queda para el siguiente
+endpoint de acción.
+
+**Un defecto de la lista, medido y no opinado.** Con los 35 conflictos en pantalla, las dos acciones
+de cada fila caían a **43,8 px de su propio título y a 11 px del título siguiente**: por proximidad
+—la única pista que había— «no es un problema» pertenecía cuatro veces más a la fila de abajo que a
+la suya. En una lista de triaje donde descartar es permanente, eso es descartar el conflicto
+equivocado. Y no se arregla con proximidad, porque tres líneas de alto parecido no se agrupan solas:
+se arregla **dibujando el grupo**. Cada hallazgo es ahora una tarjeta con su papel propio, con las
+acciones dentro y 6,6 px de aire entre tarjetas.
 
 **Dos trampas de `ifcclash` que no dan un error legible**, y las dos tienen su prueba:
 

@@ -5,6 +5,33 @@ Este proyecto sigue [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Añadido — descartar un conflicto sin salir del visor, y la lista que se puede triar (`F5.5`, 2026-09-02)
+
+**`DESCARTADA` existía como estado y nada lo ponía.** El silenciado estaba resuelto en el modelo —la
+pareja de GUID sin orden impide que la corrida siguiente reabra un conflicto descartado— y **no
+había camino en la interfaz para llegar a ese estado**. O sea que la mitad que decide si la
+detección se usa una segunda vez estaba escrita y no se podía usar.
+
+Ahora cada hallazgo del visor tiene **«no es un problema»**, con el motivo obligatorio: descartar es
+permanente, así que el motivo es lo único que le queda a quien pregunte dentro de seis meses por qué
+nadie miró esa viga. La fila se va de la lista sin volver a pedirla, porque triando treinta y cinco
+conflictos recargar entera después de cada uno pierde el sitio y el desplazamiento. Descartarla dos
+veces —alguien lo hizo desde otra pestaña— contesta el estado real y no un error.
+
+**Y la lista larga se puede separar**: filtros «Todas / Mías / Choques / Notas» con su cuenta al
+lado, porque «Choques 35» ya dice qué hay que hacer. Un choque lo encontró una máquina y una nota la
+escribió alguien: mezclados, la nota que un revisor redactó a mano se pierde entre el resultado de
+una corrida.
+
+Dos cosas que salieron de medir y no de opinar:
+
+- **El permiso iba en la dirección mala.** `DjangoModelPermissions` asume que `POST` es crear;
+  descartar es **cambiar**. Con el mapa de fábrica, un rol que puede abrir hallazgos podría
+  descartar los ajenos, y uno que puede cambiarlos no podría. Lo descubrió su propia prueba de 403.
+- **Las acciones de cada fila pertenecían a la fila de abajo.** Medido sobre los 35 en pantalla:
+  43,8 px desde su propio título y 11 px del siguiente. En una lista donde descartar es permanente,
+  eso es descartar el conflicto equivocado. Cada hallazgo es ahora una tarjeta con su papel propio.
+
 ### Añadido — «Revisar interferencias» en la pantalla de la obra (`F5.1`–`F5.5`, 2026-09-02)
 
 **Era el hueco que separaba «la coordinación funciona» de «se está usando».** La detección existía,

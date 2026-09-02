@@ -504,6 +504,32 @@ class Observacion(BaseModel):
         self.cerrada_en = timezone.now()
         self.save(update_fields=["estado", "resolucion", "cerrada_por", "cerrada_en", "updated_at"])
 
+    def descartar(self, por, motivo: str):
+        """La deja en `descartada`, **diciendo por que**. `F5.5`.
+
+        **Descartar y cerrar son dos cosas distintas y las dos tienen que decir su razon.** Cerrada
+        es «se corrigio»; descartada es «esto no era un problema», y es el estado que de verdad hace
+        falta cuando una corrida de interferencias devuelve treinta y cinco hallazgos y la mitad son
+        la propia construccion del modelo.
+
+        El motivo se exige por el mismo argumento que la resolucion: sin el, `descartada` no
+        distingue un falso positivo razonado de alguien bajando el contador. Y ademas **importa mas
+        aca**, porque la pareja de GUID hace que esa decision sea permanente: la corrida siguiente
+        **no vuelve a abrir** el conflicto, asi que el motivo es lo unico que le queda a quien
+        pregunte dentro de seis meses por que nadie miro esa viga.
+
+        Se guarda en `resolucion` y no en un campo nuevo: es el mismo dato —por que ya no esta
+        abierta— y el estado ya distingue las dos salidas.
+        """
+        limpio = (motivo or "").strip()
+        if not limpio:
+            raise ValidationError("Una observacion no se descarta sin decir por que.")
+        self.resolucion = limpio
+        self.estado = self.DESCARTADA
+        self.cerrada_por = por
+        self.cerrada_en = timezone.now()
+        self.save(update_fields=["estado", "resolucion", "cerrada_por", "cerrada_en", "updated_at"])
+
     @property
     def vencida(self) -> bool:
         if self.vence is None or self.estado in {self.CERRADA, self.DESCARTADA}:

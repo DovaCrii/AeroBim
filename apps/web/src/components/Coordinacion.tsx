@@ -1,5 +1,6 @@
 import type { BcfCamera, VisibilidadBcf } from "@aerobim/bim-core";
 import { useCallback, useEffect, useState } from "react";
+import { cabecerasDeEscritura } from "../csrf.js";
 
 /** Una observación anclada al modelo, tal como la manda el registro. */
 export interface ObservacionDelModelo {
@@ -20,13 +21,46 @@ export interface ObservacionDelModelo {
    * edificio entero encima, aunque se mire desde el mismo sitio.
    */
   readonly visibilidad: VisibilidadBcf | null;
+  /**
+   * `true` si la abrió una corrida de interferencias y no una persona.
+   *
+   * **No es un detalle de adorno**: una corrida sobre dos disciplinas reales abre decenas y las
+   * mezcla con las pocas que escribió alguien. Sin poder separarlas, la nota que un revisor
+   * redactó a mano se pierde entre el resultado de una máquina.
+   */
+  readonly esInterferencia: boolean;
+  /** El otro elemento de la pareja, cuando es una interferencia. */
+  readonly contra: string | null;
+  /** `true` si está a nombre de quien mira. Es lo primero que se filtra en una lista larga. */
+  readonly esMia: boolean;
   readonly url: string;
+}
+
+/** Qué se está mirando de la lista. */
+type Filtro = "todas" | "mias" | "interferencias" | "notas";
+
+const FILTROS: readonly { readonly cual: Filtro; readonly texto: string }[] = [
+  { cual: "todas", texto: "Todas" },
+  { cual: "mias", texto: "Mías" },
+  { cual: "interferencias", texto: "Choques" },
+  { cual: "notas", texto: "Notas" },
+];
+
+function pasa(observacion: ObservacionDelModelo, filtro: Filtro): boolean {
+  if (filtro === "mias") return observacion.esMia;
+  if (filtro === "interferencias") return observacion.esInterferencia;
+  if (filtro === "notas") return !observacion.esInterferencia;
+  return true;
 }
 
 type Estado =
   | { readonly kind: "sin-proyecto" }
   | { readonly kind: "cargando" }
-  | { readonly kind: "listo"; readonly observaciones: readonly ObservacionDelModelo[] }
+  | {
+      readonly kind: "listo";
+      readonly observaciones: readonly ObservacionDelModelo[];
+      readonly puedeDescartar: boolean;
+    }
   | { readonly kind: "sin-permiso" }
   | { readonly kind: "error"; readonly mensaje: string };
 
@@ -75,6 +109,15 @@ export function Coordinacion({
   const [estado, setEstado] = useState<Estado>({ kind: "sin-proyecto" });
   /** El GUID que no se encontró, para poder decirlo junto a su fila y no en un aviso suelto. */
   const [noEncontrada, setNoEncontrada] = useState<string | null>(null);
+  /**
+   * Qué se está mirando. **Arranca en «todas»** a propósito: filtrar de entrada esconde trabajo, y
+   * quien abre el panel todavía no sabe cuánto hay.
+   */
+  const [filtro, setFiltro] = useState<Filtro>("todas");
+  /** Cuál se está descartando, con el motivo a medio escribir. */
+  const [descartando, setDescartando] = useState<{ id: string; motivo: string } | null>(null);
+  /** Las que se descartaron en esta sesión: se van de la lista sin volver a pedirla. */
+  const [descartadas, setDescartadas] = useState<ReadonlySet<string>>(new Set());
 
   useEffect(() => {
     if (proyectoId === null) {
@@ -105,9 +148,14 @@ export function Coordinacion({
 
         const datos = (await respuesta.json()) as {
           observaciones?: readonly ObservacionDelModelo[];
+          puedeDescartar?: boolean;
         };
         if (!cancelado) {
-          setEstado({ kind: "listo", observaciones: datos.observaciones ?? [] });
+          setEstado({
+            kind: "listo",
+            observaciones: datos.observaciones ?? [],
+            puedeDescartar: datos.puedeDescartar === true,
+          });
         }
       } catch (error: unknown) {
         if (!cancelado) {
@@ -181,53 +229,192 @@ export function Coordinacion({
     );
   }
 
+  const vivas = estado.observaciones.filter((una) => !descartadas.has(una.id));
+  const visibles = vivas.filter((una) => pasa(una, filtro));
+  const cuantas = (cual: Filtro) => vivas.filter((una) => pasa(una, cual)).length;
+
+  async function descartar(id: string, motivo: string) {
+    const respuesta = await fetch(`/api/observaciones/${id}/descartar/`, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: cabecerasDeEscritura(),
+      body: JSON.stringify({ motivo }),
+    });
+    if (!respuesta.ok) return;
+    // **Se va de la lista sin volver a pedirla.** Triando treinta y cinco conflictos, recargar
+    // entera después de cada uno pierde el sitio y la posición del desplazamiento.
+    setDescartadas((actuales) => new Set(actuales).add(id));
+    setDescartando(null);
+  }
+
   return (
-    <ul className="min-h-0 overflow-x-clip overflow-y-auto p-2 text-xs">
-      {estado.observaciones.map((observacion) => (
-        <li key={observacion.id} className="mb-1">
-          <button
-            type="button"
-            onClick={() => void abrir(observacion)}
-            className="w-full rounded-sm px-2 py-1.5 text-left hover:bg-surface-3"
-            title={`${observacion.titulo} · ${observacion.guid}`}
-          >
-            <span className="flex items-baseline gap-1.5">
-              {/* La prioridad con texto y no solo con color: uno de cada doce hombres no
-                  distingue rojo de verde. */}
-              <span
-                className={`shrink-0 text-micro font-semibold uppercase ${TONO[observacion.prioridad] ?? "text-fg-2"}`}
+    <div className="flex min-h-0 flex-col">
+      {/* **Los filtros con su cuenta al lado.** Una corrida de interferencias abre decenas y las
+          mezcla con las pocas que escribió una persona: sin separarlas, la nota que un revisor
+          redactó a mano se pierde entre el resultado de una máquina. Y el número va en el propio
+          filtro porque es la mitad de la información — «Choques 35» dice qué hay que hacer.
+
+          **El que está a cero se inhabilita pero no se esconde.** Las cuentas cambian mientras se
+          tría, y un objetivo que se mueve bajo el dedo en una lista de treinta y cinco es peor que
+          un cero. */}
+      <div className="flex shrink-0 flex-wrap gap-1 border-b border-borde px-2 py-1.5">
+        {FILTROS.map(({ cual, texto }) => {
+          const total = cuantas(cual);
+          return (
+            <button
+              key={cual}
+              type="button"
+              onClick={() => setFiltro(cual)}
+              aria-pressed={filtro === cual}
+              disabled={total === 0 && cual !== "todas"}
+              className={[
+                "rounded-sm px-1.5 py-0.5 text-micro transition-colors",
+                filtro === cual
+                  ? "bg-action/30 text-fg"
+                  : total === 0 && cual !== "todas"
+                    ? "text-apagado-fg"
+                    : "text-fg-3 hover:bg-surface-3 hover:text-fg-2",
+              ].join(" ")}
+            >
+              {texto} <span className="tabular-nums">{total}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {visibles.length === 0 ? (
+        <p className="p-3 text-nota leading-snug text-fg-3">
+          Nada con este filtro.{" "}
+          <span className="text-fg-2">
+            Vuelve a <strong>Todas</strong> para ver el resto.
+          </span>
+        </p>
+      ) : (
+        <ul className="min-h-0 overflow-x-clip overflow-y-auto p-2 text-xs">
+          {visibles.map((observacion) => (
+            /* **Cada hallazgo es una tarjeta, y no una fila con cosas debajo.**
+               Medido sobre la lista de 35: las dos acciones caían a **43,8 px de su propio título y
+               a 11 del título siguiente**, o sea que por proximidad —la única pista que había—
+               «no es un problema» pertenecía cuatro veces más a la fila de abajo que a la suya. En
+               una lista de triaje donde descartar es permanente, eso no es un detalle: es descartar
+               el conflicto equivocado.
+               Y no se arregla con proximidad —tres líneas de alto parecido no se agrupan solas—,
+               se arregla **dibujando el grupo**: un papel propio por hallazgo, con su borde. */
+            <li
+              key={observacion.id}
+              className="mb-1.5 rounded-sm bg-surface-2 transition-colors hover:bg-surface-3"
+            >
+              <button
+                type="button"
+                onClick={() => void abrir(observacion)}
+                className="w-full rounded-sm px-2 pt-1.5 text-left"
+                title={`${observacion.titulo} · ${observacion.guid}`}
               >
-                {observacion.prioridadTexto}
+                <span className="flex items-baseline gap-1.5">
+                  {/* La prioridad con texto y no solo con color: uno de cada doce hombres no
+                      distingue rojo de verde. */}
+                  <span
+                    className={`shrink-0 text-micro font-semibold uppercase ${TONO[observacion.prioridad] ?? "text-fg-2"}`}
+                  >
+                    {observacion.prioridadTexto}
+                  </span>
+                  {/* **De dónde viene la fila**, con palabra y no solo con color. Un choque lo
+                      encontró una máquina y una nota la escribió alguien: no se leen igual. */}
+                  {observacion.esInterferencia && (
+                    <span className="shrink-0 rounded-xs bg-warn/20 px-1 text-micro text-warn">
+                      choque
+                    </span>
+                  )}
+                  <span className="truncate">{observacion.titulo}</span>
+                </span>
+                <span className="mt-0.5 block truncate text-fg-3">
+                  {observacion.responsable}
+                  {observacion.esMia && " · tuya"}
+                  {observacion.vence !== null && ` · vence ${observacion.vence}`}
+                  {observacion.vencida && " · ⚠ vencida"}
+                  {observacion.camara === null && " · sin cámara guardada"}
+                </span>
+              </button>
+
+              {noEncontrada === observacion.id && (
+                <p className="px-2 pb-1 text-nota leading-snug text-warn">
+                  Ese elemento no está en ningún modelo abierto. Suele ser de otra disciplina: abre
+                  su modelo y vuelve a intentarlo.
+                </p>
+              )}
+
+              {/* Las dos acciones, **dentro del papel de su hallazgo** y separadas entre sí: son
+                  irreversibles a distinto precio —una abre una pestaña, la otra cierra el asunto
+                  para siempre— y pegadas se pulsa la que no era. */}
+              <span className="flex items-center gap-4 px-2 pt-0.5 pb-1.5">
+                {/* El enlace a su pantalla, que es donde se comenta y se cierra. Va aparte del
+                    botón porque son dos cosas distintas: mirar el problema y responderlo. */}
+                <a
+                  href={observacion.url}
+                  target="_blank"
+                  rel="noopener"
+                  className="text-nota text-fg-3 underline hover:text-fg-2"
+                >
+                  abrir su ficha
+                </a>
+
+                {/* **Descartar sin salir del modelo.** Es lo que decide si una corrida de
+                    interferencias sirve dos veces: si triar decenas exige abrir la ficha de cada
+                    una en otra pestaña, nadie lo hace y a la corrida siguiente vuelven todas. */}
+                {estado.puedeDescartar && descartando?.id !== observacion.id && (
+                  <button
+                    type="button"
+                    onClick={() => setDescartando({ id: observacion.id, motivo: "" })}
+                    className="text-nota text-fg-3 underline hover:text-danger"
+                  >
+                    no es un problema
+                  </button>
+                )}
               </span>
-              <span className="truncate">{observacion.titulo}</span>
-            </span>
-            <span className="mt-0.5 block truncate text-fg-3">
-              {observacion.responsable}
-              {observacion.vence !== null && ` · vence ${observacion.vence}`}
-              {observacion.vencida && " · ⚠ vencida"}
-              {observacion.camara === null && " · sin cámara guardada"}
-            </span>
-          </button>
 
-          {noEncontrada === observacion.id && (
-            <p className="px-2 pb-1 text-nota leading-snug text-warn">
-              Ese elemento no está en ningún modelo abierto. Suele ser de otra disciplina: abre su
-              modelo y vuelve a intentarlo.
-            </p>
-          )}
-
-          {/* El enlace a su pantalla, que es donde se comenta y se cierra. Va aparte del botón
-              porque son dos cosas distintas: mirar el problema y responderlo. */}
-          <a
-            href={observacion.url}
-            target="_blank"
-            rel="noopener"
-            className="ml-2 text-nota text-fg-3 underline hover:text-fg-2"
-          >
-            abrir su ficha
-          </a>
-        </li>
-      ))}
-    </ul>
+              {descartando?.id === observacion.id && (
+                <form
+                  className="mt-1 flex gap-1 px-2 pb-1"
+                  onSubmit={(evento) => {
+                    evento.preventDefault();
+                    void descartar(observacion.id, descartando.motivo);
+                  }}
+                >
+                  {/* **El motivo se exige, y no es burocracia.** La pareja de GUID hace que
+                      descartar sea permanente: la corrida siguiente no vuelve a abrir el
+                      conflicto, así que esto es lo único que le queda a quien pregunte dentro de
+                      seis meses por qué nadie miró esa viga. */}
+                  <input
+                    type="text"
+                    value={descartando.motivo}
+                    onChange={(evento) =>
+                      setDescartando({ id: observacion.id, motivo: evento.target.value })
+                    }
+                    placeholder="Por qué no es un problema"
+                    maxLength={300}
+                    autoFocus
+                    className="min-w-0 flex-1 rounded-sm border border-borde bg-surface-3 px-2 py-1 text-nota text-fg placeholder:text-fg-3"
+                  />
+                  <button
+                    type="submit"
+                    disabled={descartando.motivo.trim() === ""}
+                    className="shrink-0 rounded-sm bg-action px-2 py-1 text-nota font-medium text-fg hover:bg-action-hover disabled:bg-apagado disabled:text-apagado-fg"
+                  >
+                    Descartar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDescartando(null)}
+                    className="shrink-0 rounded-sm px-1.5 py-1 text-nota text-fg-3 hover:bg-surface-3 hover:text-fg-2"
+                  >
+                    Dejarlo
+                  </button>
+                </form>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }

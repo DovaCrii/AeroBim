@@ -28,7 +28,7 @@ from rest_framework.views import APIView
 
 from apps.core.audit import set_audit_context
 from apps.core.tenancy import scope_queryset_to_organizacion
-from apps.core.views import ViewModelPermissions
+from apps.core.views import ChangeModelPermissions, ViewModelPermissions
 from apps.documents import storage
 from apps.documents.abribles import VISOR_MODELO, abre_en, visor_de
 from apps.documents.models import Observacion, Revision
@@ -420,11 +420,22 @@ class ObservacionesDelModeloAPI(APIView):
             {
                 "proyecto": {"codigo": proyecto.codigo, "nombre": proyecto.nombre},
                 "puedeObservar": request.user.has_perm("documents.add_observacion"),
+                # **Descartar es lo que hace que una corrida de interferencias sirva dos veces**, y
+                # tiene su propio permiso: cambiar una observación, no abrirla.
+                "puedeDescartar": request.user.has_perm("documents.change_observacion"),
                 "observaciones": [
                     {
                         "id": str(o.pk),
                         "titulo": o.titulo,
                         "guid": o.ifc_guid,
+                        # **Si es un conflicto detectado o una nota que escribió alguien**, y no es
+                        # un detalle: una corrida abre treinta y cinco de las primeras y las mezcla
+                        # con las tres que puso una persona. Se distinguen por el otro elemento de
+                        # la pareja, que solo tienen las automáticas.
+                        "esInterferencia": bool(o.interferencia_con),
+                        "contra": o.interferencia_con or None,
+                        # **Y si es mía**, que es lo primero que se filtra en una lista larga.
+                        "esMia": o.responsable_id == request.user.pk,
                         "prioridad": o.prioridad,
                         "prioridadTexto": o.get_prioridad_display(),
                         "estado": o.estado,
@@ -448,6 +459,58 @@ class ObservacionesDelModeloAPI(APIView):
                 ],
             }
         )
+
+
+class DescartarObservacionAPI(APIView):
+    """Descarta una observación **sin salir del visor**. `F5.5`.
+
+    **Es lo que decide si la detección de interferencias se usa una segunda vez.** Una corrida sobre
+    dos disciplinas reales devuelve decenas de conflictos y buena parte es la propia construcción
+    del modelo; si triarlos exige abrir la ficha de cada uno en otra pestaña, nadie lo hace, y a la
+    corrida siguiente vuelven todos.
+
+    El gesto que hace falta es corto: se abre el conflicto —el visor aísla los dos elementos—, se
+    mira, y se dice «esto no es un problema» **con el motivo**. Y la decisión es permanente: la
+    pareja de GUID hace que la corrida siguiente no lo vuelva a abrir, así que el motivo es lo único
+    que le queda a quien pregunte dentro de seis meses.
+
+    Pide `change_observacion`, que es lo que hace. **No sirve para cerrar**: cerrada es «se
+    corrigió» y eso pasa por su pantalla, con su resolución y su historial de comentarios.
+
+    Y usa `ChangeModelPermissions` y no `ViewModelPermissions`: el de DRF asume que un `POST` crea,
+    y este cambia algo que ya existe. Con el mapa por defecto pediría `add_observacion`, o sea el
+    permiso equivocado **y en la dirección mala** — lo descubrió su prueba de 403.
+    """
+
+    permission_classes = [ChangeModelPermissions]
+    queryset = Observacion.objects.none()
+
+    def post(self, request, *args, **kwargs):
+        from django.core.exceptions import ValidationError
+        from rest_framework.response import Response
+
+        observacion = (
+            scope_queryset_to_organizacion(Observacion.objects.all(), request.user)
+            .filter(pk=kwargs["pk"])
+            .first()
+        )
+        if observacion is None:
+            raise Http404
+
+        if observacion.estado in (Observacion.CERRADA, Observacion.DESCARTADA):
+            # No es un error: alguien la descartó desde otra pestaña. Se contesta el estado real en
+            # vez de un 400, para que la lista se ponga al día sola.
+            return Response({"estado": observacion.estado, "yaEstaba": True})
+
+        try:
+            observacion.descartar(request.user, str(request.data.get("motivo") or ""))
+        except ValidationError:
+            return Response(
+                {"error": _("An observation is not dismissed without saying why.")}, status=400
+            )
+
+        set_audit_context(request, observacion, action="descartar_observacion")
+        return Response({"estado": observacion.estado, "yaEstaba": False})
 
 
 class RevisionContenidoAPI(APIView):

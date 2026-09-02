@@ -99,3 +99,21 @@ class ViewModelPermissions(DjangoModelPermissions):
         "GET": ["%(app_label)s.view_%(model_name)s"],
         "HEAD": ["%(app_label)s.view_%(model_name)s"],
     }
+
+
+class ChangeModelPermissions(ViewModelPermissions):
+    """Para un `POST` que **cambia** algo que ya existe, en vez de crearlo.
+
+    **`DjangoModelPermissions` asume que `POST` es crear**, y eso es cierto en una API de recursos
+    pero no en una de acciones: «descartar esta observacion» llega por `POST` —no es idempotente y
+    lleva cuerpo— y lo que pide es `change_*`, no `add_*`.
+
+    Sin esta clase, un endpoint de accion exige el permiso equivocado, y el error va **en la
+    direccion mala**: un rol que puede abrir hallazgos podria descartar los ajenos, y uno que puede
+    cambiarlos no podria. Lo descubrio su propia prueba de 403.
+    """
+
+    perms_map = {
+        **ViewModelPermissions.perms_map,
+        "POST": ["%(app_label)s.change_%(model_name)s"],
+    }

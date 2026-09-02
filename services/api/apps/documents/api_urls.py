@@ -32,4 +32,12 @@ urlpatterns = [
         api.ObservacionesDelModeloAPI.as_view(),
         name="proyecto-observaciones-modelo",
     ),
+    # **Descartar sin salir del visor.** Es lo que hace que una corrida de interferencias sirva dos
+    # veces: triar decenas de conflictos abriendo la ficha de cada uno en otra pestaña no lo hace
+    # nadie, y a la corrida siguiente vuelven todos.
+    path(
+        "observaciones/<uuid:pk>/descartar/",
+        api.DescartarObservacionAPI.as_view(),
+        name="descartar-observacion",
+    ),
 ]

@@ -49,6 +49,11 @@
 >   vigentes y deja lo que encuentra entre sus observaciones abiertas, con los dos elementos
 >   aislados y el segmento dibujado. Falta agrupar por proximidad.
 > - **`F3.4` decidida:** la petición espera. 20 s medidos por par, y caben en los 120 del servidor.
+> - **La lista de coordinación se puede triar, que era lo que faltaba para que la Fase 5 sirva dos
+>   veces.** `DESCARTADA` existía como estado y **nada lo ponía**: ahora cada hallazgo tiene «no es
+>   un problema» con motivo obligatorio, y la pareja de GUID impide que la corrida siguiente lo
+>   reabra. Con filtros «Todas / Mías / Choques / Notas» y su cuenta, para que la nota que escribió
+>   una persona no se pierda entre las decenas de una corrida.
 >
 > ## La prioridad cambió el 2026-09-02, y la puso el usuario
 >
@@ -60,14 +65,14 @@
 >
 > **Lo que sigue, en ese orden:**
 >
-> 1. **La lista de coordinación cuando es larga.** Hoy muestra todo lo abierto de la obra por
->    prioridad. Con 35 conflictos de una sola corrida hace falta separar lo mío de lo demás, lo nuevo
->    de lo visto, y un conflicto automático de una nota que escribió una persona.
-> 2. **`F4.6` — la vuelta del BCF.** Se manda un archivo al mandante y contesta con otro; sin
+> 1. **`F4.6` — la vuelta del BCF.** Se manda un archivo al mandante y contesta con otro; sin
 >    importar, media coordinación se resuelve leyendo un correo.
-> 3. **Agrupar interferencias por proximidad** — veinte tornillos contra la misma viga son un
+> 2. **Agrupar interferencias por proximidad** — veinte tornillos contra la misma viga son un
 >    problema, no veinte. Pide ver una corrida real sobre dos disciplinas de verdad.
-> 4. **El trazo libre de `F4.5`**, si la cota no alcanza — eso lo dice el usuario mirando un BCF.
+> 3. **El trazo libre de `F4.5`**, si la cota no alcanza — eso lo dice el usuario mirando un BCF.
+>
+> Y una cosa que la lista de coordinación **sigue sin distinguir**: lo nuevo de lo ya visto. Los
+> filtros separan lo mío, los choques y las notas, pero no «esto apareció en la corrida de hoy».
 >
 > **`F3.4` (Celery) se midió y no procede.** Los tres trabajos que corren dentro de la petición, sobre
 > el IFC real de 32,7 MB: extraer 1,4 s, cobertura 1,5 s, validar IDS 0,7 s. Y la conversión —el más
@@ -472,6 +477,27 @@ un agente, por ejemplo— el rayo funciona las primeras veces y después deja de
 geometría, porque cada refresco la deja en un estado que no se resuelve hasta dibujar un
 fotograma. Ahí `diag.html` da falsos negativos y **lo visual hay que confirmarlo en un
 navegador a la vista.**
+
+**Y una trampa peor, porque no parece una trampa: `getComputedStyle` miente sobre cualquier
+propiedad con `transition`.** Sin fotogramas el reloj de animación no avanza, así que la
+transición se queda `running` con `currentTime: 0` para siempre y **la propiedad devuelve su
+valor de partida indefinidamente**. En una pasada de diseño eso se lee como un defecto de color
+donde no hay ninguno: un chip con `transition-colors` al que le acaba de cambiar la clase
+informa del color viejo, un `:focus-visible` informa `currentColor`, y dos elementos vecinos
+parecen tener los colores intercambiados. Costó media docena de comprobaciones creyendo que el
+sistema de tokens estaba mal.
+
+Cómo se distingue en un minuto, antes de tocar nada:
+
+```js
+elemento.getAnimations().map((a) => [a.transitionProperty, a.playState, a.currentTime]);
+```
+
+`currentTime: 0` y `running` a la vez = el reloj está parado y **la lectura no vale**. Para medir
+color de verdad, crear un elemento nuevo con la clase ya puesta y leerlo: al no transicionar
+desde nada, su valor calculado es el real. Lo que sí es de fiar sin fotogramas es la
+**geometría** —`getBoundingClientRect`, `scrollWidth`, `offsetHeight`—, que es maquetación y no
+animación: por eso los defectos de agrupación y de desborde sí se pueden medir aquí.
 
 `http://localhost:5173/diag.html?modo=clase&ifc=/samples/muro-minimo.ifc`
 
