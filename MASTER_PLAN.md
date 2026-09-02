@@ -87,17 +87,17 @@ Las **veintinueve** filas abiertas, de una vez. `⬜` no empezada · `❓` medid
 
 **Y en el orden de prioridad del 2026-09-02**, no en el de los números de fase.
 
-| Fase                                     | Filas abiertas                                                                                                            |
-| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| **5 — Interferencias**                   | ✅ **la fase entera** — `F5.5` cierra con las dos mitades: silenciar y agrupar _(35 interferencias en 13 problemas)_      |
-| **4 — Coordinación** ⭐                  | `F4.5` ◐ falta el trazo libre; las cotas ya viajan _(`F4.6` cerrada: el ciclo va y vuelve)_                               |
-| **3 — Backend**                          | `F3.4` ✅ decidida por el usuario el 2026-09-02: **la petición espera**, y por qué                                        |
-| **9 — Diseño** ⭐                        | `F9.6` ⛔ — la decide el usuario, y son tres decisiones _(`F9.1` a `F9.5` cerradas)_                                      |
-| **10 — Etiquetas, informes y tablas** ⭐ | `F10.1` a `F10.5` ⬜ — la abrió el usuario el 2026-09-02: etiquetar, anotar, sacar informes y llevar tablas al plano      |
-| **1 — Visor**                            | `F1.13` ❓ — auditada; quedan tres nombres que decide el usuario                                                          |
-| **7 — Planos, salida**                   | `F7.2` viewports y capas · `F7.3` acotado y anotaciones · `F7.5` exportar a PDF ⬜                                        |
-| **2 — Nubes de puntos**                  | `F2.1` a `F2.6` ⬜ — cargar, alinear, visualizar, medir contra el modelo, documentar el pipeline, y el gaussian splatting |
-| **6 — Geo + BIM**                        | `F6.1` a `F6.5` ⬜ — Cesium, ortofoto y terreno propios, situar el IFC, 3D Tiles, y recibir de AeroPlanner                |
+| Fase                                     | Filas abiertas                                                                                                                                                  |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **5 — Interferencias**                   | ✅ **la fase entera** — `F5.5` cierra con las dos mitades: silenciar y agrupar _(35 interferencias en 13 problemas)_                                            |
+| **4 — Coordinación** ⭐                  | `F4.5` ◐ falta el trazo libre; las cotas ya viajan _(`F4.6` cerrada: el ciclo va y vuelve)_                                                                     |
+| **3 — Backend**                          | `F3.4` ✅ decidida por el usuario el 2026-09-02: **la petición espera**, y por qué                                                                              |
+| **9 — Diseño** ⭐                        | `F9.6` ⛔ — la decide el usuario, y son tres decisiones _(`F9.1` a `F9.5` cerradas)_                                                                            |
+| **10 — Etiquetas, informes y tablas** ⭐ | `F10.1` etiquetas ⬜ · `F10.4` tablas en el plano ⬜ · `F10.5` tablas del modelo ⬜ _(`F10.2` y `F10.3` cerradas: el informe ya sale en papel con el membrete)_ |
+| **1 — Visor**                            | `F1.13` ❓ — auditada; quedan tres nombres que decide el usuario                                                                                                |
+| **7 — Planos, salida**                   | `F7.2` viewports y capas · `F7.3` acotado y anotaciones · `F7.5` exportar a PDF ⬜                                                                              |
+| **2 — Nubes de puntos**                  | `F2.1` a `F2.6` ⬜ — cargar, alinear, visualizar, medir contra el modelo, documentar el pipeline, y el gaussian splatting                                       |
+| **6 — Geo + BIM**                        | `F6.1` a `F6.5` ⬜ — Cesium, ortofoto y terreno propios, situar el IFC, 3D Tiles, y recibir de AeroPlanner                                                      |
 
 ⭐ = prioridad del 2026-09-02. Las fases 2 y 6 **no se descartan, se posponen**: son las dos que no
 tienen ni un archivo con el que verificarse hoy —no hay nube de puntos ni ortofoto en el
@@ -112,16 +112,16 @@ grandes que quedan por empezar, y ninguna se abre con la anterior a medio cerrar
 No son tareas: son preguntas abiertas que bloquean o desvían trabajo, y hasta hoy estaban
 repartidas por el documento.
 
-| #                                 | Qué hay que decidir                                                                                                                                                                                                                                                                                                                                                                     |
-| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `F9.6` — **tres**, y por separado | Si el navegador de la derecha **se reparte** en un rail de destinos; si algo **puede flotar** sobre el modelo; si propiedades **se ancla** al elemento. Las tres contradicen una línea escrita de `UX.md`. Se puede aceptar una y rechazar las otras dos, y **si se acepta alguna se reescribe `UX.md` primero**                                                                        |
-| `F1.13` — **tres nombres**        | El grupo «Trabajo» de la cinta no dice qué contiene; **«Guardar vista»** es un mandato y solo vive en el panel derecho; y **calzar un plano, cortar a su altura, generar un plano y observar** son mandatos que hoy solo salen de un panel o de una ficha                                                                                                                               |
-| `F3.4` — **el umbral**            | Ya está el número que la reabre: **30 s** sobre un archivo real. Hoy lo más lento son 1,5 s                                                                                                                                                                                                                                                                                             |
-| `F10.2` — **qué es «una nota»**   | Un hallazgo ya guarda tres textos de personas: el hilo de comentarios, la resolución al cerrar y el motivo al descartar. Así que «poner notas» puede ser (1) que lo que ya hay se vea mejor y salga en el informe, (2) un campo del hallazgo que se **edita** en vez de una conversación que crece, o (3) una bitácora **de la obra** y no del hallazgo. Son tres desarrollos distintos |
-| `F10.3` — **el papel**            | Informe en **PDF desde el servidor** —controla los saltos de página y trae una dependencia nueva— o **impresión del navegador** con una hoja `@media print`, que es gratis y no los controla. Mismo criterio que `F3.4`: se mide antes de pagar                                                                                                                                         |
-| Despliegue                        | Qué dominio (`bim.<dominio>`), y si comparte VM con AeroControl y AeroPlanner                                                                                                                                                                                                                                                                                                           |
-| Copias de seguridad               | No hay nada escrito. Son dos cosas separadas a propósito: la base y `/var/lib/aerobim`                                                                                                                                                                                                                                                                                                  |
-| Modelos de prueba                 | Falta uno **> 50 MB** y uno de instalaciones. Son los dos que decidirían si `F3.4` procede                                                                                                                                                                                                                                                                                              |
+| #                                 | Qué hay que decidir                                                                                                                                                                                                                                                                                              |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `F9.6` — **tres**, y por separado | Si el navegador de la derecha **se reparte** en un rail de destinos; si algo **puede flotar** sobre el modelo; si propiedades **se ancla** al elemento. Las tres contradicen una línea escrita de `UX.md`. Se puede aceptar una y rechazar las otras dos, y **si se acepta alguna se reescribe `UX.md` primero** |
+| `F1.13` — **tres nombres**        | El grupo «Trabajo» de la cinta no dice qué contiene; **«Guardar vista»** es un mandato y solo vive en el panel derecho; y **calzar un plano, cortar a su altura, generar un plano y observar** son mandatos que hoy solo salen de un panel o de una ficha                                                        |
+| `F3.4` — **el umbral**            | Ya está el número que la reabre: **30 s** sobre un archivo real. Hoy lo más lento son 1,5 s                                                                                                                                                                                                                      |
+| ~~`F10.2` — qué es «una nota»~~   | ✅ **Contestada el 2026-09-02**: son los comentarios que ya existen, y lo que faltaba era elegir qué se imprime. Se cerró sin escribir ni un modelo nuevo — la pregunta valió más que el desarrollo que se habría hecho sin hacerla                                                                              |
+| ~~`F10.3` — el papel~~            | ✅ **Contestada el 2026-09-02**: PDF desde el servidor, «así buscamos que sea interno». Con reportlab, elegido midiendo cinco opciones                                                                                                                                                                           |
+| Despliegue                        | Qué dominio (`bim.<dominio>`), y si comparte VM con AeroControl y AeroPlanner                                                                                                                                                                                                                                    |
+| Copias de seguridad               | No hay nada escrito. Son dos cosas separadas a propósito: la base y `/var/lib/aerobim`                                                                                                                                                                                                                           |
+| Modelos de prueba                 | Falta uno **> 50 MB** y uno de instalaciones. Son los dos que decidirían si `F3.4` procede                                                                                                                                                                                                                       |
 
 > **La trampa que más cara salió, para no repetirla:** el despliegue **no debe servir**
 > las cabeceras COOP/COEP. Con aislamiento de origen, `web-ifc` elige su WASM multihilo,
@@ -2972,13 +2972,13 @@ importar BCF— y **todo eso vive dentro de la aplicación**. El único papel qu
 un BCF no se lleva a una reunión de obra ni se archiva en una carpeta: se abre en otro software. Lo
 que falta es lo que se imprime, se firma y se cuelga.
 
-| #       | Tarea                                                                                  | Estado |
-| ------- | -------------------------------------------------------------------------------------- | ------ |
-| `F10.1` | Etiquetas de proyecto: vocabulario controlado, asignables a un hallazgo, y se filtra   | ⬜     |
-| `F10.2` | La nota de la decisión: qué se guarda además del hilo de comentarios                   | ⛔     |
-| `F10.3` | Informe de coordinación imprimible, con la foto del hallazgo y las mismas cifras       | ⬜     |
-| `F10.4` | Tablas en el plano: el cuadro de hallazgos o de elementos dentro de la lámina que sale | ⬜     |
-| `F10.5` | Tablas desde el modelo: cuadros por categoría con sus psets, y su exportación          | ⬜     |
+| #       | Tarea                                                                                  | Estado                                                |
+| ------- | -------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| `F10.1` | Etiquetas de proyecto: vocabulario controlado, asignables a un hallazgo, y se filtra   | ⬜                                                    |
+| `F10.2` | La nota de la decisión: qué se guarda además del hilo de comentarios                   | ✅ decidida por el usuario: **no era un campo nuevo** |
+| `F10.3` | Informe de coordinación imprimible, con la foto del hallazgo y las mismas cifras       | ✅ ver abajo                                          |
+| `F10.4` | Tablas en el plano: el cuadro de hallazgos o de elementos dentro de la lámina que sale | ⬜                                                    |
+| `F10.5` | Tablas desde el modelo: cuadros por categoría con sus psets, y su exportación          | ⬜                                                    |
 
 **Oráculo de la fase, y es exigente a propósito:** un informe **impreso en A4** que alguien lleva a
 una reunión de obra y con el que puede trabajar sin abrir la aplicación. Si hay que volver a la
@@ -2994,31 +2994,74 @@ hallazgo elige de esa lista.
 Lo que esto desbloquea, y es la razón de que vaya primero: **el informe se pide por etiqueta.**
 «Todo lo de instalaciones que sigue abierto» es la consulta que hoy no se puede escribir.
 
-### `F10.2` — ⛔ La nota de la decisión: es una decisión del usuario, no una tarea
+### `F10.2` — ✅ La nota no era un campo nuevo, y preguntar lo ahorró
 
-**Hay que preguntar antes de construir, porque puede que ya exista.** Hoy un hallazgo guarda tres
-cosas escritas por personas: el hilo de comentarios (`Comentario`), la resolución al cerrar y el
-motivo al descartar. Las tres se exportan en el BCF.
+**Se preguntó antes de construir, y la respuesta fue que ya existía.** El usuario, el 2026-09-02:
 
-Así que «poner notas» puede querer decir tres cosas distintas:
+> «con respecto a una nota, comentarios es eso basicamente; poder ir ordenando que imprimir dentro
+> de la impresion o informe»
 
-1. **Ya está hecho** y lo que falta es que se vea mejor o que salga en el informe.
-2. Una nota **que no es un mensaje en un hilo**: un campo del hallazgo que se edita, no una
-   conversación que crece. Es distinto de un comentario y sirve para otra cosa.
-3. Una nota **sobre el proyecto**, no sobre un hallazgo: la bitácora de la obra.
+Así que lo que faltaba **no era un modelo más**: era **elegir qué entra en el papel**. Un hallazgo ya
+guarda tres textos escritos por personas —el hilo de comentarios, la resolución al cerrar y el
+motivo al descartar— y las tres se exportan en el BCF. La fila se cierra sin una migración, y con
+una lección: **la pregunta valía más que el desarrollo que se habría hecho sin hacerla.**
 
-Las tres son razonables y son tres desarrollos distintos. **No se elige por adivinanza.**
+### `F10.3` — ✅ El informe, en Carta y con el membrete de la casa
 
-### `F10.3` — El informe, y la trampa que ya se conoce
+**La decisión del usuario fue el servidor**, el mismo día:
 
-Un informe es una consulta con un papel encima, y el papel es lo difícil. Lo que hay a favor: la
-**foto del hallazgo** ya se guarda desde `F4.10`, así que el informe puede llevar miniatura sin
-inventar nada, y las cifras del resumen ya están calculadas y probadas.
+> «el informe la meta es desde el servidor asi buscamos que sea interno»
 
-Y lo que hay que decidir con el usuario: **PDF desde el servidor o impresión del navegador.** La
-segunda es gratis —una hoja de estilos `@media print` y `Ctrl+P`— y no controla los saltos de
-página. La primera controla el papel y **trae una dependencia nueva** con su forma de fallar. `F3.4`
-dejó escrito el criterio para decisiones así: se mide antes de pagar.
+Y abrió la puerta a cualquier herramienta libre, LibreOffice incluido. Lo medido antes de elegir:
+
+| Opción               | Paquetes | Licencia | ¿Corre donde corre el gate? | Medido                                    |
+| -------------------- | -------- | -------- | --------------------------- | ----------------------------------------- |
+| **reportlab**        | **2**    | BSD-3    | sí                          | 8 págs A4 en **171 ms**                   |
+| fpdf2                | 3        | LGPL-3   | sí                          | tablas más pobres                         |
+| xhtml2pdf            | **29**   | Apache   | sí                          | trae cryptography, aiohttp, lxml, pyhanko |
+| WeasyPrint           | + GTK    | BSD      | **no importa en Windows**   | el informe no se probaría aquí            |
+| LibreOffice headless | ~500 MB  | MPL-2    | no instalado                | proceso externo que serializa             |
+
+**Gana reportlab por tres cosas y no por una**: dos paquetes, licencia sin condiciones, y es el
+único que corre en la máquina donde corre el gate — con GTK o con LibreOffice el informe solo se
+generaría en la VM, o sea **sin oráculo**. Y es además el que hará falta para dibujar la lámina de
+`F10.4` y el PDF de `F7.5`: una librería y no dos.
+
+**Lo que LibreOffice daría de verdad —un informe editable— se cubre con la salida CSV**, que abre en
+Calc y en Excel sin ninguna dependencia en el servidor. Va con `;` y con BOM, que es lo que necesita
+un Excel en configuración castellana para no partir las tildes.
+
+**El membrete es el de la casa, y sale de su propio formato.** El usuario entregó
+`Formato Carta 2023 Nuevo Logo.docx`, y de ahí se leyó todo:
+
+| Lo que dice el formato | Valor                  | Consecuencia                                    |
+| ---------------------- | ---------------------- | ----------------------------------------------- |
+| Tamaño de página       | 215,9 × 279,4 mm       | Es **Carta, no A4**. El informe estaba en A4    |
+| Márgenes               | 52,4 / 30 / 25 / 30 mm | El de arriba es alto porque ahí va el logotipo  |
+| Tipografía             | Helvetica              | Que reportlab trae de serie: nada que incrustar |
+| Azul del logotipo      | `#1F428D`              | **9,45:1** sobre papel: sirve para texto        |
+| Azul claro del arco    | `#68B8E5`              | **2,19:1**: decoración y **nunca** texto        |
+| Gris del contacto      | `#585756`              | 7,21:1                                          |
+
+Tres cosas que salieron de mirar el papel y no el código:
+
+1. **Los gráficos venían en EMF**, que reportlab no lee. Los dos que son dibujo se convirtieron a
+   PNG a cuatro veces su tamaño de colocación; el primer intento **los recortaba por la derecha**
+   porque el marco del metarchivo es más estrecho que su contenido.
+2. **El bloque de contacto se compone como texto y no como imagen**: sale nítido a cualquier
+   resolución, se puede seleccionar del PDF —que es lo que hace quien quiere el teléfono— y así el
+   recorte del EMF deja de existir.
+3. **El margen de arriba es 38 y no 52,4.** En una carta ese margen deja sitio al destinatario y a
+   la referencia, que en un informe no hay: con 52,4 quedaban **24 mm de papel en blanco** entre la
+   línea del membrete y el título.
+
+**Y el ancho útil pasó de 186 a 155,9 mm** —Carta menos dos márgenes de 30—, así que las columnas de
+la tabla se recalcularon: con los anchos de A4 la tabla se salía del papel, y un PDF no avisa de
+eso, recorta.
+
+**El oráculo es `pypdf`, que es otra implementación**: lee la estructura del archivo y extrae el
+texto. Comprobar un PDF de reportlab con reportlab solo diría que es consistente consigo mismo — la
+misma regla que ya usa el BCF con `bcf-client`.
 
 ### `F10.4` y `F10.5` — Las tablas, que se apoyan en la Fase 7
 

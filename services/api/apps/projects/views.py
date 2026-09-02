@@ -161,6 +161,10 @@ class ProyectoView(ModelViewPermissionRequiredMixin, OrganizacionScopedQuerysetM
         # mandante puede ser lo primero que entre en una obra recién abierta, y esconder el
         # formulario hasta que haya algo dentro deja sin camino justo el caso en que más sirve.
         contexto["puede_importar_bcf"] = usuario.has_perm("documents.add_observacion")
+        # **El informe es leer**, así que se ofrece a quien puede leer. Y sin esperar a que haya
+        # algo abierto: el informe de cierre de una etapa se saca cuando ya no queda nada abierto,
+        # que es justo cuando el botón habría desaparecido.
+        contexto["puede_ver_observaciones"] = usuario.has_perm("documents.view_observacion")
 
         # **Revisar interferencias necesita dos modelos y el permiso de abrir observaciones**, que
         # es lo que la corrida crea. Con un solo modelo el botón no se dibuja: no hay nada contra

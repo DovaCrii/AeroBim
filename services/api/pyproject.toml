@@ -20,6 +20,26 @@ dependencies = [
     # la que depende una comprobacion de seguridad **no puede vivir de que otra la arrastre**,
     # porque el dia que `ifcopenshell` la suelte el import sigue funcionando y la defensa no.
     "defusedxml>=0.7",
+    # **El informe imprimible de `F10.3`, y la eleccion esta medida.** El usuario pidio que saliera
+    # **del servidor** —«asi buscamos que sea interno»— y abrio la puerta a cualquier herramienta
+    # libre, LibreOffice incluido. Lo comparado, el 2026-09-02:
+    #
+    # | Opcion              | Paquetes | Licencia | Corre donde corre el gate | Medido                  |
+    # | ------------------- | -------- | -------- | ------------------------- | ----------------------- |
+    # | **reportlab**       | **2**    | BSD-3    | si                        | 8 pags A4 en **171 ms** |
+    # | fpdf2               | 3        | LGPL-3   | si                        | tablas mas pobres       |
+    # | xhtml2pdf           | **29**   | Apache   | si                        | trae cryptography, aiohttp, lxml, pyhanko |
+    # | WeasyPrint          | + GTK    | BSD      | **no importa en Windows** | el informe no se probaria aqui |
+    # | LibreOffice headless| ~500 MB  | MPL-2    | no instalado              | proceso externo que serializa |
+    #
+    # Gana por tres cosas y no por una: **dos paquetes**, licencia sin ninguna condicion, y es el
+    # unico que corre en la maquina donde corre el gate — con GTK o con LibreOffice el informe se
+    # generaria solo en la VM, o sea sin oraculo. Y ademas es el que hara falta para dibujar la
+    # lamina de `F10.4` y el PDF de `F7.5`: una libreria y no dos.
+    #
+    # Lo que LibreOffice daria de verdad —un informe **editable**— se cubre con la salida CSV, que
+    # abre en Calc y en Excel sin dependencia ninguna.
+    "reportlab>=4.2",
 ]
 
 [dependency-groups]
@@ -30,6 +50,11 @@ dev = [
     "ruff>=0.15",
     "bandit>=1.8",
     "pip-audit>=2.9",
+    # **El oraculo del informe, y va en `dev` porque solo lo usan las pruebas.** `pypdf` lee la
+    # estructura del PDF y extrae su texto, o sea que es **otra implementacion**: comprobar un PDF
+    # de reportlab con reportlab solo diria que es consistente consigo mismo. Es la misma regla con
+    # la que `bcf-client` comprueba el BCF que escribimos a mano.
+    "pypdf>=6.0",
 ]
 # **Lo que solo hace falta en la VM**, y va aparte por eso: `gunicorn` no instala en
 # Windows —depende de `fcntl`— y `psycopg[binary]` arrastra una rueda con la libreria

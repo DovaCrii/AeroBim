@@ -272,6 +272,29 @@ form.accion {
   margin-bottom: 14px;
 }
 
+/*
+ * Una etiqueta que envuelve su control **en la misma línea**, para los formularios de acción.
+ *
+ * Sin esto, un `label` es de bloque y cada «imprimir [lo abierto]» se lleva un renglón entero: el
+ * formulario del informe pasaba de una fila a seis. Y el control va **dentro** del `label` a
+ * propósito —no al lado con un `for`—, que es lo que hace que el texto sea zona de clic sin
+ * escribir un `id` por cada campo.
+ */
+form.accion label.junto {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--ab-text-secondary);
+  font-size: 0.9rem;
+  font-weight: 400;
+}
+
+form.accion label.junto select {
+  height: 30px;
+  padding: 0 6px;
+}
+
 form.accion .detalle {
   /*
    * Ocupa la fila entera, así que la explicación cae a su propia línea.

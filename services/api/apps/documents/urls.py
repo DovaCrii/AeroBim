@@ -64,6 +64,13 @@ urlpatterns = [
         views.ImportarBcfView.as_view(),
         name="importar-bcf",
     ),
+    # **La primera salida en papel del producto.** `F10.3`: el BCF sirve para otro software, no para
+    # una reunión de obra. El formato y qué se imprime van por la URL.
+    path(
+        "proyectos/<uuid:pk>/informe/",
+        views.InformeCoordinacionView.as_view(),
+        name="informe-coordinacion",
+    ),
     path("observaciones/<uuid:pk>/", views.ObservacionView.as_view(), name="observacion"),
     path(
         "observaciones/<uuid:pk>/comentar/",

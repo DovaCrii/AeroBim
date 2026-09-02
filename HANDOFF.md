@@ -60,6 +60,16 @@
 >   en **13 problemas**; a 2 m un solo cúmulo se come 17 de las 35, porque la unión es transitiva.
 >   Y la cláusula que obligó a añadir el propio oráculo: **la misma pareja de GUID es siempre el
 >   mismo problema** — la detección la informa dos veces con los contactos a 1,95 m.
+> - **El producto ya saca papel: `F10.3` cerrada.** «Informe en PDF» y «Tabla en CSV» en la
+>   pantalla de la obra, con las opciones a la vista —estado, orden, solo lo mío, con o sin hilo de
+>   comentarios, con o sin miniaturas—. Sale **en Carta con el membrete de J.E.J.**, leído de
+>   `Formato Carta 2023 Nuevo Logo.docx`: los activos convertidos viven en
+>   `static/img/membrete/` y el bloque de contacto va **compuesto como texto**, porque el EMF
+>   original se recortaba por la derecha. La librería es **reportlab**, elegida midiendo cinco
+>   opciones —la única que corre donde corre el gate—, y el oráculo del PDF es `pypdf`, que es otra
+>   implementación.
+> - **`F10.2` se cerró preguntando en vez de construyendo**: «una nota» eran los comentarios que ya
+>   existen, y lo que faltaba era elegir qué se imprime. Ni migración ni campo nuevo.
 > - **La lista ya distingue lo nuevo de lo ya visto**, que era la última pregunta que ningún filtro
 >   contestaba: chip «Nuevas» con su cuenta, filo y palabra en las tarjetas, y un «ya lo vi» que solo
 >   aparece cuando hay algo que ver. La marca es **por persona y por obra**, se crea sola en la
@@ -93,13 +103,14 @@
 >
 > **Lo que sigue, en ese orden:**
 >
-> 1. **La Fase 10, que abrió el usuario el 2026-09-02**: etiquetar los hallazgos, sacar informes
->    imprimibles y llevar tablas al plano. Es la salida de todo lo anterior — hoy lo único que sale
->    en papel es nada, y el BCF no se lleva a una reunión de obra. `F10.1` (etiquetas) va primero
->    porque es lo que permite pedir el informe: «todo lo de instalaciones que sigue abierto» es la
->    consulta que hoy no se puede escribir. **Y dos de sus filas son preguntas al usuario**, no
->    tareas: qué significa «una nota» y si el informe es PDF del servidor o impresión del navegador.
-> 2. **El trazo libre de `F4.5`**, si la cota no alcanza — eso lo dice el usuario mirando un BCF.
+> 1. **`F10.1` — las etiquetas**, que es lo que permite pedir el informe por lo que importa: «todo
+>    lo de instalaciones que sigue abierto» sigue siendo la consulta que no se puede escribir. Van
+>    con **vocabulario controlado** y no texto libre: «estructura», «Estructura» y «estruct» son
+>    cuatro etiquetas para una cosa, y entonces filtrar deja de encontrar lo que hay.
+> 2. **`F10.4` y `F10.5` — las tablas.** `F10.4` no se puede cerrar antes que `F7.2`: una tabla en
+>    una lámina necesita que la lámina exista. `F10.5` —cuadros por categoría con sus psets— es el
+>    camino más corto, porque la consulta ya la sabe hacer `F3.10`.
+> 3. **El trazo libre de `F4.5`**, si la cota no alcanza — eso lo dice el usuario mirando un BCF.
 >
 > Y una cosa que la lista de coordinación **sigue sin distinguir**: lo nuevo de lo ya visto. Los
 > filtros separan lo mío, los choques y las notas, pero no «esto apareció en la corrida de hoy».

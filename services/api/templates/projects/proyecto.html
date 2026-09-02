@@ -167,6 +167,49 @@
 
   {# --- Coordinación: lo que hay que resolver -------------------------------------- #}
   <p class="grupo">{% translate "Open observations" %}</p>
+  {% if puede_ver_observaciones %}
+    {% comment %}
+      **El informe, y es la primera salida en papel que tiene el producto.** `F10.3`. Hasta ahora lo
+      único que salía era el BCF, y un BCF no se lleva a una reunión de obra: se abre en otro
+      software.
+
+      Y va con sus opciones a la vista, no con un botón solo: el usuario pidió «poder ir ordenando
+      qué imprimir dentro del informe», y esconderlas detrás de una pantalla de configuración
+      convierte una descarga de dos segundos en un trámite.
+
+      `method="get"` porque **no cambia nada**: es una consulta con un papel encima. Así el informe
+      se puede marcar como favorito con sus opciones puestas, que es lo que hace quien lo saca todas
+      las semanas.
+    {% endcomment %}
+    <form class="accion" method="get"
+          action="{% url 'documents:informe-coordinacion' proyecto.pk %}">
+      <label class="junto">
+        {% translate "Print" %}
+        <select name="estado">
+          <option value="abiertas">{% translate "what is open" %}</option>
+          <option value="cerradas">{% translate "what is closed" %}</option>
+          <option value="todo">{% translate "everything" %}</option>
+        </select>
+      </label>
+      <label class="junto">
+        {% translate "ordered by" %}
+        <select name="orden">
+          <option value="prioridad">{% translate "priority" %}</option>
+          <option value="responsable">{% translate "owner" %}</option>
+          <option value="vencimiento">{% translate "due date" %}</option>
+          <option value="antiguedad">{% translate "age" %}</option>
+        </select>
+      </label>
+      <label class="junto"><input type="checkbox" name="mias" value="1"> {% translate "only mine" %}</label>
+      <label class="junto"><input type="checkbox" name="comentarios" value="1"> {% translate "with the comment thread" %}</label>
+      <label class="junto"><input type="checkbox" name="miniaturas" value="1" checked> {% translate "with thumbnails" %}</label>
+      <button type="submit" name="formato" value="pdf">{% translate "Report in PDF" %}</button>
+      <button type="submit" name="formato" value="csv">{% translate "Table in CSV" %}</button>
+      <span class="detalle">
+        {% translate "The PDF is what you print and file. The CSV is the editable half: it opens in a spreadsheet, no need to ask for anything else." %}
+      </span>
+    </form>
+  {% endif %}
   {% if puede_importar_bcf %}
     {% comment %}
       **La vuelta del ciclo, y va aquí porque es de aquí de lo que habla.** Exportar está arriba,

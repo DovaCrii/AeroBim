@@ -15,6 +15,7 @@ from django.core.exceptions import ValidationError
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.translation import gettext as _
 from django.views.generic import DetailView, ListView, TemplateView, View
 
@@ -346,6 +347,69 @@ class ExportarBcfView(ModelViewPermissionRequiredMixin, View):
             # qué obra es sin abrirlo.
             filename=f"{proyecto.codigo}-observaciones.bcf",
             content_type="application/octet-stream",
+        )
+
+
+class InformeCoordinacionView(ModelViewPermissionRequiredMixin, View):
+    """El informe de coordinación, en PDF o en CSV. `F10.3`.
+
+    **Es la primera salida en papel que tiene el producto.** Hasta hoy lo único que salía era el
+    BCF, y un BCF no se lleva a una reunión de obra: se abre en otro software.
+
+    **Pide `view_observacion` y nada más, porque un informe es leer**: se lleva lo que quien lo pide
+    ya puede ver en la lista, ni un hallazgo más. Y la consulta se acota por organización igual que
+    la pantalla.
+
+    Dos formatos por la misma puerta, y no es indecisión:
+
+    - **PDF** es lo que se imprime, se firma y se archiva. Se arma en el servidor —decisión del
+      usuario del 2026-09-02: «la meta es desde el servidor, así buscamos que sea interno»— así que
+      controla los saltos de página y no depende del navegador de quien lo pide.
+    - **CSV** es la mitad editable. Un PDF no se retoca antes de mandarlo y una hoja de cálculo sí,
+      y así no hace falta LibreOffice en el servidor para conseguirlo.
+    """
+
+    model = Observacion
+
+    def get(self, request, *args, **kwargs):
+        from apps.core.tenancy import scope_queryset_to_organizacion
+        from apps.documents.informe import Opciones, csv_de, pdf_de
+        from apps.projects.models import Proyecto
+
+        proyecto = (
+            scope_queryset_to_organizacion(Proyecto.objects.all(), request.user)
+            .filter(pk=kwargs["pk"])
+            .first()
+        )
+        if proyecto is None:
+            raise Http404
+
+        opciones = Opciones.desde(request.GET, usuario=request.user)
+        formato = "csv" if request.GET.get("formato") == "csv" else "pdf"
+
+        set_audit_context(
+            request,
+            proyecto,
+            action="informe_coordinacion",
+            metadata={"formato": formato, "estado": opciones.estado, "orden": opciones.orden},
+        )
+
+        if formato == "csv":
+            contenido = csv_de(proyecto, opciones).encode("utf-8")
+            tipo = "text/csv; charset=utf-8"
+        else:
+            contenido = pdf_de(proyecto, opciones, pedido_por=request.user.get_username())
+            tipo = "application/pdf"
+
+        # El nombre lleva el código de la obra y la fecha: quien lo recibe por correo tiene que
+        # saber de qué obra es y de cuándo sin abrirlo.
+        nombre = f"{proyecto.codigo}-coordinacion-{timezone.localdate().isoformat()}.{formato}"
+
+        # **Va un `BytesIO`, no un iterador.** `FileResponse` solo llama a `set_headers` cuando el
+        # contenido tiene `read`: con `iter([bytes])` se traga `as_attachment` y `filename` sin
+        # avisar. Es la tercera vez que este defecto aparece en este archivo.
+        return FileResponse(
+            BytesIO(contenido), as_attachment=True, filename=nombre, content_type=tipo
         )
 
 

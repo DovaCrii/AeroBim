@@ -5,6 +5,41 @@ Este proyecto sigue [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Añadido — el informe de coordinación, en papel y con el membrete de la casa (`F10.3`, 2026-09-02)
+
+**Es la primera salida en papel que tiene el producto.** Nueve fases construyen la coordinación
+entera y todo vivía dentro de la aplicación: lo único que salía era el BCF, y un BCF no se lleva a
+una reunión de obra ni se archiva en una carpeta — se abre en otro software.
+
+La pantalla de la obra tiene ahora **«Informe en PDF»** y **«Tabla en CSV»**, con las opciones a la
+vista: qué estado imprimir, en qué orden, solo lo mío, con o sin el hilo de comentarios, con o sin
+miniaturas. Sale **en Carta con el membrete de J.E.J.** —logotipo, obra y fecha arriba, contacto y
+arco de esquina abajo, y el número de página en cada hoja—, porque una hoja suelta se fotocopia y se
+queda seis meses en una carpeta.
+
+**Ninguna opción cambia los números y el encabezado dice de qué informe habla**: un informe filtrado
+que presume de ser el total es peor que no tener informe.
+
+**El PDF se arma en el servidor**, que es lo que pidió el usuario, y la librería se eligió midiendo
+cinco opciones: reportlab gana con **dos paquetes**, licencia sin condiciones y —lo decisivo— es la
+única que corre en la máquina donde corre el gate. Con WeasyPrint (necesita GTK) o LibreOffice
+headless (~500 MB) el informe solo se generaría en la VM, o sea sin oráculo. El CSV cubre lo que
+LibreOffice daría de verdad —un informe editable— sin instalar nada: abre en Calc y en Excel, con
+`;` y BOM para no partir las tildes.
+
+**El membrete se leyó del formato de la casa**, no se estimó: Carta y no A4, Helvetica, y el azul
+`#1F428D` que da 9,45:1 sobre papel. Tres cosas salieron de mirar el papel impreso: los gráficos
+venían en EMF y el primer intento de conversión **los recortaba por la derecha**; el bloque de
+contacto se compone como texto —nítido, seleccionable y sin recorte— en vez de pegarse como imagen;
+y el margen de arriba es 38 mm y no los 52,4 de la carta, porque esos 52,4 dejaban **24 mm de papel
+en blanco** entre el membrete y el título.
+
+### Decidido — «una nota» ya existía, y preguntarlo ahorró un modelo (`F10.2`, 2026-09-02)
+
+La fila pedía «poner notas en las decisiones». Antes de construir se preguntó qué significaba, y la
+respuesta fue que **los comentarios ya son eso**: lo que faltaba era poder elegir qué se imprime. Se
+cierra sin una migración y sin un campo nuevo.
+
 ### Añadido — lo nuevo frente a lo ya visto en la coordinación (`F5.5`, 2026-09-02)
 
 **Es lo único que ningún otro filtro contestaba.** «Mías», «Choques» y «Notas» separan de quién es y
