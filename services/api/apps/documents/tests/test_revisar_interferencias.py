@@ -146,13 +146,17 @@ def test_cruza_los_dos_modelos_y_abre_lo_que_encuentra(dos_modelos, revisor):
     resultado = revisar_proyecto(dos_modelos[0].entregable.proyecto, revisor)
 
     assert resultado.pares == 1
-    # **La deteccion encuentra la pareja dos veces y solo se abre una**, y no es un descuido de la
-    # prueba: los dos modelos comparten los GUID —es el mismo archivo dos veces, que es lo que pasa
-    # comparando dos revisiones del mismo entregable— asi que sale muro×pilar y pilar×muro. La
-    # identidad sin orden las colapsa **dentro de la misma corrida**, no solo entre corridas.
+    # **La deteccion encuentra la pareja dos veces y es un solo problema**, y no es un descuido de
+    # la prueba: los dos modelos comparten los GUID —es el mismo archivo dos veces, que es lo que
+    # pasa comparando dos revisiones del mismo entregable— asi que sale muro×pilar y pilar×muro.
     assert resultado.encontradas == 2
+    # **Lo colapsa la agrupacion de `F5.5`, y antes lo contaba como una repeticion.** Es mas cierto
+    # asi: no habia una observacion previa que repetir, habia un conflicto informado dos veces. Y
+    # hace falta la regla de la identidad y no la de la proximidad, porque `ifcclash` informa una
+    # cara distinta desde cada lado: los dos centros caen a 1,95 m uno del otro.
+    assert resultado.cumulos == 1
     assert resultado.abiertas == 1
-    assert resultado.repetidas == 1
+    assert resultado.repetidas == 0
     assert Observacion.objects.count() == 1
 
 
@@ -189,8 +193,9 @@ def test_volver_a_revisar_no_duplica(dos_modelos, revisor):
     segunda = revisar_proyecto(proyecto, revisor)
 
     assert segunda.abiertas == 0
-    # Todas las que encuentra ya estaban: ninguna nueva, y el registro no crece.
-    assert segunda.repetidas == segunda.encontradas
+    # Todos los problemas que encuentra ya estaban: ninguno nuevo, y el registro no crece. Se
+    # comparan **cumulos** y no interferencias, porque una observacion es un cumulo desde `F5.5`.
+    assert segunda.repetidas == segunda.cumulos
     assert Observacion.objects.count() == primera.abiertas
 
 
@@ -200,6 +205,101 @@ def test_en_seco_cuenta_y_no_escribe(dos_modelos, revisor):
 
     assert resultado.abiertas >= 1
     assert Observacion.objects.count() == 0
+
+
+# --- Que un cúmulo llega a la lista como una fila. `F5.5`. ----------------------------
+
+
+@pytest.mark.django_db
+def test_veinte_tornillos_contra_la_misma_viga_abren_una_observacion(
+    dos_modelos, revisor, monkeypatch
+):
+    """**Es el punto entero de agrupar**: repartir veinte observaciones de la misma unión
+    atornillada entre cuatro personas es peor que no repartir nada.
+
+    La detección se interpone en vez de buscar un IFC con veinte tornillos: lo que se prueba aquí es
+    qué hace la corrida con lo que encuentra, y lo que encuentra ya tiene su oráculo aparte.
+    """
+    from apps.documents import revisar as modulo
+    from apps.documents.interferencias import Interferencia
+
+    viga = "2x9ibDgrvAu8y4Yd$Ug4Qu"
+
+    def veinte(*_args, **_kwargs):
+        return [
+            Interferencia(
+                guid_a=viga,
+                guid_b=f"0000000000000000000{i:03d}"[:22],
+                clase_a="IfcBeam",
+                clase_b="IfcMechanicalFastener",
+                nombre_a="V-12",
+                nombre_b=f"T-{i}",
+                # A cinco centímetros uno del otro: la misma unión.
+                punto_a=[i * 0.05, 0.0, 0.0],
+                punto_b=[i * 0.05, 0.0, 0.02],
+                distancia=0.004,
+            )
+            for i in range(20)
+        ]
+
+    monkeypatch.setattr(modulo, "detectar", veinte)
+    resultado = revisar_proyecto(dos_modelos[0].entregable.proyecto, revisor)
+
+    assert resultado.encontradas == 20
+    assert resultado.cumulos == 1
+    assert resultado.abiertas == 1
+    assert Observacion.objects.count() == 1
+
+    observacion = Observacion.objects.get()
+    # El título dice por dónde empezar: el elemento que hay que ir a mirar y contra cuántos choca.
+    assert observacion.titulo == "V-12 × 20 elementos"
+    # **Se aísla el problema entero**, no la pareja representante: la viga y los veinte tornillos.
+    assert len(observacion.visibilidad["excepciones"]) == 21
+    assert viga in observacion.visibilidad["excepciones"]
+    # Y un segmento por contacto: dibujar uno solo afirmaría que el problema está en un punto.
+    assert len(observacion.marcado) == 20
+
+
+@pytest.mark.django_db
+def test_un_tornillo_mas_no_abre_un_problema_nuevo(dos_modelos, revisor, monkeypatch):
+    """**Basta con que una de sus parejas ya se conozca.** El cúmulo es el mismo problema aunque
+    haya ganado un miembro: exigir que coincidan todas abriría una observación nueva cada vez que
+    alguien mueve un tornillo."""
+    from apps.documents import revisar as modulo
+    from apps.documents.interferencias import Interferencia
+
+    viga = "2x9ibDgrvAu8y4Yd$Ug4Qu"
+
+    def cuantos(n: int):
+        def detectar(*_args, **_kwargs):
+            return [
+                Interferencia(
+                    guid_a=viga,
+                    guid_b=f"0000000000000000000{i:03d}"[:22],
+                    clase_a="IfcBeam",
+                    clase_b="IfcMechanicalFastener",
+                    nombre_a="V-12",
+                    nombre_b=f"T-{i}",
+                    punto_a=[i * 0.05, 0.0, 0.0],
+                    punto_b=[i * 0.05, 0.0, 0.02],
+                    distancia=0.004,
+                )
+                for i in range(n)
+            ]
+
+        return detectar
+
+    proyecto = dos_modelos[0].entregable.proyecto
+
+    monkeypatch.setattr(modulo, "detectar", cuantos(5))
+    revisar_proyecto(proyecto, revisor)
+
+    monkeypatch.setattr(modulo, "detectar", cuantos(6))
+    segunda = revisar_proyecto(proyecto, revisor)
+
+    assert segunda.abiertas == 0
+    assert segunda.repetidas == 1
+    assert Observacion.objects.count() == 1
 
 
 # --- La pantalla, y su contrato de permisos -------------------------------------------
@@ -272,4 +372,7 @@ def test_la_corrida_deja_su_fila_en_el_historial(dos_modelos, revisor):
 
     corrida = JobRun.objects.filter(command="revisar_interferencias").latest("started_at")
     assert corrida.result == JobRun.RESULT_OK
-    assert "1 pares" in corrida.summary
+    # **Concuerda en singular**, y antes decía «1 pares»: el resumen es lo que se lee en la
+    # pantalla y en el historial, así que lleva `ngettext` y no un `f-string`.
+    assert "1 par ·" in corrida.summary
+    assert "2 interferencias en 1 problema" in corrida.summary

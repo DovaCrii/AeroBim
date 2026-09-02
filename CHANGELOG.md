@@ -5,6 +5,38 @@ Este proyecto sigue [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Añadido — veinte tornillos contra la misma viga son un problema, no veinte (`F5.5`, 2026-09-02)
+
+**Una corrida que devuelve treinta y cinco filas cuando hay trece problemas no se tría: se
+abandona.** Silenciar falsos positivos decidía si la herramienta se usa una segunda vez; agrupar
+decide si la primera corrida sirve. Repartir veinte observaciones de la misma unión atornillada
+entre cuatro personas es peor que no repartir nada.
+
+Las interferencias vecinas se agrupan ahora en un problema, y lo que llega a la lista es una fila
+con su título por delante: «V-12 × 20 elementos». Abrirla **aísla el problema entero** —los
+veintiún elementos, no los dos del representante— y dibuja un segmento por conflicto.
+
+**El radio es un metro y sale de medirlo**, no de intuirlo. Sobre el par real de la organización, la
+corrida que devuelve 35 interferencias: 22 problemas a 0,25 m, 20 a 0,50 m, **13 a 1 m**, 8 a 2 m y
+5 a partir de 5 m. La razón de no subirlo no es que la curva se aplane — es que se derrumba: la
+unión es transitiva, así que a 2 m un solo cúmulo se come 17 de las 35 y a 5 m son 22. El metro está
+justo antes de ese salto.
+
+Y una cláusula que el propio oráculo obligó a añadir: **la misma pareja de GUID es siempre el mismo
+problema, y la distancia no opina.** La detección informa el mismo conflicto dos veces cuando los
+dos modelos comparten GUID, y cada informe trae una cara distinta del contacto — medido, los dos
+centros caen a 1,95 m uno del otro. Con la proximidad sola quedaban como dos problemas.
+
+### Corregido — el resumen de una corrida concuerda, y un cero deja de parecer una medida (2026-09-02)
+
+«1 pares · 1 problemas · 1 nuevos» estaba mal concordado, y es lo que se lee al pulsar el botón.
+Ahora va con `ngettext`, y las dos cifras que importan van en la misma frase: «35 interferencias en
+13 problemas» dice cuánto hay que triar _y_ que el número crudo no era el trabajo real.
+
+Y la ficha de un hallazgo automático decía «Separación medida: 0.0000 m» cuando el modo de detección
+no mide penetración: ese cero tenía el aspecto de una medición sin serlo. Ahora dice «Los volúmenes
+se cruzan», que es lo que se sabe.
+
 ### Añadido — el BCF que vuelve del mandante entra (`F4.6`, 2026-09-02)
 
 **Sin la vuelta, la coordinación es un altavoz.** `F4.4` cerró la ida: las observaciones salen en un

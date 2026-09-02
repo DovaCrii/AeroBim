@@ -54,10 +54,15 @@ que estorban:
    suman a su hilo sin pisar nada. La política de fusión se escribió antes que el parser, y el
    oráculo fue `bcf-client`, que es otra implementación.
 
-**Lo que sigue**, entonces: **agrupar interferencias por proximidad** —la mitad que le queda a
-`F5.5`; veinte tornillos contra la misma viga son un problema, no veinte—, y el **trazo libre** de
-`F4.5` si la cota no alcanza, que eso lo dice el usuario mirando un BCF exportado. Y en la lista de
-coordinación, **lo nuevo frente a lo ya visto**.
+4. ~~**Una corrida devuelve treinta y cinco filas cuando hay trece problemas.**~~ **Cerrado el
+   2026-09-02**: las interferencias vecinas se agrupan y llegan a la lista como una fila. Medido
+   sobre el par real: **35 interferencias en 13 problemas**, y el cúmulo mayor de 6. Con eso la
+   Fase 5 queda cerrada entera.
+
+**Lo que sigue**, entonces: el **trazo libre** de `F4.5` si la cota no alcanza —eso lo dice el
+usuario mirando un BCF exportado— y en la lista de coordinación, **lo nuevo frente a lo ya visto**.
+La coordinación ya hace el ciclo completo: detectar, agrupar, repartir, descartar, exportar e
+importar.
 
 > **Esta sección decía «lo que sigue es `F0.6`» hasta el 2026-09-02**, y `F0.6` se cerró el
 > 2026-08-19. La fuente única de verdad apuntaba a una tarea muerta durante dos semanas, mientras
@@ -76,16 +81,16 @@ Las **veintinueve** filas abiertas, de una vez. `⬜` no empezada · `❓` medid
 
 **Y en el orden de prioridad del 2026-09-02**, no en el de los números de fase.
 
-| Fase                      | Filas abiertas                                                                                                            |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| **5 — Interferencias** ⭐ | `F5.5` ◐ falta agrupar por proximidad; **descartar ya se puede desde el visor** _(1 a 4 cerradas)_                        |
-| **4 — Coordinación** ⭐   | `F4.5` ◐ falta el trazo libre; las cotas ya viajan _(`F4.6` cerrada: el ciclo va y vuelve)_                               |
-| **3 — Backend**           | `F3.4` ✅ decidida por el usuario el 2026-09-02: **la petición espera**, y por qué                                        |
-| **9 — Diseño** ⭐         | `F9.6` ⛔ — la decide el usuario, y son tres decisiones _(`F9.1` a `F9.5` cerradas)_                                      |
-| **1 — Visor**             | `F1.13` ❓ — auditada; quedan tres nombres que decide el usuario                                                          |
-| **7 — Planos, salida**    | `F7.2` viewports y capas · `F7.3` acotado y anotaciones · `F7.5` exportar a PDF ⬜                                        |
-| **2 — Nubes de puntos**   | `F2.1` a `F2.6` ⬜ — cargar, alinear, visualizar, medir contra el modelo, documentar el pipeline, y el gaussian splatting |
-| **6 — Geo + BIM**         | `F6.1` a `F6.5` ⬜ — Cesium, ortofoto y terreno propios, situar el IFC, 3D Tiles, y recibir de AeroPlanner                |
+| Fase                    | Filas abiertas                                                                                                            |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| **5 — Interferencias**  | ✅ **la fase entera** — `F5.5` cierra con las dos mitades: silenciar y agrupar _(35 interferencias en 13 problemas)_      |
+| **4 — Coordinación** ⭐ | `F4.5` ◐ falta el trazo libre; las cotas ya viajan _(`F4.6` cerrada: el ciclo va y vuelve)_                               |
+| **3 — Backend**         | `F3.4` ✅ decidida por el usuario el 2026-09-02: **la petición espera**, y por qué                                        |
+| **9 — Diseño** ⭐       | `F9.6` ⛔ — la decide el usuario, y son tres decisiones _(`F9.1` a `F9.5` cerradas)_                                      |
+| **1 — Visor**           | `F1.13` ❓ — auditada; quedan tres nombres que decide el usuario                                                          |
+| **7 — Planos, salida**  | `F7.2` viewports y capas · `F7.3` acotado y anotaciones · `F7.5` exportar a PDF ⬜                                        |
+| **2 — Nubes de puntos** | `F2.1` a `F2.6` ⬜ — cargar, alinear, visualizar, medir contra el modelo, documentar el pipeline, y el gaussian splatting |
+| **6 — Geo + BIM**       | `F6.1` a `F6.5` ⬜ — Cesium, ortofoto y terreno propios, situar el IFC, 3D Tiles, y recibir de AeroPlanner                |
 
 ⭐ = prioridad del 2026-09-02. Las fases 2 y 6 **no se descartan, se posponen**: son las dos que no
 tienen ni un archivo con el que verificarse hoy —no hay nube de puntos ni ortofoto en el
@@ -1811,7 +1816,7 @@ llegan a la coordinación como temas, no como una lista en una planilla.
 | `F5.2` | Ejecutar `ifcclash` como job de backend, con tolerancia de holgura configurable        | ✅ ver abajo                                                           |
 | `F5.3` | Resultados navegables: la lista lleva la cámara al conflicto y aísla los dos elementos | ✅ **sale de la Fase 4** — ver abajo                                   |
 | `F5.4` | Convertir un resultado en tema BCF de la Fase 4, con su viewpoint ya apuntado          | ✅ ver abajo                                                           |
-| `F5.5` | Agrupar y silenciar falsos positivos, y conservarlos entre corridas                    | ✅ silenciar, con camino en el visor; agrupar por proximidad, no       |
+| `F5.5` | Agrupar y silenciar falsos positivos, y conservarlos entre corridas                    | ✅ las dos mitades, ver abajo                                          |
 
 **Oráculo:** un conjunto de prueba con interferencias conocidas y colocadas a
 propósito; se cuentan las encontradas y las perdidas. Contra software comercial si
@@ -1866,7 +1871,7 @@ visor ya sabe abrirlas desde `F4.8`.
 | Ver de qué se habla           | El marcado de `F4.5`: el segmento entre los dos puntos de contacto                                                |
 | Repartirlo                    | Prioridad, responsable y estado, que ya trae `F4.2`                                                               |
 
-**`F5.5`: silenciar, sí; agrupar por proximidad, todavía no.** La mitad que decide si la herramienta
+**`F5.5`: las dos mitades, cerradas el 2026-09-02.** La mitad que decide si la herramienta
 se usa dos veces está hecha, y sale de una sola idea: **la identidad de un conflicto es la pareja de
 GUID sin orden**.
 
@@ -1876,9 +1881,64 @@ GUID sin orden**.
   contando aparecería dos veces.
 
 Con esa pareja, **descartar un falso positivo es dejar su observación en `descartada`, y la corrida
-siguiente no la vuelve a abrir**. `F5.5` sale de `F4.2` sin una tabla nueva. Lo que falta es agrupar
-los conflictos vecinos —veinte tornillos contra la misma viga son un problema, no veinte—, y eso
-pide ver una corrida real sobre dos disciplinas de verdad.
+siguiente no la vuelve a abrir**. `F5.5` sale de `F4.2` sin una tabla nueva.
+
+### La otra mitad: agrupar por proximidad
+
+**Veinte tornillos contra la misma viga son un problema, no veinte.** Silenciar decide si la
+herramienta se usa una segunda vez; agrupar decide si la primera corrida se tría en vez de
+abandonarse. Una lista de treinta y cinco filas cuando hay trece problemas no se reparte.
+
+**La regla tiene tres cláusulas, y las tres salieron de un caso que rompía la anterior:**
+
+1. **La misma pareja de GUID es siempre el mismo problema, y la distancia no opina.** Lo encontró el
+   propio fixture del oráculo: `ifcclash` informa el mismo conflicto **dos veces** cuando los dos
+   modelos comparten GUID —A contra B y B contra A— y **cada informe trae una cara distinta del
+   contacto**. Medido: los dos centros del mismo muro contra el mismo pilar caen a **1,95 m** uno
+   del otro. Con la proximidad sola quedaban como dos problemas.
+2. **Comparten un elemento.** Sin esto, un conducto que cruza un muro y, medio metro más allá, una
+   tubería que cruza otro se colapsan en uno. Son dos problemas y los resuelven dos personas.
+3. **Sus puntos de contacto están cerca**, medidos en el **punto medio** del segmento: los dos
+   extremos son la cara de cada elemento, así que el medio es el único que no depende de cuál se
+   leyó primero. Sin esta cláusula, un muro de cuarenta metros que choca con ocho instalaciones
+   repartidas por la planta sería una fila, y cada choque está en un sitio distinto de la obra.
+
+**El radio es un metro, y sale de medirlo sobre el par real** —470 `IfcBuildingElementProxy` de
+`Piso 5.ifc` contra 805 `IfcMember`, la corrida de veinte segundos que devuelve 35 interferencias:
+
+| Radio  | Cúmulos | El mayor | Lo que dice                                    |
+| ------ | ------- | -------- | ---------------------------------------------- |
+| 0,00 m | 35      | 1        | sin agrupar: es de donde se viene              |
+| 0,25 m | 22      | 6        |                                                |
+| 0,50 m | 20      | 6        |                                                |
+| 1,00 m | **13**  | **6**    | **el elegido**                                 |
+| 2,00 m | 8       | 17       | un cúmulo se come la mitad de la corrida       |
+| 5,00 m | 5       | 22       | y de ahí ya no baja: 22 de 35 en una sola fila |
+
+**De 35 a 13 filas, y el cúmulo mayor sigue siendo de 6.** Y la razón de no subir el radio no es que
+la curva se aplane: **es que se derrumba.** La unión es transitiva —si A y B son vecinas y B y C
+también, las tres caen en el mismo cúmulo aunque A y C estén lejos—, así que pasado un punto los
+cúmulos se encadenan por la obra entera. El metro está justo antes de ese salto.
+
+**Agrupar no cuesta nada**: 0,1 ms sobre esas 35 interferencias, contra los veinte segundos de la
+detección. Por eso no hay que decidir si esto entra en la petición o en una cola.
+
+**Lo que se abre es el cúmulo, no la interferencia**: se aísla el problema entero —los veintiún
+elementos, no los dos del representante— y se dibuja **un segmento por conflicto distinto**. El
+título dice por dónde empezar: «V-12 × 20 elementos» cuando hay un elemento compartido, «A × B y 6
+más» cuando no lo hay. Y se cuentan **parejas y no informes**: titular «A × B y 1 más» un conflicto
+informado dos veces sería contarlo dos veces delante de quien lo resuelve.
+
+**La identidad la presta la pareja que ordena primero**, no la de mayor separación: la separación es
+un `float` que se mueve con la malla y con la versión de la librería, y un representante que baila
+abre una observación nueva en cada corrida.
+
+**Y un caso que no se resuelve bien, dicho y no escondido.** El cúmulo se reconoce en la corrida
+siguiente porque **alguna** de sus parejas ya tiene observación. Si se corrige justo la pareja
+representante y el resto sigue chocando, el cúmulo nuevo no coincide con nada y se abre por segunda
+vez, mientras la primera queda apuntando a una pareja que ya no choca. Es el precio de no guardar
+las parejas del cúmulo en una tabla propia; la alternativa —un modelo más y su migración— no se paga
+hasta que el caso aparezca sobre una obra de verdad.
 
 **El camino a `descartada` ya existe, y hasta el 2026-09-02 no existía.** El estado estaba en el
 modelo y **nada lo ponía**: la mitad que decide si la herramienta se usa una segunda vez estaba
