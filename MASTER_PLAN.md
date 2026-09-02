@@ -18,8 +18,8 @@
 comprobado en el gate, y sin mover un solo componente de sitio. **`F9.6` no la decide este plan**:
 son tres decisiones del usuario y contradicen tres líneas escritas de `UX.md`.
 
-**Lo que sigue, entonces, es abrir frente nuevo:** la mitad de `F4.5` que queda —el trazo libre— o
-la Fase 2, 5 o 6 — las tres grandes que quedan por empezar.
+**Lo que sigue** es la pantalla que dispara una corrida de interferencias —y con ella la decisión
+de `F3.4`, que ahora tiene su número: 20 s—, el trazo libre de `F4.5`, o abrir la Fase 2 o la 6.
 
 > **Esta sección decía «lo que sigue es `F0.6`» hasta el 2026-09-02**, y `F0.6` se cerró el
 > 2026-08-19. La fuente única de verdad apuntaba a una tarea muerta durante dos semanas, mientras
@@ -42,7 +42,7 @@ Las **veintinueve** filas abiertas, de una vez. `⬜` no empezada · `❓` medid
 | **4 — Coordinación**    | `F4.5` ◐ falta el trazo libre; las cotas ya viajan · `F4.6` importar BCF ⬜                                               |
 | **7 — Planos, salida**  | `F7.2` viewports y capas · `F7.3` acotado y anotaciones · `F7.5` exportar a PDF ⬜                                        |
 | **2 — Nubes de puntos** | `F2.1` a `F2.6` ⬜ — cargar, alinear, visualizar, medir contra el modelo, documentar el pipeline, y el gaussian splatting |
-| **5 — Interferencias**  | `F5.1` a `F5.5` ⬜ — grupos, `ifcclash`, resultados navegables, a BCF, y silenciar falsos positivos                       |
+| **5 — Interferencias**  | `F5.1` ◐ falta la pantalla de grupos · `F5.5` ◐ falta agrupar por proximidad _(2, 3 y 4 cerradas)_                        |
 | **6 — Geo + BIM**       | `F6.1` a `F6.5` ⬜ — Cesium, ortofoto y terreno propios, situar el IFC, 3D Tiles, y recibir de AeroPlanner                |
 | **1 — Visor**           | `F1.13` ❓ — auditada; quedan tres nombres que decide el usuario                                                          |
 | **3 — Backend**         | `F3.4` ❓ — medida y hoy no procede; se reabre con un número, no con una intuición                                        |
@@ -1696,13 +1696,13 @@ con extensión prestada.
 **Objetivo de salida:** las interferencias entre disciplinas se encuentran solas y
 llegan a la coordinación como temas, no como una lista en una planilla.
 
-| #      | Tarea                                                                                  | Estado |
-| ------ | -------------------------------------------------------------------------------------- | ------ |
-| `F5.1` | Definir grupos de comparación (A vs B) por filtros de tipo, disciplina o planta        | ⬜     |
-| `F5.2` | Ejecutar `ifcclash` como job de backend, con tolerancia de holgura configurable        | ⬜     |
-| `F5.3` | Resultados navegables: la lista lleva la cámara al conflicto y aísla los dos elementos | ⬜     |
-| `F5.4` | Convertir un resultado en tema BCF de la Fase 4, con su viewpoint ya apuntado          | ⬜     |
-| `F5.5` | Agrupar y silenciar falsos positivos, y conservarlos entre corridas                    | ⬜     |
+| #      | Tarea                                                                                  | Estado                                             |
+| ------ | -------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| `F5.1` | Definir grupos de comparación (A vs B) por filtros de tipo, disciplina o planta        | ◐ por selector desde el comando; falta la pantalla |
+| `F5.2` | Ejecutar `ifcclash` como job de backend, con tolerancia de holgura configurable        | ✅ ver abajo                                       |
+| `F5.3` | Resultados navegables: la lista lleva la cámara al conflicto y aísla los dos elementos | ✅ **sale de la Fase 4** — ver abajo               |
+| `F5.4` | Convertir un resultado en tema BCF de la Fase 4, con su viewpoint ya apuntado          | ✅ ver abajo                                       |
+| `F5.5` | Agrupar y silenciar falsos positivos, y conservarlos entre corridas                    | ✅ silenciar sí; agrupar por proximidad, no        |
 
 **Oráculo:** un conjunto de prueba con interferencias conocidas y colocadas a
 propósito; se cuentan las encontradas y las perdidas. Contra software comercial si
@@ -1712,6 +1712,78 @@ hay acceso a una licencia.
 dos disciplinas reales devuelve cientos de conflictos, la mayoría irrelevantes; si
 cada corrida vuelve a mostrar los mismos falsos positivos ya descartados, nadie
 abre la herramienta una segunda vez.
+
+### La Fase 5, medida y con el oráculo escrito (2026-09-02)
+
+**Primero el oráculo, que es lo que el plan pedía.**
+[`interferencias-a-proposito.ifc`](apps/web/public/samples/interferencias-a-proposito.ifc) —un muro
+y cuatro pilares, con las coordenadas de cada uno escritas dentro del propio archivo— y **los cuatro
+casos, no solo el que choca**, porque un detector que encuentra la interferencia buena y además tres
+falsas es peor que ninguno:
+
+| Elemento       | Debe salir                                                                            |
+| -------------- | ------------------------------------------------------------------------------------- |
+| `PILAR-CHOCA`  | **Sí** — cruza el muro de verdad                                                      |
+| `PILAR-LEJOS`  | No — tres metros al este                                                              |
+| `PILAR-ARRIBA` | No — **misma huella en planta, otro nivel**. Delata a un detector que compara plantas |
+| `PILAR-ROZA`   | Solo admitiendo el roce — apoya contra la cara sin penetrar                           |
+
+**`ifcclash` acierta los cuatro**: encuentra uno con el roce descartado y dos admitiéndolo. Se usa
+**como librería y sin copiar una línea**, que es lo que `AGENTS.md` permite con LGPL-3.0.
+
+**`F5.2`: y tarda de verdad.** Es el primer trabajo de este repositorio que se acerca al umbral que
+dejó escrito `F3.4`:
+
+| Comparación                                      | Tiempo     | Encontradas |
+| ------------------------------------------------ | ---------- | ----------- |
+| El fixture (1 muro vs 4 pilares)                 | 30 ms      | 1           |
+| `Piso 5`: 470 proxies vs 10 puertas              | 431 ms     | 6           |
+| El grande: 805 `IfcMember` vs 34 `IfcColumn`     | **15,7 s** | 3           |
+| Cruzando los dos: 470 proxies vs 805 `IfcMember` | **20,0 s** | 35          |
+
+Veinte segundos dentro de una petición no se sostienen, así que la corrida entra por un **comando de
+gestión** que deja su fila en `JobRun` — porque un trabajo que deja de correr no da error, y la fila
+es la única forma de notarlo. **El disparador desde la pantalla es lo que reabre `F3.4`**, y ahora
+con un número y no con una intuición.
+
+**`F5.3` y `F5.4` salieron de la Fase 4 sin escribir una pantalla.** Es la mejor consecuencia del
+orden en que se hizo el trabajo: un conflicto **no es una lista aparte, es una observación**, y el
+visor ya sabe abrirlas desde `F4.8`.
+
+| Lo que pedía `F5.3`           | De dónde sale                                                                                                     |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Llevar la cámara al conflicto | El GUID es el ancla y el visor encuadra el elemento — **sin inventar una cámara**: nadie eligió un punto de vista |
+| Aislar los dos elementos      | La visibilidad de `F4.7`: `DefaultVisibility="false"` con dos excepciones                                         |
+| Ver de qué se habla           | El marcado de `F4.5`: el segmento entre los dos puntos de contacto                                                |
+| Repartirlo                    | Prioridad, responsable y estado, que ya trae `F4.2`                                                               |
+
+**`F5.5`: silenciar, sí; agrupar por proximidad, todavía no.** La mitad que decide si la herramienta
+se usa dos veces está hecha, y sale de una sola idea: **la identidad de un conflicto es la pareja de
+GUID sin orden**.
+
+- El punto de choque **no sirve** como identidad: cambia con la malla, con la tolerancia y con la
+  versión de la librería.
+- El orden tampoco: comparar A contra B y B contra A da el mismo conflicto al revés, y con el orden
+  contando aparecería dos veces.
+
+Con esa pareja, **descartar un falso positivo es dejar su observación en `descartada`, y la corrida
+siguiente no la vuelve a abrir**. `F5.5` sale de `F4.2` sin una tabla nueva. Lo que falta es agrupar
+los conflictos vecinos —veinte tornillos contra la misma viga son un problema, no veinte—, y eso
+pide ver una corrida real sobre dos disciplinas de verdad.
+
+**Dos trampas de `ifcclash` que no dan un error legible**, y las dos tienen su prueba:
+
+1. **Un grupo vacío la hace reventar** con `TypeError: Attribute of type AGGREGATE OF STRING needs a
+python sequence of strs`, que no menciona ni los grupos ni los selectores. Y pasa fácil:
+   **`Piso 5.ifc` no tiene un solo `IfcWall`** —son 470 `IfcBuildingElementProxy`—, así que el
+   selector obvio no encuentra nada. El envoltorio lo comprueba antes y dice **cuál** de los dos
+   lados está vacío, con su selector dentro.
+2. **El modo `intersection` exige `check_all`** y sin esa clave lanza un `AssertionError` **sin
+   mensaje**, desde un `assert` de la librería.
+
+**Lo que queda de la fase:** la pantalla para definir los grupos (`F5.1` hoy es un selector en la
+línea de comandos), el disparador desde la aplicación —que es la decisión de `F3.4`— y el agrupado
+por proximidad. **490 pruebas en la API con 94,30 %** y 306 en `bim-core`.
 
 ---
 

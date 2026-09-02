@@ -435,6 +435,15 @@ class Observacion(BaseModel):
     # La forma es la de un `Visibility` de BCF: `{"porDefecto": bool, "excepciones": [guid, ...]}`.
     # Vacio significa **sin restriccion**, que es lo que el exportador escribia siempre.
     visibilidad = models.JSONField(default=dict, blank=True)
+    # **El otro elemento, cuando la observacion nace de una interferencia** — `F5.4`.
+    #
+    # Con esto la pareja `(ifc_guid, interferencia_con)` **es la identidad del conflicto**, y eso es
+    # lo que permite volver a correr la deteccion sin duplicar nada: la corrida siguiente reconoce
+    # la pareja y no vuelve a abrir lo que alguien ya descarto. `F5.5` sale de aca sin una tabla
+    # nueva — descartar un falso positivo es dejar su observacion en `descartada`.
+    #
+    # Vacio en una observacion escrita por una persona, que es el caso normal.
+    interferencia_con = models.CharField(max_length=22, blank=True, db_index=True)
     # **Lo que se dibujo sobre el modelo** — `F4.5`. Segmentos de recta en el sistema del IFC,
     # `[{"inicio": [x, y, z], "fin": [...]}]`, que es lo que BCF escribe como `<Lines>` de un
     # viewpoint. Salen de las cotas que estaban a la vista al anotar: medir es poner puntos en

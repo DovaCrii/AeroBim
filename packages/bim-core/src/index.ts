@@ -102,6 +102,14 @@ export {
 export { MUESTRAS, pareceEnBlanco, RANGO_MINIMO } from "./registro/instantanea.js";
 
 export {
+  esLaMismaInterferencia,
+  identidadDeInterferencia,
+  tituloDeInterferencia,
+  type ElementoEnConflicto,
+  type ParDeElementos,
+} from "./registro/interferencia.js";
+
+export {
   lineasDesdeMediciones,
   MAXIMO_LINEAS,
   type ClaseDeMedida,

@@ -189,6 +189,18 @@ de "reiniciado y sirviendo".
 
 ## Lo que todavía no está
 
+- **La detección de interferencias se corre a mano, y por eso está medida.** Cruzar los dos
+  modelos reales de la organización tarda **20 s**, así que no entra en una petición:
+
+  ```bash
+  uv run python manage.py detectar_interferencias <revision-a> <revision-b> \
+      --clase-a IfcWall --clase-b IfcMember --autor <usuario> --dry-run
+  ```
+
+  Con `--dry-run` cuenta lo que abriría sin escribir nada. Cada conflicto se abre como una
+  observación con su viewpoint, y **volver a correrlo no duplica**: lo ya descartado no vuelve.
+  Deja su fila en `JobRun`, que es donde se ve una corrida que murió a mitad.
+
 - **Trabajos en segundo plano (`F3.4`) — medido, y hoy no hace falta.** Sobre el IFC real de
   32,7 MB: extraer metadatos 1,4 s, medir cobertura 1,5 s, validar un IDS 0,7 s. El `timeout`
   de 120 s es holgura, no un parche. Si algún día un trabajo llega a 30 s sobre un archivo

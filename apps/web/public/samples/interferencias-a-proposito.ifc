@@ -1,0 +1,110 @@
+ISO-10303-21;
+HEADER;
+FILE_DESCRIPTION(('ViewDefinition [CoordinationView]'),'2;1');
+FILE_NAME('interferencias-a-proposito.ifc','2026-09-02T00:00:00',('AeroBim'),('AeroBim'),'AeroBim fixture','AeroBim','');
+FILE_SCHEMA(('IFC2X3'));
+ENDSEC;
+DATA;
+/* ORACULO DE LA FASE 5 — interferencias colocadas a proposito.
+   ============================================================
+
+   El plan pide "un conjunto de prueba con interferencias conocidas y colocadas a
+   proposito; se cuentan las encontradas y las perdidas". Este es ese conjunto, y lo
+   importante es que trae **los cuatro casos**, no solo el que choca: un detector que
+   encuentra la interferencia buena y ademas tres falsas es peor que ninguno.
+
+   Todo en MILIMETROS. Un muro y cuatro pilares, y cada pilar prueba una cosa distinta:
+
+   | Elemento      | Huella en planta          | Altura        | Debe chocar             |
+   | ------------- | ------------------------- | ------------- | ----------------------- |
+   | MURO          | x[-2000,2000] y[-100,100] | z[0,3000]     | -- es el de referencia  |
+   | PILAR-CHOCA   | x[-200,200]  y[-200,200]  | z[0,3000]     | SI: se cruzan de verdad |
+   | PILAR-LEJOS   | x[2800,3200] y[-200,200]  | z[0,3000]     | NO: fuera en X          |
+   | PILAR-ARRIBA  | x[-200,200]  y[-200,200]  | z[4000,7000]  | NO: **misma planta en 2D, otro nivel en 3D** |
+   | PILAR-ROZA    | x[-200,200]  y[100,500]   | z[0,3000]     | Depende de la tolerancia: se tocan exactamente en y=100 |
+
+   PILAR-ARRIBA es el que delata a un detector que compara huellas en vez de volumenes:
+   en planta se solapa con el muro exactamente igual que PILAR-CHOCA, y en el espacio no
+   se tocan porque estan a un metro de distancia vertical.
+
+   PILAR-ROZA es el que da sentido al parametro de tolerancia. Sus caras coinciden sin
+   penetrar, que es lo que pasa cuando el modelador apoya un pilar contra un muro: en una
+   obra eso no es un problema, y un detector que lo reporta llena la lista de ruido.
+
+   Los perfiles de IFC van centrados en su colocacion, asi que un rectangulo de 400 x 400
+   en el origen ocupa de -200 a +200. Las cifras de la tabla ya lo tienen en cuenta. */
+#1= IFCPERSON($,'AeroBim',$,$,$,$,$,$);
+#2= IFCORGANIZATION($,'AeroBim',$,$,$);
+#3= IFCPERSONANDORGANIZATION(#1,#2,$);
+#4= IFCAPPLICATION(#2,'0.1.0','AeroBim','AEROBIM');
+#5= IFCOWNERHISTORY(#3,#4,$,.ADDED.,$,$,$,0);
+#10= IFCCARTESIANPOINT((0.,0.,0.));
+#11= IFCDIRECTION((0.,0.,1.));
+#12= IFCDIRECTION((1.,0.,0.));
+#13= IFCAXIS2PLACEMENT3D(#10,#11,#12);
+#20= IFCSIUNIT(*,.LENGTHUNIT.,.MILLI.,.METRE.);
+#21= IFCSIUNIT(*,.AREAUNIT.,$,.SQUARE_METRE.);
+#22= IFCSIUNIT(*,.VOLUMEUNIT.,$,.CUBIC_METRE.);
+#23= IFCUNITASSIGNMENT((#20,#21,#22));
+#30= IFCGEOMETRICREPRESENTATIONCONTEXT($,'Model',3,1.E-05,#13,$);
+#40= IFCPROJECT('0PROJECT00000000000000',#5,'Interferencias a proposito',$,$,$,$,(#30),#23);
+#50= IFCLOCALPLACEMENT($,#13);
+#41= IFCSITE('0SITE00000000000000000',#5,'Sitio',$,$,#50,$,$,.ELEMENT.,$,$,$,$,$);
+#51= IFCLOCALPLACEMENT(#50,#13);
+#42= IFCBUILDING('0BUILDING0000000000000',#5,'Edificio',$,$,#51,$,$,.ELEMENT.,$,$,$);
+#52= IFCLOCALPLACEMENT(#51,#13);
+#43= IFCBUILDINGSTOREY('0STOREY000000000000000',#5,'Planta 1',$,$,#52,$,$,.ELEMENT.,0.);
+
+/* --- El muro de referencia: 4000 x 200, de suelo a 3000 -------------------------- */
+#60= IFCLOCALPLACEMENT(#52,#13);
+#61= IFCCARTESIANPOINT((0.,0.));
+#62= IFCAXIS2PLACEMENT2D(#61,$);
+#63= IFCRECTANGLEPROFILEDEF(.AREA.,'Muro',#62,4000.,200.);
+#64= IFCEXTRUDEDAREASOLID(#63,#13,#11,3000.);
+#65= IFCSHAPEREPRESENTATION(#30,'Body','SweptSolid',(#64));
+#66= IFCPRODUCTDEFINITIONSHAPE($,$,(#65));
+#67= IFCWALLSTANDARDCASE('0MURO00000000000000000',#5,'Muro de referencia',$,$,#60,#66,$);
+
+/* --- PILAR-CHOCA: en el origen, atravesando el muro. SI debe salir --------------- */
+#70= IFCLOCALPLACEMENT(#52,#13);
+#71= IFCRECTANGLEPROFILEDEF(.AREA.,'Pilar',#62,400.,400.);
+#72= IFCEXTRUDEDAREASOLID(#71,#13,#11,3000.);
+#73= IFCSHAPEREPRESENTATION(#30,'Body','SweptSolid',(#72));
+#74= IFCPRODUCTDEFINITIONSHAPE($,$,(#73));
+#75= IFCCOLUMN('0PILARCHOCA00000000000',#5,'Pilar que choca',$,$,#70,#74,$);
+
+/* --- PILAR-LEJOS: tres metros al este. NO debe salir ---------------------------- */
+#80= IFCCARTESIANPOINT((3000.,0.,0.));
+#81= IFCAXIS2PLACEMENT3D(#80,#11,#12);
+#82= IFCLOCALPLACEMENT(#52,#81);
+#83= IFCEXTRUDEDAREASOLID(#71,#13,#11,3000.);
+#84= IFCSHAPEREPRESENTATION(#30,'Body','SweptSolid',(#83));
+#85= IFCPRODUCTDEFINITIONSHAPE($,$,(#84));
+#86= IFCCOLUMN('0PILARLEJOS00000000000',#5,'Pilar lejos del muro',$,$,#82,#85,$);
+
+/* --- PILAR-ARRIBA: misma huella que el que choca, un metro mas alto.
+       NO debe salir, y es el que delata a un detector que compara plantas. --------- */
+#90= IFCCARTESIANPOINT((0.,0.,4000.));
+#91= IFCAXIS2PLACEMENT3D(#90,#11,#12);
+#92= IFCLOCALPLACEMENT(#52,#91);
+#93= IFCEXTRUDEDAREASOLID(#71,#13,#11,3000.);
+#94= IFCSHAPEREPRESENTATION(#30,'Body','SweptSolid',(#93));
+#95= IFCPRODUCTDEFINITIONSHAPE($,$,(#94));
+#96= IFCCOLUMN('0PILARARRIBA000000000A',#5,'Pilar en otro nivel',$,$,#92,#95,$);
+
+/* --- PILAR-ROZA: apoyado contra la cara del muro, sin penetrar.
+       Depende de la tolerancia, y es el que da sentido al parametro. --------------- */
+#100= IFCCARTESIANPOINT((0.,300.,0.));
+#101= IFCAXIS2PLACEMENT3D(#100,#11,#12);
+#102= IFCLOCALPLACEMENT(#52,#101);
+#103= IFCEXTRUDEDAREASOLID(#71,#13,#11,3000.);
+#104= IFCSHAPEREPRESENTATION(#30,'Body','SweptSolid',(#103));
+#105= IFCPRODUCTDEFINITIONSHAPE($,$,(#104));
+#106= IFCCOLUMN('0PILARROZA00000000000',#5,'Pilar que roza el muro',$,$,#102,#105,$);
+
+#110= IFCRELAGGREGATES('0AGG100000000000000000',#5,$,$,#40,(#41));
+#111= IFCRELAGGREGATES('0AGG200000000000000000',#5,$,$,#41,(#42));
+#112= IFCRELAGGREGATES('0AGG300000000000000000',#5,$,$,#42,(#43));
+#113= IFCRELCONTAINEDINSPATIALSTRUCTURE('0CONTAINED000000000000',#5,$,$,(#67,#75,#86,#96,#106),#43);
+ENDSEC;
+END-ISO-10303-21;

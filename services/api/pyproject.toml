@@ -13,6 +13,7 @@ dependencies = [
     "whitenoise>=6.8",
     "ifcopenshell==0.8.5",
     "ifctester==0.8.5",
+    "ifcclash==0.8.5",
 ]
 
 [dependency-groups]
