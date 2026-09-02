@@ -65,16 +65,61 @@
     {% endif %}
 
     {% if mis_proyectos %}
-      <div class="tarjetas">
+      {% comment %}
+        **La tarjeta de obra decía «Edificio corporativo · Anteproyecto · avance 1» y eso no es un
+        dato**: es la etapa y un número sin unidad. Lo que se quiere saber al abrir la puerta por la
+        mañana es cuánto lleva la obra y **si hay algo que arde**, porque eso es lo que decide dónde
+        entrar.
+
+        Ahora lleva la barra de avance con su porcentaje y, cuando las hay, las cifras que importan:
+        lo vencido en rojo, lo de prioridad alta, y lo abierto en total. **Las tres van con su
+        palabra al lado y no solo con su color**, que es la regla de siempre — y el cero no se
+        dibuja: «0 vencidas» es ruido en una puerta.
+      {% endcomment %}
+      <div class="tarjetas tarjetas-obra">
         {% for proyecto in mis_proyectos %}
-          <a class="tarjeta" href="{% url 'projects:proyecto' proyecto.pk %}">
-            <div class="titulo">{{ proyecto.codigo }}</div>
-            <div class="detalle">
-              {{ proyecto.nombre }}
-              · {{ proyecto.get_status_display }}
-              · {% blocktranslate with avance=proyecto.avance_fisico|floatformat:"-2" %}progress
-              {{ avance }}{% endblocktranslate %}
+          <a class="tarjeta obra" href="{% url 'projects:proyecto' proyecto.pk %}">
+            <div class="obra-cabeza">
+              <span class="obra-codigo">{{ proyecto.codigo }}</span>
+              <span class="ficha">{{ proyecto.get_status_display }}</span>
             </div>
+            <div class="obra-nombre">{{ proyecto.nombre }}</div>
+
+            <div class="avance" role="img"
+                 aria-label="{% blocktranslate with pct=proyecto.avance_pct %}Progress {{ pct }} per cent{% endblocktranslate %}">
+              <span class="avance-relleno" style="width: {{ proyecto.avance_pct }}%"></span>
+            </div>
+            {% comment %}
+              **Las cuatro palabras van con contexto**, y no es ceremonia: «open», «overdue» y
+              «high priority» ya existían en el catálogo con otro sentido —«open» estaba traducido
+              como «abierta por»— así que reusar el mismo `msgid` habría puesto en la tarjeta la
+              traducción de otra pantalla. Con `context` cada una es su propia entrada.
+            {% endcomment %}
+            <div class="avance-cifra">
+              <b>{{ proyecto.avance_pct }}%</b>
+              {% translate "issued" context "tarjeta de obra" %}
+            </div>
+
+            {% if proyecto.abiertas %}
+              <div class="obra-cifras">
+                {% if proyecto.vencidas %}
+                  <span class="cifra cifra-arde">
+                    <b>{{ proyecto.vencidas }}</b>
+                    {% translate "overdue" context "tarjeta de obra" %}
+                  </span>
+                {% endif %}
+                {% if proyecto.altas %}
+                  <span class="cifra cifra-alta">
+                    <b>{{ proyecto.altas }}</b>
+                    {% translate "high priority" context "tarjeta de obra" %}
+                  </span>
+                {% endif %}
+                <span class="cifra">
+                  <b>{{ proyecto.abiertas }}</b>
+                  {% translate "open" context "tarjeta de obra" %}
+                </span>
+              </div>
+            {% endif %}
           </a>
         {% endfor %}
       </div>
@@ -87,10 +132,23 @@
   {% endcomment %}
   {% include "generic/_iconos.html" %}
 
+  {% comment %}
+    **Cada grupo con su propio acento, y el violeta deja de ser el uniforme.** El violeta es la
+    marca; usarlo también para los cinco grupos deja una página de un solo color, que es
+    exactamente lo que se lee como plana. Ahora cada grupo tiene el suyo —proyecto, modelo,
+    documentos, coordinación, administración— y el ojo navega por color antes de leer el rótulo.
+
+    Los cinco están medidos sobre las dos superficies del sistema: ver `.grupo-acento` en
+    `app.css`. Y **el color no sustituye al rótulo**, que sigue escrito: es un ancla para la vista,
+    no la información.
+
+    `forloop.counter0` da el índice del grupo, y el CSS tiene cinco variantes: con más grupos que
+    variantes vuelve a empezar, que es mejor que quedarse sin color.
+  {% endcomment %}
   {% regroup modulos by grupo as por_grupo %}
   {% for grupo in por_grupo %}
-    <p class="grupo">{{ grupo.grouper }}</p>
-    <div class="tarjetas">
+    <p class="grupo grupo-acento acento-{{ forloop.counter0 }}">{{ grupo.grouper }}</p>
+    <div class="tarjetas acento-{{ forloop.counter0 }}">
       {% for modulo in grupo.list %}
         {% comment %}
           **El icono va con el título, no suelto arriba.** Un símbolo grande centrado en una

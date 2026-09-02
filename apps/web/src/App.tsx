@@ -197,7 +197,15 @@ const RUTA_WASM = `${import.meta.env.BASE_URL}wasm/`;
  * `/static/visor/` no existe: un 404 en la consola y la marca sin dibujar. Se vio al abrir el
  * visor servido por Django.
  */
-const RUTA_MARCA = `${import.meta.env.BASE_URL}aerobim-mark.svg`;
+/**
+ * La marca, **en su variante para fondo oscuro**.
+ *
+ * El visor es oscuro en todas sus superficies, así que aquí no hace falta la original: el
+ * `#1B2A4A` de sus rellenos daba **1,15:1** contra la cinta —o sea que el cuerpo del dron y las
+ * caras del cubo eran agujeros— y la variante deja esos rellenos transparentes con el trazo en el
+ * acento, que da 7,80:1. La original se queda para el favicon y para el portal en tema claro.
+ */
+const RUTA_MARCA = `${import.meta.env.BASE_URL}aerobim-mark-oscuro.svg`;
 
 /**
  * Qué revisión del registro hay que abrir, si la URL lo dice.
@@ -1218,6 +1226,31 @@ export function App() {
   const sePuedeAnotar =
     origen !== null && origen.puedeObservar && selected !== null && selected.guid !== null;
 
+  /**
+   * Por qué **no** se puede anotar este elemento, o `null` si sí se puede.
+   *
+   * **La ficha callaba y eso era el hueco.** El botón no se dibuja cuando no hay dónde colgar la
+   * observación —lo cual es correcto: un botón gris que no explica su gris manda a buscar el error
+   * donde no está— pero entonces quien selecciona una silla en un IFC abierto del disco no ve
+   * ningún camino y concluye que el producto no anota. Lo preguntó el usuario mirando esa pantalla:
+   * «al cargar un elemento en IFC directamente, cómo le puedo dejar notas para comenzar con la
+   * coordinación».
+   *
+   * Así que en vez de nada, va el motivo **con la salida**. Cada uno tiene una salida distinta y
+   * por eso son tres mensajes y no uno.
+   */
+  const motivoSinAnotar: string | null =
+    selected === null || sePuedeAnotar
+      ? null
+      : origen === null
+        ? "Este modelo se abrió desde el disco, así que no hay obra donde archivar la nota. " +
+          "Ábrelo desde su expediente —en la pantalla de la obra, «Modelos y planos que puedes " +
+          "abrir»— y este elemento tendrá su botón para anotar."
+        : !origen.puedeObservar
+          ? "Tu rol puede ver este modelo pero no abrir observaciones sobre él."
+          : "Este elemento no trae un GUID de IFC, así que no hay a qué anclar la nota: una " +
+            "observación se encuentra otra vez por el GUID, y sin él no se podría volver a abrir.";
+
   /** `true` mientras la tarjeta de nota está abierta encima del modelo. */
   const [notaAbierta, setNotaAbierta] = useState(false);
 
@@ -1377,14 +1410,12 @@ export function App() {
               className="flex shrink-0 items-center gap-2 hover:opacity-80"
               title="AeroBim — al portal"
             >
-              {/* **La placa clara no es un adorno, y esto llevaba mal desde el primer día.** El
-                  relleno del dibujo es `#1B2A4A` y la cinta es `--color-surface` (`#18202f`):
-                  contraste **1,15:1**, o sea que el cuerpo del dron y las caras del cubo eran
-                  agujeros y solo se veían los trazos violetas. La marca está dibujada para fondo
-                  claro y el producto es oscuro; sobre blanco da 14,2:1. Se plateó igual en las
-                  tres pantallas donde aparece —cinta, barra del portal y tarjeta de ingreso— para
-                  que sea la misma marca y no tres. */}
-              <img src={RUTA_MARCA} alt="" className="h-7 w-auto rounded-sm bg-white p-0.5" />
+              {/* **Sin placa.** Hubo una placa blanca aquí y duró una tarde: resolvía el contraste
+                  —el relleno del dibujo original es `#1B2A4A` y la cinta es `#18202f`, o sea
+                  1,15:1— y ponía a cambio un parche blanco que no pertenece a la paleta. La
+                  variante oscura resuelve las dos cosas, y además se adapta a cualquier superficie
+                  porque lo transparente no tiene color con el que chocar. */}
+              <img src={RUTA_MARCA} alt="" className="h-7 w-auto" />
               <span className="text-sm font-semibold">AeroBim</span>
             </a>
             {/* De dónde vino lo que está abierto. No se dibuja si es un archivo del disco. */}
@@ -1502,6 +1533,7 @@ export function App() {
                 onIsolate={onIsolateSelection}
                 onUndoIsolate={onUndoIsolate}
                 observar={sePuedeAnotar ? () => setNotaAbierta(true) : null}
+                motivoSinObservar={motivoSinAnotar}
               />
             )}
           </aside>

@@ -18,6 +18,41 @@ from django.urls import reverse
 MARCA_DEL_VISOR = Path(settings.REPO_DIR) / "apps" / "web" / "public" / "aerobim-mark.svg"
 MARCA_DEL_PORTAL = Path(settings.BASE_DIR) / "static" / "img" / "aerobim-mark.svg"
 
+#: La variante para fondo oscuro, que es la que usan las tres pantallas del producto.
+OSCURA_DEL_VISOR = Path(settings.REPO_DIR) / "apps" / "web" / "public" / "aerobim-mark-oscuro.svg"
+OSCURA_DEL_PORTAL = Path(settings.BASE_DIR) / "static" / "img" / "aerobim-mark-oscuro.svg"
+
+
+def test_la_variante_oscura_existe_en_las_dos_mitades_y_es_la_misma():
+    """**El producto es oscuro en casi todas sus superficies**, así que esta es la que se usa.
+
+    El relleno del dibujo original es `#1B2A4A` —el mismo hexadecimal que la barra del portal— así
+    que ahí daba 1,00:1 y el cuerpo del dron desaparecía. La variante deja los rellenos
+    transparentes y el trazo en el acento.
+    """
+    assert OSCURA_DEL_VISOR.is_file(), "falta la variante oscura del visor"
+    assert OSCURA_DEL_PORTAL.is_file(), "falta la variante oscura del portal"
+    assert OSCURA_DEL_PORTAL.read_bytes() == OSCURA_DEL_VISOR.read_bytes()
+
+
+def test_la_variante_oscura_no_lleva_el_relleno_que_desaparece():
+    """El fallo concreto que esta variante corrige, dicho como comprobación."""
+    texto = OSCURA_DEL_PORTAL.read_text(encoding="utf-8")
+    cuerpo = texto[texto.index("<g ") :]
+
+    assert 'fill="#1B2A4A"' not in cuerpo
+    assert "#C3A6F0" in cuerpo
+
+
+def test_los_svg_de_la_marca_son_xml_valido():
+    """**Un comentario de XML no puede llevar dos guiones seguidos**, y eso deja el archivo
+    inválido: la marca sale como icono roto y el navegador no dice por qué. Pasó al escribir el
+    nombre de un token con sus dos guiones delante."""
+    from defusedxml.ElementTree import fromstring
+
+    for ruta in (MARCA_DEL_PORTAL, OSCURA_DEL_PORTAL, MARCA_DEL_VISOR, OSCURA_DEL_VISOR):
+        fromstring(ruta.read_text(encoding="utf-8"))
+
 
 def test_las_dos_copias_de_la_marca_son_el_mismo_archivo():
     """**Sin esto, la marca se separa y nadie se entera hasta que alguien mira las dos pantallas.**

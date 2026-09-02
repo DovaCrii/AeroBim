@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n %}
+{% load i18n disciplinas %}
 
 {% block titulo %}{{ proyecto.codigo }} · AeroBim{% endblock %}
 
@@ -301,13 +301,28 @@
           Y este comentario es `{% comment %}` y no `{# #}` **porque el de llaves es de una sola
           línea**: repartido en dos, Django parsea las etiquetas de la segunda.
         {% endcomment %}
+        {% comment %}
+          **La tarjeta decía «A · AR» y nadie sabe qué es eso.** Eran el código de idoneidad y el de
+          la disciplina, los dos sueltos y sin decir de qué hablaban: el primero es una decisión
+          contractual —lo que la revisión autoriza a hacer— y el segundo la especialidad.
+
+          Ahora cada uno lleva su forma: la disciplina va en su distintivo de color y la idoneidad
+          en una píldora con **su significado escrito** (`get_idoneidad_display` da «A · Publicada y
+          autorizada»). El nombre del archivo baja a segunda línea, que es donde corresponde: dice
+          de qué formato es, no qué se puede hacer con él.
+        {% endcomment %}
         <a class="tarjeta" href="{% url revision.visor_ruta %}?revision={{ revision.pk }}">
-          <div class="titulo">{{ revision.entregable.codigo }} rev. {{ revision.correlativo }}</div>
-          <div class="detalle">
-            {{ revision.nombre_original }}
-            · {{ revision.idoneidad }}
-            {% if revision.entregable.disciplina %} · {{ revision.entregable.disciplina.codigo }}{% endif %}
+          <div class="titulo">
+            {% distintivo revision.entregable.disciplina %}
+            <span>{{ revision.entregable.codigo }}</span>
           </div>
+          <div class="fichas">
+            <span class="ficha ficha-fuerte">rev. {{ revision.correlativo }}</span>
+            <span class="ficha" title="{{ revision.get_idoneidad_display }}">
+              {{ revision.get_idoneidad_display }}
+            </span>
+          </div>
+          <div class="detalle">{{ revision.nombre_original }}</div>
         </a>
       {% endfor %}
     </div>
@@ -368,18 +383,18 @@
     <tbody>
       {% for disciplina in disciplinas %}
         <tr>
-          <td style="width: 90px">{{ disciplina.codigo }}</td>
+          {% comment %}
+            **El distintivo en vez del cuadrado y el hexadecimal en texto.** `#5b3a9e` escrito al
+            lado no le dice nada a nadie: es el valor de un campo, no información. El chip lleva el
+            código sobre su propio color y la letra la elige el servidor midiendo la luminancia
+            —ver `apps/projects/color.py`—, así que también se lee sobre un amarillo.
+          {% endcomment %}
+          <td style="width: 110px">{% distintivo disciplina %}</td>
           <td>{{ disciplina.nombre }}</td>
-          {# El color es el mismo que usa el tablero y el informe: una sola copia, en la base. #}
-          <td style="width: 90px">
-            <span style="display:inline-block;width:1rem;height:1rem;vertical-align:middle;
-                         border-radius:3px;background:{{ disciplina.color }}"></span>
-            {{ disciplina.color }}
-          </td>
         </tr>
       {% empty %}
         <tr>
-          <td colspan="3">
+          <td colspan="2">
             {% blocktranslate %}No discipline yet. A deliverable needs one to be
             registered.{% endblocktranslate %}
           </td>

@@ -108,6 +108,7 @@ export function PropertiesPanel({
   onIsolate,
   onUndoIsolate,
   observar = null,
+  motivoSinObservar = null,
 }: {
   /** El elemento seleccionado, o `null` cuando no hay ninguno. */
   readonly item: PickedItem | null;
@@ -129,6 +130,16 @@ export function PropertiesPanel({
    * por qué está gris manda a alguien a buscar el error donde no está.
    */
   readonly observar?: (() => void) | null;
+  /**
+   * Por qué no se puede anotar, cuando `observar` es `null`.
+   *
+   * **Sin esto la ficha callaba, y callar es lo que dejó a alguien buscando.** El botón no se
+   * dibuja porque no hay dónde archivar la nota —eso está bien—, pero quien selecciona un elemento
+   * de un IFC abierto del disco no veía ningún camino y concluía que el producto no anota. El
+   * motivo lleva **la salida**, que es distinta en cada caso: abrirlo desde el expediente, pedir el
+   * permiso, o que ese elemento no tiene GUID.
+   */
+  readonly motivoSinObservar?: string | null;
 }) {
   // El panel **está siempre**, como en Revit: es un sitio fijo de la pantalla, y en cuanto se
   // selecciona algo se llena. Antes aparecía y desaparecía flotando sobre el modelo, lo que movía la
@@ -244,6 +255,14 @@ export function PropertiesPanel({
               <IconNota className="h-3.5 w-3.5" />
               Dejar una nota
             </button>
+          )}
+
+          {/* **El motivo, con la salida.** Ver `motivoSinObservar`: la alternativa era no decir
+              nada, y no decir nada es lo que hace que alguien concluya que el producto no anota. */}
+          {observar === null && motivoSinObservar !== null && (
+            <p className="mt-2 rounded-sm border border-borde bg-surface-2 px-2 py-1.5 text-nota leading-snug text-fg-3">
+              {motivoSinObservar}
+            </p>
           )}
         </section>
 

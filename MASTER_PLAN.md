@@ -87,17 +87,18 @@ Las **veintinueve** filas abiertas, de una vez. `⬜` no empezada · `❓` medid
 
 **Y en el orden de prioridad del 2026-09-02**, no en el de los números de fase.
 
-| Fase                                     | Filas abiertas                                                                                                                                                  |
-| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **5 — Interferencias**                   | ✅ **la fase entera** — `F5.5` cierra con las dos mitades: silenciar y agrupar _(35 interferencias en 13 problemas)_                                            |
-| **4 — Coordinación** ⭐                  | `F4.5` ◐ falta el trazo libre; las cotas ya viajan _(`F4.6` cerrada: el ciclo va y vuelve)_                                                                     |
-| **3 — Backend**                          | `F3.4` ✅ decidida por el usuario el 2026-09-02: **la petición espera**, y por qué                                                                              |
-| **9 — Diseño** ⭐                        | `F9.6` ⛔ — la decide el usuario, y son tres decisiones _(`F9.1` a `F9.5` cerradas)_                                                                            |
-| **10 — Etiquetas, informes y tablas** ⭐ | `F10.1` etiquetas ⬜ · `F10.4` tablas en el plano ⬜ · `F10.5` tablas del modelo ⬜ _(`F10.2` y `F10.3` cerradas: el informe ya sale en papel con el membrete)_ |
-| **1 — Visor**                            | `F1.13` ❓ — auditada; quedan tres nombres que decide el usuario                                                                                                |
-| **7 — Planos, salida**                   | `F7.2` viewports y capas · `F7.3` acotado y anotaciones · `F7.5` exportar a PDF ⬜                                                                              |
-| **2 — Nubes de puntos**                  | `F2.1` a `F2.6` ⬜ — cargar, alinear, visualizar, medir contra el modelo, documentar el pipeline, y el gaussian splatting                                       |
-| **6 — Geo + BIM**                        | `F6.1` a `F6.5` ⬜ — Cesium, ortofoto y terreno propios, situar el IFC, 3D Tiles, y recibir de AeroPlanner                                                      |
+| Fase                                     | Filas abiertas                                                                                                                                  |
+| ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| **5 — Interferencias**                   | ✅ **la fase entera** — `F5.5` cierra con las dos mitades: silenciar y agrupar _(35 interferencias en 13 problemas)_                            |
+| **4 — Coordinación** ⭐                  | `F4.5` ◐ falta el trazo libre; las cotas ya viajan _(`F4.6` cerrada: el ciclo va y vuelve)_                                                     |
+| **3 — Backend**                          | `F3.4` ✅ decidida por el usuario el 2026-09-02: **la petición espera**, y por qué                                                              |
+| **9 — Diseño** ⭐                        | `F9.6` ⛔ — la decide el usuario, y son tres decisiones _(`F9.1` a `F9.5` cerradas)_                                                            |
+| **11 — El portal se ve plano** ⭐        | `F11.5` portal y tarjeta de obra ⬜ · `F11.6` observaciones abiertas ⬜ · `F11.7` ayuda con recorrido ⛔ _(`F11.1` a `F11.4` cerradas)_         |
+| **10 — Etiquetas, informes y tablas** ⭐ | `F10.1` etiquetas ⬜ · `F10.4` tablas en el plano ⬜ · `F10.5` tablas del modelo ⬜ _(`F10.2` y `F10.3` cerradas: el informe ya sale en papel)_ |
+| **1 — Visor**                            | `F1.13` ❓ — auditada; quedan tres nombres que decide el usuario                                                                                |
+| **7 — Planos, salida**                   | `F7.2` viewports y capas · `F7.3` acotado y anotaciones · `F7.5` exportar a PDF ⬜                                                              |
+| **2 — Nubes de puntos**                  | `F2.1` a `F2.6` ⬜ — cargar, alinear, visualizar, medir contra el modelo, documentar el pipeline, y el gaussian splatting                       |
+| **6 — Geo + BIM**                        | `F6.1` a `F6.5` ⬜ — Cesium, ortofoto y terreno propios, situar el IFC, 3D Tiles, y recibir de AeroPlanner                                      |
 
 ⭐ = prioridad del 2026-09-02. Las fases 2 y 6 **no se descartan, se posponen**: son las dos que no
 tienen ni un archivo con el que verificarse hoy —no hay nube de puntos ni ortofoto en el
@@ -3071,6 +3072,109 @@ exista, con sus viewports y su cajetín. Va después, y va dicho para que no se 
 `F10.5` es la otra mitad y **el camino más corto a algo que se usa hoy**: un cuadro de elementos por
 categoría con sus psets es exactamente lo que `F3.10` ya sabe leer del modelo —la cobertura de psets
 lo recorre entero— así que la consulta está resuelta y lo que falta es la tabla y su salida.
+
+---
+
+## FASE 11 — El portal se ve plano
+
+**La abrió el usuario el 2026-09-02, mirando la pantalla**, y lo dijo así:
+
+> «en general el problema es que cada etapa es plano como se visualiza crear o generar un diseño
+> mas llamativo interactivo y que sea mas moderno en cada hoja, lo mso con las figuras y lso
+> colores jugar ahi con eso hacer que sea mas llamativo, ordenar mejor el portal hacerlo mas
+> divertido moderno»
+
+Y señaló, una por una, las pantallas concretas: la portada, el portal, las disciplinas, las
+observaciones abiertas y los cuadros de modelos que se pueden abrir.
+
+**Es una fase y no un arreglo, y la diferencia importa.** La `FASE 9` llevó el sistema de diseño al
+**visor** —tokens, escala, foco, contraste con su oráculo en el gate— y el portal se quedó con lo
+que ya tenía: un sistema correcto y sin vida. Todo pasa AA, todo es legible, y todo pesa lo mismo:
+nueve tarjetas idénticas de icono, título y dos líneas grises. **El defecto no es de contraste, es
+de jerarquía**, y por eso no lo cazó el oráculo de la `FASE 9`.
+
+| #       | Tarea                                                                           | Estado       |
+| ------- | ------------------------------------------------------------------------------- | ------------ |
+| `F11.1` | Distintivo de disciplina: su código sobre su color, y la letra elegida midiendo | ✅ ver abajo |
+| `F11.2` | Fichas con nombre: «A» pasa a «A · Publicado y autorizado»                      | ✅ ver abajo |
+| `F11.3` | La marca sin placa: variante de trazo claro para las superficies oscuras        | ✅ ver abajo |
+| `F11.4` | La portada: dos mitades, para qué sirve esto, y un mensaje para el equipo       | ✅ ver abajo |
+| `F11.5` | El portal reordenado, y la tarjeta de obra con datos y no con texto             | ⬜           |
+| `F11.6` | «Observaciones abiertas»: prioridad, antigüedad y responsable de un vistazo     | ⬜           |
+| `F11.7` | Una sección de ayuda con el recorrido de cómo se usa                            | ⬜           |
+
+**El oráculo de la fase, y es el que falta hoy:** el contraste ya está comprobado en el gate para el
+visor; lo que no está comprobado es **la jerarquía**. La forma medible de decirlo: en una pantalla,
+cuántos pesos y tamaños distintos de texto hay, y si el elemento más importante es el más marcado.
+Se escribe cuando `F11.5` y `F11.6` estén, para no fijar un número antes de saber qué mide.
+
+### `F11.1` — El distintivo de disciplina, y por qué la letra se mide
+
+La tabla de disciplinas ensenaba un cuadrado de color y **el hexadecimal en texto**: `#5b3a9e` al
+lado de «Arquitectura». Es el valor de un campo, no información — y a quien lo lee no le sirve de
+nada.
+
+Ahora cada especialidad tiene su distintivo: **el código sobre su propio color**. Y el color de la
+letra **se calcula**, no se supone: el color lo elige una persona en un formulario, así que puede
+ser un violeta oscuro o un amarillo casi blanco, y «AR» en blanco sobre amarillo no se lee. Vive en
+`apps/projects/color.py`, con la fórmula de WCAG 2.1 fijada por sus vectores conocidos.
+
+**Y no hay umbral.** Se comparan los dos contrastes de verdad —blanco y tinta— y gana el mayor, que
+es lo que acierta también en los colores medios: un umbral en 0,5 de luminancia se equivoca justo
+donde caen los azules y los verdes de una paleta de disciplinas. La prueba lo recorre con siete
+colores, incluido el gris exacto de en medio.
+
+**El código va escrito y no solo el color**: uno de cada doce hombres no distingue rojo de verde, y
+un cuadrado suelto no identifica nada para él.
+
+### `F11.2` — «A · AR» no le dice nada a nadie
+
+Los cuadros de modelos que se pueden abrir decían `716-LCD-AGR-B rev. A1` y debajo
+`interferencias-a-proposito.ifc · A · AR`. Los dos códigos sueltos, sin decir de qué hablaban — y
+los dos son decisiones con consecuencias: la idoneidad dice **qué autoriza** esa revisión y la
+disciplina **de quién es**.
+
+Ahora la disciplina va en su distintivo y la idoneidad en una ficha con **su significado escrito**,
+que el modelo ya tenía (`A · Publicado y autorizado`). El nombre del archivo baja a la segunda
+línea, que es su sitio: dice de qué formato es, no qué se puede hacer con él.
+
+### `F11.3` — La marca sin placa, y la placa que duró una tarde
+
+El relleno del dibujo es `#1B2A4A`, que es **el mismo hexadecimal** que la barra del portal: 1,00:1.
+El primer intento fue ponerlo sobre una placa blanca — resolvía el contraste y creaba algo peor, un
+parche blanco que no pertenece a la paleta. Lo dijo el usuario mirándolo: «que la imagen coincida
+con los colores, en general no se ve bien».
+
+La solución es una **variante para fondo oscuro**: rellenos transparentes —así se adapta a cualquier
+superficie, porque lo transparente no tiene color con el que chocar— y el trazo en el acento del
+sistema. Medido sobre las tres superficies donde aparece: **6,79 / 7,80 / 7,46:1** contra 3,45 /
+3,96 / 3,79 del violeta de marca.
+
+> **Y una trampa de XML que costó una imagen rota:** un comentario de SVG **no puede contener dos
+> guiones seguidos**, así que escribir el nombre de un token con sus dos guiones delante deja el
+> archivo inválido y la marca sale como icono roto. El navegador no dice «SVG inválido», dice nada.
+
+### `F11.4` — La portada, y el mensaje para el equipo
+
+Era un formulario flotando en el medio de la pantalla. Ahora tiene dos mitades: a la derecha la
+puerta, a la izquierda **para qué sirve esto** —tres cosas, cada una empezando por un verbo, y las
+tres son cosas que el producto ya hace de punta a punta— y un mensaje para el equipo, que lo pidió
+el usuario:
+
+> «dejar un mensaje para el equipo motivandolo, que sea llamativo, buena onda»
+
+Se apila en una columna por debajo de 860 px, y **el formulario va primero en el HTML**: así en el
+móvil se entra sin bajar, y en el escritorio la rejilla lo coloca a la derecha.
+
+### `F11.7` — La ayuda, que el usuario pidió aparte
+
+> «una seccion de ayuda como usar el software con un recorrido o como usarlo»
+
+**Y hay una decisión antes de escribirla:** una página de ayuda que se escribe a mano se queda
+vieja a la tercera pantalla que cambia. Las dos formas de que eso no pase son un **recorrido guiado
+sobre la pantalla de verdad** —que envejece con ella porque señala elementos que existen— o una
+ayuda **generada de lo que el producto sabe hacer**. La primera es más útil y más trabajo. Va como
+decisión del usuario, no como elección nuestra.
 
 ---
 

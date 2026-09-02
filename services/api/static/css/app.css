@@ -121,22 +121,17 @@ a:hover {
 }
 
 /*
- * **La marca va sobre su propia placa clara, y es una necesidad medida y no un adorno.**
+ * **La marca, sin placa.** Aquí va `aerobim-mark-oscuro.svg`, que es la variante de trazo claro y
+ * rellenos transparentes: el `#1B2A4A` del dibujo original es **el mismo hexadecimal** que esta
+ * barra, así que el cuerpo del dron y las caras del cubo daban 1,00:1 y desaparecían.
  *
- * El relleno oscuro del dibujo es `#1B2A4A` y el fondo de esta barra es `--ab-navy`, que es
- * **exactamente el mismo hexadecimal**: contraste 1,00:1. Puesto directamente sobre la barra, el
- * cuerpo del dron y las caras del cubo desaparecen y solo quedan los trazos violetas — o sea media
- * marca. Sobre blanco se lee entera: el violeta da 4,1:1 y el relleno 14,2:1.
- *
- * La placa se pone aquí y no en el archivo porque **el archivo lo comparten el portal y el visor**,
- * y en la cinta del visor —fondo `--color-surface`, mucho más claro— el dibujo ya se ve. Cambiar el
- * SVG arreglaría un sitio y rompería el otro.
+ * **Antes hubo una placa blanca y se quitó.** Resolvía el contraste y creaba algo peor: un parche
+ * blanco que no pertenece a la paleta. La variante oscura resuelve las dos cosas — 6,79:1 el trazo
+ * sobre esta barra— y además se adapta a cualquier superficie, porque lo transparente no tiene
+ * color con el que chocar.
  */
 .barra .marca img {
   display: block;
-  padding: 3px;
-  border-radius: 6px;
-  background: #fff;
 }
 
 .barra .separador {
@@ -694,6 +689,291 @@ th.num {
 
 .pildora.ok {
   color: var(--ab-ok);
+}
+
+/* --- El distintivo de una disciplina ---------------------------------------------- */
+
+/*
+ * **Cada especialidad se reconoce por su color antes de leerse**, que es lo que permite recorrer
+ * una tabla de cuarenta entregables buscando arquitectura en vez de leyendo cuarenta filas.
+ *
+ * El color sale de la base —una sola copia— y **la letra la elige el servidor midiendo** la
+ * luminancia del fondo: ver `apps/projects/color.py`. Aquí no se decide ningún color, solo la forma.
+ *
+ * Y lleva **el código escrito** y no solo el color: uno de cada doce hombres no distingue rojo de
+ * verde, así que un cuadrado suelto no identifica nada para él.
+ */
+.distintivo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 6px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  white-space: nowrap;
+  /* Un filo interior para que el chip no se disuelva cuando su color se parece a la superficie. */
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 12%);
+}
+
+.distintivo-vacio {
+  background: var(--ab-surface-alt);
+  color: var(--ab-text-muted);
+  box-shadow: inset 0 0 0 1px var(--ab-border);
+}
+
+.distintivo-nombre {
+  margin-left: 8px;
+  color: var(--ab-text-secondary);
+}
+
+/* --- Los cinco acentos del portal ------------------------------------------------- */
+
+/*
+ * **El violeta es la marca, no el uniforme.** Pintar también con violeta los cinco grupos del
+ * portal dejaba una página de un solo color, y un solo color es lo que se lee como plano: nueve
+ * tarjetas idénticas de icono, título y dos líneas grises, sin nada que separe «proyecto» de
+ * «documentos» salvo un rótulo pequeño.
+ *
+ * Así que cada grupo lleva el suyo, y **los cinco están medidos** sobre las dos superficies del
+ * sistema —blanco en claro, `#1b2432` en oscuro—:
+ *
+ * | Grupo          | Claro     | Ratio | Oscuro    | Ratio |
+ * | -------------- | --------- | ----- | --------- | ----- |
+ * | proyecto       | `#5b3a9e` | 8,26  | `#c3a6f0` | 7,46  |
+ * | modelo         | `#0f6f78` | 5,89  | `#5fd3d8` | 8,77  |
+ * | documentos     | `#8a5a00` | 5,93  | `#f0b45e` | 8,47  |
+ * | coordinación   | `#0f7a5f` | 5,29  | `#5fd3ae` | 8,49  |
+ * | administración | `#3f5878` | 7,30  | `#9fb6d4` | 7,52  |
+ *
+ * El violeta se queda con «proyecto» porque es donde la marca corresponde. Y **el color no
+ * sustituye al rótulo**: el nombre del grupo sigue escrito, porque un color no se lee en voz alta
+ * ni lo distingue quien no distingue verde de rojo.
+ */
+.acento-0 {
+  --acento: #5b3a9e;
+}
+.acento-1 {
+  --acento: #0f6f78;
+}
+.acento-2 {
+  --acento: #8a5a00;
+}
+.acento-3 {
+  --acento: #0f7a5f;
+}
+.acento-4 {
+  --acento: #3f5878;
+}
+
+[data-theme="dark"] .acento-0 {
+  --acento: #c3a6f0;
+}
+[data-theme="dark"] .acento-1 {
+  --acento: #5fd3d8;
+}
+[data-theme="dark"] .acento-2 {
+  --acento: #f0b45e;
+}
+[data-theme="dark"] .acento-3 {
+  --acento: #5fd3ae;
+}
+[data-theme="dark"] .acento-4 {
+  --acento: #9fb6d4;
+}
+
+/* El rótulo del grupo con su marca de color: dos píxeles a la izquierda, no un fondo. Un fondo
+   convierte cada rótulo en un bloque y la página vuelve a pesar lo mismo en todas partes. */
+.grupo-acento {
+  padding-left: 10px;
+  border-left: 3px solid var(--acento);
+  color: var(--ab-text);
+}
+
+/*
+ * El icono de la tarjeta hereda el acento de su grupo, y va sobre su propia baldosa.
+ *
+ * **Es lo que hace que la tarjeta se reconozca sin leerla**, que es lo que sirve cuando ya te sabes
+ * la pantalla. El icono suelto al lado del título ya lo intentaba y no bastaba: a 20 px, un trazo
+ * del mismo color que el texto es una mancha más de la misma línea.
+ */
+.tarjetas .icono {
+  box-sizing: content-box;
+  width: 18px;
+  height: 18px;
+  padding: 6px;
+  border-radius: 8px;
+  color: var(--acento);
+  background: color-mix(in srgb, var(--acento) 14%, transparent);
+}
+
+/*
+ * **El gesto de pasar por encima ya existía y no se toca**: `a.tarjeta:hover` levanta la tarjeta y
+ * saca su franja, y está escrito con `a.` a propósito —una tarjeta sin enlace no debe prometer
+ * nada—. Lo único que se añade aquí es que el borde tome el acento **de su grupo** en vez del
+ * violeta para todos, que es de lo que trata esta pasada.
+ */
+a.tarjeta:hover {
+  border-color: color-mix(in srgb, var(--acento, var(--ab-primary)) 60%, var(--ab-border));
+}
+
+a.tarjeta:hover::before {
+  background: var(--acento, var(--ab-violet));
+}
+
+/* Y el acento asoma por el filo de arriba, que es lo que le da al conjunto su ritmo de color. */
+.tarjetas .tarjeta::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: var(--acento, var(--ab-primary));
+  opacity: 0.85;
+}
+
+/* --- La tarjeta de una obra: avance y lo que arde --------------------------------- */
+
+/*
+ * **Decía «Edificio corporativo · Anteproyecto · avance 1», que no es un dato**: es la etapa y un
+ * número sin unidad. Lo que se pregunta al abrir la puerta por la mañana es cuánto lleva la obra y
+ * si hay algo vencido, porque eso es lo que decide dónde entrar.
+ */
+.tarjetas-obra {
+  --acento: var(--ab-primary);
+}
+
+.obra-cabeza {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 2px;
+}
+
+.obra-codigo {
+  font-size: 1.06rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.obra-nombre {
+  color: var(--ab-text-secondary);
+  font-size: 0.92rem;
+  margin-bottom: 12px;
+}
+
+.avance {
+  height: 7px;
+  border-radius: 999px;
+  background: var(--ab-track);
+  overflow: hidden;
+}
+
+.avance-relleno {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--ab-primary);
+}
+
+.avance-cifra {
+  margin-top: 6px;
+  color: var(--ab-text-muted);
+  font-size: 0.8rem;
+}
+
+.avance-cifra b {
+  color: var(--ab-text);
+  font-size: 0.92rem;
+}
+
+.obra-cifras {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+/*
+ * Las cifras que importan, **con su palabra al lado y no solo con su color**. Y el cero no se
+ * dibuja en absoluto: «0 vencidas» es ruido en una puerta, y además hace que la tarjeta de una obra
+ * limpia parezca tener problemas.
+ */
+.cifra {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  padding: 3px 9px;
+  border: 1px solid var(--ab-border);
+  border-radius: 999px;
+  color: var(--ab-text-secondary);
+  font-size: 0.78rem;
+}
+
+.cifra b {
+  color: var(--ab-text);
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.cifra-arde {
+  border-color: color-mix(in srgb, var(--ab-danger) 55%, transparent);
+  color: var(--ab-danger);
+}
+
+.cifra-arde b {
+  color: var(--ab-danger);
+}
+
+.cifra-alta {
+  border-color: color-mix(in srgb, var(--ab-warn) 55%, transparent);
+  color: var(--ab-warn);
+}
+
+.cifra-alta b {
+  color: var(--ab-warn);
+}
+
+/* --- Fichas: un dato con su nombre, no un código suelto --------------------------- */
+
+/*
+ * **Existen porque «A · AR» no le dice nada a nadie.** Eran el código de idoneidad y el de la
+ * disciplina escritos sueltos en una tarjeta, y los dos son decisiones con consecuencias: la
+ * idoneidad dice qué autoriza esa revisión y la disciplina de quién es.
+ *
+ * Una ficha lleva **el dato con su significado**, no la abreviatura sola. Y son de contorno y no de
+ * relleno a propósito: el relleno lo tiene el distintivo de disciplina, que es lo único que debe
+ * cantar en la tarjeta — si todo llama la atención, no la llama nada.
+ */
+.fichas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0 6px;
+}
+
+.ficha {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border: 1px solid var(--ab-border);
+  border-radius: 999px;
+  color: var(--ab-text-secondary);
+  font-size: 0.76rem;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+/* La revisión vigente es el dato que se busca al elegir qué abrir: va con más peso. */
+.ficha-fuerte {
+  border-color: color-mix(in srgb, var(--ab-primary) 45%, transparent);
+  background: var(--ab-primary-soft);
+  color: var(--ab-primary);
+  font-weight: 650;
 }
 
 /* --- El paso a paso de un registro ------------------------------------------------ */

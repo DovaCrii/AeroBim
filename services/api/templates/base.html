@@ -40,13 +40,18 @@
       {% endcomment %}
       <a class="marca" href="/">
         {% comment %}
-          El tamaño incluye la placa: `box-sizing: border-box` mete el relleno dentro, así que con
-          28 px el dibujo se quedaba en 22 y la cabina del dron no se distinguía.
+          **La variante oscura, y sin placa.** La barra es navy en los dos temas, así que aquí va
+          siempre el dibujo de trazo claro: `aerobim-mark-oscuro.svg` deja los rellenos
+          transparentes —el `#1B2A4A` del original es el mismo color que esta barra— y lleva el
+          trazo en el acento, que da 6,79:1 en vez de 3,45:1.
+
+          La placa blanca que había antes se probó y se quitó: era un parche que no pertenecía a la
+          paleta, y se vio mirándolo en la pantalla.
 
           Y va con `{% comment %}` y no con `{# #}`: **el de las llaves es de una sola línea**, y
           uno de varias se imprime tal cual en la cabecera. Se vio en la pantalla.
         {% endcomment %}
-        <img src="{% static 'img/aerobim-mark.svg' %}" alt="" width="34" height="26" />
+        <img src="{% static 'img/aerobim-mark-oscuro.svg' %}" alt="" width="36" height="27" />
         AeroBim
       </a>
       <span class="separador"></span>

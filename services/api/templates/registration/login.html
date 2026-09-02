@@ -26,6 +26,8 @@
         --login-primary: #5b3a9e;
         --login-primary-hover: #472d7d;
         --login-danger: #c53b4d;
+        --login-primary-soft: #efe7fb;
+        --login-primary-ink: #472d7d;
       }
       @media (prefers-color-scheme: dark) {
         :root {
@@ -36,6 +38,8 @@
           --login-muted: #97a3b6;
           --login-primary: #c3a6f0;
           --login-primary-hover: #d5c2f6;
+          --login-primary-soft: #2a2140;
+          --login-primary-ink: #d5c2f6;
         }
       }
       * { box-sizing: border-box; }
@@ -59,20 +63,26 @@
       {% comment %}
         **La marca en la primera pantalla, que es donde más hace falta y donde no estaba.**
 
-        Y sobre placa clara, que **no es un adorno**: el relleno del dibujo es `#1B2A4A` y contra
-        los fondos oscuros del producto da 1,00:1 en la barra del portal, 1,10:1 en esta tarjeta en
-        modo oscuro y 1,15:1 en la cinta del visor. O sea que el cuerpo del dron y las caras del
-        cubo desaparecen y queda media marca. Sobre blanco se lee entera: 14,2:1 el relleno y
-        4,1:1 el trazo violeta.
+        Y en dos versiones según el tema, que **no es un adorno**: el relleno del dibujo original es
+        `#1B2A4A` y contra los fondos oscuros del producto da 1,00 / 1,10 / 1,15:1, o sea que el
+        cuerpo del dron y las caras del cubo desaparecen y queda media marca. La variante oscura
+        deja esos rellenos transparentes y lleva el trazo en el acento: 7,46:1 sobre esta tarjeta.
+
+        Hubo una placa blanca en medio y se quitó: resolvía el contraste y ponía un parche que no
+        pertenece a la paleta.
       {% endcomment %}
       .marca {
         display: block;
-        width: 48px;
-        height: 37px;
+        width: 52px;
+        height: 39px;
         margin-bottom: 14px;
-        padding: 3px;
-        border-radius: 8px;
-        background: #fff;
+      }
+      /* La del sistema no se puede elegir cambiando el `src` desde CSS, así que van las dos y
+         sobra la que no toca. */
+      .solo-oscuro { display: none; }
+      @media (prefers-color-scheme: dark) {
+        .solo-claro { display: none; }
+        .solo-oscuro { display: block; }
       }
       h1 { margin: 0 0 4px; font-size: 1.35rem; }
       p.sub { margin: 0 0 22px; color: var(--login-muted); font-size: 0.92rem; }
@@ -109,12 +119,103 @@
         font-size: 0.9rem;
       }
       .pie { margin: 20px 0 0; color: var(--login-muted); font-size: 0.82rem; }
+
+      {% comment %}
+        **La portada dejó de ser una tarjeta sola en el medio.** Es la primera pantalla y era un
+        formulario flotando: ahora hay dos mitades — a la izquierda quién eres y para qué sirve
+        esto, a la derecha la puerta.
+
+        Se apila en una columna por debajo de 860 px, que es donde la de la izquierda deja de tener
+        sitio para respirar. Y el orden en el HTML es **el formulario primero**: así en el móvil se
+        entra sin bajar, y en el escritorio la rejilla lo coloca a la derecha con `order`.
+      {% endcomment %}
+      .portada {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 380px;
+        gap: 56px;
+        align-items: center;
+        width: min(920px, calc(100vw - 48px));
+      }
+      .portada .tarjeta { order: 2; }
+      .presenta { order: 1; }
+
+      @media (max-width: 860px) {
+        .portada {
+          grid-template-columns: minmax(0, 1fr);
+          gap: 28px;
+          width: min(420px, calc(100vw - 32px));
+        }
+        .portada .tarjeta { order: 1; }
+        .presenta { order: 2; }
+      }
+
+      .presenta h2 {
+        margin: 0 0 10px;
+        font-size: clamp(1.6rem, 3.4vw, 2.3rem);
+        line-height: 1.15;
+        letter-spacing: -0.01em;
+      }
+      /* El verbo de la frase en el violeta de acción: es lo que la hace leerse como una idea y no
+         como un eslogan. */
+      .presenta h2 em { color: var(--login-primary); font-style: normal; }
+      .presenta p { margin: 0 0 22px; color: var(--login-muted); max-width: 46ch; }
+
+      {% comment %}
+        **Las tres cosas que el equipo hace aquí**, y no una lista de funciones. Cada una empieza
+        por un verbo porque lo que se recuerda de una herramienta es lo que te deja hacer.
+
+        El punto de color va con el token de acento y **no** sustituye al texto: es un ancla para la
+        vista al recorrerlas, no la información.
+      {% endcomment %}
+      .presenta ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 12px; }
+      .presenta li {
+        display: grid;
+        grid-template-columns: 26px minmax(0, 1fr);
+        align-items: start;
+        gap: 12px;
+        font-size: 0.94rem;
+      }
+      .presenta li b { display: block; }
+      .presenta li span { color: var(--login-muted); font-size: 0.88rem; }
+      .presenta .punto {
+        width: 26px;
+        height: 26px;
+        border-radius: 8px;
+        display: grid;
+        place-items: center;
+        background: var(--login-primary-soft);
+        color: var(--login-primary-ink);
+        font-size: 0.82rem;
+        font-weight: 700;
+      }
+
+      /* El guiño para el equipo. Va al final y en pequeño: acompaña, no grita. */
+      .animo {
+        margin: 26px 0 0;
+        padding-top: 18px;
+        border-top: 1px solid var(--login-border);
+        color: var(--login-muted);
+        font-size: 0.86rem;
+        max-width: 46ch;
+      }
+      .animo b { color: var(--login-text); }
     </style>
   </head>
   <body>
-    <form class="tarjeta" method="post">
+    <div class="portada">
+      <form class="tarjeta" method="post">
       {% csrf_token %}
-      <img class="marca" src="{% static 'img/aerobim-mark.svg' %}" alt="" />
+      {% comment %}
+        La marca en sus dos versiones y una escondida según el tema: **la del sistema no se puede
+        elegir desde CSS cambiando el `src`**, así que van las dos y sobra la que no toca. Son
+        cinco kilobytes entre las dos.
+
+        La oscura tiene los rellenos transparentes porque el `#1B2A4A` del dibujo es el mismo color
+        que las superficies oscuras del producto; la clara es la original, que sobre blanco se lee
+        entera.
+      {% endcomment %}
+      <img class="marca solo-claro" src="{% static 'img/aerobim-mark.svg' %}" alt="" />
+      <img class="marca solo-oscuro" src="{% static 'img/aerobim-mark-oscuro.svg' %}" alt="" />
       <h1>AeroBim</h1>
       <p class="sub">{% translate "Model, plans and document control." %}</p>
 
@@ -152,6 +253,53 @@
       <p class="pie">
         {% translate "There is no self sign-up: an administrator creates the accounts." %}
       </p>
-    </form>
+      </form>
+
+      {% comment %}
+        **La otra mitad de la portada: para qué sirve esto y quién lo usa.**
+
+        Tres cosas y no una lista de funciones, y cada una empieza por un verbo: lo que se recuerda
+        de una herramienta es lo que te deja hacer. Son las tres que el producto ya sabe hacer de
+        punta a punta —abrir el modelo, cruzarlo y sacarlo en papel—, así que ninguna promete nada
+        que no esté.
+      {% endcomment %}
+      <div class="presenta">
+        <h2>{% blocktranslate %}The model, the drawings and the site <em>on one screen</em>.{% endblocktranslate %}</h2>
+        <p>
+          {% blocktranslate %}Nothing to install, and the project does not go up to anybody's
+          cloud: the models open in the browser and the files stay in the house.{% endblocktranslate %}
+        </p>
+        <ul>
+          <li>
+            <span class="punto">1</span>
+            <span>
+              <b>{% translate "Open the model from its own record" %}</b>
+              <span>{% translate "The IFC and the DXF already in the register, one click and no hunting for the file." %}</span>
+            </span>
+          </li>
+          <li>
+            <span class="punto">2</span>
+            <span>
+              <b>{% translate "Cross the disciplines and hand out what clashes" %}</b>
+              <span>{% translate "Neighbouring conflicts arrive as one problem, not as thirty-five rows." %}</span>
+            </span>
+          </li>
+          <li>
+            <span class="punto">3</span>
+            <span>
+              <b>{% translate "Take it out on paper or as BCF" %}</b>
+              <span>{% translate "A report on the company letterhead, or the file the client's software opens." %}</span>
+            </span>
+          </li>
+        </ul>
+
+        <p class="animo">
+          {% blocktranslate %}<b>We built this for the team.</b> Every finding you write down saves
+          somebody a trip to site, and every model you upload saves half a morning for whoever comes
+          next. Thanks for using it — and if something gets in the way, say so: it gets
+          fixed.{% endblocktranslate %}
+        </p>
+      </div>
+    </div>
   </body>
 </html>

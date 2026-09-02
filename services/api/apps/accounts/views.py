@@ -63,13 +63,57 @@ class PortalView(LoginRequiredMixin, TemplateView):
         # **Las obras con lo que cada una necesita.** Solo si el rol puede leerlas: si no, la
         # sección no existe en vez de aparecer vacía.
         if usuario.has_perm("projects.view_proyecto"):
-            contexto["mis_proyectos"] = (
+            proyectos = list(
                 scope_queryset_to_organizacion(Proyecto.objects.all(), usuario)
                 .filter(is_active=True)
                 .exclude(status=Proyecto.ETAPA_CERRADO)
                 .prefetch_related("entregables__revisiones")
                 .order_by("codigo")[:6]
             )
+            self._cifras_de_obra(proyectos, usuario)
+            contexto["mis_proyectos"] = proyectos
+
+    def _cifras_de_obra(self, proyectos: list, usuario) -> None:
+        """Le cuelga a cada obra **lo que hace que su tarjeta sirva**: avance y lo que arde.
+
+        **La tarjeta decía «Edificio corporativo · Anteproyecto · avance 1» y eso no es un dato**:
+        es la etapa y un número sin unidad. Lo que se quiere saber al mirar la puerta por la mañana
+        es cuánto lleva la obra y si hay algo vencido, que es lo que decide dónde entrar.
+
+        **Una consulta para todas las obras y no una por obra.** Con seis tarjetas la diferencia no
+        se nota; el día que la lista sea de treinta, sí — y entonces el defecto está escrito en un
+        bucle que nadie mira.
+        """
+        from django.db.models import Count, Q
+        from django.utils import timezone
+
+        from apps.documents.models import Observacion
+
+        for proyecto in proyectos:
+            proyecto.avance_pct = round(proyecto.avance_fisico * 100)
+
+        if not usuario.has_perm("documents.view_observacion"):
+            # Sin permiso de lectura no se cuentan hallazgos: la tarjeta enseña el avance y nada
+            # más, que es exactamente lo que ese rol puede saber.
+            return
+
+        hoy = timezone.localdate()
+        abiertas = ~Q(estado__in=(Observacion.CERRADA, Observacion.DESCARTADA))
+        cuentas = {
+            fila["proyecto"]: fila
+            for fila in Observacion.objects.filter(proyecto__in=proyectos)
+            .values("proyecto")
+            .annotate(
+                abiertas=Count("pk", filter=abiertas),
+                vencidas=Count("pk", filter=abiertas & Q(vence__lt=hoy)),
+                altas=Count("pk", filter=abiertas & Q(prioridad=Observacion.ALTA)),
+            )
+        }
+        for proyecto in proyectos:
+            fila = cuentas.get(proyecto.pk, {})
+            proyecto.abiertas = fila.get("abiertas", 0)
+            proyecto.vencidas = fila.get("vencidas", 0)
+            proyecto.altas = fila.get("altas", 0)
 
     #: El icono de cada entrada, por su ruta. **Va aparte de la definición a propósito**: la
     #: matriz de módulos se lee para saber quién ve qué, y meterle una sexta columna de dibujo
