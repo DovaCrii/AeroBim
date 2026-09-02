@@ -126,11 +126,17 @@ class ProyectoView(ModelViewPermissionRequiredMixin, OrganizacionScopedQuerysetM
 
         # **Las observaciones abiertas, y las del modelo aparte.** Son dos trabajos distintos: una
         # anclada al GUID de una viga se resuelve en el visor, y una sobre un PDF en el documento.
+        # **Por peso de prioridad y no por el campo**: los valores guardados son palabras, así que
+        # `order_by("prioridad")` devuelve alta, **baja**, media. Ver `apps/documents/orden.py`.
+        from apps.documents.orden import anotaciones
+
         abiertas = (
             Observacion.objects.filter(proyecto=proyecto)
             .exclude(estado__in=(Observacion.CERRADA, Observacion.DESCARTADA))
             .select_related("responsable", "autor", "revision__entregable")
-            .order_by("prioridad", "vence")
+            .prefetch_related("etiquetas")
+            .annotate(**anotaciones())
+            .order_by("orden_prioridad", "vence")
         )
         contexto["observaciones"] = abiertas
         contexto["observaciones_del_modelo"] = [o for o in abiertas if o.ifc_guid]
@@ -165,6 +171,10 @@ class ProyectoView(ModelViewPermissionRequiredMixin, OrganizacionScopedQuerysetM
         # algo abierto: el informe de cierre de una etapa se saca cuando ya no queda nada abierto,
         # que es justo cuando el botón habría desaparecido.
         contexto["puede_ver_observaciones"] = usuario.has_perm("documents.view_observacion")
+        # **El vocabulario de la obra, para poder pedir el informe por etiqueta** — `F10.1`. Va
+        # aquí y no en la plantilla porque la plantilla no consulta la base: son las etiquetas de
+        # este proyecto, y las de otro no pueden aparecer en este desplegable.
+        contexto["etiquetas"] = list(self.object.etiquetas.filter(is_active=True))
 
         # **Revisar interferencias necesita dos modelos y el permiso de abrir observaciones**, que
         # es lo que la corrida crea. Con un solo modelo el botón no se dibuja: no hay nada contra

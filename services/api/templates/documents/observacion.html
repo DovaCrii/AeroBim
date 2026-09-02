@@ -1,23 +1,37 @@
 {% extends "base.html" %}
-{% load i18n %}
+{% load i18n disciplinas tiempo %}
 
 {% block titulo %}{{ observacion.titulo }} · AeroBim{% endblock %}
 
 {% block contenido %}
   {% comment %}
-    **Aquí se perdía el hilo.** `F11.6`. Se pinchaba un hallazgo en la lista de la obra y se caía en
-    una página que no decía **dónde estás** ni **en qué punto va**: el título, una línea de
-    metadatos, un hilo vacío y dos formularios. El usuario lo dijo así: «no se entiende el
-    seguimiento, el flujo se pierde».
+    **El flujo de esta pantalla no se entendía, y el usuario lo dijo dos veces.** Primero: «al
+    momento de pinchar lleva al comentario y no se entiende el seguimiento; el flujo se pierde».
+    Después, ya con las migas y el paso a paso puestos: «este flujo no es práctico ni comprensible y
+    se ve mal distribuido».
 
-    Tres cosas lo arreglan y ninguna es decoración:
+    Y tenía razón: era **una columna con cuatro secciones apiladas** —hilo, responder, etiquetas,
+    cerrar— todas con el mismo peso y el mismo aspecto, en un monitor de 1900 px donde sobraban mil.
+    Quien entra a un hallazgo hace una de dos cosas: **leer de qué va** o **hacer algo con él**, y
+    las dos estaban mezcladas en la misma cola vertical.
 
-    1. **Las migas**, para saber de dónde vienes y poder volver. Sin ellas, la única salida era el
-       botón atrás del navegador.
-    2. **El paso a paso**, que dice de dónde viene el hallazgo y qué falta. Sale de
-       `StatusFlowMixin`, así que **no se puede separar de los estados reales**: si mañana se añade
-       un estado, el dibujo lo trae solo.
-    3. **La descripción arriba y no debajo de los metadatos**, que es lo que se lee primero.
+    Así que la pantalla se parte en dos, que es lo que hacen los gestores de incidencias que se usan
+    de verdad —y `OpenProject BIM` en particular, que es la referencia que el usuario pidió mirar:
+
+    - **A la izquierda, la conversación**: de qué va, qué se ha dicho, y responder. Es lo que se lee
+      de arriba abajo, en una sola columna de lectura.
+    - **A la derecha, la ficha**: en qué punto va, de quién es, sobre qué está, cómo está
+      clasificado y cómo se cierra. Son **datos y acciones**, no lectura, y por eso no se meten en
+      medio del hilo.
+
+    Dos cosas más que hacían que se viera mal distribuida, y no eran de estructura:
+
+    1. **La etiqueta del campo iba al lado de la caja de texto**, no encima: `as_p` de Django pone
+       `<label>` y `<textarea>` en la misma línea, y con una caja alta el «Comentario:» quedaba
+       flotando a media altura a su izquierda. Se pintan los campos a mano.
+    2. **Cerrar tenía el mismo aspecto que responder.** Responder es lo que se hace todos los días
+       y cerrar es lo que se hace una vez; con los dos como bloques iguales, el último es el que
+       parece el principal por estar abajo.
   {% endcomment %}
   <nav class="migas" aria-label="{% translate 'Where you are' %}">
     <a href="{% url 'portal' %}">{% translate "Portal" %}</a>
@@ -28,87 +42,184 @@
       </a>
     {% endif %}
     <span aria-hidden="true">›</span>
+    {% comment %}
+      La miga dice el nombre de la pantalla a la que lleva, no un sinónimo: si el portal y el
+      encabezado de ahí dicen «Observaciones», la miga no puede decir otra cosa.
+    {% endcomment %}
     <a href="{% url 'documents:observaciones' %}">{% translate "Observations" %}</a>
     <span aria-hidden="true">›</span>
     <span aria-current="page">{{ observacion.titulo|truncatechars:48 }}</span>
   </nav>
 
-  <h1>{{ observacion.titulo }}</h1>
-  <p class="subtitulo">
-    {% translate "owner" %}: {{ observacion.responsable }} ·
-    {% translate "opened by" %} {{ observacion.autor }}
-    {% if observacion.vence %}· {% translate "due" %} {{ observacion.vence|date:"Y-m-d" }}{% endif %}
-    {% if observacion.vencida %}<strong>⚠ {% translate "overdue" %}</strong>{% endif %}
-  </p>
+  <div class="hallazgo-cabeza">
+    <span class="pildora pildora-prioridad {{ observacion.prioridad }}">{{ observacion.get_prioridad_display }}</span>
+    <h1>{{ observacion.titulo }}</h1>
+  </div>
 
-  {% include "generic/_pasos.html" with pasos=observacion.status_steps etiqueta=_("Where this finding stands") %}
+  <div class="hallazgo">
+    {# --- La conversación: de qué va, qué se ha dicho, y responder ------------------ #}
+    <div class="hallazgo-cuerpo">
+      {% if observacion.descripcion %}
+        <div class="hallazgo-descripcion">{{ observacion.descripcion|linebreaksbr }}</div>
+      {% else %}
+        <div class="vacio">
+          {% blocktranslate %}Nobody wrote what the problem is: only the title. If you know, say it
+          in the thread.{% endblocktranslate %}
+        </div>
+      {% endif %}
 
-  {% if observacion.descripcion %}<p>{{ observacion.descripcion|linebreaksbr }}</p>{% endif %}
+      {% comment %}
+        **El hilo como conversación y no como tabla.** Eran dos celdas —autor a la izquierda, texto
+        a la derecha— y una respuesta de dos líneas salía con media fila vacía al lado. Y quien
+        escribió se distingue de quien no: los mensajes de esta persona van al otro lado.
+      {% endcomment %}
+      <p class="grupo">
+        {% blocktranslate count total=comentarios|length %}Thread · one message{% plural %}Thread ·
+        {{ total }} messages{% endblocktranslate %}
+      </p>
+      <ol class="hilo">
+        {% for comentario in comentarios %}
+          <li class="mensaje {% if comentario.autor == request.user %}mio{% endif %}">
+            <div class="mensaje-quien">
+              {{ comentario.autor }}
+              <span class="tenue">
+                {% blocktranslate with cuando=comentario.created_at|antiguedad %}{{ cuando }}
+                ago{% endblocktranslate %}
+              </span>
+            </div>
+            <div class="mensaje-texto">{{ comentario.texto|linebreaksbr }}</div>
+          </li>
+        {% empty %}
+          <li class="vacio">
+            {% blocktranslate %}Nothing said yet. The thread is what explains, six months later, why
+            this ended up the way it did.{% endblocktranslate %}
+          </li>
+        {% endfor %}
+      </ol>
 
-  {% if observacion.revision %}
-    <p>
-      {% translate "On" %}:
-      <a href="{% url 'documents:expediente' observacion.revision.entregable.pk %}">
-        {{ observacion.revision.entregable.codigo }} rev. {{ observacion.revision.correlativo }}
-      </a>
-      {% if observacion.pagina %}· {% translate "page" %} {{ observacion.pagina }}{% endif %}
-    </p>
-  {% elif observacion.ifc_guid %}
-    {# El GUID de IFC es la identidad, y es lo que viaja en un BCF. #}
-    <p>{% translate "On the model" %}: <code>{{ observacion.ifc_guid }}</code></p>
-  {% endif %}
-
-  {% if observacion.estado == "cerrada" %}
-    <div class="vacio">
-      <strong>{% translate "Closed" %}</strong> {{ observacion.cerrada_en|date:"Y-m-d H:i" }}
-      {% translate "by" %} {{ observacion.cerrada_por }}.<br />
-      {{ observacion.resolucion|linebreaksbr }}
+      {% if puede_comentar %}
+        {# El campo a lo ancho y con su rótulo encima: ver el comentario de arriba. #}
+        <form class="bloque-campo" method="post"
+              action="{% url 'documents:comentar-observacion' observacion.pk %}">
+          {% csrf_token %}
+          <label for="{{ form_comentario.texto.id_for_label }}">
+            {% translate "Answer this finding" %}
+          </label>
+          {{ form_comentario.texto }}
+          <div class="bloque-pie">
+            <button type="submit">{% translate "Post to the thread" %}</button>
+            <span class="detalle">
+              {% blocktranslate %}Answering leaves it <b>answered</b>, not closed: closing is for
+              whoever opened it.{% endblocktranslate %}
+            </span>
+          </div>
+        </form>
+      {% endif %}
     </div>
-  {% endif %}
 
-  <p class="grupo">{% translate "Thread" %}</p>
-  <table>
-    <tbody>
-      {% for comentario in comentarios %}
-        <tr>
-          <td style="width: 220px">
-            {{ comentario.autor }}<br />
-            <small>{{ comentario.created_at|date:"Y-m-d H:i" }}</small>
-          </td>
-          <td>{{ comentario.texto|linebreaksbr }}</td>
-        </tr>
-      {% empty %}
-        <tr>
-          <td>{% translate "Nothing said yet." %}</td>
-        </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+    {# --- La ficha: en qué punto va, de quién es, y qué se puede hacer ------------- #}
+    <aside class="hallazgo-lado" aria-label="{% translate 'This finding at a glance' %}">
+      <section class="lado-bloque">
+        <h2>{% translate "Where this finding stands" %}</h2>
+        {% include "generic/_pasos.html" with pasos=observacion.status_steps vertical=True etiqueta=_("Where this finding stands") %}
+        {% if observacion.estado == "cerrada" %}
+          <p class="detalle">
+            {% blocktranslate with cuando=observacion.cerrada_en|date:"Y-m-d" quien=observacion.cerrada_por %}Closed
+            on {{ cuando }} by {{ quien }}.{% endblocktranslate %}
+          </p>
+          <p>{{ observacion.resolucion|linebreaksbr }}</p>
+        {% endif %}
+      </section>
 
-  {% comment %}
-    Los dos formularios van solo si el usuario puede ejecutarlos. Ofrecer un boton que
-    termina en 403 es peor que no ofrecerlo.
-  {% endcomment %}
-  {% if puede_comentar %}
-    <p class="grupo">{% translate "Answer" %}</p>
-    <form method="post" action="{% url 'documents:comentar-observacion' observacion.pk %}" style="max-width: 560px">
-      {% csrf_token %}
-      {{ form_comentario.as_p }}
-      <button type="submit">{% translate "Post" %}</button>
-    </form>
-  {% endif %}
+      <section class="lado-bloque">
+        <h2>{% translate "Who and when" %}</h2>
+        <dl class="datos-lado">
+          <dt>{% translate "Owner" %}</dt>
+          <dd>{{ observacion.responsable }}</dd>
+          <dt>{% translate "Opened by" %}</dt>
+          <dd>{{ observacion.autor }}</dd>
+          <dt>{% translate "Due" %}</dt>
+          <dd>
+            {% if observacion.vence %}
+              {% if observacion.vencida %}
+                <span class="cifra cifra-arde">
+                  {% translate "overdue" context "tarjeta de obra" %}
+                  {{ observacion.vence|date:"d-m-Y" }}
+                </span>
+              {% else %}{{ observacion.vence|date:"d-m-Y" }}{% endif %}
+            {% else %}
+              <span class="tenue">
+                {% blocktranslate with cuando=observacion.created_at|antiguedad %}no date · opened
+                {{ cuando }} ago{% endblocktranslate %}
+              </span>
+            {% endif %}
+          </dd>
+          <dt>{% translate "On" %}</dt>
+          <dd>
+            {% if observacion.revision %}
+              <a href="{% url 'documents:expediente' observacion.revision.entregable.pk %}">
+                {{ observacion.revision.entregable.codigo }} rev. {{ observacion.revision.correlativo }}
+              </a>
+              {% if observacion.pagina %}
+                <span class="tenue">· {% translate "page" %} {{ observacion.pagina }}</span>
+              {% endif %}
+            {% elif observacion.ifc_guid %}
+              {# El GUID de IFC es la identidad, y es lo que viaja en un BCF. #}
+              <span class="tenue">{% translate "an element of the model" %}</span><br />
+              <code class="guid">{{ observacion.ifc_guid }}</code>
+            {% else %}
+              <span class="tenue">{% translate "the project, with nothing pinned" %}</span>
+            {% endif %}
+          </dd>
+        </dl>
+      </section>
 
-  {% if puede_cerrar and observacion.estado != "cerrada" %}
-    <p class="grupo">{% translate "Close" %}</p>
-    <p class="subtitulo">
-      {% blocktranslate %}An observation is not closed without saying how it was resolved: that is
-      what tells a resolved one apart from one somebody ticked to bring the count
-      down.{% endblocktranslate %}
-    </p>
-    <form method="post" action="{% url 'documents:cerrar-observacion' observacion.pk %}" style="max-width: 560px">
-      {% csrf_token %}
-      {{ form_cierre.as_p }}
-      <button type="submit">{% translate "Close observation" %}</button>
-    </form>
-  {% endif %}
+      {% if etiquetas or hay_etiquetas %}
+        <section class="lado-bloque">
+          <h2>{% translate "Tags" %}</h2>
+          {% if etiquetas %}
+            <p class="etiquetas">
+              {% for una in etiquetas %}{% marca_etiqueta una %}{% endfor %}
+            </p>
+          {% endif %}
+          {% if puede_cerrar and hay_etiquetas %}
+            {% comment %}
+              **Casillas y no texto libre** — `F10.1`: el vocabulario lo define la obra, porque un
+              texto libre se fragmenta a la tercera semana y entonces filtrar deja de encontrar. Y
+              va en la ficha y no en el cuerpo: es una propiedad del hallazgo, no parte del hilo.
+            {% endcomment %}
+            <form method="post" action="{% url 'documents:etiquetar-observacion' observacion.pk %}">
+              {% csrf_token %}
+              {{ form_etiquetas.etiquetas }}
+              <button type="submit" class="secundario">{% translate "Save tags" %}</button>
+            </form>
+            <p class="detalle">
+              {% blocktranslate %}What it is about beyond its discipline. The report can then be
+              asked for by tag.{% endblocktranslate %}
+            </p>
+          {% endif %}
+        </section>
+      {% endif %}
+
+      {% if puede_cerrar and observacion.estado != "cerrada" %}
+        {# Cerrar va al final y en tono menor: se hace una vez, no todos los días. #}
+        <section class="lado-bloque lado-cierre">
+          <h2>{% translate "Close it" %}</h2>
+          <p class="detalle">
+            {% blocktranslate %}Saying how it was resolved is what tells a solved finding apart from
+            one somebody ticked to bring the count down.{% endblocktranslate %}
+          </p>
+          <form class="bloque-campo" method="post"
+                action="{% url 'documents:cerrar-observacion' observacion.pk %}">
+            {% csrf_token %}
+            <label for="{{ form_cierre.resolucion.id_for_label }}">
+              {% translate "How it was resolved" %}
+            </label>
+            {{ form_cierre.resolucion }}
+            <button type="submit" class="secundario">{% translate "Close finding" %}</button>
+          </form>
+        </section>
+      {% endif %}
+    </aside>
+  </div>
 {% endblock %}

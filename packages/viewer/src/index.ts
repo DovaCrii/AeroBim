@@ -1436,6 +1436,20 @@ export class BimViewer {
   /** Un clon translúcido por material de origen, para no subir miles a la GPU. */
   private readonly clonesDeFantasma = new Map<THREE.Material, THREE.Material>();
   /**
+   * El camino de vuelta: de un clon translúcido al material opaco del que salió.
+   *
+   * **Y a diferencia de {@link clonesDeFantasma}, este no se vacía nunca.** Es lo que arregla el
+   * fantasma que se quedaba pegado: Fragments crea mallas nuevas al cambiar el nivel de detalle y
+   * les pone el material que encuentra, que puede ser un clon translúcido nuestro. Esas mallas
+   * llegan **después** de {@link despintar}, así que no están en {@link pinturaPropia} y nadie las
+   * devolvía a sólido: quedaban en fantasma para siempre, y el cambio de proyección —que rehace
+   * las mallas del nivel de detalle— era el momento en que se veía.
+   *
+   * Con este mapa, cualquier malla que aparezca vistiendo un clon se puede devolver a su original
+   * en cualquier momento, aunque nadie recuerde habérselo puesto.
+   */
+  private readonly originalDeClon = new Map<THREE.Material, THREE.Material>();
+  /**
    * Los materiales que hubo que pintar **en su sitio** por no dejarse clonar, y cómo estaban.
    *
    * Son los del nivel de detalle de Fragments. Ver {@link pinturaDe}.
@@ -1672,7 +1686,7 @@ export class BimViewer {
       this.presupuestoDePintura = REPINTADOS_POR_GESTO;
 
       if (this.renderStyle === "wireframe" || this.selection !== null) void this.applyHighlights();
-      else void this.fragments.core.update(true);
+      else void this.refresh();
     });
 
     // Solo se cuelga el modelo de la escena. El refresco lo hace `loadIfc` cuando la
@@ -1711,10 +1725,18 @@ export class BimViewer {
    * visto, el {@link REPINTADOS_POR_GESTO} pone un techo por gesto.
    */
   private async repintarGeometriaNueva(): Promise<void> {
-    // En vista sólida el material original **es** el correcto: no hay nada que tapar.
-    if (this.disposed || this.loading || this.renderStyle !== "wireframe") return;
+    if (this.disposed || this.loading) return;
     // El refresco del repintado dispara este mismo evento; atenderlo aquí sería morderse la cola.
     if (this.applyingHighlights || this.repintandoPorVista) return;
+
+    // **En vista sólida hay trabajo simétrico que hacer, y no hacerlo era el defecto.** El material
+    // original es el correcto, sí, pero la geometría nueva puede nacer **vistiendo un clon
+    // translúcido nuestro**, y entonces se queda en fantasma para siempre. Ver
+    // {@link limpiarFantasmaResidual}.
+    if (this.renderStyle !== "wireframe") {
+      await this.limpiarFantasmaResidual();
+      return;
+    }
 
     const antes = this.paintAudit.solid;
     if (antes === 0) {
@@ -1730,6 +1752,40 @@ export class BimViewer {
       // siguiente aviso vuelve a tener el cupo entero: acercarse a un modelo grande trae geometría
       // en muchas tandas, y cada tanda merece su intento.
       if (this.paintAudit.solid >= antes) this.presupuestoDePintura -= 1;
+      else this.presupuestoDePintura = REPINTADOS_POR_GESTO;
+    } finally {
+      this.repintandoPorVista = false;
+    }
+  }
+
+  /**
+   * Quita el fantasma que quedó pegado en vista sólida, y sabe cuándo parar.
+   *
+   * **Es la mitad que faltaba de `F1.15`.** Entrar en la vista fantasma tenía su bucle —
+   * {@link repintarGeometriaNueva}, que insiste hasta que no queda nada opaco— y **salir no tenía
+   * nada equivalente**: se despintaba una vez y las mallas que el nivel de detalle creara después
+   * nacían con un clon translúcido, sin nadie que las devolviera. El usuario lo vio al cambiar de
+   * proyección, que es justo lo que rehace esas mallas: «sigue el fantasma al pasar a ortográfica».
+   *
+   * El oráculo es el mismo y por eso es fiable: {@link paintAudit} cuenta las mallas que llevan
+   * puesta la pintura del fantasma, y en vista sólida **eso tiene que ser cero**. La condición de
+   * parada sale de la escena, no de una suposición sobre cuántas pasadas hacen falta, y el
+   * presupuesto por gesto pone el techo por si algún material no se deja devolver.
+   */
+  private async limpiarFantasmaResidual(): Promise<void> {
+    const antes = this.paintAudit.ghosted;
+    if (antes === 0) {
+      this.presupuestoDePintura = REPINTADOS_POR_GESTO;
+      return;
+    }
+    if (this.presupuestoDePintura <= 0) return;
+
+    this.repintandoPorVista = true;
+    try {
+      this.quitarClonesHuerfanos();
+      await this.fragments.core.update(true);
+      // Igual que al entrar: solo se gasta presupuesto cuando la pasada **no sirvió**.
+      if (this.paintAudit.ghosted >= antes) this.presupuestoDePintura -= 1;
       else this.presupuestoDePintura = REPINTADOS_POR_GESTO;
     } finally {
       this.repintandoPorVista = false;
@@ -2357,10 +2413,25 @@ export class BimViewer {
     pintado.side = THREE.DoubleSide;
     pintado.needsUpdate = true;
     this.clonesDeFantasma.set(origen, pintado);
+    // El camino de vuelta, que no se borra: ver {@link originalDeClon}. Solo si de verdad es un
+    // clon — cuando el material no se deja clonar, `pintado` **es** `origen` y apuntarlo a sí mismo
+    // haría que despintar lo dejara translúcido creyendo haberlo arreglado.
+    if (pintado !== origen) this.originalDeClon.set(pintado, origen);
     return pintado;
   }
 
-  /** Deshace {@link completarPintura}: repone los materiales y devuelve los que se tocaron en su sitio. */
+  /**
+   * Deshace {@link completarPintura}: repone los materiales y devuelve los que se tocaron en su sitio.
+   *
+   * **Y barre además las mallas que nadie apuntó**, que es lo que arregla el fantasma pegado. El
+   * usuario lo dijo así: «sigue el fantasma al pasar a ortográfica». Cierto, y la causa no era la
+   * proyección: cambiar de proyección **rehace las mallas del nivel de detalle**, y algunas nacen
+   * vistiendo un clon translúcido nuestro. Como llegan después de que esto corriera, no estaban en
+   * `pinturaPropia` y nada las devolvía a sólido.
+   *
+   * Entrar en la vista fantasma sí tenía ese bucle —{@link repintarGeometriaNueva}, con su
+   * presupuesto y su oráculo— y salir no tenía nada equivalente. La asimetría era el defecto.
+   */
   private despintar(): void {
     for (const [malla, original] of this.pinturaPropia) malla.material = original;
     this.pinturaPropia.clear();
@@ -2374,6 +2445,42 @@ export class BimViewer {
     }
     this.pinturaEnSitio.clear();
     this.clonesDeFantasma.clear();
+    this.quitarClonesHuerfanos();
+  }
+
+  /**
+   * Devuelve a su material original cualquier malla que haya aparecido vistiendo un clon translúcido.
+   *
+   * Recorre las mallas —el mismo recorrido que hace {@link completarPintura}, así que cuesta lo
+   * mismo— y consulta {@link originalDeClon}, que nunca se vacía. Sin esto, una malla creada por el
+   * nivel de detalle **después** de salir del fantasma se quedaba translúcida sin que ningún mapa
+   * supiera de ella.
+   */
+  private quitarClonesHuerfanos(): void {
+    if (this.originalDeClon.size === 0) return;
+
+    for (const [, model] of this.fragments.list) {
+      model.object.traverse((objeto) => {
+        const malla = objeto as THREE.Mesh;
+        if (!malla.isMesh) return;
+
+        const puesto = malla.material;
+        if (Array.isArray(puesto)) {
+          let cambio = false;
+          const vueltos = puesto.map((material) => {
+            const original = this.originalDeClon.get(material);
+            if (original === undefined) return material;
+            cambio = true;
+            return original;
+          });
+          if (cambio) malla.material = vueltos;
+          return;
+        }
+
+        const original = this.originalDeClon.get(puesto);
+        if (original !== undefined) malla.material = original;
+      });
+    }
   }
 
   /**
@@ -2416,7 +2523,13 @@ export class BimViewer {
   private async refresh(): Promise<void> {
     this.sanearCamara();
     if (this.renderStyle === "wireframe" || this.selection !== null) await this.applyHighlights();
-    else await this.fragments.core.update(true);
+    else {
+      await this.fragments.core.update(true);
+      // **Y en sólido sin selección hay que barrer.** Este es el camino que toma cambiar de
+      // proyección, y era por donde se colaba el fantasma pegado: un `update` no devuelve a sólido
+      // una malla que nació vistiendo un clon translúcido.
+      await this.limpiarFantasmaResidual();
+    }
   }
 
   /**

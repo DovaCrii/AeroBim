@@ -82,6 +82,11 @@ urlpatterns = [
         views.CerrarObservacionView.as_view(),
         name="cerrar-observacion",
     ),
+    path(
+        "observaciones/<uuid:pk>/etiquetas/",
+        views.EtiquetarObservacionView.as_view(),
+        name="etiquetar-observacion",
+    ),
     path("actividades/", views.ActividadesView.as_view(), name="actividades"),
     path("actividades/nueva/", views.NuevaActividadView.as_view(), name="nueva-actividad"),
     path("actividades/<uuid:pk>/", views.ActividadView.as_view(), name="actividad"),

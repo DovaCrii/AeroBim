@@ -134,66 +134,84 @@ class PortalView(LoginRequiredMixin, TemplateView):
     }
 
     def _definicion(self):
-        """(grupo, titulo, url, permiso, descripcion) de cada entrada."""
+        """(grupo, titulo, url, permiso, descripcion) de cada entrada.
+
+        **Los nombres se revisaron enteros el 2026-09-02**, a peticion del usuario: «buscar los
+        mejores nombres para cada seccion y mejorar las etiquetas de ayuda». Tres reglas salieron de
+        ahi, y valen para lo que se añada despues:
+
+        1. **El grupo dice de que trata, no que clase de objeto es.** «Proyecto», «Modelo» y
+           «Documentos» son nombres de tablas; «Las obras», «El modelo» y «El registro documental»
+           son sitios a los que se va. La lista se lee como una tabla de contenidos.
+        2. **La linea de ayuda contesta «que encuentro ahi» y no repite el titulo.** «A quien
+           pertenecen los datos del proyecto» describe un campo de la base; «De que oficina es cada
+           obra y quien puede verla» describe lo que se va a mirar.
+        3. **Ninguna promete lo que no hay.** El transmittal no dice «con acuse de recibo» porque no
+           lo tiene todavia.
+
+        Y **«Lo mio» cambia de grupo**: lista observaciones y actividades, o sea coordinacion, y
+        estaba en documentos porque el permiso que pide es de observaciones. El permiso no es el
+        sitio.
+        """
         return [
             (
-                _("Project"),
+                _("The works"),
                 _("Projects"),
                 "projects:proyectos",
                 "projects.view_proyecto",
-                _("The works. Where the work continues, project by project."),
+                _("Each work with its progress, its calendar and what it has open."),
             ),
             (
-                _("Project"),
+                _("The works"),
                 _("Organisations"),
                 "core:organizaciones",
                 "core.view_organizacion",
-                _("Who the project data belongs to."),
+                _("Which office each work belongs to, and who can see it."),
             ),
             (
-                _("Model"),
+                _("The model"),
                 _("BIM viewer"),
                 "visor:visor",
                 # Sin permiso: mirar un modelo es lo que cualquiera que pueda entrar viene a
                 # hacer. Lo que **sí** está guardado es qué revisiones puede abrir, y eso lo
                 # decide `view_revision` en la API.
                 None,
-                _("The IFC and DXF viewer. What it can open depends on your role."),
+                _("Open the IFC and DXF in force: measure, section and note on the model."),
             ),
             (
-                _("Documents"),
-                _("My plate"),
-                "documents:bandeja",
-                "documents.view_observacion",
-                _("What is assigned to you, by how soon it is due."),
-            ),
-            (
-                _("Documents"),
+                _("The document register"),
                 _("Deliverables"),
                 "documents:entregables",
                 "documents.view_entregable",
-                _("The register: what has to be delivered and how far along it is."),
+                _("What has to be delivered, which revision it is on and how far along."),
             ),
             (
-                _("Documents"),
+                _("The document register"),
                 _("Transmittals"),
                 "documents:transmittals",
                 "documents.view_transmittal",
-                _("What was issued, to whom and when."),
+                _("What was issued, to whom and on what date."),
             ),
             (
-                _("Documents"),
+                _("The document register"),
                 _("Information requirements"),
                 "documents:requisitos-ids",
                 "documents.view_requisitoids",
-                _("What the client requires each model to carry, in IDS."),
+                _("What the client demands every model carry, checked against IDS."),
+            ),
+            (
+                _("Coordination"),
+                _("My plate"),
+                "documents:bandeja",
+                "documents.view_observacion",
+                _("Yours alone, soonest due first: what you have to answer."),
             ),
             (
                 _("Coordination"),
                 _("Observations"),
                 "documents:observaciones",
                 "documents.view_observacion",
-                _("Findings and errors, with an owner and a due date."),
+                _("Everything to be resolved, with an owner and a due date."),
             ),
             (
                 _("Coordination"),
@@ -207,21 +225,21 @@ class PortalView(LoginRequiredMixin, TemplateView):
                 _("Users and roles"),
                 "accounts:usuarios-roles",
                 "auth.view_user",
-                _("Who holds which role. Read-only."),
+                _("Who holds which role, and what that role can open. Read-only."),
             ),
             (
                 _("Administration"),
                 _("Audit trail"),
                 "accounts:auditoria",
                 "core.view_auditevent",
-                _("Every change, append-only."),
+                _("Every change, in order and impossible to erase."),
             ),
             (
                 _("Administration"),
                 _("Scheduled jobs"),
                 "accounts:trabajos",
                 "core.view_jobrun",
-                _("Whether the nightly work actually ran."),
+                _("Whether last night's warnings and backup actually ran."),
             ),
         ]
 

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n %}
+{% load i18n disciplinas tiempo %}
 
 {% block titulo %}{% translate "Observations" %} · AeroBim{% endblock %}
 
@@ -28,32 +28,153 @@
     </p>
   {% endif %}
 
+  {% comment %}
+    **Esta tabla es la misma de la pantalla de la obra, así que se lee igual.** `F11.6`. Estaba en
+    texto plano —prioridad y estado como palabras grises del mismo peso que el título, cincuenta
+    títulos subrayados, y una columna de rayas en «Vence» porque casi nada tiene fecha— y era una de
+    las secciones de las que el usuario dijo «tomar el estándar y mejorar».
+
+    El estándar es el de la obra: la prioridad como píldora, el título sin subrayar hasta pasar por
+    encima, de dónde viene como ficha, y la antigüedad donde no hay vencimiento. **Y una diferencia
+    que esta pantalla sí necesita**: aquí las observaciones vienen de varias obras a la vez, así que
+    el código de la obra va escrito — sin él, dos hallazgos idénticos de dos obras son el mismo.
+  {% endcomment %}
+  {% comment %}
+    **Ordenar y filtrar por columna**, que es lo que el usuario pidió: «poder ordenarlos por columna
+    como yo quiera, filtrarlos».
+
+    Va por enlaces y `GET`, no con JavaScript ordenando la tabla en el navegador, y por dos razones
+    que importan: la lista está **paginada**, así que ordenar sólo las cincuenta filas de esta
+    página daría un orden falso —el hallazgo más urgente puede estar en la página tres—; y con la
+    ordenación en la URL, **una vista se puede marcar como favorita y compartir por correo**, que es
+    lo que hace quien revisa lo mismo cada semana.
+
+    El peso de cada columna vive en `apps/documents/orden.py`, y ahí está escrito por qué el orden
+    alfabético no vale: `ORDER BY prioridad` devuelve **alta, baja, media**.
+  {% endcomment %}
+  <form class="accion barra-filtros" method="get">
+    <label class="junto">
+      {% translate "Priority" %}
+      <select name="prioridad" onchange="this.form.submit()">
+        <option value="">{% translate "any" %}</option>
+        {% for valor, texto in prioridades %}
+          <option value="{{ valor }}" {% if filtro_actual.prioridad == valor %}selected{% endif %}>
+            {{ texto }}
+          </option>
+        {% endfor %}
+      </select>
+    </label>
+    <label class="junto">
+      {% translate "State" %}
+      <select name="estado" onchange="this.form.submit()">
+        <option value="">{% translate "any" %}</option>
+        {% for valor, texto in estados %}
+          <option value="{{ valor }}" {% if filtro_actual.estado == valor %}selected{% endif %}>
+            {{ texto }}
+          </option>
+        {% endfor %}
+      </select>
+    </label>
+    {% if obras|length > 1 %}
+      <label class="junto">
+        {% translate "Project" %}
+        <select name="obra" onchange="this.form.submit()">
+          <option value="">{% translate "any" %}</option>
+          {% for codigo in obras %}
+            <option value="{{ codigo }}" {% if filtro_actual.obra == codigo %}selected{% endif %}>
+              {{ codigo }}
+            </option>
+          {% endfor %}
+        </select>
+      </label>
+    {% endif %}
+    {# El orden puesto viaja con el filtro: filtrar no tiene por qué deshacer lo ordenado. #}
+    <input type="hidden" name="orden" value="{% if orden_descendente %}-{% endif %}{{ orden_columna }}" />
+    {# Y sin JavaScript el botón es la única forma de aplicarlo, así que va y no se esconde. #}
+    <button type="submit" class="secundario">{% translate "Filter" %}</button>
+    <a class="boton secundario" href="{% url 'documents:observaciones' %}">{% translate "Clear" %}</a>
+  </form>
+
   <table>
     <thead>
       <tr>
-        <th scope="col">{% translate "Title" %}</th>
-        <th scope="col">{% translate "On" %}</th>
-        <th scope="col">{% translate "Priority" %}</th>
-        <th scope="col">{% translate "Owner" %}</th>
-        <th scope="col">{% translate "Due" %}</th>
-        <th scope="col">{% translate "State" %}</th>
+        {% comment %}
+          Cada cabecera es un enlace que ordena por su columna, y **la flecha va en la que manda**:
+          una tabla ordenada que no dice por dónde lo está obliga a deducirlo leyendo las filas.
+          `aria-sort` lleva la misma información para quien no ve la flecha.
+        {% endcomment %}
+        {% for col in columnas %}
+          <th scope="col"
+              {% if col.activa %}aria-sort="{% if col.descendente %}descending{% else %}ascending{% endif %}"{% endif %}>
+            <a class="orden {% if col.activa %}orden-activo{% endif %}" href="{{ col.enlace }}">
+              {{ col.texto }}
+              {% if col.activa %}<span aria-hidden="true">{% if col.descendente %}↓{% else %}↑{% endif %}</span>{% endif %}
+            </a>
+          </th>
+        {% endfor %}
       </tr>
     </thead>
     <tbody>
       {% for observacion in observaciones %}
-        <tr>
-          <td><a href="{% url 'documents:observacion' observacion.pk %}">{{ observacion.titulo }}</a></td>
+        {% comment %}
+          Lo resuelto se apaga: en la lista de «Todas» conviven abierto y cerrado, y con el mismo
+          peso hay que leer la última columna de cada fila para saber qué queda por hacer.
+
+          Y va con `{% comment %}` y no con `{# #}`: **`{# #}` es de una sola línea**, así que un
+          comentario de dos se imprime en la pantalla. Es la segunda vez que pasa en este repositorio
+          y la lección ya estaba escrita en `login.html`.
+        {% endcomment %}
+        <tr class="fila-hallazgo {% if observacion.estado == 'cerrada' or observacion.estado == 'descartada' %}fila-resuelta{% endif %}">
+          <td style="width: 96px">
+            <span class="pildora pildora-prioridad {{ observacion.prioridad }}">
+              {{ observacion.get_prioridad_display }}
+            </span>
+          </td>
           <td>
-            {% if observacion.revision %}
-              {{ observacion.revision.entregable.codigo }} rev. {{ observacion.revision.correlativo }}
-            {% else %}
-              {{ observacion.ancla }}
+            <a class="hallazgo-titulo" href="{% url 'documents:observacion' observacion.pk %}">
+              {{ observacion.titulo }}
+            </a>
+            {% if observacion.etiquetas.all %}
+              {# Las etiquetas junto al título: es la clasificación transversal — `F10.1`. #}
+              <span class="etiquetas-en-linea">
+                {% for una in observacion.etiquetas.all %}{% marca_etiqueta una %}{% endfor %}
+              </span>
             {% endif %}
           </td>
-          <td>{{ observacion.get_prioridad_display }}</td>
-          <td>{{ observacion.responsable }}</td>
-          <td>{{ observacion.vence|date:"Y-m-d"|default:"—" }}{% if observacion.vencida %} ⚠{% endif %}</td>
-          <td>{{ observacion.get_estado_display }}</td>
+          <td style="width: 190px">
+            {% if observacion.proyecto %}
+              <span class="ficha">{{ observacion.proyecto.codigo }}</span>
+            {% endif %}
+            {% if observacion.revision %}
+              <span class="tenue">
+                {{ observacion.revision.entregable.codigo }} rev. {{ observacion.revision.correlativo }}
+              </span>
+            {% else %}
+              <span class="tenue">{{ observacion.ancla }}</span>
+            {% endif %}
+          </td>
+          <td style="width: 150px">{{ observacion.responsable }}</td>
+          <td style="width: 150px">
+            {% if observacion.vence %}
+              {% if observacion.vencida %}
+                <span class="cifra cifra-arde">
+                  {% translate "overdue" context "tarjeta de obra" %}
+                  {{ observacion.vence|date:"d-m" }}
+                </span>
+              {% else %}
+                {{ observacion.vence|date:"d-m-Y" }}
+              {% endif %}
+            {% else %}
+              <span class="tenue">
+                {% blocktranslate with cuando=observacion.created_at|antiguedad %}opened {{ cuando }} ago{% endblocktranslate %}
+              </span>
+            {% endif %}
+          </td>
+          <td style="width: 130px">
+            <span class="pildora pildora-estado {{ observacion.estado }}">
+              {{ observacion.get_estado_display }}
+            </span>
+          </td>
         </tr>
       {% empty %}
         <tr>

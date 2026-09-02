@@ -1,9 +1,13 @@
 """El proyecto y su estructura: de que cuelga todo lo demas.
 
-Tres modelos y ni uno mas. La tentacion en un control documental es modelar la
+Cuatro modelos y ni uno mas. La tentacion en un control documental es modelar la
 organizacion entera del cliente —contratos, centros de costo, fases, hitos— y lo que
 hace falta para que un entregable tenga sitio es mucho menos: **de que proyecto es,
 de que disciplina, y en que paquete de la codificacion cae**.
+
+El cuarto es `Etiqueta`, que llego con `F10.1` y es lo transversal: lo que no se deduce
+del codigo del documento y lo pone quien coordina. Tiene su propia razon de no ser un
+campo de texto, escrita en la clase.
 """
 
 from django.conf import settings
@@ -106,6 +110,44 @@ class Disciplina(BaseModel):
 
     def __str__(self):
         return f"{self.codigo} · {self.nombre}"
+
+
+class Etiqueta(BaseModel):
+    """Una etiqueta del proyecto, y **no un campo de texto libre**. `F10.1`.
+
+    Un texto libre se fragmenta a la tercera semana: «estructura», «Estructura», «estruct» y «EE»
+    son cuatro etiquetas para una cosa, y entonces **filtrar por etiqueta deja de encontrar** lo
+    que hay. Asi que el vocabulario lo define el proyecto —igual que las disciplinas, que ya
+    funcionan asi— y el hallazgo elige de esa lista.
+
+    **Y no es lo mismo que una disciplina**, aunque se parezcan. La disciplina dice de quien es el
+    entregable y viene del codigo del documento; la etiqueta es transversal y la pone quien
+    coordina: «obra ejecutada», «pendiente de mandante», «afecta a presupuesto». Un hallazgo tiene
+    una disciplina y puede llevar tres etiquetas.
+
+    Lo que esto desbloquea, y es la razon de que vaya antes que las tablas: **el informe se pide
+    por etiqueta.** «Todo lo de instalaciones que sigue abierto» es la consulta que no se podia
+    escribir — `Opciones.etiqueta` en `apps/documents/informe.py`.
+    """
+
+    proyecto = models.ForeignKey(Proyecto, on_delete=models.CASCADE, related_name="etiquetas")
+    nombre = models.CharField(max_length=60, verbose_name=_("name"))
+    # `#rrggbb`, como en `Disciplina` y por la misma razon: el color se usa en la lista, en la
+    # ficha y en el informe, y con una copia en cada sitio la leyenda dice un color y la tabla otro.
+    color = models.CharField(max_length=7, default="#5b3a9e", verbose_name=_("colour"))
+
+    class Meta:
+        verbose_name = _("tag")
+        verbose_name_plural = _("tags")
+        ordering = ["nombre"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["proyecto", "nombre"], name="nombre_de_etiqueta_unico_por_proyecto"
+            )
+        ]
+
+    def __str__(self):
+        return self.nombre
 
 
 class PaqueteWBS(BaseModel):

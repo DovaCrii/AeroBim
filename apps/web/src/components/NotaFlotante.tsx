@@ -6,7 +6,7 @@ import {
 } from "@aerobim/bim-core";
 import type { PickedItem } from "@aerobim/viewer";
 import { useEffect, useRef, useState } from "react";
-import { cabecerasDeEscritura } from "../csrf.js";
+import { cabecerasDeEscritura, motivoDe403 } from "../csrf.js";
 
 /** Lo que la tarjeta devuelve al guardar, para poder decirlo y refrescar la lista. */
 export interface NotaGuardada {
@@ -170,10 +170,9 @@ export function NotaFlotante({
       });
 
       if (respuesta.status === 403) {
-        return setEnvio({
-          kind: "error",
-          mensaje: "Tu sesión caducó o tu rol no puede abrir observaciones. Vuelve a entrar.",
-        });
+        // **Tres causas daban el mismo mensaje y ninguna era la de verdad.** Ver `motivoDe403`.
+        const cuerpo = await respuesta.json().catch(() => ({}));
+        return setEnvio({ kind: "error", mensaje: motivoDe403(cuerpo) });
       }
       if (!respuesta.ok) {
         const cuerpo = (await respuesta.json().catch(() => ({}))) as { error?: string };

@@ -183,6 +183,34 @@ class ComentarioForm(forms.Form):
     texto = forms.CharField(label=_("Comment"), widget=forms.Textarea(attrs={"rows": 3}))
 
 
+class EtiquetasForm(forms.Form):
+    """Que etiquetas lleva un hallazgo. `F10.1`.
+
+    **Casillas y no un campo de texto**, que es la decision entera de la tarea: un texto libre se
+    fragmenta a la tercera semana —«estructura», «Estructura», «estruct»— y entonces filtrar por
+    etiqueta deja de encontrar lo que hay.
+
+    Y las opciones **son las del proyecto del hallazgo**, calculadas aqui y no en la plantilla:
+    asi el formulario tampoco acepta una etiqueta de otra obra aunque alguien la mande a mano.
+    """
+
+    etiquetas = forms.ModelMultipleChoiceField(
+        queryset=None,
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
+        label=_("Tags"),
+    )
+
+    def __init__(self, *args, proyecto=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        from apps.projects.models import Etiqueta
+
+        consulta = Etiqueta.objects.none()
+        if proyecto is not None:
+            consulta = Etiqueta.objects.filter(proyecto=proyecto, is_active=True)
+        self.fields["etiquetas"].queryset = consulta
+
+
 class ActividadForm(forms.ModelForm):
     class Meta:
         model = Actividad

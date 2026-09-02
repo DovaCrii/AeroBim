@@ -13,7 +13,8 @@
   El estado va con **texto además de color**: el nombre del paso siempre se lee, y el color es
   refuerzo. Uno de cada doce hombres no distingue rojo de verde.
 {% endcomment %}
-<ol class="pasos" aria-label="{{ etiqueta|default:'Avance' }}">
+{# `vertical` para una columna estrecha: en 320 px la fila con flechas envuelve y se lee peor. #}
+<ol class="pasos {% if vertical %}pasos-columna{% endif %}" aria-label="{{ etiqueta|default:'Avance' }}">
   {% for paso in pasos %}
     <li class="paso {{ paso.state }}">
       <span class="marca" aria-hidden="true"></span>

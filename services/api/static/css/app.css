@@ -310,21 +310,34 @@ form.accion .detalle {
  * `currentColor` el mismo símbolo sirve en violeta dentro de una tarjeta y en rojo dentro de un
  * aviso sin duplicar el dibujo.
  */
+/*
+ * **`stroke: currentColor` y no un color fijo, y esto era un defecto de verdad.** El comentario de
+ * `generic/_iconos.html` decía desde el principio que los iconos «heredan el color con
+ * `currentColor`», y no era cierto: el trazo estaba clavado en el violeta de la marca. Como los
+ * dibujos son de trazo y no de relleno, **el color del grupo no llegaba nunca al icono**: la regla
+ * de la tarjeta ponía `color: var(--acento)` y solo pintaba la baldosa de detrás.
+ *
+ * Por eso los doce iconos del portal salían violetas aunque cada grupo tuviera su acento medido, y
+ * por eso el usuario seguía diciendo «todos morados» después de la pasada que repartió los colores.
+ * Y por eso también engaña al medirlo: `getComputedStyle(icono).color` devuelve el acento correcto
+ * mientras lo que se ve en pantalla es el `stroke`.
+ */
 .icono {
   width: 1.15rem;
   height: 1.15rem;
   flex-shrink: 0;
   fill: none;
-  stroke: var(--ab-violet);
+  color: var(--ab-violet);
+  stroke: currentcolor;
   stroke-width: 1.6;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
 /* En la tarjeta, el icono se enciende con ella: es la misma señal de «esto se pulsa». */
-a.tarjeta:hover .icono {
-  stroke: var(--ab-primary);
-}
+/* **Al pasar por encima el icono no cambia de color**, y antes se volvía violeta: eso borraba el
+   acento del grupo justo en el momento en que estás mirando esa tarjeta. El gesto ya lo dan el
+   borde y el levantamiento de `a.tarjeta:hover`. */
 
 table {
   width: 100%;
@@ -675,20 +688,96 @@ th.num {
   border: 1px solid currentcolor;
 }
 
+/*
+ * --- La prioridad, con tres colores que se distinguen -----------------------------------
+ *
+ * **«Lo mismo aplica para la vista de prioridad: mejorar los colores de esa misma línea.»** Iba
+ * alta en rojo y **media y baja las dos en gris**, con la única diferencia de que una era un gris
+ * un poco más claro que el otro: en una lista de treinta filas eso no es una diferencia, es un
+ * matiz que hay que buscar leyendo la palabra.
+ *
+ * | Prioridad | Color | Qué dice                                    |
+ * | --------- | ----- | ------------------------------------------- |
+ * | Alta      | rojo  | esto ordena la lista: se ataca primero       |
+ * | Media     | ámbar | entra en la semana                           |
+ * | Baja      | gris  | está apuntada y no manda nada                |
+ *
+ * **Y baja se queda en gris a propósito**, con relleno pero sin color de alarma: si las tres
+ * gritaran, ninguna gritaría, y lo que se recorre buscando en esta columna es lo rojo.
+ *
+ * Las de prioridad llevan **esquina de 6 px y las de estado la mantienen redonda**, y no es
+ * capricho: en la misma fila hay dos píldoras, y si fueran idénticas de forma y de relleno habría
+ * que leer la cabecera de la columna para saber cuál es cuál. La prioridad es una etiqueta fija; el
+ * estado es una posición en un camino, y de ahí la forma de pastilla.
+ */
+.pildora-prioridad {
+  border-radius: 6px;
+  background: color-mix(in srgb, currentcolor 16%, transparent);
+  border-color: color-mix(in srgb, currentcolor 45%, transparent);
+}
+
 .pildora.alta {
   color: var(--ab-danger);
 }
 
 .pildora.media {
-  color: var(--ab-text-secondary);
+  color: var(--ab-warn);
 }
 
 .pildora.baja {
-  color: var(--ab-text-muted);
+  color: var(--ab-text-secondary);
 }
 
 .pildora.ok {
   color: var(--ab-ok);
+}
+
+/*
+ * --- El estado de un hallazgo, con el color de su paso ---------------------------------
+ *
+ * **«El estado cerrado o abierta, cambiar color, que sea visible y trazable más claro.»** Iban las
+ * dos como la misma ficha gris, así que en una lista donde conviven abierto y cerrado había que
+ * leer la palabra de cada fila para saber qué queda por hacer.
+ *
+ * Los colores **no son nuevos ni elegidos aquí**: son los que ya usa el paso a paso de la ficha
+ * —`.paso.done` en verde, `.paso.current` en violeta— así que el color de la píldora en la lista y
+ * el del punto en la ficha dicen lo mismo. Eso es lo que hace que sea trazable: se sigue el mismo
+ * color de la lista a la ficha.
+ *
+ * | Estado     | Color   | Qué dice                                      |
+ * | ---------- | ------- | --------------------------------------------- |
+ * | Abierta    | ámbar   | espera algo de alguien                        |
+ * | Respondida | violeta | está en marcha, es el paso en curso           |
+ * | Cerrada    | verde   | terminada, y con su resolución escrita        |
+ * | Descartada | gris    | fuera del camino: no era un problema          |
+ *
+ * **Descartada en gris y no en rojo**: un falso positivo no es una alarma, es algo que alguien
+ * miró y decidió que no era un problema. Y las cuatro llevan **la palabra escrita**, que es la
+ * regla de siempre: el color refuerza, no informa.
+ *
+ * Y la de estado va con fondo mientras la de prioridad va solo con contorno: en la misma fila hay
+ * dos píldoras, y si fueran idénticas habría que leer la cabecera de la columna para saber cuál es
+ * cuál.
+ */
+.pildora-estado {
+  background: color-mix(in srgb, currentcolor 16%, transparent);
+  border-color: color-mix(in srgb, currentcolor 45%, transparent);
+}
+
+.pildora.abierta {
+  color: var(--ab-warn);
+}
+
+.pildora.respondida {
+  color: var(--ab-primary);
+}
+
+.pildora.cerrada {
+  color: var(--ab-ok);
+}
+
+.pildora.descartada {
+  color: var(--ab-text-muted);
 }
 
 /* --- El distintivo de una disciplina ---------------------------------------------- */
@@ -726,6 +815,40 @@ th.num {
   box-shadow: inset 0 0 0 1px var(--ab-border);
 }
 
+/*
+ * **La marca de una etiqueta** — `F10.1`. Se distingue del distintivo de disciplina a propósito:
+ * más redonda y sin el ancho mínimo, porque lleva una palabra entera y no dos letras. Que no se
+ * parezcan es el punto: en la misma ficha aparecen las dos, y son dos cosas distintas — la
+ * disciplina dice de quién es y la etiqueta es lo transversal.
+ */
+.marca-etiqueta {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 12%);
+}
+
+/* Las etiquetas de un hallazgo, en una línea que envuelve. */
+.etiquetas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 14px;
+}
+
+/* Y dentro de una celda, detrás del título: no rompe la línea si cabe. */
+.etiquetas-en-linea {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-left: 7px;
+  vertical-align: middle;
+}
+
 .distintivo-nombre {
   margin-left: 8px;
   color: var(--ab-text-secondary);
@@ -742,15 +865,25 @@ th.num {
  * Así que cada grupo lleva el suyo, y **los cinco están medidos** sobre las dos superficies del
  * sistema —blanco en claro, `#1b2432` en oscuro—:
  *
- * | Grupo          | Claro     | Ratio | Oscuro    | Ratio |
- * | -------------- | --------- | ----- | --------- | ----- |
- * | proyecto       | `#5b3a9e` | 8,26  | `#c3a6f0` | 7,46  |
- * | modelo         | `#0f6f78` | 5,89  | `#5fd3d8` | 8,77  |
- * | documentos     | `#8a5a00` | 5,93  | `#f0b45e` | 8,47  |
- * | coordinación   | `#0f7a5f` | 5,29  | `#5fd3ae` | 8,49  |
- * | administración | `#3f5878` | 7,30  | `#9fb6d4` | 7,52  |
+ * | Grupo          | Claro     | Ratio | Oscuro    | Ratio | Tono | Sat. |
+ * | -------------- | --------- | ----- | --------- | ----- | ---- | ---- |
+ * | las obras      | `#5b3a9e` | 8,26  | `#c3a6f0` | 7,46  | 264  | 71 % |
+ * | el modelo      | `#12628f` | 6,63  | `#6cc4f5` | 8,07  | 201  | 87 % |
+ * | documentos     | `#8a5a00` | 5,93  | `#f0b45e` | 8,47  | 35   | 83 % |
+ * | coordinación   | `#3f7a13` | 5,24  | `#8ada6f` | 9,17  | 105  | 59 % |
+ * | administración | `#5a626d` | 6,17  | `#aab1bb` | 7,22  | 215  | 11 % |
  *
- * El violeta se queda con «proyecto» porque es donde la marca corresponde. Y **el color no
+ * **Y el tono se mide igual que el contraste**, porque tener cinco colores distintos no basta si
+ * dos de ellos se parecen: el cian del modelo (`#5fd3d8`) y el verde de coordinación (`#5fd3ae`)
+ * estaban a **21 grados** de tono, así que a 18 px eran el mismo color — es lo que el usuario dijo
+ * como «todo del mismo tono». El modelo pasa a azul y la coordinación a verde de verdad, y el par
+ * más cercano queda a **63 grados**.
+ *
+ * **Administración es gris a propósito** —11 % de saturación—: no es una etapa del trabajo, es
+ * donde se mira cómo va la máquina, y darle color propio la ponía a competir con las cuatro que sí
+ * lo son.
+ *
+ * El violeta se queda con las obras porque es donde la marca corresponde. Y **el color no
  * sustituye al rótulo**: el nombre del grupo sigue escrito, porque un color no se lee en voz alta
  * ni lo distingue quien no distingue verde de rojo.
  */
@@ -758,32 +891,32 @@ th.num {
   --acento: #5b3a9e;
 }
 .acento-1 {
-  --acento: #0f6f78;
+  --acento: #12628f;
 }
 .acento-2 {
   --acento: #8a5a00;
 }
 .acento-3 {
-  --acento: #0f7a5f;
+  --acento: #3f7a13;
 }
 .acento-4 {
-  --acento: #3f5878;
+  --acento: #5a626d;
 }
 
 [data-theme="dark"] .acento-0 {
   --acento: #c3a6f0;
 }
 [data-theme="dark"] .acento-1 {
-  --acento: #5fd3d8;
+  --acento: #6cc4f5;
 }
 [data-theme="dark"] .acento-2 {
   --acento: #f0b45e;
 }
 [data-theme="dark"] .acento-3 {
-  --acento: #5fd3ae;
+  --acento: #8ada6f;
 }
 [data-theme="dark"] .acento-4 {
-  --acento: #9fb6d4;
+  --acento: #aab1bb;
 }
 
 /* El rótulo del grupo con su marca de color: dos píxeles a la izquierda, no un fondo. Un fondo
@@ -808,7 +941,14 @@ th.num {
   padding: 6px;
   border-radius: 8px;
   color: var(--acento);
-  background: color-mix(in srgb, var(--acento) 14%, transparent);
+  /* **La baldosa subió de 14 % a 20 % y ganó un filo.** A 14 % sobre una superficie oscura la
+     baldosa casi no existía, así que del icono solo se veía el trazo: el color del grupo quedaba
+     colgando de dos píxeles de línea y por eso las doce tarjetas parecían iguales. */
+  background: color-mix(in srgb, var(--acento) 20%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--acento) 35%, transparent);
+  /* A 18 px un trazo de 1,6 se pinta a poco más de un píxel y el dibujo se lee como un boceto. Es
+     la misma corrección que necesitó la marca del visor a 27 px. */
+  stroke-width: 1.75;
 }
 
 /*
@@ -1122,6 +1262,99 @@ input[type="file"]::file-selector-button:hover {
   text-decoration: underline;
 }
 
+/* --- Las herramientas de una sección, en cajas ------------------------------------ */
+
+/*
+ * **Dos herramientas independientes se dibujan como dos.** Debajo de la tabla de hallazgos hay dos
+ * —sacar el informe y meter un BCF que llega— y estaban como cinco filas de controles seguidas, sin
+ * nada que dijera dónde acaba una y empieza la otra: dos selectores, tres casillas, dos botones,
+ * una explicación, un selector de archivo, otro botón y otra explicación.
+ *
+ * El usuario lo dijo así: «está mal distribuido, muy junto y poco entendible el flujo, sobre todo
+ * en las observaciones abiertas y lo que está abajo».
+ *
+ * Van **una al lado de la otra** y no apiladas, porque apiladas la pantalla dice que la segunda
+ * viene después de la primera, y no es así: son dos cosas que se hacen en momentos distintos.
+ */
+.herramientas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 14px;
+  margin: 18px 0 8px;
+  align-items: start;
+}
+
+.herramienta {
+  padding: 14px 16px;
+  background: var(--ab-surface);
+  border: 1px solid var(--ab-border);
+  border-radius: var(--ab-radius);
+}
+
+.herramienta h2 {
+  margin: 0 0 12px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ab-text-muted);
+}
+
+/* Dentro de la caja el formulario ya no necesita su margen: lo pone la caja. */
+.herramienta form.accion {
+  margin-bottom: 0;
+}
+
+/* Y la explicación va al final, separada de los botones que explica. */
+.herramienta form.accion .detalle {
+  margin-top: 4px;
+}
+
+/* --- Una cabecera de columna que ordena ------------------------------------------- */
+
+/*
+ * Es un enlace, así que sin esto salía subrayado y en violeta: seis enlaces violetas en la fila de
+ * cabeceras competían con los títulos de los hallazgos, que es lo que hay que leer. Aquí el enlace
+ * **se comporta como la cabecera que ya era** y solo se delata al pasar por encima.
+ */
+.orden {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: inherit;
+  font: inherit;
+  text-decoration: none;
+}
+
+.orden:hover {
+  color: var(--ab-primary);
+  text-decoration: underline;
+}
+
+/* La que manda va marcada, no solo con su flecha: el color se ve antes que el símbolo. */
+.orden-activo {
+  color: var(--ab-primary);
+}
+
+/* La barra de filtros, sobre la tabla que filtra. */
+.barra-filtros {
+  margin-bottom: 10px;
+}
+
+/*
+ * **Lo resuelto se apaga.** En la lista general conviven lo abierto y lo cerrado, y con el mismo
+ * peso hay que leer la última columna de cada fila para saber qué queda por hacer. Se apaga y no se
+ * esconde: un hallazgo cerrado sigue siendo la respuesta a «¿esto ya se vio?».
+ */
+.fila-resuelta .hallazgo-titulo,
+.fila-resuelta td {
+  color: var(--ab-text-muted);
+}
+
+.fila-resuelta .pildora {
+  opacity: 0.6;
+}
+
 /* Lo que no es el dato principal de la fila: la antigüedad cuando no hay vencimiento. */
 .tenue {
   color: var(--ab-text-muted);
@@ -1303,6 +1536,238 @@ input[type="file"]::file-selector-button:hover {
 .paso.blocked .marca {
   border-radius: 2px;
   background: currentcolor;
+}
+
+/* El paso a paso en una columna estrecha: la flecha pasa a ir debajo del punto. */
+.pasos-columna {
+  display: block;
+  margin-bottom: 12px;
+}
+
+.pasos-columna .paso {
+  padding: 5px 0 5px 2px;
+}
+
+.pasos-columna .paso + .paso::before {
+  content: "";
+  position: absolute;
+  left: 6px;
+  width: 1px;
+  height: 12px;
+  margin: 0;
+  transform: translateY(-14px);
+  background: var(--ab-border);
+}
+
+.pasos-columna .paso + .paso {
+  position: relative;
+}
+
+/* --- La ficha de un hallazgo: la conversación a un lado, los datos al otro -------- */
+
+/*
+ * **Era una columna con cuatro secciones apiladas y el usuario se quejó dos veces.** La segunda,
+ * ya con las migas y el paso a paso puestos: «este flujo no es práctico ni comprensible y se ve mal
+ * distribuido». Cierto: hilo, responder, etiquetas y cerrar, los cuatro con el mismo peso, en una
+ * sola cola vertical y con mil píxeles vacíos a la derecha.
+ *
+ * Quien entra a un hallazgo hace una de dos cosas —**leer de qué va** o **hacer algo con él**— así
+ * que la pantalla se parte en esas dos: la conversación a la izquierda, la ficha a la derecha.
+ *
+ * El lateral son **320 px fijos** y no un porcentaje: lo que lleva son pares dato/valor y una lista
+ * de casillas, que tienen un ancho natural y no ganan nada por estirarse. Y la columna de lectura
+ * se queda con el resto, con su propio tope más abajo.
+ */
+.hallazgo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 26px;
+  align-items: start;
+}
+
+/* Por debajo de 980 px se apila, y **el cuerpo va primero**: de qué va antes que qué hacer. */
+@media (max-width: 980px) {
+  .hallazgo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.hallazgo-cabeza {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.hallazgo-cabeza h1 {
+  margin: 0;
+}
+
+/*
+ * **El texto del problema, con la medida de una columna de lectura.** A 1400 px de ancho una
+ * descripción de tres líneas sale como tres líneas larguísimas que obligan a mover la cabeza para
+ * volver al principio de la siguiente.
+ */
+.hallazgo-descripcion {
+  max-width: 68ch;
+  padding: 14px 16px;
+  margin-bottom: 22px;
+  background: var(--ab-surface);
+  border: 1px solid var(--ab-border);
+  border-left: 3px solid var(--ab-primary);
+  border-radius: var(--ab-radius);
+  font-size: 1.02rem;
+}
+
+/* --- El hilo, como conversación y no como tabla ----------------------------------- */
+
+/*
+ * **Eran dos celdas de una tabla** —autor a la izquierda, texto a la derecha— y una respuesta de
+ * dos líneas dejaba media fila vacía al lado. Y no se distinguía **quién** escribió cada cosa sin
+ * leer la primera celda: en un hilo de coordinación eso es la mitad del sentido.
+ */
+.hilo {
+  list-style: none;
+  margin: 0 0 24px;
+  padding: 0;
+  max-width: 68ch;
+}
+
+.mensaje {
+  padding: 10px 14px;
+  margin-bottom: 10px;
+  background: var(--ab-surface);
+  border: 1px solid var(--ab-border);
+  border-radius: var(--ab-radius);
+}
+
+/* Lo que escribió quien está mirando la pantalla, del otro lado y con su color. */
+.mensaje.mio {
+  margin-left: 40px;
+  border-color: color-mix(in srgb, var(--ab-primary) 40%, transparent);
+  background: var(--ab-primary-soft);
+}
+
+.mensaje-quien {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: baseline;
+  margin-bottom: 4px;
+  font-weight: 650;
+  font-size: 0.9rem;
+}
+
+/* --- Un campo con su rótulo encima ------------------------------------------------ */
+
+/*
+ * **`as_p` de Django pone el `<label>` y el `<textarea>` en la misma línea**, así que con una caja
+ * de tres filas el «Comentario:» quedaba flotando a media altura a su izquierda. Es de lo que el
+ * usuario llamó «mal distribuido», y no se arregla con estructura: se arregla pintando el campo.
+ */
+.bloque-campo {
+  max-width: 68ch;
+}
+
+.bloque-campo label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 650;
+  font-size: 0.9rem;
+}
+
+.bloque-campo textarea,
+.bloque-campo input[type="text"] {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.bloque-pie {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.bloque-pie .detalle {
+  margin: 0;
+  flex: 1 1 220px;
+}
+
+/* --- El lateral: datos y acciones, no lectura ------------------------------------- */
+
+.hallazgo-lado {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.lado-bloque {
+  padding: 14px 16px;
+  background: var(--ab-surface);
+  border: 1px solid var(--ab-border);
+  border-radius: var(--ab-radius);
+}
+
+.lado-bloque h2 {
+  margin: 0 0 10px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ab-text-muted);
+}
+
+.lado-bloque > :last-child {
+  margin-bottom: 0;
+}
+
+.lado-bloque .detalle {
+  margin: 10px 0 0;
+  font-size: 0.82rem;
+}
+
+.lado-bloque textarea {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 68px;
+}
+
+/* Cerrar es lo que se hace una vez, no todos los días: va al final y en tono menor. */
+.lado-cierre {
+  border-style: dashed;
+}
+
+/*
+ * Los pares dato/valor de la ficha. **En dos columnas y no una lista corrida**: «Responsable:
+ * coordinadora · abierta por coordinadora · vence…» era una línea de subtítulo donde había que
+ * buscar el dato leyendo, y aquí cada uno está siempre en el mismo sitio.
+ */
+.datos-lado {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 6px 12px;
+  margin: 0;
+}
+
+.datos-lado dt {
+  color: var(--ab-text-muted);
+  font-size: 0.82rem;
+}
+
+.datos-lado dd {
+  margin: 0;
+  font-size: 0.9rem;
+  min-width: 0;
+}
+
+/* El GUID entero no cabe en 190 px, y cortarlo a la mitad no identifica nada: se parte. */
+.guid {
+  display: inline-block;
+  font-size: 0.76rem;
+  overflow-wrap: anywhere;
+  color: var(--ab-text-secondary);
 }
 
 /* --- El interruptor de tema en la barra ------------------------------------------- */

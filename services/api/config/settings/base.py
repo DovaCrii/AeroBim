@@ -188,7 +188,24 @@ LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = LOGIN_URL
 
 SESSION_COOKIE_HTTPONLY = True
-CSRF_COOKIE_HTTPONLY = True
+# **La cookie de sesion es `HttpOnly`; la de CSRF no puede serlo, y esto no es un descuido.**
+#
+# Con `CSRF_COOKIE_HTTPONLY = True` el testigo era ilegible desde JavaScript, asi que
+# `testigoCsrf()` del visor devolvia siempre cadena vacia y **todo `POST` del visor moria con
+# `403 CSRF Failed: CSRF token missing`**: dejar una nota sobre un elemento, descartar un conflicto,
+# marcar la coordinacion como vista y guardar una vista compartida. Cuatro capacidades enteras que
+# solo funcionaban desde las pruebas, porque el cliente de pruebas de Django no comprueba CSRF.
+#
+# Lo destapo el usuario intentando anotar un elemento con un rol que **si** tiene
+# `add_observacion`, y el mensaje del visor le decia «tu sesion caduco o tu rol no puede abrir
+# observaciones»: ni una cosa ni la otra.
+#
+# `HttpOnly` en la cookie de CSRF **no aporta proteccion real** —lo dice la propia documentacion de
+# Django— porque el ataque que evita el testigo es que otro sitio envie la peticion, y para eso no
+# necesita leerlo: le basta con no tenerlo. Lo que si protege de verdad es que la **sesion** sea
+# `HttpOnly`, y esa lo sigue siendo. La alternativa —un endpoint que devuelva el testigo— deja el
+# mismo valor al alcance del mismo JavaScript, con un endpoint mas que mantener.
+CSRF_COOKIE_HTTPONLY = False
 SECURE_CONTENT_TYPE_NOSNIFF = True
 # La cookie muere al cerrar el navegador, la sesion tiene tope pase lo que pase, y
 # cada peticion corre la expiracion hacia adelante para no echar a nadie a mitad

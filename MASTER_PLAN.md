@@ -22,9 +22,11 @@ que contradicen tres líneas escritas de `UX.md`, y `F11.7` es la ayuda con reco
 elegir antes de escribirla (un recorrido guiado sobre la pantalla real, o una ayuda generada de lo
 que el producto sabe hacer).
 
-**Lo que sigue, entonces, es `F10.1`**: las etiquetas con vocabulario controlado, que es lo que
-desbloquea imprimir el informe por especialidad — hoy `Opciones.solo_de` existe y no tiene de dónde
-leer el filtro.
+**Y la Fase 10 va por el mismo camino**: `F10.1` cerró, así que el informe ya se pide por etiqueta
+—«todo lo de instalaciones que sigue abierto»— y de las cinco filas solo quedan las dos de tablas.
+**Lo que sigue, entonces, es `F7.2`**, y no por orden de fase: `F10.4` —el cuadro de hallazgos
+dentro de la lámina— no se puede empezar sin los viewports y las capas de la lámina, que es donde
+iría dibujado.
 
 ## La prioridad cambió el 2026-09-02, y la puso el usuario
 
@@ -95,18 +97,18 @@ Las **veintinueve** filas abiertas, de una vez. `⬜` no empezada · `❓` medid
 
 **Y en el orden de prioridad del 2026-09-02**, no en el de los números de fase.
 
-| Fase                                     | Filas abiertas                                                                                                                                  |
-| ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| **5 — Interferencias**                   | ✅ **la fase entera** — `F5.5` cierra con las dos mitades: silenciar y agrupar _(35 interferencias en 13 problemas)_                            |
-| **4 — Coordinación** ⭐                  | `F4.5` ◐ falta el trazo libre; las cotas ya viajan _(`F4.6` cerrada: el ciclo va y vuelve)_                                                     |
-| **3 — Backend**                          | `F3.4` ✅ decidida por el usuario el 2026-09-02: **la petición espera**, y por qué                                                              |
-| **9 — Diseño** ⭐                        | `F9.6` ⛔ — la decide el usuario, y son tres decisiones _(`F9.1` a `F9.5` cerradas)_                                                            |
-| **11 — El portal se ve plano** ⭐        | `F11.7` ayuda con recorrido ⛔ — la decide el usuario _(`F11.1` a `F11.6` y `F11.8` cerradas)_                                                  |
-| **10 — Etiquetas, informes y tablas** ⭐ | `F10.1` etiquetas ⬜ · `F10.4` tablas en el plano ⬜ · `F10.5` tablas del modelo ⬜ _(`F10.2` y `F10.3` cerradas: el informe ya sale en papel)_ |
-| **1 — Visor**                            | `F1.13` ❓ — auditada; quedan tres nombres que decide el usuario                                                                                |
-| **7 — Planos, salida**                   | `F7.2` viewports y capas · `F7.3` acotado y anotaciones · `F7.5` exportar a PDF ⬜                                                              |
-| **2 — Nubes de puntos**                  | `F2.1` a `F2.6` ⬜ — cargar, alinear, visualizar, medir contra el modelo, documentar el pipeline, y el gaussian splatting                       |
-| **6 — Geo + BIM**                        | `F6.1` a `F6.5` ⬜ — Cesium, ortofoto y terreno propios, situar el IFC, 3D Tiles, y recibir de AeroPlanner                                      |
+| Fase                                     | Filas abiertas                                                                                                                                                   |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **5 — Interferencias**                   | ✅ **la fase entera** — `F5.5` cierra con las dos mitades: silenciar y agrupar _(35 interferencias en 13 problemas)_                                             |
+| **4 — Coordinación** ⭐                  | `F4.5` ◐ falta el trazo libre; las cotas ya viajan _(`F4.6` cerrada: el ciclo va y vuelve)_                                                                      |
+| **3 — Backend**                          | `F3.4` ✅ decidida por el usuario el 2026-09-02: **la petición espera**, y por qué                                                                               |
+| **9 — Diseño** ⭐                        | `F9.6` ⛔ — la decide el usuario, y son tres decisiones _(`F9.1` a `F9.5` cerradas)_                                                                             |
+| **11 — El portal se ve plano** ⭐        | `F11.7` ayuda con recorrido ⛔ — la decide el usuario _(`F11.1` a `F11.6` y `F11.8` a `F11.10` cerradas)_                                                        |
+| **10 — Etiquetas, informes y tablas** ⭐ | `F10.4` tablas en el plano ⬜ _(necesita `F7.2`)_ · `F10.5` tablas del modelo ⬜ _(`F10.1` a `F10.3` cerradas: el informe sale en papel y se pide por etiqueta)_ |
+| **1 — Visor**                            | `F1.13` ❓ — auditada; quedan tres nombres que decide el usuario                                                                                                 |
+| **7 — Planos, salida**                   | `F7.2` viewports y capas · `F7.3` acotado y anotaciones · `F7.5` exportar a PDF ⬜                                                                               |
+| **2 — Nubes de puntos**                  | `F2.1` a `F2.6` ⬜ — cargar, alinear, visualizar, medir contra el modelo, documentar el pipeline, y el gaussian splatting                                        |
+| **6 — Geo + BIM**                        | `F6.1` a `F6.5` ⬜ — Cesium, ortofoto y terreno propios, situar el IFC, 3D Tiles, y recibir de AeroPlanner                                                       |
 
 ⭐ = prioridad del 2026-09-02. Las fases 2 y 6 **no se descartan, se posponen**: son las dos que no
 tienen ni un archivo con el que verificarse hoy —no hay nube de puntos ni ortofoto en el
@@ -2983,7 +2985,7 @@ que falta es lo que se imprime, se firma y se cuelga.
 
 | #       | Tarea                                                                                  | Estado                                                |
 | ------- | -------------------------------------------------------------------------------------- | ----------------------------------------------------- |
-| `F10.1` | Etiquetas de proyecto: vocabulario controlado, asignables a un hallazgo, y se filtra   | ⬜                                                    |
+| `F10.1` | Etiquetas de proyecto: vocabulario controlado, asignables a un hallazgo, y se filtra   | ✅ ver abajo                                          |
 | `F10.2` | La nota de la decisión: qué se guarda además del hilo de comentarios                   | ✅ decidida por el usuario: **no era un campo nuevo** |
 | `F10.3` | Informe de coordinación imprimible, con la foto del hallazgo y las mismas cifras       | ✅ ver abajo                                          |
 | `F10.4` | Tablas en el plano: el cuadro de hallazgos o de elementos dentro de la lámina que sale | ⬜                                                    |
@@ -3022,7 +3024,7 @@ Tres decisiones que no son obvias:
   la sesión guarda además **a qué obra pertenece**, porque con dos pestañas abiertas en dos
   proyectos el «confirmar» de una podría escribir en la otra. Tiene su prueba.
 
-### `F10.1` — Etiquetas, y por qué **no** son texto libre
+### `F10.1` — ✅ Etiquetas, y por qué **no** son texto libre
 
 Un campo de texto libre se fragmenta a la tercera semana: «estructura», «Estructura», «estruct» y
 «EE» son cuatro etiquetas para una cosa, y entonces **filtrar por etiqueta deja de encontrar** lo que
@@ -3030,7 +3032,37 @@ hay. Así que el vocabulario lo define el proyecto —como las disciplinas, que 
 hallazgo elige de esa lista.
 
 Lo que esto desbloquea, y es la razón de que vaya primero: **el informe se pide por etiqueta.**
-«Todo lo de instalaciones que sigue abierto» es la consulta que hoy no se puede escribir.
+«Todo lo de instalaciones que sigue abierto» era la consulta que no se podía escribir. Medido sobre
+la obra de desarrollo: el informe completo trae **9 hallazgos** y el de «Instalaciones», **3**.
+
+**Y no es lo mismo que una disciplina**, aunque se parezcan y compartan la regla del color. La
+disciplina dice **de quién es** el entregable y sale del código del documento; la etiqueta es **lo
+transversal** y la pone quien coordina: «obra ejecutada», «pendiente de mandante», «afecta a
+presupuesto». Un hallazgo tiene una disciplina y puede llevar tres etiquetas — de ahí el
+`ManyToMany`: con un campo de una sola opción habría que elegir cuál se pierde.
+
+Cuatro decisiones que se ven poco y sostienen lo demás:
+
+- **El nombre es la identidad**, así que no hay código: una disciplina se reconoce por «AR», dos
+  letras que caben en una tabla de cuarenta filas, y una etiqueta por su palabra. Por eso lleva su
+  propia marca (`{% marca_etiqueta %}`) en vez de reutilizar el distintivo, que pintaría un «—»
+  donde tiene que ir el nombre. Lo que sí comparten es **la regla de la tinta**: la letra se elige
+  midiendo la luminancia del fondo, y esa regla vive en un solo sitio.
+- **Etiquetar pide `change_observacion` y no `add_etiqueta`.** Quien coordina clasifica lo que ve
+  **sin poder inventar vocabulario**, que es justo lo que evita que se fragmente por el camino.
+- **Una etiqueta de otra obra se ignora, no filtra.** Filtrar con ella devolvería cero filas, y un
+  informe que dice «no hay nada abierto» sobre una obra con treinta hallazgos es la peor de las
+  respuestas. El identificador se resuelve **acotado al proyecto** antes de llegar a la consulta.
+- **El encabezado escribe el nombre de la etiqueta**, no la palabra «filtrado»: a los tres días
+  nadie recuerda por qué ese informe traía doce hallazgos y no treinta.
+
+**El oráculo es el mismo de `F10.3`, `pypdf`**, que lee lo que reportlab escribió: el PDF filtrado
+trae el hallazgo etiquetado, **no** trae el otro, y el nombre de la etiqueta sale en la cabecera. Y
+el CSV se comprueba contra la misma pregunta, porque las dos salidas no pueden discrepar.
+
+**Lo que queda fuera a propósito:** la pantalla para crear y editar el vocabulario. Hoy se define
+por el admin de Django, igual que las disciplinas, y hasta que una obra real pida cambiarlo a
+menudo, una pantalla más es una pantalla más que mantener.
 
 ### `F10.2` — ✅ La nota no era un campo nuevo, y preguntar lo ahorró
 
@@ -3130,16 +3162,18 @@ que ya tenía: un sistema correcto y sin vida. Todo pasa AA, todo es legible, y 
 nueve tarjetas idénticas de icono, título y dos líneas grises. **El defecto no es de contraste, es
 de jerarquía**, y por eso no lo cazó el oráculo de la `FASE 9`.
 
-| #       | Tarea                                                                           | Estado       |
-| ------- | ------------------------------------------------------------------------------- | ------------ |
-| `F11.1` | Distintivo de disciplina: su código sobre su color, y la letra elegida midiendo | ✅ ver abajo |
-| `F11.2` | Fichas con nombre: «A» pasa a «A · Publicado y autorizado»                      | ✅ ver abajo |
-| `F11.3` | La marca sin placa: variante de trazo claro para las superficies oscuras        | ✅ ver abajo |
-| `F11.4` | La portada: dos mitades, para qué sirve esto, y un mensaje para el equipo       | ✅ ver abajo |
-| `F11.5` | El portal reordenado, y la tarjeta de obra con datos y no con texto             | ✅ ver abajo |
-| `F11.6` | «Observaciones abiertas»: prioridad, antigüedad y responsable de un vistazo     | ✅ ver abajo |
-| `F11.7` | Una sección de ayuda con el recorrido de cómo se usa                            | ⛔           |
-| `F11.8` | Botones, campos y migas: los controles dejaron de ser los del sistema           | ✅ ver abajo |
+| #        | Tarea                                                                           | Estado       |
+| -------- | ------------------------------------------------------------------------------- | ------------ |
+| `F11.1`  | Distintivo de disciplina: su código sobre su color, y la letra elegida midiendo | ✅ ver abajo |
+| `F11.2`  | Fichas con nombre: «A» pasa a «A · Publicado y autorizado»                      | ✅ ver abajo |
+| `F11.3`  | La marca sin placa: variante de trazo claro para las superficies oscuras        | ✅ ver abajo |
+| `F11.4`  | La portada: dos mitades, para qué sirve esto, y un mensaje para el equipo       | ✅ ver abajo |
+| `F11.5`  | El portal reordenado, y la tarjeta de obra con datos y no con texto             | ✅ ver abajo |
+| `F11.6`  | «Observaciones abiertas»: prioridad, antigüedad y responsable de un vistazo     | ✅ ver abajo |
+| `F11.7`  | Una sección de ayuda con el recorrido de cómo se usa                            | ⛔           |
+| `F11.8`  | Botones, campos y migas: los controles dejaron de ser los del sistema           | ✅ ver abajo |
+| `F11.9`  | La ficha de un hallazgo en dos columnas: la conversación y la ficha             | ✅ ver abajo |
+| `F11.10` | El portal: nombres de sección, líneas de ayuda, iconos y los cinco acentos      | ✅ ver abajo |
 
 ### `F11.5` — El portal, que es la página que más pesa
 
@@ -3213,6 +3247,176 @@ rayas porque casi nada tiene fecha. Cinco cambios, y **ninguno añade un dato qu
 visor; lo que no está comprobado es **la jerarquía**. La forma medible de decirlo: en una pantalla,
 cuántos pesos y tamaños distintos de texto hay, y si el elemento más importante es el más marcado.
 Se escribe cuando `F11.5` y `F11.6` estén, para no fijar un número antes de saber qué mide.
+
+### ❓ El fantasma al pasar a ortográfica — **no reproducido, y queda dicho**
+
+> «Sigue el fantasma al pasar a ortográfica.»
+
+**Lo que se midió dice que la pintura del fantasma sale limpia**, y por eso esto queda abierto en vez
+de cerrado. El auditor de pintura —`paintAudit`, el mismo oráculo con el que se cerró `F1.15`—
+cuenta cuántas mallas llevan puesta la pintura translúcida, y en vista sólida tiene que ser cero. Se
+midió alternando proyección tres veces sobre los dos modelos de muestra, incluido el de 32 MB que es
+el que el usuario tenía abierto: **cero en las seis mediciones**, y también con el arreglo de abajo
+desactivado a propósito para comprobar que el defecto se reproducía. No se reprodujo.
+
+**Así que lo que se ve en la pantalla del usuario probablemente no es la pintura del fantasma.** En
+su captura el modelo sale como dibujo de línea blanca, y eso encaja mejor con el **nivel de detalle
+de Fragments** —`LODMesh`, lo que dibuja como alambre mientras la cámara se mueve— quedándose puesto
+después de que el cambio de proyección sustituya el objeto de cámara. El volcado de mallas por
+proyección ya está en el modo de diagnóstico para poder confirmarlo o descartarlo con datos.
+
+**Lo que sí se arregló de camino** es una asimetría real que estaba en el código y que podía producir
+exactamente ese síntoma en otro modelo: **entrar** en la vista fantasma tenía un bucle que insiste
+hasta que no queda geometría sin pintar, y **salir** no tenía nada equivalente. Una malla creada por
+el nivel de detalle después de despintar nacía vistiendo un clon translúcido y nadie la devolvía a
+sólido. Ahora hay un camino de vuelta que no se borra nunca y un barrido con el mismo oráculo y el
+mismo presupuesto que el de entrada.
+
+Queda pendiente: reproducirlo con el modelo y el gesto exactos del usuario, y mirar el nivel de
+detalle en vez de la pintura.
+
+### El visor no podía escribir en ningún navegador, y el gate no lo veía
+
+**Es el defecto más grave que ha aparecido hasta ahora**, y estuvo dentro desde que el visor
+empezó a escribir. Cuatro capacidades enteras —dejar una nota sobre un elemento, descartar un
+conflicto, marcar la coordinación como vista y guardar una vista compartida— devolvían **403 en
+cualquier navegador** y funcionaban perfectamente en las pruebas.
+
+La causa es una línea: `CSRF_COOKIE_HTTPONLY = True`. El visor lee el testigo de `document.cookie`
+—que es de donde Django espera que se lea— y con `HttpOnly` ahí no hay nada que leer, así que
+mandaba la cabecera vacía. Django contestaba `403 CSRF Failed: CSRF token missing`.
+
+**Y el mensaje del visor tapaba la causa.** Un 403 se traducía a «tu sesión caducó o tu rol no puede
+abrir observaciones», que son dos cosas y ninguna era esta. El usuario lo vivió con un rol que sí
+tiene `add_observacion`:
+
+> «En mi sesión no puedo modificar en las pruebas?»
+
+Tres lecciones, y la del medio es la que vale para lo que venga:
+
+1. **El cliente de pruebas de Django no comprueba CSRF.** Es lo que dejó pasar 613 pruebas en verde
+   sobre cuatro escrituras que no funcionaban. Ahora hay pruebas con `enforce_csrf_checks` que
+   mandan el testigo **leído de la cookie**, o sea que hacen lo que hace el navegador y solo eso.
+2. **Una capacidad que solo se ejerce desde las pruebas no está probada, está simulada.** La regla
+   de la Fase 5 —«no cuenta como hecha si solo se alcanza por la línea de comandos»— aplica igual
+   aquí: si el único cliente que la ejerce es el de pruebas, no está hecha.
+3. **Un mensaje de error que enumera causas posibles no es un mensaje, es una lista de sospechosos.**
+   DRF distingue las tres en el cuerpo de la respuesta; solo había que leerlo, y ahora se lee.
+
+`HttpOnly` en la cookie de CSRF no aporta protección real —lo dice la documentación de Django—
+porque lo que el testigo evita es que **otro sitio** mande la petición, y para eso no necesita
+leerlo: le basta con no tenerlo. La cookie de sesión sigue siendo `HttpOnly`, y hay una prueba que
+comprueba las dos cosas a la vez.
+
+### El orden por prioridad era alfabético, y estaba en el informe
+
+**`ORDER BY prioridad` devuelve alta, baja, media.** Los valores guardados son palabras, así que la
+base los ordena por letra y la prioridad baja se colaba entre la alta y la media. Lo mismo con el
+estado: por letra, lo cerrado salía antes que lo que espera respuesta, o sea al revés del camino que
+recorre un hallazgo.
+
+**Estaba en el informe desde que se escribió** y no se notó por una razón que conviene recordar: la
+obra de desarrollo no tenía ni un hallazgo de prioridad baja. Los datos de prueba que no cubren
+todos los valores de un `choices` esconden exactamente esta clase de defecto.
+
+El peso vive ahora en `apps/documents/orden.py`, una sola vez, y lo usan la pantalla de la obra, la
+lista general y el informe. Hay una prueba que **compara las dos salidas**: si un día vuelven a
+discrepar, falla ahí y no en una reunión con el PDF delante.
+
+### Ordenar y filtrar la lista, que era lo que faltaba para triarla
+
+> «Además, poder ordenarlos por columna como yo quiera, filtrarlos.»
+
+Cada cabecera ordena por su columna y volver a pincharla le da la vuelta; la que manda lleva su
+flecha y su `aria-sort`. Filtros por prioridad, estado y obra.
+
+Tres decisiones que no son obvias:
+
+- **Va por URL y no ordenando la tabla en el navegador.** La lista está paginada, así que ordenar
+  las cincuenta filas visibles daría un orden falso —el hallazgo más urgente puede estar en la
+  página tres—. Y con el orden en la URL, una vista se guarda en favoritos y se manda por correo.
+- **Ordenar no se lleva por delante el filtro**, que es el defecto clásico de una tabla ordenable:
+  se filtra, se ordena, vuelve la lista entera y el filtro parece no funcionar. Tiene su prueba.
+- **Cada columna lleva su desempate y el criterio termina en `pk`.** Sin un orden total, dos filas
+  iguales pueden bailar entre páginas y una de ellas no aparecer nunca.
+
+### `F11.9` — La ficha de un hallazgo: la conversación a un lado, los datos al otro
+
+**El usuario se quejó dos veces de la misma pantalla**, y la segunda ya con las migas y el paso a
+paso puestos:
+
+> «Este flujo no es práctico ni comprensible y se ve mal distribuido.»
+
+Y tenía razón. Era **una columna con cuatro secciones apiladas** —hilo, responder, etiquetas,
+cerrar—, las cuatro con el mismo peso y el mismo aspecto, en un monitor de 1900 px donde sobraban
+mil. Quien entra a un hallazgo hace una de dos cosas: **leer de qué va** o **hacer algo con él**, y
+las dos estaban mezcladas en la misma cola vertical.
+
+La pantalla se parte en esas dos, que es lo que hacen los gestores de incidencias que se usan de
+verdad —y `OpenProject BIM` en particular, la referencia que el usuario pidió mirar:
+
+- **A la izquierda, la conversación**: de qué va, qué se ha dicho y responder. Una sola columna de
+  lectura, con la medida de una columna de lectura: **68 caracteres**, no 1400 píxeles.
+- **A la derecha, la ficha**: en qué punto va, de quién es, sobre qué está, cómo está clasificado y
+  cómo se cierra. Son **datos y acciones**, no lectura, y por eso dejan de meterse en medio del
+  hilo. Son 320 px fijos y no un porcentaje: lo que llevan son pares dato/valor, que tienen un
+  ancho natural y no ganan nada estirándose.
+
+Cuatro cosas más, y ninguna es de estructura:
+
+- **El hilo pasa a ser conversación y no tabla.** Eran dos celdas —autor a la izquierda, texto a la
+  derecha— y una respuesta de dos líneas dejaba media fila vacía al lado. Y ahora **se distingue lo
+  que escribió quien está mirando**: sus mensajes van al otro lado y con el color de la marca.
+- **El rótulo del campo va encima de la caja.** `as_p` de Django pone `<label>` y `<textarea>` en la
+  misma línea, así que con una caja de tres filas el «Comentario:» quedaba flotando a media altura a
+  su izquierda. Es literalmente lo que el usuario llamó «mal distribuido», y no se arreglaba
+  moviendo bloques: se arregla pintando el campo.
+- **Cerrar deja de tener el mismo aspecto que responder.** Responder se hace todos los días y cerrar
+  una vez; con los dos como bloques iguales, el último parecía el principal por estar abajo. Ahora
+  cerrar va al final del lateral y con el borde punteado.
+- **La miga dice «Observaciones» y no «Hallazgos».** Estuve a punto de dejarla con el segundo
+  nombre, y una miga que no coincide con el título de la pantalla a la que lleva es peor que no
+  tenerla. «Hallazgo» se queda donde es una palabra de columna, no de sección.
+
+Se apila en una columna por debajo de 980 px, y **el cuerpo va primero**: de qué va antes que qué
+hacer.
+
+### `F11.10` — El portal: los nombres, la ayuda, los iconos y un violeta que no se iba
+
+> «Mejorar las etiquetas de ayuda y los logos, ponerlos más precisos y claros, y buscar los mejores
+> nombres para cada sección; y mejorar el tema de los logos y colores.»
+
+**Lo primero que salió de mirarlo fue un defecto, no una preferencia.** Los cinco acentos del portal
+estaban medidos y aplicados desde la pasada anterior, y aun así los doce iconos salían violetas. La
+causa: `.icono` tenía **el `stroke` clavado en el violeta de la marca**, y los dibujos son de trazo y
+no de relleno, así que el `color: var(--acento)` de la tarjeta solo pintaba la baldosa de detrás.
+
+Y engaña al medirlo: `getComputedStyle(icono).color` devuelve el acento correcto mientras **lo que
+se ve en pantalla es el `stroke`**. Medí la propiedad equivocada y por poco doy el color por bueno.
+Peor: el comentario de `generic/_iconos.html` afirmaba desde el primer día que los iconos «heredan
+el color con `currentColor`». Estaba escrito y no era verdad — ahora lo es, y la advertencia queda
+en el archivo.
+
+**El tono también se mide, no solo el contraste.** Tener cinco colores distintos no basta si dos se
+parecen: el cian del modelo (`#5fd3d8`) y el verde de coordinación (`#5fd3ae`) estaban a **21 grados
+de tono**, o sea el mismo color a 18 px. Es lo que el usuario venía diciendo como «todo del mismo
+tono». El modelo pasa a azul y la coordinación a verde de verdad, y el par más cercano queda a **63
+grados**; administración baja a **11 % de saturación** a propósito, porque no es una etapa del
+trabajo. Los diez valores siguen pasando AA sobre las dos superficies: la tabla está en `app.css`.
+
+**Los nombres de sección dicen de qué tratan, no qué clase de objeto son.** «Proyecto», «Modelo» y
+«Documentos» son nombres de tablas; **«Las obras», «El modelo» y «El registro documental»** son
+sitios a los que se va, y la lista se lee como una tabla de contenidos. Las tres reglas que salieron
+de la revisión quedan escritas en `_definicion()`, porque valen para lo que se añada después.
+
+**Y «Lo mío» cambia de grupo**: lista observaciones y actividades, o sea coordinación, y estaba en
+documentos porque el permiso que pide es de observaciones. **El permiso no es el sitio.**
+
+Las líneas de ayuda se reescribieron enteras con un criterio: **contestar «qué encuentro ahí» sin
+repetir el título y sin prometer lo que no hay** —el transmittal no dice «con acuse de recibo»,
+porque no lo tiene—. Y tres iconos que eran la misma mancha a 18 px se rehicieron: organización era
+el mismo cubo que el visor; entregable, requisito y observación eran tres hojas casi iguales. Una
+observación no es un documento: es una conversación abierta sobre algo.
 
 ### `F11.1` — El distintivo de disciplina, y por qué la letra se mide
 

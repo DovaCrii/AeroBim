@@ -5,6 +5,164 @@ Este proyecto sigue [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Corregido — salir de la vista fantasma no limpiaba la geometría que llegaba después (2026-09-02)
+
+**Entrar en la vista fantasma tenía un bucle que insiste hasta que no queda nada sin pintar; salir
+no tenía nada equivalente.** Una malla creada por el nivel de detalle **después** de volver a sólido
+nacía vistiendo un material translúcido y nadie la devolvía: se quedaba en fantasma para siempre.
+Ahora hay un camino de vuelta que no se borra y un barrido con el mismo oráculo y el mismo tope que
+el de entrada.
+
+**Y lo que lo motivó no está reproducido, que es lo que hay que decir**: el usuario reportó que el
+fantasma sigue al pasar a ortográfica, y las mediciones dicen que la pintura sale limpia —cero
+mallas pintadas en seis mediciones, sobre los dos modelos de muestra y con el arreglo desactivado a
+propósito—. Lo que se ve en su pantalla apunta más al nivel de detalle del visor que a la pintura.
+El modo de diagnóstico ya vuelca las mallas por proyección para poder cerrarlo con datos.
+
+### Corregido — el visor no podía escribir nada desde un navegador (2026-09-02)
+
+**Dejar una nota sobre un elemento, descartar un conflicto, marcar la coordinación como vista y
+guardar una vista compartida: las cuatro devolvían 403.** No por permisos ni por sesión caducada,
+que es lo que decía el mensaje, sino porque la cookie del testigo CSRF estaba marcada como
+`HttpOnly` y el visor no podía leerla: mandaba la cabecera vacía en cada petición.
+
+Lo encontró el usuario intentando anotar un elemento con un rol que **sí** puede abrir
+observaciones, y el visor le contestó «tu sesión caducó o tu rol no puede abrir observaciones». Ni
+una cosa ni la otra, y el mensaje le mandaba a buscar el problema donde no estaba.
+
+**Y el gate entero pasaba en verde**, porque el cliente de pruebas de Django no comprueba CSRF: las
+cuatro capacidades funcionaban en las pruebas y en ningún navegador. Ahora hay pruebas que hacen lo
+que hace el navegador —comprobación activada y el testigo leído de la cookie— así que volver a
+esconderla falla aquí en vez de descubrirse anotando en obra.
+
+La cookie de **sesión** sigue siendo `HttpOnly`, que es la que de verdad protege; `HttpOnly` en la
+del CSRF no aporta protección real, y lo dice la documentación de Django.
+
+De paso, el mensaje de error distingue las tres causas —falta el testigo, sesión caducada, rol sin
+permiso—, que eran tres cosas distintas dichas con la misma frase.
+
+### Corregido — ordenar por prioridad devolvía alta, baja, media (2026-09-02)
+
+**Los valores guardados son palabras**, así que `ORDER BY prioridad` los ordena por letra y la
+prioridad baja se colaba entre la alta y la media. Estaba en el informe desde que se escribió y no
+se notó porque la obra de desarrollo no tenía ni un hallazgo de prioridad baja. Lo mismo con el
+estado: por letra, lo cerrado salía antes que lo que espera respuesta.
+
+El peso vive ahora en un solo sitio y lo usan la pantalla de la obra, la lista general y el informe:
+con una copia en cada sitio se llega a una pantalla que ordena de una forma y un PDF de la misma
+consulta que ordena de otra. Hay una prueba que compara las dos salidas.
+
+### Añadido — la lista de observaciones se ordena y se filtra por columna (2026-09-02)
+
+**«Poder ordenarlos por columna como yo quiera, filtrarlos.»** Cada cabecera ordena por su columna
+y vuelve a pincharla le da la vuelta; la que manda lleva su flecha, porque una tabla ordenada que no
+dice por dónde lo está obliga a deducirlo leyendo las filas. Y hay filtros por prioridad, estado y
+obra.
+
+Va por URL y no ordenando la tabla en el navegador, por dos razones: la lista está **paginada**, así
+que ordenar sólo las cincuenta filas visibles daría un orden falso —el hallazgo más urgente puede
+estar en la página tres—, y con el orden en la URL **una vista se puede guardar en favoritos y
+mandar por correo**, que es lo que hace quien revisa lo mismo cada semana. Ordenar tampoco se lleva
+por delante el filtro que había puesto, que es el defecto clásico de una tabla ordenable.
+
+### Cambiado — el estado y la prioridad se distinguen por color (2026-09-02)
+
+**«El estado cerrado o abierta: cambiar color, que sea visible y trazable más claro.»** Las dos iban
+como la misma ficha gris. Ahora el estado lleva el color de su paso —ámbar lo que espera algo,
+violeta lo que está en marcha, verde lo cerrado, gris lo descartado— y **son los mismos colores del
+paso a paso de la ficha**, así que se sigue el mismo color de la lista al detalle.
+
+Y lo mismo en la prioridad, que era el otro extremo de la fila: alta en rojo, media en ámbar y baja
+en gris, las tres con relleno. Antes media y baja eran dos grises que se distinguían leyendo la
+palabra.
+
+### Cambiado — las herramientas de la obra, en dos cajas y no en una pila (2026-09-02)
+
+**«Está mal distribuido, muy junto y poco entendible el flujo, sobre todo en las observaciones
+abiertas y lo que está abajo.»** Debajo de la tabla había cinco filas de controles seguidas sin nada
+que dijera dónde acaba una herramienta y empieza la otra: dos selectores, tres casillas, dos
+botones, una explicación, un selector de archivo, otro botón y otra explicación.
+
+Son dos herramientas independientes —sacar el informe y meter un BCF que llega— y ahora se dibujan
+como dos, cada una en su caja y con su nombre. Una al lado de la otra y no apiladas: apiladas, la
+pantalla decía que la segunda venía después de la primera.
+
+### Cambiado — la ficha de un hallazgo se lee en dos columnas (`F11.9`, 2026-09-02)
+
+**«Este flujo no es práctico ni comprensible y se ve mal distribuido.»** Era la segunda vez que el
+usuario se quejaba de esta pantalla, ya con las migas y el paso a paso puestos — y con razón: eran
+cuatro secciones apiladas con el mismo peso —hilo, responder, etiquetas, cerrar— en un monitor donde
+sobraba media pantalla.
+
+Quien entra a un hallazgo hace una de dos cosas: **leer de qué va** o **hacer algo con él**. Ahora
+eso son las dos mitades de la pantalla. A la izquierda la conversación —de qué va, qué se ha dicho,
+responder—, con la medida de una columna de lectura y no la del monitor. A la derecha la ficha: en
+qué punto va, de quién es, sobre qué está, cómo está clasificado y cómo se cierra.
+
+- **El hilo es una conversación y no una tabla**, y se distingue lo que escribió quien mira: sus
+  mensajes van al otro lado y con el color de la marca.
+- **El rótulo de cada campo va encima de la caja**, no flotando a media altura a su izquierda.
+- **Cerrar deja de parecer la acción principal.** Responder se hace todos los días y cerrar una vez;
+  con los dos como bloques iguales, el de abajo ganaba por estar abajo.
+
+Y una corrección de nombres: la miga dice **«Observaciones»**, igual que el portal y el título de la
+pantalla a la que lleva. «Hallazgo» se queda donde es una palabra de columna, no de sección.
+
+### Corregido — los iconos del portal eran violetas aunque cada grupo tenía su color (`F11.10`, 2026-09-02)
+
+**Los cinco acentos del portal estaban medidos y aplicados, y aun así los doce iconos salían
+violetas.** La causa era una sola línea: el trazo del icono estaba clavado en el violeta de la marca,
+y como los dibujos son de trazo y no de relleno, el color del grupo solo pintaba la baldosa de
+detrás. El comentario del archivo de iconos afirmaba desde el primer día que heredaban el color;
+ahora es verdad.
+
+Es además un defecto que engaña al medirlo: la propiedad `color` devolvía el acento correcto
+mientras lo que se ve en pantalla es el `stroke`.
+
+En la misma pasada, y a petición del usuario —«mejorar las etiquetas de ayuda y los logos, buscar
+los mejores nombres para cada sección»:
+
+- **El tono también se mide, no solo el contraste.** El cian del modelo y el verde de coordinación
+  estaban a 21 grados de tono, o sea que a 18 px eran el mismo color. El modelo pasa a azul y la
+  coordinación a verde; el par más cercano queda a 63 grados. Administración baja a gris casi puro:
+  no es una etapa del trabajo. Los diez valores siguen pasando AA sobre las dos superficies.
+- **Los nombres de sección dicen de qué tratan y no qué clase de objeto son**: «Las obras», «El
+  modelo», «El registro documental», «Coordinación», «Administración».
+- **«Lo mío» pasa a Coordinación**, que es donde vive lo que lista. Estaba en documentos porque el
+  permiso que pide es de observaciones, y el permiso no es el sitio.
+- **Las líneas de ayuda, reescritas enteras** para contestar «qué encuentro ahí» sin repetir el
+  título y sin prometer lo que no hay.
+- **Tres iconos que eran la misma mancha a 18 px**, rehechos: organización era el mismo cubo que el
+  visor, y entregable, requisito y observación eran tres hojas casi iguales.
+
+### Añadido — el informe se pide por etiqueta (`F10.1`, 2026-09-02)
+
+**«Todo lo de instalaciones que sigue abierto» era la consulta que no se podía escribir.** Un
+hallazgo tenía prioridad, responsable, estado y disciplina, y nada que dijera **de qué va** más allá
+de la especialidad de su documento.
+
+Ahora cada obra define su vocabulario —«instalaciones», «obra ejecutada», «pendiente de mandante»,
+«afecta a presupuesto»— y un hallazgo lleva las que le correspondan, con su color y su palabra. El
+informe en PDF y la tabla en CSV se pueden pedir por una de ellas, y **el encabezado escribe el
+nombre de la etiqueta**: a los tres días nadie recuerda por qué ese informe traía doce hallazgos y
+no treinta. Medido sobre la obra de desarrollo: el informe completo trae 9 hallazgos y el de
+«Instalaciones», 3.
+
+**Son vocabulario del proyecto y no un campo de texto**, y esa es la decisión entera: un texto libre
+se fragmenta a la tercera semana —«estructura», «Estructura», «estruct», «EE» son cuatro etiquetas
+para una cosa— y entonces filtrar por etiqueta deja de encontrar lo que hay.
+
+Tres cosas que se ven poco:
+
+- **Etiquetar pide permiso de cambiar la observación, no de crear etiquetas.** Quien coordina
+  clasifica lo que ve sin poder inventar vocabulario, que es lo que evita que se fragmente.
+- **Una etiqueta de otra obra se ignora, no filtra.** Filtrar con ella devolvería cero filas, y un
+  informe que dice «no hay nada abierto» sobre una obra con treinta hallazgos es la peor respuesta.
+- **La letra de cada etiqueta se elige midiendo** la luminancia de su color, con la misma regla que
+  ya usan los distintivos de disciplina: una palabra en blanco sobre amarillo no se lee.
+
+El vocabulario se define por ahora en el admin, igual que las disciplinas.
+
 ### Cambiado — «Observaciones abiertas» se tría de un vistazo (`F11.6`, 2026-09-02)
 
 **La lista de hallazgos de la obra era texto plano, y por eso no se podía triar.** La prioridad iba

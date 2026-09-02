@@ -35,6 +35,7 @@ from apps.documents.forms import (
     CierreForm,
     ComentarioForm,
     EntregableForm,
+    EtiquetasForm,
     IdoneidadForm,
     ObservacionForm,
     RequisitoIdsForm,
@@ -384,14 +385,21 @@ class InformeCoordinacionView(ModelViewPermissionRequiredMixin, View):
         if proyecto is None:
             raise Http404
 
-        opciones = Opciones.desde(request.GET, usuario=request.user)
+        opciones = Opciones.desde(request.GET, usuario=request.user, proyecto=proyecto)
         formato = "csv" if request.GET.get("formato") == "csv" else "pdf"
 
         set_audit_context(
             request,
             proyecto,
             action="informe_coordinacion",
-            metadata={"formato": formato, "estado": opciones.estado, "orden": opciones.orden},
+            metadata={
+                "formato": formato,
+                "estado": opciones.estado,
+                "orden": opciones.orden,
+                # **La etiqueta va a la bitácora**, porque es lo que explica por qué dos informes
+                # de la misma obra y del mismo día traen distinto número de hallazgos.
+                "etiqueta": str(opciones.etiqueta) if opciones.etiqueta else "",
+            },
         )
 
         if formato == "csv":
@@ -826,10 +834,17 @@ class ObservacionesView(
     paginate_by = 50
 
     def get_queryset(self):
+        from apps.documents.orden import anotaciones, criterio, nulos_al_final
+
         consulta = (
             super()
             .get_queryset()
             .select_related("proyecto", "responsable", "autor", "revision__entregable")
+            # **La precarga es parte de dibujar la etiqueta, no una optimización aparte** — `F10.1`:
+            # con cincuenta filas por página, sin ella son cincuenta consultas para pintar unos
+            # chips. Medido: 56 consultas antes, 7 después, con 50 observaciones etiquetadas.
+            .prefetch_related("etiquetas")
+            .annotate(**anotaciones())
         )
         if self.request.GET.get("mias") == "1":
             consulta = consulta.filter(responsable=self.request.user)
@@ -838,9 +853,25 @@ class ObservacionesView(
         entregable = self.request.GET.get("entregable")
         if entregable:
             consulta = consulta.filter(revision__entregable_id=entregable)
-        return consulta
+        # **Los filtros que pidió el usuario**: prioridad, estado y obra. Van por igualdad contra
+        # el valor guardado, y un valor desconocido **no filtra** en vez de vaciar la lista: una
+        # pantalla en blanco se lee como «no hay nada» y no como «ese filtro no existe».
+        prioridad = self.request.GET.get("prioridad")
+        if prioridad in dict(Observacion.PRIORIDADES):
+            consulta = consulta.filter(prioridad=prioridad)
+        estado = self.request.GET.get("estado")
+        if estado in dict(Observacion.STATUS_CHOICES):
+            consulta = consulta.filter(estado=estado)
+        obra = self.request.GET.get("obra")
+        if obra:
+            consulta = consulta.filter(proyecto__codigo=obra)
+
+        _columna, _desc, campos = criterio(self.request.GET.get("orden"))
+        return nulos_al_final(consulta, campos)
 
     def get_context_data(self, **kwargs):
+        from apps.documents.orden import COLUMNAS, criterio
+
         contexto = super().get_context_data(**kwargs)
         # **Los proyectos que tienen algo que exportar**, no todos: un enlace a un BCF vacío se abre
         # en Solibri y no muestra nada, que se lee como que la exportación falló.
@@ -849,6 +880,64 @@ class ObservacionesView(
             .filter(observaciones__isnull=False)
             .distinct()
             .order_by("codigo")
+        )
+
+        # **Las cabeceras ya montadas, con su enlace y su flecha.** Se arman aquí y no en la
+        # plantilla por dos cosas que la plantilla no puede hacer bien: decidir si el siguiente clic
+        # invierte o empieza de nuevo —con dos sitios decidiéndolo, la flecha acaba diciendo una
+        # cosa y la consulta otra— y buscar en un diccionario por una clave variable.
+        columna, descendente, _campos = criterio(self.request.GET.get("orden"))
+
+        # Todo menos el orden y la página: sin esto, ordenar por una columna se lleva por delante
+        # el filtro que estaba puesto.
+        resto = self.request.GET.copy()
+        for fuera in ("orden", "page"):
+            resto.pop(fuera, None)
+        cola = f"&{resto.urlencode()}" if resto else ""
+
+        etiquetas = {
+            "prioridad": _("Priority"),
+            "hallazgo": _("Finding"),
+            "obra": _("On"),
+            "responsable": _("Owner"),
+            "vence": _("Due"),
+            "estado": _("State"),
+        }
+        contexto["columnas"] = [
+            {
+                "clave": clave,
+                "texto": texto,
+                "activa": clave == columna,
+                "descendente": clave == columna and descendente,
+                # Pinchar la columna que ya manda le da la vuelta; pinchar otra empieza ascendente.
+                "enlace": (
+                    f"?orden={'-' if clave == columna and not descendente else ''}{clave}{cola}"
+                ),
+            }
+            for clave, texto in etiquetas.items()
+            if clave in COLUMNAS
+        ]
+        contexto["orden_columna"] = columna
+        contexto["orden_descendente"] = descendente
+
+        # Y los valores por los que se puede filtrar, con lo que hay puesto ahora.
+        #
+        # **Se llama `filtro_actual` y no `filtros`** porque `FiltrosEnLaPaginacionMixin` ya usa
+        # `filtros` para la cadena que conserva la paginación: pisarlo dejaba la lista perdiendo el
+        # filtro al pasar de página, que es exactamente el defecto que ese mixin existe para evitar.
+        contexto["filtro_actual"] = {
+            "prioridad": self.request.GET.get("prioridad", ""),
+            "estado": self.request.GET.get("estado", ""),
+            "obra": self.request.GET.get("obra", ""),
+        }
+        contexto["prioridades"] = Observacion.PRIORIDADES
+        contexto["estados"] = Observacion.STATUS_CHOICES
+        contexto["obras"] = list(
+            scope_queryset_to_organizacion(Proyecto.objects.all(), self.request.user)
+            .filter(observaciones__isnull=False)
+            .distinct()
+            .order_by("codigo")
+            .values_list("codigo", flat=True)
         )
         return contexto
 
@@ -868,6 +957,16 @@ class ObservacionView(
         # **El botón solo si se puede ejecutar.**
         contexto["puede_comentar"] = self.request.user.has_perm("documents.add_comentario")
         contexto["puede_cerrar"] = self.request.user.has_perm("documents.change_observacion")
+        # **Las etiquetas, que es lo transversal** — `F10.1`. El formulario sale marcado con las
+        # que ya lleva: un formulario en blanco haría que guardar sin mirar borrase las puestas.
+        contexto["etiquetas"] = list(self.object.etiquetas.all())
+        contexto["form_etiquetas"] = EtiquetasForm(
+            proyecto=self.object.proyecto,
+            initial={"etiquetas": contexto["etiquetas"]},
+        )
+        # Si la obra no definió vocabulario no hay nada que ofrecer, y una lista de casillas vacía
+        # con un botón «Guardar» al lado es una pantalla que no hace nada.
+        contexto["hay_etiquetas"] = bool(contexto["form_etiquetas"].fields["etiquetas"].queryset)
         return contexto
 
 
@@ -890,6 +989,34 @@ class ComentarObservacionView(ModelPermissionRequiredMixin, View):
             set_audit_context(request, comentario, action="comentar_observacion")
         else:
             messages.error(request, _("The comment cannot be empty."))
+        return redirect("documents:observacion", pk=observacion.pk)
+
+
+class EtiquetarObservacionView(ModelPermissionRequiredMixin, View):
+    """Poner y quitar etiquetas a un hallazgo. `F10.1`.
+
+    **Pide `change_observacion` y no `add_etiqueta`**, y la diferencia importa: esto no crea
+    vocabulario —el vocabulario lo define el proyecto— sino que **cambia este hallazgo**. Quien
+    coordina puede clasificar lo que ve sin poder inventar etiquetas nuevas, que es justo lo que
+    evita que el vocabulario se fragmente por el camino.
+
+    Y el formulario acota las opciones al proyecto del hallazgo, así que una etiqueta de otra obra
+    mandada a mano no pasa la validación: se descarta y las demás se guardan.
+    """
+
+    model = Observacion
+    permission_action = "change"
+
+    def post(self, request, *args, **kwargs):
+        observacion = get_object_or_404(Observacion, pk=kwargs["pk"])
+        form = EtiquetasForm(request.POST, proyecto=observacion.proyecto)
+        if not form.is_valid():
+            messages.error(request, _("Those tags do not belong to this project."))
+            return redirect("documents:observacion", pk=observacion.pk)
+
+        observacion.etiquetas.set(form.cleaned_data["etiquetas"])
+        set_audit_context(request, observacion, action="etiquetar_observacion")
+        messages.success(request, _("Tags saved."))
         return redirect("documents:observacion", pk=observacion.pk)
 
 

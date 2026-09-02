@@ -198,7 +198,7 @@
         {% endcomment %}
         <tr class="fila-hallazgo">
           <td style="width: 96px">
-            <span class="pildora {{ observacion.prioridad }}">
+            <span class="pildora pildora-prioridad {{ observacion.prioridad }}">
               {{ observacion.get_prioridad_display }}
             </span>
           </td>
@@ -244,8 +244,21 @@
 
     Y el orden entre ellas también dice algo: primero **sacar** lo que hay, después **meter**
     lo que llega de fuera. Sacar es lo que se hace todas las semanas.
+
+    **Y van en dos paneles con su rótulo, uno al lado del otro.** Moverlas debajo de la tabla no
+    bastó: seguían siendo cinco filas pegadas —dos selectores, tres casillas, dos botones, una
+    explicación, un selector de archivo, otro botón y otra explicación— sin nada que dijera dónde
+    acaba una herramienta y empieza la otra. El usuario lo dijo así: «está mal distribuido, muy
+    junto y poco entendible el flujo, sobre todo en las observaciones abiertas y lo que está abajo».
+
+    Son **dos herramientas independientes**, así que se dibujan como dos: cada una en su caja, con
+    su nombre y su explicación dentro. Y una al lado de la otra, no una debajo de la otra, porque
+    apiladas la pantalla decía que la segunda venía después de la primera, y no es así.
   {% endcomment %}
+  <div class="herramientas">
   {% if puede_ver_observaciones %}
+    <section class="herramienta">
+      <h2>{% translate "Take the report out" %}</h2>
     {% comment %}
       **El informe, y es la primera salida en papel que tiene el producto.** `F10.3`. Hasta ahora lo
       único que salía era el BCF, y un BCF no se lleva a una reunión de obra: se abre en otro
@@ -278,6 +291,25 @@
           <option value="antiguedad">{% translate "age" %}</option>
         </select>
       </label>
+      {% if etiquetas %}
+        {% comment %}
+          **La consulta que no se podía escribir** — `F10.1`: «todo lo de instalaciones que sigue
+          abierto». Va como desplegable y no como texto porque el vocabulario lo define el
+          proyecto: un campo libre se fragmenta a la tercera semana y entonces filtrar no encuentra.
+
+          Y el selector **no aparece si la obra no tiene etiquetas**, en vez de salir vacío: un
+          desplegable con una sola opción que dice «todas» no enseña nada y ocupa una línea.
+        {% endcomment %}
+        <label class="junto">
+          {% translate "tagged" %}
+          <select name="etiqueta">
+            <option value="">{% translate "any tag" %}</option>
+            {% for etiqueta in etiquetas %}
+              <option value="{{ etiqueta.pk }}">{{ etiqueta.nombre }}</option>
+            {% endfor %}
+          </select>
+        </label>
+      {% endif %}
       <label class="junto"><input type="checkbox" name="mias" value="1"> {% translate "only mine" %}</label>
       <label class="junto"><input type="checkbox" name="comentarios" value="1"> {% translate "with the comment thread" %}</label>
       <label class="junto"><input type="checkbox" name="miniaturas" value="1" checked> {% translate "with thumbnails" %}</label>
@@ -287,8 +319,11 @@
         {% translate "The PDF is what you print and file. The CSV is the editable half: it opens in a spreadsheet, no need to ask for anything else." %}
       </span>
     </form>
+    </section>
   {% endif %}
   {% if puede_importar_bcf %}
+    <section class="herramienta">
+      <h2>{% translate "Bring an answer in" %}</h2>
     {% comment %}
       **La vuelta del ciclo, y va aquí porque es de aquí de lo que habla.** Exportar está arriba,
       junto al estado del proyecto, porque es una descarga; importar deja observaciones, y estas
@@ -308,7 +343,9 @@
         {% translate "What the client sends back: new topics come in as observations, and answers to ours are added to their thread without overwriting anything." %}
       </span>
     </form>
+    </section>
   {% endif %}
+  </div>
 
   {# --- El salto al visor ---------------------------------------------------------- #}
   <p class="grupo">{% translate "Models and drawings you can open" %}</p>

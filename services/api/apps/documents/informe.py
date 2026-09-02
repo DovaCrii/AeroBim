@@ -25,6 +25,7 @@ modulo no invente ningun dato y todo lo que hace sea seleccionar, ordenar y comp
 | `comentarios` | El hilo es la mitad del valor de un hallazgo, y **triplica el papel**         |
 | `miniaturas`  | Quien lo recibe sabe de que se le habla sin abrir el modelo                   |
 | `solo_de`     | El informe de una persona, para llevarselo a su parte de la obra              |
+| `etiqueta`    | «Todo lo de instalaciones que sigue abierto», que es lo que se pide en la obra |
 
 **Ninguna opcion cambia los numeros.** El encabezado cuenta lo que hay en el informe, no lo que hay
 en la obra, y dice cual es cual: un informe filtrado que presuma de ser el total es peor que no
@@ -76,22 +77,31 @@ import io
 from dataclasses import dataclass
 from datetime import date
 
+from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.utils import timezone
+from django.utils.html import escape
 
 from apps.documents.models import Observacion
 
 #: Los ordenes que se ofrecen, y el criterio de cada uno. La clave es lo que llega por la URL.
 #:
-#: **`prioridad` primero y `created_at` como desempate en los tres**: sin un segundo criterio, dos
-#: hallazgos de la misma prioridad salen en el orden que le apetezca a la base de datos, y entonces
-#: **dos informes del mismo dia no coinciden** — que es exactamente lo que hace que nadie se fie de
-#: un papel.
+#: **`orden_prioridad` primero y `created_at` como desempate en los tres**: sin un segundo criterio,
+#: dos hallazgos de la misma prioridad salen en el orden que le apetezca a la base de datos, y
+#: entonces **dos informes del mismo dia no coinciden** — que es exactamente lo que hace que nadie
+#: se fie de un papel.
+#:
+#: **Y no se ordena por el campo `prioridad`, que era un defecto de verdad**: los valores guardados
+#: son `alta`, `media` y `baja` —palabras—, asi que `ORDER BY prioridad` devuelve **alta, baja,
+#: media** y colaba lo de prioridad baja en medio del informe. No se noto porque la obra de
+#: desarrollo no tenia ni un hallazgo de prioridad baja. El peso vive en `apps/documents/orden.py`,
+#: una sola vez, y lo usan este informe y la lista de la pantalla: con una copia en cada sitio se
+#: llega a una pantalla que ordena de una forma y un PDF de la misma consulta que ordena de otra.
 ORDENES = {
-    "prioridad": ("prioridad", "vence", "created_at"),
-    "responsable": ("responsable__username", "prioridad", "created_at"),
-    "vencimiento": ("vence", "prioridad", "created_at"),
-    "antiguedad": ("created_at", "prioridad"),
+    "prioridad": ("orden_prioridad", "vence", "created_at"),
+    "responsable": ("responsable__username", "orden_prioridad", "created_at"),
+    "vencimiento": ("vence", "orden_prioridad", "created_at"),
+    "antiguedad": ("created_at", "orden_prioridad"),
 }
 
 #: Que estados entran. `abiertas` es lo de la reunion; `todo` es el archivo de cierre de etapa.
@@ -157,9 +167,16 @@ class Opciones:
     #: es un atributo de clase, y `Opciones(solo_de=alguien)` revienta con un `TypeError`. Lo
     #: encontraron las pruebas.
     solo_de: object | None = None
+    #: `None` = todas las etiquetas. Con una, el informe de esa etiqueta — `F10.1`.
+    #:
+    #: Es **la etiqueta ya resuelta y comprobada contra el proyecto**, no su identificador: asi el
+    #: encabezado puede escribir su nombre, y una etiqueta de otra obra no puede filtrar aqui. Sin
+    #: la comprobacion, un identificador ajeno devolveria cero filas y el informe diria «no hay
+    #: nada abierto» sobre una obra con treinta hallazgos, que es la peor de las respuestas.
+    etiqueta: object | None = None
 
     @classmethod
-    def desde(cls, datos, usuario=None) -> Opciones:
+    def desde(cls, datos, usuario=None, proyecto=None) -> Opciones:
         """Las opciones que vengan de la URL, **validadas**.
 
         Un valor con mala forma cae al de por defecto en silencio y no da error: quien pide el
@@ -173,7 +190,27 @@ class Opciones:
             comentarios=datos.get("comentarios") in ("1", "si", "true", "on"),
             miniaturas=datos.get("miniaturas", "1") in ("1", "si", "true", "on"),
             solo_de=usuario if datos.get("mias") in ("1", "si", "true", "on") else None,
+            etiqueta=_etiqueta_de(datos.get("etiqueta"), proyecto),
         )
+
+
+def _etiqueta_de(valor, proyecto):
+    """La etiqueta del proyecto que corresponda a `valor`, o `None`.
+
+    **Acotada al proyecto a proposito**: es lo que impide que el identificador de una etiqueta de
+    otra obra filtre este informe. Y cae a `None` en silencio —igual que el resto de las opciones—
+    porque una etiqueta que se borro mientras alguien tenia el formulario abierto no es motivo para
+    negarle el informe.
+    """
+    if not valor or proyecto is None:
+        return None
+
+    from apps.projects.models import Etiqueta
+
+    try:
+        return Etiqueta.objects.filter(proyecto=proyecto).get(pk=valor)
+    except (Etiqueta.DoesNotExist, ValidationError, ValueError, TypeError):
+        return None
 
 
 def hallazgos(proyecto, opciones: Opciones):
@@ -190,10 +227,17 @@ def hallazgos(proyecto, opciones: Opciones):
     if opciones.solo_de is not None:
         # Lo suyo es lo que le toca **o** lo que abrio: las dos cosas son «su parte».
         consulta = consulta.filter(Q(responsable=opciones.solo_de) | Q(autor=opciones.solo_de))
+    if opciones.etiqueta is not None:
+        consulta = consulta.filter(etiquetas=opciones.etiqueta)
 
     consulta = consulta.select_related("responsable", "autor", "revision__entregable")
     if opciones.comentarios:
         consulta = consulta.prefetch_related("comentarios__autor")
+
+    # El peso de la prioridad, para poder ordenar por urgencia y no por letra. Ver `ORDENES`.
+    from apps.documents.orden import anotaciones
+
+    consulta = consulta.annotate(**anotaciones())
 
     return list(consulta.order_by(*ORDENES[opciones.orden])[: MAXIMO_FILAS + 1])
 
@@ -520,6 +564,10 @@ def _encabezado(resumen: Resumen, opciones: Opciones, hoy: date, pedido_por) -> 
     ]
     if opciones.solo_de is not None:
         partes.append("<b>solo lo tuyo</b>")
+    if opciones.etiqueta is not None:
+        # **Con el nombre y no «filtrado»**: el informe se lleva a una reunion y a los tres dias
+        # nadie recuerda por que trae doce hallazgos y no treinta.
+        partes.append(f"<b>solo «{escape(str(opciones.etiqueta))}»</b>")
     linea = " · ".join(partes)
     quien = f" · lo pidió {pedido_por}" if pedido_por else ""
     return f"{linea}<br/>Sacado el {hoy.isoformat()}{quien}"

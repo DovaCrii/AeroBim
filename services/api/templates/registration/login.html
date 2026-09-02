@@ -220,11 +220,14 @@
       <p class="sub">{% translate "Model, plans and document control." %}</p>
 
       {% if form.errors %}
-        {#
+        {% comment %}
           **Un solo mensaje, y generico.** Distinguir "no existe ese usuario" de
           "la contraseña no es esa" le regala la mitad del trabajo a quien prueba
           credenciales: con el primer mensaje ya sabe que nombres existen.
-        #}
+
+          Y va con `{% comment %}`: era un `{# #}` de varias líneas, así que este texto se imprimía
+          encima del mensaje de error — justo en la pantalla que ve alguien que falla al entrar.
+        {% endcomment %}
         <div class="error">{% translate "Invalid username or password. Try again." %}</div>
       {% endif %}
 

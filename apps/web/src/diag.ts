@@ -315,6 +315,36 @@ export async function fantasma(container: HTMLElement, ifcUrl: string, log: Log)
     );
   }
 
+  // **Y el cambio de proyección, que es donde el fantasma se quedaba pegado.**
+  //
+  // El usuario lo dijo así: «sigue el fantasma al pasar a ortográfica». La proyección no era la
+  // causa: cambiarla **rehace las mallas del nivel de detalle**, y algunas nacían vistiendo un clon
+  // translúcido nuestro. Como llegaban después de despintar, nadie las devolvía a sólido.
+  //
+  // Se mide aquí porque es el único sitio donde se puede: en vista sólida, `ghosted` **tiene que
+  // ser cero**, y una pantalla no lo dice con un número.
+  log("\nvolver a solido y cambiar de proyeccion:");
+  for (const proyeccion of ["Orthographic", "Perspective", "Orthographic"] as const) {
+    await viewer.setProjection(proyeccion);
+    await new Promise((listo) => setTimeout(listo, 1200));
+    descansar();
+    await new Promise((listo) => setTimeout(listo, 1200));
+    const tras = viewer.paintAudit;
+    log(
+      `  ${proyeccion}: ${tras.ghosted} fantasma / ${tras.solid} opacos — ` +
+        `${tras.ghosted === 0 ? "limpio" : "SE QUEDO PINTURA"}`,
+    );
+    // **Y con qué mallas se está dibujando**, que es la pregunta que el conteo de pintura no
+    // contesta. Medido el 2026-09-02: la pintura sale limpia en las dos proyecciones y en los dos
+    // modelos de muestra, así que lo que se ve como «sigue el fantasma» **no es la pintura**. La
+    // sospecha que queda es el nivel de detalle: `LODMesh` es lo que Fragments dibuja como alambre
+    // mientras la cámara se mueve, y si se queda ahí tras el cambio de cámara, el modelo se ve de
+    // línea sin que ningún material sea translúcido. Este volcado es lo que lo diría.
+    const clases = Object.entries(viewer.paintAudit.solidKinds).sort((a, b) => b[1] - a[1]);
+    log(`    mallas: ${clases.map(([clase, n]) => `${clase}×${n}`).join(" · ") || "ninguna"}`);
+  }
+  await viewer.setProjection("Perspective");
+
   // **La selección se mide en los dos estilos, y el sólido es la línea base.**
   //
   // Se conserva aunque el resultado sea negativo, porque el resultado *es* el dato: medido el

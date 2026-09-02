@@ -482,6 +482,18 @@ class Observacion(StatusFlowMixin, BaseModel):
     # viewpoint. Salen de las cotas que estaban a la vista al anotar: medir es poner puntos en
     # coordenadas del modelo, que es exactamente lo que el formato pide.
     marcado = models.JSONField(default=list, blank=True)
+    # **Las etiquetas, que son lo transversal** — `F10.1`. Vocabulario del proyecto y no texto
+    # libre: la razon esta en `apps/projects/models.py`, en la clase `Etiqueta`.
+    #
+    # Va como `ManyToMany` y no como un campo con opciones porque un hallazgo lleva varias a la
+    # vez: «afecta a presupuesto» y «pendiente de mandante» son dos cosas distintas sobre el mismo
+    # problema, y con un solo campo habria que elegir cual se pierde.
+    etiquetas = models.ManyToManyField(
+        "projects.Etiqueta",
+        blank=True,
+        related_name="observaciones",
+        verbose_name=_("tags"),
+    )
     # **La foto de lo que se estaba mirando**, como clave de almacenamiento — nunca los bytes.
     # Un `data:` de un megabyte dentro de una fila la vuelve imposible de listar, y ademas duplica
     # el archivo en cada copia de seguridad de la base. Vive donde viven los documentos, que es

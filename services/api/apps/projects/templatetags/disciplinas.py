@@ -10,11 +10,13 @@ Se usa asi:
 
     {% load disciplinas %}
     {% distintivo entregable.disciplina %}
+    {% marca_etiqueta una_etiqueta %}
 """
 
 from django import template
 
 from apps.projects.color import distintivo as calcular
+from apps.projects.color import normalizar, tinta_sobre
 
 register = template.Library()
 
@@ -32,3 +34,23 @@ def distintivo(disciplina, con_nombre: bool = False):
     datos["con_nombre"] = con_nombre
     datos["vacio"] = False
     return datos
+
+
+@register.inclusion_tag("projects/_etiqueta.html")
+def marca_etiqueta(etiqueta):
+    """La marca de una etiqueta: **su nombre** sobre su color. `F10.1`.
+
+    No usa `distintivo` aunque se parezca, y la diferencia no es estetica: una disciplina se
+    identifica por su **codigo** —«AR», dos letras que caben en una tabla de cuarenta filas— y una
+    etiqueta no tiene codigo, porque su nombre *es* su identidad. Con `distintivo` saldria un «—»
+    donde tendria que ir la palabra.
+
+    Lo que si comparte es **la regla de la tinta**: la letra se elige midiendo la luminancia del
+    fondo, en `apps/projects/color.py`, y esa regla vive en un solo sitio.
+    """
+    color = normalizar(getattr(etiqueta, "color", None))
+    return {
+        "nombre": getattr(etiqueta, "nombre", "") or "—",
+        "fondo": color,
+        "tinta": tinta_sobre(color),
+    }

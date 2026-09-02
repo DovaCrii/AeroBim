@@ -34,8 +34,14 @@
           <td>{{ proyecto.nombre }}</td>
           <td>{{ proyecto.cliente|default:"—" }}</td>
           <td>{{ proyecto.get_status_display }}</td>
-          {# El avance es la suma del peso de cada entregable por el de su revision vigente:
-             se puede auditar entregable por entregable, y no es un numero que alguien teclea. #}
+          {% comment %}
+            El avance es la suma del peso de cada entregable por el de su revisión vigente: se
+            puede auditar entregable por entregable, y no es un número que alguien teclea.
+
+            Y va con `{% comment %}`: **esto era un `{# #}` de dos líneas, así que el texto del
+            comentario se estaba imprimiendo en la tabla de proyectos.** `{# #}` es de una sola
+            línea; si el cierre queda en otra, Django no reconoce el comentario y lo escupe tal cual.
+          {% endcomment %}
           <td>{{ proyecto.avance_fisico|floatformat:"-2" }}</td>
         </tr>
       {% empty %}
