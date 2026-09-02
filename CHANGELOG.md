@@ -5,6 +5,44 @@ Este proyecto sigue [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Cambiado — «Observaciones abiertas» se tría de un vistazo (`F11.6`, 2026-09-02)
+
+**La lista de hallazgos de la obra era texto plano, y por eso no se podía triar.** La prioridad iba
+como palabra gris del mismo peso que todo lo demás —justo la dimensión por la que se recorre una
+lista—, nueve títulos subrayados competían entre sí, y «Vence» era una columna de rayas porque casi
+ninguna observación tiene fecha.
+
+Ahora la prioridad es una **píldora con su color**, y solo «Alta» toma el de alarma: si las tres
+gritaran, ninguna gritaría. El título va sin subrayar y se subraya al pasar por encima, porque la
+fila entera se resalta. Cada fila dice **de dónde viene** —choque, modelo o documento— con la
+palabra que ya calculaba el modelo: un choque lo encontró una máquina y una nota la escribió
+alguien. Y donde no hay vencimiento va la **antigüedad**, que es el caso normal: «abierta hace 3
+horas» dice algo y una raya no.
+
+**Ninguno de los cinco cambios añade un dato que no estuviera**, y el componente de la píldora ya
+existía en `app.css` — solo lo usaba la pantalla de cobertura.
+
+**Y las dos barras de herramientas pasan debajo de la tabla.** Estaban entre el rótulo de la sección
+y los datos, así que para llegar a la lista había que pasar por encima de dos formularios. Un rótulo
+va seguido de lo que nombra; es de lo que el usuario se quejaba como «mal distribuido».
+
+Detalle que se ve poco y ocupaba mucho: el filtro `timesince` de Django dice **dos** unidades, y
+«abierta hace 3 horas, 43 minutos» era más largo que el título del hallazgo de al lado. El filtro
+`antiguedad` es el mismo `timesince` con `depth=1` —el redondeo y las traducciones siguen siendo los
+de Django— y su prueba lo compara contra la función original.
+
+### Corregido — un hallazgo escrito en el mismo instante que la marca nacía ya visto (`F5.5`, 2026-09-02)
+
+**Lo destapó el gate fallando una vez de veinte, y el fallo intermitente era el síntoma de un hueco
+real.** «Lo nuevo» se calculaba comparando estrictamente la fecha de la observación con la marca de
+«ya lo vi»; cuando el reloj del sistema devolvía el mismo instante para las dos —en Windows la
+granularidad no siempre distingue milisegundos—, el hallazgo aparecía como ya visto sin que nadie lo
+hubiera visto.
+
+El empate cuenta ahora como **nueva**, y la prueba lo fuerza en vez de esperarlo, así que la regla no
+depende de la resolución del reloj de la máquina que corra el gate. De los dos errores posibles,
+mostrar de más se corrige mirando y **perder un hallazgo no se corrige nunca**.
+
 ### Añadido — el informe de coordinación, en papel y con el membrete de la casa (`F10.3`, 2026-09-02)
 
 **Es la primera salida en papel que tiene el producto.** Nueve fases construyen la coordinación

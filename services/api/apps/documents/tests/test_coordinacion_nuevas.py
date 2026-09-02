@@ -127,6 +127,30 @@ def test_marcar_como_visto_deja_de_contarlas(client, proyecto, revisor, proyecti
     assert lista(client, proyecto)["observaciones"][0]["esNueva"] is False
 
 
+@pytest.mark.django_db
+def test_el_empate_de_reloj_cuenta_como_nueva(client, proyecto, revisor, proyectista):
+    """**Dos instantes iguales tienen que resolverse hacia «nueva»**, y esto no es teórico.
+
+    Lo destapó esta misma prueba fallando una vez de veinte: la marca se crea al leer la lista y la
+    observación se escribe inmediatamente después, y el reloj del sistema —en Windows, con una
+    granularidad que no siempre distingue milisegundos— devolvió el mismo instante para las dos.
+    Con una comparación estricta el hallazgo nacía ya visto.
+
+    Aquí el empate se fuerza en vez de esperarlo, así que la regla queda fijada y no depende de la
+    resolución del reloj de la máquina que corra las pruebas. Y va hacia «nueva» porque de los dos
+    errores posibles, **mostrar de más se corrige mirando y perder un hallazgo no se corrige**.
+    """
+    client.force_login(dar(proyectista, "documents.view_observacion"))
+    lista(client, proyecto)  # crea la marca
+    marca = MarcaDeCoordinacion.objects.get(proyecto=proyecto, usuario=proyectista)
+
+    observacion = anotar(proyecto, revisor, proyectista, "Escrita en el mismo tic")
+    Observacion.objects.filter(pk=observacion.pk).update(created_at=marca.visto_en)
+
+    datos = lista(client, proyecto)
+    assert datos["observaciones"][0]["esNueva"] is True
+
+
 # --- Por persona, que es la única forma en que la pregunta tiene sentido --------------
 
 

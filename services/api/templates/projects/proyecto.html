@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load i18n disciplinas %}
+{% load i18n disciplinas tiempo %}
 
 {% block titulo %}{{ proyecto.codigo }} · AeroBim{% endblock %}
 
@@ -167,6 +167,84 @@
 
   {# --- Coordinación: lo que hay que resolver -------------------------------------- #}
   <p class="grupo">{% translate "Open observations" %}</p>
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">{% translate "Priority" %}</th>
+        <th scope="col">{% translate "Finding" %}</th>
+        <th scope="col">{% translate "On" %}</th>
+        <th scope="col">{% translate "Owner" %}</th>
+        <th scope="col">{% translate "Due" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for observacion in observaciones %}
+        {% comment %}
+          **La fila era texto plano y por eso no se podía triar.** `F11.6`. La prioridad —que es la
+          dimensión por la que se recorre una lista de nueve— iba como palabra gris del mismo peso
+          que todo lo demás; nueve títulos subrayados eran nueve subrayados compitiendo entre sí; y
+          «Vence» era una columna de rayas porque casi nada tiene fecha.
+
+          Cuatro cambios, y ninguno añade un dato que no estuviera:
+
+          1. **La prioridad como píldora**, con su color y su palabra. El componente ya existía en
+             `app.css` y solo lo usaba la pantalla de cobertura.
+          2. **El título sin subrayar**, y subrayado al pasar por encima. La fila entera es
+             pulsable, así que el subrayado permanente solo añadía ruido.
+          3. **De dónde viene**, con la palabra que ya calcula el modelo: choque, modelo o
+             documento. Un choque lo encontró una máquina y una nota la escribió alguien.
+          4. **La antigüedad cuando no hay fecha de vencimiento**, que es el caso normal: «hace 3
+             días» dice algo y una raya no. Y lo vencido va en rojo con su palabra.
+        {% endcomment %}
+        <tr class="fila-hallazgo">
+          <td style="width: 96px">
+            <span class="pildora {{ observacion.prioridad }}">
+              {{ observacion.get_prioridad_display }}
+            </span>
+          </td>
+          <td>
+            <a class="hallazgo-titulo" href="{% url 'documents:observacion' observacion.pk %}">
+              {{ observacion.titulo }}
+            </a>
+          </td>
+          <td style="width: 120px">
+            <span class="ficha">{{ observacion.ancla }}</span>
+          </td>
+          <td style="width: 170px">{{ observacion.responsable }}</td>
+          <td style="width: 150px">
+            {% if observacion.vence %}
+              {% if observacion.vencida %}
+                <span class="cifra cifra-arde">
+                  {% translate "overdue" context "tarjeta de obra" %}
+                  {{ observacion.vence|date:"d-m" }}
+                </span>
+              {% else %}
+                {{ observacion.vence|date:"d-m-Y" }}
+              {% endif %}
+            {% else %}
+              <span class="tenue">
+                {% blocktranslate with cuando=observacion.created_at|antiguedad %}opened {{ cuando }} ago{% endblocktranslate %}
+              </span>
+            {% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="5">{% translate "Nothing open." %}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% comment %}
+    **El rótulo va seguido de lo que nombra, y las herramientas después.** Estaban en medio:
+    para ver la lista de hallazgos había que pasar por encima de dos formularios —el del
+    informe y el de importar un BCF—, así que la sección empezaba con dos barras y los datos
+    aparecían terceros. Es lo que el usuario llamó «mal distribuido».
+
+    Y el orden entre ellas también dice algo: primero **sacar** lo que hay, después **meter**
+    lo que llega de fuera. Sacar es lo que se hace todas las semanas.
+  {% endcomment %}
   {% if puede_ver_observaciones %}
     {% comment %}
       **El informe, y es la primera salida en papel que tiene el producto.** `F10.3`. Hasta ahora lo
@@ -231,35 +309,6 @@
       </span>
     </form>
   {% endif %}
-  <table>
-    <thead>
-      <tr>
-        <th scope="col">{% translate "Priority" %}</th>
-        <th scope="col">{% translate "Title" %}</th>
-        <th scope="col">{% translate "On" %}</th>
-        <th scope="col">{% translate "Owner" %}</th>
-        <th scope="col">{% translate "Due" %}</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for observacion in observaciones %}
-        <tr>
-          <td style="width: 90px">{{ observacion.get_prioridad_display }}</td>
-          <td>
-            <a href="{% url 'documents:observacion' observacion.pk %}">{{ observacion.titulo }}</a>
-          </td>
-          {# Sobre qué está puesta: dice desde dónde se resuelve. #}
-          <td style="width: 110px">{{ observacion.ancla }}</td>
-          <td>{{ observacion.responsable }}</td>
-          <td style="width: 110px">{{ observacion.vence|date:"Y-m-d"|default:"—" }}</td>
-        </tr>
-      {% empty %}
-        <tr>
-          <td colspan="5">{% translate "Nothing open." %}</td>
-        </tr>
-      {% endfor %}
-    </tbody>
-  </table>
 
   {# --- El salto al visor ---------------------------------------------------------- #}
   <p class="grupo">{% translate "Models and drawings you can open" %}</p>

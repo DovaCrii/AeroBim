@@ -1046,10 +1046,34 @@ textarea:focus-visible {
   border-color: var(--ab-primary);
 }
 
-/* El campo de archivo trae su propio botón, que es del sistema y no se puede estilar entero: al
-   menos su marco deja de ser una caja blanca. */
+/*
+ * **El campo de archivo sí se puede estilar entero**, y aquí decía lo contrario. `::file-selector-`
+ * `button` es estándar desde 2021 y lo entienden los tres motores; sin él, el botón «Seleccionar
+ * archivo» salía con el gris del sistema —el mismo caso que ya se arregló con `button`— y era lo
+ * único blanco de la pantalla oscura, justo debajo de la tabla de hallazgos.
+ *
+ * Va como el botón secundario y no como el primario: **el que decide es «Importar una respuesta
+ * BCF»**, que está a continuación; elegir el archivo es el paso de antes.
+ */
 input[type="file"] {
   padding: 5px 8px;
+}
+
+input[type="file"]::file-selector-button {
+  margin-right: 10px;
+  padding: 5px 12px;
+  color: var(--ab-text);
+  background: transparent;
+  border: 1px solid var(--ab-border);
+  border-radius: 7px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+input[type="file"]::file-selector-button:hover {
+  background: var(--ab-surface);
+  border-color: var(--ab-primary);
 }
 
 /*
@@ -1069,6 +1093,39 @@ input[type="file"] {
 .migas [aria-current="page"] {
   color: var(--ab-text);
   font-weight: 600;
+}
+
+/* --- La fila de un hallazgo -------------------------------------------------------- */
+
+/*
+ * **La lista de hallazgos era texto plano, y por eso no se podía triar.** `F11.6`. La prioridad
+ * —que es la dimensión por la que se recorre una lista de nueve— iba como palabra gris del mismo
+ * peso que todo lo demás, y nueve títulos subrayados eran nueve subrayados compitiendo entre sí.
+ *
+ * El título sin subrayar y subrayado al pasar por encima: **la fila entera se resalta**, así que el
+ * subrayado permanente solo añadía ruido. Y el color del enlace se queda para el hover: nueve
+ * líneas violetas seguidas tampoco dejan ver cuál es la importante.
+ */
+.fila-hallazgo:hover {
+  background: var(--ab-surface-alt);
+}
+
+.hallazgo-titulo {
+  color: var(--ab-text);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.fila-hallazgo:hover .hallazgo-titulo,
+.hallazgo-titulo:hover {
+  color: var(--ab-primary);
+  text-decoration: underline;
+}
+
+/* Lo que no es el dato principal de la fila: la antigüedad cuando no hay vencimiento. */
+.tenue {
+  color: var(--ab-text-muted);
+  font-size: 0.86rem;
 }
 
 /* --- La revisión de un BCF antes de importarlo ------------------------------------ */

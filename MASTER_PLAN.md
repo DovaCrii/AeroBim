@@ -13,10 +13,18 @@
 
 ## Por dónde se empieza
 
-**La Fase 9 está cerrada salvo `F9.6`.** El visor tiene tokens, escala calibrada, anillo de foco,
-áreas de toque de 44 px y ninguna acción escondida detrás del ratón — todo con el contraste
-comprobado en el gate, y sin mover un solo componente de sitio. **`F9.6` no la decide este plan**:
-son tres decisiones del usuario y contradicen tres líneas escritas de `UX.md`.
+**Las fases 9 y 11 están cerradas salvo lo que decide el usuario.** El visor tiene tokens, escala
+calibrada, anillo de foco, áreas de toque de 44 px y ninguna acción escondida detrás del ratón; el
+portal tiene distintivo de disciplina, portada, tarjeta de obra con datos, controles propios, migas
+y paso a paso, y la lista de hallazgos se tría de un vistazo — todo con el contraste comprobado en
+el gate. **Lo que queda de las dos no lo decide este plan**: `F9.6` son tres decisiones del usuario
+que contradicen tres líneas escritas de `UX.md`, y `F11.7` es la ayuda con recorrido, que hay que
+elegir antes de escribirla (un recorrido guiado sobre la pantalla real, o una ayuda generada de lo
+que el producto sabe hacer).
+
+**Lo que sigue, entonces, es `F10.1`**: las etiquetas con vocabulario controlado, que es lo que
+desbloquea imprimir el informe por especialidad — hoy `Opciones.solo_de` existe y no tiene de dónde
+leer el filtro.
 
 ## La prioridad cambió el 2026-09-02, y la puso el usuario
 
@@ -93,7 +101,7 @@ Las **veintinueve** filas abiertas, de una vez. `⬜` no empezada · `❓` medid
 | **4 — Coordinación** ⭐                  | `F4.5` ◐ falta el trazo libre; las cotas ya viajan _(`F4.6` cerrada: el ciclo va y vuelve)_                                                     |
 | **3 — Backend**                          | `F3.4` ✅ decidida por el usuario el 2026-09-02: **la petición espera**, y por qué                                                              |
 | **9 — Diseño** ⭐                        | `F9.6` ⛔ — la decide el usuario, y son tres decisiones _(`F9.1` a `F9.5` cerradas)_                                                            |
-| **11 — El portal se ve plano** ⭐        | `F11.5` portal y tarjeta de obra ⬜ · `F11.6` observaciones abiertas ⬜ · `F11.7` ayuda con recorrido ⛔ _(`F11.1` a `F11.4` cerradas)_         |
+| **11 — El portal se ve plano** ⭐        | `F11.7` ayuda con recorrido ⛔ — la decide el usuario _(`F11.1` a `F11.6` y `F11.8` cerradas)_                                                  |
 | **10 — Etiquetas, informes y tablas** ⭐ | `F10.1` etiquetas ⬜ · `F10.4` tablas en el plano ⬜ · `F10.5` tablas del modelo ⬜ _(`F10.2` y `F10.3` cerradas: el informe ya sale en papel)_ |
 | **1 — Visor**                            | `F1.13` ❓ — auditada; quedan tres nombres que decide el usuario                                                                                |
 | **7 — Planos, salida**                   | `F7.2` viewports y capas · `F7.3` acotado y anotaciones · `F7.5` exportar a PDF ⬜                                                              |
@@ -3122,16 +3130,16 @@ que ya tenía: un sistema correcto y sin vida. Todo pasa AA, todo es legible, y 
 nueve tarjetas idénticas de icono, título y dos líneas grises. **El defecto no es de contraste, es
 de jerarquía**, y por eso no lo cazó el oráculo de la `FASE 9`.
 
-| #       | Tarea                                                                           | Estado                                               |
-| ------- | ------------------------------------------------------------------------------- | ---------------------------------------------------- |
-| `F11.1` | Distintivo de disciplina: su código sobre su color, y la letra elegida midiendo | ✅ ver abajo                                         |
-| `F11.2` | Fichas con nombre: «A» pasa a «A · Publicado y autorizado»                      | ✅ ver abajo                                         |
-| `F11.3` | La marca sin placa: variante de trazo claro para las superficies oscuras        | ✅ ver abajo                                         |
-| `F11.4` | La portada: dos mitades, para qué sirve esto, y un mensaje para el equipo       | ✅ ver abajo                                         |
-| `F11.5` | El portal reordenado, y la tarjeta de obra con datos y no con texto             | ✅ ver abajo                                         |
-| `F11.6` | «Observaciones abiertas»: prioridad, antigüedad y responsable de un vistazo     | ◐ la ficha ya no pierde el hilo; la tabla, pendiente |
-| `F11.7` | Una sección de ayuda con el recorrido de cómo se usa                            | ⛔                                                   |
-| `F11.8` | Botones, campos y migas: los controles dejaron de ser los del sistema           | ✅ ver abajo                                         |
+| #       | Tarea                                                                           | Estado       |
+| ------- | ------------------------------------------------------------------------------- | ------------ |
+| `F11.1` | Distintivo de disciplina: su código sobre su color, y la letra elegida midiendo | ✅ ver abajo |
+| `F11.2` | Fichas con nombre: «A» pasa a «A · Publicado y autorizado»                      | ✅ ver abajo |
+| `F11.3` | La marca sin placa: variante de trazo claro para las superficies oscuras        | ✅ ver abajo |
+| `F11.4` | La portada: dos mitades, para qué sirve esto, y un mensaje para el equipo       | ✅ ver abajo |
+| `F11.5` | El portal reordenado, y la tarjeta de obra con datos y no con texto             | ✅ ver abajo |
+| `F11.6` | «Observaciones abiertas»: prioridad, antigüedad y responsable de un vistazo     | ✅ ver abajo |
+| `F11.7` | Una sección de ayuda con el recorrido de cómo se usa                            | ⛔           |
+| `F11.8` | Botones, campos y migas: los controles dejaron de ser los del sistema           | ✅ ver abajo |
 
 ### `F11.5` — El portal, que es la página que más pesa
 
@@ -3172,10 +3180,34 @@ entiende el seguimiento; el flujo se pierde». Tres cosas lo arreglan:
 > pintar la ficha. Se sobreescribe el método en vez de renombrar el campo: renombrarlo serían una
 > migración y cuarenta usos por delante, y no arreglaría nada que se vea.
 
-**Lo que queda de `F11.6`**: la tabla de «Observaciones abiertas» sigue siendo texto plano —la
-prioridad como palabra gris, nueve títulos subrayados, una columna de rayas en «Vence»— y las dos
-barras de herramientas se meten **entre el rótulo y los datos**, que es de lo que el usuario se
-queja como «mal distribuido».
+**Y la otra mitad de `F11.6`, la tabla.** Era texto plano: la prioridad como palabra gris del mismo
+peso que todo lo demás, nueve títulos subrayados compitiendo entre sí, y «Vence» como una columna de
+rayas porque casi nada tiene fecha. Cinco cambios, y **ninguno añade un dato que no estuviera**:
+
+- **La prioridad como píldora**, con su color y su palabra. El componente ya existía en `app.css` y
+  solo lo usaba la pantalla de cobertura. Solo «Alta» toma el color de alarma —8,79:1—; media y baja
+  van en gris: si las tres gritaran, ninguna gritaría.
+- **El título sin subrayar**, y subrayado y en el acento al pasar por encima. La fila entera se
+  resalta, así que el subrayado permanente solo añadía ruido.
+- **De dónde viene**, con la palabra que ya calcula el modelo: choque, modelo o documento. Un choque
+  lo encontró una máquina y una nota la escribió alguien.
+- **La antigüedad donde no hay vencimiento**, que es el caso normal: «abierta hace 3 horas» dice algo
+  y una raya no. Lo vencido sigue en rojo con su palabra.
+- **Las dos barras de herramientas, debajo de la tabla.** Estaban entre el rótulo y los datos, así
+  que para ver la lista había que pasar por encima de dos formularios: un rótulo de sección va
+  seguido de lo que nombra. Es de lo que el usuario se quejaba como «mal distribuido».
+
+> **Una unidad y no dos.** El filtro `timesince` de Django dice «3 horas, 43 minutos», y en una
+> columna de apoyo eso resultaba **más largo que el título del hallazgo de al lado**. El filtro
+> `antiguedad` es el mismo `timesince` con `depth=1`, así que el redondeo y las traducciones siguen
+> siendo los de Django: no se reimplementa nada, y su prueba lo compara contra la función original.
+
+> **Y un empate de reloj que era un hueco real.** Al correr el gate, una prueba de `F5.5` falló una
+> vez de veinte: la marca de «ya lo vi» se crea al leer la lista y la observación se escribía
+> inmediatamente después, y el reloj del sistema devolvió **el mismo instante** para las dos. Con la
+> comparación estricta que había, el hallazgo nacía ya visto. Pasa a `>=` —el empate cuenta como
+> nueva— y la prueba fuerza el empate en vez de esperarlo. De los dos errores posibles, **mostrar de
+> más se corrige mirando y perder un hallazgo no se corrige nunca.**
 
 **El oráculo de la fase, y es el que falta hoy:** el contraste ya está comprobado en el gate para el
 visor; lo que no está comprobado es **la jerarquía**. La forma medible de decirlo: en una pantalla,

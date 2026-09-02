@@ -455,7 +455,15 @@ class ObservacionesDelModeloAPI(APIView):
                         # **Si apareció desde la última vez que esta persona miró.** Es la pregunta
                         # que ningún otro filtro contesta: con treinta y cinco filas abiertas, «qué
                         # cambió» no se responde releyendo la lista entera.
-                        "esNueva": o.created_at > marca.visto_en,
+                        # El empate va a **nueva** y no a vista: `>=` y no `>`. Lo destapó una
+                        # prueba que falló una vez de veinte —crear la marca y la observación
+                        # dentro del mismo tic del reloj del sistema— y el fallo intermitente era
+                        # el síntoma de un hueco real: el reloj de Windows no siempre distingue
+                        # dos instantes separados por milisegundos, así que con `>` un hallazgo
+                        # escrito justo cuando alguien pulsa «ya lo vi» nacería ya visto. De los
+                        # dos errores posibles, mostrar de más se corrige mirando y perder un
+                        # hallazgo no se corrige nunca.
+                        "esNueva": o.created_at >= marca.visto_en,
                         "prioridad": o.prioridad,
                         "prioridadTexto": o.get_prioridad_display(),
                         "estado": o.estado,
