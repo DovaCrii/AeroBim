@@ -37,7 +37,7 @@ export function SpatialTree({
     // Sin cabecera propia: el título y el plegado los pone la sección del navegador que lo contiene,
     // y "Ver todo" vive en la cinta, con el resto de lo que cambia la visibilidad.
     <div className="flex h-full min-h-0 flex-col">
-      <div className="min-h-0 flex-1 overflow-y-auto py-1">
+      <div className="min-h-0 flex-1 overflow-x-clip overflow-y-auto py-1">
         {trees.map((tree) => (
           <Node
             key={tree.modelId}
@@ -119,9 +119,12 @@ function Node({
           onClick={() => onToggleVisible(node, modelId, !visible)}
           className={[
             "shrink-0 hover:text-fg",
-            // El icono de lo oculto queda siempre a la vista; el de lo visible solo al pasar
-            // por encima, para no llenar el árbol de adornos.
-            visible ? "text-fg-3 opacity-0 group-hover:opacity-100" : "text-accent",
+            // **Los dos están siempre a la vista, y el de lo visible antes solo aparecía al pasar
+            // el ratón.** Se hacía para no llenar el árbol de adornos, y el precio era que con el
+            // teclado o en táctil no existía. Ahora la diferencia la marca el color: lo oculto en
+            // acento —es un estado que hay que notar— y lo visible en el gris más apagado que
+            // todavía se lee.
+            visible ? "text-fg-3" : "text-accent",
           ].join(" ")}
           title={visible ? "Ocultar" : "Mostrar"}
           aria-label={visible ? "Ocultar" : "Mostrar"}

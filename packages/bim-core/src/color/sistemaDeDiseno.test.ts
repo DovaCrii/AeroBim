@@ -209,6 +209,13 @@ describe("lo que el visor ya no puede escribir", () => {
     expect(CODIGO).not.toMatch(/\btext-brand\b/);
   });
 
+  it("ninguna acción escondida detrás del ratón", () => {
+    // **`F9.4`.** `opacity-0 group-hover:opacity-100` no existe para el teclado, no existe en
+    // táctil, y aparece bajo el dedo justo cuando el cursor pasa por encima. Eran cinco: cerrar un
+    // modelo, borrar una vista, borrar una cota, quitar una vista compartida y el ojo del árbol.
+    expect(CODIGO).not.toMatch(/\bopacity-0\b/);
+  });
+
   it("ningún `font-size` en porcentaje", () => {
     // El `html { font-size: 110% }` era el síntoma de una escala mal calibrada. La escala está
     // calibrada; el zoom sobra.
@@ -220,6 +227,42 @@ describe("lo que el visor ya no puede escribir", () => {
     // sabía nunca dónde estaba.
     expect(CSS).toMatch(/:focus-visible\s*\{/);
     expect(CSS).toMatch(/outline:\s*2px solid var\(--color-accent\)/);
+  });
+});
+
+describe("el área de toque, el radio y la elevación", () => {
+  it("los botones de icono llevan su área mínima, y la regla se hereda", () => {
+    // **`F9.4`.** Cuarenta y cuatro píxeles es lo que pide una revisión de accesibilidad para algo
+    // que se toca con el dedo, y había veinte botones por debajo. La regla se engancha a
+    // `aria-label` porque un botón cuyo nombre sale de un atributo **es** un botón de icono: así
+    // el que se escriba mañana lo hereda sin que nadie se acuerde.
+    expect(CSS_CODIGO).toMatch(/button\[aria-label\]::before/);
+    expect(CSS_CODIGO).toMatch(/min-width:\s*44px/);
+    expect(CSS_CODIGO).toMatch(/min-height:\s*44px/);
+  });
+
+  it("la escala de radio es la del portal", () => {
+    // `F9.5`. 6 para un control, 10 para una tarjeta, y 12 que es el `--ab-radius` que el portal ya
+    // tenía: es lo que hace que la costura entre las dos mitades no se note.
+    for (const [nombre, px] of [
+      ["sm", 6],
+      ["md", 10],
+      ["lg", 12],
+    ] as const) {
+      const encontrado = new RegExp(`--radius-${nombre}:\\s*(\\d+)px`).exec(CSS_CODIGO);
+      expect(encontrado, `falta --radius-${nombre}`).not.toBeNull();
+      expect(Number(encontrado?.[1])).toBe(px);
+    }
+  });
+
+  it("las elevaciones son oscuras, porque el visor lo es", () => {
+    // La sombra de fábrica de Tailwind es negro al 10%, calculada para fondo claro: sobre un panel
+    // oscuro no se ve y la separación la hacía solo el borde.
+    for (const nombre of ["sm", "md", "xl"] as const) {
+      expect(CSS_CODIGO, `falta --shadow-${nombre}`).toMatch(
+        new RegExp(`--shadow-${nombre}:.*rgb\\(0 0 0 / \\d+%\\)`),
+      );
+    }
   });
 });
 

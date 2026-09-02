@@ -119,7 +119,7 @@ export function Selector({
   }
 
   return (
-    <div className="min-h-0 overflow-y-auto p-2 text-xs">
+    <div className="min-h-0 overflow-x-clip overflow-y-auto p-2 text-xs">
       {estado.proyectos.map((obra) => (
         <section key={obra.id} className="mb-3">
           <p className="px-1 pb-1 text-micro font-semibold tracking-wide text-fg-3 uppercase">
@@ -135,7 +135,7 @@ export function Selector({
                   type="button"
                   disabled={deshabilitado}
                   onClick={() => onAbrir(revision.id)}
-                  className="w-full rounded px-2 py-1.5 text-left hover:bg-surface-3 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="w-full rounded-sm px-2 py-1.5 text-left hover:bg-surface-3 disabled:cursor-not-allowed disabled:opacity-40"
                   title={revision.nombre}
                 >
                   <span className="block truncate">

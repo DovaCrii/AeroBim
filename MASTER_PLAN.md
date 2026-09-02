@@ -13,10 +13,13 @@
 
 ## Por dónde se empieza
 
-**Lo que sigue es la Fase 9, y va por su segunda mitad.** `F9.1` a `F9.3` están cerradas —el visor
-tiene tokens, escala calibrada y anillo de foco, con el contraste comprobado en el gate—; quedan
-`F9.4` (las acciones dejan de esconderse, toque a 44 px) y `F9.5` (estados vacíos, radio y
-elevación). Son defectos, no rediseño, y ninguna mueve un componente de sitio.
+**La Fase 9 está cerrada salvo `F9.6`.** El visor tiene tokens, escala calibrada, anillo de foco,
+áreas de toque de 44 px y ninguna acción escondida detrás del ratón — todo con el contraste
+comprobado en el gate, y sin mover un solo componente de sitio. **`F9.6` no la decide este plan**:
+son tres decisiones del usuario y contradicen tres líneas escritas de `UX.md`.
+
+**Lo que sigue, entonces, es abrir frente nuevo:** `F4.5` (marcado sobre la vista, que ahora tiene
+dónde ir porque hay instantánea) o la Fase 2, 5 o 6 — las tres grandes que quedan por empezar.
 
 > **Esta sección decía «lo que sigue es `F0.6`» hasta el 2026-09-02**, y `F0.6` se cerró el
 > 2026-08-19. La fuente única de verdad apuntaba a una tarea muerta durante dos semanas, mientras
@@ -35,7 +38,7 @@ Las **veintinueve** filas abiertas, de una vez. `⬜` no empezada · `❓` medid
 
 | Fase                    | Filas abiertas                                                                                                            |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| **9 — Diseño**          | `F9.4` acciones visibles y toque a 44 px · `F9.5` estados vacíos y elevación ⬜ · `F9.6` ⛔ _(1 a 3 cerradas)_            |
+| **9 — Diseño**          | `F9.6` ⛔ — la decide el usuario, y son tres decisiones _(`F9.1` a `F9.5` cerradas)_                                      |
 | **4 — Coordinación**    | `F4.5` marcado sobre la vista ⬜ · `F4.6` importar BCF ⬜                                                                 |
 | **7 — Planos, salida**  | `F7.2` viewports y capas · `F7.3` acotado y anotaciones · `F7.5` exportar a PDF ⬜                                        |
 | **2 — Nubes de puntos** | `F2.1` a `F2.6` ⬜ — cargar, alinear, visualizar, medir contra el modelo, documentar el pipeline, y el gaussian splatting |
@@ -2463,6 +2466,63 @@ El foco, recorrido con `Tab`: cuatro paradas seguidas con `:focus-visible` casan
 captura se agota, así que esto está medido leyendo el DOM y los estilos calculados. Que los colores
 nuevos **gusten** pide la pantalla del usuario, y se suma a las pantallas que ya esperaban su
 mirada.
+
+### `F9.4` y `F9.5` cerradas: la fase entera, menos la bloqueada (2026-09-02)
+
+**`F9.4` — lo que se escondía y lo que no se podía tocar.**
+
+Cinco acciones aparecían solo al pasar el ratón: cerrar un modelo, borrar una vista, borrar una
+cota, quitar una vista compartida y el ojo del árbol. La intención estaba escrita y era buena —
+cerrar un modelo cuesta volver a convertir el archivo— pero **la herramienta era la equivocada**:
+esconder algo no lo hace menos pulsable por accidente, lo hace **imposible** con el teclado y en
+una pantalla táctil, donde no existe «pasar por encima». Ahora están siempre a la vista en el gris
+más apagado que todavía pasa AA, y el rojo llega al acercarse.
+
+**El área de toque sale de una sola regla, y se engancha a `aria-label`.** Cuarenta y cuatro
+píxeles es lo que pide una revisión de accesibilidad para algo que se toca con el dedo, y había
+veinte botones por debajo: los iconos de lista miden 11 × 17 dentro de filas de 26. Agrandarlos
+habría hinchado la interfaz, que es justo lo que `F9.2` acababa de proteger — así que el botón se
+queda del tamaño que se ve y **crece solo su zona sensible**, con un pseudoelemento centrado que no
+pinta nada.
+
+Que la regla sea `button[aria-label]` no es un atajo: **un botón cuyo nombre accesible sale de un
+atributo en vez de un texto visible es un botón de icono** —por eso necesita el atributo— y es
+exactamente el que se queda pequeño. Así el que se escriba mañana lo hereda sin que nadie se
+acuerde, que es la única forma de que una regla así sobreviva.
+
+**Y tuvo un precio que solo se vio midiendo.** Un botón de 11 px pegado al borde derecho de un
+panel deja su zona sensible sobresaliendo, y eso **le daba barra de desplazamiento horizontal** al
+árbol (8 px) y a los modelos abiertos (3 px). Comprobado apagando el pseudoelemento y volviendo a
+medir: sin él, cero. Las listas llevan ahora `overflow-x-clip` —que el navegador computa como
+`hidden`, porque la norma lo manda cuando el otro eje se desplaza— y **ninguna barra aparece**.
+Queda un residuo dicho en el código: esos dos contenedores admiten 8 y 3 px de desplazamiento por
+código, invisible y sin perder contenido.
+
+**`F9.5` — el radio, la elevación y las dos listas que no decían cómo llenarse.**
+
+| Qué              | Antes                                         | Ahora                                             |
+| ---------------- | --------------------------------------------- | ------------------------------------------------- |
+| Radio de control | `rounded` a secas: 4 px fijos, sin token      | `--radius-sm` **6 px**, y la clase lo nombra      |
+| Radio de tarjeta | `rounded-md` 6 px                             | `--radius-md` **10 px**                           |
+| Radio del portal | —                                             | `--radius-lg` **12 px**, el `--ab-radius` de allá |
+| Elevación        | La de fábrica: negro al 10%, para fondo claro | Tres oscuras, que sobre un panel **se ven**       |
+
+`rounded` a secas es un alias heredado con valor fijo: **no lee el token**, así que las 38
+apariciones pasaron a `rounded-sm` y el radio dejó de ser un número escrito en cuatro sitios.
+`--shadow-lg` se deja como está a propósito: lo usa la hoja del documento, que es blanca sobre un
+fondo claro, y ahí una sombra oscura sería la equivocada.
+
+**Los dos estados vacíos sin puerta** eran justamente los primeros que se ven al abrir el visor: el
+árbol decía «Todavía no hay ningún modelo abierto» y los modelos abiertos, «Ninguno». Ahora los dos
+dicen el gesto — arrastrar, `Abrir`, o sacar uno del registro; y para qué sirve la lista de modelos,
+que es apagar uno para mirar el otro. Los otros seis estados vacíos ya lo hacían desde que el
+usuario preguntó «cómo puedo cargar una observación, no está claro eso» teniendo el botón delante.
+
+**El oráculo creció con la fase**: 19 comprobaciones, y ahora también que no quede un solo
+`opacity-0`, que la regla del área de toque exista con sus 44 px, que la escala de radio sea 6/10/12
+y que las tres elevaciones sean oscuras.
+
+**Con esto la Fase 9 está cerrada salvo `F9.6`**, que es una decisión del usuario y son tres.
 
 ### `F9.2`: la escala se **mapea**, no se borra
 

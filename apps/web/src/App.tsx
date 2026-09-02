@@ -1673,7 +1673,15 @@ export function App() {
               onDeleteView={onDeleteView}
               estructura={
                 orderedTrees.length === 0 ? (
-                  <p className="p-3 text-xs text-fg-3">Todavía no hay ningún modelo abierto.</p>
+                  // **El estado vacío dice cómo llenarse.** `F9.5`: decir solo «no hay nada» deja a
+                  // alguien buscando la puerta, y esto es lo primero que se ve al abrir el visor.
+                  <p className="p-3 text-xs leading-snug text-fg-3">
+                    Todavía no hay ningún modelo abierto.{" "}
+                    <span className="text-fg-2">
+                      Arrastra un IFC aquí, usa <strong>Abrir</strong> arriba, o saca uno de{" "}
+                      <strong>Del registro</strong>.
+                    </span>
+                  </p>
                 ) : (
                   <SpatialTree
                     trees={orderedTrees}
@@ -1720,7 +1728,13 @@ export function App() {
               }
               modelos={
                 models.length === 0 ? (
-                  <p className="p-3 text-xs text-fg-3">Ninguno.</p>
+                  <p className="p-3 text-xs leading-snug text-fg-3">
+                    Ninguno.{" "}
+                    <span className="text-fg-2">
+                      Con dos modelos abiertos, esta lista es donde se apaga uno para mirar el otro
+                      — que es en lo que consiste coordinar.
+                    </span>
+                  </p>
                 ) : (
                   <ModelsPanel
                     models={models}

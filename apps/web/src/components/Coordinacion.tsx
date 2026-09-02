@@ -182,13 +182,13 @@ export function Coordinacion({
   }
 
   return (
-    <ul className="min-h-0 overflow-y-auto p-2 text-xs">
+    <ul className="min-h-0 overflow-x-clip overflow-y-auto p-2 text-xs">
       {estado.observaciones.map((observacion) => (
         <li key={observacion.id} className="mb-1">
           <button
             type="button"
             onClick={() => void abrir(observacion)}
-            className="w-full rounded px-2 py-1.5 text-left hover:bg-surface-3"
+            className="w-full rounded-sm px-2 py-1.5 text-left hover:bg-surface-3"
             title={`${observacion.titulo} · ${observacion.guid}`}
           >
             <span className="flex items-baseline gap-1.5">

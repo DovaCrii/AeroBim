@@ -188,13 +188,13 @@ export function VistasCompartidas({
             onChange={(evento) => setNombre(evento.target.value)}
             placeholder="Nombre de la vista"
             maxLength={120}
-            className="min-w-0 flex-1 rounded border border-borde bg-surface-3 px-2 py-1 text-xs text-fg placeholder:text-fg-3"
+            className="min-w-0 flex-1 rounded-sm border border-borde bg-surface-3 px-2 py-1 text-xs text-fg placeholder:text-fg-3"
           />
           <button
             type="submit"
             disabled={enviando || nombre.trim() === ""}
             title="Comparte lo que estás mirando ahora: la cámara, lo apagado y los cortes"
-            className="shrink-0 rounded bg-action px-2 py-1 text-xs font-medium text-fg hover:bg-action-hover disabled:bg-apagado disabled:text-apagado-fg"
+            className="shrink-0 rounded-sm bg-action px-2 py-1 text-xs font-medium text-fg hover:bg-action-hover disabled:bg-apagado disabled:text-apagado-fg"
           >
             {enviando ? "…" : "Compartir"}
           </button>
@@ -233,7 +233,7 @@ export function VistasCompartidas({
                 <button
                   type="button"
                   onClick={() => void borrar(fila.id)}
-                  className="shrink-0 text-fg-3 opacity-0 group-hover:opacity-100 hover:text-danger"
+                  className="shrink-0 text-fg-3 hover:text-danger"
                   title="Quitarla del proyecto"
                   aria-label="Quitarla del proyecto"
                 >

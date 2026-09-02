@@ -54,7 +54,7 @@ export function ModelsPanel({
     // Vivía flotando sobre el modelo, arriba a la derecha, y tapaba justo la esquina que uno
     // quiere ver. Ahora es una sección del navegador del proyecto, que pone el título y el plegado.
     <div className="flex h-full min-h-0 flex-col">
-      <div className="min-h-0 flex-1 overflow-y-auto p-1.5">
+      <div className="min-h-0 flex-1 overflow-x-clip overflow-y-auto p-1.5">
         {models.map((loaded, index) => (
           <ModelRow
             key={`${loaded.id}-${index}`}
@@ -146,7 +146,7 @@ function ModelRow({
             del panel y estaba escondido tras un clic que nadie tenía por qué dar. */}
         {sinCargar > 0 && (
           <span
-            className="shrink-0 rounded bg-warn/20 px-1 text-micro text-warn tabular-nums"
+            className="shrink-0 rounded-sm bg-warn/20 px-1 text-micro text-warn tabular-nums"
             title={`${sinCargar} elementos que el archivo declara y no se cargaron. Despliega la fila para ver de qué clases.`}
           >
             ⚠ {sinCargar}
@@ -164,9 +164,12 @@ function ModelRow({
         <button
           type="button"
           onClick={() => onClose(loaded.id)}
-          // Solo aparece al pasar por encima: cerrar cuesta volver a convertir el archivo, y no
-          // debe estar a un clic de distancia junto a los botones de uso diario.
-          className="shrink-0 text-fg-3 opacity-0 group-hover:opacity-100 hover:text-danger"
+          // **Está siempre a la vista, y antes solo aparecía al pasar el ratón.** La intención era
+          // buena —cerrar cuesta volver a convertir el archivo— pero la herramienta era la
+          // equivocada: esconderlo no lo hace menos pulsable por accidente, lo hace **imposible**
+          // con el teclado y en una pantalla táctil, donde no existe «pasar por encima». Que no
+          // llame la atención se consigue con el color más apagado que todavía se lee.
+          className="shrink-0 text-fg-3 hover:text-danger"
           title={`Cerrar ${loaded.name} y liberar su memoria`}
           aria-label={`Cerrar ${loaded.name}`}
         >

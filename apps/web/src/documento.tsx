@@ -510,9 +510,9 @@ function Documento() {
               defaultValue=""
               placeholder="Buscar en el documento"
               aria-label="buscar en el documento"
-              className="w-48 rounded bg-surface-2 px-2 py-1 placeholder:text-fg-3"
+              className="w-48 rounded-sm bg-surface-2 px-2 py-1 placeholder:text-fg-3"
             />
-            <button type="submit" className="rounded bg-surface-2 px-2 py-1 hover:bg-surface-3">
+            <button type="submit" className="rounded-sm bg-surface-2 px-2 py-1 hover:bg-surface-3">
               {buscando ? "…" : "Buscar"}
             </button>
           </form>
@@ -524,7 +524,7 @@ function Documento() {
           <select
             value={escala}
             onChange={(evento) => setEscala(Number(evento.target.value))}
-            className="rounded bg-surface-2 px-2 py-1"
+            className="rounded-sm bg-surface-2 px-2 py-1"
             aria-label="escala"
           >
             {ESCALAS.map((uno) => (
@@ -568,7 +568,7 @@ function Documento() {
                 key={numero}
                 type="button"
                 onClick={() => irA(numero)}
-                className="rounded bg-surface-2 px-1.5 hover:bg-surface-3"
+                className="rounded-sm bg-surface-2 px-1.5 hover:bg-surface-3"
               >
                 {numero}
               </button>

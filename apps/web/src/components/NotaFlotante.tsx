@@ -183,7 +183,7 @@ export function NotaFlotante({
       role="dialog"
       aria-label="Dejar una nota sobre este elemento"
       style={{ left: posicion.x, top: posicion.y }}
-      className="absolute z-20 w-80 rounded-lg border border-borde bg-surface/95 shadow-2xl backdrop-blur-sm"
+      className="absolute z-20 w-80 rounded-lg border border-borde bg-surface/95 shadow-xl backdrop-blur-sm"
     >
       <header
         onPointerDown={(evento) => {
@@ -200,7 +200,7 @@ export function NotaFlotante({
         <button
           type="button"
           onClick={onCerrar}
-          className="rounded px-1.5 text-fg-2 hover:bg-surface-3 hover:text-fg"
+          className="rounded-sm px-1.5 text-fg-2 hover:bg-surface-3 hover:text-fg"
           aria-label="Cerrar sin guardar"
         >
           ×
@@ -222,14 +222,14 @@ export function NotaFlotante({
               href={envio.nota.url}
               target="_blank"
               rel="noopener"
-              className="rounded bg-surface-2 px-2 py-1 hover:bg-surface-3"
+              className="rounded-sm bg-surface-2 px-2 py-1 hover:bg-surface-3"
             >
               Ver su ficha
             </a>
             <button
               type="button"
               onClick={onCerrar}
-              className="rounded bg-action px-2 py-1 font-medium hover:bg-action-hover"
+              className="rounded-sm bg-action px-2 py-1 font-medium hover:bg-action-hover"
             >
               Seguir revisando
             </button>
@@ -256,7 +256,7 @@ export function NotaFlotante({
               value={titulo}
               onChange={(evento) => setTitulo(evento.target.value)}
               maxLength={250}
-              className="mt-0.5 w-full rounded border border-borde bg-shell px-2 py-1"
+              className="mt-0.5 w-full rounded-sm border border-borde bg-shell px-2 py-1"
             />
           </label>
 
@@ -266,7 +266,7 @@ export function NotaFlotante({
               value={descripcion}
               onChange={(evento) => setDescripcion(evento.target.value)}
               rows={3}
-              className="mt-0.5 w-full resize-y rounded border border-borde bg-shell px-2 py-1"
+              className="mt-0.5 w-full resize-y rounded-sm border border-borde bg-shell px-2 py-1"
             />
           </label>
 
@@ -279,7 +279,7 @@ export function NotaFlotante({
                 type="button"
                 onClick={() => setPrioridad(opcion.valor)}
                 className={[
-                  "rounded px-2 py-0.5",
+                  "rounded-sm px-2 py-0.5",
                   prioridad === opcion.valor
                     ? "bg-action font-medium"
                     : "bg-surface-2 hover:bg-surface-3",
@@ -297,7 +297,7 @@ export function NotaFlotante({
               type="button"
               onClick={() => void guardar()}
               disabled={envio.kind === "enviando" || titulo.trim() === ""}
-              className="rounded bg-action px-3 py-1 font-medium hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded-sm bg-action px-3 py-1 font-medium hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-40"
             >
               {envio.kind === "enviando" ? "Guardando…" : "Guardar nota"}
             </button>

@@ -38,7 +38,7 @@ export function Plan2DCard({
         <button
           type="button"
           onClick={onClose}
-          className="rounded px-1.5 text-fg-2 hover:bg-surface-3 hover:text-fg"
+          className="rounded-sm px-1.5 text-fg-2 hover:bg-surface-3 hover:text-fg"
           aria-label="Quitar la selección"
           title="Quitar la selección"
         >
@@ -46,7 +46,7 @@ export function Plan2DCard({
         </button>
       </header>
 
-      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3 text-xs">
+      <div className="min-h-0 flex-1 space-y-3 overflow-x-clip overflow-y-auto p-3 text-xs">
         <section>
           <h3 className="mb-1 font-semibold text-fg-2">Origen</h3>
           <dl className="space-y-1">
@@ -169,7 +169,7 @@ export function PropertiesPanel({
           type="button"
           onClick={() => onToggleVisible(!visible)}
           className={[
-            "rounded p-1",
+            "rounded-sm p-1",
             visible ? "text-fg-2 hover:bg-surface-3 hover:text-fg" : "text-accent",
           ].join(" ")}
           aria-label={visible ? "Apagar este elemento" : "Encender este elemento"}
@@ -187,7 +187,7 @@ export function PropertiesPanel({
           type="button"
           onClick={isolated ? onUndoIsolate : onIsolate}
           className={[
-            "rounded p-1",
+            "rounded-sm p-1",
             isolated ? "bg-action/20 text-accent" : "text-fg-2 hover:bg-surface-3 hover:text-fg",
           ].join(" ")}
           aria-label={isolated ? "Salir del aislamiento" : "Aislar este elemento"}
@@ -204,7 +204,7 @@ export function PropertiesPanel({
         <button
           type="button"
           onClick={onClose}
-          className="rounded px-1.5 text-fg-2 hover:bg-surface-3 hover:text-fg"
+          className="rounded-sm px-1.5 text-fg-2 hover:bg-surface-3 hover:text-fg"
           aria-label="Quitar la selección"
           title="Quitar la selección"
         >
@@ -212,7 +212,7 @@ export function PropertiesPanel({
         </button>
       </header>
 
-      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3 text-xs">
+      <div className="min-h-0 flex-1 space-y-3 overflow-x-clip overflow-y-auto p-3 text-xs">
         <section>
           <h3 className="mb-1 font-semibold text-fg-2">Identidad</h3>
           <dl className="space-y-1">
@@ -238,7 +238,7 @@ export function PropertiesPanel({
             <button
               type="button"
               onClick={observar}
-              className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded bg-action px-2 py-1.5 text-xs font-semibold text-fg hover:bg-action-hover"
+              className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-sm bg-action px-2 py-1.5 text-xs font-semibold text-fg hover:bg-action-hover"
               title="Deja una nota anclada al GUID de este elemento, sin salir del modelo"
             >
               <IconNota className="h-3.5 w-3.5" />

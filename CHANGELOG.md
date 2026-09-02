@@ -5,6 +5,27 @@ Este proyecto sigue [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Corregido — Nada se esconde detrás del ratón (`F9.4`–`F9.5`, 2026-09-02)
+
+**Cinco acciones aparecían solo al pasar el cursor**: cerrar un modelo, borrar una vista, borrar una
+cota, quitar una vista compartida y el ojo del árbol. La intención era buena —cerrar un modelo cuesta
+volver a convertir el archivo— pero la herramienta era la equivocada: esconder algo no lo hace menos
+pulsable por accidente, lo hace **imposible** con el teclado y en táctil, donde no existe «pasar por
+encima».
+
+**Y veinte botones estaban por debajo del área mínima de toque**: los iconos de lista miden 11 × 17
+dentro de filas de 26. Agrandarlos habría hinchado la interfaz, así que el botón se queda del tamaño
+que se ve y **crece solo su zona sensible**. La regla se engancha a `aria-label`, porque un botón
+cuyo nombre sale de un atributo **es** un botón de icono: el que se escriba mañana lo hereda solo.
+
+Eso tuvo un precio que solo se vio midiendo: la zona sensible sobresalía del borde y **le daba barra
+horizontal** a dos secciones del navegador, 8 px y 3 px. Se recorta el eje y no aparece ninguna.
+
+Además, la escala de radio pasa a ser la del portal —6 px para un control, 10 para una tarjeta, 12
+para la del portal—, las elevaciones dejan de ser las de fábrica (negro al 10%, calculadas para
+fondo claro, invisibles sobre un panel oscuro), y **los dos estados vacíos que no decían cómo
+llenarse** —el árbol y los modelos abiertos, justo los primeros que se ven— ahora dicen el gesto.
+
 ### Corregido — El visor tiene tokens, escala y foco (`F9.1`–`F9.3`, 2026-09-02)
 
 **AeroBim tenía dos sistemas de diseño y solo uno estaba hecho.** El portal lleva tokens con nombre,

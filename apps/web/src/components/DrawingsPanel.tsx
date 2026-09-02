@@ -50,7 +50,7 @@ export function DrawingsPanel({
             type="button"
             onClick={() => onGenerate(vista)}
             disabled={generating !== null}
-            className="flex-1 rounded bg-action px-2 py-1 text-nota font-medium text-fg hover:bg-action-hover disabled:bg-apagado disabled:text-apagado-fg"
+            className="flex-1 rounded-sm bg-action px-2 py-1 text-nota font-medium text-fg hover:bg-action-hover disabled:bg-apagado disabled:text-apagado-fg"
             title={`Proyecta lo que está a la vista y arma el plano de ${nombre.toLowerCase()}`}
           >
             {nombre}
@@ -66,7 +66,7 @@ export function DrawingsPanel({
           <button
             type="button"
             onClick={onCancel}
-            className="shrink-0 rounded border border-borde px-1.5 py-0.5 text-micro text-fg-2 hover:bg-surface-3 hover:text-fg"
+            className="shrink-0 rounded-sm border border-borde px-1.5 py-0.5 text-micro text-fg-2 hover:bg-surface-3 hover:text-fg"
             title="Deja de esperar la proyección y devuelve la aplicación"
           >
             Dejar de esperar
@@ -131,7 +131,7 @@ export function DrawingsPanel({
               <button
                 type="button"
                 onClick={() => onExport(plano.id)}
-                className="mt-1 w-full rounded border border-accent/40 px-2 py-1 text-nota text-accent hover:bg-accent/15"
+                className="mt-1 w-full rounded-sm border border-accent/40 px-2 py-1 text-nota text-accent hover:bg-accent/15"
                 title="Descarga el plano en DXF, en milímetros y colocado en una hoja A3"
               >
                 Exportar a DXF (A3)

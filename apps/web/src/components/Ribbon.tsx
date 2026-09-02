@@ -266,7 +266,7 @@ export function Ribbon({
             aria-pressed={collapsed}
             title={collapsed ? "Desplegar la cinta" : "Plegar la cinta y ver el modelo entero"}
             aria-label={collapsed ? "Desplegar la cinta" : "Plegar la cinta"}
-            className="rounded px-1 py-1 text-fg-3 hover:bg-surface-3 hover:text-fg"
+            className="rounded-sm px-1 py-1 text-fg-3 hover:bg-surface-3 hover:text-fg"
           >
             {collapsed ? (
               <IconChevronDown className="h-3.5 w-3.5" />
@@ -759,7 +759,7 @@ function Boton({
         // **Más estrecho y más bajo que antes.** La cinta ocupaba 110 px de alto en una pantalla
         // donde lo que importa es el modelo; con el icono a 18 px y el nombre pegado debajo se
         // queda en poco más de la mitad sin perder el nombre, que es lo que la hace legible.
-        "flex w-14 flex-col items-center gap-px rounded px-0.5 py-1 transition-colors",
+        "flex w-14 flex-col items-center gap-px rounded-sm px-0.5 py-1 transition-colors",
         disabled
           ? "text-apagado-fg"
           : encendido
@@ -799,7 +799,7 @@ function PanelToggle({
       aria-pressed={open}
       title={`${open ? "Ocultar" : "Mostrar"} el panel de ${label.toLowerCase()} (${side})`}
       className={[
-        "rounded px-2 py-1 text-nota transition-colors",
+        "rounded-sm px-2 py-1 text-nota transition-colors",
         open ? "bg-surface-2 text-fg" : "text-fg-3 hover:bg-surface-3 hover:text-fg-2",
       ].join(" ")}
     >

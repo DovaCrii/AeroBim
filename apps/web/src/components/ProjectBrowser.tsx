@@ -282,12 +282,12 @@ function Vistas({
           onChange={(evento) => setNombre(evento.target.value)}
           placeholder="Nombre de la vista"
           disabled={!puedeGuardar}
-          className="min-w-0 flex-1 rounded border border-borde bg-surface-3 px-2 py-1 text-xs text-fg placeholder:text-fg-3 disabled:opacity-40"
+          className="min-w-0 flex-1 rounded-sm border border-borde bg-surface-3 px-2 py-1 text-xs text-fg placeholder:text-fg-3 disabled:opacity-40"
         />
         <button
           type="submit"
           disabled={!puedeGuardar || nombre.trim() === ""}
-          className="shrink-0 rounded bg-action px-2 py-1 text-xs font-medium text-fg hover:bg-action-hover disabled:bg-apagado disabled:text-apagado-fg"
+          className="shrink-0 rounded-sm bg-action px-2 py-1 text-xs font-medium text-fg hover:bg-action-hover disabled:bg-apagado disabled:text-apagado-fg"
           title={
             puedeGuardar
               ? "Guarda la cámara, lo que está apagado y los cortes puestos"
@@ -326,7 +326,7 @@ function Vistas({
               <button
                 type="button"
                 onClick={() => onBorrar(vista.id)}
-                className="shrink-0 text-fg-3 opacity-0 group-hover:opacity-100 hover:text-danger"
+                className="shrink-0 text-fg-3 hover:text-danger"
                 title="Borrar esta vista"
                 aria-label="Borrar esta vista"
               >
@@ -400,7 +400,7 @@ function Seccion({
         <h2 className="text-nota font-semibold tracking-wide text-fg-2 uppercase">{titulo}</h2>
       </button>
 
-      {abierta && <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>}
+      {abierta && <div className="min-h-0 flex-1 overflow-x-clip overflow-y-auto">{children}</div>}
 
       {abierta && onRedimensionar !== undefined && (
         <Resizer
@@ -466,7 +466,7 @@ function CotaEnLista({
       <button
         type="button"
         onClick={() => onDelete(cota.id)}
-        className="text-fg-3 opacity-0 group-hover:opacity-100 hover:text-danger"
+        className="text-fg-3 hover:text-danger"
         title="Borrar esta medición"
         aria-label="Borrar esta medición"
       >

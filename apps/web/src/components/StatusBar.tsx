@@ -126,7 +126,7 @@ function Visibilidad({
         <button
           type="button"
           onClick={onUndoIsolate}
-          className="rounded border border-accent/40 px-1.5 py-0.5 text-accent hover:bg-accent/15"
+          className="rounded-sm border border-accent/40 px-1.5 py-0.5 text-accent hover:bg-accent/15"
           title="Sale del aislamiento y vuelve a como estaba el modelo antes de aislar"
         >
           Salir del aislamiento
@@ -136,7 +136,7 @@ function Visibilidad({
       <button
         type="button"
         onClick={onShowAll}
-        className="flex items-center gap-1 rounded border border-borde px-1.5 py-0.5 text-fg-2 hover:bg-surface-3 hover:text-fg"
+        className="flex items-center gap-1 rounded-sm border border-borde px-1.5 py-0.5 text-fg-2 hover:bg-surface-3 hover:text-fg"
         title="Enciende todo el modelo, incluido lo que se apagó a mano"
       >
         <IconEye className="h-3.5 w-3.5" />

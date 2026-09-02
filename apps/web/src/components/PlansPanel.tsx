@@ -176,7 +176,7 @@ function PlanoEnLista({
               <select
                 value={String(t.metresPerUnit)}
                 onChange={(e) => onTransform(plan.id, { metresPerUnit: Number(e.target.value) })}
-                className="min-w-0 flex-1 rounded border border-borde bg-surface-3 px-1.5 py-0.5 text-nota text-fg"
+                className="min-w-0 flex-1 rounded-sm border border-borde bg-surface-3 px-1.5 py-0.5 text-nota text-fg"
               >
                 {UNIDADES.map((unidad) => (
                   <option key={unidad.metros} value={String(unidad.metros)}>
@@ -212,7 +212,7 @@ function PlanoEnLista({
               <button
                 type="button"
                 onClick={() => onTransform(plan.id, { metresPerUnit: plan.units.metresPerUnit })}
-                className="mt-1 rounded border border-accent/40 px-1.5 py-0.5 text-micro text-accent hover:bg-accent/15"
+                className="mt-1 rounded-sm border border-accent/40 px-1.5 py-0.5 text-micro text-accent hover:bg-accent/15"
               >
                 Volver a {plan.units.unitName}, la unidad que se dedujo
               </button>
@@ -235,7 +235,7 @@ function PlanoEnLista({
                   setAlturaRotulo(alto);
                   onLabelHeight(plan.id, alto);
                 }}
-                className="min-w-0 flex-1 rounded border border-borde bg-surface-3 px-1.5 py-0.5 text-nota text-fg"
+                className="min-w-0 flex-1 rounded-sm border border-borde bg-surface-3 px-1.5 py-0.5 text-nota text-fg"
               >
                 <option value="0">ocultos</option>
                 <option value={String(sugerido)}>
@@ -304,13 +304,13 @@ function PlanoEnLista({
           {/* **Calzar señalando, no escribiendo.** Los números de arriba son la red de seguridad;
               esto es el gesto: dos puntos del plano y sus dos equivalentes en el modelo, y el
               plano cae girado, escalado y en su sitio de una vez. */}
-          <div className="rounded border border-borde p-1.5">
+          <div className="rounded-sm border border-borde p-1.5">
             <button
               type="button"
               onClick={() => onAlign(plan.id, ajustarEscala)}
               disabled={alineando}
               className={[
-                "w-full rounded px-2 py-1 text-nota font-medium",
+                "w-full rounded-sm px-2 py-1 text-nota font-medium",
                 alineando
                   ? "bg-action/25 text-accent"
                   : "bg-action text-fg hover:bg-action-hover disabled:opacity-40",
@@ -334,7 +334,7 @@ function PlanoEnLista({
             <button
               type="button"
               onClick={() => onSectionAtPlan(plan.id, t.elevationM + 1.2)}
-              className="mt-1 w-full rounded border border-borde px-2 py-1 text-micro text-fg-2 hover:bg-surface-3 hover:text-fg"
+              className="mt-1 w-full rounded-sm border border-borde px-2 py-1 text-micro text-fg-2 hover:bg-surface-3 hover:text-fg"
               title="Pone un corte horizontal 1,20 m sobre la cota del plano, que es donde corta un plano de planta"
             >
               Cortar el modelo a la altura del plano
@@ -365,7 +365,7 @@ function PlanoEnLista({
                       )}
                     </button>
                     <span
-                      className="h-2.5 w-2.5 shrink-0 rounded-[2px]"
+                      className="h-2.5 w-2.5 shrink-0 rounded-xs"
                       // La misma paleta que dibuja la escena: con una copia aquí, la leyenda
                       // pintaba de verde una capa que en el plano salía violeta.
                       style={{ backgroundColor: aciColorHex(capa.colorIndex) }}
@@ -457,7 +457,7 @@ function Numero({
           const n = Number(e.target.value);
           if (Number.isFinite(n)) onChange(n);
         }}
-        className="min-w-0 flex-1 rounded border border-borde bg-surface-3 px-1.5 py-0.5 font-mono text-nota text-fg"
+        className="min-w-0 flex-1 rounded-sm border border-borde bg-surface-3 px-1.5 py-0.5 font-mono text-nota text-fg"
       />
       <span className="w-3 shrink-0 text-micro text-fg-3">{sufijo}</span>
     </div>
