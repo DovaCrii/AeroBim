@@ -50,7 +50,7 @@ export function DrawingsPanel({
             type="button"
             onClick={() => onGenerate(vista)}
             disabled={generating !== null}
-            className="flex-1 rounded bg-brand px-2 py-1 text-nota font-medium text-white hover:opacity-90 disabled:bg-white/10 disabled:text-white/30"
+            className="flex-1 rounded bg-action px-2 py-1 text-nota font-medium text-fg hover:bg-action-hover disabled:bg-apagado disabled:text-apagado-fg"
             title={`Proyecta lo que está a la vista y arma el plano de ${nombre.toLowerCase()}`}
           >
             {nombre}
@@ -62,11 +62,11 @@ export function DrawingsPanel({
         // **Con salida.** Proyectar un modelo grande tarda, y si el aviso se queda quieto no hay
         // forma de saber si va lento o si se colgó: el botón devuelve la aplicación sin esperar.
         <div className="flex items-center gap-2 px-1 pt-2">
-          <p className="min-w-0 flex-1 truncate text-nota text-brand">{generating}</p>
+          <p className="min-w-0 flex-1 truncate text-nota text-accent">{generating}</p>
           <button
             type="button"
             onClick={onCancel}
-            className="shrink-0 rounded border border-white/15 px-1.5 py-0.5 text-micro text-white/60 hover:bg-white/10 hover:text-white"
+            className="shrink-0 rounded border border-borde px-1.5 py-0.5 text-micro text-fg-2 hover:bg-surface-3 hover:text-fg"
             title="Deja de esperar la proyección y devuelve la aplicación"
           >
             Dejar de esperar
@@ -75,7 +75,7 @@ export function DrawingsPanel({
       )}
 
       {drawings.length === 0 && generating === null && (
-        <p className="px-1 pt-2 text-nota leading-snug text-white/35">
+        <p className="px-1 pt-2 text-nota leading-snug text-fg-3">
           Ninguno. Un plano se saca proyectando las aristas de lo que está encendido: apaga lo que
           no quieras que salga y elige la vista.
         </p>
@@ -85,12 +85,12 @@ export function DrawingsPanel({
         {drawings.map((plano) => {
           const visible = !hidden.has(plano.id);
           return (
-            <li key={plano.id} className="mb-1 rounded-md border border-white/10 px-1.5 py-1">
+            <li key={plano.id} className="mb-1 rounded-md border border-borde px-1.5 py-1">
               <div className="flex items-center gap-1.5">
                 <button
                   type="button"
                   onClick={() => onToggle(plano.id, !visible)}
-                  className={visible ? "text-brand" : "text-white/30 hover:text-white/60"}
+                  className={visible ? "text-accent" : "text-fg-3 hover:text-fg-2"}
                   title={visible ? "Apagar este plano" : "Encender este plano"}
                   aria-label={visible ? "Apagar este plano" : "Encender este plano"}
                   aria-pressed={visible}
@@ -98,12 +98,12 @@ export function DrawingsPanel({
                   {visible ? <IconEye className="h-4 w-4" /> : <IconEyeOff className="h-4 w-4" />}
                 </button>
 
-                <span className="min-w-0 flex-1 truncate text-xs text-white/85">{plano.name}</span>
+                <span className="min-w-0 flex-1 truncate text-xs text-fg">{plano.name}</span>
 
                 <button
                   type="button"
                   onClick={() => onClose(plano.id)}
-                  className="shrink-0 text-white/30 hover:text-red-400"
+                  className="shrink-0 text-fg-3 hover:text-danger"
                   title="Cerrar este plano"
                   aria-label="Cerrar este plano"
                 >
@@ -111,17 +111,17 @@ export function DrawingsPanel({
                 </button>
               </div>
 
-              <p className="pt-0.5 text-micro text-white/35">
+              <p className="pt-0.5 text-micro text-fg-3">
                 {plano.sizeM[0].toFixed(1)} × {plano.sizeM[1].toFixed(1)} m ·{" "}
                 {plano.segments.toLocaleString("es-CL")} trazos ·{" "}
                 {(plano.elapsedMs / 1000).toFixed(1)} s en generarse
               </p>
 
-              <label className="flex items-center gap-2 pt-1 text-micro text-white/50">
+              <label className="flex items-center gap-2 pt-1 text-micro text-fg-2">
                 <input
                   type="checkbox"
                   onChange={(e) => onToggleHidden(plano.id, e.target.checked)}
-                  className="accent-brand"
+                  className="accent-action"
                 />
                 {/* En un plano de arquitectura las aristas ocultas son la mitad del ruido: se
                     generan igual y se encienden solo cuando se quieren. */}
@@ -131,7 +131,7 @@ export function DrawingsPanel({
               <button
                 type="button"
                 onClick={() => onExport(plano.id)}
-                className="mt-1 w-full rounded border border-brand/40 px-2 py-1 text-nota text-brand hover:bg-brand/15"
+                className="mt-1 w-full rounded border border-accent/40 px-2 py-1 text-nota text-accent hover:bg-accent/15"
                 title="Descarga el plano en DXF, en milímetros y colocado en una hoja A3"
               >
                 Exportar a DXF (A3)

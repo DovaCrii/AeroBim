@@ -1390,7 +1390,7 @@ export function App() {
             {/* **Abrir es uno solo para todo lo que la aplicación sabe leer.** Antes decía
                 "Abrir IFC" y un plano no tenía por dónde entrar; ahora el mismo botón —y el mismo
                 arrastrar y soltar— toma el modelo y el plano, y es la extensión la que decide. */}
-            <label className="cursor-pointer rounded-md bg-brand px-3 py-1 text-xs font-medium text-white hover:opacity-90">
+            <label className="cursor-pointer rounded-md bg-action px-3 py-1 text-xs font-medium text-fg hover:bg-action-hover">
               Abrir
               <input
                 type="file"
@@ -1481,7 +1481,7 @@ export function App() {
           // modelo desaparecía sin explicación. Ahora se encogen y el lienzo tiene mínimo garantizado.
           <aside
             style={{ width: anchoIzquierdo }}
-            className="min-w-0 shrink border-r border-white/10 bg-ink/50"
+            className="min-w-0 shrink border-r border-borde bg-surface"
           >
             {selectedPlan !== null && selected === null ? (
               <Plan2DCard hit={selectedPlan} onClose={() => setSelectedPlan(null)} />
@@ -1569,15 +1569,15 @@ export function App() {
           />
 
           {dragging && (
-            <div className="pointer-events-none absolute inset-4 rounded-lg border-2 border-dashed border-brand/70" />
+            <div className="pointer-events-none absolute inset-4 rounded-lg border-2 border-dashed border-accent/70" />
           )}
 
           {models.length === 0 && plans.length === 0 && status.kind !== "loading" && (
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-              <p className="text-sm text-white/40">
-                Arrastra un <span className="text-white/70">IFC</span> o un{" "}
-                <span className="text-white/70">DXF</span> aquí, o usa{" "}
-                <span className="text-white/70">Abrir</span>
+              <p className="text-sm text-fg-3">
+                Arrastra un <span className="text-fg-2">IFC</span> o un{" "}
+                <span className="text-fg-2">DXF</span> aquí, o usa{" "}
+                <span className="text-fg-2">Abrir</span>
               </p>
             </div>
           )}
@@ -1600,7 +1600,7 @@ export function App() {
         {panelDerecho && (
           <aside
             style={{ width: anchoDerecho }}
-            className="min-w-0 shrink border-l border-white/10 bg-ink/50"
+            className="min-w-0 shrink border-l border-borde bg-surface"
           >
             <ProjectBrowser
               registro={
@@ -1673,7 +1673,7 @@ export function App() {
               onDeleteView={onDeleteView}
               estructura={
                 orderedTrees.length === 0 ? (
-                  <p className="p-3 text-xs text-white/35">Todavía no hay ningún modelo abierto.</p>
+                  <p className="p-3 text-xs text-fg-3">Todavía no hay ningún modelo abierto.</p>
                 ) : (
                   <SpatialTree
                     trees={orderedTrees}
@@ -1720,7 +1720,7 @@ export function App() {
               }
               modelos={
                 models.length === 0 ? (
-                  <p className="p-3 text-xs text-white/35">Ninguno.</p>
+                  <p className="p-3 text-xs text-fg-3">Ninguno.</p>
                 ) : (
                   <ModelsPanel
                     models={models}
@@ -1758,23 +1758,23 @@ export function App() {
 
 function StatusBadge({ status }: { readonly status: Status }) {
   if (status.kind === "starting") {
-    return <span className="text-xs text-white/50">Iniciando visor…</span>;
+    return <span className="text-xs text-fg-2">Iniciando visor…</span>;
   }
   if (status.kind === "loading") {
     return (
-      <span className="text-xs text-brand" title={`${status.name}: ${ETAPAS[status.stage]}`}>
+      <span className="text-xs text-accent" title={`${status.name}: ${ETAPAS[status.stage]}`}>
         {status.name} — {ETAPAS[status.stage]}…
       </span>
     );
   }
   if (status.kind === "error") {
     return (
-      <span className="max-w-md truncate text-xs text-red-400" title={status.message}>
+      <span className="max-w-md truncate text-xs text-danger" title={status.message}>
         {status.message}
       </span>
     );
   }
-  return <span className="text-xs text-white/40">Listo</span>;
+  return <span className="text-xs text-fg-3">Listo</span>;
 }
 
 /** Mensaje legible sin exponer la traza cruda. */

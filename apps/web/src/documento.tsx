@@ -213,7 +213,7 @@ function Pagina({
         {url !== null ? (
           <img src={url} alt="" width={ancho} height={alto} className="block" />
         ) : (
-          <div className="flex h-full items-center justify-center text-sm text-slate-400">
+          <div className="flex h-full items-center justify-center text-sm text-fg-3">
             página {indice + 1}
           </div>
         )}
@@ -263,7 +263,7 @@ function Pagina({
             title={`${observacion.titulo} · ${observacion.estadoTexto} · ${observacion.responsable}`}
             // El clic en la marca **no debe abrir una observación nueva**: se detiene aquí.
             onClick={(evento) => evento.stopPropagation()}
-            className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white text-nota font-bold text-white shadow"
+            className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white text-nota font-bold text-fg shadow"
             style={{
               left: `${observacion.x * 100}%`,
               top: `${observacion.y * 100}%`,
@@ -280,7 +280,7 @@ function Pagina({
           </a>
         ))}
       </div>
-      <p className="mt-1 text-center text-xs text-slate-500">{indice + 1}</p>
+      <p className="mt-1 text-center text-xs text-apagado-fg">{indice + 1}</p>
     </div>
   );
 }
@@ -466,9 +466,9 @@ function Documento() {
     return (
       <div className="mx-auto max-w-2xl p-12">
         <h1 className="text-xl font-semibold">No se pudo abrir</h1>
-        <p className="mt-3 text-slate-300">{error}</p>
+        <p className="mt-3 text-fg-2">{error}</p>
         <p className="mt-6">
-          <a className="text-brand underline" href="/documentos/entregables/">
+          <a className="text-accent underline" href="/documentos/entregables/">
             Volver a los entregables
           </a>
         </p>
@@ -478,8 +478,8 @@ function Documento() {
 
   return (
     <div className="flex h-full flex-col">
-      <header className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-white/10 px-4 py-2 text-sm">
-        <a href="/documentos/entregables/" className="font-semibold text-brand">
+      <header className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-borde px-4 py-2 text-sm">
+        <a href="/documentos/entregables/" className="font-semibold text-accent">
           AeroBim
         </a>
         {revision !== null && (
@@ -487,9 +487,9 @@ function Documento() {
             <span className="font-medium">
               {revision.entregable.codigo} rev. {revision.correlativo}
             </span>
-            <span className="text-slate-400">{revision.entregable.titulo}</span>
+            <span className="text-fg-3">{revision.entregable.titulo}</span>
             <a
-              className="text-slate-300 underline"
+              className="text-fg-2 underline"
               href={`/documentos/entregables/${revision.entregable.id}/`}
             >
               expediente
@@ -510,21 +510,21 @@ function Documento() {
               defaultValue=""
               placeholder="Buscar en el documento"
               aria-label="buscar en el documento"
-              className="w-48 rounded bg-white/10 px-2 py-1 placeholder:text-slate-500"
+              className="w-48 rounded bg-surface-2 px-2 py-1 placeholder:text-fg-3"
             />
-            <button type="submit" className="rounded bg-white/10 px-2 py-1 hover:bg-white/20">
+            <button type="submit" className="rounded bg-surface-2 px-2 py-1 hover:bg-surface-3">
               {buscando ? "…" : "Buscar"}
             </button>
           </form>
           {doc !== null && (
-            <span className="text-slate-400">
+            <span className="text-fg-3">
               {pagina} / {doc.pageCount}
             </span>
           )}
           <select
             value={escala}
             onChange={(evento) => setEscala(Number(evento.target.value))}
-            className="rounded bg-white/10 px-2 py-1"
+            className="rounded bg-surface-2 px-2 py-1"
             aria-label="escala"
           >
             {ESCALAS.map((uno) => (
@@ -541,7 +541,7 @@ function Documento() {
         regla que el visor de modelos —nada flota sobre lo que se está mirando— y quien viene de
         un CAD ya mira arriba y abajo.
       */}
-      <p className="flex flex-wrap items-center gap-x-3 border-b border-white/10 bg-white/5 px-4 py-1 text-xs text-slate-400">
+      <p className="flex flex-wrap items-center gap-x-3 border-b border-borde bg-surface-2 px-4 py-1 text-xs text-fg-3">
         <span>
           {doc === null
             ? aviso
@@ -557,7 +557,7 @@ function Documento() {
         */}
         {hallazgos !== null && (
           <span className="flex flex-wrap items-center gap-x-2">
-            <span className="text-slate-300">
+            <span className="text-fg-2">
               «{buscado}»:{" "}
               {hallazgos.length === 0
                 ? "sin coincidencias"
@@ -568,7 +568,7 @@ function Documento() {
                 key={numero}
                 type="button"
                 onClick={() => irA(numero)}
-                className="rounded bg-white/10 px-1.5 hover:bg-white/20"
+                className="rounded bg-surface-2 px-1.5 hover:bg-surface-3"
               >
                 {numero}
               </button>
@@ -577,7 +577,7 @@ function Documento() {
         )}
       </p>
 
-      <div ref={scroller} onScroll={alDesplazar} className="flex-1 overflow-auto bg-slate-800 p-6">
+      <div ref={scroller} onScroll={alDesplazar} className="flex-1 overflow-auto bg-surface-2 p-6">
         {doc !== null &&
           engine.current !== null &&
           doc.pages.map((_p, indice) => (

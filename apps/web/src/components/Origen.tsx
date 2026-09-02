@@ -25,7 +25,7 @@ export function Origen({ origen }: { readonly origen: RegistryOrigin | null }) {
   return (
     <nav
       aria-label="De dónde viene lo que está abierto"
-      className="flex min-w-0 items-center gap-1.5 text-xs text-white/55"
+      className="flex min-w-0 items-center gap-1.5 text-xs text-fg-2"
     >
       {vueltas.map((vuelta, indice) => (
         <span key={vuelta.href} className="flex min-w-0 items-center gap-1.5">
@@ -33,7 +33,7 @@ export function Origen({ origen }: { readonly origen: RegistryOrigin | null }) {
           {indice > 0 && <span aria-hidden="true">/</span>}
           <a
             href={vuelta.href}
-            className="truncate underline decoration-white/25 hover:text-white hover:decoration-white"
+            className="truncate underline decoration-fg-3 hover:text-fg hover:decoration-fg"
             title={vuelta.etiqueta}
           >
             {vuelta.etiqueta}
@@ -42,7 +42,7 @@ export function Origen({ origen }: { readonly origen: RegistryOrigin | null }) {
       ))}
       {/* La revisión **no es un enlace**: no tiene pantalla propia, y llevarla al expediente sería
           un segundo enlace al mismo sitio en la misma línea — una promesa que no se cumple. */}
-      {revision !== "" && <span className="shrink-0 text-white/40">· rev. {revision}</span>}
+      {revision !== "" && <span className="shrink-0 text-fg-3">· rev. {revision}</span>}
     </nav>
   );
 }

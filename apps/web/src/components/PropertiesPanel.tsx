@@ -26,9 +26,9 @@ export function Plan2DCard({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="flex items-start gap-2 border-b border-white/10 p-3">
+      <header className="flex items-start gap-2 border-b border-borde p-3">
         <div className="min-w-0 flex-1">
-          <p className="truncate text-xs font-semibold tracking-wide text-brand uppercase">
+          <p className="truncate text-xs font-semibold tracking-wide text-accent uppercase">
             {ETIQUETA_2D[hit.kind]}
           </p>
           <p className="truncate text-sm" title={hit.text ?? hit.layer}>
@@ -38,7 +38,7 @@ export function Plan2DCard({
         <button
           type="button"
           onClick={onClose}
-          className="rounded px-1.5 text-white/50 hover:bg-white/10 hover:text-white"
+          className="rounded px-1.5 text-fg-2 hover:bg-surface-3 hover:text-fg"
           aria-label="Quitar la selección"
           title="Quitar la selección"
         >
@@ -48,7 +48,7 @@ export function Plan2DCard({
 
       <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3 text-xs">
         <section>
-          <h3 className="mb-1 font-semibold text-white/70">Origen</h3>
+          <h3 className="mb-1 font-semibold text-fg-2">Origen</h3>
           <dl className="space-y-1">
             <Row label="Plano" value={hit.planName} />
             <Row label="Capa" value={hit.layer} />
@@ -56,7 +56,7 @@ export function Plan2DCard({
         </section>
 
         <section>
-          <h3 className="mb-1 font-semibold text-white/70">Geometría</h3>
+          <h3 className="mb-1 font-semibold text-fg-2">Geometría</h3>
           <dl className="space-y-1">
             {hit.text !== null && <Row label="Texto" value={hit.text} />}
             <Row
@@ -79,7 +79,7 @@ export function Plan2DCard({
           </dl>
         </section>
 
-        <p className="border-t border-white/10 pt-2 text-nota leading-snug text-white/35">
+        <p className="border-t border-borde pt-2 text-nota leading-snug text-fg-3">
           Un plano CAD no trae más datos que estos: lo que sabe del elemento es su capa y su
           geometría. Lo demás —tipo, material, cantidades— vive en el modelo IFC.
         </p>
@@ -136,12 +136,10 @@ export function PropertiesPanel({
   if (item === null) {
     return (
       <div className="flex h-full min-h-0 flex-col">
-        <header className="border-b border-white/10 px-3 py-2">
-          <h2 className="text-nota font-semibold tracking-wide text-white/60 uppercase">
-            Propiedades
-          </h2>
+        <header className="border-b border-borde px-3 py-2">
+          <h2 className="text-nota font-semibold tracking-wide text-fg-2 uppercase">Propiedades</h2>
         </header>
-        <p className="p-3 text-xs leading-snug text-white/35">
+        <p className="p-3 text-xs leading-snug text-fg-3">
           Selecciona un elemento del modelo para ver su categoría, su GUID y sus propiedades, cada
           número con la unidad que declara el archivo.
         </p>
@@ -155,9 +153,9 @@ export function PropertiesPanel({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="flex items-start gap-2 border-b border-white/10 p-3">
+      <header className="flex items-start gap-2 border-b border-borde p-3">
         <div className="min-w-0 flex-1">
-          <p className="truncate text-xs font-semibold tracking-wide text-brand uppercase">
+          <p className="truncate text-xs font-semibold tracking-wide text-accent uppercase">
             {item.category ?? "Elemento"}
           </p>
           <p className="truncate text-sm" title={item.name ?? undefined}>
@@ -172,7 +170,7 @@ export function PropertiesPanel({
           onClick={() => onToggleVisible(!visible)}
           className={[
             "rounded p-1",
-            visible ? "text-white/50 hover:bg-white/10 hover:text-white" : "text-brand",
+            visible ? "text-fg-2 hover:bg-surface-3 hover:text-fg" : "text-accent",
           ].join(" ")}
           aria-label={visible ? "Apagar este elemento" : "Encender este elemento"}
           title={visible ? "Apagar este elemento" : "Encender este elemento"}
@@ -190,9 +188,7 @@ export function PropertiesPanel({
           onClick={isolated ? onUndoIsolate : onIsolate}
           className={[
             "rounded p-1",
-            isolated
-              ? "bg-brand/15 text-brand"
-              : "text-white/50 hover:bg-white/10 hover:text-white",
+            isolated ? "bg-action/20 text-accent" : "text-fg-2 hover:bg-surface-3 hover:text-fg",
           ].join(" ")}
           aria-label={isolated ? "Salir del aislamiento" : "Aislar este elemento"}
           aria-pressed={isolated}
@@ -208,7 +204,7 @@ export function PropertiesPanel({
         <button
           type="button"
           onClick={onClose}
-          className="rounded px-1.5 text-white/50 hover:bg-white/10 hover:text-white"
+          className="rounded px-1.5 text-fg-2 hover:bg-surface-3 hover:text-fg"
           aria-label="Quitar la selección"
           title="Quitar la selección"
         >
@@ -218,7 +214,7 @@ export function PropertiesPanel({
 
       <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3 text-xs">
         <section>
-          <h3 className="mb-1 font-semibold text-white/70">Identidad</h3>
+          <h3 className="mb-1 font-semibold text-fg-2">Identidad</h3>
           <dl className="space-y-1">
             {/* El GUID va en monoespaciada y seleccionable: es lo que alguien copia para
                 rastrear un elemento entre herramientas. */}
@@ -242,7 +238,7 @@ export function PropertiesPanel({
             <button
               type="button"
               onClick={observar}
-              className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded bg-brand px-2 py-1.5 text-xs font-semibold text-white hover:opacity-90"
+              className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded bg-action px-2 py-1.5 text-xs font-semibold text-fg hover:bg-action-hover"
               title="Deja una nota anclada al GUID de este elemento, sin salir del modelo"
             >
               <IconNota className="h-3.5 w-3.5" />
@@ -253,7 +249,7 @@ export function PropertiesPanel({
 
         {item.attributes.length > 0 && (
           <section>
-            <h3 className="mb-1 font-semibold text-white/70">Atributos</h3>
+            <h3 className="mb-1 font-semibold text-fg-2">Atributos</h3>
             <dl className="space-y-1">
               {item.attributes.map((attribute) => (
                 <PropertyRow key={attribute.name} property={attribute} />
@@ -264,7 +260,7 @@ export function PropertiesPanel({
 
         {item.groups.map((group, index) => (
           <section key={`${group.name}-${index}`}>
-            <h3 className="mb-1 font-semibold text-white/70">{group.name}</h3>
+            <h3 className="mb-1 font-semibold text-fg-2">{group.name}</h3>
             <dl className="space-y-1">
               {group.properties.map((property, propertyIndex) => (
                 <PropertyRow key={`${property.name}-${propertyIndex}`} property={property} />
@@ -274,14 +270,14 @@ export function PropertiesPanel({
         ))}
 
         {item.attributes.length === 0 && item.groups.length === 0 && (
-          <p className="text-white/40">
+          <p className="text-fg-3">
             El elemento no trae más información. Muchos exportadores omiten los psets — es una
             casilla en el exportador, no un problema del modelo.
           </p>
         )}
 
         {hayInferidas && (
-          <p className="border-t border-white/10 pt-2 text-nota leading-snug text-white/35">
+          <p className="border-t border-borde pt-2 text-nota leading-snug text-fg-3">
             Las unidades atenuadas se deducen del nombre de la propiedad: el archivo declara el
             número sin decir de qué magnitud es.
           </p>
@@ -333,12 +329,12 @@ function Row({
 
   return (
     <div className="flex justify-between gap-3">
-      <dt className="shrink-0 text-white/50">{label}</dt>
+      <dt className="shrink-0 text-fg-2">{label}</dt>
       <dd
         className={[
           "min-w-0 text-right break-words",
           mono ? "font-mono select-all" : "",
-          muted ? "text-white/40 italic" : "text-white/90",
+          muted ? "text-fg-3 italic" : "text-fg",
         ].join(" ")}
         title={explicacion}
       >
@@ -347,7 +343,7 @@ function Row({
           <span
             // La unidad deducida se atenúa a propósito: es una ayuda de lectura, no un dato del
             // archivo, y presentarla igual que una declarada la haría pasar por certeza.
-            className={unitInferred ? "text-white/35" : "text-white/55"}
+            className={unitInferred ? "text-fg-3" : "text-fg-2"}
             title={
               unitInferred
                 ? "Unidad deducida del nombre de la propiedad"

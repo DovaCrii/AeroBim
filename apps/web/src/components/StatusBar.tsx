@@ -54,17 +54,17 @@ export function StatusBar({
   readonly onShowAll: () => void;
 }) {
   return (
-    <footer className="flex h-7 shrink-0 items-center gap-4 border-t border-white/10 bg-ink/60 px-3 text-nota">
-      <span className="shrink-0 text-white/45">
-        <span className="text-white/30">Modo:</span>{" "}
-        <span className="text-white/80">{ETIQUETA_MODO[measureMode ?? "select"]}</span>
+    <footer className="flex h-7 shrink-0 items-center gap-4 border-t border-borde bg-surface px-3 text-nota">
+      <span className="shrink-0 text-fg-3">
+        <span className="text-fg-3">Modo:</span>{" "}
+        <span className="text-fg">{ETIQUETA_MODO[measureMode ?? "select"]}</span>
       </span>
 
       <span
         className={
           measureMissed && measureMode !== null
-            ? "min-w-0 flex-1 truncate text-amber-300"
-            : "min-w-0 flex-1 truncate text-brand"
+            ? "min-w-0 flex-1 truncate text-warn"
+            : "min-w-0 flex-1 truncate text-accent"
         }
       >
         {aligning !== null
@@ -86,7 +86,7 @@ export function StatusBar({
         <Visibilidad isolated={isolated} onUndoIsolate={onUndoIsolate} onShowAll={onShowAll} />
       )}
 
-      <span className="shrink-0 text-white/30">
+      <span className="shrink-0 text-fg-3">
         {modelCount === 1 ? "1 modelo" : `${modelCount} modelos`}
         {measurementCount > 0 && ` · ${measurementCount} cotas`}
       </span>
@@ -117,7 +117,7 @@ function Visibilidad({
 }) {
   return (
     <span className="flex shrink-0 items-center gap-2">
-      <span className="flex items-center gap-1 text-brand">
+      <span className="flex items-center gap-1 text-accent">
         <IconIsolate className="h-3.5 w-3.5" />
         {isolated ? "Vista aislada" : "Hay elementos ocultos"}
       </span>
@@ -126,7 +126,7 @@ function Visibilidad({
         <button
           type="button"
           onClick={onUndoIsolate}
-          className="rounded border border-brand/40 px-1.5 py-0.5 text-brand hover:bg-brand/15"
+          className="rounded border border-accent/40 px-1.5 py-0.5 text-accent hover:bg-accent/15"
           title="Sale del aislamiento y vuelve a como estaba el modelo antes de aislar"
         >
           Salir del aislamiento
@@ -136,7 +136,7 @@ function Visibilidad({
       <button
         type="button"
         onClick={onShowAll}
-        className="flex items-center gap-1 rounded border border-white/15 px-1.5 py-0.5 text-white/60 hover:bg-white/10 hover:text-white"
+        className="flex items-center gap-1 rounded border border-borde px-1.5 py-0.5 text-fg-2 hover:bg-surface-3 hover:text-fg"
         title="Enciende todo el modelo, incluido lo que se apagó a mano"
       >
         <IconEye className="h-3.5 w-3.5" />
@@ -213,10 +213,8 @@ function Magnitud({
 }) {
   return (
     <span className="whitespace-nowrap">
-      <span className="text-white/30">{etiqueta}:</span>{" "}
-      <span className={destacada ? "font-mono text-brand" : "font-mono text-white/80"}>
-        {valor}
-      </span>
+      <span className="text-fg-3">{etiqueta}:</span>{" "}
+      <span className={destacada ? "font-mono text-accent" : "font-mono text-fg"}>{valor}</span>
     </span>
   );
 }

@@ -183,7 +183,7 @@ export function NotaFlotante({
       role="dialog"
       aria-label="Dejar una nota sobre este elemento"
       style={{ left: posicion.x, top: posicion.y }}
-      className="absolute z-20 w-80 rounded-lg border border-white/15 bg-ink/95 shadow-2xl backdrop-blur-sm"
+      className="absolute z-20 w-80 rounded-lg border border-borde bg-surface/95 shadow-2xl backdrop-blur-sm"
     >
       <header
         onPointerDown={(evento) => {
@@ -192,7 +192,7 @@ export function NotaFlotante({
             y: evento.clientY - posicion.y,
           };
         }}
-        className="flex cursor-move items-center gap-2 border-b border-white/10 px-3 py-2"
+        className="flex cursor-move items-center gap-2 border-b border-borde px-3 py-2"
       >
         <span className="min-w-0 flex-1 truncate text-xs font-semibold">
           Nota sobre el elemento
@@ -200,7 +200,7 @@ export function NotaFlotante({
         <button
           type="button"
           onClick={onCerrar}
-          className="rounded px-1.5 text-white/50 hover:bg-white/10 hover:text-white"
+          className="rounded px-1.5 text-fg-2 hover:bg-surface-3 hover:text-fg"
           aria-label="Cerrar sin guardar"
         >
           ×
@@ -209,10 +209,10 @@ export function NotaFlotante({
 
       {envio.kind === "guardada" ? (
         <div className="space-y-2 p-3 text-xs">
-          <p className="font-semibold text-emerald-300">Nota guardada.</p>
+          <p className="font-semibold text-ok">Nota guardada.</p>
           {/* **Se dice a nombre de quién quedó**, que es lo que falta por hacer: repartirla. Sin
               esto, una nota sin dueño parece asignada y nadie la recoge. */}
-          <p className="leading-snug text-white/60">
+          <p className="leading-snug text-fg-2">
             {envio.nota.esMia
               ? `Quedó a tu nombre (${envio.nota.responsable}). Repártela desde la pantalla de observaciones cuando toque.`
               : `Asignada a ${envio.nota.responsable}.`}
@@ -222,14 +222,14 @@ export function NotaFlotante({
               href={envio.nota.url}
               target="_blank"
               rel="noopener"
-              className="rounded bg-white/10 px-2 py-1 hover:bg-white/20"
+              className="rounded bg-surface-2 px-2 py-1 hover:bg-surface-3"
             >
               Ver su ficha
             </a>
             <button
               type="button"
               onClick={onCerrar}
-              className="rounded bg-brand px-2 py-1 font-medium hover:opacity-90"
+              className="rounded bg-action px-2 py-1 font-medium hover:bg-action-hover"
             >
               Seguir revisando
             </button>
@@ -239,9 +239,9 @@ export function NotaFlotante({
         <div className="space-y-2 p-3 text-xs">
           {/* El ancla, dicha en la propia tarjeta: es lo que hace que la nota sirva fuera de acá,
               y lo que Solibri selecciona al abrir el BCF. */}
-          <p className="truncate text-nota text-white/45" title={item.guid ?? undefined}>
+          <p className="truncate text-nota text-fg-3" title={item.guid ?? undefined}>
             {item.guid === null ? (
-              <span className="text-amber-200/80">
+              <span className="text-warn">
                 Este elemento no trae GUID: la nota queda sobre la revisión, sin señalarlo.
               </span>
             ) : (
@@ -250,28 +250,28 @@ export function NotaFlotante({
           </p>
 
           <label className="block">
-            <span className="text-white/55">Qué pasa</span>
+            <span className="text-fg-2">Qué pasa</span>
             <input
               ref={campoTitulo}
               value={titulo}
               onChange={(evento) => setTitulo(evento.target.value)}
               maxLength={250}
-              className="mt-0.5 w-full rounded border border-white/15 bg-shell px-2 py-1"
+              className="mt-0.5 w-full rounded border border-borde bg-shell px-2 py-1"
             />
           </label>
 
           <label className="block">
-            <span className="text-white/55">Detalle (opcional)</span>
+            <span className="text-fg-2">Detalle (opcional)</span>
             <textarea
               value={descripcion}
               onChange={(evento) => setDescripcion(evento.target.value)}
               rows={3}
-              className="mt-0.5 w-full resize-y rounded border border-white/15 bg-shell px-2 py-1"
+              className="mt-0.5 w-full resize-y rounded border border-borde bg-shell px-2 py-1"
             />
           </label>
 
           <div className="flex items-center gap-2">
-            <span className="text-white/55">Prioridad</span>
+            <span className="text-fg-2">Prioridad</span>
             {/* Tres botones y no un desplegable: son tres opciones y se elige en un clic. */}
             {PRIORIDADES.map((opcion) => (
               <button
@@ -281,8 +281,8 @@ export function NotaFlotante({
                 className={[
                   "rounded px-2 py-0.5",
                   prioridad === opcion.valor
-                    ? "bg-brand font-medium"
-                    : "bg-white/10 hover:bg-white/20",
+                    ? "bg-action font-medium"
+                    : "bg-surface-2 hover:bg-surface-3",
                 ].join(" ")}
               >
                 {opcion.texto}
@@ -290,18 +290,18 @@ export function NotaFlotante({
             ))}
           </div>
 
-          {envio.kind === "error" && <p className="leading-snug text-rose-300">{envio.mensaje}</p>}
+          {envio.kind === "error" && <p className="leading-snug text-danger">{envio.mensaje}</p>}
 
           <div className="flex items-center gap-2 pt-1">
             <button
               type="button"
               onClick={() => void guardar()}
               disabled={envio.kind === "enviando" || titulo.trim() === ""}
-              className="rounded bg-brand px-3 py-1 font-medium hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded bg-action px-3 py-1 font-medium hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-40"
             >
               {envio.kind === "enviando" ? "Guardando…" : "Guardar nota"}
             </button>
-            <span className="text-nota text-white/35">
+            <span className="text-nota text-fg-3">
               El responsable y la fecha se reparten después.
             </span>
           </div>

@@ -93,12 +93,12 @@ export function Selector({
   }, []);
 
   if (estado.kind === "cargando") {
-    return <p className="p-3 text-xs text-white/35">Buscando qué se puede abrir…</p>;
+    return <p className="p-3 text-xs text-fg-3">Buscando qué se puede abrir…</p>;
   }
 
   if (estado.kind === "sin-permiso") {
     return (
-      <p className="p-3 text-xs leading-snug text-white/35">
+      <p className="p-3 text-xs leading-snug text-fg-3">
         Tu rol no puede listar revisiones del registro. Puedes abrir un archivo del disco con
         «Abrir».
       </p>
@@ -106,12 +106,12 @@ export function Selector({
   }
 
   if (estado.kind === "error") {
-    return <p className="p-3 text-xs leading-snug text-white/40">{estado.mensaje}</p>;
+    return <p className="p-3 text-xs leading-snug text-fg-3">{estado.mensaje}</p>;
   }
 
   if (estado.proyectos.length === 0) {
     return (
-      <p className="p-3 text-xs leading-snug text-white/35">
+      <p className="p-3 text-xs leading-snug text-fg-3">
         No hay ningún modelo ni plano publicado que puedas abrir. Un IFC o un DXF subido como
         revisión aparece acá.
       </p>
@@ -122,7 +122,7 @@ export function Selector({
     <div className="min-h-0 overflow-y-auto p-2 text-xs">
       {estado.proyectos.map((obra) => (
         <section key={obra.id} className="mb-3">
-          <p className="px-1 pb-1 text-micro font-semibold tracking-wide text-white/45 uppercase">
+          <p className="px-1 pb-1 text-micro font-semibold tracking-wide text-fg-3 uppercase">
             {obra.codigo}
             <span className="ml-1.5 font-normal normal-case">{obra.nombre}</span>
           </p>
@@ -135,14 +135,14 @@ export function Selector({
                   type="button"
                   disabled={deshabilitado}
                   onClick={() => onAbrir(revision.id)}
-                  className="w-full rounded px-2 py-1.5 text-left hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="w-full rounded px-2 py-1.5 text-left hover:bg-surface-3 disabled:cursor-not-allowed disabled:opacity-40"
                   title={revision.nombre}
                 >
                   <span className="block truncate">
                     {revision.entregable.codigo}
-                    <span className="ml-1.5 text-white/45">rev. {revision.correlativo}</span>
+                    <span className="ml-1.5 text-fg-3">rev. {revision.correlativo}</span>
                   </span>
-                  <span className="block truncate text-white/40">
+                  <span className="block truncate text-fg-3">
                     {revision.entregable.titulo} · {revision.idoneidad}
                   </span>
                 </button>
@@ -154,7 +154,7 @@ export function Selector({
 
       {/* **El recorte se dice.** Callado, alguien concluye que su modelo no está subido. */}
       {estado.recortados > 0 && (
-        <p className="px-1 pt-1 text-nota leading-snug text-white/35">
+        <p className="px-1 pt-1 text-nota leading-snug text-fg-3">
           {estado.recortados} revisiones más no caben en esta lista.{" "}
           <a href="/proyectos/" className="underline">
             Ábrelas desde su obra

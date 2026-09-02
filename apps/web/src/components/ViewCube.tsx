@@ -25,7 +25,7 @@ export function ViewCube({
   readonly onView: (view: StandardView) => void;
   readonly disabled: boolean;
 }) {
-  const activa = (cual: StandardView) => (view === cual ? "fill-brand/45" : "fill-white/[0.07]");
+  const activa = (cual: StandardView) => (view === cual ? "fill-brand/45" : "fill-fg/8");
 
   return (
     <div
@@ -75,8 +75,8 @@ export function ViewCube({
             cy={8}
             r={7}
             className={[
-              "stroke-white/40",
-              view === "iso" ? "fill-brand" : "fill-ink/80 hover:fill-white/20",
+              "stroke-fg-3/50",
+              view === "iso" ? "fill-brand" : "fill-surface/80 hover:fill-fg/15",
             ].join(" ")}
             strokeWidth={1}
             onClick={() => !disabled && onView("iso")}
@@ -109,7 +109,7 @@ function Cara({
     <g onClick={onClick} className="group">
       <polygon
         points={puntos}
-        className={`${clase} stroke-white/35 group-hover:fill-white/20`}
+        className={`${clase} stroke-fg-3/50 group-hover:fill-fg/15`}
         strokeWidth={1.2}
         strokeLinejoin="round"
       >
@@ -119,7 +119,7 @@ function Cara({
         x={textoX}
         y={textoY}
         textAnchor="middle"
-        className="pointer-events-none fill-white/70 text-micro tracking-wide uppercase"
+        className="pointer-events-none fill-fg text-micro tracking-wide uppercase"
       >
         {etiqueta}
       </text>

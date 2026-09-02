@@ -133,7 +133,7 @@ rojo de verde, que es el argumento que `.pildora` ya tiene escrito en `app.css`.
 | Token              | Valor     | Nota                                                                                                                                                                  |
 | ------------------ | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `--ab-disabled-bg` | `#232c3d` |                                                                                                                                                                       |
-| `--ab-disabled-fg` | `#6b7689` | 3,1:1. No necesita pasar AA —declara que no se puede usar— pero sí leerse                                                                                             |
+| `--ab-disabled-fg` | `#6b7689` | **3,6:1** —el documento decía 3,1 y la prueba lo corrigió—. No necesita pasar AA —declara que no se puede usar— pero sí leerse                                        |
 | `--ab-canvas-ink`  | `#1b2a4a` | 11,5:1 sobre el cielo `#dfe8f5`. Lo que se dibuja **sobre** el modelo: la línea de una cota, la etiqueta de un eje. No es chrome, así que no vive en la escala oscura |
 
 El cielo del lienzo (`#dfe8f5`) y la paleta ACI de los planos **no se tocan**: son la
@@ -190,6 +190,32 @@ son 56 × 38 y los iconos de lista 14 px dentro de filas de 26.
 cerrar modelo, borrar cota y borrar vista no existe para el teclado, no existe en táctil, y
 aparece bajo el dedo justo cuando el cursor pasa por encima. Van siempre visibles, apagadas,
 y se encienden al acercarse.
+
+## Dónde vive esto, y quién lo comprueba
+
+**Este documento es la tabla normativa; el código es su implementación.** Hoy la implementa un solo
+archivo: [`apps/web/src/index.css`](../apps/web/src/index.css), con los `--color-*` que Tailwind
+convierte en utilidades. Los nombres cambian en dos sitios y solo por legibilidad de la utilidad:
+
+| Aquí                  | En el visor        | Por qué                                    |
+| --------------------- | ------------------ | ------------------------------------------ |
+| `--ab-text` `-2` `-3` | `--color-fg` …     | `text-text-2` no se puede leer             |
+| `--ab-border`         | `--color-borde`    | `border-border` tampoco                    |
+| `--ab-disabled-*`     | `--color-apagado*` | Igual                                      |
+| `--ab-canvas-ink`     | `--color-ink`      | Ya existía con ese nombre, y con ese valor |
+
+**El portal (`app.css`) todavía no.** Converge cuando estos tokens estén vistos en pantalla, así
+que de momento los mismos hexadecimales viven en dos archivos: es una duplicación con fecha de
+caducidad, no una decisión.
+
+**Y los ratios de este documento son una prueba, no una afirmación.**
+`packages/bim-core/src/color/contraste.ts` implementa la fórmula de WCAG 2.1 —con los vectores
+conocidos de la norma fijándola— y `sistemaDeDiseno.test.ts` **lee `index.css`** y comprueba cada
+par: los tres niveles de texto y los cuatro de estado sobre las cuatro superficies, el blanco sobre
+los tres rellenos de acción, el contorno de campo contra 3:1, y que la marca **siga sin pasar AA**,
+que es la razón de que exista un acento aparte. Comprueba además que el visor no pueda volver a
+escribir `white/NN`, ni un color de la paleta de Tailwind haciendo de estado, ni un `font-size` en
+porcentaje. Bajar un color por debajo del mínimo **falla el gate**.
 
 ## Referencia visual
 

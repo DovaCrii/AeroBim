@@ -1,24 +1,147 @@
 @import "tailwindcss";
 
+/*
+ * **Los tokens del visor. `F9.1`.**
+ *
+ * La tabla normativa —qué color es cada papel, y con qué ratio de contraste— vive en
+ * `docs/DESIGN_SYSTEM.md`. Este archivo es su **implementación** para el visor, y de momento la
+ * única: el portal (`services/api/static/css/app.css`) sigue con sus propios `--ab-*` hasta que
+ * estos se prueben en pantalla. Mientras eso pase, los mismos hexadecimales viven en dos archivos,
+ * y es una duplicación con fecha de caducidad, no una decisión.
+ *
+ * **Van literales y no como `var(--ab-*)`.** El modificador de opacidad de Tailwind —`bg-brand/25`,
+ * que usa el botón encendido de la cinta— necesita un color resuelto dentro de `@theme`; con una
+ * indirección por `var()` queda a merced de `color-mix()`. Literal es aburrido y funciona.
+ *
+ * **Y los ratios no se copian a mano: se comprueban.** `packages/bim-core/src/color/contraste.ts`
+ * implementa la fórmula de WCAG 2.1 y su prueba **lee este archivo**, así que bajar un color por
+ * debajo del mínimo falla el gate en vez de descubrirse en una auditoría.
+ */
 @theme {
-  /* Paleta de la familia. El violeta es el color propio de AeroBim. */
-  --color-brand: #9b5de5;
-  --color-ink: #1b2a4a;
-  --color-shell: #161f2d;
+  /*
+   * ── Superficies ────────────────────────────────────────────────────────────────
+   *
+   * Opacas y con nombre, en vez de blanco translúcido sobre lo que haya debajo. Entre un plano y
+   * el siguiente hay 1,1:1, y es deliberado: **los planos se separan con borde y sombra, no con
+   * luminancia**, porque no compiten por atención — solo se ordenan.
+   */
+  --color-shell: #101725; /* el hueco alrededor del lienzo */
+  --color-surface: #18202f; /* paneles, barras, tarjetas */
+  --color-surface-2: #202939; /* elevado: popover, fila activa, cabecera */
+  --color-surface-3: #2a3446; /* hover y campos de texto */
+  --color-borde: #2e3a4e; /* separa bloques del mismo plano */
+  --color-borde-campo: #71809c; /* contorno de campo — 4,1:1, lo pide WCAG 1.4.11 */
+  --color-track: #2a3446; /* el fondo de una barra de avance */
 
   /*
-   * Los dos tamaños de letra pequeña, **con nombre y en un solo sitio**.
+   * ── Texto ──────────────────────────────────────────────────────────────────────
    *
-   * Había cuarenta y nueve tamaños escritos en píxeles a lo largo de la interfaz —`text-[11px]`
-   * treinta y una veces, `text-[10px]` quince— y un valor en píxeles **queda fuera de la escala**:
-   * no crece con el tamaño base ni con la preferencia de letra del navegador. Así que los
-   * rótulos pequeños eran los únicos que no respondían a nada.
+   * Tres niveles, y **el más apagado sigue pasando AA**. Sustituyen a los veinte pasos de
+   * `white/NN`, donde el jerárquico se conseguía bajando la opacidad hasta que el texto dejaba de
+   * leerse: `text-white/30` daba 2,67:1 sobre el fondo de un panel.
    *
-   * Ahora son dos tokens. Ajustar el tamaño de los rótulos es cambiar un número acá, y no
-   * cuarenta y nueve.
+   * Se llaman `fg` y no `text` porque la utilidad de Tailwind saldría `text-text-2`, que no se
+   * puede leer. Es un nombre de utilidad; en el sistema son `--ab-text`, `-2` y `-3`.
    */
-  --text-nota: 0.62rem; /* la nota al pie de un panel, el pie de una sección */
-  --text-micro: 0.56rem; /* el rótulo de un grupo de la cinta, en mayúsculas */
+  --color-fg: #eef2f8; /* 14,5:1 sobre --color-surface */
+  --color-fg-2: #b6c1d2; /* 9,0:1 */
+  --color-fg-3: #93a0b4; /* 6,2:1 — el más apagado que se admite */
+
+  /*
+   * ── La marca deja de ser el color de acción ────────────────────────────────────
+   *
+   * **El violeta de marca pinta; el violeta de acción se lee.** Es la regla que `app.css` ya tenía
+   * escrita y que el visor nunca aplicó, y acá hay una razón propia: `SELECTION_COLOR` en
+   * `packages/viewer/src/index.ts` es este mismo `0x9b5de5`, así que con el chrome en violeta el
+   * elemento seleccionado compite con los rótulos que lo rodean. Es el mismo razonamiento que ya
+   * llevó el marcador de ajuste al amarillo.
+   *
+   * `--color-brand` solo rellena: el logo, una barra de acento, un icono decorativo, la selección
+   * en la escena. **Nunca texto** — da 3,96:1, y eso no es una preferencia.
+   */
+  --color-brand: #9b5de5;
+  --color-action: #7a3fce; /* relleno del botón primario — blanco encima, 6,1:1 */
+  --color-action-hover: #8b52dd; /* blanco encima, 4,8:1 */
+  --color-action-press: #6b34bd;
+  --color-accent: #c3a6f0; /* 7,8:1 — enlaces, iconos activos, y el anillo de foco */
+  --color-accent-hover: #d5c2f6;
+
+  /*
+   * ── Estado, y siempre con texto al lado ────────────────────────────────────────
+   *
+   * Cuatro, en vez de los `red-400`, `rose-300`, `amber-200/80`, `amber-300` y `emerald-300` de
+   * Tailwind que convivían sin criterio. **Nunca solos**: uno de cada doce hombres no distingue
+   * rojo de verde, que es el argumento que la píldora del portal ya tiene escrito.
+   */
+  --color-ok: #5fd3ae; /* 8,9:1 */
+  --color-warn: #f0b45e; /* 8,9:1 */
+  --color-danger: #f08a97; /* 6,8:1 */
+
+  /*
+   * ── Deshabilitado, y la tinta del lienzo ───────────────────────────────────────
+   */
+  --color-apagado: #232c3d; /* fondo de un control deshabilitado */
+  --color-apagado-fg: #6b7689; /* 3,6:1 — no pasa AA a propósito, pero se lee */
+
+  /*
+   * **`--color-ink` hacía dos trabajos y ahora hace uno.** Era el fondo de los paneles
+   * (`bg-ink/40`, `bg-ink/50`) **y** el azul de la familia; el sistema de diseño lo quiere como
+   * la tinta que se dibuja **sobre** el lienzo —la línea de una cota, la burbuja de un eje—, que
+   * no es chrome y por eso no vive en la escala oscura. Los paneles pasaron a `bg-surface`, que
+   * es lo que son.
+   */
+  --color-ink: #1b2a4a; /* 11,5:1 sobre el cielo del lienzo #dfe8f5 */
+
+  /*
+   * ── La escala tipográfica. `F9.2`. ─────────────────────────────────────────────
+   *
+   * **Había un `html { font-size: 110% }` y dos tokens por debajo de 11 px.** El zoom de la raíz
+   * compensaba una escala mal calibrada: `--text-micro` medía 9,9 px reales y `--text-nota` 10,9.
+   *
+   * Ahora la raíz vuelve a los 16 px de fábrica —o sea que respeta a quien haya cambiado el tamaño
+   * de letra de su navegador, que era la mitad buena de aquel 110%— y la escala se **mapea** en vez
+   * de borrarse, con los píxeles del sistema de diseño:
+   *
+   * | Token          | Antes (raíz 17,6) | Ahora (raíz 16)    |
+   * | -------------- | ----------------- | ------------------ |
+   * | `--text-micro` | 0,56rem = 9,9 px  | 0,6875rem = **11** |
+   * | `--text-nota`  | 0,62rem = 10,9    | 0,75rem = **12**   |
+   * | `--text-xs`    | 0,75rem = 13,2    | 0,8125rem = **13** |
+   * | `--text-sm`    | 0,875rem = 15,4   | 0,9375rem = **15** |
+   * | `--text-base`  | 1rem = 17,6       | 1,0625rem = **17** |
+   *
+   * **Ningún tamaño baja más de medio píxel** y los dos que estaban por debajo del suelo suben.
+   * Los nombres `nota` y `micro` se quedan: ya son semánticos y renombrarlos serían noventa y
+   * siete ediciones que no cambian un píxel.
+   */
+  --text-micro: 0.6875rem; /* 11 px — rótulo de grupo, en mayúsculas con tracking */
+  --text-nota: 0.75rem; /* 12 px — la nota al pie de un panel o de una sección */
+  --text-xs: 0.8125rem; /* 13 px — cuerpo de panel, filas de lista, tabla de psets */
+  --text-sm: 0.9375rem; /* 15 px — cualquier texto que se lea seguido */
+  --text-base: 1.0625rem; /* 17 px — título de tarjeta y de sección */
+
+  /*
+   * **Y la densidad no se paga por bajar la raíz.**
+   *
+   * Toda la escala de espaciado de Tailwind es un múltiplo de esta unidad, y está en `rem`: con la
+   * raíz en 110% medía 4,4 px, y volver a 16 la habría dejado en 4 — o sea la interfaz entera
+   * apretada un 10%, con la letra casi igual. Eso deshace la densidad que el usuario fijó midiendo
+   * en su pantalla: al tamaño de fábrica dijo que «pedía zoom para leerse», y al 120% que «se ve
+   * muy cerca».
+   *
+   * Subiendo la unidad un 10% sigue midiendo los mismos 4,4 px, así que padding, altos y huecos
+   * quedan **idénticos** a los de antes de esta pasada. Las dos cosas a la vez, no una a costa de
+   * la otra.
+   */
+  --spacing: 0.275rem;
+
+  /*
+   * ── Cifras y códigos ───────────────────────────────────────────────────────────
+   *
+   * Cotas, áreas, GUID y códigos ISO 19650 se leen en columna, así que van con cifras de ancho
+   * fijo. Sin `tabular-nums` un 1 ocupa menos que un 8 y la columna de una tabla de psets baila.
+   */
+  --font-mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
 }
 
 html,
@@ -28,33 +151,28 @@ body,
   margin: 0;
 }
 
-/*
- * **La interfaz arranca un 10% más grande, y el número salió de dos mediciones del usuario.**
- *
- * Con el tamaño de fábrica —16 px— dijo que «se determina mejor» al 110 % o 120 %, y estaba
- * trabajando al 125 %: o sea que el diseño pedía ese zoom para leerse, y eso es un defecto del
- * tamaño, no una preferencia de quien mira. Se probó al **120 %** y la respuesta fue que «se ve muy
- * cerca». Así que 110 %, que es el punto intermedio entre las dos observaciones y el extremo bajo
- * del rango que él mismo nombró.
- *
- * Se hace con el tamaño de la raíz y no tocando clase por clase porque **toda la escala de
- * Tailwind está en `rem`**: los tamaños de letra, los espaciados, los altos y los huecos crecen
- * juntos con esta línea. Subir solo la letra habría dejado el texto apretado contra el mismo
- * padding.
- *
- * Y va en porcentaje y no en píxeles a propósito: así sigue respetando a quien haya cambiado el
- * tamaño de letra de su navegador, que es justamente quien más lo necesita.
- */
-html {
-  font-size: 110%;
-}
-
 body {
   background-color: var(--color-shell);
-  color: #f8f9fa;
-  font-family:
-    system-ui,
-    -apple-system,
-    "Segoe UI",
-    sans-serif;
+  color: var(--color-fg);
+  font-family: system-ui, "Segoe UI", sans-serif;
+}
+
+/*
+ * **El anillo de foco, y es global. `F9.3`.**
+ *
+ * `apps/web/src` tenía **cero** coincidencias de `focus`: quien navega con el tabulador no sabía
+ * nunca dónde estaba. Es la misma regla que el portal ya tiene en `app.css`, con el color de
+ * acento —7,8:1 sobre la superficie de un panel— para que el anillo se vea sobre cualquier plano.
+ *
+ * Va en `:focus-visible` y no en `:focus` a propósito: así no aparece al hacer clic con el ratón,
+ * que es lo que hace que la gente lo quite.
+ */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Las cifras en columna, donde toque. */
+.tabular {
+  font-variant-numeric: tabular-nums;
 }

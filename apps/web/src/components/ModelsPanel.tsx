@@ -95,12 +95,12 @@ function ModelRow({
   const sinCargar = loaded.metrics.missingClasses.reduce((suma, clase) => suma + clase.count, 0);
 
   return (
-    <article className="group rounded-md hover:bg-white/5">
+    <article className="group rounded-md hover:bg-surface-2">
       <div className="flex items-center gap-1 px-1 py-1">
         <button
           type="button"
           onClick={() => onToggleVisible(loaded.id, !visible)}
-          className={visible ? "text-brand" : "text-white/30 hover:text-white/60"}
+          className={visible ? "text-accent" : "text-fg-3 hover:text-fg-2"}
           title={visible ? "Apagar este modelo" : "Encender este modelo"}
           aria-label={visible ? "Apagar este modelo" : "Encender este modelo"}
           aria-pressed={visible}
@@ -113,7 +113,7 @@ function ModelRow({
           onClick={() => setAbierto((actual) => !actual)}
           className={[
             "min-w-0 flex-1 truncate py-0.5 text-left text-sm",
-            visible ? "text-white/90" : "text-white/40 line-through",
+            visible ? "text-fg" : "text-fg-3 line-through",
           ].join(" ")}
           title={`${loaded.name} — clic para ver lo que costó abrirlo`}
           aria-expanded={abierto}
@@ -125,7 +125,7 @@ function ModelRow({
           type="button"
           onClick={() => onMove(-1)}
           disabled={first}
-          className="shrink-0 text-white/30 hover:text-white disabled:invisible"
+          className="shrink-0 text-fg-3 hover:text-fg disabled:invisible"
           title="Subir en la lista"
           aria-label="Subir en la lista"
         >
@@ -135,7 +135,7 @@ function ModelRow({
           type="button"
           onClick={() => onMove(1)}
           disabled={last}
-          className="shrink-0 text-white/30 hover:text-white disabled:invisible"
+          className="shrink-0 text-fg-3 hover:text-fg disabled:invisible"
           title="Bajar en la lista"
           aria-label="Bajar en la lista"
         >
@@ -146,14 +146,14 @@ function ModelRow({
             del panel y estaba escondido tras un clic que nadie tenía por qué dar. */}
         {sinCargar > 0 && (
           <span
-            className="shrink-0 rounded bg-amber-500/20 px-1 text-micro text-amber-300 tabular-nums"
+            className="shrink-0 rounded bg-warn/20 px-1 text-micro text-warn tabular-nums"
             title={`${sinCargar} elementos que el archivo declara y no se cargaron. Despliega la fila para ver de qué clases.`}
           >
             ⚠ {sinCargar}
           </span>
         )}
 
-        <span className="shrink-0 text-white/30" aria-hidden="true">
+        <span className="shrink-0 text-fg-3" aria-hidden="true">
           {abierto ? (
             <IconChevronDown className="h-3.5 w-3.5" />
           ) : (
@@ -166,7 +166,7 @@ function ModelRow({
           onClick={() => onClose(loaded.id)}
           // Solo aparece al pasar por encima: cerrar cuesta volver a convertir el archivo, y no
           // debe estar a un clic de distancia junto a los botones de uso diario.
-          className="shrink-0 text-white/30 opacity-0 group-hover:opacity-100 hover:text-red-400"
+          className="shrink-0 text-fg-3 opacity-0 group-hover:opacity-100 hover:text-danger"
           title={`Cerrar ${loaded.name} y liberar su memoria`}
           aria-label={`Cerrar ${loaded.name}`}
         >
@@ -237,20 +237,20 @@ function FaltaGeometria({
   const total = clases.reduce((suma, clase) => suma + clase.count, 0);
 
   return (
-    <section className="mx-2 mb-2 rounded-md border border-amber-500/30 bg-amber-500/5 p-2">
-      <h4 className="text-nota font-semibold text-amber-300/90">
+    <section className="mx-2 mb-2 rounded-md border border-warn/40 bg-warn/10 p-2">
+      <h4 className="text-nota font-semibold text-warn">
         {titulo}: {total.toLocaleString("es-CL")}
       </h4>
-      <p className="mt-0.5 mb-1 text-nota leading-snug text-white/45">{explicacion}</p>
+      <p className="mt-0.5 mb-1 text-nota leading-snug text-fg-3">{explicacion}</p>
       <ul className="space-y-0.5 text-nota">
         {clases.slice(0, 8).map((clase) => (
           <li key={clase.ifcClass} className="flex justify-between gap-2">
-            <span className="min-w-0 truncate font-mono text-white/70">{clase.ifcClass}</span>
+            <span className="min-w-0 truncate font-mono text-fg-2">{clase.ifcClass}</span>
             {/* Las tres cifras cuentan historias distintas: cargados en cero es una clase que el
                 conversor no procesa; a medias es una clase que sí procesa y en la que algunos
                 elementos fallaron, que es el caso difícil de ver. */}
             <span
-              className="shrink-0 tabular-nums text-white/45"
+              className="shrink-0 tabular-nums text-fg-3"
               title={`${clase.loaded} de ${clase.inFile} cargados`}
             >
               {clase.loaded > 0 ? `${clase.count} de ${clase.inFile}` : clase.count}
@@ -259,7 +259,7 @@ function FaltaGeometria({
         ))}
       </ul>
       {clases.length > 8 && (
-        <p className="mt-1 text-nota text-white/35">y {clases.length - 8} clases más</p>
+        <p className="mt-1 text-nota text-fg-3">y {clases.length - 8} clases más</p>
       )}
     </section>
   );
@@ -268,8 +268,8 @@ function FaltaGeometria({
 function Row({ label, value }: { readonly label: string; readonly value: string }) {
   return (
     <div className="flex justify-between gap-2">
-      <dt className="text-white/50">{label}</dt>
-      <dd className="text-right font-mono text-white/90">{value}</dd>
+      <dt className="text-fg-2">{label}</dt>
+      <dd className="text-right font-mono text-fg">{value}</dd>
     </div>
   );
 }

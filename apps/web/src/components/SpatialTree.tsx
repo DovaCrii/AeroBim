@@ -89,16 +89,15 @@ function Node({
   return (
     <div>
       <div
-        className="group flex items-center gap-1 pr-2 text-xs hover:bg-white/5"
+        className="group flex items-center gap-1 pr-2 text-xs hover:bg-surface-2"
         style={{ paddingLeft: `${depth * 0.75 + 0.5}rem` }}
       >
         <button
           type="button"
           onClick={() => setOpen((actual) => !actual)}
-          className={[
-            "w-4 shrink-0 text-white/40",
-            tieneHijos ? "hover:text-white" : "invisible",
-          ].join(" ")}
+          className={["w-4 shrink-0 text-fg-3", tieneHijos ? "hover:text-fg" : "invisible"].join(
+            " ",
+          )}
           aria-label={open ? "Plegar" : "Desplegar"}
         >
           {open ? "▾" : "▸"}
@@ -107,24 +106,22 @@ function Node({
         <button
           type="button"
           onClick={() => onIsolate(modelId, node.localIds)}
-          className="min-w-0 flex-1 truncate py-1 text-left text-white/85 hover:text-white"
+          className="min-w-0 flex-1 truncate py-1 text-left text-fg-2 hover:text-fg"
           title={`${node.label} — clic para aislar`}
         >
           {node.label}
         </button>
 
-        {node.count > 0 && (
-          <span className="shrink-0 text-white/30 tabular-nums">{node.count}</span>
-        )}
+        {node.count > 0 && <span className="shrink-0 text-fg-3 tabular-nums">{node.count}</span>}
 
         <button
           type="button"
           onClick={() => onToggleVisible(node, modelId, !visible)}
           className={[
-            "shrink-0 hover:text-white",
+            "shrink-0 hover:text-fg",
             // El icono de lo oculto queda siempre a la vista; el de lo visible solo al pasar
             // por encima, para no llenar el árbol de adornos.
-            visible ? "text-white/30 opacity-0 group-hover:opacity-100" : "text-brand",
+            visible ? "text-fg-3 opacity-0 group-hover:opacity-100" : "text-accent",
           ].join(" ")}
           title={visible ? "Ocultar" : "Mostrar"}
           aria-label={visible ? "Ocultar" : "Mostrar"}
@@ -151,7 +148,7 @@ function Node({
             <button
               type="button"
               onClick={() => setTodosLosHijos(true)}
-              className="py-1 text-xs text-white/40 italic hover:text-white/80"
+              className="py-1 text-xs text-fg-3 italic hover:text-fg"
               style={{ paddingLeft: `${(depth + 1) * 0.75 + 1.75}rem` }}
             >
               ver los {restantes} elementos restantes

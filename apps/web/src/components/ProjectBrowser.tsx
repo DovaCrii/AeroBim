@@ -282,12 +282,12 @@ function Vistas({
           onChange={(evento) => setNombre(evento.target.value)}
           placeholder="Nombre de la vista"
           disabled={!puedeGuardar}
-          className="min-w-0 flex-1 rounded border border-white/15 bg-black/20 px-2 py-1 text-xs text-white/90 placeholder:text-white/30 disabled:opacity-40"
+          className="min-w-0 flex-1 rounded border border-borde bg-surface-3 px-2 py-1 text-xs text-fg placeholder:text-fg-3 disabled:opacity-40"
         />
         <button
           type="submit"
           disabled={!puedeGuardar || nombre.trim() === ""}
-          className="shrink-0 rounded bg-brand px-2 py-1 text-xs font-medium text-white hover:opacity-90 disabled:bg-white/10 disabled:text-white/30"
+          className="shrink-0 rounded bg-action px-2 py-1 text-xs font-medium text-fg hover:bg-action-hover disabled:bg-apagado disabled:text-apagado-fg"
           title={
             puedeGuardar
               ? "Guarda la cámara, lo que está apagado y los cortes puestos"
@@ -299,7 +299,7 @@ function Vistas({
       </form>
 
       {vistas.length === 0 ? (
-        <p className="px-1 pt-2 text-nota leading-snug text-white/35">
+        <p className="px-1 pt-2 text-nota leading-snug text-fg-3">
           Ninguna todavía. Una vista guarda la cámara, lo que está apagado y los cortes, y vuelve
           con un clic.
         </p>
@@ -308,15 +308,15 @@ function Vistas({
           {vistas.map((vista) => (
             <li
               key={vista.id}
-              className="group flex items-center gap-2 rounded-md px-1 py-1 hover:bg-white/5"
+              className="group flex items-center gap-2 rounded-md px-1 py-1 hover:bg-surface-2"
             >
-              <span className="shrink-0 text-white/40">
+              <span className="shrink-0 text-fg-3">
                 <IconViewIso className="h-4 w-4" />
               </span>
               <button
                 type="button"
                 onClick={() => onAplicar(vista)}
-                className="min-w-0 flex-1 truncate text-left text-xs text-white/85 hover:text-white"
+                className="min-w-0 flex-1 truncate text-left text-xs text-fg-2 hover:text-fg"
                 title={`Volver a "${vista.name}" — guardada el ${new Date(vista.savedAt).toLocaleString("es-CL")}${
                   vista.sections.length > 0 ? ` · ${vista.sections.length} corte(s)` : ""
                 }`}
@@ -326,7 +326,7 @@ function Vistas({
               <button
                 type="button"
                 onClick={() => onBorrar(vista.id)}
-                className="shrink-0 text-white/30 opacity-0 group-hover:opacity-100 hover:text-red-400"
+                className="shrink-0 text-fg-3 opacity-0 group-hover:opacity-100 hover:text-danger"
                 title="Borrar esta vista"
                 aria-label="Borrar esta vista"
               >
@@ -337,9 +337,9 @@ function Vistas({
         </ul>
       )}
 
-      <p className="px-1 pt-2 text-nota leading-snug text-white/30">
+      <p className="px-1 pt-2 text-nota leading-snug text-fg-3">
         Se guardan en este navegador y no salen del equipo. Para pasarle una a alguien, usa{" "}
-        <span className="text-white/45">Vistas del proyecto</span>.
+        <span className="text-fg-3">Vistas del proyecto</span>.
       </p>
     </div>
   );
@@ -380,7 +380,7 @@ function Seccion({
       // como se comportaban todas antes de poder arrastrarlas.
       style={abierta && alto != null ? { height: alto, flex: "none" } : undefined}
       className={[
-        "flex min-h-0 flex-col border-b border-white/10",
+        "flex min-h-0 flex-col border-b border-borde",
         abierta && alto == null ? "flex-1" : "shrink-0",
       ].join(" ")}
     >
@@ -388,16 +388,16 @@ function Seccion({
         type="button"
         onClick={onAlternar}
         aria-expanded={abierta}
-        className="flex shrink-0 items-center gap-1.5 px-2 py-1.5 text-left hover:bg-white/5"
+        className="flex shrink-0 items-center gap-1.5 px-2 py-1.5 text-left hover:bg-surface-2"
       >
-        <span className="text-white/40">
+        <span className="text-fg-3">
           {abierta ? (
             <IconChevronDown className="h-3.5 w-3.5" />
           ) : (
             <IconChevronRight className="h-3.5 w-3.5" />
           )}
         </span>
-        <h2 className="text-nota font-semibold tracking-wide text-white/60 uppercase">{titulo}</h2>
+        <h2 className="text-nota font-semibold tracking-wide text-fg-2 uppercase">{titulo}</h2>
       </button>
 
       {abierta && <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>}
@@ -440,11 +440,11 @@ function CotaEnLista({
     );
 
   return (
-    <li className="group flex items-center gap-2 rounded-md px-1.5 py-1 hover:bg-white/5">
+    <li className="group flex items-center gap-2 rounded-md px-1.5 py-1 hover:bg-surface-2">
       <button
         type="button"
         onClick={() => onToggle(cota.id, !cota.visible)}
-        className={cota.visible ? "text-brand" : "text-white/30 hover:text-white/60"}
+        className={cota.visible ? "text-accent" : "text-fg-3 hover:text-fg-2"}
         title={cota.visible ? "Apagar esta medición" : "Encender esta medición"}
         aria-label={cota.visible ? "Apagar esta medición" : "Encender esta medición"}
         aria-pressed={cota.visible}
@@ -452,12 +452,12 @@ function CotaEnLista({
         {cota.visible ? <IconEye className="h-4 w-4" /> : <IconEyeOff className="h-4 w-4" />}
       </button>
 
-      <span className={cota.visible ? "text-white/40" : "text-white/20"}>{icono}</span>
+      <span className={cota.visible ? "text-fg-3" : "text-apagado-fg"}>{icono}</span>
 
       <span
         className={[
           "min-w-0 flex-1 truncate font-mono text-xs",
-          cota.visible ? "text-white/85" : "text-white/35 line-through",
+          cota.visible ? "text-fg" : "text-fg-3 line-through",
         ].join(" ")}
       >
         {cota.label}
@@ -466,7 +466,7 @@ function CotaEnLista({
       <button
         type="button"
         onClick={() => onDelete(cota.id)}
-        className="text-white/30 opacity-0 group-hover:opacity-100 hover:text-red-400"
+        className="text-fg-3 opacity-0 group-hover:opacity-100 hover:text-danger"
         title="Borrar esta medición"
         aria-label="Borrar esta medición"
       >

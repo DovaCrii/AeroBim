@@ -15,6 +15,17 @@ export {
 } from "./identity/ifcGuid.js";
 
 export {
+  AA_NO_TEXTO,
+  AA_TEXTO,
+  contrastRatio,
+  parseHex,
+  pasaAA,
+  relativeLuminance,
+  type Hex,
+  type Rgb,
+} from "./color/contraste.js";
+
+export {
   angleAtDeg,
   distanceM,
   distancePartsM,

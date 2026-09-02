@@ -5,6 +5,29 @@ Este proyecto sigue [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Corregido — El visor tiene tokens, escala y foco (`F9.1`–`F9.3`, 2026-09-02)
+
+**AeroBim tenía dos sistemas de diseño y solo uno estaba hecho.** El portal lleva tokens con nombre,
+el ratio de contraste anotado al lado de cada color, tema claro y oscuro y `:focus-visible`; el visor
+tenía **cinco tokens, cero coincidencias de `focus` y veinte pasos de `white/NN`**. El color
+jerárquico salía de bajar la opacidad del blanco hasta que el texto dejaba de leerse:
+`text-white/30` daba **2,67:1** y era el rótulo de grupo de la cinta, a 9,9 px.
+
+Ahora hay dieciocho tokens con su papel, un anillo de foco global y la escala calibrada:
+**230 clases traducidas en 17 archivos, y ni un componente movido de sitio.** El botón `Abrir` daba
+4,13:1 con el violeta de marca —la acción principal de la aplicación no pasaba AA— y ahora usa un
+violeta de acción que sí: la marca **pinta**, el acento **se lee**.
+
+**Y el ratio dejó de ser una afirmación para ser una prueba.** La fórmula de WCAG 2.1 vive en
+`bim-core`, fijada con los vectores de la norma, y su prueba **lee `index.css`** en vez de una copia:
+si alguien baja un color por debajo del mínimo, falla el gate. De paso corrigió un número del propio
+documento de diseño.
+
+**Quitar el `font-size: 110%` no encogió la interfaz**, que era el riesgo: toda la escala de Tailwind
+está en `rem`, así que la raíz volvió a 16 px **y** la unidad de espaciado subió un 10%. La barra de
+estado mide exactamente los mismos 30,8 px; lo que creció uno o cuatro píxeles son las cajas cuyo
+alto lo pone el texto más pequeño, porque ese texto pasó de 9,9 px a 11.
+
 ### Añadido — La foto del hallazgo viaja en el BCF (`F4.10`, 2026-08-28)
 
 `F4.4` estaba marcada cerrada y le faltaba lo primero que se ve. Todo visor del mercado —Solibri,

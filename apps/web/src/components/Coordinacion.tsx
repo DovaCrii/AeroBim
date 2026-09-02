@@ -32,9 +32,9 @@ type Estado =
 
 /** Cuán fuerte se pinta cada prioridad. **El texto va siempre**; el color es refuerzo. */
 const TONO: Record<string, string> = {
-  alta: "text-rose-300",
-  media: "text-white/70",
-  baja: "text-white/45",
+  alta: "text-danger",
+  media: "text-fg-2",
+  baja: "text-fg-3",
 };
 
 /**
@@ -133,7 +133,7 @@ export function Coordinacion({
 
   if (estado.kind === "sin-proyecto") {
     return (
-      <p className="p-3 text-xs leading-snug text-white/35">
+      <p className="p-3 text-xs leading-snug text-fg-3">
         Abre un modelo del registro y acá aparecen las observaciones de su obra ancladas a
         elementos.
       </p>
@@ -141,32 +141,32 @@ export function Coordinacion({
   }
 
   if (estado.kind === "cargando") {
-    return <p className="p-3 text-xs text-white/35">Buscando observaciones…</p>;
+    return <p className="p-3 text-xs text-fg-3">Buscando observaciones…</p>;
   }
 
   if (estado.kind === "sin-permiso") {
     return (
-      <p className="p-3 text-xs leading-snug text-white/35">
+      <p className="p-3 text-xs leading-snug text-fg-3">
         Tu rol no puede ver las observaciones de esta obra.
       </p>
     );
   }
 
   if (estado.kind === "error") {
-    return <p className="p-3 text-xs leading-snug text-white/40">{estado.mensaje}</p>;
+    return <p className="p-3 text-xs leading-snug text-fg-3">{estado.mensaje}</p>;
   }
 
   if (estado.observaciones.length === 0) {
     return (
-      <div className="space-y-1.5 p-3 text-xs leading-snug text-white/40">
+      <div className="space-y-1.5 p-3 text-xs leading-snug text-fg-3">
         <p>Ninguna nota todavía sobre un elemento de esta obra.</p>
         {/* **El estado vacío enseña el gesto.** Decir solo «no hay nada» deja a alguien buscando
             cómo llenarlo, que es literalmente lo que pasó: «cómo puedo cargar una observación, no
             está claro eso» — con el botón a la vista. */}
-        <p className="text-white/55">
+        <p className="text-fg-2">
           {sePuedeAnotar ? (
             <>
-              Pulsa <strong className="text-brand">Dejar una nota</strong> en la ficha del elemento
+              Pulsa <strong className="text-accent">Dejar una nota</strong> en la ficha del elemento
               que tienes seleccionado, a la izquierda.
             </>
           ) : (
@@ -188,20 +188,20 @@ export function Coordinacion({
           <button
             type="button"
             onClick={() => void abrir(observacion)}
-            className="w-full rounded px-2 py-1.5 text-left hover:bg-white/10"
+            className="w-full rounded px-2 py-1.5 text-left hover:bg-surface-3"
             title={`${observacion.titulo} · ${observacion.guid}`}
           >
             <span className="flex items-baseline gap-1.5">
               {/* La prioridad con texto y no solo con color: uno de cada doce hombres no
                   distingue rojo de verde. */}
               <span
-                className={`shrink-0 text-micro font-semibold uppercase ${TONO[observacion.prioridad] ?? "text-white/60"}`}
+                className={`shrink-0 text-micro font-semibold uppercase ${TONO[observacion.prioridad] ?? "text-fg-2"}`}
               >
                 {observacion.prioridadTexto}
               </span>
               <span className="truncate">{observacion.titulo}</span>
             </span>
-            <span className="mt-0.5 block truncate text-white/40">
+            <span className="mt-0.5 block truncate text-fg-3">
               {observacion.responsable}
               {observacion.vence !== null && ` · vence ${observacion.vence}`}
               {observacion.vencida && " · ⚠ vencida"}
@@ -210,7 +210,7 @@ export function Coordinacion({
           </button>
 
           {noEncontrada === observacion.id && (
-            <p className="px-2 pb-1 text-nota leading-snug text-amber-200/80">
+            <p className="px-2 pb-1 text-nota leading-snug text-warn">
               Ese elemento no está en ningún modelo abierto. Suele ser de otra disciplina: abre su
               modelo y vuelve a intentarlo.
             </p>
@@ -222,7 +222,7 @@ export function Coordinacion({
             href={observacion.url}
             target="_blank"
             rel="noopener"
-            className="ml-2 text-nota text-white/35 underline hover:text-white/70"
+            className="ml-2 text-nota text-fg-3 underline hover:text-fg-2"
           >
             abrir su ficha
           </a>

@@ -206,11 +206,11 @@ export function Ribbon({
   readonly actions?: React.ReactNode;
 }) {
   return (
-    <div className="shrink-0 border-b border-white/10 bg-ink/40">
+    <div className="shrink-0 border-b border-borde bg-surface">
       {/* **Una sola fila arriba**: marca, pestañas y acciones. Antes eran dos —la cabecera de la
           aplicación y la fila de pestañas— y entre las dos se comían medio dedo de pantalla sin
           decir nada que no cupiera en una. */}
-      <div className="flex items-center gap-1 border-b border-white/10 px-2">
+      <div className="flex items-center gap-1 border-b border-borde px-2">
         {brand !== undefined && <div className="mr-2 flex shrink-0 items-center">{brand}</div>}
 
         {(["vista", "medir", "modelo"] as const).map((cual) => (
@@ -235,8 +235,8 @@ export function Ribbon({
             className={[
               "border-b-2 px-3 py-1.5 text-xs transition-colors",
               tab === cual && !collapsed
-                ? "border-brand text-white"
-                : "border-transparent text-white/50 hover:text-white/80",
+                ? "border-accent text-fg"
+                : "border-transparent text-fg-2 hover:text-fg",
             ].join(" ")}
           >
             {TITULOS_PESTAÑA[cual]}
@@ -266,7 +266,7 @@ export function Ribbon({
             aria-pressed={collapsed}
             title={collapsed ? "Desplegar la cinta" : "Plegar la cinta y ver el modelo entero"}
             aria-label={collapsed ? "Desplegar la cinta" : "Plegar la cinta"}
-            className="rounded px-1 py-1 text-white/40 hover:bg-white/10 hover:text-white"
+            className="rounded px-1 py-1 text-fg-3 hover:bg-surface-3 hover:text-fg"
           >
             {collapsed ? (
               <IconChevronDown className="h-3.5 w-3.5" />
@@ -700,10 +700,10 @@ function Grupo({
   return (
     <section
       aria-label={label}
-      className="flex shrink-0 flex-col border-r border-white/10 px-2 last:border-r-0"
+      className="flex shrink-0 flex-col border-r border-borde px-2 last:border-r-0"
     >
       <div className="flex flex-1 items-start gap-0.5">{children}</div>
-      <p className="text-center text-micro tracking-wide text-white/30 uppercase">{label}</p>
+      <p className="text-center text-micro tracking-wide text-fg-3 uppercase">{label}</p>
     </section>
   );
 }
@@ -761,16 +761,16 @@ function Boton({
         // queda en poco más de la mitad sin perder el nombre, que es lo que la hace legible.
         "flex w-14 flex-col items-center gap-px rounded px-0.5 py-1 transition-colors",
         disabled
-          ? "text-white/20"
+          ? "text-apagado-fg"
           : encendido
-            ? "bg-brand/25 text-white"
-            : "text-white/70 hover:bg-white/10 hover:text-white",
+            ? "bg-action/30 text-fg"
+            : "text-fg-2 hover:bg-surface-3 hover:text-fg",
       ].join(" ")}
     >
       <span
         className={[
           "[&>svg]:h-[18px] [&>svg]:w-[18px]",
-          encendido && !disabled ? "text-brand" : "",
+          encendido && !disabled ? "text-accent" : "",
         ].join(" ")}
       >
         {icon}
@@ -800,7 +800,7 @@ function PanelToggle({
       title={`${open ? "Ocultar" : "Mostrar"} el panel de ${label.toLowerCase()} (${side})`}
       className={[
         "rounded px-2 py-1 text-nota transition-colors",
-        open ? "bg-white/10 text-white/80" : "text-white/40 hover:bg-white/10 hover:text-white/70",
+        open ? "bg-surface-2 text-fg" : "text-fg-3 hover:bg-surface-3 hover:text-fg-2",
       ].join(" ")}
     >
       {label}

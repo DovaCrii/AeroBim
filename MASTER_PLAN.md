@@ -13,9 +13,10 @@
 
 ## Por dónde se empieza
 
-**Lo que sigue es la Fase 9: el sistema de diseño en el visor.** `F9.1` a `F9.3` — tokens,
-escala tipográfica y foco con los textos que no pasan AA. Son defectos, no rediseño, y ninguna
-mueve un componente de sitio.
+**Lo que sigue es la Fase 9, y va por su segunda mitad.** `F9.1` a `F9.3` están cerradas —el visor
+tiene tokens, escala calibrada y anillo de foco, con el contraste comprobado en el gate—; quedan
+`F9.4` (las acciones dejan de esconderse, toque a 44 px) y `F9.5` (estados vacíos, radio y
+elevación). Son defectos, no rediseño, y ninguna mueve un componente de sitio.
 
 > **Esta sección decía «lo que sigue es `F0.6`» hasta el 2026-09-02**, y `F0.6` se cerró el
 > 2026-08-19. La fuente única de verdad apuntaba a una tarea muerta durante dos semanas, mientras
@@ -34,7 +35,7 @@ Las **veintinueve** filas abiertas, de una vez. `⬜` no empezada · `❓` medid
 
 | Fase                    | Filas abiertas                                                                                                            |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| **9 — Diseño**          | `F9.1` `F9.2` `F9.3` `F9.4` `F9.5` ⬜ · `F9.6` ⛔                                                                         |
+| **9 — Diseño**          | `F9.4` acciones visibles y toque a 44 px · `F9.5` estados vacíos y elevación ⬜ · `F9.6` ⛔ _(1 a 3 cerradas)_            |
 | **4 — Coordinación**    | `F4.5` marcado sobre la vista ⬜ · `F4.6` importar BCF ⬜                                                                 |
 | **7 — Planos, salida**  | `F7.2` viewports y capas · `F7.3` acotado y anotaciones · `F7.5` exportar a PDF ⬜                                        |
 | **2 — Nubes de puntos** | `F2.1` a `F2.6` ⬜ — cargar, alinear, visualizar, medir contra el modelo, documentar el pipeline, y el gaussian splatting |
@@ -2371,14 +2372,14 @@ que abre un modelo desde su expediente.
 texto de la aplicación quede por debajo de AA, y que se pueda usar el visor entero con el
 teclado sabiendo dónde se está.
 
-| #      | Tarea                                                                                                 | Estado |
-| ------ | ----------------------------------------------------------------------------------------------------- | ------ |
-| `F9.1` | **Los tokens en `index.css`**: superficies, texto, marca/acción/acento y estado, con su ratio anotado | ⬜     |
-| `F9.2` | **La escala tipográfica** y fuera el `font-size: 110%`: suelo de 11 px, y la densidad intacta         | ⬜     |
-| `F9.3` | **`:focus-visible` global** y los **230** usos de `white/NN` reemplazados por papel con nombre        | ⬜     |
-| `F9.4` | **Las acciones dejan de esconderse**: fuera `opacity-0 group-hover`, áreas de toque a 44 px           | ⬜     |
-| `F9.5` | **Estados vacíos con puerta de entrada**, y escala de radio y elevación compartida con el portal      | ⬜     |
-| `F9.6` | **Reordenar el shell del visor** — _bloqueada: contradice `docs/UX.md`, la decide el usuario_         | ⛔     |
+| #      | Tarea                                                                                                 | Estado       |
+| ------ | ----------------------------------------------------------------------------------------------------- | ------------ |
+| `F9.1` | **Los tokens en `index.css`**: superficies, texto, marca/acción/acento y estado, con su ratio anotado | ✅ ver abajo |
+| `F9.2` | **La escala tipográfica** y fuera el `font-size: 110%`: suelo de 11 px, y la densidad intacta         | ✅ ver abajo |
+| `F9.3` | **`:focus-visible` global** y los **230** usos de `white/NN` reemplazados por papel con nombre        | ✅ ver abajo |
+| `F9.4` | **Las acciones dejan de esconderse**: fuera `opacity-0 group-hover`, áreas de toque a 44 px           | ⬜           |
+| `F9.5` | **Estados vacíos con puerta de entrada**, y escala de radio y elevación compartida con el portal      | ⬜           |
+| `F9.6` | **Reordenar el shell del visor** — _bloqueada: contradice `docs/UX.md`, la decide el usuario_         | ⛔           |
 
 **Oráculo:** ningún par texto/fondo de la aplicación por debajo de 4,5:1 medido con la fórmula
 de WCAG 2.1 (los rótulos deshabilitados quedan exentos, con suelo propio de 3:1); recorrer el
@@ -2413,6 +2414,55 @@ La salida no es elegir entre las dos cosas: **la raíz vuelve a 16 y `--spacing`
 (0,25rem → 0,275rem), así que la unidad de espaciado sigue midiendo los mismos 4,4 px. Con eso se
 cumplen las dos: el suelo de 11 px que pide el sistema, y la densidad que pidió quien lo usa. La
 tabla de mapeo está en la propia `F9.2`, más abajo.
+
+### `F9.1`–`F9.3` cerradas: el visor tiene tokens, escala y foco (2026-09-02)
+
+**Lo que había:** cinco tokens, ninguna regla de foco —**cero** coincidencias de `focus` en todo
+`apps/web/src`— y el color jerárquico conseguido bajando la opacidad del blanco hasta que el texto
+dejaba de leerse. `text-white/30` daba 2,67:1 y era el rótulo de grupo de la cinta, a 9,9 px.
+
+**Lo que hay:** dieciocho tokens con su papel, la escala calibrada sobre una raíz de 16 y un anillo
+de foco global. **230 clases traducidas en 17 archivos**, y ni un componente movido de sitio.
+
+**El oráculo dejó de ser una afirmación y pasó a ser una prueba**, que es lo que más aporta de esta
+pasada. `packages/bim-core/src/color/contraste.ts` implementa la fórmula de WCAG 2.1 —fijada con los
+vectores conocidos de la norma: 21:1 blanco sobre negro, y el 4,48 de `#777777` sobre blanco, que es
+el que distingue el umbral `0,03928` del `0,04045`— y su prueba hermana **lee `index.css`** en vez de
+una copia. Comprueba quince cosas, entre ellas:
+
+- los tres niveles de texto y los cuatro de estado, sobre las **cuatro** superficies, por encima de
+  4,5:1;
+- el blanco sobre los tres rellenos de acción —el botón `Abrir` daba **4,13:1** con el violeta de
+  marca, o sea que la acción principal de la aplicación no pasaba AA—;
+- que la marca **siga sin pasar** AA (3,96:1), porque es la razón de que exista un acento aparte y
+  no se puede «simplificar» volviendo atrás;
+- que el visor no pueda volver a escribir `white/NN`, ni un color de la paleta de Tailwind haciendo
+  de estado, ni un `font-size` en porcentaje.
+
+**Y corrigió un número del propio documento de diseño**: `--ab-disabled-fg` declaraba 3,1:1 y son
+**3,6:1**. Los otros nueve ratios de la tabla estaban exactos.
+
+**Comprobado en el navegador**, que es donde se ve si la compensación de densidad funcionó:
+
+| Medida                  | Antes (raíz 110%) | Ahora (raíz 16 + `--spacing` 0,275) |
+| ----------------------- | ----------------- | ----------------------------------- |
+| Barra de estado (`h-7`) | 30,8 px           | **30,8 px** — idéntica              |
+| Botón de la cinta       | 40,1 px           | 41,5 px                             |
+| Cabecera de sección     | 35,0 px           | 36,6 px                             |
+| Cinta desplegada        | 96,4 px           | 100 px                              |
+
+**El espaciado quedó idéntico** —la barra de estado no lleva texto que la estire y mide exactamente
+lo mismo— y lo que creció uno o cuatro píxeles son las cajas cuyo alto lo pone el texto más pequeño,
+porque `micro` subió de 9,9 a 11 px y `nota` de 10,9 a 12. **Eso es el arreglo, no una regresión**:
+era el texto que no se podía leer.
+
+El foco, recorrido con `Tab`: cuatro paradas seguidas con `:focus-visible` casando y el anillo en
+`2px solid rgb(195, 166, 240)` —que es `--color-accent` resuelto— con 2 px de separación.
+
+**Lo que sigue sin comprobarse es el aspecto.** El panel del agente no compone fotogramas y la
+captura se agota, así que esto está medido leyendo el DOM y los estilos calculados. Que los colores
+nuevos **gusten** pide la pantalla del usuario, y se suma a las pantallas que ya esperaban su
+mirada.
 
 ### `F9.2`: la escala se **mapea**, no se borra
 

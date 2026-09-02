@@ -49,9 +49,9 @@ export function PlansPanel({
 }) {
   if (plans.length === 0) {
     return (
-      <p className="p-3 text-xs leading-snug text-white/35">
-        Ninguno. Arrastra un <span className="text-white/60">DXF</span> para ponerlo bajo el modelo
-        y comparar el plano con lo modelado.
+      <p className="p-3 text-xs leading-snug text-fg-3">
+        Ninguno. Arrastra un <span className="text-fg-2">DXF</span> para ponerlo bajo el modelo y
+        comparar el plano con lo modelado.
       </p>
     );
   }
@@ -122,12 +122,12 @@ function PlanoEnLista({
   const altoM = plan.sizeUnits[1] * t.metresPerUnit;
 
   return (
-    <li className="mb-1 rounded-md border border-white/10">
+    <li className="mb-1 rounded-md border border-borde">
       <div className="flex items-center gap-1.5 px-1.5 py-1">
         <button
           type="button"
           onClick={() => onTogglePlan(plan.id, !visible)}
-          className={visible ? "text-brand" : "text-white/30 hover:text-white/60"}
+          className={visible ? "text-accent" : "text-fg-3 hover:text-fg-2"}
           title={visible ? "Apagar este plano" : "Encender este plano"}
           aria-label={visible ? "Apagar este plano" : "Encender este plano"}
           aria-pressed={visible}
@@ -138,7 +138,7 @@ function PlanoEnLista({
         <button
           type="button"
           onClick={() => setAbierto((a) => !a)}
-          className="min-w-0 flex-1 truncate text-left text-xs text-white/85 hover:text-white"
+          className="min-w-0 flex-1 truncate text-left text-xs text-fg-2 hover:text-fg"
           title={`${plan.name} — ${plan.sizeM[0].toFixed(1)} × ${plan.sizeM[1].toFixed(1)} m · ${plan.vertexCount.toLocaleString("es-CL")} puntos`}
         >
           {plan.name}
@@ -147,7 +147,7 @@ function PlanoEnLista({
         <button
           type="button"
           onClick={() => onFrame(plan.id)}
-          className="shrink-0 text-white/40 hover:text-white"
+          className="shrink-0 text-fg-3 hover:text-fg"
           title="Encuadrar el plano, en planta"
           aria-label="Encuadrar el plano"
         >
@@ -157,7 +157,7 @@ function PlanoEnLista({
         <button
           type="button"
           onClick={() => onClose(plan.id)}
-          className="shrink-0 text-white/30 hover:text-red-400"
+          className="shrink-0 text-fg-3 hover:text-danger"
           title="Cerrar este plano"
           aria-label="Cerrar este plano"
         >
@@ -166,17 +166,17 @@ function PlanoEnLista({
       </div>
 
       {abierto && (
-        <div className="space-y-2 border-t border-white/10 px-2 py-2">
+        <div className="space-y-2 border-t border-borde px-2 py-2">
           {/* La unidad va primero porque es la que descoloca todo lo demás: con el factor mal, el
               plano no calza por más que se lo desplace. El motivo de la elección se muestra tal
               cual — es una decisión discutible y quien mira el plano puede corregirla. */}
           <div>
             <div className="flex items-center gap-2">
-              <label className="w-16 shrink-0 text-nota text-white/45">Unidad</label>
+              <label className="w-16 shrink-0 text-nota text-fg-3">Unidad</label>
               <select
                 value={String(t.metresPerUnit)}
                 onChange={(e) => onTransform(plan.id, { metresPerUnit: Number(e.target.value) })}
-                className="min-w-0 flex-1 rounded border border-white/15 bg-black/20 px-1.5 py-0.5 text-nota text-white/85"
+                className="min-w-0 flex-1 rounded border border-borde bg-surface-3 px-1.5 py-0.5 text-nota text-fg"
               >
                 {UNIDADES.map((unidad) => (
                   <option key={unidad.metros} value={String(unidad.metros)}>
@@ -198,13 +198,13 @@ function PlanoEnLista({
                 decide si acertó: una planta mide decenas de metros, no decenas de kilómetros. Va
                 justo debajo del selector y cambia con él, así que elegir mal se ve al instante en
                 vez de descubrirse cuando el plano desaparece de la pantalla. */}
-            <p className="pt-1 text-nota text-white/70">
+            <p className="pt-1 text-nota text-fg-2">
               Con esta unidad el plano mide{" "}
-              <span className={tamanoCreible(anchoM, altoM) ? "text-brand" : "text-amber-400"}>
+              <span className={tamanoCreible(anchoM, altoM) ? "text-accent" : "text-warn"}>
                 {formato(anchoM)} × {formato(altoM)}
               </span>
               {!tamanoCreible(anchoM, altoM) && (
-                <span className="text-amber-400"> — eso no es tamaño de edificio</span>
+                <span className="text-warn"> — eso no es tamaño de edificio</span>
               )}
             </p>
 
@@ -212,13 +212,13 @@ function PlanoEnLista({
               <button
                 type="button"
                 onClick={() => onTransform(plan.id, { metresPerUnit: plan.units.metresPerUnit })}
-                className="mt-1 rounded border border-brand/40 px-1.5 py-0.5 text-micro text-brand hover:bg-brand/15"
+                className="mt-1 rounded border border-accent/40 px-1.5 py-0.5 text-micro text-accent hover:bg-accent/15"
               >
                 Volver a {plan.units.unitName}, la unidad que se dedujo
               </button>
             )}
 
-            <p className="pt-1 text-micro leading-snug text-white/30">{plan.units.reason}</p>
+            <p className="pt-1 text-micro leading-snug text-fg-3">{plan.units.reason}</p>
           </div>
 
           {/* **El tamaño del rótulo no puede salir del archivo.** Un plano anotativo escribe la
@@ -227,7 +227,7 @@ function PlanoEnLista({
               con cuatrocientos rótulos, a veces lo que hace falta es el dibujo limpio. */}
           <div>
             <div className="flex items-center gap-2">
-              <label className="w-16 shrink-0 text-nota text-white/45">Rótulos</label>
+              <label className="w-16 shrink-0 text-nota text-fg-3">Rótulos</label>
               <select
                 value={String(alturaRotulo)}
                 onChange={(e) => {
@@ -235,7 +235,7 @@ function PlanoEnLista({
                   setAlturaRotulo(alto);
                   onLabelHeight(plan.id, alto);
                 }}
-                className="min-w-0 flex-1 rounded border border-white/15 bg-black/20 px-1.5 py-0.5 text-nota text-white/85"
+                className="min-w-0 flex-1 rounded border border-borde bg-surface-3 px-1.5 py-0.5 text-nota text-fg"
               >
                 <option value="0">ocultos</option>
                 <option value={String(sugerido)}>
@@ -249,7 +249,7 @@ function PlanoEnLista({
             {plan.textCount > 0 && (
               // Con cientos de rótulos el plano arranca sin ellos: dibujados todos sobre una planta
               // completa no se lee ninguno. Se dice, para que nadie los dé por perdidos.
-              <p className="pt-1 text-micro leading-snug text-white/30">
+              <p className="pt-1 text-micro leading-snug text-fg-3">
                 {plan.textCount.toLocaleString("es-CL")} textos en el archivo
                 {plan.labelHeightM === 0 && " — apagados de entrada porque son muchos"}
               </p>
@@ -289,12 +289,12 @@ function PlanoEnLista({
             onChange={(v) => onTransform(plan.id, { rotationDeg: v })}
           />
 
-          <label className="flex items-center gap-2 text-nota text-white/60">
+          <label className="flex items-center gap-2 text-nota text-fg-2">
             <input
               type="checkbox"
               checked={t.mirrored}
               onChange={(e) => onTransform(plan.id, { mirrored: e.target.checked })}
-              className="accent-brand"
+              className="accent-action"
             />
             {/* Un plano espejado no se arregla girándolo, y pasa: hay exportaciones desde vistas
                 reflejadas. Sin esta casilla el ajuste entra en un bucle sin salida. */}
@@ -304,7 +304,7 @@ function PlanoEnLista({
           {/* **Calzar señalando, no escribiendo.** Los números de arriba son la red de seguridad;
               esto es el gesto: dos puntos del plano y sus dos equivalentes en el modelo, y el
               plano cae girado, escalado y en su sitio de una vez. */}
-          <div className="rounded border border-white/10 p-1.5">
+          <div className="rounded border border-borde p-1.5">
             <button
               type="button"
               onClick={() => onAlign(plan.id, ajustarEscala)}
@@ -312,18 +312,18 @@ function PlanoEnLista({
               className={[
                 "w-full rounded px-2 py-1 text-nota font-medium",
                 alineando
-                  ? "bg-brand/20 text-brand"
-                  : "bg-brand text-white hover:opacity-90 disabled:opacity-40",
+                  ? "bg-action/25 text-accent"
+                  : "bg-action text-fg hover:bg-action-hover disabled:opacity-40",
               ].join(" ")}
             >
               {alineando ? "Señalando puntos… (Esc para salir)" : "Calzar con 2 puntos"}
             </button>
-            <label className="mt-1 flex items-center gap-2 text-micro text-white/50">
+            <label className="mt-1 flex items-center gap-2 text-micro text-fg-2">
               <input
                 type="checkbox"
                 checked={ajustarEscala}
                 onChange={(e) => setAjustarEscala(e.target.checked)}
-                className="accent-brand"
+                className="accent-action"
               />
               Corregir también la escala con la distancia entre los dos puntos
             </label>
@@ -334,7 +334,7 @@ function PlanoEnLista({
             <button
               type="button"
               onClick={() => onSectionAtPlan(plan.id, t.elevationM + 1.2)}
-              className="mt-1 w-full rounded border border-white/15 px-2 py-1 text-micro text-white/70 hover:bg-white/10 hover:text-white"
+              className="mt-1 w-full rounded border border-borde px-2 py-1 text-micro text-fg-2 hover:bg-surface-3 hover:text-fg"
               title="Pone un corte horizontal 1,20 m sobre la cota del plano, que es donde corta un plano de planta"
             >
               Cortar el modelo a la altura del plano
@@ -342,7 +342,7 @@ function PlanoEnLista({
           </div>
 
           <div>
-            <p className="pb-1 text-micro tracking-wide text-white/35 uppercase">
+            <p className="pb-1 text-micro tracking-wide text-fg-3 uppercase">
               Capas ({plan.layers.length})
             </p>
             <ul>
@@ -353,7 +353,7 @@ function PlanoEnLista({
                     <button
                       type="button"
                       onClick={() => onToggleLayer(plan.id, capa.name, !encendida)}
-                      className={encendida ? "text-brand" : "text-white/25 hover:text-white/50"}
+                      className={encendida ? "text-accent" : "text-apagado-fg hover:text-fg-2"}
                       title={encendida ? "Apagar la capa" : "Encender la capa"}
                       aria-label={encendida ? "Apagar la capa" : "Encender la capa"}
                       aria-pressed={encendida}
@@ -374,13 +374,13 @@ function PlanoEnLista({
                     <span
                       className={[
                         "min-w-0 flex-1 truncate text-nota",
-                        encendida ? "text-white/80" : "text-white/30",
+                        encendida ? "text-fg" : "text-fg-3",
                       ].join(" ")}
                       title={`${capa.name} — ${capa.count} trazos`}
                     >
                       {capa.name}
                     </span>
-                    <span className="shrink-0 font-mono text-micro text-white/25">
+                    <span className="shrink-0 font-mono text-micro text-apagado-fg">
                       {capa.count}
                     </span>
                   </li>
@@ -390,7 +390,7 @@ function PlanoEnLista({
           </div>
 
           {sinDibujar.length > 0 && (
-            <p className="border-t border-white/10 pt-1.5 text-micro leading-snug text-white/30">
+            <p className="border-t border-borde pt-1.5 text-micro leading-snug text-fg-3">
               Sin dibujar:{" "}
               {sinDibujar.map(([tipo, n]) => `${tipo.toLowerCase()} (${n})`).join(", ")}. Son
               textos, rellenos y cotas del CAD: el plano se dibuja con su geometría de líneas.
@@ -448,7 +448,7 @@ function Numero({
 }) {
   return (
     <div className="flex items-center gap-2" title={ayuda}>
-      <label className="w-16 shrink-0 text-nota text-white/45">{etiqueta}</label>
+      <label className="w-16 shrink-0 text-nota text-fg-3">{etiqueta}</label>
       <input
         type="number"
         value={Number.isFinite(valor) ? Number(valor.toFixed(3)) : 0}
@@ -457,9 +457,9 @@ function Numero({
           const n = Number(e.target.value);
           if (Number.isFinite(n)) onChange(n);
         }}
-        className="min-w-0 flex-1 rounded border border-white/15 bg-black/20 px-1.5 py-0.5 font-mono text-nota text-white/85"
+        className="min-w-0 flex-1 rounded border border-borde bg-surface-3 px-1.5 py-0.5 font-mono text-nota text-fg"
       />
-      <span className="w-3 shrink-0 text-micro text-white/30">{sufijo}</span>
+      <span className="w-3 shrink-0 text-micro text-fg-3">{sufijo}</span>
     </div>
   );
 }

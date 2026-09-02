@@ -153,7 +153,7 @@ export function VistasCompartidas({
 
   if (estado.kind === "sin-proyecto") {
     return (
-      <p className="p-3 text-nota leading-snug text-white/35">
+      <p className="p-3 text-nota leading-snug text-fg-3">
         Este modelo se abrió de un archivo del disco. Las vistas se comparten dentro de una obra del
         registro.
       </p>
@@ -161,17 +161,15 @@ export function VistasCompartidas({
   }
 
   if (estado.kind === "cargando") {
-    return <p className="p-3 text-xs text-white/40">Consultando…</p>;
+    return <p className="p-3 text-xs text-fg-3">Consultando…</p>;
   }
 
   if (estado.kind === "sin-permiso") {
-    return (
-      <p className="p-3 text-nota text-white/40">Tu rol no puede ver las vistas del proyecto.</p>
-    );
+    return <p className="p-3 text-nota text-fg-3">Tu rol no puede ver las vistas del proyecto.</p>;
   }
 
   if (estado.kind === "error") {
-    return <p className="p-3 text-nota text-amber-200/80">{estado.mensaje}</p>;
+    return <p className="p-3 text-nota text-warn">{estado.mensaje}</p>;
   }
 
   return (
@@ -190,23 +188,23 @@ export function VistasCompartidas({
             onChange={(evento) => setNombre(evento.target.value)}
             placeholder="Nombre de la vista"
             maxLength={120}
-            className="min-w-0 flex-1 rounded border border-white/15 bg-black/20 px-2 py-1 text-xs text-white/90 placeholder:text-white/30"
+            className="min-w-0 flex-1 rounded border border-borde bg-surface-3 px-2 py-1 text-xs text-fg placeholder:text-fg-3"
           />
           <button
             type="submit"
             disabled={enviando || nombre.trim() === ""}
             title="Comparte lo que estás mirando ahora: la cámara, lo apagado y los cortes"
-            className="shrink-0 rounded bg-brand px-2 py-1 text-xs font-medium text-white hover:opacity-90 disabled:bg-white/10 disabled:text-white/30"
+            className="shrink-0 rounded bg-action px-2 py-1 text-xs font-medium text-fg hover:bg-action-hover disabled:bg-apagado disabled:text-apagado-fg"
           >
             {enviando ? "…" : "Compartir"}
           </button>
         </form>
       )}
 
-      {fallo !== null && <p className="px-1 pt-1.5 text-nota text-rose-300">{fallo}</p>}
+      {fallo !== null && <p className="px-1 pt-1.5 text-nota text-danger">{fallo}</p>}
 
       {estado.vistas.length === 0 ? (
-        <p className="px-1 pt-2 text-nota leading-snug text-white/35">
+        <p className="px-1 pt-2 text-nota leading-snug text-fg-3">
           Ninguna todavía. Una vista compartida la ve todo el proyecto: la cámara, lo apagado y los
           cortes, anclados al modelo por GUID.
         </p>
@@ -215,19 +213,19 @@ export function VistasCompartidas({
           {estado.vistas.map((fila) => (
             <li
               key={fila.id}
-              className="group flex items-center gap-2 rounded-md px-1 py-1 hover:bg-white/5"
+              className="group flex items-center gap-2 rounded-md px-1 py-1 hover:bg-surface-2"
             >
-              <span className="shrink-0 text-white/40">
+              <span className="shrink-0 text-fg-3">
                 <IconViewIso className="h-4 w-4" />
               </span>
               <button
                 type="button"
                 onClick={() => void onAplicar(fila.vista)}
-                className="min-w-0 flex-1 truncate text-left text-xs text-white/85 hover:text-white"
+                className="min-w-0 flex-1 truncate text-left text-xs text-fg-2 hover:text-fg"
                 title={`Ir a "${fila.nombre}" — compartida por ${fila.autor}`}
               >
                 {fila.nombre}
-                <span className="text-white/35"> · {fila.autor}</span>
+                <span className="text-fg-3"> · {fila.autor}</span>
               </button>
               {/* Solo quien la compartió la quita: es lo que impide que alguien borre la vista que
                   otro dejó preparada para una reunión. Lo contesta el servidor, no la interfaz. */}
@@ -235,7 +233,7 @@ export function VistasCompartidas({
                 <button
                   type="button"
                   onClick={() => void borrar(fila.id)}
-                  className="shrink-0 text-white/30 opacity-0 group-hover:opacity-100 hover:text-red-400"
+                  className="shrink-0 text-fg-3 opacity-0 group-hover:opacity-100 hover:text-danger"
                   title="Quitarla del proyecto"
                   aria-label="Quitarla del proyecto"
                 >
@@ -247,7 +245,7 @@ export function VistasCompartidas({
         </ul>
       )}
 
-      <p className="px-1 pt-2 text-nota leading-snug text-white/30">
+      <p className="px-1 pt-2 text-nota leading-snug text-fg-3">
         Se comparte lo que estás mirando ahora. Las de arriba siguen siendo tuyas y de este
         navegador.
       </p>
