@@ -5,6 +5,39 @@ Este proyecto sigue [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Añadido — el BCF que vuelve del mandante entra (`F4.6`, 2026-09-02)
+
+**Sin la vuelta, la coordinación es un altavoz.** `F4.4` cerró la ida: las observaciones salen en un
+ZIP que Solibri y Navisworks abren. Pero coordinar es de ida y vuelta — el mandante revisa, contesta
+y **manda otro BCF**—, y esa respuesta se leía en un correo y se teclaba a mano, o no se teclaba.
+
+La pantalla de la obra tiene **«Importar una respuesta BCF»**. Los temas nuevos entran como
+observaciones, con su prioridad, su cámara y su foto; las respuestas a las nuestras **se suman a su
+hilo sin pisar nada**. El mismo archivo importado dos veces no duplica: la identidad es el GUID del
+tema, que es el `pk` que escribió nuestra propia exportación.
+
+La política de fusión se escribió **antes** que el lector, y las tres reglas eligen lo conservador:
+gana lo de acá cuando el tema ya existe, `Closed` vuelve como `cerrada` y nunca como `descartada`
+—que silenciaría el conflicto para siempre en las corridas—, y un correo que viene en el archivo
+solo alcanza a la gente de la organización.
+
+**El oráculo es `bcf-client`, al revés que en la exportación**: allí escribimos a mano y leemos con
+la librería, acá la librería escribe y leemos nosotros. Escribir el lector contra un archivo real y
+no contra el XSD encontró que **el viewpoint no se llama `viewpoint.bcfv`** —ese es nuestro nombre;
+el estándar dice que va declarado en el markup—. Darlo por supuesto no revienta: deja fuera cada
+cámara y cada GUID de elemento, en silencio.
+
+Y como el archivo llega por correo desde otra oficina, se parsea con `defusedxml` y el ZIP se lee
+con topes: `zipfile` descomprime una bomba sin quejarse.
+
+### Corregido — un éxito ya no se ve como un fallo (2026-09-02)
+
+Los mensajes del portal se pintaban todos en rojo: «Importado: 1 tema nuevo» salía con el borde y el
+color de un error. Ahora el nivel se distingue —y el `role` separa `alert` de `status`, porque
+anunciar un éxito como alarma enseña a ignorar las alarmas—. De paso, el resumen concuerda en
+singular y calla los ceros, y la explicación de los formularios de acción dejó de partirse alrededor
+del botón.
+
 ### Añadido — descartar un conflicto sin salir del visor, y la lista que se puede triar (`F5.5`, 2026-09-02)
 
 **`DESCARTADA` existía como estado y nada lo ponía.** El silenciado estaba resuelto en el modelo —la

@@ -44,16 +44,20 @@ que estorban:
    vigentes de la obra y deja lo que encuentra entre sus observaciones abiertas. Y con eso se
    decidió `F3.4`: **la petición espera**, porque veinte segundos caben en los ciento veinte del
    servidor y una cola traería una forma nueva de fallar en silencio.
-2. **La lista de coordinación no se puede trabajar cuando es larga.** Hoy muestra todo lo abierto de
-   la obra ordenado por prioridad. Con treinta y cinco conflictos de una sola corrida —los que dio
-   el par real— hace falta separar lo mío de lo demás, lo nuevo de lo visto, y un conflicto
-   automático de una nota que escribió una persona.
-3. **`F4.6`, la vuelta del BCF.** Se manda un archivo al mandante y **contesta con otro**. Sin
-   importar, la mitad de vuelta del ciclo se resuelve leyendo un correo — que es exactamente de lo
-   que este producto viene a sacar a la obra. Estaba pospuesta esperando «un BCF de vuelta de verdad
-   que mirar», y con el proyecto empezando eso deja de ser hipotético.
+2. ~~**La lista de coordinación no se puede trabajar cuando es larga.**~~ **Cerrado el 2026-09-02**:
+   filtros «Todas / Mías / Choques / Notas» con su cuenta, y **descartar sin salir del visor** con
+   el motivo obligatorio — el estado `DESCARTADA` existía y nada lo ponía. Lo que **sigue faltando**
+   es separar lo nuevo de lo ya visto: los filtros no distinguen «esto apareció en la corrida de
+   hoy».
+3. ~~**`F4.6`, la vuelta del BCF.**~~ **Cerrado el 2026-09-02**: la pantalla de la obra importa un
+   BCF del mandante, los temas nuevos entran como observaciones y las respuestas a las nuestras se
+   suman a su hilo sin pisar nada. La política de fusión se escribió antes que el parser, y el
+   oráculo fue `bcf-client`, que es otra implementación.
 
-**Lo que sigue**, entonces: el hueco 2 —la lista de coordinación cuando es larga— y después `F4.6`.
+**Lo que sigue**, entonces: **agrupar interferencias por proximidad** —la mitad que le queda a
+`F5.5`; veinte tornillos contra la misma viga son un problema, no veinte—, y el **trazo libre** de
+`F4.5` si la cota no alcanza, que eso lo dice el usuario mirando un BCF exportado. Y en la lista de
+coordinación, **lo nuevo frente a lo ya visto**.
 
 > **Esta sección decía «lo que sigue es `F0.6`» hasta el 2026-09-02**, y `F0.6` se cerró el
 > 2026-08-19. La fuente única de verdad apuntaba a una tarea muerta durante dos semanas, mientras
@@ -75,7 +79,7 @@ Las **veintinueve** filas abiertas, de una vez. `⬜` no empezada · `❓` medid
 | Fase                      | Filas abiertas                                                                                                            |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | **5 — Interferencias** ⭐ | `F5.5` ◐ falta agrupar por proximidad; **descartar ya se puede desde el visor** _(1 a 4 cerradas)_                        |
-| **4 — Coordinación** ⭐   | `F4.6` importar BCF ⬜ — la vuelta del ciclo · `F4.5` ◐ falta el trazo libre; las cotas ya viajan                         |
+| **4 — Coordinación** ⭐   | `F4.5` ◐ falta el trazo libre; las cotas ya viajan _(`F4.6` cerrada: el ciclo va y vuelve)_                               |
 | **3 — Backend**           | `F3.4` ✅ decidida por el usuario el 2026-09-02: **la petición espera**, y por qué                                        |
 | **9 — Diseño** ⭐         | `F9.6` ⛔ — la decide el usuario, y son tres decisiones _(`F9.1` a `F9.5` cerradas)_                                      |
 | **1 — Visor**             | `F1.13` ❓ — auditada; quedan tres nombres que decide el usuario                                                          |
@@ -1727,11 +1731,59 @@ el viaje de ida y vuelta en el navegador sobre `Piso 5.ifc`, 564 elementos:
 **Y la importación quedó fuera de `F4.4` a propósito**, así que la fila dice «Exportar» y no
 «Exportar e importar». Exportar es lo que desbloquea al mandante hoy; importar exige decidir
 qué gana cuando el BCF que vuelve contradice lo que hay acá —y eso es una política de fusión,
-no un parser—. Entra como `F4.6` cuando haya un BCF de vuelta de verdad que mirar.
+no un parser—. **Se cerró el 2026-09-02 como `F4.6`**, con esa política escrita primero; el «BCF de
+vuelta de verdad que mirar» lo dio `bcf-client`, que es una implementación independiente y no
+nuestra.
 
-| #      | Tarea                                                                                  | Estado |
-| ------ | -------------------------------------------------------------------------------------- | ------ |
-| `F4.6` | Importar BCF 2.1: reconciliar por GUID de tema, con política escrita para el conflicto | ⬜     |
+| #      | Tarea                                                                                  | Estado       |
+| ------ | -------------------------------------------------------------------------------------- | ------------ |
+| `F4.6` | Importar BCF 2.1: reconciliar por GUID de tema, con política escrita para el conflicto | ✅ ver abajo |
+
+**`F4.6` cerrada el 2026-09-02, y la política de fusión está escrita antes que el parser**, que era
+la condición para abrirla. Tres reglas, y las tres eligen lo conservador:
+
+| La pregunta                           | La decisión, y por qué                                                                                                                                                                                                                                |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ¿Qué gana si el tema ya existe?       | **Gana lo de acá.** Lo que trae la vuelta es la respuesta —comentarios y un estado nuevo—, no una versión mejor del hallazgo. Reescribir título, descripción y prioridad borraría el trabajo local **en silencio**                                    |
+| ¿`Closed` vuelve como qué?            | **`cerrada`, nunca `descartada`.** La ida colapsa las dos en `Closed`, así que la vuelta no puede distinguirlas; `descartada` es la afirmación más fuerte —silencia el conflicto para siempre en las corridas— y eso no lo decide un archivo de fuera |
+| ¿Y el correo que viene en el archivo? | **Solo alcanza a la gente de la organización.** Sin acotar, quien manda el BCF elige a nombre de quién queda una observación en una obra que no es suya                                                                                               |
+
+**La identidad es el GUID del tema, y por eso el ciclo cierra.** La ida escribe el `pk` de la
+observación como `Topic Guid`, así que nuestro propio BCF vuelve a casa y **actualiza en vez de
+duplicar**. Lo mismo con los comentarios: el `Comment Guid` se usa como clave, así que el hilo
+reenviado entero —que es lo que hacen las herramientas— no se dobla.
+
+**El oráculo es `bcf-client`, al revés que en la exportación.** Allí escribimos a mano y leemos con
+la librería; acá la librería **escribe** y leemos nosotros. Y escribir el lector contra un archivo
+real en vez de contra el XSD encontró tres cosas que un lector ingenuo se come:
+
+1. **El viewpoint no se llama `viewpoint.bcfv`.** Ese es _nuestro_ nombre; `bcf-client` lo llama
+   `<guid>.bcfv`. El estándar dice que el nombre va en `<Viewpoints><Viewpoint>`, y de ahí se lee.
+   Darlo por supuesto no revienta: deja fuera **cada cámara y cada GUID de elemento**, en silencio,
+   que es justo lo que se venía a buscar. Es la mitad del valor del lector.
+2. **`TopicStatus` y `TopicType` llegan vacíos**, no solo ausentes: un `""` sin traducir deja la
+   observación con un estado que no está en las opciones.
+3. **Las fechas llegan sin zona** —`2026-09-02T12:02:09.580527`—, y una fecha ingenua con `USE_TZ`
+   es un aviso de Django y una hora corrida. Y `Visibility` puede no traer `Exceptions`.
+
+**Es dato hostil de verdad**, y el propio `bcf.py` lo tenía escrito desde `F4.4`: «si algún día se
+importa un BCF de vuelta, el `nosec` se quita y se parsea con `defusedxml`». Así se hizo. `zipfile`
+descomprime una bomba sin quejarse, así que hay topes de miembros, de tamaño por miembro y de total
+descomprimido, los tres con su prueba. Y `defusedxml` **se declaró como dependencia** aunque
+`ifcopenshell` ya la arrastraba: una comprobación de seguridad no puede depender de que otra
+librería la traiga de regalo.
+
+**Y tres defectos de pantalla que solo se vieron mirándola**, ninguno de ellos del lector:
+
+- **Un éxito se veía igual que un fallo.** `.aviso` era rojo para todo, así que «Importado: 1 tema
+  nuevo» salía con el borde y el color de un error. Ahora el nivel se pinta —y el `role` distingue
+  `alert` de `status`, porque anunciar un éxito como alarma enseña a ignorar las alarmas—.
+- **«1 temas: 1 nuevos, 0 actualizados, 0 sin cambios. 0 comentarios nuevos.»** Mal concordado y
+  contando cuatro nadas. Con `ngettext` y callando los ceros: «Importado: 1 tema nuevo.»
+- **La explicación del formulario se partía alrededor del botón**, porque `.detalle` estaba definido
+  solo dentro de `.tarjeta`. Y al arreglarlo, un `max-width: 68ch` **anuló el `flex-basis: 100%`**:
+  flexbox decide el salto de línea con el tamaño hipotético, y `max-width` lo recorta antes. El
+  ancho medido del detalle era exactamente esos 68ch. Queda escrito en el CSS.
 
 **Oráculo, y es el que manda:** un BCF exportado por AeroBim **abre en Navisworks
 o Solibri** con su viewpoint intacto, y uno generado por ellos abre aquí. Un BCF

@@ -167,6 +167,27 @@
 
   {# --- Coordinación: lo que hay que resolver -------------------------------------- #}
   <p class="grupo">{% translate "Open observations" %}</p>
+  {% if puede_importar_bcf %}
+    {% comment %}
+      **La vuelta del ciclo, y va aquí porque es de aquí de lo que habla.** Exportar está arriba,
+      junto al estado del proyecto, porque es una descarga; importar deja observaciones, y estas
+      son las observaciones. Lo que entra aparece en la tabla de abajo.
+
+      Es `enctype="multipart/form-data"` y no se puede olvidar: sin él el navegador manda solo el
+      nombre del archivo, `request.FILES` llega vacío, y la pantalla dice «elige un archivo»
+      teniendo uno elegido.
+    {% endcomment %}
+    <form class="accion" method="post"
+          action="{% url 'documents:importar-bcf' proyecto.pk %}"
+          enctype="multipart/form-data">
+      {% csrf_token %}
+      <input type="file" name="archivo" accept=".bcf,.bcfzip,application/zip" required>
+      <button type="submit">{% translate "Import a BCF answer" %}</button>
+      <span class="detalle">
+        {% translate "What the client sends back: new topics come in as observations, and answers to ours are added to their thread without overwriting anything." %}
+      </span>
+    </form>
+  {% endif %}
   <table>
     <thead>
       <tr>
@@ -210,7 +231,8 @@
       Y **se avisa de que tarda antes de pulsarlo**, no después: son veinte segundos medidos por
       par de modelos, y un botón que deja la pantalla quieta sin explicación se pulsa dos veces.
     {% endcomment %}
-    <form method="post" action="{% url 'documents:revisar-interferencias' proyecto.pk %}">
+    <form class="accion" method="post"
+          action="{% url 'documents:revisar-interferencias' proyecto.pk %}">
       {% csrf_token %}
       <button type="submit">{% translate "Check interferences" %}</button>
       <span class="detalle">

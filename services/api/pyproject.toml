@@ -14,6 +14,12 @@ dependencies = [
     "ifcopenshell==0.8.5",
     "ifctester==0.8.5",
     "ifcclash==0.8.5",
+    # **Declarada a proposito aunque ya venga de arrastre.** `ifcopenshell` la trae, y con eso
+    # bastaba mientras nadie parseara XML de fuera. `F4.6` importa BCF: un ZIP con XML que llega
+    # por correo desde otra oficina, o sea billion laughs y entidades externas. Una dependencia de
+    # la que depende una comprobacion de seguridad **no puede vivir de que otra la arrastre**,
+    # porque el dia que `ifcopenshell` la suelte el import sigue funcionando y la defensa no.
+    "defusedxml>=0.7",
 ]
 
 [dependency-groups]

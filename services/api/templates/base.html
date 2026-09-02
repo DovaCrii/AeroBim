@@ -52,8 +52,22 @@
     </header>
 
     <main id="contenido">
+      {% comment %}
+        **El nivel del mensaje se pinta**, y hasta hoy no: `.aviso` era rojo para todo, así que un
+        «Importado: 1 tema nuevo» se veía igual que un fallo. `mensaje.tags` trae `success`,
+        `warning` o `error` y el CSS los distingue.
+
+        Y `role` según el nivel: un error interrumpe al lector de pantalla —`alert`—, y un éxito se
+        anuncia sin interrumpir —`status`—. Anunciar los dos igual convierte cada confirmación en
+        una alarma.
+      {% endcomment %}
       {% if messages %}
-        {% for mensaje in messages %}<div class="aviso">{{ mensaje }}</div>{% endfor %}
+        {% for mensaje in messages %}
+          <div class="aviso {{ mensaje.tags }}"
+               role="{% if mensaje.level >= 40 %}alert{% else %}status{% endif %}">
+            {{ mensaje }}
+          </div>
+        {% endfor %}
       {% endif %}
       {% block contenido %}{% endblock %}
     </main>

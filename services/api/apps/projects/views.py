@@ -157,6 +157,10 @@ class ProyectoView(ModelViewPermissionRequiredMixin, OrganizacionScopedQuerysetM
         contexto["puede_exportar_bcf"] = (
             usuario.has_perm("documents.view_observacion") and abiertas.exists()
         )
+        # **Importar no espera a que haya observaciones**, al contrario que exportar: un BCF del
+        # mandante puede ser lo primero que entre en una obra recién abierta, y esconder el
+        # formulario hasta que haya algo dentro deja sin camino justo el caso en que más sirve.
+        contexto["puede_importar_bcf"] = usuario.has_perm("documents.add_observacion")
 
         # **Revisar interferencias necesita dos modelos y el permiso de abrir observaciones**, que
         # es lo que la corrida crea. Con un solo modelo el botón no se dibuja: no hay nada contra

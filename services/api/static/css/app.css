@@ -29,6 +29,7 @@
   --ab-primary-soft: #efe7fb;
   --ab-danger: #c53b4d; /* 4,8:1 */
   --ab-ok: #0f7a5f; /* 4,9:1 */
+  --ab-warn: #8a5a00; /* 5,5:1 — el ámbar llevado a texto sobre fondo claro */
 
   --ab-shadow: 0 10px 30px rgb(18 34 59 / 8%);
   --ab-radius: 12px;
@@ -55,6 +56,9 @@
   --ab-primary-soft: #2a2140;
   --ab-danger: #f08a97; /* el #c53b4d no llega a 4,5:1 sobre superficie oscura */
   --ab-ok: #5fd3ae;
+  /* **El mismo hexadecimal que `--color-warn` del visor**, y a proposito: es la costura que el
+     usuario cruza al abrir un modelo desde su expediente. 9,5:1 sobre el fondo. */
+  --ab-warn: #f0b45e;
   --ab-shadow: 0 10px 30px rgb(0 0 0 / 35%);
 }
 
@@ -221,9 +225,42 @@ a.tarjeta:focus-visible {
   margin-bottom: 4px;
 }
 
-.tarjeta .detalle {
+/*
+ * **`.detalle` estaba definido solo dentro de `.tarjeta`**, así que el mismo texto fuera de una
+ * tarjeta salía al tamaño y color del cuerpo: competía con lo que explicaba en vez de acompañarlo.
+ * Pasa a ser general y la regla de la tarjeta deja de hacer falta.
+ */
+.detalle {
   color: var(--ab-text-muted);
   font-size: 0.9rem;
+}
+
+/*
+ * Un formulario que **es un botón con su explicación**: revisar interferencias, importar un BCF.
+ *
+ * Los controles en una fila y la explicación **debajo**, no al lado. Sin esto el texto se metía
+ * entre el campo y el botón y se partía alrededor de ellos, que es exactamente lo que hacía la
+ * importación de BCF antes de mirarla en la pantalla.
+ */
+form.accion {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+form.accion .detalle {
+  /*
+   * Ocupa la fila entera, así que la explicación cae a su propia línea.
+   *
+   * **`max-width` aquí no es una limitación de estilo, es un fallo**, y costó medirlo: el salto de
+   * línea de flexbox se decide con el tamaño *hipotético* del elemento, y `max-width` lo recorta
+   * **antes** de esa decisión. Con `max-width: 68ch` el detalle medía 527,8 px, cabía junto al
+   * campo y al botón, y no saltaba: la regla se anulaba a sí misma. Si algún día hay que acotar el
+   * ancho de lectura, va en un elemento de dentro y no en el que tiene que envolver.
+   */
+  flex-basis: 100%;
 }
 
 /*
@@ -276,13 +313,36 @@ tbody tr:last-child td {
   border-bottom: 0;
 }
 
+/*
+ * **Un mensaje se pinta según su nivel, y antes no.** `.aviso` era rojo para todo, así que
+ * «Importado: 1 tema nuevo» salía con el mismo borde y el mismo color que un fallo: una operación
+ * que funcionó parecía una que no. Lo encontró mirar la pantalla después de importar un BCF.
+ *
+ * El nivel lo trae Django en `mensaje.tags` y `base.html` lo pone como clase. La base es neutra
+ * —el violeta del sistema, que dice «esto es información»— y solo lo que de verdad es un problema
+ * se lleva el rojo. El color va **además** del texto y nunca en su lugar: uno de cada doce hombres
+ * no distingue rojo de verde.
+ */
 .aviso {
   padding: 12px 14px;
   border-radius: var(--ab-radius);
-  border: 1px solid var(--ab-danger);
-  color: var(--ab-danger);
+  border: 1px solid var(--ab-primary);
+  color: var(--ab-text);
   background: var(--ab-surface);
   margin-bottom: 18px;
+}
+
+.aviso.success {
+  border-color: var(--ab-ok);
+}
+
+.aviso.warning {
+  border-color: var(--ab-warn);
+}
+
+.aviso.error {
+  border-color: var(--ab-danger);
+  color: var(--ab-danger);
 }
 
 .paginacion {

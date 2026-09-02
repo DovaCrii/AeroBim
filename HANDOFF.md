@@ -54,6 +54,13 @@
 >   un problema» con motivo obligatorio, y la pareja de GUID impide que la corrida siguiente lo
 >   reabra. Con filtros «Todas / Mías / Choques / Notas» y su cuenta, para que la nota que escribió
 >   una persona no se pierda entre las decenas de una corrida.
+> - **`F4.6` cerrada: el ciclo del BCF va y vuelve.** La pantalla de la obra importa el BCF del
+>   mandante —«Importar una respuesta BCF»—, los temas nuevos entran como observaciones y las
+>   respuestas a las nuestras se suman a su hilo **sin pisar nada**. El oráculo es `bcf-client`, que
+>   es otra implementación, y escribir el lector contra un archivo real en vez de contra el XSD
+>   encontró que **el viewpoint no se llama `viewpoint.bcfv`**: ese es nuestro nombre, el estándar
+>   lo declara en el markup. Verificado de punta a punta contra el servidor de verdad, no solo con
+>   el cliente de pruebas.
 >
 > ## La prioridad cambió el 2026-09-02, y la puso el usuario
 >
@@ -65,11 +72,9 @@
 >
 > **Lo que sigue, en ese orden:**
 >
-> 1. **`F4.6` — la vuelta del BCF.** Se manda un archivo al mandante y contesta con otro; sin
->    importar, media coordinación se resuelve leyendo un correo.
-> 2. **Agrupar interferencias por proximidad** — veinte tornillos contra la misma viga son un
+> 1. **Agrupar interferencias por proximidad** — veinte tornillos contra la misma viga son un
 >    problema, no veinte. Pide ver una corrida real sobre dos disciplinas de verdad.
-> 3. **El trazo libre de `F4.5`**, si la cota no alcanza — eso lo dice el usuario mirando un BCF.
+> 2. **El trazo libre de `F4.5`**, si la cota no alcanza — eso lo dice el usuario mirando un BCF.
 >
 > Y una cosa que la lista de coordinación **sigue sin distinguir**: lo nuevo de lo ya visto. Los
 > filtros separan lo mío, los choques y las notas, pero no «esto apareció en la corrida de hoy».
@@ -83,6 +88,13 @@
 > psets, la cinta y la sección **Vistas del proyecto**. El panel del agente no compone fotogramas y
 > la captura se agota — lo de hoy se comprobó leyendo el DOM y la API del visor, que es
 > comportamiento, no aspecto.
+>
+> **La pantalla de la obra sí se miró el 2026-09-02**, y de ahí salieron tres defectos que ninguna
+> prueba veía: el éxito pintado como error, «1 temas», y la explicación del formulario partiéndose
+> alrededor del botón. Se puede repetir sin contraseñas: se acuña una sesión con `SessionStore` en
+> `manage.py shell` y se le pasa la cookie `sessionid` al navegador. **La base de datos local estaba
+> cuatro migraciones atrasada** —`documents.0005` a `0008` y `projects.0002`—; ya están aplicadas, y
+> quedó dentro una observación importada del BCF de prueba, en la obra `716-LCD`.
 
 **Ramas sin fusionar, y son dos:** `codex/fase-0-andamiaje` (34 commits) y
 `codex/fidelidad-2d` (6 commits, sale de la anterior). `AGENTS.md` es explícito: **no se fusiona

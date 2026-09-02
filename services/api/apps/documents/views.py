@@ -349,6 +349,74 @@ class ExportarBcfView(ModelViewPermissionRequiredMixin, View):
         )
 
 
+class ImportarBcfView(ModelPermissionRequiredMixin, View):
+    """Un BCF que llega de otra oficina, dentro. `F4.6`.
+
+    **Es la vuelta del ciclo, y sin ella la coordinación es un altavoz.** `F4.4` cerró la ida: las
+    observaciones salen en un ZIP que Solibri y Navisworks abren. Pero coordinar es de ida y
+    vuelta: el mandante revisa, contesta y **manda otro BCF**. Sin importar, esa respuesta se lee
+    en un correo y se teclea a mano, o —lo que pasa de verdad— no se teclea.
+
+    **Pide `add_observacion`** porque es exactamente lo que hace: crear observaciones. Y la consulta
+    se acota por organización, porque el permiso dice «puede crear observaciones», no «puede
+    crearlas **en esta obra**».
+
+    **No tiene pantalla de resultados.** Lo que entra cae donde ya vive la coordinación —el bloque
+    de observaciones abiertas de la propia pantalla del proyecto—, y lo que hizo la importación se
+    cuenta en un mensaje. Una pantalla más que sincronizar con el estado de las observaciones no
+    aporta nada.
+    """
+
+    model = Observacion
+    permission_action = "add"
+
+    def post(self, request, *args, **kwargs):
+        from apps.core.tenancy import scope_queryset_to_organizacion
+        from apps.documents.bcf_importar import BcfInvalido, importar
+        from apps.projects.models import Proyecto
+
+        proyecto = (
+            scope_queryset_to_organizacion(Proyecto.objects.all(), request.user)
+            .filter(pk=kwargs["pk"])
+            .first()
+        )
+        if proyecto is None:
+            raise Http404
+
+        archivo = request.FILES.get("archivo")
+        if archivo is None:
+            messages.error(request, _("Choose a BCF file to import."))
+            return redirect("projects:proyecto", pk=proyecto.pk)
+
+        try:
+            resultado = importar(proyecto, archivo.read(), request.user)
+        except BcfInvalido as invalido:
+            # **El motivo se enseña tal cual.** `BcfInvalido` se escribe para que se pueda leer:
+            # dice qué le pasa al archivo y nunca una ruta ni una traza. Quien lo recibió por
+            # correo necesita saber qué pedir de vuelta.
+            messages.error(request, str(invalido))
+            return redirect("projects:proyecto", pk=proyecto.pk)
+
+        messages.success(request, resultado.resumen)
+        for aviso in resultado.avisos:
+            # **Lo que se saltó se dice.** Una importación que deja temas fuera en silencio hace
+            # creer que llegó todo, y eso se descubre cuando alguien pregunta por un hallazgo que
+            # nadie miró.
+            messages.warning(request, aviso)
+
+        set_audit_context(
+            request,
+            proyecto,
+            action="importar_bcf",
+            metadata={
+                "temas": resultado.temas,
+                "creadas": resultado.creadas,
+                "actualizadas": resultado.actualizadas,
+            },
+        )
+        return redirect("projects:proyecto", pk=proyecto.pk)
+
+
 class CoberturaView(ModelViewPermissionRequiredMixin, View):
     """Qué trae de verdad el modelo, clase por clase, **antes de exigirle algo**. `F3.10`.
 

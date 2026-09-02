@@ -57,6 +57,13 @@ urlpatterns = [
         views.ExportarBcfView.as_view(),
         name="exportar-bcf",
     ),
+    # **La vuelta del ciclo.** Sin ella la coordinación es un altavoz: el mandante contesta con
+    # otro BCF y esa respuesta se teclea a mano, o —lo que pasa de verdad— no se teclea.
+    path(
+        "proyectos/<uuid:pk>/importar-bcf/",
+        views.ImportarBcfView.as_view(),
+        name="importar-bcf",
+    ),
     path("observaciones/<uuid:pk>/", views.ObservacionView.as_view(), name="observacion"),
     path(
         "observaciones/<uuid:pk>/comentar/",

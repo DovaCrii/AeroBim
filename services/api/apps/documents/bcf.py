@@ -34,9 +34,10 @@ from io import BytesIO
 # laughs, entidades externas—, y tiene razon. **Aca solo se serializa**: no hay un solo `parse` ni
 # `fromstring` en este modulo, el arbol se construye desde objetos nuestros y sale a bytes.
 #
-# Si algun dia se importa un BCF de vuelta, esta excepcion deja de valer: el `nosec` se quita y se
-# parsea con `defusedxml`. Un archivo BCF llega por correo desde otra oficina, que es exactamente el
-# XML no confiable del que habla el aviso.
+# **Y el BCF de vuelta ya existe**: `F4.6` lo importa. La excepcion sigue valiendo *aca* porque
+# este modulo no leyo nunca nada, pero el que lee vive aparte —`bcf_importar.py`— y parsea con
+# `defusedxml`, que es lo que este comentario pedia. Un archivo BCF llega por correo desde otra
+# oficina: es exactamente el XML no confiable del que habla el aviso.
 from xml.etree import ElementTree as ET  # nosec B405
 
 from apps.documents import storage
