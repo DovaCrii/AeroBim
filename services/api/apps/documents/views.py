@@ -1113,6 +1113,82 @@ class NuevaActividadView(ModelPermissionRequiredMixin, View):
         return redirect("documents:actividades")
 
 
+class RevisarInterferenciasView(ModelPermissionRequiredMixin, View):
+    """Revisa las interferencias de la obra y abre las nuevas como observaciones. `F5.1`–`F5.5`.
+
+    **No tiene pantalla propia a propósito, y eso es lo mejor que tiene.** El resultado cae donde ya
+    vive la coordinación: las observaciones nuevas aparecen en el bloque de abiertas por prioridad
+    de la propia pantalla del proyecto, y desde ahí el visor ya sabe abrirlas —aislando los dos
+    elementos y dibujando el segmento entre ellos—. Una pantalla de resultados aparte sería una
+    lista más que hay que sincronizar con el estado de las observaciones.
+
+    **Pide `add_observacion`** porque es exactamente lo que hace: abrir observaciones. No un permiso
+    nuevo — un rol que puede abrir un hallazgo a mano puede mandar buscarlos.
+
+    **Y la petición espera.** Son 20 s medidos por par de modelos, decisión del usuario del
+    2026-09-02: caben de sobra en los 120 s del servidor, y una cola traería una forma nueva de
+    fallar en silencio que todavía no hace falta pagar. La corrida deja su fila en `JobRun`.
+    """
+
+    model = Observacion
+    permission_action = "add"
+
+    def post(self, request, *args, **kwargs):
+        from apps.core.tenancy import scope_queryset_to_organizacion
+        from apps.documents.interferencias import GrupoVacio
+        from apps.documents.revisar import revisar_proyecto
+        from apps.projects.models import Proyecto
+
+        proyecto = (
+            scope_queryset_to_organizacion(Proyecto.objects.all(), request.user)
+            .filter(pk=kwargs["pk"])
+            .first()
+        )
+        if proyecto is None:
+            raise Http404
+
+        try:
+            resultado = revisar_proyecto(proyecto, request.user)
+        except GrupoVacio as vacio:
+            # Es un error de lo que se pidió comparar, no de la corrida: se dice y se vuelve.
+            messages.error(request, str(vacio))
+            return redirect("projects:proyecto", pk=proyecto.pk)
+
+        if resultado.pares == 0:
+            messages.info(
+                request,
+                _("There is only one model in this project: nothing to compare it against."),
+            )
+        elif resultado.abiertas == 0:
+            messages.success(
+                request,
+                _("Checked %(resumen)s. Nothing new.") % {"resumen": resultado.resumen},
+            )
+        else:
+            messages.success(
+                request,
+                _("Checked %(resumen)s. The new ones are in the open observations below.")
+                % {"resumen": resultado.resumen},
+            )
+
+        if resultado.sin_archivo:
+            # **Se dice cuáles se quedaron fuera.** Una corrida que compara menos modelos de los que
+            # hay y no lo dice deja creer que la obra está limpia.
+            messages.warning(
+                request,
+                _("Left out, their file is not on disk: %(cuales)s")
+                % {"cuales": ", ".join(resultado.sin_archivo)},
+            )
+
+        set_audit_context(
+            request,
+            proyecto,
+            action="revisar_interferencias",
+            metadata={"pares": resultado.pares, "abiertas": resultado.abiertas},
+        )
+        return redirect("projects:proyecto", pk=proyecto.pk)
+
+
 class CambiarIdoneidadView(ModelPermissionRequiredMixin, View):
     """El trabajo del revisor: decir para qué sirve el documento."""
 

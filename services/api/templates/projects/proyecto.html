@@ -199,6 +199,27 @@
 
   {# --- El salto al visor ---------------------------------------------------------- #}
   <p class="grupo">{% translate "Models and drawings you can open" %}</p>
+  {% if puede_revisar_interferencias and modelos_para_revisar > 1 %}
+    {% comment %}
+      **Revisar interferencias vive junto a los modelos**, que es de lo que habla, y no en una
+      pantalla aparte: lo que encuentra sale abajo, entre las observaciones abiertas.
+
+      El botón solo aparece con **dos modelos o más** —con uno no hay nada contra qué comparar— y
+      con permiso para abrir observaciones, que es lo que la corrida crea.
+
+      Y **se avisa de que tarda antes de pulsarlo**, no después: son veinte segundos medidos por
+      par de modelos, y un botón que deja la pantalla quieta sin explicación se pulsa dos veces.
+    {% endcomment %}
+    <form method="post" action="{% url 'documents:revisar-interferencias' proyecto.pk %}">
+      {% csrf_token %}
+      <button type="submit">{% translate "Check interferences" %}</button>
+      <span class="detalle">
+        {% blocktranslate with cuantos=modelos_para_revisar %}Crosses the {{ cuantos }} current
+        models against each other. Takes about 20 seconds per pair, so the page stays put until it
+        finishes.{% endblocktranslate %}
+      </span>
+    </form>
+  {% endif %}
   {% if abribles %}
     <div class="tarjetas">
       {% for revision in abribles %}

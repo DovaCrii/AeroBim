@@ -43,11 +43,31 @@
 > - **La Fase 9 cerrada salvo `F9.6`.** Tokens, escala, foco, toque de 44 px y nada escondido tras
 >   el ratón, con el contraste comprobado en el gate.
 >
-> **Lo que sigue, en orden de valor:**
+> - **La Fase 5 abierta y casi cerrada, con su oráculo.** `interferencias-a-proposito.ifc` trae los
+>   cuatro casos —el que choca, el lejano, el de otro nivel y el que roza— y `ifcclash` acierta los
+>   cuatro. La pantalla de la obra tiene **«Revisar interferencias»**, cruza todos los modelos
+>   vigentes y deja lo que encuentra entre sus observaciones abiertas, con los dos elementos
+>   aislados y el segmento dibujado. Falta agrupar por proximidad.
+> - **`F3.4` decidida:** la petición espera. 20 s medidos por par, y caben en los 120 del servidor.
 >
-> 1. **El trazo libre de `F4.5`**, si la cota no alcanza — eso lo dice el usuario mirando un BCF.
-> 2. **`F4.6`** — importar BCF, cuando haya uno de vuelta de verdad que mirar.
-> 3. **Una de las tres grandes sin empezar:** Fase 2 (nubes de puntos), 5 (interferencias) o 6 (geo).
+> ## La prioridad cambió el 2026-09-02, y la puso el usuario
+>
+> **«El diseño y la coordinación van con la misma prioridad, porque el proyecto empieza pronto y la
+> coordinación es la piedra angular de todo.»** El detalle en `MASTER_PLAN.md`; lo que cambia es que
+> **la vara sube de «funciona» a «lo usa alguien»** —una capacidad que solo se alcanza por la
+> terminal no cuenta— y que las fases 2 y 6 se posponen: no hay ni una nube de puntos ni una ortofoto
+> en el repositorio con la que verificarlas.
+>
+> **Lo que sigue, en ese orden:**
+>
+> 1. **La lista de coordinación cuando es larga.** Hoy muestra todo lo abierto de la obra por
+>    prioridad. Con 35 conflictos de una sola corrida hace falta separar lo mío de lo demás, lo nuevo
+>    de lo visto, y un conflicto automático de una nota que escribió una persona.
+> 2. **`F4.6` — la vuelta del BCF.** Se manda un archivo al mandante y contesta con otro; sin
+>    importar, media coordinación se resuelve leyendo un correo.
+> 3. **Agrupar interferencias por proximidad** — veinte tornillos contra la misma viga son un
+>    problema, no veinte. Pide ver una corrida real sobre dos disciplinas de verdad.
+> 4. **El trazo libre de `F4.5`**, si la cota no alcanza — eso lo dice el usuario mirando un BCF.
 >
 > **`F3.4` (Celery) se midió y no procede.** Los tres trabajos que corren dentro de la petición, sobre
 > el IFC real de 32,7 MB: extraer 1,4 s, cobertura 1,5 s, validar IDS 0,7 s. Y la conversión —el más

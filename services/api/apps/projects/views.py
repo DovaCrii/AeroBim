@@ -157,6 +157,14 @@ class ProyectoView(ModelViewPermissionRequiredMixin, OrganizacionScopedQuerysetM
         contexto["puede_exportar_bcf"] = (
             usuario.has_perm("documents.view_observacion") and abiertas.exists()
         )
+
+        # **Revisar interferencias necesita dos modelos y el permiso de abrir observaciones**, que
+        # es lo que la corrida crea. Con un solo modelo el botón no se dibuja: no hay nada contra
+        # qué compararlo, y un botón que no puede hacer nada manda a buscar el error donde no está.
+        from apps.documents.revisar import modelos_vigentes
+
+        contexto["modelos_para_revisar"] = len(modelos_vigentes(proyecto))
+        contexto["puede_revisar_interferencias"] = usuario.has_perm("documents.add_observacion")
         return contexto
 
     def _tablero(self, contexto, proyecto, entregables, abiertas) -> None:

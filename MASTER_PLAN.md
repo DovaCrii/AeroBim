@@ -18,8 +18,42 @@
 comprobado en el gate, y sin mover un solo componente de sitio. **`F9.6` no la decide este plan**:
 son tres decisiones del usuario y contradicen tres líneas escritas de `UX.md`.
 
-**Lo que sigue** es la pantalla que dispara una corrida de interferencias —y con ella la decisión
-de `F3.4`, que ahora tiene su número: 20 s—, el trazo libre de `F4.5`, o abrir la Fase 2 o la 6.
+## La prioridad cambió el 2026-09-02, y la puso el usuario
+
+> **«El diseño y la coordinación van con la misma prioridad, porque el proyecto empieza pronto y la
+> coordinación es la piedra angular de todo.»**
+
+**Eso reordena el plan, y no solo la lista de lo que sigue.** Hasta hoy el orden lo decidía qué
+dejaba la aplicación entera y usable; desde hoy lo decide además **qué hace falta para coordinar una
+obra de verdad en pocas semanas**. Lo que cambia en la práctica:
+
+- **Las fases 4 y 5 pasan al frente**, y las tres grandes sin empezar —nubes de puntos, geo— se
+  quedan detrás. No se descartan: se posponen, y queda dicho por qué.
+- **La vara sube de «funciona» a «lo usa alguien».** Una capacidad que existe y solo se alcanza por
+  la línea de comandos **no cuenta como hecha** para este objetivo. La detección de interferencias
+  está en ese caso ahora mismo.
+- **Lo que se mide cambia.** Hasta aquí las cifras eran de corrección —ratios, milisegundos,
+  interferencias encontradas y perdidas—. Coordinar añade otras: cuántos hallazgos abre una corrida
+  sobre dos disciplinas de verdad, cuántos son ruido, y cuántos clics hay entre ver uno y repartirlo.
+
+**Los tres huecos que hoy separan «la coordinación funciona» de «se está usando»**, en el orden en
+que estorban:
+
+1. ~~**Nadie puede lanzar una corrida de interferencias desde la aplicación.**~~ **Cerrado el
+   2026-09-02**: la pantalla del proyecto tiene «Revisar interferencias», cruza todos los modelos
+   vigentes de la obra y deja lo que encuentra entre sus observaciones abiertas. Y con eso se
+   decidió `F3.4`: **la petición espera**, porque veinte segundos caben en los ciento veinte del
+   servidor y una cola traería una forma nueva de fallar en silencio.
+2. **La lista de coordinación no se puede trabajar cuando es larga.** Hoy muestra todo lo abierto de
+   la obra ordenado por prioridad. Con treinta y cinco conflictos de una sola corrida —los que dio
+   el par real— hace falta separar lo mío de lo demás, lo nuevo de lo visto, y un conflicto
+   automático de una nota que escribió una persona.
+3. **`F4.6`, la vuelta del BCF.** Se manda un archivo al mandante y **contesta con otro**. Sin
+   importar, la mitad de vuelta del ciclo se resuelve leyendo un correo — que es exactamente de lo
+   que este producto viene a sacar a la obra. Estaba pospuesta esperando «un BCF de vuelta de verdad
+   que mirar», y con el proyecto empezando eso deja de ser hipotético.
+
+**Lo que sigue**, entonces: el hueco 2 —la lista de coordinación cuando es larga— y después `F4.6`.
 
 > **Esta sección decía «lo que sigue es `F0.6`» hasta el 2026-09-02**, y `F0.6` se cerró el
 > 2026-08-19. La fuente única de verdad apuntaba a una tarea muerta durante dos semanas, mientras
@@ -36,16 +70,22 @@ y systemd), las vistas que se pueden pasar a otra persona (`F3.12`), la visibili
 Las **veintinueve** filas abiertas, de una vez. `⬜` no empezada · `❓` medida y esperando algo ·
 `⛔` bloqueada por una decisión del usuario.
 
-| Fase                    | Filas abiertas                                                                                                            |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| **9 — Diseño**          | `F9.6` ⛔ — la decide el usuario, y son tres decisiones _(`F9.1` a `F9.5` cerradas)_                                      |
-| **4 — Coordinación**    | `F4.5` ◐ falta el trazo libre; las cotas ya viajan · `F4.6` importar BCF ⬜                                               |
-| **7 — Planos, salida**  | `F7.2` viewports y capas · `F7.3` acotado y anotaciones · `F7.5` exportar a PDF ⬜                                        |
-| **2 — Nubes de puntos** | `F2.1` a `F2.6` ⬜ — cargar, alinear, visualizar, medir contra el modelo, documentar el pipeline, y el gaussian splatting |
-| **5 — Interferencias**  | `F5.1` ◐ falta la pantalla de grupos · `F5.5` ◐ falta agrupar por proximidad _(2, 3 y 4 cerradas)_                        |
-| **6 — Geo + BIM**       | `F6.1` a `F6.5` ⬜ — Cesium, ortofoto y terreno propios, situar el IFC, 3D Tiles, y recibir de AeroPlanner                |
-| **1 — Visor**           | `F1.13` ❓ — auditada; quedan tres nombres que decide el usuario                                                          |
-| **3 — Backend**         | `F3.4` ❓ — medida y hoy no procede; se reabre con un número, no con una intuición                                        |
+**Y en el orden de prioridad del 2026-09-02**, no en el de los números de fase.
+
+| Fase                      | Filas abiertas                                                                                                            |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| **5 — Interferencias** ⭐ | `F5.5` ◐ falta agrupar por proximidad _(1 a 4 cerradas)_                                                                  |
+| **4 — Coordinación** ⭐   | `F4.6` importar BCF ⬜ — la vuelta del ciclo · `F4.5` ◐ falta el trazo libre; las cotas ya viajan                         |
+| **3 — Backend**           | `F3.4` ✅ decidida por el usuario el 2026-09-02: **la petición espera**, y por qué                                        |
+| **9 — Diseño** ⭐         | `F9.6` ⛔ — la decide el usuario, y son tres decisiones _(`F9.1` a `F9.5` cerradas)_                                      |
+| **1 — Visor**             | `F1.13` ❓ — auditada; quedan tres nombres que decide el usuario                                                          |
+| **7 — Planos, salida**    | `F7.2` viewports y capas · `F7.3` acotado y anotaciones · `F7.5` exportar a PDF ⬜                                        |
+| **2 — Nubes de puntos**   | `F2.1` a `F2.6` ⬜ — cargar, alinear, visualizar, medir contra el modelo, documentar el pipeline, y el gaussian splatting |
+| **6 — Geo + BIM**         | `F6.1` a `F6.5` ⬜ — Cesium, ortofoto y terreno propios, situar el IFC, 3D Tiles, y recibir de AeroPlanner                |
+
+⭐ = prioridad del 2026-09-02. Las fases 2 y 6 **no se descartan, se posponen**: son las dos que no
+tienen ni un archivo con el que verificarse hoy —no hay nube de puntos ni ortofoto en el
+repositorio— así que abrirlas sería construir a ciegas mientras la coordinación espera.
 
 **El orden no es el número de la fase.** Va primero lo que deja la aplicación entera y usable con
 lo que ya hay —la Fase 9— y después lo que abre frente nuevo. Las fases 2, 5 y 6 son las tres
@@ -1098,25 +1138,42 @@ artefacto se consume aquí. Es la misma división que ya existe con la ortofoto 
 **Objetivo de salida:** los modelos dejan de vivir en la pestaña del navegador: se
 guardan por proyecto, con versiones y con quién subió qué.
 
-| #       | Tarea                                                                                                | Estado                                  |
-| ------- | ---------------------------------------------------------------------------------------------------- | --------------------------------------- |
-| `F3.1`  | API en Python (Django + DRF, como AeroControl): proyectos, modelos, versiones, usuarios y permisos   | ✅ ver abajo                            |
-| `F3.2`  | Almacenamiento de archivos con validación de tipo, tamaño y nombre — nunca el nombre del cliente     | ✅ ver abajo                            |
-| `F3.3`  | Extracción de metadatos con `ifcopenshell`: esquema, unidades, georreferenciación, conteo por tipo   | ✅ ver abajo                            |
-| `F3.4`  | Jobs asíncronos (Celery) para lo que tarde: conversión, extracción, validación                       | ❓ medido, y hoy no procede — ver abajo |
-| `F3.5`  | Validación **IDS** con `ifctester`: el modelo cumple o no el requisito de información del proyecto   | ✅ ver abajo                            |
-| `F3.10` | **El IDS de partida**: qué trae el modelo, medido, y el requisito que sale de esa medición           | ✅                                      |
-| `F3.6`  | **Levantar `services/api`**: Django 6 + uv, con la forma de AeroControl y base de datos propia       | ✅                                      |
-| `F3.7`  | **Portal de ingreso**: `django.contrib.auth` endurecido con axes, sin auto-registro                  | ✅                                      |
-| `F3.8`  | **Roles y el contrato de permisos**: la matriz como dato, el guardián, y la prueba de 403            | ✅                                      |
-| `F3.9`  | **Los módulos y cómo se entra a cada uno**: portal por etapa de trabajo, filtrado por permiso        | ✅                                      |
-| `F3.11` | **Ponerlo en la VM**: driver de PostgreSQL, servidor de aplicación, `/health/` y unidades de systemd | ✅ ver abajo                            |
-| `F3.12` | **Vistas que se pueden pasar**: la vista del modelo sale del navegador y vive en el proyecto         | ✅ ver abajo                            |
+| #       | Tarea                                                                                                | Estado                                       |
+| ------- | ---------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| `F3.1`  | API en Python (Django + DRF, como AeroControl): proyectos, modelos, versiones, usuarios y permisos   | ✅ ver abajo                                 |
+| `F3.2`  | Almacenamiento de archivos con validación de tipo, tamaño y nombre — nunca el nombre del cliente     | ✅ ver abajo                                 |
+| `F3.3`  | Extracción de metadatos con `ifcopenshell`: esquema, unidades, georreferenciación, conteo por tipo   | ✅ ver abajo                                 |
+| `F3.4`  | Jobs asíncronos (Celery) para lo que tarde: conversión, extracción, validación                       | ✅ decidida: no, y con el número — ver abajo |
+| `F3.5`  | Validación **IDS** con `ifctester`: el modelo cumple o no el requisito de información del proyecto   | ✅ ver abajo                                 |
+| `F3.10` | **El IDS de partida**: qué trae el modelo, medido, y el requisito que sale de esa medición           | ✅                                           |
+| `F3.6`  | **Levantar `services/api`**: Django 6 + uv, con la forma de AeroControl y base de datos propia       | ✅                                           |
+| `F3.7`  | **Portal de ingreso**: `django.contrib.auth` endurecido con axes, sin auto-registro                  | ✅                                           |
+| `F3.8`  | **Roles y el contrato de permisos**: la matriz como dato, el guardián, y la prueba de 403            | ✅                                           |
+| `F3.9`  | **Los módulos y cómo se entra a cada uno**: portal por etapa de trabajo, filtrado por permiso        | ✅                                           |
+| `F3.11` | **Ponerlo en la VM**: driver de PostgreSQL, servidor de aplicación, `/health/` y unidades de systemd | ✅ ver abajo                                 |
+| `F3.12` | **Vistas que se pueden pasar**: la vista del modelo sale del navegador y vive en el proyecto         | ✅ ver abajo                                 |
 
 **Criterio de aceptación:** un modelo subido sobrevive al cierre del navegador, y
 la versión anterior sigue recuperable.
 
-### `F3.4`: los tres trabajos «que tardan», medidos — y no tardan (2026-08-28)
+### `F3.4` decidida: la petición espera, y con el número delante (2026-09-02)
+
+**La decisión la tomó el usuario** cuando la pantalla de interferencias la forzó: la corrida tarda
+**20 s medidos** por par de modelos, y esos veinte segundos **caben de sobra en los ciento veinte**
+que da el servidor. Una cola traería un broker, un proceso trabajador, su unidad de systemd y una
+forma nueva de fallar callada —un trabajo encolado que nadie procesa no da error— a cambio de
+ahorrar una espera que se puede anunciar.
+
+Así que **se anuncia**: el botón dice cuánto tarda **antes** de pulsarlo, porque uno que deja la
+pantalla quieta sin explicación se pulsa dos veces. Y la corrida deja su fila en `JobRun`, que es
+donde se ve una que murió a mitad.
+
+**Lo que reabriría la cola, escrito para no volver a discutirlo por intuición:** que un par de
+modelos reales pase de **60 s** —la mitad del tiempo del servidor— o que una obra tenga tantos
+modelos que la corrida completa se acerque a ese tope. Con cuatro modelos son seis pares, unos dos
+minutos: **ahí ya conviene la cola**, y el número está.
+
+### Y antes de eso: los tres trabajos «que tardan», medidos — y no tardaban (2026-08-28)
 
 La fila pedía **Celery** para «lo que tarde: conversión, extracción, validación», y esa premisa
 nunca se había medido entera. Se midió, sobre los tres modelos y con los tres trabajos que hoy
@@ -1696,13 +1753,13 @@ con extensión prestada.
 **Objetivo de salida:** las interferencias entre disciplinas se encuentran solas y
 llegan a la coordinación como temas, no como una lista en una planilla.
 
-| #      | Tarea                                                                                  | Estado                                             |
-| ------ | -------------------------------------------------------------------------------------- | -------------------------------------------------- |
-| `F5.1` | Definir grupos de comparación (A vs B) por filtros de tipo, disciplina o planta        | ◐ por selector desde el comando; falta la pantalla |
-| `F5.2` | Ejecutar `ifcclash` como job de backend, con tolerancia de holgura configurable        | ✅ ver abajo                                       |
-| `F5.3` | Resultados navegables: la lista lleva la cámara al conflicto y aísla los dos elementos | ✅ **sale de la Fase 4** — ver abajo               |
-| `F5.4` | Convertir un resultado en tema BCF de la Fase 4, con su viewpoint ya apuntado          | ✅ ver abajo                                       |
-| `F5.5` | Agrupar y silenciar falsos positivos, y conservarlos entre corridas                    | ✅ silenciar sí; agrupar por proximidad, no        |
+| #      | Tarea                                                                                  | Estado                                                                 |
+| ------ | -------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `F5.1` | Definir grupos de comparación (A vs B) por filtros de tipo, disciplina o planta        | ✅ la obra entera desde su pantalla; los selectores finos, por comando |
+| `F5.2` | Ejecutar `ifcclash` como job de backend, con tolerancia de holgura configurable        | ✅ ver abajo                                                           |
+| `F5.3` | Resultados navegables: la lista lleva la cámara al conflicto y aísla los dos elementos | ✅ **sale de la Fase 4** — ver abajo                                   |
+| `F5.4` | Convertir un resultado en tema BCF de la Fase 4, con su viewpoint ya apuntado          | ✅ ver abajo                                                           |
+| `F5.5` | Agrupar y silenciar falsos positivos, y conservarlos entre corridas                    | ✅ silenciar sí; agrupar por proximidad, no                            |
 
 **Oráculo:** un conjunto de prueba con interferencias conocidas y colocadas a
 propósito; se cuentan las encontradas y las perdidas. Contra software comercial si
@@ -1781,9 +1838,47 @@ python sequence of strs`, que no menciona ni los grupos ni los selectores. Y pas
 2. **El modo `intersection` exige `check_all`** y sin esa clave lanza un `AssertionError` **sin
    mensaje**, desde un `assert` de la librería.
 
-**Lo que queda de la fase:** la pantalla para definir los grupos (`F5.1` hoy es un selector en la
-línea de comandos), el disparador desde la aplicación —que es la decisión de `F3.4`— y el agrupado
-por proximidad. **490 pruebas en la API con 94,30 %** y 306 en `bim-core`.
+### `F5.1` cerrada y `F3.4` decidida: «Revisar interferencias» en la pantalla de la obra (2026-09-02)
+
+**Era el hueco que separaba «la coordinación funciona» de «se está usando».** La detección existía,
+estaba probada contra su oráculo, y se alcanzaba escribiendo dos UUID en una terminal.
+
+**«Comparar dos revisiones» no es como se coordina una obra.** Un coordinador no elige dos UUID:
+pregunta «¿choca algo?». Así que el botón toma **la revisión vigente de cada entregable que trae un
+modelo** y las cruza todas contra todas. El comando de gestión se queda con el caso dirigido
+—«estructura contra instalaciones, con esta tolerancia»—, que es el que necesita elegir los
+selectores a mano.
+
+**Y no hay pantalla de resultados, que es lo mejor que tiene.** Lo que encuentra cae donde ya vive
+la coordinación: entre las observaciones abiertas de la propia pantalla del proyecto, y desde ahí el
+visor ya sabe abrirlas —aislando los dos elementos y dibujando el segmento entre ellos—. Una lista
+aparte habría que mantenerla sincronizada con el estado de las observaciones.
+
+**Lo que entra en una comparación, y las tres exclusiones que evitan ruido de entrada.** El selector
+por defecto es `IfcElement` menos tres clases, y cada una tiene su motivo medido:
+
+| Fuera                  | Por qué                                                                                                               |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `IfcOpeningElement`    | **Choca con todo por definición**: es el volumen que se resta del muro                                                |
+| `IfcFurnishingElement` | Una silla que atraviesa un tabique no es un problema de obra. **59 de 548** en `Piso 5` — un diez por ciento de ruido |
+| `IfcAnnotation`        | No es geometría construida                                                                                            |
+
+**Y `F3.4` quedó decidida por el usuario**, que es de quien era la decisión: **la petición espera.**
+Veinte segundos caben de sobra en los ciento veinte del servidor, y una cola traería una forma nueva
+de fallar en silencio —un trabajo encolado que nadie procesa no da error— que no hace falta pagar
+todavía. El botón **avisa de que tarda antes de pulsarlo**, no después: uno que deja la pantalla
+quieta sin explicación se pulsa dos veces. Si un par federado se pasa del minuto, ahí se monta la
+cola con el número en la mano.
+
+**Un hallazgo de la propia prueba, que conviene tener escrito.** Cruzando dos modelos que comparten
+GUID —el mismo archivo dos veces, que es lo que pasa comparando dos revisiones del mismo
+entregable— la detección devuelve **la pareja espejada**: muro × pilar y pilar × muro. La identidad
+sin orden las colapsa **dentro de la misma corrida**, no solo entre corridas, y eso salió medido:
+`encontradas: 2, abiertas: 1, repetidas: 1`.
+
+**Lo que queda de la fase:** el agrupado por proximidad —veinte tornillos contra la misma viga son un
+problema, no veinte—, que pide ver una corrida real sobre dos disciplinas de verdad.
+**501 pruebas en la API con 94,18 %** y 306 en `bim-core`.
 
 ---
 

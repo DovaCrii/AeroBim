@@ -5,6 +5,45 @@ Este proyecto sigue [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Añadido — «Revisar interferencias» en la pantalla de la obra (`F5.1`–`F5.5`, 2026-09-02)
+
+**Era el hueco que separaba «la coordinación funciona» de «se está usando».** La detección existía,
+estaba probada contra su oráculo, y se alcanzaba escribiendo dos UUID en una terminal.
+
+Un coordinador no elige dos UUID: pregunta **«¿choca algo?»**. El botón toma la revisión vigente de
+cada entregable que trae un modelo y las cruza todas contra todas. **Y no hay pantalla de
+resultados**, que es lo mejor que tiene: lo que encuentra cae entre las observaciones abiertas de la
+propia pantalla del proyecto, y desde ahí el visor ya sabe abrirlas —aislando los dos elementos y
+dibujando el segmento entre ellos—.
+
+Tres exclusiones evitan el ruido de entrada, y cada una tiene su motivo medido: un
+`IfcOpeningElement` **choca con todo por definición** —es el volumen que se resta del muro—, una
+silla que atraviesa un tabique no es un problema de obra (59 de 548 elementos en `Piso 5`), y una
+anotación no es geometría construida.
+
+**Con esto quedó decidida `F3.4`: la petición espera.** Veinte segundos caben de sobra en los ciento
+veinte del servidor, y una cola traería una forma nueva de fallar en silencio que no hace falta
+pagar todavía. El botón avisa de que tarda **antes** de pulsarlo.
+
+Y un hallazgo de la propia prueba: cruzando dos modelos que comparten GUID la detección devuelve **la
+pareja espejada**, y la identidad sin orden la colapsa dentro de la misma corrida.
+
+### Añadido — El conflicto llega a la coordinación como un tema (`F5.2`–`F5.4`, 2026-09-02)
+
+El plan pedía «un conjunto de prueba con interferencias colocadas a propósito; se cuentan las
+encontradas y las perdidas». Ese conjunto es un muro y cuatro pilares con las coordenadas escritas
+dentro del propio archivo, y trae **los cuatro casos y no solo el que choca**: el que cruza debe
+salir, el que está tres metros al este no, el que tiene la misma huella en planta pero está un metro
+más arriba tampoco —**y ese es el que delata a un detector que compara plantas en vez de
+volúmenes**— y el que apoya contra la cara sin penetrar, solo si se admite el roce. `ifcclash`
+acierta los cuatro.
+
+Y lo mejor del orden en que se hizo el trabajo: **un conflicto no es una lista aparte, es una
+observación**, así que la navegación salió de la Fase 4 sin escribir una pantalla. La identidad de un
+conflicto es **la pareja de GUID sin orden** —el punto de choque cambia con la malla y con la versión
+de la librería—, y con eso descartar un falso positivo es dejar su observación en `descartada`: la
+corrida siguiente no la vuelve a abrir.
+
 ### Añadido — La cota que demuestra el hallazgo viaja con él (`F4.5`, 2026-09-02)
 
 El BCF ya llevaba a dónde mirar, qué se veía y una foto. **Lo que no llevaba es qué señalaba quien

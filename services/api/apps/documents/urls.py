@@ -29,6 +29,14 @@ urlpatterns = [
         views.CambiarIdoneidadView.as_view(),
         name="cambiar-idoneidad",
     ),
+    # **Revisar interferencias cuelga de la obra y no de una revisión**: se cruzan todos los
+    # modelos vigentes del proyecto, que es como se pregunta «¿choca algo?». Vive bajo
+    # `documentos/` porque lo que crea son observaciones.
+    path(
+        "proyectos/<uuid:pk>/revisar-interferencias/",
+        views.RevisarInterferenciasView.as_view(),
+        name="revisar-interferencias",
+    ),
     path("requisitos/", views.RequisitosIdsView.as_view(), name="requisitos-ids"),
     path("requisitos/nuevo/", views.NuevoRequisitoIdsView.as_view(), name="nuevo-requisito-ids"),
     path(

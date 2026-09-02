@@ -45,6 +45,14 @@ from apps.documents.models import Observacion, Revision
 
 
 class Command(BaseCommand):
+    """Compara **dos revisiones concretas**, que es lo que hace falta para probar y para dirigir.
+
+    **La corrida de obra completa vive en otro sitio**: `apps/documents/revisar.py`, y la usan la
+    pantalla del proyecto y quien quiera cruzarlo todo. Este comando se queda con el caso dirigido
+    —«estructura contra instalaciones, con esta tolerancia»— porque es el que necesita elegir los
+    selectores a mano.
+    """
+
     help = "Detecta interferencias entre dos revisiones y las abre como observaciones."
 
     def add_arguments(self, parser):
