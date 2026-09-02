@@ -3,7 +3,7 @@
 > **Fuente única de verdad del trabajo pendiente.** Consolida el estudio de
 > alternativas open-source (verificado el 2026-08-18 contra la API de GitHub y los
 > registros de npm/PyPI) en un tablero ejecutable con seguimiento de estado.
-> **Creado:** 2026-08-18 · **Actualizado:** 2026-08-19 (Fase 0: andamiaje y mediciones)
+> **Creado:** 2026-08-18 · **Actualizado:** 2026-09-01 (Fase 9: sistema de diseño y accesibilidad)
 > **Rama base:** `main`
 > **Regla de oro:** cada fase termina en algo **que alguien puede usar**. No se abre
 > una fase nueva con la anterior a medio cerrar, y no se agrega alcance fuera de lo
@@ -37,7 +37,8 @@ principal y ahí sí podría congelar la interfaz.
 
 ## La interfaz, y con qué regla crece
 
-**La estructura está escrita en [docs/UX.md](docs/UX.md)** (2026-08-19, a pedido del usuario). Lo
+**La estructura está escrita en [docs/UX.md](docs/UX.md)** (2026-08-19, a pedido del usuario) y
+**los tokens en [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md)** (2026-09-01). Lo
 que hay que saber para planificar encima:
 
 - **Una barra arriba, no dos.** Marca, pestañas, estado y `Abrir` en la misma fila: de 196 px a
@@ -2316,6 +2317,69 @@ escala al papel, que es lo que hace falta para imprimirlo.
 
 ---
 
+## FASE 9 — Sistema de diseño y accesibilidad
+
+**Agregada el 2026-09-01 a pedido del usuario**, después de una revisión de diseño que midió
+los contrastes sobre el código en vez de estimarlos. El detalle vive en
+[docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md).
+
+**El hallazgo de fondo:** AeroBim tiene **dos sistemas de diseño y solo uno está hecho**. El
+portal lleva tokens con nombre, el ratio anotado al lado de cada color, tema claro y oscuro,
+`:focus-visible` y estilos de impresión; el visor tiene veinte pasos de `white/NN`, ningún
+token, ningún foco y ningún tema. Son dos vocabularios y el usuario cruza la costura cada vez
+que abre un modelo desde su expediente.
+
+**Objetivo de salida:** que las dos mitades se pinten con el mismo juego de tokens, que ningún
+texto de la aplicación quede por debajo de AA, y que se pueda usar el visor entero con el
+teclado sabiendo dónde se está.
+
+| #      | Tarea                                                                                                  | Estado |
+| ------ | ------------------------------------------------------------------------------------------------------ | ------ |
+| `F9.1` | **Los tokens en `index.css`**: superficies, texto, marca/acción/acento y estado, con su ratio anotado  | ⬜     |
+| `F9.2` | **La escala tipográfica** y fuera el `font-size: 110%`: suelo de 11 px, cuerpo 15, raíz de vuelta a 16 | ⬜     |
+| `F9.3` | **`:focus-visible` global** y los 123 usos de `white/NN` reemplazados por texto con nombre             | ⬜     |
+| `F9.4` | **Las acciones dejan de esconderse**: fuera `opacity-0 group-hover`, áreas de toque a 44 px            | ⬜     |
+| `F9.5` | **Estados vacíos con puerta de entrada**, y escala de radio y elevación compartida con el portal       | ⬜     |
+| `F9.6` | **Reordenar el shell del visor** — _bloqueada: contradice `docs/UX.md`, la decide el usuario_          | ⛔     |
+
+**Oráculo:** ningún par texto/fondo de la aplicación por debajo de 4,5:1 medido con la fórmula
+de WCAG 2.1 (los rótulos deshabilitados quedan exentos, con suelo propio de 3:1); recorrer el
+visor entero con `Tab` sin perder de vista el foco; y `grep` de `white/` en `apps/web/src`
+devolviendo cero.
+
+**`F9.1` a `F9.5` no mueven un solo componente de sitio.** Son defectos, no rediseño, y por eso
+van primero: cada una deja la aplicación entera y usable, y ninguna depende de que se resuelva
+la discusión de `F9.6`.
+
+### `F9.6`: por qué está bloqueada y no simplemente pendiente
+
+La revisión propuso además reordenar el shell: barra de aplicación con migas compartida con el
+portal, **rail de siete secciones** en vez del acordeón del navegador, **herramientas flotando
+sobre el lienzo** con las opciones de la activa desplegándose debajo, y **propiedades como
+tarjeta anclada a la selección** en vez de panel fijo.
+
+Eso choca de frente con tres decisiones ya escritas en [docs/UX.md](docs/UX.md):
+
+| Lo que dice UX.md hoy                                                                     | Lo que propone la revisión                                    |
+| ----------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| «Nada flota sobre el modelo salvo el cubo de vistas»                                      | Herramientas, propiedades y controles de cámara flotan        |
+| El navegador de la derecha es «el contenido del proyecto, todo junto»                     | Se reparte en siete destinos de un rail, uno visible a la vez |
+| «Una capacidad nueva es una sección del navegador y, como mucho, un grupo en una pestaña» | Una capacidad nueva es un destino del rail                    |
+
+**Y una cifra que hay que corregir antes de discutirla.** La revisión anunció que el shell nuevo
+gana alto de lienzo. No es cierto en el caso que importa: la cinta de hoy **ya se pliega a
+34 px**, y contra eso la barra nueva (48 + 32) pierde. La ganancia real es de **ancho**: los dos
+paneles anclados suman 588 px irrecuperables y el rail más un panel suman 372, o sea **+216 px**.
+Lo que sí mejora siempre, y no se mide en píxeles, es que **medir deja de exigir un cambio de
+pestaña y la vuelta**.
+
+Con eso sobre la mesa, la decisión es del usuario, y son tres separadas: si el navegador se
+reparte, si algo puede flotar sobre el modelo, y si propiedades se ancla al elemento. Se puede
+decir que sí a una y que no a las otras dos. **Si alguna se acepta, se reescribe UX.md primero
+y el ticket después** — no al revés, porque UX.md es la fuente de esa decisión.
+
+---
+
 ## Fuera de alcance (decidido, no pendiente)
 
 No entran sin que el usuario lo pida explícitamente:
@@ -2349,3 +2413,4 @@ No entran sin que el usuario lo pida explícitamente:
 | Las interferencias detectadas son tantas que nadie las revisa  | La Fase 5 se construye y no se usa                             | Abierto — `F5.5` (silenciar falsos positivos) entra en la misma fase, no después                                                                                     |
 | Tercer frente abierto con AeroPlanner y AeroControl sin cerrar | Los tres avanzan a un tercio de velocidad                      | Abierto — decisión del usuario; este plan no consume tiempo de los otros repositorios                                                                                |
 | La ruta IFC → 3D Tiles abierta pierde metadatos                | En la vista geoespacial los elementos no traen sus propiedades | Abierto — se acota en `F6.3`: la vista de modelo sigue siendo la fuente de propiedades                                                                               |
+| El visor no es usable con teclado y 123 textos no pasan AA     | Excluye a parte del equipo y bloquea cualquier revisión formal | Abierto — es el objetivo de salida de la Fase 9; `F9.3` es la que lo cierra                                                                                          |

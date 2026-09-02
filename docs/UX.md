@@ -8,6 +8,10 @@
 > La referencia declarada es **AutoCAD, Revit y los modeladores de Bentley**, porque de ahí vienen
 > quienes van a usar esto. No se copia por gusto: se copia para que nadie tenga que aprender otra
 > pantalla.
+>
+> **Los colores, los tamaños de letra y los estados están en
+> [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md)** (2026-09-01). Este documento dice qué zonas hay y qué
+> entra en cada una; aquel dice con qué se pintan. Donde los dos hablen de lo mismo, manda este.
 
 ## La regla de fondo
 
@@ -130,6 +134,15 @@ grupo en una pestaña existente_. Una pestaña nueva solo se justifica cuando ap
 trabajo entero —coordinar no es medir—, y nunca para un solo botón.
 
 ## Lo que falta, dicho en voz alta
+
+- **Hay una propuesta de reordenar el shell que contradice tres decisiones de este documento**
+  (revisión de diseño del 2026-09-01, `F9.6` en `MASTER_PLAN.md`). Propone herramientas
+  flotando sobre el lienzo, el navegador repartido en un rail de siete destinos y propiedades
+  como tarjeta anclada a la selección. Aquí está escrito que **nada flota sobre el modelo salvo
+  el cubo**, que el navegador es **el contenido del proyecto todo junto**, y que una capacidad
+  nueva es **una sección del navegador**. Son tres decisiones separadas y se puede aceptar una
+  sin las otras. **Mientras no se decida, manda lo que dice este documento**; si se acepta
+  alguna, se reescribe aquí primero y se toca el código después.
 
 - **Herramientas CAD de revisión** (`F7.11`): snap a extremo/medio/intersección sobre el plano,
   medir del plano al modelo, y marcar sobre el plano. Hoy se puede seleccionar un trazo y leer su
