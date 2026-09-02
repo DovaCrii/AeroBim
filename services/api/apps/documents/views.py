@@ -434,9 +434,16 @@ class ImportarBcfView(ModelPermissionRequiredMixin, View):
     model = Observacion
     permission_action = "add"
 
+    #: Donde se guarda en la sesión el BCF que se está revisando. `F4.11`.
+    #:
+    #: **En la sesión y no en la URL**, y no es indiferente: una clave de almacenamiento en un
+    #: parámetro la escribe cualquiera, y aunque `storage` la normalice, exponerla invita a probar
+    #: rutas. En la sesión es del navegador de quien la subió y no se puede teclear.
+    SESION = "bcf_entrante"
+
     def post(self, request, *args, **kwargs):
         from apps.core.tenancy import scope_queryset_to_organizacion
-        from apps.documents.bcf_importar import BcfInvalido, importar
+        from apps.documents.bcf_importar import BcfInvalido, leer, vistazo
         from apps.projects.models import Proyecto
 
         proyecto = (
@@ -447,13 +454,95 @@ class ImportarBcfView(ModelPermissionRequiredMixin, View):
         if proyecto is None:
             raise Http404
 
+        # **Tres caminos por la misma puerta**: mirar lo que trae un archivo nuevo, confirmar lo que
+        # se estaba mirando, y dejarlo. Van juntos porque comparten el proyecto y su comprobación.
+        if request.POST.get("dejarlo"):
+            self._olvidar(request)
+            messages.info(request, _("The BCF was left without importing anything."))
+            return redirect("projects:proyecto", pk=proyecto.pk)
+
+        if request.POST.get("confirmar"):
+            return self._confirmar(request, proyecto)
+
         archivo = request.FILES.get("archivo")
         if archivo is None:
             messages.error(request, _("Choose a BCF file to import."))
             return redirect("projects:proyecto", pk=proyecto.pk)
 
+        contenido = archivo.read()
         try:
-            resultado = importar(proyecto, archivo.read(), request.user)
+            temas = leer(contenido)
+        except BcfInvalido as invalido:
+            messages.error(request, str(invalido))
+            return redirect("projects:proyecto", pk=proyecto.pk)
+
+        # **Se guarda para poder confirmarlo**: entre mirar y aceptar hay una petición nueva, y el
+        # archivo ya no viaja en ella. Va al mismo almacén que los documentos, con su clave
+        # construida y nunca con un nombre que venga de fuera.
+        import hashlib
+
+        sha = hashlib.sha256(contenido).hexdigest()
+        clave = storage.clave_para(
+            proyecto_codigo=proyecto.codigo,
+            entregable_codigo="bcf-entrante",
+            sha256=sha,
+            extension="bcf",
+        )
+        storage.guardar(clave, contenido)
+        request.session[self.SESION] = {
+            "clave": clave,
+            "proyecto": str(proyecto.pk),
+            "nombre": archivo.name,
+        }
+
+        return self.render_to_response(
+            {
+                "proyecto": proyecto,
+                "nombre": archivo.name,
+                "vistazos": vistazo(proyecto, temas),
+            }
+        )
+
+    def render_to_response(self, contexto):
+        from django.shortcuts import render
+
+        return render(self.request, "documents/bcf_vistazo.html", contexto)
+
+    def _olvidar(self, request) -> None:
+        """Borra el archivo que se estaba revisando, del disco y de la sesión.
+
+        **Un temporal que nadie borra es un temporal que crece.** Y si el borrado falla —permisos,
+        un montaje de solo lectura— se sigue: lo que importa es que la sesión lo suelte, porque un
+        archivo huérfano ocupa disco y una sesión que apunta a algo que ya no está da un error a
+        quien no hizo nada.
+        """
+        guardado = request.session.pop(self.SESION, None)
+        if not guardado:
+            return
+        try:
+            storage.ruta_de(guardado["clave"]).unlink(missing_ok=True)
+        except OSError:
+            pass
+
+    def _confirmar(self, request, proyecto):
+        """Importa lo que se estaba mirando, y solo si es de esta obra."""
+        from apps.documents.bcf_importar import BcfInvalido, aplicar, leer
+
+        guardado = request.session.get(self.SESION)
+        # **Se comprueba que sea de esta obra**, y no es paranoia: la clave vive en la sesión, así
+        # que con dos pestañas abiertas en dos proyectos el «confirmar» de una podría escribir en la
+        # otra. La sesión guarda a qué obra pertenece y aquí se compara.
+        if not guardado or guardado.get("proyecto") != str(proyecto.pk):
+            messages.error(request, _("That BCF is no longer available. Upload it again."))
+            return redirect("projects:proyecto", pk=proyecto.pk)
+
+        try:
+            contenido = storage.leer(guardado["clave"])
+            resultado = aplicar(proyecto, leer(contenido), request.user)
+        except (OSError, storage.CargaRechazada):
+            self._olvidar(request)
+            messages.error(request, _("That BCF is no longer available. Upload it again."))
+            return redirect("projects:proyecto", pk=proyecto.pk)
         except BcfInvalido as invalido:
             # **El motivo se enseña tal cual.** `BcfInvalido` se escribe para que se pueda leer:
             # dice qué le pasa al archivo y nunca una ruta ni una traza. Quien lo recibió por

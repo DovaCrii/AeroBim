@@ -2985,6 +2985,35 @@ que falta es lo que se imprime, se firma y se cuelga.
 una reunión de obra y con el que puede trabajar sin abrir la aplicación. Si hay que volver a la
 pantalla para entender una fila, el informe no sirve.
 
+> **`F10.3` salió en Carta y no en A4**, porque el formato de la casa es Carta. El oráculo se
+> escribió antes de tener el formato; lo que pide sigue valiendo, el tamaño lo puso el membrete.
+
+### `F4.11` — Mirar el BCF antes de importarlo (cerrada el 2026-09-02)
+
+**Importar era a ciegas**: se subía el archivo y se escribía. El usuario lo preguntó así —«los BCF,
+dónde podré visualizar o ver directamente, ¿será todo interno? la idea que todo el proceso esté
+diseñado para la interacción»— y la respuesta honesta era: sí, todo es interno, pero **no se podía
+mirar**.
+
+Para un ZIP que llega por correo desde otra oficina eso no es una decisión: no se sabe cuántos temas
+trae, cuáles son nuevos, cuáles tocan algo que ya está, ni si el que se esperaba viene con foto.
+
+Ahora la subida **enseña y no escribe**: la lista de temas con su miniatura, su prioridad, su estado
+y su autor, y cada uno marcado como **nueva**, **ya estaba** o **se saltará**. El «confirmar» es lo
+único que escribe; el «dejarlo» suelta el archivo del disco y de la sesión.
+
+Tres decisiones que no son obvias:
+
+- **Lo que enseña sale de la misma regla que después aplica** —el GUID del tema es la identidad— así
+  que la pantalla y lo que ocurre no pueden discrepar. Si discreparan, la revisión previa sería peor
+  que no tenerla.
+- **La miniatura se reduce a 160 px y viaja como `data:`**, porque todavía no está guardada en
+  ninguna parte: una captura de visor ronda el megabyte, y veinte temas incrustados tal cual serían
+  veinte megas de página.
+- **La clave del temporal vive en la sesión y no en la URL.** Un parámetro lo escribe cualquiera; y
+  la sesión guarda además **a qué obra pertenece**, porque con dos pestañas abiertas en dos
+  proyectos el «confirmar» de una podría escribir en la otra. Tiene su prueba.
+
 ### `F10.1` — Etiquetas, y por qué **no** son texto libre
 
 Un campo de texto libre se fragmenta a la tercera semana: «estructura», «Estructura», «estruct» y
@@ -3093,15 +3122,60 @@ que ya tenía: un sistema correcto y sin vida. Todo pasa AA, todo es legible, y 
 nueve tarjetas idénticas de icono, título y dos líneas grises. **El defecto no es de contraste, es
 de jerarquía**, y por eso no lo cazó el oráculo de la `FASE 9`.
 
-| #       | Tarea                                                                           | Estado       |
-| ------- | ------------------------------------------------------------------------------- | ------------ |
-| `F11.1` | Distintivo de disciplina: su código sobre su color, y la letra elegida midiendo | ✅ ver abajo |
-| `F11.2` | Fichas con nombre: «A» pasa a «A · Publicado y autorizado»                      | ✅ ver abajo |
-| `F11.3` | La marca sin placa: variante de trazo claro para las superficies oscuras        | ✅ ver abajo |
-| `F11.4` | La portada: dos mitades, para qué sirve esto, y un mensaje para el equipo       | ✅ ver abajo |
-| `F11.5` | El portal reordenado, y la tarjeta de obra con datos y no con texto             | ⬜           |
-| `F11.6` | «Observaciones abiertas»: prioridad, antigüedad y responsable de un vistazo     | ⬜           |
-| `F11.7` | Una sección de ayuda con el recorrido de cómo se usa                            | ⬜           |
+| #       | Tarea                                                                           | Estado                                               |
+| ------- | ------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| `F11.1` | Distintivo de disciplina: su código sobre su color, y la letra elegida midiendo | ✅ ver abajo                                         |
+| `F11.2` | Fichas con nombre: «A» pasa a «A · Publicado y autorizado»                      | ✅ ver abajo                                         |
+| `F11.3` | La marca sin placa: variante de trazo claro para las superficies oscuras        | ✅ ver abajo                                         |
+| `F11.4` | La portada: dos mitades, para qué sirve esto, y un mensaje para el equipo       | ✅ ver abajo                                         |
+| `F11.5` | El portal reordenado, y la tarjeta de obra con datos y no con texto             | ✅ ver abajo                                         |
+| `F11.6` | «Observaciones abiertas»: prioridad, antigüedad y responsable de un vistazo     | ◐ la ficha ya no pierde el hilo; la tabla, pendiente |
+| `F11.7` | Una sección de ayuda con el recorrido de cómo se usa                            | ⛔                                                   |
+| `F11.8` | Botones, campos y migas: los controles dejaron de ser los del sistema           | ✅ ver abajo                                         |
+
+### `F11.5` — El portal, que es la página que más pesa
+
+**El violeta es la marca, no el uniforme.** Pintar con violeta también los cinco grupos dejaba una
+página de un solo color, y un solo color es lo que se lee como plano. Cada grupo lleva ahora el
+suyo, los cinco medidos sobre las dos superficies del sistema: violeta 8,26 / 7,46 · turquesa
+5,89 / 8,77 · ámbar 5,93 / 8,47 · verde 5,29 / 8,49 · acero 7,30 / 7,52. El icono va sobre una
+baldosa de su acento, que es lo que deja reconocer la tarjeta sin leerla.
+
+Y la tarjeta de obra decía «Edificio corporativo · Anteproyecto · avance 1», que es la etapa y un
+número sin unidad. Lleva ahora la barra de avance con su porcentaje y las cifras que deciden dónde
+entrar —vencidas, de prioridad alta, abiertas—, cada una con su palabra y no solo con su color.
+**El cero no se dibuja**: «0 vencidas» es ruido en una puerta, y hace que una obra limpia parezca
+tener problemas.
+
+> **El gesto de pasar por encima ya existía y no se tocó.** Estaba escrito como `a.tarjeta` a
+> propósito, para que una tarjeta sin enlace no prometa nada; lo único añadido es que el borde tome
+> el acento de su grupo. Estuve a punto de deshacer esa decisión con una regla más general.
+
+### `F11.6` y `F11.8` — Donde se perdía el hilo
+
+**Se pinchaba un hallazgo en la lista de la obra y se caía en una página que no decía dónde estás ni
+en qué punto va.** El usuario lo dijo así: «al momento de pinchar lleva al comentario y no se
+entiende el seguimiento; el flujo se pierde». Tres cosas lo arreglan:
+
+1. **Las migas** —Portal › obra › Observaciones › esta—, porque la única salida era el botón atrás
+   del navegador.
+2. **El paso a paso**: `Abierta → Respondida → Cerrada`, con el actual marcado. Sale de
+   `StatusFlowMixin`, que **no añade campos** —así que no costó una migración— y no se puede separar
+   de los estados reales: si mañana se añade un estado, el dibujo lo trae solo. **`Descartada` va
+   como estado detenido y no como cuarto paso**, porque un falso positivo no «avanzó» hasta ahí.
+3. **Los controles dejaron de ser los del sistema** (`F11.8`), y eso era media explicación de «se ve
+   plano»: `button` sin estilo sale con el gris de Windows sobre una pantalla oscura, y los campos
+   eran **cajas blancas** en tema oscuro. Los tokens ya existían; faltaba usarlos.
+
+> **Y una trampa al adoptar el mixin:** `Observacion` llama a su campo `estado` y los otros tres
+> modelos que avanzan lo llaman `status`, así que el método del mixin daba `AttributeError` al
+> pintar la ficha. Se sobreescribe el método en vez de renombrar el campo: renombrarlo serían una
+> migración y cuarenta usos por delante, y no arreglaría nada que se vea.
+
+**Lo que queda de `F11.6`**: la tabla de «Observaciones abiertas» sigue siendo texto plano —la
+prioridad como palabra gris, nueve títulos subrayados, una columna de rayas en «Vence»— y las dos
+barras de herramientas se meten **entre el rótulo y los datos**, que es de lo que el usuario se
+queja como «mal distribuido».
 
 **El oráculo de la fase, y es el que falta hoy:** el contraste ya está comprobado en el gate para el
 visor; lo que no está comprobado es **la jerarquía**. La forma medible de decirlo: en una pantalla,
@@ -3175,6 +3249,35 @@ vieja a la tercera pantalla que cambia. Las dos formas de que eso no pase son un
 sobre la pantalla de verdad** —que envejece con ella porque señala elementos que existen— o una
 ayuda **generada de lo que el producto sabe hacer**. La primera es más útil y más trabajo. Va como
 decisión del usuario, no como elección nuestra.
+
+---
+
+## La competencia abierta, y qué se le puede mirar
+
+**El usuario trajo la lista el 2026-09-02** —Bonsai, That Open Engine, OpenProject BIM y FreeCAD—
+con el encargo de «tomar cómo funciona la competencia, que es abierta de revisar, para implementar y
+mejorar». Lo primero que hay que decir es lo que ya pasó:
+
+| Herramienta                   | Dónde está respecto a AeroBim                                                                                                                                                |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **That Open Engine**          | **Ya es el visor.** `@thatopen/components` y `@thatopen/fragments` con `web-ifc` son lo que abre el IFC en el navegador desde `F0.4`                                         |
+| **Bonsai** (antes BlenderBIM) | **Su motor ya es el servidor.** Bonsai es la interfaz de Blender sobre IfcOpenShell, y AeroBim usa esa misma familia: `ifcopenshell`, `ifctester`, `ifcclash` y `bcf-client` |
+| **FreeCAD BIM**               | Lee IFC por la misma vía. Como referencia de producto no aporta: es modelado paramétrico, no coordinación                                                                    |
+| **OpenProject BIM**           | **Es la única que hay que estudiar de verdad.** Es un CDE con seguimiento de incidencias y BCF, o sea el competidor directo de las fases 4, 5 y 8                            |
+
+**O sea que dos de las cuatro ya están dentro**, y no por casualidad: se eligieron en la Fase 0
+midiendo. Lo que queda por mirar es **OpenProject BIM**, y concretamente lo que aquí duele: cómo
+presenta una lista larga de incidencias, cómo enseña el estado de cada una y cómo lleva a alguien de
+la lista al modelo y de vuelta. Es justo el hueco de `F11.6`.
+
+**Y una cosa que conviene decir antes de copiar nada:** OpenProject es un gestor de proyectos con un
+módulo BIM encima, y AeroBim es lo contrario — un visor y un registro documental que hacen
+coordinación. Lo que se puede tomar son **decisiones de presentación**, no su modelo de datos: sus
+incidencias no llevan GUID de IFC como identidad, y esa es la pieza sobre la que está construido
+todo lo de aquí.
+
+**Lo que este documento no va a hacer** es prometer una comparación que no se ha hecho. Cuando se
+mire, se escribe aquí lo que se tomó y lo que se descartó, con el porqué — como el resto.
 
 ---
 

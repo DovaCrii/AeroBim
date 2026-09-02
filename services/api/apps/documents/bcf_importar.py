@@ -602,6 +602,88 @@ def _sumar_comentarios(observacion, tema: TemaLeido, gente: dict, por) -> int:
     return nuevos
 
 
+@dataclass
+class Vistazo:
+    """Un tema del BCF **antes de entrar**, con lo que hace falta para decidir. `F4.11`.
+
+    **Importar era a ciegas**: se subia el archivo y se escribia. Para un ZIP que llega por correo
+    desde otra oficina eso es exactamente lo contrario de una decision: no se sabe cuantos temas
+    trae, cuales son nuevos, cuales tocan algo que ya esta, ni si el que se esperaba viene con foto.
+    """
+
+    tema: TemaLeido
+    #: `True` si su GUID ya tiene observacion en esta obra: entonces **se le suma**, no se duplica.
+    conocido: bool
+    #: `True` si no se puede archivar: sin titulo no hay nada que ensenar en una lista.
+    se_salta: bool
+    #: La foto reducida como `data:`, o `""`. Ver `miniatura_de`.
+    miniatura: str
+
+
+def miniatura_de(datos: bytes | None, ancho: int = 160) -> str:
+    """La instantanea del tema reducida a un `data:`, para verla sin haberla guardado todavia.
+
+    **Reducida y no tal cual**, y la cifra importa: una captura de visor ronda el megabyte, y veinte
+    temas incrustados en el HTML son veinte megas de pagina. A 160 px de ancho cada una baja a unos
+    pocos kilobytes y sigue diciendo de que va el hallazgo, que es para lo que esta.
+
+    Devuelve `""` ante cualquier problema: **una miniatura que no sale no puede impedir revisar el
+    archivo**, que es justo lo que se venia a hacer.
+    """
+    if not datos:
+        return ""
+    try:
+        import base64
+        from io import BytesIO
+
+        from PIL import Image
+
+        imagen = Image.open(BytesIO(datos))
+        imagen.thumbnail((ancho, ancho))
+        salida = BytesIO()
+        imagen.convert("RGB").save(salida, format="JPEG", quality=72)
+        return "data:image/jpeg;base64," + base64.b64encode(salida.getvalue()).decode()
+    except Exception:  # noqa: BLE001 — ver el docstring: esto no puede tumbar la revision.
+        return ""
+
+
+def vistazo(proyecto, temas: list[TemaLeido], *, con_miniaturas: bool = True) -> list[Vistazo]:
+    """Que haria cada tema si se importara, **sin escribir nada**.
+
+    Se apoya en la misma regla que `aplicar` —el GUID del tema es la identidad— asi que lo que
+    ensena la pantalla y lo que despues ocurre no pueden discrepar: si discreparan, la revision
+    previa seria peor que no tenerla.
+    """
+    from apps.documents.models import Observacion
+
+    claves = []
+    for tema in temas:
+        try:
+            claves.append(uuid.UUID(tema.guid))
+        except (ValueError, AttributeError, TypeError):
+            continue
+
+    conocidas = set(
+        Observacion.objects.filter(proyecto=proyecto, pk__in=claves).values_list("pk", flat=True)
+    )
+
+    salida = []
+    for tema in temas:
+        try:
+            clave = uuid.UUID(tema.guid)
+        except (ValueError, AttributeError, TypeError):
+            clave = None
+        salida.append(
+            Vistazo(
+                tema=tema,
+                conocido=clave is not None and clave in conocidas,
+                se_salta=not tema.titulo,
+                miniatura=miniatura_de(tema.instantanea) if con_miniaturas else "",
+            )
+        )
+    return salida
+
+
 @transaction.atomic
 def aplicar(proyecto, temas: list[TemaLeido], por) -> Resultado:
     """Guarda los temas leidos en el proyecto. **Todo o nada.**

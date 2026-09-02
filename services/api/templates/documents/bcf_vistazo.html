@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block titulo %}{% translate "Review the BCF" %} · {{ proyecto.codigo }} · AeroBim{% endblock %}
+
+{% block contenido %}
+  {% comment %}
+    **Importar era a ciegas: se subía el archivo y se escribía.** `F4.11`.
+
+    Para un ZIP que llega por correo desde otra oficina eso es lo contrario de una decisión: no se
+    sabe cuántos temas trae, cuáles son nuevos, cuáles tocan algo que ya está, ni si el que se
+    esperaba viene con foto. Esta pantalla lo enseña **antes** de escribir nada, y lo que dice sale
+    de la misma regla que después aplica —el GUID del tema es la identidad— así que la pantalla y lo
+    que ocurre no pueden discrepar.
+  {% endcomment %}
+  <h1>{% translate "This is what the BCF brings" %}</h1>
+  <p class="subtitulo">
+    {{ nombre }} · {{ proyecto.codigo }} ·
+    {% blocktranslate count total=vistazos|length %}{{ total }} topic{% plural %}{{ total }} topics{% endblocktranslate %}
+  </p>
+
+  <form method="post" action="{% url 'documents:importar-bcf' proyecto.pk %}" class="accion">
+    {% csrf_token %}
+    <button type="submit" name="confirmar" value="1">{% translate "Import all of it" %}</button>
+    <button type="submit" name="dejarlo" value="1" class="secundario">
+      {% translate "Leave it" %}
+    </button>
+    <span class="detalle">
+      {% translate "Nothing has been written yet. What is marked as already here gets its thread and its status updated; it is never duplicated." %}
+    </span>
+  </form>
+
+  <div class="temas">
+    {% for v in vistazos %}
+      <article class="tema-bcf {% if v.se_salta %}tema-fuera{% endif %}">
+        {% if v.miniatura %}
+          {% comment %}
+            La foto **reducida a un `data:`**, porque todavía no está guardada en ninguna parte: a
+            160 px cada una son unos kilobytes, y tal cual serían veinte megas de página.
+          {% endcomment %}
+          <img class="tema-foto" src="{{ v.miniatura }}" alt="" />
+        {% else %}
+          <div class="tema-foto tema-sin-foto" aria-hidden="true">—</div>
+        {% endif %}
+
+        <div class="tema-cuerpo">
+          <div class="tema-cabeza">
+            <span class="tema-titulo">{{ v.tema.titulo|default:_("(no title)") }}</span>
+            {% if v.se_salta %}
+              <span class="cifra cifra-arde">{% translate "will be skipped" %}</span>
+            {% elif v.conocido %}
+              <span class="cifra">{% translate "already here" %}</span>
+            {% else %}
+              <span class="cifra cifra-nueva">{% translate "new" %}</span>
+            {% endif %}
+          </div>
+
+          {% if v.tema.descripcion %}
+            <p class="tema-detalle">{{ v.tema.descripcion|truncatechars:220 }}</p>
+          {% endif %}
+
+          <div class="fichas">
+            <span class="ficha">{{ v.tema.prioridad }}</span>
+            <span class="ficha">{{ v.tema.estado }}</span>
+            {% if v.tema.autor %}<span class="ficha">{{ v.tema.autor }}</span>{% endif %}
+            {% comment %}
+              **Que traiga elemento y cámara no es un detalle**: sin GUID el hallazgo no se puede
+              abrir en el modelo, y sin cámara se abre mirando a donde nadie eligió. Se dice acá
+              porque es lo que decide si el tema va a servir después.
+            {% endcomment %}
+            {% if v.tema.ifc_guid %}
+              <span class="ficha">{% translate "with element" %}</span>
+            {% endif %}
+            {% if v.tema.camara %}<span class="ficha">{% translate "with camera" %}</span>{% endif %}
+            {% if v.tema.comentarios %}
+              <span class="ficha">
+                {% blocktranslate count total=v.tema.comentarios|length %}{{ total }} comment{% plural %}{{ total }} comments{% endblocktranslate %}
+              </span>
+            {% endif %}
+          </div>
+        </div>
+      </article>
+    {% empty %}
+      <div class="vacio">
+        {% translate "That BCF has no topic that can be read." %}
+      </div>
+    {% endfor %}
+  </div>
+{% endblock %}

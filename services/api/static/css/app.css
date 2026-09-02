@@ -938,6 +938,211 @@ a.tarjeta:hover::before {
   color: var(--ab-warn);
 }
 
+/* --- Botones y migas de pan ------------------------------------------------------- */
+
+/*
+ * **Los botones eran los del sistema operativo, y eso es media explicación de «se ve plano».**
+ * `button` sin estilo sale con el gris de Windows en una pantalla oscura: «Importar una respuesta
+ * BCF» y «Revisar interferencias» parecían pegados de otra aplicación.
+ *
+ * Uno primario por pantalla y el resto de contorno. El primario usa `--ab-primary`, que es el
+ * violeta llevado a texto y **no** el de marca: blanco sobre el de marca da 4,13:1 y no pasa AA,
+ * que es la lección que ya está escrita arriba en los tokens.
+ */
+button,
+.boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 6px 14px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: var(--ab-primary);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  line-height: 1.2;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease;
+}
+
+button:hover,
+.boton:hover {
+  background: var(--ab-primary-hover);
+  color: #fff;
+}
+
+button:focus-visible,
+.boton:focus-visible {
+  outline: 2px solid var(--ab-primary);
+  outline-offset: 2px;
+}
+
+/* El secundario: la salida, el «dejarlo». Va de contorno porque **no es la acción de la
+   pantalla**, y dos botones del mismo peso obligan a leer los dos para elegir. */
+button.secundario,
+.boton.secundario {
+  background: transparent;
+  border-color: var(--ab-border);
+  color: var(--ab-text);
+}
+
+button.secundario:hover,
+.boton.secundario:hover {
+  background: var(--ab-surface-alt);
+  border-color: var(--ab-primary);
+  color: var(--ab-text);
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* El interruptor de tema de la barra se queda como estaba: vive sobre el navy y tiene su regla
+   propia más abajo, que gana por especificidad. */
+
+/*
+ * **Los campos también eran los del sistema**, y en tema oscuro eso son cajas blancas: la ficha de
+ * un hallazgo tenía dos rectángulos blancos encima de un fondo azul oscuro. Los tokens ya existían;
+ * lo que faltaba era usarlos.
+ *
+ * `--ab-border-control` no existe en este archivo, así que el contorno es `--ab-border` reforzado
+ * al enfocar: WCAG 1.4.11 pide 3:1 para el contorno de un control, y el del sistema no lo cumplía
+ * en oscuro porque simplemente no había contorno — había un relleno blanco.
+ */
+input[type="text"],
+input[type="password"],
+input[type="date"],
+input[type="number"],
+input[type="email"],
+input[type="file"],
+select,
+textarea {
+  max-width: 100%;
+  padding: 7px 10px;
+  color: var(--ab-text);
+  background: var(--ab-surface-alt);
+  border: 1px solid var(--ab-border);
+  border-radius: 9px;
+  font: inherit;
+}
+
+textarea {
+  min-height: 84px;
+  resize: vertical;
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--ab-primary);
+  outline-offset: 1px;
+  border-color: var(--ab-primary);
+}
+
+/* El campo de archivo trae su propio botón, que es del sistema y no se puede estilar entero: al
+   menos su marco deja de ser una caja blanca. */
+input[type="file"] {
+  padding: 5px 8px;
+}
+
+/*
+ * **Las migas, que es lo que faltaba para no perder el hilo.** Se pinchaba un hallazgo en la lista
+ * de la obra y la única salida era el botón atrás del navegador: la ficha no decía de dónde venías.
+ */
+.migas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  color: var(--ab-text-muted);
+  font-size: 0.84rem;
+}
+
+.migas [aria-current="page"] {
+  color: var(--ab-text);
+  font-weight: 600;
+}
+
+/* --- La revisión de un BCF antes de importarlo ------------------------------------ */
+
+/*
+ * **Importar era a ciegas.** `F4.11`: se subía el archivo y se escribía. Para un ZIP que llega por
+ * correo desde otra oficina eso no es una decisión — no se sabe cuántos temas trae ni cuáles tocan
+ * algo que ya está. Esta lista lo enseña antes de escribir nada.
+ *
+ * Cada tema con su foto a la izquierda, porque es lo que permite reconocer un hallazgo sin leer su
+ * título: es lo mismo que hace todo visor del mercado en su lista de temas.
+ */
+.temas {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.tema-bcf {
+  display: grid;
+  grid-template-columns: 108px minmax(0, 1fr);
+  gap: 14px;
+  padding: 12px 14px;
+  background: var(--ab-surface);
+  border: 1px solid var(--ab-border);
+  border-radius: var(--ab-radius);
+}
+
+/* El que no va a entrar se atenúa, pero **no se esconde**: saber qué se queda fuera es la mitad
+   de para qué sirve esta pantalla. */
+.tema-bcf.tema-fuera {
+  opacity: 0.72;
+  border-style: dashed;
+}
+
+.tema-foto {
+  width: 108px;
+  height: 76px;
+  object-fit: cover;
+  border-radius: 8px;
+  background: var(--ab-surface-alt);
+}
+
+.tema-sin-foto {
+  display: grid;
+  place-items: center;
+  color: var(--ab-text-muted);
+  border: 1px dashed var(--ab-border);
+}
+
+.tema-cabeza {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.tema-titulo {
+  font-size: 1rem;
+  font-weight: 650;
+}
+
+.tema-detalle {
+  margin: 4px 0 0;
+  color: var(--ab-text-secondary);
+  font-size: 0.88rem;
+}
+
+/* Lo que entra nuevo se marca en verde: es lo que se venía a ver. */
+.cifra-nueva {
+  border-color: color-mix(in srgb, var(--ab-ok) 55%, transparent);
+  color: var(--ab-ok);
+}
+
 /* --- Fichas: un dato con su nombre, no un código suelto --------------------------- */
 
 /*

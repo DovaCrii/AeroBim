@@ -347,7 +347,7 @@ class Transmittal(BaseModel):
         self.save(update_fields=["status", "acusado_en", "updated_at"])
 
 
-class Observacion(BaseModel):
+class Observacion(StatusFlowMixin, BaseModel):
     """Una observacion, un error, un hallazgo: algo que alguien tiene que resolver.
 
     **Es el mismo ciclo de vida que necesitan los temas BCF de la Fase 4** —prioridad,
@@ -372,6 +372,39 @@ class Observacion(BaseModel):
         (CERRADA, _("Closed")),
         (DESCARTADA, _("Dismissed")),
     ]
+
+    #: El camino de un hallazgo, para poder dibujarlo. `F11.6`.
+    #:
+    #: **Un hallazgo avanza, y su pantalla no lo decia.** Se abria, se respondia y se cerraba, y la
+    #: ficha ensenaba una sola palabra suelta —«Abierta»— sin decir de donde venia ni que falta. Con
+    #: el hilo vacio, la pantalla no daba ninguna pista de que hay que hacer con eso, y el usuario
+    #: lo dijo asi: «no se entiende el seguimiento, el flujo se pierde».
+    #:
+    #: `StatusFlowMixin` **no añade campos**, asi que esto no cuesta una migracion: los tres estados
+    #: ya existian y lo unico que faltaba era declarar en que orden van.
+    STATUS_FLOW = [ABIERTA, RESPONDIDA, CERRADA]
+
+    #: **Descartada no es un paso del camino, es donde se sale de el.** Dibujarla como el cuarto
+    #: paso diria que un falso positivo «avanzo» hasta ahi, y lo que paso es que alguien decidio que
+    #: no era un problema. Por eso va como estado detenido y no como final.
+    STATUS_BLOCKED = DESCARTADA
+
+    def status_steps(self):
+        """Los pasos del hallazgo. **El campo se llama `estado` y no `status`.**
+
+        Los otros tres modelos que avanzan —`Proyecto`, `Revision` y `Actividad`— lo llaman
+        `status`, asi que el mixin lee `self.status` y aqui daba un `AttributeError` al pintar la
+        ficha. Se sobreescribe en vez de renombrar el campo: renombrarlo serian una migracion y
+        cuarenta usos por delante, y no arreglaria nada que se vea.
+        """
+        from apps.core.models import status_steps_for
+
+        return status_steps_for(
+            choices=self.STATUS_CHOICES,
+            flow=self.STATUS_FLOW,
+            current=self.estado,
+            blocked=self.STATUS_BLOCKED,
+        )
 
     ALTA = "alta"
     MEDIA = "media"

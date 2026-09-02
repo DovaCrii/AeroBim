@@ -4,14 +4,44 @@
 {% block titulo %}{{ observacion.titulo }} · AeroBim{% endblock %}
 
 {% block contenido %}
+  {% comment %}
+    **Aquí se perdía el hilo.** `F11.6`. Se pinchaba un hallazgo en la lista de la obra y se caía en
+    una página que no decía **dónde estás** ni **en qué punto va**: el título, una línea de
+    metadatos, un hilo vacío y dos formularios. El usuario lo dijo así: «no se entiende el
+    seguimiento, el flujo se pierde».
+
+    Tres cosas lo arreglan y ninguna es decoración:
+
+    1. **Las migas**, para saber de dónde vienes y poder volver. Sin ellas, la única salida era el
+       botón atrás del navegador.
+    2. **El paso a paso**, que dice de dónde viene el hallazgo y qué falta. Sale de
+       `StatusFlowMixin`, así que **no se puede separar de los estados reales**: si mañana se añade
+       un estado, el dibujo lo trae solo.
+    3. **La descripción arriba y no debajo de los metadatos**, que es lo que se lee primero.
+  {% endcomment %}
+  <nav class="migas" aria-label="{% translate 'Where you are' %}">
+    <a href="{% url 'portal' %}">{% translate "Portal" %}</a>
+    {% if observacion.proyecto %}
+      <span aria-hidden="true">›</span>
+      <a href="{% url 'projects:proyecto' observacion.proyecto.pk %}">
+        {{ observacion.proyecto.codigo }}
+      </a>
+    {% endif %}
+    <span aria-hidden="true">›</span>
+    <a href="{% url 'documents:observaciones' %}">{% translate "Observations" %}</a>
+    <span aria-hidden="true">›</span>
+    <span aria-current="page">{{ observacion.titulo|truncatechars:48 }}</span>
+  </nav>
+
   <h1>{{ observacion.titulo }}</h1>
   <p class="subtitulo">
-    {{ observacion.get_estado_display }} ·
     {% translate "owner" %}: {{ observacion.responsable }} ·
     {% translate "opened by" %} {{ observacion.autor }}
     {% if observacion.vence %}· {% translate "due" %} {{ observacion.vence|date:"Y-m-d" }}{% endif %}
     {% if observacion.vencida %}<strong>⚠ {% translate "overdue" %}</strong>{% endif %}
   </p>
+
+  {% include "generic/_pasos.html" with pasos=observacion.status_steps etiqueta=_("Where this finding stands") %}
 
   {% if observacion.descripcion %}<p>{{ observacion.descripcion|linebreaksbr }}</p>{% endif %}
 

@@ -499,8 +499,13 @@ def test_cerrada_vuelve_como_cerrada_y_nunca_como_descartada(
 
 
 @pytest.mark.django_db
-def test_importar_pide_add_observacion(client, proyectista, proyecto):
-    """Importar **crea** observaciones: no lo hace quien solo puede leerlas."""
+def test_importar_pide_add_observacion(client, proyectista, proyecto, settings, tmp_path):
+    """Importar **crea** observaciones: no lo hace quien solo puede leerlas.
+
+    **El permiso guarda las dos mitades del gesto**, y eso es lo que se comprueba: no basta con
+    cerrar el «confirmar», porque ya la vista previa lee el archivo y lo deja en el disco.
+    """
+    settings.DOCUMENTS_DIR = tmp_path / "documentos"
     ruta = reverse("documents:importar-bcf", args=[proyecto.pk])
     contenido, _ = bcf_ajeno()
 
@@ -511,9 +516,14 @@ def test_importar_pide_add_observacion(client, proyectista, proyecto):
 
     client.force_login(dar(proyectista, "documents.view_observacion"))
     assert subir().status_code == 403
+    assert client.post(ruta, {"confirmar": "1"}).status_code == 403
 
     client.force_login(dar(proyectista, "documents.add_observacion"))
-    assert subir().status_code == 302
+    # La subida enseña y no escribe: `F4.11`.
+    assert subir().status_code == 200
+    assert not Observacion.objects.filter(proyecto=proyecto).exists()
+
+    assert client.post(ruta, {"confirmar": "1"}).status_code == 302
     assert Observacion.objects.filter(proyecto=proyecto).count() == 1
 
 
@@ -532,6 +542,128 @@ def test_no_se_importa_en_el_proyecto_de_otra_organizacion(client, proyectista):
 
     assert respuesta.status_code == 404
     assert not Observacion.objects.filter(proyecto=suyo).exists()
+
+
+# --- Mirar antes de importar. `F4.11`. ----------------------------------------------
+
+
+@pytest.mark.django_db
+def test_subir_un_bcf_no_escribe_nada_todavia(client, proyectista, proyecto, settings, tmp_path):
+    """**Importar era a ciegas: se subía y se escribía.** Para un ZIP que llega por correo desde
+    otra oficina eso no es una decisión — no se sabe cuántos temas trae ni cuáles tocan algo que ya
+    está. Ahora la subida enseña, y solo el «confirmar» escribe."""
+    settings.DOCUMENTS_DIR = tmp_path / "documentos"
+    contenido, _guid = bcf_ajeno()
+    client.force_login(dar(proyectista, "documents.add_observacion"))
+
+    archivo = BytesIO(contenido)
+    archivo.name = "respuesta.bcf"
+    respuesta = client.post(
+        reverse("documents:importar-bcf", args=[proyecto.pk]), {"archivo": archivo}
+    )
+
+    assert respuesta.status_code == 200
+    assert not Observacion.objects.filter(proyecto=proyecto).exists()
+    html = respuesta.content.decode("utf-8")
+    assert "Choque de bandeja con viga" in html
+
+
+@pytest.mark.django_db
+def test_confirmar_es_lo_que_escribe(client, proyectista, proyecto, settings, tmp_path):
+    settings.DOCUMENTS_DIR = tmp_path / "documentos"
+    contenido, _guid = bcf_ajeno()
+    client.force_login(dar(proyectista, "documents.add_observacion"))
+    ruta = reverse("documents:importar-bcf", args=[proyecto.pk])
+
+    archivo = BytesIO(contenido)
+    archivo.name = "respuesta.bcf"
+    client.post(ruta, {"archivo": archivo})
+    assert not Observacion.objects.filter(proyecto=proyecto).exists()
+
+    respuesta = client.post(ruta, {"confirmar": "1"})
+
+    assert respuesta.status_code == 302
+    assert Observacion.objects.filter(proyecto=proyecto).count() == 1
+
+
+@pytest.mark.django_db
+def test_dejarlo_no_escribe_y_suelta_el_archivo(client, proyectista, proyecto, settings, tmp_path):
+    """**Un temporal que nadie borra es un temporal que crece.**"""
+    settings.DOCUMENTS_DIR = tmp_path / "documentos"
+    contenido, _guid = bcf_ajeno()
+    client.force_login(dar(proyectista, "documents.add_observacion"))
+    ruta = reverse("documents:importar-bcf", args=[proyecto.pk])
+
+    archivo = BytesIO(contenido)
+    archivo.name = "respuesta.bcf"
+    client.post(ruta, {"archivo": archivo})
+
+    respuesta = client.post(ruta, {"dejarlo": "1"})
+
+    assert respuesta.status_code == 302
+    assert not Observacion.objects.filter(proyecto=proyecto).exists()
+    # Y confirmar después ya no encuentra nada: la sesión lo soltó.
+    assert client.post(ruta, {"confirmar": "1"}).status_code == 302
+    assert not Observacion.objects.filter(proyecto=proyecto).exists()
+
+
+@pytest.mark.django_db
+def test_el_vistazo_dice_que_es_nuevo_y_que_ya_estaba(proyecto, organizacion, revisor, proyectista):
+    """**Lo que enseña la pantalla y lo que después ocurre no pueden discrepar**, así que el vistazo
+    usa la misma regla que `aplicar`: el GUID del tema es la identidad."""
+    from apps.documents.bcf_importar import leer, vistazo
+
+    nuestra = Observacion.objects.create(
+        organizacion=organizacion,
+        proyecto=proyecto,
+        titulo="Ya la teniamos",
+        autor=revisor,
+        responsable=proyectista,
+        prioridad=Observacion.MEDIA,
+        ifc_guid=GUID,
+    )
+    ida = exportar(Observacion.objects.filter(pk=nuestra.pk), str(proyecto))
+    ajeno, _guid = bcf_ajeno(titulo="Esta es nueva")
+
+    conocidos = vistazo(proyecto, leer(ida), con_miniaturas=False)
+    nuevos = vistazo(proyecto, leer(ajeno), con_miniaturas=False)
+
+    assert [v.conocido for v in conocidos] == [True]
+    assert [v.conocido for v in nuevos] == [False]
+
+
+def test_la_miniatura_se_reduce_y_un_png_roto_no_la_tumba():
+    """A 160 px cada foto son unos kilobytes; tal cual serían veinte megas de página con veinte
+    temas. Y una que no sale **no puede impedir revisar el archivo**."""
+    from apps.documents.bcf_importar import miniatura_de
+
+    reducida = miniatura_de(png(400, 300))
+
+    assert reducida.startswith("data:image/jpeg;base64,")
+    assert len(reducida) < 40_000
+    assert miniatura_de(b"esto no es un png") == ""
+    assert miniatura_de(None) == ""
+
+
+@pytest.mark.django_db
+def test_no_se_confirma_el_bcf_de_otra_obra(client, proyectista, proyecto, settings, tmp_path):
+    """**Con dos pestañas abiertas en dos obras**, el «confirmar» de una no puede escribir en la
+    otra: la sesión guarda a qué obra pertenece el archivo y la vista lo compara."""
+    settings.DOCUMENTS_DIR = tmp_path / "documentos"
+    otra = Proyecto.objects.create(
+        organizacion=proyecto.organizacion, codigo="717-OTRA", nombre="La otra obra"
+    )
+    contenido, _guid = bcf_ajeno()
+    client.force_login(dar(proyectista, "documents.add_observacion"))
+
+    archivo = BytesIO(contenido)
+    archivo.name = "respuesta.bcf"
+    client.post(reverse("documents:importar-bcf", args=[proyecto.pk]), {"archivo": archivo})
+
+    respuesta = client.post(reverse("documents:importar-bcf", args=[otra.pk]), {"confirmar": "1"})
+
+    assert respuesta.status_code == 302
+    assert not Observacion.objects.filter(proyecto=otra).exists()
 
 
 @pytest.mark.django_db
