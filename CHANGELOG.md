@@ -5,6 +5,25 @@ Este proyecto sigue [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Añadido — La cota que demuestra el hallazgo viaja con él (`F4.5`, 2026-09-02)
+
+El BCF ya llevaba a dónde mirar, qué se veía y una foto. **Lo que no llevaba es qué señalaba quien
+anotó**: el título decía «la viga del eje C choca con el ducto» y la cota de 4 cm que lo demuestra se
+quedaba en el navegador.
+
+**Las cotas ya dibujadas son el marcado**, y no es un atajo: BCF 2.1 guarda el marcado de un
+viewpoint como **segmentos de recta en coordenadas del modelo** —`<Lines>`— y el visor ya tiene
+puntos ahí, porque medir consiste en ponerlos. Una distancia da un tramo, un ángulo dos, un área su
+contorno **cerrado**. Solibri y Navisworks dibujan esas líneas sobre su propio modelo, así que la
+cota viaja **en tres dimensiones** y no como un trazo pintado sobre una imagen.
+
+Solo las cotas **visibles**: una apagada es una que quien anota decidió no mostrar. Y con el tope
+alcanzado se deja fuera la medición entera, no los segmentos que sobran — medio contorno es una
+forma que nadie dibujó.
+
+Queda pendiente la otra mitad de la fila: el **trazo libre** —nube, flecha y texto a mano—, que es
+una herramienta de dibujo y no una conversión de algo que ya existe.
+
 ### Corregido — Nada se esconde detrás del ratón (`F9.4`–`F9.5`, 2026-09-02)
 
 **Cinco acciones aparecían solo al pasar el cursor**: cerrar un modelo, borrar una vista, borrar una

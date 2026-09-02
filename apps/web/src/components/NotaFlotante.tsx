@@ -1,5 +1,6 @@
 import {
   camaraBcfDesdeEscena,
+  type LineaIfc,
   type SceneCameraState,
   type VisibilidadBcf,
 } from "@aerobim/bim-core";
@@ -51,6 +52,7 @@ export function NotaFlotante({
   camaraDeAhora,
   visibilidadDeAhora,
   fotoDeAhora,
+  marcadoDeAhora,
   onCerrar,
   onGuardada,
 }: {
@@ -74,6 +76,13 @@ export function NotaFlotante({
    * lista de temas con su miniatura al lado.
    */
   readonly fotoDeAhora: () => string | null;
+  /**
+   * Lo que se señaló: las cotas visibles como segmentos del viewpoint. `F4.5`.
+   *
+   * **Es lo que convierte «choca con el ducto» en un hallazgo comprobable**: la cota de 4 cm que lo
+   * demuestra viaja con la nota, en tres dimensiones y sobre el modelo del otro.
+   */
+  readonly marcadoDeAhora: () => readonly LineaIfc[];
   readonly onCerrar: () => void;
   readonly onGuardada: (nota: NotaGuardada) => void;
 }) {
@@ -136,6 +145,12 @@ export function NotaFlotante({
     // del visor y esta tarjeta es HTML por encima: la imagen que llega al BCF es el modelo limpio,
     // sin el formulario tapando media pantalla. Por eso no hay que cerrarla para tomarla.
     const foto = fotoDeAhora();
+    /*
+     * **Y qué se señalaba.** Las cotas que están a la vista son el marcado del viewpoint: BCF lo
+     * guarda como segmentos en coordenadas del modelo, y medir es justamente poner puntos ahí.
+     * Solo las visibles — una cota apagada es una que quien anota decidió no mostrar.
+     */
+    const marcado = marcadoDeAhora();
 
     try {
       const respuesta = await fetch(`/api/revisiones/${revisionId}/observaciones/`, {
@@ -150,6 +165,7 @@ export function NotaFlotante({
           camara: camara === null ? null : JSON.stringify(camara),
           visibilidad: visibilidad === null ? null : JSON.stringify(visibilidad),
           instantanea: foto,
+          marcado: marcado.length === 0 ? null : JSON.stringify(marcado),
         }),
       });
 

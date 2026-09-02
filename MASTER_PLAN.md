@@ -18,8 +18,8 @@
 comprobado en el gate, y sin mover un solo componente de sitio. **`F9.6` no la decide este plan**:
 son tres decisiones del usuario y contradicen tres líneas escritas de `UX.md`.
 
-**Lo que sigue, entonces, es abrir frente nuevo:** `F4.5` (marcado sobre la vista, que ahora tiene
-dónde ir porque hay instantánea) o la Fase 2, 5 o 6 — las tres grandes que quedan por empezar.
+**Lo que sigue, entonces, es abrir frente nuevo:** la mitad de `F4.5` que queda —el trazo libre— o
+la Fase 2, 5 o 6 — las tres grandes que quedan por empezar.
 
 > **Esta sección decía «lo que sigue es `F0.6`» hasta el 2026-09-02**, y `F0.6` se cerró el
 > 2026-08-19. La fuente única de verdad apuntaba a una tarea muerta durante dos semanas, mientras
@@ -39,7 +39,7 @@ Las **veintinueve** filas abiertas, de una vez. `⬜` no empezada · `❓` medid
 | Fase                    | Filas abiertas                                                                                                            |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | **9 — Diseño**          | `F9.6` ⛔ — la decide el usuario, y son tres decisiones _(`F9.1` a `F9.5` cerradas)_                                      |
-| **4 — Coordinación**    | `F4.5` marcado sobre la vista ⬜ · `F4.6` importar BCF ⬜                                                                 |
+| **4 — Coordinación**    | `F4.5` ◐ falta el trazo libre; las cotas ya viajan · `F4.6` importar BCF ⬜                                               |
 | **7 — Planos, salida**  | `F7.2` viewports y capas · `F7.3` acotado y anotaciones · `F7.5` exportar a PDF ⬜                                        |
 | **2 — Nubes de puntos** | `F2.1` a `F2.6` ⬜ — cargar, alinear, visualizar, medir contra el modelo, documentar el pipeline, y el gaussian splatting |
 | **5 — Interferencias**  | `F5.1` a `F5.5` ⬜ — grupos, `ifcclash`, resultados navegables, a BCF, y silenciar falsos positivos                       |
@@ -1472,21 +1472,70 @@ modelos que existen hoy — se completa con los entregables en `F8.1`.
 **Objetivo de salida:** una observación de coordinación deja de ser un correo con
 una captura de pantalla.
 
-| #       | Tarea                                                                                         | Estado       |
-| ------- | --------------------------------------------------------------------------------------------- | ------------ |
-| `F4.1`  | Temas de observación con viewpoint: **cámara** y elementos involucrados por GUID              | ✅           |
-| `F4.7`  | Visibilidad en el viewpoint: lo apagado y lo aislado, traducido de `localId` a GUID           | ✅           |
-| `F4.8`  | **Ver y abrir la observación dentro del visor**: la lista lleva la cámara y selecciona        | ✅           |
-| `F4.2`  | Metadatos y ciclo de vida: prioridad, responsable, fecha de vencimiento, estado               | ✅           |
-| `F4.3`  | Comentarios ligados al viewpoint, con historial                                               | ✅           |
-| `F4.4`  | **Exportar BCF 2.1** — escrito a mano, leído de vuelta por `bcf-client` en las pruebas        | ✅           |
-| `F4.10` | **La foto del hallazgo** en el viewpoint: sin ella, el otro extremo abre una lista de títulos | ✅ ver abajo |
-| `F4.5`  | Marcado sobre la vista (nube, flecha, texto) embebido en el viewpoint                         | ⬜           |
+| #       | Tarea                                                                                         | Estado                                              |
+| ------- | --------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| `F4.1`  | Temas de observación con viewpoint: **cámara** y elementos involucrados por GUID              | ✅                                                  |
+| `F4.7`  | Visibilidad en el viewpoint: lo apagado y lo aislado, traducido de `localId` a GUID           | ✅                                                  |
+| `F4.8`  | **Ver y abrir la observación dentro del visor**: la lista lleva la cámara y selecciona        | ✅                                                  |
+| `F4.2`  | Metadatos y ciclo de vida: prioridad, responsable, fecha de vencimiento, estado               | ✅                                                  |
+| `F4.3`  | Comentarios ligados al viewpoint, con historial                                               | ✅                                                  |
+| `F4.4`  | **Exportar BCF 2.1** — escrito a mano, leído de vuelta por `bcf-client` en las pruebas        | ✅                                                  |
+| `F4.10` | **La foto del hallazgo** en el viewpoint: sin ella, el otro extremo abre una lista de títulos | ✅ ver abajo                                        |
+| `F4.5`  | Marcado sobre la vista embebido en el viewpoint — **las cotas viajan como `<Lines>`**         | ◐ la mitad medida; falta el trazo libre — ver abajo |
 
 **`F4.2` y `F4.3` las cerró la Fase 8, no esta.** Fue la apuesta del replanteo —«las
 observaciones comparten modelo con los temas BCF», `F8.2`— y salió: `Observacion` ya trae
 prioridad, responsable, vencimiento, estado y resolución, y `Comentario` el historial. No hay
 tabla nueva que escribir; el tablero decía ⬜ sobre código que existe desde hace días.
+
+### `F4.5`: las cotas ya dibujadas **son** el marcado (2026-09-02)
+
+**El BCF llevaba a dónde mirar, qué se veía y una foto. Lo que no llevaba es qué señalaba quien
+anotó.** El título dice «la viga del eje C choca con el ducto» y en la pantalla había una cota de
+4 cm entre las dos: **ese número es el hallazgo**, y se quedaba en el navegador de quien lo
+encontró.
+
+**La decisión de fondo, y no es un atajo.** BCF 2.1 guarda el marcado de un viewpoint como
+**segmentos de recta en coordenadas del modelo** —`<Lines>`— y el visor ya tiene puntos en
+coordenadas del modelo, porque medir consiste precisamente en poner puntos ahí. Convertir las cotas
+visibles en líneas es **ensamblar dos piezas que existen**, no construir una tercera. Y lo que sale
+es lo que el otro extremo entiende: Solibri y Navisworks dibujan esas líneas sobre su propio modelo,
+así que la cota viaja **en tres dimensiones** y no como un trazo pintado sobre una imagen.
+
+| Medida        | Puntos | Segmentos                          |
+| ------------- | ------ | ---------------------------------- |
+| Distancia     | 2      | 1 — el propio tramo medido         |
+| Perpendicular | 2      | 1 — del punto al pie en la cara    |
+| Ángulo        | 3      | 2 — los dos lados desde el vértice |
+| Área          | n ≥ 3  | n — el contorno, **cerrado**       |
+
+Tres decisiones que conviene tener escritas:
+
+- **Solo las cotas visibles.** Una cota apagada es una que quien anota decidió no mostrar, y
+  mandarla sería devolverle al otro lo que el autor quitó de la pantalla.
+- **Con el tope alcanzado se deja fuera la medición entera**, no los segmentos que sobran. Medio
+  contorno de un área es una polilínea abierta que afirma una forma que nadie dibujó — mismo
+  criterio con el que la visibilidad prefiere callarse antes que apagar el modelo. Y **sigue
+  aceptando las que sí caben después de una que no**: perder una cota pequeña detrás de un contorno
+  enorme sería peor.
+- **Los puntos se guardan al medir**, en el mismo relevo que ya usaban los dibujos
+  (`visualesPendientes`). La alternativa era ir a buscarlos dentro de los objetos de la librería,
+  que es leer sus entrañas y romperse en su siguiente versión.
+
+**El orden de los hijos importó por tercera vez** en `bcf.py`: el XSD declara `Components`,
+`OrthogonalCamera`, `PerspectiveCamera`, **`Lines`**, `ClippingPlanes`, `Bitmap`. Hay una prueba que
+mete cámara y marcado juntos justamente para que el orden no se rompa en silencio.
+
+**Comprobado de las dos formas.** El archivo, con `bcf-client` leyendo el `<Lines>` de vuelta y
+sacando sus extremos —incluido el contorno cerrado, donde el último segmento vuelve al primero—. Y
+en el navegador sobre `Piso 5.ifc`: una distancia de 4 cm en la escena `(1, 2, 3)` sale como
+`(1, −3, 2)` del IFC, que es `escenaAIfc` exacta; una distancia, un ángulo y un área de cuatro
+vértices dan **1 + 2 + 4 = 7** segmentos; y apagando el área bajan a 3 y al encenderla vuelven a 7.
+
+**Lo que falta de la fila, y por eso queda a medias:** el **trazo libre** —la nube, la flecha y el
+texto que se dibujan a mano sobre la vista—. Eso es una herramienta de dibujo en 3D, no una
+conversión, y es la mitad que no se puede sacar de algo que ya existe. Con el marcado ya viajando y
+la instantánea en su sitio, entra cuando el usuario diga que la cota no le alcanza.
 
 ### `F4.10` cerrada: el BCF salía sin una sola foto (2026-08-28)
 

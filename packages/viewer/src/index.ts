@@ -19,6 +19,7 @@ import {
   distancePartsM,
   ifcAEscena,
   ladoDeVisibilidad,
+  lineasDesdeMediciones,
   pareceEnBlanco,
   parseIfcGrids,
   seVe,
@@ -42,6 +43,7 @@ import {
   type SavedView,
   type SceneCameraState,
   type ViewNavigation,
+  type LineaIfc,
   type ViewProjection,
   type VisibilidadBcf,
   type VistaCompartida,
@@ -97,6 +99,7 @@ export type {
   SavedCamera,
   SavedSection,
   SavedView,
+  LineaIfc,
   SceneCameraState,
   VisibilidadBcf,
   VistaCompartida,
@@ -1465,6 +1468,15 @@ export class BimViewer {
     id: string;
     kind: MeasureMode;
     object: MeasureObject;
+    /**
+     * Los puntos que se clicaron, en coordenadas de la escena. `F4.5`.
+     *
+     * **Se guardan porque son el marcado.** BCF escribe el marcado de un viewpoint como segmentos
+     * de recta en coordenadas del modelo, y medir consiste justamente en poner puntos ahí: sin
+     * esta lista habría que ir a buscarlos dentro de los objetos de la librería, que es leer sus
+     * entrañas y romperse en su siguiente versión.
+     */
+    puntos: Point3[];
     /** Lo que se dibuja de esa medición: la cota, el relleno, la etiqueta. */
     visuals: Ocultable[];
     /**
@@ -1487,6 +1499,14 @@ export class BimViewer {
   private visualesPendientes: Ocultable[] = [];
   /** Dibujos propios que esperan a que su medición quede registrada. Ver {@link registrarCota}. */
   private propiosPendientes: THREE.Object3D[] = [];
+  /**
+   * Los puntos de la medición que se está registrando, en coordenadas de la escena.
+   *
+   * Mismo relevo que {@link visualesPendientes} y por el mismo motivo: quien conoce los puntos es
+   * el método que crea la medición, y quien la registra es el aviso de la librería que corre
+   * después. Se dejan acá entre las dos cosas.
+   */
+  private puntosPendientes: Point3[] = [];
   /**
    * Lo que estaba oculto **antes** de cada aislamiento, uno por cada uno sin deshacer.
    *
@@ -1886,6 +1906,27 @@ export class BimViewer {
   }
 
   /**
+   * Las cotas visibles, convertidas en el marcado de un viewpoint de BCF. `F4.5`.
+   *
+   * **Las cotas dibujadas son el marcado**, y no es un atajo: BCF guarda el marcado como segmentos
+   * de recta en coordenadas del modelo, y medir consiste justamente en poner puntos ahí. La regla
+   * de cómo se convierte cada medida —una distancia da un tramo, un ángulo dos, un área su
+   * contorno cerrado— vive en `bim-core` con sus pruebas.
+   *
+   * **Solo las visibles.** Una cota apagada es una que quien anota decidió no mostrar, y mandarla
+   * al otro extremo sería devolverle lo que el autor quitó de la pantalla.
+   */
+  capturarMarcadoBcf(): readonly LineaIfc[] {
+    this.assertAlive();
+
+    return lineasDesdeMediciones(
+      this.drawn
+        .filter((cota) => cota.visible && cota.puntos.length > 0)
+        .map((cota) => ({ kind: cota.kind, puntos: cota.puntos })),
+    );
+  }
+
+  /**
    * Apaga o enciende una medición concreta, sin borrarla.
    *
    * Se apaga poniendo en `false` el `visible` de lo que dibuja —la cota, el relleno, la etiqueta—,
@@ -1953,8 +1994,10 @@ export class BimViewer {
   private registrarCota(kind: MeasureMode, object: MeasureObject): void {
     const visuals = this.visualesPendientes;
     const owned = this.propiosPendientes;
+    const puntos = this.puntosPendientes;
     this.visualesPendientes = [];
     this.propiosPendientes = [];
+    this.puntosPendientes = [];
 
     const existente = this.drawn.find((cota) => cota.object === object);
     if (existente !== undefined) {
@@ -1963,7 +2006,7 @@ export class BimViewer {
       return;
     }
 
-    this.drawn.push({ id: object.id, kind, object, visuals, owned, visible: true });
+    this.drawn.push({ id: object.id, kind, object, puntos, visuals, owned, visible: true });
   }
 
   /** Avisa a quien escuche que hay una medición nueva, o que se borraron todas. */
@@ -3239,6 +3282,9 @@ export class BimViewer {
     const angulo = new OBF.Angle(inicio, vertice, fin);
     angulo.units = "deg";
     angulo.rounding = 1;
+    // Los tres puntos, para el marcado del viewpoint. Van **antes** del `add`, que es lo que
+    // dispara el aviso donde se registra la cota.
+    this.puntosPendientes = [toPoint3(inicio), toPoint3(vertice), toPoint3(fin)];
     this.tools.angle.list.add(angulo);
 
     this.emitMeasurement({ mode: "angle", angleDeg: grados });
@@ -3352,6 +3398,7 @@ export class BimViewer {
     const linea = new OBF.Line(punto, pie);
     linea.units = "m";
     linea.rounding = 3;
+    this.puntosPendientes = [toPoint3(punto), toPoint3(pie)];
     this.tools.distance.list.add(linea);
 
     this.emitMeasurement({ mode: "perpendicular", distanceM: perpendicular.distanceM });
@@ -3401,6 +3448,7 @@ export class BimViewer {
     const linea = new OBF.Line(inicio, punto);
     linea.units = "m";
     linea.rounding = 3;
+    this.puntosPendientes = [toPoint3(inicio), toPoint3(punto)];
     this.tools.distance.list.add(linea);
 
     this.emitMeasurement({
@@ -3484,6 +3532,7 @@ export class BimViewer {
     const area = new OBF.Area(puntos);
     area.units = "m2";
     area.rounding = 2;
+    this.puntosPendientes = [...comoPuntos];
     this.tools.area.list.add(area);
 
     this.emitMeasurement({

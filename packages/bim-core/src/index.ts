@@ -102,6 +102,14 @@ export {
 export { MUESTRAS, pareceEnBlanco, RANGO_MINIMO } from "./registro/instantanea.js";
 
 export {
+  lineasDesdeMediciones,
+  MAXIMO_LINEAS,
+  type ClaseDeMedida,
+  type LineaIfc,
+  type MedicionDibujada,
+} from "./registro/marcado.js";
+
+export {
   ladoDeVisibilidad,
   MAXIMO_EXCEPCIONES,
   seVe,

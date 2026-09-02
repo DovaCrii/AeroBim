@@ -1554,6 +1554,7 @@ export function App() {
                 (await viewer.current?.captureVisibilityBcf()) ?? null
               }
               fotoDeAhora={() => viewer.current?.capturarImagen() ?? null}
+              marcadoDeAhora={() => viewer.current?.capturarMarcadoBcf() ?? []}
               onCerrar={() => setNotaAbierta(false)}
               onGuardada={() => setNotasGuardadas((cuantas) => cuantas + 1)}
             />

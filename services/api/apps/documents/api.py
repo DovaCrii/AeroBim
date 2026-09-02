@@ -196,6 +196,7 @@ class ObservacionesDeRevisionAPI(APIView):
         from rest_framework.response import Response
 
         from apps.documents.camara import leer as leer_camara
+        from apps.documents.marcado import leer as leer_marcado
         from apps.documents.notify import avisar_asignacion
         from apps.documents.visibilidad import leer as leer_visibilidad
 
@@ -235,6 +236,10 @@ class ObservacionesDeRevisionAPI(APIView):
             # encontrada aislando una planta salía en el BCF con el modelo entero a la vista, o sea
             # con el problema tapado por lo que precisamente se había apagado.
             visibilidad=leer_visibilidad(request.data.get("visibilidad")) if guid else {},
+            # **Y qué señalaba** — `F4.5`. Las cotas que estaban a la vista, como segmentos en el
+            # sistema del IFC. Sin esto el título decía «choca con el ducto» y la cota de 4 cm que
+            # lo demostraba se quedaba en el navegador de quien anotó.
+            marcado=leer_marcado(request.data.get("marcado")) if guid else [],
         )
         observacion.save()
         # **La foto se guarda después de la observación y su fallo no la arrastra.** Lo que hay que

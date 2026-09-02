@@ -435,6 +435,11 @@ class Observacion(BaseModel):
     # La forma es la de un `Visibility` de BCF: `{"porDefecto": bool, "excepciones": [guid, ...]}`.
     # Vacio significa **sin restriccion**, que es lo que el exportador escribia siempre.
     visibilidad = models.JSONField(default=dict, blank=True)
+    # **Lo que se dibujo sobre el modelo** — `F4.5`. Segmentos de recta en el sistema del IFC,
+    # `[{"inicio": [x, y, z], "fin": [...]}]`, que es lo que BCF escribe como `<Lines>` de un
+    # viewpoint. Salen de las cotas que estaban a la vista al anotar: medir es poner puntos en
+    # coordenadas del modelo, que es exactamente lo que el formato pide.
+    marcado = models.JSONField(default=list, blank=True)
     # **La foto de lo que se estaba mirando**, como clave de almacenamiento — nunca los bytes.
     # Un `data:` de un megabyte dentro de una fila la vuelve imposible de listar, y ademas duplica
     # el archivo en cada copia de seguridad de la base. Vive donde viven los documentos, que es

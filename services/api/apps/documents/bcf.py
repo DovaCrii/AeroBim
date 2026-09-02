@@ -286,6 +286,46 @@ def _visibilidad(componentes: ET.Element, guardada: dict) -> None:
         ET.SubElement(salida, "Component", {"IfcGuid": guid})
 
 
+def _marcado(raiz: ET.Element, lineas) -> None:
+    """Lo que se dibujo sobre el modelo. `F4.5`.
+
+    **Van despues de las camaras y antes de los cortes**: el XSD de BCF 2.1 declara la secuencia
+    `Components`, `OrthogonalCamera`, `PerspectiveCamera`, `Lines`, `ClippingPlanes`, `Bitmap`, y
+    un lector estricto rechaza el viewpoint entero si llegan al reves. Es la tercera vez que el
+    orden de los hijos importa en este archivo, y por eso va dicho las tres.
+
+    Sin marcado **no se escribe el elemento**, en vez de escribirlo vacio: un `<Lines>` sin lineas
+    no dice nada y hay lectores que lo tratan como un archivo mal formado.
+    """
+    utiles = []
+    for linea in lineas if isinstance(lineas, (list, tuple)) else []:
+        if not isinstance(linea, dict):
+            continue
+        inicio = linea.get("inicio")
+        fin = linea.get("fin")
+        if not isinstance(inicio, (list, tuple)) or len(inicio) != 3:
+            continue
+        if not isinstance(fin, (list, tuple)) or len(fin) != 3:
+            continue
+        try:
+            utiles.append(
+                ([float(c) for c in inicio], [float(c) for c in fin]),
+            )
+        except (TypeError, ValueError):
+            continue
+
+    if not utiles:
+        return
+
+    nodo = ET.SubElement(raiz, "Lines")
+    for inicio, fin in utiles:
+        linea = ET.SubElement(nodo, "Line")
+        for etiqueta, punto in (("StartPoint", inicio), ("EndPoint", fin)):
+            extremo = ET.SubElement(linea, etiqueta)
+            for eje, componente in zip("XYZ", punto, strict=True):
+                ET.SubElement(extremo, eje).text = repr(componente)
+
+
 def _viewpoint(observacion, tema: str) -> str:
     """El punto de vista: el elemento seleccionado, y **la camara solo si alguien la eligio**.
 
@@ -299,9 +339,10 @@ def _viewpoint(observacion, tema: str) -> str:
     _visibilidad(componentes, getattr(observacion, "visibilidad", None) or {})
 
     # **Despues de `Components`, no antes**: el XSD de BCF 2.1 declara la secuencia
-    # `Components`, `OrthogonalCamera`, `PerspectiveCamera`, y un lector estricto rechaza el
-    # viewpoint entero si llegan al reves.
+    # `Components`, `OrthogonalCamera`, `PerspectiveCamera`, `Lines`, y un lector estricto rechaza
+    # el viewpoint entero si llegan al reves.
     _camara(raiz, observacion.punto_de_vista or {})
+    _marcado(raiz, getattr(observacion, "marcado", None) or [])
     return _texto(raiz)
 
 

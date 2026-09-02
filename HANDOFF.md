@@ -36,11 +36,18 @@
 >   fallar, así que se dibuja y se lee en el mismo turno **y además se comprueba lo que salió**.
 >   Medido: 100 ms y 138 KB sobre el IFC de 32,7 MB.
 >
+> - **`F4.5` a medias, y la mitad que vale ya está.** Las cotas visibles viajan en el viewpoint como
+>   `<Lines>` —segmentos en coordenadas del modelo, que es como BCF guarda el marcado—, así que la
+>   cota de 4 cm que demuestra el choque llega con la nota y en tres dimensiones. Falta el **trazo
+>   libre** (nube, flecha, texto), que es una herramienta de dibujo y no una conversión.
+> - **La Fase 9 cerrada salvo `F9.6`.** Tokens, escala, foco, toque de 44 px y nada escondido tras
+>   el ratón, con el contraste comprobado en el gate.
+>
 > **Lo que sigue, en orden de valor:**
 >
-> 1. **`F4.5`** — marcado sobre la vista (nube, flecha, texto) embebido en el viewpoint. Ahora que
->    hay instantánea, el marcado tiene dónde ir.
+> 1. **El trazo libre de `F4.5`**, si la cota no alcanza — eso lo dice el usuario mirando un BCF.
 > 2. **`F4.6`** — importar BCF, cuando haya uno de vuelta de verdad que mirar.
+> 3. **Una de las tres grandes sin empezar:** Fase 2 (nubes de puntos), 5 (interferencias) o 6 (geo).
 >
 > **`F3.4` (Celery) se midió y no procede.** Los tres trabajos que corren dentro de la petición, sobre
 > el IFC real de 32,7 MB: extraer 1,4 s, cobertura 1,5 s, validar IDS 0,7 s. Y la conversión —el más
