@@ -62,16 +62,52 @@ Esta es la lista corta que conviene mandar tal cual:
    nube sin CRS no se puede cruzar con nada, y el dato se pierde para siempre si nadie lo apunta al
    entregarla. La conversión a COPC se hace acá.
 
-## Si algún día hay que aceptar DWG o DGN igualmente
+## Subir DWG o DGN: se convierten al entrar
 
-Hay un camino real y no cuesta licencia: **ODA File Converter** es un ejecutable **gratuito** de la
-Open Design Alliance que convierte **DWG → DXF y DGN → DXF** por lotes.
+**El usuario lo pidió el 2026-09-03 y está hecho.** Un DWG o un DGN se suben al expediente como
+cualquier otro documento, y **el registro los convierte a DXF al recibirlos**. El visor sigue
+leyendo un solo formato 2D, que es lo que lo mantiene simple: _lo que entra al expediente se
+normaliza al entrar_, igual que las nubes de puntos.
 
-Iría **en el servidor y no en el navegador**, y el registro convertiría al recibir el archivo — el
-mismo patrón que ya tienen las nubes: _lo que entra al expediente se normaliza al entrar_. El visor
-seguiría leyendo un solo formato 2D, que es lo que lo mantiene simple.
+- **El original es el entregable** y no se toca: se guarda y se descarga entero desde el expediente.
+- **El DXF es la copia con la que se mira**, y es lo que se le sirve al visor.
+- El `sha256` que viaja al visor es **el del original**, no el del DXF: es la prueba de qué
+  entregable se está mirando, y el del DXF cambiaría con la versión del conversor aunque el DWG
+  fuera el mismo. La respuesta lleva `X-Aerobim-Convertido: dxf` para decir que es una conversión.
 
-**No está hecho, y no se hará hasta que llegue el caso.** Añadir un ejecutable de terceros al
-servidor tiene coste de operación —instalarlo, actualizarlo, vigilar que no se cuelgue con un
-archivo raro— y hoy no hay ni un archivo que lo necesite. Queda escrito para que la decisión esté
-tomada el día que aparezca, no para adelantarla.
+### La herramienta hay que instalarla, y AeroBim no la trae
+
+**ODA File Converter** es un ejecutable **gratuito** de la Open Design Alliance, con su propia
+licencia: no se distribuye con AeroBim ni se descarga solo.
+
+1. Descargarlo de la web de la Open Design Alliance e instalarlo **en el servidor**.
+2. Apuntar la variable `ODA_CONVERTER` a su ejecutable. En Windows suele ser
+   `C:\Program Files\ODA\ODAFileConverter <versión>\ODAFileConverter.exe`.
+3. Reiniciar el servicio.
+
+### Y sin la herramienta, la subida no se pierde
+
+Es la decisión que importa de todo esto: **un registro documental que rechaza un archivo porque le
+falta una herramienta de conversión es un registro que pierde el archivo.** Sin conversor, el DWG se
+guarda igual, la revisión queda con su motivo escrito —`sin-conversor`— y **no aparece como abrible**
+en el visor, que es lo honesto: mirar solo la extensión diría que sí y llevaría a una pantalla en
+blanco.
+
+Los motivos llevan **código estable** además del mensaje, por la misma razón que los rechazos de
+carga: `sin-conversor`, `extension-no-convertible`, `sin-salida`, `tardo-demasiado`.
+
+### Lo que está probado sin tener el binario
+
+`ODA File Converter` no está en el entorno de integración, y aun así **18 pruebas** cubren el
+pegamento, que es donde están los errores caros:
+
+- que la subida no se pierda sin conversor, y que el motivo lleve su código;
+- que un DWG **sin** DXF no sea abrible y **con** DXF sí;
+- que al visor se le sirva el convertido y no el original;
+- que se le pasen al programa **los seis argumentos en el orden correcto** —son posicionales y sin
+  nombre, así que equivocarse no da error: da una conversión a otra versión y nadie se entera—;
+- y que **no se crea el código de salida**, que es `0` aunque no convierta nada: lo que se comprueba
+  es que el DXF exista.
+
+Lo último se ejerce con un conversor de mentira —un script que escribe un DXF donde le digan—, que
+recorre el camino entero sin depender de la Open Design Alliance.

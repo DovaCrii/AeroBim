@@ -7,6 +7,7 @@ ejecutar**, porque ofrecer un botón que termina en 403 es peor que no ofrecerlo
 a probar puertas.
 """
 
+import hashlib
 from io import BytesIO
 
 from django.contrib import messages
@@ -27,7 +28,7 @@ from apps.core.views import (
     ModelViewPermissionRequiredMixin,
     OrganizacionScopedQuerysetMixin,
 )
-from apps.documents import storage
+from apps.documents import conversion, storage
 from apps.documents.abribles import RUTA_POR_VISOR, visor_de
 from apps.documents.bcf import exportar as exportar_bcf
 from apps.documents.forms import (
@@ -262,6 +263,31 @@ class SubirRevisionView(ModelPermissionRequiredMixin, View):
         # lo que se mueve a `JobRun`, y el campo ya está.
         if storage.extension_de(revision.nombre_original) == "ifc":
             revision.metadatos = extraer_ifc(storage.ruta_de(clave))
+
+        # **Un DWG o un DGN se convierte a DXF al entrar**, que es la decision de
+        # `docs/FORMATOS.md`: lo que entra al expediente se normaliza al entrar, y el visor lee un
+        # solo formato 2D.
+        #
+        # **Y si no se puede, la subida no se pierde**: el original es el entregable y el DXF es
+        # una comodidad. Se guarda el motivo para poder decirselo a quien subio.
+        extension = storage.extension_de(revision.nombre_original)
+        if conversion.se_puede_convertir(extension):
+            dxf, motivo = conversion.dxf_para(form.contenido, extension)
+            if dxf is None:
+                revision.motivo_sin_dxf = motivo[:300]
+            else:
+                clave_dxf = storage.clave_para(
+                    proyecto_codigo=entregable.proyecto.codigo,
+                    entregable_codigo=entregable.codigo,
+                    # El sha del **DXF**, no el del original: son dos archivos distintos y cada uno
+                    # se guarda bajo el suyo. Con el del original, volver a subir el mismo DWG
+                    # sobrescribiria un DXF que podria venir de otra version del conversor.
+                    sha256=hashlib.sha256(dxf).hexdigest(),
+                    extension="dxf",
+                )
+                storage.guardar(clave_dxf, dxf)
+                revision.clave_dxf = clave_dxf
+
         revision.save()
 
         set_audit_context(request, revision, action="subir_revision")
@@ -1658,3 +1684,4 @@ class NuevoEntregableView(ModelPermissionRequiredMixin, View):
         set_audit_context(request, entregable, action="crear_entregable")
         messages.success(request, _("Deliverable created."))
         return redirect("documents:expediente", pk=entregable.pk)
+

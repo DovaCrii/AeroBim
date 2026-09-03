@@ -34,7 +34,7 @@ from apps.core.views import (
     PersonalStatePermissions,
     ViewModelPermissions,
 )
-from apps.documents import storage
+from apps.documents import abribles, storage
 from apps.documents.abribles import VISOR_MODELO, abre_en, visor_de
 from apps.documents.models import MarcaDeCoordinacion, Observacion, Revision
 from apps.documents.views import revisiones_visibles
@@ -599,8 +599,15 @@ class RevisionContenidoAPI(APIView):
         revision = revisiones_visibles(request.user).filter(pk=kwargs["pk"]).first()
         if revision is None or not revision.clave_archivo:
             raise Http404
+
+        # **De un DWG o un DGN se sirve su DXF convertido**, que es lo único que el visor sabe
+        # leer. El original sigue descargándose entero desde el expediente: son dos cosas, el
+        # entregable y la copia con la que se mira. Ver `docs/FORMATOS.md`.
+        clave = abribles.clave_para_el_visor(revision)
+        convertido = clave != revision.clave_archivo
+
         try:
-            contenido = storage.leer(revision.clave_archivo)
+            contenido = storage.leer(clave)
         except (OSError, storage.CargaRechazada) as error:
             # El registro dice que hay archivo y el disco dice que no. Es un 404 honesto: lo
             # que no está no está, y el motivo va al log, no a la respuesta.
@@ -609,5 +616,12 @@ class RevisionContenidoAPI(APIView):
         respuesta = FileResponse(iter([contenido]), content_type="application/octet-stream")
         respuesta["Content-Length"] = str(len(contenido))
         # Que el sha viaje permite al visor comprobar que abrió lo que el registro dice.
+        #
+        # **Y de un convertido se manda el del original**, no el del DXF: el sha es la prueba de
+        # qué entregable se está mirando, y el del DXF cambiaría con la versión del conversor
+        # aunque el DWG fuera el mismo. La cabecera de al lado dice que es una conversión.
         respuesta["X-Aerobim-Sha256"] = revision.sha256
+        if convertido:
+            respuesta["X-Aerobim-Convertido"] = "dxf"
         return respuesta
+

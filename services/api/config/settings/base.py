@@ -162,6 +162,17 @@ VISOR_DEV_URL = config("VISOR_DEV_URL", default="")
 # igual que los IFC y los planos del visor.
 DOCUMENTS_DIR = Path(config("DOCUMENTS_DIR", default=str(BASE_DIR / "documents")))
 
+# **El conversor de DWG y DGN a DXF, que se instala aparte y a mano.**
+#
+# `ODA File Converter` es un ejecutable gratuito de la Open Design Alliance, con su propia
+# licencia: no se distribuye con AeroBim ni se descarga solo. Sin él, subir un DWG o un DGN
+# **sigue funcionando** —el archivo se guarda, que es lo que un registro tiene que hacer— y la
+# revision queda sin su DXF, diciendo por que. Ver `apps/documents/conversion.py`.
+#
+# Vacio por omision, y no una ruta adivinada: una ruta que no existe da el mismo resultado que
+# no configurar nada, pero cuesta media hora entender por que.
+ODA_CONVERTER = config("ODA_CONVERTER", default="")
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 REST_FRAMEWORK = {

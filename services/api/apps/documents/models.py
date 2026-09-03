@@ -195,6 +195,16 @@ class Revision(BaseModel):
     clave_archivo = models.CharField(max_length=400, blank=True)
     nombre_original = models.CharField(max_length=250, blank=True)
     tamano_bytes = models.PositiveBigIntegerField(default=0)
+
+    # **El DXF derivado de un DWG o un DGN, cuando se pudo convertir.**
+    #
+    # El original sigue siendo el entregable y no se toca: esto es una comodidad para poder
+    # abrirlo en el visor, que lee un solo formato 2D (ver `docs/FORMATOS.md`). Vacio en todo lo
+    # que no sea DWG ni DGN, y vacio tambien cuando la conversion no se pudo hacer.
+    clave_dxf = models.CharField(max_length=400, blank=True)
+    # Por que no hay DXF, cuando el archivo era convertible y no se convirtio. Se le ensena a
+    # quien subio: es lo que le dice si tiene que hacer algo o si es cosa del servidor.
+    motivo_sin_dxf = models.CharField(max_length=300, blank=True)
     # El sha256 hace **idempotente** volver a subir lo mismo, y ademas es la prueba de
     # que el archivo que se descarga es el que se aprobo.
     sha256 = models.CharField(max_length=64, blank=True, db_index=True)

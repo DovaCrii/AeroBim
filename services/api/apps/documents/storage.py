@@ -58,6 +58,16 @@ FIRMAS: dict[str, tuple[bytes, ...]] = {
     "pptx": (b"PK\x03\x04", b"PK\x05\x06"),
     "zip": (b"PK\x03\x04", b"PK\x05\x06"),
     "dwg": (b"AC10", b"AC1"),
+    # **DGN de Bentley, en sus dos generaciones y por eso dos firmas.**
+    #
+    # El v8 —lo que escribe MicroStation desde 2001— es un contenedor compuesto de Microsoft, el
+    # mismo envoltorio que un `.doc` antiguo, y empieza por `D0 CF 11 E0`. El v7 es el formato
+    # propio anterior y sus archivos empiezan por un elemento de tipo 9 en `08 09 FE`.
+    #
+    # Que las dos pasen es a proposito: **el registro guarda lo que le den**. Que el v7 se pueda
+    # convertir o no lo decide el conversor, y si no puede lo dice — no es motivo para rechazar el
+    # archivo al entrar.
+    "dgn": (b"\xd0\xcf\x11\xe0", b"\x08\x09\xfe"),
 }
 
 # `ids` es el requisito de informacion del proyecto (`F3.5`): XML de buildingSMART, texto, y sin
