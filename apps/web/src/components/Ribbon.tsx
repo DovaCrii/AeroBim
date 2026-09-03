@@ -233,7 +233,9 @@ export function Ribbon({
                 : TITULOS_PESTAÑA[cual]
             }
             className={[
-              "border-b-2 px-3 py-1.5 text-xs transition-colors",
+              // Las pestañas medían 33 px de alto. A 36 sin tocar el texto: la fila la marca el
+              // botón de plegar, que ya está en 32, así que esto no empuja nada.
+              "flex min-h-9 items-center border-b-2 px-3 text-xs transition-colors",
               tab === cual && !collapsed
                 ? "border-accent text-fg"
                 : "border-transparent text-fg-2 hover:text-fg",
@@ -266,7 +268,9 @@ export function Ribbon({
             aria-pressed={collapsed}
             title={collapsed ? "Desplegar la cinta" : "Plegar la cinta y ver el modelo entero"}
             aria-label={collapsed ? "Desplegar la cinta" : "Plegar la cinta"}
-            className="rounded-sm px-1 py-1 text-fg-3 hover:bg-surface-3 hover:text-fg"
+            // Medía justo 24 × 24, el mínimo de la norma. Con el icono igual y algo más de hueco
+            // alrededor sube a 32 sin ocupar sitio: la fila de pestañas ya es más alta que eso.
+            className="flex min-h-8 min-w-8 items-center justify-center rounded-sm text-fg-3 hover:bg-surface-3 hover:text-fg"
           >
             {collapsed ? (
               <IconChevronDown className="h-3.5 w-3.5" />
@@ -759,7 +763,12 @@ function Boton({
         // **Más estrecho y más bajo que antes.** La cinta ocupaba 110 px de alto en una pantalla
         // donde lo que importa es el modelo; con el icono a 18 px y el nombre pegado debajo se
         // queda en poco más de la mitad sin perder el nombre, que es lo que la hace legible.
-        "flex w-14 flex-col items-center gap-px rounded-sm px-0.5 py-1 transition-colors",
+        //
+        // **Y `min-h-11` —44 px— por `F9.4`, que costaba dos píxeles.** Medidos en pantalla, estos
+        // botones salían a 62 × 42: los quince a dos píxeles del objetivo de área de toque. Es la
+        // mejora más barata que había, y son las herramientas principales — las que más se pulsan.
+        "flex min-h-11 w-14 flex-col items-center justify-center gap-px rounded-sm px-0.5 py-1",
+        "transition-colors",
         disabled
           ? "text-apagado-fg"
           : encendido
@@ -799,7 +808,10 @@ function PanelToggle({
       aria-pressed={open}
       title={`${open ? "Ocultar" : "Mostrar"} el panel de ${label.toLowerCase()} (${side})`}
       className={[
-        "rounded-sm px-2 py-1 text-nota transition-colors",
+        // Eran los más pequeños de la pantalla: 27 px de alto. Suben a 32, que es lo que cabe en
+        // esta fila sin empujarla — y con `min-w-11` el ancho ya llega al objetivo.
+        "flex min-h-8 min-w-11 items-center justify-center rounded-sm px-2 text-nota",
+        "transition-colors",
         open ? "bg-surface-2 text-fg" : "text-fg-3 hover:bg-surface-3 hover:text-fg-2",
       ].join(" ")}
     >

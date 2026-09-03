@@ -5,6 +5,37 @@ Este proyecto sigue [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Cambiado — áreas de toque y la escala de radios del portal (`F9.4` y `F9.5`, 2026-09-03)
+
+**La mitad de las dos filas ya estaba hecha y el plan no lo sabía.** `opacity-0 group-hover`: cero
+apariciones —desapareció con `F9.1`–`F9.3`—. Y los estados vacíos ya enseñan el gesto, comprobado
+abriendo los paneles: «Ninguno. Con dos modelos abiertos, esta lista es donde se apaga uno para
+mirar el otro — que es en lo que consiste coordinar».
+
+> **Una trampa que casi hace informar treinta y un defectos inexistentes.** La primera medición de
+> áreas de toque dio «31 de 31 por debajo de 44 px, cinco de solo 18 px de ancho». Eran falsas: **el
+> panel del navegador tenía el viewport a 0 × 0**, el diseño estaba colapsado y los botones salían
+> recortados. Medir sobre un viewport de cero mide el cero.
+
+Con 1600 × 900 de verdad: **la norma AA (24 px) ya se cumplía entera**, y lo que faltaba era el
+objetivo de 44 px. La mejora más barata costaba **dos píxeles** — las quince herramientas de la cinta
+estaban a 62 × 42 y ahora son 62 × 48. Las pestañas pasan de 33 a 40, los botones de panel de 27 a
+35, y plegar la cinta de 24 × 24 a 35 × 35. De 31 elementos por debajo de 44, quedan 16.
+
+> **Lo que no se subió, y el usuario puede revisar:** las nueve cabeceras del navegador (345 × 31) y
+> el logo (109 × 31). Son objetivos **anchos** y llevarlos a 44 de alto añadiría 117 px de cromo en
+> un panel donde importa el contenido, contra la densidad que el usuario fijó midiendo. Si prefiere
+> el 44 estricto, es un cambio de una línea.
+
+**Y la escala compartida:** el visor ya tenía `--radius-*` y `--shadow-*`; **el portal tenía siete
+radios a mano** —2, 3, 4, 6, 7, 8 y 9 px en dieciséis sitios— junto al token de 12. Nadie eligió que
+una etiqueta tuviera 3 px y otra 4. Ahora hay cuatro escalones, los mismos del visor, y **cero
+valores sueltos**.
+
+Al tokenizar apareció un defecto: **la sombra de la tarjeta levantada estaba escrita a mano con el
+azul del tema claro**, así que en tema oscuro no se veía. Ahora es `--ab-shadow-alto`, con su valor
+en cada tema.
+
 ### Añadido — el calce automático, y dos riesgos cerrados antes de que llegue el modelo (2026-09-03)
 
 El modelo de la pasarela **todavía no existe** —está en construcción— y eso no era razón para no

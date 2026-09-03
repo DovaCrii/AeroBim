@@ -31,8 +31,27 @@
   --ab-ok: #0f7a5f; /* 4,9:1 */
   --ab-warn: #8a5a00; /* 5,5:1 — el ámbar llevado a texto sobre fondo claro */
 
+  /* Dos escalones de elevación, y no uno suelto (`F9.5`).
+   *
+   * `--ab-shadow` es el reposo y `--ab-shadow-alto` el de la tarjeta levantada al pasar por encima.
+   * El segundo estaba escrito a mano en la regla del hover, así que en el tema oscuro **no
+   * cambiaba**: una sombra pensada para fondo claro sobre una superficie oscura no se ve. */
   --ab-shadow: 0 10px 30px rgb(18 34 59 / 8%);
-  --ab-radius: 12px;
+  --ab-shadow-alto: 0 14px 34px rgb(18 34 59 / 14%);
+
+  /* La escala de radios, compartida con el visor (`F9.5`).
+   *
+   * **Antes había siete tamaños a mano** —2, 3, 4, 6, 7, 8 y 9 px en dieciséis sitios— junto al
+   * token de 12. Nadie eligió que una etiqueta tuviera 3 px y otra 4: son restos de escribirlos uno
+   * a uno. Cuatro escalones bastan, y son los mismos que `--radius-*` del visor, que es lo que hace
+   * que la costura entre el portal y el visor no se note.
+   *
+   * `50%` y `999px` se quedan como estaban y no entran en la escala: un círculo y una píldora no
+   * son un radio grande, son otra forma. */
+  --ab-radio-xs: 4px; /* etiquetas, píldoras pequeñas, marcas */
+  --ab-radio-sm: 6px; /* controles: botón, campo, fila */
+  --ab-radio-md: 10px; /* tarjetas y desplegables */
+  --ab-radius: 12px; /* el contenedor grande. Se conserva el nombre: lo usan 14 reglas */
   --ab-control-height: 42px;
   --ab-sidebar-width: 248px;
 }
@@ -60,6 +79,9 @@
      usuario cruza al abrir un modelo desde su expediente. 9,5:1 sobre el fondo. */
   --ab-warn: #f0b45e;
   --ab-shadow: 0 10px 30px rgb(0 0 0 / 35%);
+  /* Y la elevada, que antes no existía en oscuro: la del hover estaba escrita a mano con el azul
+     del tema claro, así que sobre esta superficie no se veía. */
+  --ab-shadow-alto: 0 14px 34px rgb(0 0 0 / 50%);
 }
 
 * {
@@ -220,7 +242,7 @@ h1 {
 a.tarjeta:hover {
   border-color: var(--ab-primary);
   transform: translateY(-2px);
-  box-shadow: 0 14px 34px rgb(18 34 59 / 14%);
+  box-shadow: var(--ab-shadow-alto);
 }
 
 a.tarjeta:hover::before {
@@ -516,7 +538,7 @@ tbody tr:last-child td {
   position: relative;
   height: 20px;
   background: var(--ab-surface-alt);
-  border-radius: 4px;
+  border-radius: var(--ab-radio-xs);
 }
 
 .linea-tiempo .barra {
@@ -524,7 +546,7 @@ tbody tr:last-child td {
   top: 3px;
   height: 14px;
   min-width: 8px;
-  border-radius: 3px;
+  border-radius: var(--ab-radio-xs);
   /* El color lo pone la plantilla desde `Disciplina.color`: es el estreno de ese campo. */
   background: var(--ab-primary);
 }
@@ -534,7 +556,7 @@ tbody tr:last-child td {
   position: absolute;
   inset: 0;
   width: 0;
-  border-radius: 3px;
+  border-radius: var(--ab-radio-xs);
   background: rgb(0 0 0 / 35%);
 }
 
@@ -591,7 +613,7 @@ tbody tr:last-child td {
   display: block;
   margin-top: 3px;
   padding: 1px 5px;
-  border-radius: 4px;
+  border-radius: var(--ab-radio-xs);
   background: var(--ab-primary-soft);
   color: var(--ab-text);
   font-size: 0.72rem;
@@ -626,13 +648,13 @@ tbody tr:last-child td {
 .barras .pista {
   height: 12px;
   background: var(--ab-surface-alt);
-  border-radius: 6px;
+  border-radius: var(--ab-radio-sm);
   overflow: hidden;
 }
 
 .barras .relleno {
   height: 100%;
-  border-radius: 6px;
+  border-radius: var(--ab-radio-sm);
 }
 
 .barras .cifra {
@@ -646,7 +668,7 @@ tbody tr:last-child td {
   display: inline-block;
   width: 0.7rem;
   height: 0.7rem;
-  border-radius: 3px;
+  border-radius: var(--ab-radio-xs);
   vertical-align: -1px;
   margin-right: 5px;
 }
@@ -711,7 +733,7 @@ th.num {
  * estado es una posición en un camino, y de ahí la forma de pastilla.
  */
 .pildora-prioridad {
-  border-radius: 6px;
+  border-radius: var(--ab-radio-sm);
   background: color-mix(in srgb, currentcolor 16%, transparent);
   border-color: color-mix(in srgb, currentcolor 45%, transparent);
 }
@@ -799,7 +821,7 @@ th.num {
   min-width: 34px;
   height: 22px;
   padding: 0 7px;
-  border-radius: 6px;
+  border-radius: var(--ab-radio-sm);
   font-size: 0.74rem;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -939,7 +961,7 @@ th.num {
   width: 18px;
   height: 18px;
   padding: 6px;
-  border-radius: 8px;
+  border-radius: var(--ab-radio-md);
   color: var(--acento);
   /* **La baldosa subió de 14 % a 20 % y ganó un filo.** A 14 % sobre una superficie oscura la
      baldosa casi no existía, así que del icono solo se veía el trazo: el color del grupo quedaba
@@ -1098,7 +1120,7 @@ button,
   min-height: 34px;
   padding: 6px 14px;
   border: 1px solid transparent;
-  border-radius: 9px;
+  border-radius: var(--ab-radio-md);
   background: var(--ab-primary);
   color: #fff;
   font: inherit;
@@ -1169,7 +1191,7 @@ textarea {
   color: var(--ab-text);
   background: var(--ab-surface-alt);
   border: 1px solid var(--ab-border);
-  border-radius: 9px;
+  border-radius: var(--ab-radio-md);
   font: inherit;
 }
 
@@ -1205,7 +1227,7 @@ input[type="file"]::file-selector-button {
   color: var(--ab-text);
   background: transparent;
   border: 1px solid var(--ab-border);
-  border-radius: 7px;
+  border-radius: var(--ab-radio-sm);
   font: inherit;
   font-weight: 600;
   cursor: pointer;
@@ -1458,7 +1480,7 @@ input[type="file"]::file-selector-button:hover {
   width: 108px;
   height: 76px;
   object-fit: cover;
-  border-radius: 8px;
+  border-radius: var(--ab-radio-md);
   background: var(--ab-surface-alt);
 }
 
@@ -1594,7 +1616,7 @@ input[type="file"]::file-selector-button:hover {
 }
 
 .paso.blocked .marca {
-  border-radius: 2px;
+  border-radius: var(--ab-radio-xs);
   background: currentcolor;
 }
 
@@ -1836,7 +1858,7 @@ input[type="file"]::file-selector-button:hover {
   background: rgb(255 255 255 / 12%);
   color: #fff;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--ab-radio-md);
   padding: 4px 10px;
   font: inherit;
   font-size: 0.85rem;

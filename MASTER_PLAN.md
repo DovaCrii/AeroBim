@@ -18,7 +18,7 @@ línea cada cosa. Actualizado el 2026-09-03.
 
 | Fase                           | Estado                                                                                        |
 | ------------------------------ | --------------------------------------------------------------------------------------------- |
-| **0 · Cimientos**              | ✅ salvo `F0.6`, la conversión en un worker                                                   |
+| **0 · Cimientos**              | ✅ entera — `F0.6` cerró el 2026-09-02 y esta línea llevaba desde entonces sin actualizar     |
 | **1 · Visor**                  | ✅ salvo `F1.13`, que son **tres nombres que decide el usuario**                              |
 | **3 · Backend**                | ✅ entera                                                                                     |
 | **4 · Coordinación**           | ✅ salvo `F4.5`, el trazo libre, **condicionado a que el usuario mire un BCF exportado**      |
@@ -3295,9 +3295,57 @@ teclado sabiendo dónde se está.
 | `F9.1` | **Los tokens en `index.css`**: superficies, texto, marca/acción/acento y estado, con su ratio anotado | ✅ ver abajo |
 | `F9.2` | **La escala tipográfica** y fuera el `font-size: 110%`: suelo de 11 px, y la densidad intacta         | ✅ ver abajo |
 | `F9.3` | **`:focus-visible` global** y los **230** usos de `white/NN` reemplazados por papel con nombre        | ✅ ver abajo |
-| `F9.4` | **Las acciones dejan de esconderse**: fuera `opacity-0 group-hover`, áreas de toque a 44 px           | ⬜           |
-| `F9.5` | **Estados vacíos con puerta de entrada**, y escala de radio y elevación compartida con el portal      | ⬜           |
+| `F9.4` | **Las acciones dejan de esconderse**: fuera `opacity-0 group-hover`, áreas de toque a 44 px           | ✅ ver abajo |
+| `F9.5` | **Estados vacíos con puerta de entrada**, y escala de radio y elevación compartida con el portal      | ✅ ver abajo |
 | `F9.6` | **Reordenar el shell del visor** — _bloqueada: contradice `docs/UX.md`, la decide el usuario_         | ⛔           |
+
+### `F9.4` y `F9.5` cerradas el 2026-09-03, y la mitad ya estaba hecha
+
+**Las dos filas llevaban cifras de agosto que no se sostenían.** Medido hoy:
+
+- **`opacity-0 group-hover`: cero apariciones.** La fila decía cinco; desaparecieron con `F9.1`–
+  `F9.3`. No había nada que arreglar.
+- **Los estados vacíos ya enseñan el gesto**, comprobado abriendo los paneles en el navegador:
+  «Todavía no hay ningún modelo abierto. Arrastra un IFC aquí, usa Abrir arriba, o saca uno de Del
+  registro», «Ninguno. Con dos modelos abiertos, esta lista es donde se apaga uno para mirar el
+  otro — que es en lo que consiste coordinar». Eso es una puerta de entrada, no un «no hay nada».
+
+> **Y una trampa que casi me hace informar treinta y un defectos inexistentes.** La primera medición
+> de áreas de toque dio «31 de 31 por debajo de 44 px, cinco de solo 18 px de ancho». Eran falsas:
+> **el panel del navegador tenía el viewport a 0 × 0**, así que el diseño estaba colapsado y los
+> botones salían recortados a 18 px. Con un tamaño en píxeles forzado, la foto es otra. Es la misma
+> trampa del lienzo de `diag.html`, y la lección se repite: **medir sobre un viewport de cero mide el
+> cero**.
+
+**Lo que sí había, medido con 1600 × 900 de verdad:**
+
+|                                         | Antes       | Ahora        |
+| --------------------------------------- | ----------- | ------------ |
+| Por debajo de **24 px** (WCAG 2.5.8 AA) | **0**       | 0            |
+| Por debajo de 44 px                     | 31 de 31    | **16 de 31** |
+| Las quince herramientas de la cinta     | 62 × **42** | 62 × **48**  |
+| Las tres pestañas                       | × 33        | × 40         |
+| Los dos botones de panel                | × 27        | × 35         |
+| Plegar la cinta                         | 24 × 24     | 35 × 35      |
+
+**La norma AA ya se cumplía entera**; lo que faltaba era el objetivo de 44, y la mejora más barata
+costaba **dos píxeles**: los quince botones de herramienta estaban a 42.
+
+> **Lo que NO se subió a 44, y es una decisión que puede revisar el usuario:** las nueve cabeceras de
+> sección del navegador (345 × 31) y el enlace del logo (109 × 31). Son objetivos **anchos** —hay 345
+> píxeles donde pinchar— y llevarlos a 44 de alto añadiría **117 px de cromo** en un panel donde lo
+> que importa es el contenido, contra la densidad que el usuario fijó midiendo en su pantalla. Si
+> prefiere el 44 estricto, es un cambio de una línea.
+
+**Y la escala compartida, que era el resto de `F9.5`:** el visor ya tenía `--radius-sm/md/lg` y
+`--shadow-sm/md/xl`; **el portal tenía siete radios a mano** —2, 3, 4, 6, 7, 8 y 9 px en dieciséis
+sitios— junto al token de 12. Nadie eligió que una etiqueta tuviera 3 px y otra 4. Ahora hay cuatro
+escalones, los mismos del visor, y **cero valores sueltos**: comprobado en el navegador, el portal
+solo pinta 10 px, 12 px y la píldora de 999.
+
+Y de paso, un defecto que apareció al tokenizar: **la sombra de la tarjeta levantada estaba escrita a
+mano con el azul del tema claro**, así que en tema oscuro no se veía. Ahora es `--ab-shadow-alto`,
+con su valor en cada tema.
 
 **Oráculo:** ningún par texto/fondo de la aplicación por debajo de 4,5:1 medido con la fórmula
 de WCAG 2.1 (los rótulos deshabilitados quedan exentos, con suelo propio de 3:1); recorrer el
