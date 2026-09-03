@@ -175,6 +175,16 @@ export {
 } from "./nubes/georreferencia.js";
 
 export {
+  aplicar,
+  archivoAEscena,
+  cajaAArchivo,
+  escenaAArchivo,
+  matrizDeCalce,
+  planoAArchivo,
+  type Matriz4,
+} from "./nubes/matriz.js";
+
+export {
   cajaDeNodo,
   contenida,
   dentroDeLosPlanos,

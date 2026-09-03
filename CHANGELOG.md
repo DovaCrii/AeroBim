@@ -5,6 +5,46 @@ Este proyecto sigue [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Añadido — la nube calza con el modelo (`F2.2` cerrada, 2026-09-03)
+
+Se señalan puntos sobre la nube —`pickPointCloud` los devuelve **en los dos sistemas**: el de la
+escena para dibujar la marca, el del archivo para el par de calce— y `alignPointCloud` aplica la
+alineación. **Medido en el navegador** con una desalineación conocida de 22,5° sobre el levantamiento
+del Camino Agrícola: el giro se recupera en `22.5000°`, el residuo es 0,000 mm y **la nube cae a
+0,000 mm del modelo**. Al señalar, el punto devuelto queda a **0 mm del rayo**.
+
+**El calce se aplica como matriz del objeto y no reescribiendo los puntos**: ya están en coordenadas
+locales pequeñas, así que el giro lo hace la tarjeta sin perder precisión, y volver a calzar cuesta
+dieciséis números en vez de subir cientos de megas.
+
+**Y el sistema de referencia ya viaja dentro del archivo.** El usuario confirmó `EPSG:32719`
+(WGS 84 / UTM 19S), que el LAS original no declaraba: ahora el `.copc.laz` lleva 1 501 caracteres de
+WKT, comprobado al leerlo de vuelta.
+
+> **Dos defectos encontrados escribiendo esto, y los dos daban números creíbles.**
+>
+> **1. El signo del giro estaba invertido** y dejaba la nube a **69 metros** de su sitio. Lo cazó la
+> prueba que **aplica** la matriz a puntos conocidos; una que comparara coeficientes contra
+> coeficientes no lo habría visto — sería comparar la fórmula consigo misma.
+>
+> **2. Las cajas de los nodos se calculaban en el sistema equivocado.** La clave de un nodo indexa
+> las celdas en los ejes **del archivo**, y el cargador le pasaba el cubo **ya convertido a la
+> escena**: el índice del norte se aplicaba sobre la altura. El recorte seguía dando cuentas
+> verosímiles —«597 nodos fuera de vista»— **pero eran los nodos equivocados**. Ahora se convierte la
+> cámara al sistema del archivo, y se nota en las cifras: el recorte por caja pasó de descartar los
+> 1 329 nodos a descartar 575 y conservar 694.
+>
+> Es el mismo patrón que los 200 mm del `float32`: el error no se ve, se mide.
+
+**Y una prueba propia mal planteada.** Exigía que señalar devolviera _el punto al que se apuntó_, y
+devolvía otro a 24 m. No era un defecto: al pinchar una nube se atrapa **la superficie de delante**,
+que es lo que quiere quien marca una esquina. Lo que sí hay que comprobar es que el punto esté sobre
+el rayo y que su conversión sea la suya.
+
+> **Un límite dicho: señalar es tosco a distancia.** El umbral es de seis píxeles, y a 200 m seis
+> píxeles son dos metros. Es inherente a señalar por rayo sobre puntos sueltos; la forma fina es
+> pintar un búfer de identificadores, y queda para cuando estorbe.
+
 ### Añadido — la nube se maneja: densidad, recorte, color y solo lo que se ve (`F2.3`, 2026-09-03)
 
 **Desde hoy la fase se comprueba contra el levantamiento real del CC 741 — Camino Agrícola**, que

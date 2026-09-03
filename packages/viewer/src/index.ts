@@ -34,6 +34,9 @@ import {
   perpendicularToPlane,
   polygonAreaM2,
   resolveUnitSymbol,
+  escenaAArchivo,
+  matrizDeCalce,
+  type Alineacion,
   type BcfCamera,
   type IfcGridAxis,
   type IfcGuid,
@@ -1412,6 +1415,28 @@ function assertNotCrossOriginIsolated(): void {
         "y Cross-Origin-Embedder-Policy del servidor.",
     );
   }
+}
+
+/**
+ * Cuántos píxeles de radio se aceptan al señalar un punto de la nube.
+ *
+ * Seis: un poco más que el tamaño con el que se pintan los puntos. Con un radio de uno hay que
+ * acertar el centro exacto de un punto de 2 px, que es cazar un píxel; con seis se señala la
+ * esquina que se está mirando. Y no más, porque entonces empieza a atrapar el punto de detrás.
+ */
+const RADIO_DE_SENALADO = 6;
+
+/**
+ * Un punto señalado sobre la nube, en los dos sistemas que hacen falta.
+ *
+ * `escena` sirve para dibujar la marca donde se pinchó; `archivo` es el que se guarda en el par de
+ * calce, porque es el sistema de los datos y no el de nuestro renderizador.
+ */
+export interface PuntoSenalado {
+  escena: [number, number, number];
+  archivo: [number, number, number];
+  /** A qué distancia de la cámara cayó, en metros. Sirve para quedarse con el más cercano. */
+  distancia: number;
 }
 
 /**
@@ -4295,6 +4320,105 @@ export class BimViewer {
   /** La nube viva, para sus controles: tamaño de punto, densidad, recorte y color. */
   get cloud(): NubeEnEscena | null {
     return this.nube;
+  }
+
+  /**
+   * Señala un punto **sobre la nube**, desde una posición del ratón: `F2.2`.
+   *
+   * Devuelve el punto en coordenadas de la escena y **también en las del archivo**, que son las que
+   * sirven para calzar: el par de puntos de un calce tiene que estar en el sistema de los datos, no
+   * en el de nuestro renderizador — si mañana cambia la convención de la escena, un calce guardado
+   * en coordenadas de escena empezaría a mentir.
+   *
+   * **El umbral se calcula desde el tamaño del punto en pantalla**, no es un número fijo en metros.
+   * Un umbral en metros que sirve a dos metros del muro no acierta a cincuenta, y al contrario
+   * atrapa el punto equivocado: con el tamaño en píxeles, señalar se comporta igual de cerca y de
+   * lejos, que es lo que espera quien está marcando esquinas.
+   *
+   * Devuelve `null` si no hay nube o si el rayo no da en nada, que son casos normales.
+   */
+  pickPointCloud(clientX: number, clientY: number): PuntoSenalado | null {
+    this.assertAlive();
+    if (this.nube === null) return null;
+
+    const caja = this.container.getBoundingClientRect();
+    const ndc = new THREE.Vector2(
+      ((clientX - caja.left) / caja.width) * 2 - 1,
+      -((clientY - caja.top) / caja.height) * 2 + 1,
+    );
+
+    const rayo = new THREE.Raycaster();
+    rayo.setFromCamera(ndc, this.camera.three);
+
+    // **El umbral: cuántos metros mide un píxel a la distancia de la nube.**
+    //
+    // La primera versión lo sacó de dividir el tamaño de la nube por el alto de la ventana, y **no
+    // acertaba nunca**: eso no es una longitud en el mundo, es un número sin unidades. Lo correcto
+    // es la relación de la propia cámara — a distancia `d`, un píxel mide `d / factor`, donde el
+    // factor es `alto / (2·tan(fov/2))`, el mismo que usa el recorrido del octree.
+    //
+    // Se toma un radio de unos pocos píxeles y no de uno: con un punto de 2 px pintado, exigir el
+    // centro exacto obliga a afinar como con una aguja, y quien marca esquinas está mirando la
+    // esquina, no cazando un píxel.
+    const centro = this.nube.cajaDeLoCargado()?.getCenter(new THREE.Vector3()) ?? null;
+    const distancia = centro !== null ? this.camera.three.position.distanceTo(centro) : 10;
+    const factor = factorDeProyeccionDe(this.camera.three, caja.height);
+    const metrosPorPixel = factor !== undefined ? distancia / factor : distancia / 1000;
+    rayo.params.Points = {
+      threshold: Math.max(0.01, metrosPorPixel * RADIO_DE_SENALADO),
+    };
+
+    const golpes = rayo.intersectObjects(this.nube.objeto.children, false);
+    const primero = golpes[0];
+    if (primero === undefined) return null;
+
+    const enLaEscena: [number, number, number] = [
+      primero.point.x,
+      primero.point.y,
+      primero.point.z,
+    ];
+    return {
+      escena: enLaEscena,
+      archivo: escenaAArchivo(enLaEscena, this.nube.desplazamiento),
+      distancia: primero.distance,
+    };
+  }
+
+  /**
+   * Calza la nube con el modelo aplicando una alineación: `F2.2`.
+   *
+   * La alineación va **del sistema local del modelo al de la nube** —es lo que devuelven
+   * `calzarConPuntos` y `alineacionDeMapa` de `bim-core`— y acá se invierte, porque **lo que se
+   * mueve es la nube**: mover el modelo movería las observaciones, las vistas guardadas y los
+   * planos, que están anotados sobre él.
+   *
+   * Se aplica como matriz del objeto y **no reescribiendo los puntos**: los puntos ya están en
+   * coordenadas locales pequeñas, así que el giro lo hace la tarjeta sin perder precisión, y volver
+   * a calzar cuesta dieciséis números en vez de subir cientos de megas otra vez.
+   *
+   * Devuelve `false` si no hay nube.
+   */
+  alignPointCloud(alineacion: Alineacion): boolean {
+    this.assertAlive();
+    if (this.nube === null) return false;
+
+    const objeto = this.nube.objeto;
+    // La matriz se pone a mano y se desactiva la actualización automática: si Three.js recompusiera
+    // la matriz desde posición, giro y escala, un giro que no sea alrededor de un eje puro se
+    // perdería al descomponerlo.
+    objeto.matrixAutoUpdate = false;
+    objeto.matrix.fromArray(matrizDeCalce(alineacion, this.nube.desplazamiento));
+    objeto.matrixWorldNeedsUpdate = true;
+    return true;
+  }
+
+  /** Deshace el calce: la nube vuelve a donde la puso el cargador. */
+  resetPointCloudAlignment(): boolean {
+    this.assertAlive();
+    if (this.nube === null) return false;
+    this.nube.objeto.matrix.identity();
+    this.nube.objeto.matrixWorldNeedsUpdate = true;
+    return true;
   }
 
   /**

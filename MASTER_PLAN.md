@@ -28,7 +28,7 @@ línea cada cosa. Actualizado el 2026-09-03.
 | **9 · Diseño**                 | ✅ salvo `F9.6`, que son **tres decisiones del usuario** y contradicen tres líneas de `UX.md` |
 | **10 · Etiquetas y tablas**    | ✅ entera                                                                                     |
 | **11 · El portal se ve plano** | ✅ entera — incluida la ayuda con su recorrido                                                |
-| **2 · Nubes de puntos**        | 🔶 **en marcha.** `F2.5` `F2.1` `F2.3` ✅ — abre y se maneja; `F2.2` 🔶. Falta `F2.4`         |
+| **2 · Nubes de puntos**        | 🔶 **casi.** `F2.5` `F2.1` `F2.2` `F2.3` ✅ — abre, se maneja y calza. Falta `F2.4`           |
 | **6 · Geo + BIM**              | ⬜ pospuesta a propósito el 2026-09-02, para poner la coordinación delante                    |
 
 **La Fase 2 va por tres cuartos**, y en un orden que no es el de su numeración. Desde el 2026-09-03
@@ -43,18 +43,20 @@ se comprueba contra **el levantamiento real del CC 741 — Camino Agrícola**, n
 - **`F2.3` ✅** — tamaño de punto, densidad, recorte por caja y los cuatro colores, más el recorte
   por lo que se está mirando: **295 ms** para rehacer la selección, con 694 nodos descartados por no
   verse.
-- **`F2.2` 🔶** — la aritmética de la alineación hecha y probada: la georreferencia del archivo, el
-  calce señalando puntos, y el hueco del servidor que se dejaba el giro sin leer. Falta **señalar los
-  puntos en pantalla**.
+- **`F2.2` ✅** — la nube calza con el modelo: señalar puntos sobre ella y aplicar la alineación. Con
+  una desalineación conocida de 22,5°, el giro se recupera exacto y **la nube cae a 0,000 mm del
+  modelo**. Y por el camino aparecieron dos defectos que daban números creíbles: el signo del giro
+  invertido (69 m de desvío) y las cajas de los nodos calculadas en el sistema equivocado.
 
-> **Y una pregunta abierta que bloquea el cruce, y solo la puede contestar el usuario: el
-> levantamiento no declara sistema de referencia.** Las coordenadas son claramente UTM de Santiago
-> —E 349 723, N 6 292 883— y lo más probable es **EPSG:32719** (WGS 84 / UTM 19S), pero **no se
-> adivina**: un sistema supuesto pone la obra en otro sitio y el error no se ve hasta que se mide.
-> Con el dato, el conversor lo escribe dentro del archivo con `--epsg`.
+> **El sistema de referencia lo confirmó el usuario el 2026-09-03: `EPSG:32719` (WGS 84 / UTM 19S).**
+> El levantamiento original no lo declaraba, y ahora **viaja dentro del `.copc.laz`** —1 501
+> caracteres de WKT, comprobado al leerlo de vuelta— porque el conversor lo escribe con `--epsg`. Así
+> no depende de que nadie lo recuerde.
 
-**Lo que sigue es cerrar `F2.2`** —señalar los puntos sobre la nube, que ya existe en la escena— y
-**entonces** `F2.4` puede medir del modelo a la nube, que es el objetivo de salida de la fase.
+**Lo que sigue es `F2.4`**, el objetivo de salida de la fase: medir del modelo a la nube, o sea la
+desviación entre lo construido y lo modelado. Ya están las tres piezas que necesita —la nube en la
+escena, el calce, y la vuelta exacta a coordenadas del archivo—, y **su oráculo es CloudCompare**,
+que solo puede correr el usuario. Para eso hace falta el IFC de la pasarela.
 
 **Y tres cosas no las decide este plan**, porque no son trabajo sino elecciones: `F1.13`, `F9.6` y
 el trazo libre de `F4.5`. Están reunidas abajo, en «Las decisiones que solo el usuario puede tomar».
@@ -1179,7 +1181,7 @@ comparación que nadie puede hacer hoy sin software de pago.
 | #      | Tarea                                                                                         | Estado |
 | ------ | --------------------------------------------------------------------------------------------- | ------ |
 | `F2.1` | Cargar una nube (LAS/LAZ convertida) en la escena Three.js del visor                          | ✅     |
-| `F2.2` | Alinear nube y modelo: origen, rotación y escala, con ajuste manual asistido                  | 🔶     |
+| `F2.2` | Alinear nube y modelo: origen, rotación y escala, con ajuste manual asistido                  | ✅     |
 | `F2.3` | Controles de visualización: tamaño de punto, densidad, recorte por caja, color por altura/RGB | ✅     |
 | `F2.4` | Medir del modelo a la nube (desviación entre lo construido y lo modelado)                     | ⬜     |
 | `F2.5` | Documentar el pipeline de conversión **fuera de la aplicación**: `PotreeConverter` y `pdal`   | ✅     |
@@ -1270,10 +1272,46 @@ conocida aplicada a puntos conocidos**:
 3. **El residuo se devuelve siempre, con el máximo además del medio.** El medio diluye el punto que
    se señaló mal; el máximo lo delata y dice cuál fue.
 
-> **Lo que falta de `F2.2`, y por qué no se puede hacer todavía: señalar los puntos.** La aritmética
-> está lista, pero no hay dónde pinchar — **no hay ninguna nube en la escena hasta `F2.1`**. Escribir
-> la interacción antes sería escribirla contra una escena imaginaria. Así que `F2.2` queda en 🔶 a
-> conciencia, y se cierra con `F2.1`.
+### `F2.2` cerrada el 2026-09-03 — señalar y calzar, medido sobre la nube real
+
+Con la nube ya en la escena, la mitad que faltaba —señalar los puntos— quedó hecha:
+`pickPointCloud` devuelve un punto de la nube **en los dos sistemas**, el de la escena para dibujar
+la marca y el del archivo para el par de calce; `alignPointCloud` aplica la alineación.
+
+**Lo medido en el navegador**, con una desalineación conocida de 22,5° sobre el levantamiento del
+Camino Agrícola: el giro se recupera en `22.5000°`, el residuo es 0,000 mm, y **la nube cae a
+0,000 mm del modelo** al aplicar la matriz. Al señalar, el punto devuelto queda a **0 mm del rayo** y
+su conversión al sistema del archivo es exacta.
+
+**El calce se aplica como matriz del objeto y no reescribiendo los puntos**: ya están en coordenadas
+locales pequeñas, así que el giro lo hace la tarjeta sin perder precisión, y volver a calzar cuesta
+dieciséis números en vez de subir cientos de megas otra vez. La matriz vive en
+`packages/bim-core/src/nubes/matriz.ts`, probada **aplicándola** —no comparando dieciséis números
+contra otros dieciséis, que sería comparar la fórmula consigo misma—.
+
+> **Dos defectos encontrados escribiendo esto, y los dos daban números creíbles.**
+>
+> **1. El signo del giro estaba invertido**, y dejaba la nube a **69 metros** de su sitio. Lo cazó la
+> prueba que aplica la matriz a puntos conocidos; una que comparara coeficientes no lo habría visto.
+>
+> **2. Las cajas de los nodos se calculaban en el sistema equivocado.** La clave de un nodo —`(d, x,
+y, z)`— indexa las celdas en los ejes **del archivo**, y el cargador le pasaba el cubo **ya
+> convertido a la escena**: el índice del norte se aplicaba sobre la altura. El recorte seguía dando
+> cuentas verosímiles —«597 nodos fuera de vista»— **pero eran los nodos equivocados**. Ahora se
+> convierte la cámara al sistema del archivo, con `planoAArchivo` y `cajaAArchivo`, y se nota en las
+> cifras: el recorte por caja pasó de descartar los 1 329 nodos a descartar 575 y conservar 694.
+>
+> Es el mismo patrón que los 200 mm del `float32`: **el error no se ve, se mide**.
+
+**Y una prueba propia que estaba mal planteada.** Exigía que señalar devolviera _el punto al que se
+apuntó_, y devolvía otro a 24 m. No era un defecto: al pinchar una nube se atrapa **la superficie de
+delante**, que es lo que quiere quien marca una esquina. Lo que sí hay que comprobar es que el punto
+esté sobre el rayo —lo está, a 0 mm— y que su conversión sea la suya.
+
+> **Y un límite dicho: señalar es tosco a distancia.** El umbral es de seis píxeles, y a 200 m de la
+> nube seis píxeles son **dos metros**: se atrapa lo que hay cerca del rayo, no exactamente donde se
+> apuntó. Es inherente a señalar por rayo sobre puntos sueltos; la forma fina es pintar un búfer de
+> identificadores y leerlo, y eso queda para cuando estorbe de verdad.
 
 ### `F2.1` cerrada el 2026-09-03 — y comprobada en un navegador, no en Node
 

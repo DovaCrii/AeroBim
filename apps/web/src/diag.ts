@@ -12,7 +12,16 @@
 import * as OBC from "@thatopen/components";
 import * as OBF from "@thatopen/components-front";
 import * as THREE from "three";
-import { parseDxf, suggestMetresPerUnit } from "@aerobim/bim-core";
+import {
+  alineacionDeMapa,
+  archivoAEscena,
+  calzarConPuntos,
+  escenaAArchivo,
+  mapaALocal,
+  parseDxf,
+  suggestMetresPerUnit,
+  type ParDePuntos,
+} from "@aerobim/bim-core";
 import {
   BimViewer,
   CAPAS,
@@ -1885,6 +1894,15 @@ export async function nube(container: HTMLElement, url: string, log: Log): Promi
   const params = new URLSearchParams(location.search);
   const MB = Number(params.get("mb") ?? "256");
   const PRESUPUESTO = MB * 1024 * 1024;
+
+  // **El contenedor se fija en píxeles, y no es cosmética.**
+  //
+  // `diag.html` le da `50vh`, y cuando el panel del agente no tiene tamaño —pasa— eso es **cero**:
+  // el lienzo sale de 0 × 0, la cámara no tiene tronco de visión, y todo lo que dependa de ella
+  // —el recorte por vista, el tamaño en píxeles de un nodo, señalar un punto— mide sobre nada y
+  // **da resultados que parecen buenos**. Un número en píxeles no depende del panel.
+  container.style.width = "1200px";
+  container.style.height = "700px";
   // El fixture sintetico lleva geometria conocida; una nube real, no. Las comprobaciones que
   // dependen de ella **se saltan y se dice**, en vez de dar un veredicto sobre nada.
   const esElFixture = url.includes("levantamiento-sintetico");
@@ -2107,6 +2125,165 @@ export async function nube(container: HTMLElement, url: string, log: Log): Promi
           ? `  VEREDICTO: dibujo ${info.points} con ${enEscena} cargados, lo que no puede ser`
           : `  VEREDICTO: se dibujo lo que se ve — Three.js recorto ${(enEscena - info.points).toLocaleString("es-CL")} puntos mas por su cuenta`,
     );
+  }
+
+  // --- F2.2: senalar puntos y calzar ---------------------------------------------------
+  //
+  // **El bucle completo, en el navegador.** La aritmetica ya esta probada en `bim-core`, pero lo
+  // que puede fallar aca es otra cosa: que senalar devuelva el punto equivocado, que la matriz se
+  // aplique al reves, o que Three.js la descomponga y pierda el giro. Asi que se prueba con una
+  // desalineacion **conocida**: se inventa una, se fabrican los pares como los senalaria una
+  // persona, y se exige que la nube acabe donde el modelo.
+  log("\n=== F2.2 · senalar y calzar ===");
+  const nodo0 = nube.objeto.children[0];
+  if (!(nodo0 instanceof THREE.Points)) {
+    log("  no hay nodos cargados: no se puede probar");
+  } else {
+    // --- Senalar: se proyecta un punto real de la nube a la pantalla y se pincha ahi -----
+    //
+    // **Hay que buscar un punto que este EN PANTALLA**, y la primera version no lo hacia: tomaba
+    // el del medio del primer nodo y lo proyectaba sin comprobar nada. Tras los refrescos y el
+    // recorte, ese nodo bien puede estar fuera del encuadre, y entonces se pinchaba en un punto
+    // de la pantalla donde no hay nube — el fallo parecia del umbral y era de la prueba.
+    // Se reencuadra antes: los ensayos de recorte y densidad han movido la camara, y senalar sin
+    // saber que se esta mirando no prueba nada.
+    const cajaAhora = nube.cajaDeLoCargado();
+    if (cajaAhora !== null) {
+      await viewer.camera.controls.fitToSphere(
+        cajaAhora.getBoundingSphere(new THREE.Sphere()),
+        false,
+      );
+    }
+    viewer.camera.three.updateMatrixWorld();
+
+    const rect = container.getBoundingClientRect();
+    let objetivo: THREE.Vector3 | null = null;
+    let px = 0;
+    let py = 0;
+    // Se busca en **todos** los nodos cargados y no solo en el primero: cual sea el primero
+    // depende del orden en que llegaron, y no tiene por que estar en el encuadre.
+    for (const hijo of nube.objeto.children) {
+      if (objetivo !== null) break;
+      if (!(hijo instanceof THREE.Points)) continue;
+      const posiciones = hijo.geometry.getAttribute("position");
+      for (let k = 1; k < 20 && objetivo === null; k += 1) {
+        const i = Math.floor((posiciones.count * k) / 20);
+        const candidato = new THREE.Vector3(
+          posiciones.getX(i),
+          posiciones.getY(i),
+          posiciones.getZ(i),
+        );
+        const p = candidato.clone().project(viewer.camera.three);
+        if (Math.abs(p.x) > 0.85 || Math.abs(p.y) > 0.85 || p.z > 1) continue;
+        objetivo = candidato;
+        px = rect.left + ((p.x + 1) / 2) * rect.width;
+        py = rect.top + ((1 - p.y) / 2) * rect.height;
+      }
+    }
+
+    const senalado = objetivo === null ? null : viewer.pickPointCloud(px, py);
+    if (objetivo === null) {
+      log("  ningun punto cae en pantalla tras reencuadrar: no se puede probar el senalado");
+    } else if (senalado === null) {
+      log("  pickPointCloud no dio en nada — el umbral esta corto");
+    } else {
+      // **Lo que hay que comprobar NO es que devuelva el punto al que se apunto**, y la primera
+      // version de esta prueba lo exigia. Al pinchar una nube se atrapa **el punto mas cercano a
+      // la camara** que caiga cerca del rayo, y eso es lo correcto: apuntando a una fachada del
+      // fondo, lo que se quiere marcar es la de delante. El punto elegido salio a 24 m del que se
+      // proyecto, y no era un defecto sino una pared por medio.
+      //
+      // Lo que si tiene que cumplirse son dos cosas: que el punto devuelto **este cerca del rayo**
+      // -si no, se atrapo cualquier cosa- y que su conversion al sistema del archivo sea la del
+      // punto devuelto, no la de otro.
+      const camara = viewer.camera.three.position.clone();
+      const direccion = objetivo.clone().sub(camara).normalize();
+      const devuelto = new THREE.Vector3(...senalado.escena);
+      const alRayo = devuelto.clone().sub(camara).cross(direccion).length();
+      log(`  se pincho y devolvio un punto a ${(alRayo * 1000).toFixed(0)} mm del rayo`);
+      log(`  y a ${objetivo.distanceTo(devuelto).toFixed(2)} m del punto al que se apunto`);
+      log("  (lo segundo es normal: se atrapa la superficie de delante, no la del fondo)");
+      log(`  en coordenadas del archivo: ${senalado.archivo.map((v) => v.toFixed(3)).join(", ")}`);
+
+      // La conversion tiene que ser la del punto DEVUELTO. Comparar contra el que se apunto seria
+      // comparar dos puntos distintos y llamar defecto a la diferencia.
+      const esperadoArchivo = escenaAArchivo(senalado.escena, cargada.desplazamiento);
+      const errorArchivo = Math.max(
+        ...senalado.archivo.map((v, i) => Math.abs(v - (esperadoArchivo[i] as number))),
+      );
+      log(
+        errorArchivo < 1e-6
+          ? "  la vuelta al sistema del archivo es exacta"
+          : `  LA VUELTA AL ARCHIVO NO CUADRA: ${errorArchivo.toFixed(6)} m`,
+      );
+    }
+
+    // --- Calzar: una desalineacion conocida, y comprobar que se deshace -----------------
+    const GIRO = 22.5;
+    const r = (GIRO * Math.PI) / 180;
+    const real = alineacionDeMapa({
+      este: (ficha.minimo[0] as number) + 3.5,
+      norte: (ficha.minimo[1] as number) - 2.25,
+      altura: (ficha.minimo[2] as number) + 0.75,
+      abscisaEjeX: Math.cos(r),
+      ordenadaEjeX: Math.sin(r),
+      escala: 1,
+    });
+
+    // Seis puntos reales de la nube. Su posicion "en el modelo" es la que tendrian deshaciendo la
+    // desalineacion: es lo que senalaria alguien que tiene los dos en pantalla.
+    const posicionesNodo0 = nodo0.geometry.getAttribute("position");
+    const pares: ParDePuntos[] = [];
+    for (let k = 0; k < 6; k += 1) {
+      const i = Math.floor((posicionesNodo0.count * (k + 1)) / 7);
+      const enLaEscena: [number, number, number] = [
+        posicionesNodo0.getX(i),
+        posicionesNodo0.getY(i),
+        posicionesNodo0.getZ(i),
+      ];
+      const enLaNube = escenaAArchivo(enLaEscena, cargada.desplazamiento);
+      pares.push({ local: mapaALocal(enLaNube, real), nube: enLaNube });
+    }
+
+    const calce = calzarConPuntos(pares);
+    log(`\n  con 6 puntos senalados:`);
+    log(`    giro recuperado: ${calce.alineacion.giroGrados.toFixed(4)}° (se puso ${GIRO}°)`);
+    log(
+      `    residuo: medio ${(calce.residuo.medio * 1000).toFixed(3)} mm · maximo ${(calce.residuo.maximo * 1000).toFixed(3)} mm`,
+    );
+    log(
+      `    giro indeterminado: ${calce.giroIndeterminado} · escala ajustada: ${calce.escalaAjustada}`,
+    );
+    log(
+      Math.abs(calce.alineacion.giroGrados - GIRO) < 0.01
+        ? "    el giro se recupera"
+        : `    NO SE RECUPERA EL GIRO: ${calce.alineacion.giroGrados.toFixed(4)}° contra ${GIRO}°`,
+    );
+
+    // --- Y aplicarlo: la nube tiene que caer sobre el modelo ----------------------------
+    const aplicado = viewer.alignPointCloud(calce.alineacion);
+    nodo0.updateMatrixWorld(true);
+    log(`\n  matriz aplicada: ${aplicado}`);
+
+    let peor = 0;
+    for (const par of pares) {
+      // Donde esta ese punto de la nube ahora, en el mundo.
+      const enLaEscena = new THREE.Vector3(
+        ...archivoAEscena(par.nube, cargada.desplazamiento),
+      ).applyMatrix4(nube.objeto.matrix);
+      // Y donde esta el modelo: sus coordenadas locales con el cambio de ejes, sin desplazamiento.
+      const modelo = new THREE.Vector3(...archivoAEscena(par.local, [0, 0, 0]));
+      peor = Math.max(peor, enLaEscena.distanceTo(modelo));
+    }
+    log(`  la nube cae a ${(peor * 1000).toFixed(3)} mm del modelo`);
+    log(
+      peor < 0.001
+        ? "  VEREDICTO: la nube calza con el modelo por debajo del milimetro"
+        : `  VEREDICTO: NO CALZA — ${peor.toFixed(3)} m de desvio`,
+    );
+
+    viewer.resetPointCloudAlignment();
+    log("  calce deshecho: la nube vuelve a su sitio de origen");
   }
 
   marca("total");

@@ -62,7 +62,10 @@ import { Copc, Las, type Getter, type Hierarchy } from "copc";
 import * as THREE from "three";
 
 import {
+  cajaAArchivo,
   desplazamientoLocal,
+  escenaAArchivo,
+  planoAArchivo,
   nodosVisibles,
   presupuesto,
   type Atributo,
@@ -365,10 +368,17 @@ export class NubeEnEscena {
     this.objeto.userData.desplazamiento = this.desplazamiento;
     this.objeto.userData.wkt = ficha.wkt;
 
-    // El cubo, en coordenadas de la ESCENA: es contra estas cajas contra las que se comparan los
-    // planos de la camara, que tambien vienen de la escena. Comparar unas con otras sin convertir
-    // es el error que deja el recorte descartando lo que si se ve.
-    this.cubo = cuboEnLaEscena(this.copc.info.cube, this.desplazamiento);
+    // **El cubo se queda en coordenadas del ARCHIVO, y esto fue un defecto.**
+    //
+    // La primera version lo convertia a la escena, y estaba mal: la clave de un nodo —`(d, x, y,
+    // z)`— indexa las celdas en los ejes **del archivo**, con la cota en Z. Con el cubo convertido,
+    // el indice del norte se aplicaba sobre la altura, y las cajas de los nodos salian en sitios
+    // que no existen.
+    //
+    // Y no fallaba de forma visible: el recorte seguia dando cuentas verosimiles —«597 fuera de
+    // vista»— solo que eran los nodos equivocados. Lo que se convierte ahora es **la camara**, con
+    // `planoAArchivo` y `cajaAArchivo`, que estan probados.
+    this.cubo = [...this.copc.info.cube] as Cubo;
 
     this.candidatos = [];
     for (const [clave, nodo] of Object.entries(nodos)) {
@@ -483,15 +493,23 @@ export class NubeEnEscena {
     // El criterio se arma campo a campo porque `exactOptionalPropertyTypes` distingue «ausente» de
     // «presente y `undefined`», y ahi la diferencia importa: `planos: undefined` tendria que
     // significar «no recortes por vista», y pasarlo explicito deja al lector adivinandolo.
+    // La camara viene en coordenadas de la escena y el octree vive en las del archivo, asi que se
+    // convierte **la camara** —no el octree—. Es un movimiento rigido, asi que las distancias y por
+    // tanto el tamano en pantalla no cambian.
+    const planos = c.planos?.map((p) => planoAArchivo(p, this.desplazamiento));
+    const camara =
+      c.camara !== undefined ? escenaAArchivo(c.camara, this.desplazamiento) : undefined;
+    const recorte = this.caja !== null ? cajaAArchivo(this.caja, this.desplazamiento) : null;
+
     const seleccion = nodosVisibles(this.candidatos, {
       cubo: this.cubo,
       puntosMaximos: c.puntosMaximos ?? Number.POSITIVE_INFINITY,
-      ...(c.planos !== undefined ? { planos: c.planos } : {}),
-      ...(c.camara !== undefined ? { camara: c.camara } : {}),
+      ...(planos !== undefined ? { planos } : {}),
+      ...(camara !== undefined ? { camara } : {}),
       ...(c.factorDeProyeccion !== undefined ? { factorDeProyeccion: c.factorDeProyeccion } : {}),
       pixelesMinimos: c.pixelesMinimos ?? PIXELES_MINIMOS,
       ...(c.profundidadMaxima !== undefined ? { profundidadMaxima: c.profundidadMaxima } : {}),
-      ...(this.caja !== null ? { recorte: this.caja } : {}),
+      ...(recorte !== null ? { recorte } : {}),
     });
 
     const quiere = new Set(seleccion.elegidos.map((n) => textoDeClave(n.clave)));
@@ -774,25 +792,6 @@ function puntosQueCabenAqui(bytes: number): number {
 /** La clave de un nodo como texto, que es como la indexa `copc`. */
 function textoDeClave(clave: ClaveDeNodo): string {
   return `${clave.d}-${clave.x}-${clave.y}-${clave.z}`;
-}
-
-/**
- * El cubo del octree, pasado a coordenadas de la escena.
- *
- * Hay que convertirlo igual que los puntos —restar el desplazamiento y cambiar los ejes— porque es
- * contra sus cajas contra las que se comparan los planos de la cámara, que vienen de la escena. Y el
- * cambio de ejes **niega la Y**, así que el mínimo y el máximo de ese eje se intercambian: dejarlos
- * en su orden daría una caja con el mínimo por encima del máximo, que no toca nada y descartaría la
- * nube entera.
- */
-function cuboEnLaEscena(cubo: Cubo, d: readonly [number, number, number]): Cubo {
-  const x0 = cubo[0] - d[0];
-  const x1 = cubo[3] - d[0];
-  const y0 = cubo[2] - d[2];
-  const y1 = cubo[5] - d[2];
-  const z0 = -(cubo[4] - d[1]);
-  const z1 = -(cubo[1] - d[1]);
-  return [x0, y0, z0, x1, y1, z1];
 }
 
 /**
