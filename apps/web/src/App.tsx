@@ -4,6 +4,9 @@ import {
   type DistanceMode,
   type DrawingView,
   type DrawnMeasurement,
+  type FichaDeNube,
+  type InformeDeRefresco,
+  type ModoDeColor,
   type GeneratedDrawing,
   type LoadedModel,
   type LoadedPlan,
@@ -38,6 +41,7 @@ import { PlansPanel } from "./components/PlansPanel.js";
 import { ProjectBrowser } from "./components/ProjectBrowser.js";
 import { Resizer } from "./components/Resizer.js";
 import { Selector } from "./components/Selector.js";
+import { NubesPanel } from "./components/NubesPanel.js";
 import { Plan2DCard, PropertiesPanel } from "./components/PropertiesPanel.js";
 import { Ribbon, type RibbonTab } from "./components/Ribbon.js";
 import { SpatialTree } from "./components/SpatialTree.js";
@@ -310,6 +314,19 @@ export function App() {
   const [measureMissed, setMeasureMissed] = useState(false);
   /** Las cotas dibujadas, para poder apagarlas o borrarlas una por una. */
   const [drawn, setDrawn] = useState<readonly DrawnMeasurement[]>([]);
+
+  // --- La nube de puntos (`F12.1`) -----------------------------------------------------
+  const [nube, setNube] = useState<FichaDeNube | null>(null);
+  const [nubeInforme, setNubeInforme] = useState<InformeDeRefresco | null>(null);
+  const [nubePuntos, setNubePuntos] = useState(0);
+  const [nubeColor, setNubeColor] = useState<ModoDeColor>("rgb");
+  const [nubeTamano, setNubeTamano] = useState(2);
+  const [nubeTecho, setNubeTecho] = useState(4_000_000);
+  const [nubeRecortada, setNubeRecortada] = useState(false);
+  /** La URL del `blob:` de la nube abierta. Se revoca **al cerrarla**, no al acabar de cargar. */
+  const urlDeLaNube = useRef<string | null>(null);
+  /** El `input` de archivo escondido tras «Abrir», para poder pulsarlo desde el panel de nubes. */
+  const entradaDeArchivo = useRef<HTMLInputElement | null>(null);
   const [snapMode, setSnapMode] = useState<SnapMode>("vertex");
   const [distanceMode, setDistanceMode] = useState<DistanceMode>("points");
   const [hasSections, setHasSections] = useState(false);
@@ -561,15 +578,155 @@ export function App() {
   }, []);
 
   /**
-   * Abre un archivo, sea un modelo o un plano.
+   * Abre una nube de puntos COPC: `F12.1`.
    *
-   * **La extensión decide**, y acá es lo correcto: son dos formatos que no se parecen en nada y se
-   * sueltan en el mismo sitio. Un `.dxf` entra como plano de referencia; cualquier otra cosa se
-   * intenta como IFC, que es lo que la aplicación abre.
+   * **El archivo del disco se lee por rangos igual que uno servido**, y eso no era evidente: la
+   * nube se abre pidiendo trozos con una cabecera `Range`, y un `File` no tiene URL. La tiene con
+   * `createObjectURL`, y **el navegador responde `206` a un rango sobre un `blob:`** — comprobado
+   * antes de escribir esto, porque si hubiera devuelto el archivo entero con un `200` la nube de
+   * gigas se habría descargado completa sin que nada fallara.
+   *
+   * Así que no hay un camino nuevo para el disco: el mismo lector sirve para los dos.
+   *
+   * **La URL no se revoca al acabar de cargar.** Los nodos del octree se piden mientras se navega,
+   * no una vez al principio: revocarla dejaría la nube congelada en lo que ya estaba en memoria y
+   * sin explicar por qué. Se revoca al cerrar la nube.
+   */
+  /**
+   * Vuelve a decidir qué nodos de la nube hacen falta, con la cámara donde esté.
+   *
+   * **Se llama cuando la cámara se asienta, no mientras se mueve.** Cada refresco puede pedir nodos
+   * por la red, y hacerlo en cada fotograma de una órbita sería pedir y tirar lo mismo cien veces.
+   */
+  const refrescarNube = useCallback(async () => {
+    const instance = viewer.current;
+    if (!instance || instance.cloud === null) return;
+    const informe = await instance.refreshPointCloud({ puntosMaximos: nubeTecho });
+    if (informe !== null) {
+      setNubeInforme(informe);
+      setNubePuntos(informe.puntos);
+    }
+  }, [nubeTecho]);
+
+  const openCloud = useCallback(
+    async (file: File) => {
+      const instance = viewer.current;
+      if (!instance) return;
+
+      setStatus({ kind: "loading", name: file.name, stage: "reading" });
+      const url = URL.createObjectURL(file);
+      try {
+        const cargada = await instance.loadPointCloud(url, {
+          presupuestoBytes: 256 * 1024 * 1024,
+          color: "rgb",
+        });
+        urlDeLaNube.current = url;
+        setNube(cargada.ficha);
+        setNubeInforme(cargada.informe);
+        setNubePuntos(cargada.cargados);
+        setNubeColor(cargada.nube.color);
+        setStatus({ kind: "ready" });
+        requestAnimationFrame(() => void refrescarNube());
+      } catch (error: unknown) {
+        URL.revokeObjectURL(url);
+        setStatus({ kind: "error", message: describe(error) });
+      }
+    },
+    [refrescarNube],
+  );
+
+  /** Cierra la nube y **suelta el `blob:`**, que si no se queda el archivo entero en memoria. */
+  const cerrarNube = useCallback(() => {
+    viewer.current?.unloadPointCloud();
+    if (urlDeLaNube.current !== null) {
+      URL.revokeObjectURL(urlDeLaNube.current);
+      urlDeLaNube.current = null;
+    }
+    setNube(null);
+    setNubeInforme(null);
+    setNubePuntos(0);
+    setNubeRecortada(false);
+  }, []);
+
+  /** Encuadra la nube: lo primero que se hace al abrir un levantamiento. */
+  const encuadrarNube = useCallback(() => {
+    viewer.current?.frameCloud();
+  }, []);
+
+  /**
+   * Cambia de qué sale el color. **Se anota el modo real y no el pedido**: si el archivo no trae
+   * RGB, el visor cae a la altura, y dejar el desplegable diciendo «color del levantamiento» sobre
+   * una nube pintada por altura es la interfaz mintiendo.
+   */
+  const colorearNube = useCallback((modo: ModoDeColor) => {
+    const real = viewer.current?.cloud?.colorear(modo);
+    if (real !== undefined) setNubeColor(real);
+  }, []);
+
+  const tamanoDeNube = useCallback((px: number) => {
+    const nubeViva = viewer.current?.cloud;
+    if (!nubeViva) return;
+    nubeViva.tamanoDePunto = px;
+    setNubeTamano(nubeViva.tamanoDePunto);
+  }, []);
+
+  const densidadDeNube = useCallback((tope: number) => {
+    setNubeTecho(tope);
+  }, []);
+
+  // El techo cambia → se rehace la selección. Va en un efecto y no dentro del propio control
+  // porque `refrescarNube` lee el techo, y llamarlo antes de que el estado asiente usaría el viejo.
+  useEffect(() => {
+    if (nube !== null) void refrescarNube();
+  }, [nubeTecho, nube, refrescarNube]);
+
+  /**
+   * La nube afina **cuando la cámara se para**, y no mientras se mueve.
+   *
+   * Es lo que la hace usable: al acercarse a una zona llega su detalle, y al alejarse se suelta.
+   * Enganchado a `rest` —el evento de «los controles se detuvieron»— y no a cada fotograma, porque
+   * cada refresco puede pedir nodos por la red: hacerlo durante una órbita sería pedir y tirar lo
+   * mismo cien veces.
+   */
+  useEffect(() => {
+    const controles = viewer.current?.camera.controls;
+    if (controles === undefined || nube === null) return;
+    const alPararse = () => void refrescarNube();
+    controles.addEventListener("rest", alPararse);
+    return () => controles.removeEventListener("rest", alPararse);
+  }, [nube, refrescarNube]);
+
+  /** Recorta la nube a la zona del modelo, o quita el recorte. El visor pone la holgura. */
+  const recortarNubeAlModelo = useCallback(
+    (recortar: boolean) => {
+      const hecho = viewer.current?.clipCloudToModel(recortar ? 1 : null) ?? false;
+      // Si se pidió recortar y no hay modelo abierto, la casilla vuelve sola: prometer un recorte
+      // que no ocurrió es peor que no ofrecerlo.
+      setNubeRecortada(recortar && hecho);
+      void refrescarNube();
+    },
+    [refrescarNube],
+  );
+
+  /**
+   * Abre un archivo, sea un modelo, un plano o una nube de puntos.
+   *
+   * **La extensión decide**, y acá es lo correcto: son formatos que no se parecen en nada y se
+   * sueltan en el mismo sitio. Un `.dxf` entra como plano de referencia, un `.laz` como
+   * levantamiento, y cualquier otra cosa se intenta como IFC.
+   *
+   * **La nube entra por la misma puerta que el modelo, y eso es la decisión.** Darle un botón
+   * propio la convertiría en otra aplicación dentro de la aplicación; el trabajo de coordinar es
+   * mirar las tres cosas juntas, así que las tres se abren igual.
    */
   const openFile = useCallback(
-    (file: File) => (file.name.toLowerCase().endsWith(".dxf") ? openDxf(file) : openIfc(file)),
-    [openDxf, openIfc],
+    (file: File) => {
+      const nombre = file.name.toLowerCase();
+      if (nombre.endsWith(".dxf")) return openDxf(file);
+      if (nombre.endsWith(".laz") || nombre.endsWith(".las")) return openCloud(file);
+      return openIfc(file);
+    },
+    [openDxf, openIfc, openCloud],
   );
 
   /**
@@ -1619,8 +1776,10 @@ export function App() {
             <label className="cursor-pointer rounded-md bg-action px-3 py-1 text-xs font-medium text-fg hover:bg-action-hover">
               Abrir
               <input
+                ref={entradaDeArchivo}
                 type="file"
-                accept=".ifc,.dxf"
+                // La nube entra por la misma puerta que el modelo y el plano: `F12.1`.
+                accept=".ifc,.dxf,.laz,.las"
                 className="hidden"
                 disabled={status.kind !== "ready"}
                 onChange={(event) => {
@@ -1801,7 +1960,7 @@ export function App() {
 
           <ViewCube
             view={standardView}
-            disabled={models.length === 0 && plans.length === 0}
+            disabled={models.length === 0 && plans.length === 0 && nube === null}
             onView={(view) => {
               setStandardView(view);
               void viewer.current?.frameAll(view);
@@ -1812,15 +1971,22 @@ export function App() {
             <div className="pointer-events-none absolute inset-4 rounded-lg border-2 border-dashed border-accent/70" />
           )}
 
-          {models.length === 0 && plans.length === 0 && status.kind !== "loading" && (
-            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-              <p className="text-sm text-fg-3">
-                Arrastra un <span className="text-fg-2">IFC</span> o un{" "}
-                <span className="text-fg-2">DXF</span> aquí, o usa{" "}
-                <span className="text-fg-2">Abrir</span>
-              </p>
-            </div>
-          )}
+          {/* **La nube cuenta como "hay algo abierto".** Sin ella en esta condición, el lienzo
+              seguía diciendo «arrastra un IFC aquí» **por encima de la nube ya cargada** — se vio
+              en la primera prueba de `F12.1`. Una pantalla que pide lo que ya tiene delante. */}
+          {models.length === 0 &&
+            plans.length === 0 &&
+            nube === null &&
+            status.kind !== "loading" && (
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                <p className="text-sm text-fg-3">
+                  Arrastra un <span className="text-fg-2">IFC</span>, un{" "}
+                  <span className="text-fg-2">DXF</span> o un{" "}
+                  <span className="text-fg-2">levantamiento</span> aquí, o usa{" "}
+                  <span className="text-fg-2">Abrir</span>
+                </p>
+              </div>
+            )}
         </div>
 
         {panelDerecho && (
@@ -1952,6 +2118,23 @@ export function App() {
                     onToggleVisible={onToggleVisible}
                   />
                 )
+              }
+              nubes={
+                <NubesPanel
+                  ficha={nube}
+                  informe={nubeInforme}
+                  puntos={nubePuntos}
+                  color={nubeColor}
+                  tamanoDePunto={nubeTamano}
+                  recortada={nubeRecortada}
+                  onAbrir={() => entradaDeArchivo.current?.click()}
+                  onColor={colorearNube}
+                  onTamano={tamanoDeNube}
+                  onDensidad={densidadDeNube}
+                  onRecorte={recortarNubeAlModelo}
+                  onEncuadrar={encuadrarNube}
+                  onCerrar={cerrarNube}
+                />
               }
               cuadros={
                 <CuadrosPanel

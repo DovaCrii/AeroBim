@@ -4547,6 +4547,55 @@ export class BimViewer {
     return null;
   }
 
+  /** Encuadra la nube abierta. Devuelve `false` si no hay ninguna o no tiene puntos cargados. */
+  frameCloud(): boolean {
+    this.assertAlive();
+    const caja = this.nube?.cajaDeLoCargado() ?? null;
+    if (caja === null) return false;
+    void this.camera.controls.fitToBox(caja, false);
+    return true;
+  }
+
+  /**
+   * Recorta la nube a la zona que ocupa el modelo, o quita el recorte con `null`.
+   *
+   * **Es el gesto que hace usable una nube junto a un modelo.** Un levantamiento cubre la calle
+   * entera y el modelo es un edificio: sin recortar, la mayor parte de los puntos que se pagan —en
+   * memoria y en espera— están donde no hay nada contra qué comparar.
+   *
+   * `margenM` ensancha la caja del modelo, y no es un adorno: **lo construido se sale de lo
+   * modelado**, y ahí está justo lo que interesa mirar. Un metro por omisión.
+   *
+   * Devuelve `false` si no hay nube, o si se pidió recortar y **no hay ningún modelo abierto** —
+   * que no es un error: es que todavía no hay zona a la que recortar.
+   */
+  clipCloudToModel(margenM: number | null = 1): boolean {
+    this.assertAlive();
+    if (this.nube === null) return false;
+
+    if (margenM === null) {
+      this.nube.recortar(null);
+      return true;
+    }
+
+    const union = new THREE.Box3();
+    for (const [, model] of this.fragments.list) {
+      union.union(new THREE.Box3().setFromObject(model.object));
+    }
+    if (union.isEmpty()) return false;
+
+    union.expandByScalar(margenM);
+    this.nube.recortar([
+      union.min.x,
+      union.min.y,
+      union.min.z,
+      union.max.x,
+      union.max.y,
+      union.max.z,
+    ]);
+    return true;
+  }
+
   /** Deshace el calce: la nube vuelve a donde la puso el cargador. */
   resetPointCloudAlignment(): boolean {
     this.assertAlive();

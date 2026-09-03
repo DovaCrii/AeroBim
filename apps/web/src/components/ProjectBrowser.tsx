@@ -30,6 +30,7 @@ export function ProjectBrowser({
   estructura,
   cuadros,
   modelos,
+  nubes,
   planos,
   planCount,
   generados,
@@ -52,6 +53,8 @@ export function ProjectBrowser({
   /** Los cuadros por categoría: qué hay en el modelo y cuántas hay. */
   readonly cuadros: React.ReactNode;
   readonly modelos: React.ReactNode;
+  /** La nube de puntos: su ficha y sus mandos (`F12.1`). */
+  readonly nubes: React.ReactNode;
   /** Los planos 2D cargados, con sus capas y su ajuste. */
   readonly planos: React.ReactNode;
   readonly planCount: number;
@@ -168,6 +171,19 @@ export function ProjectBrowser({
         onRedimensionar={(delta, actual) => redimensionar("modelos", delta, actual)}
       >
         {modelos}
+      </Seccion>
+
+      {/* **La nube va junto a los modelos abiertos y no al final**, porque es lo mismo: otra fuente
+          del proyecto que está abierta ahora. La regla de crecimiento de `docs/UX.md` es que una
+          capacidad nueva es una sección del navegador, y esta es la primera que la estrena. */}
+      <Seccion
+        titulo="Nube de puntos"
+        abierta={abiertas.has("nubes")}
+        onAlternar={() => alternar("nubes")}
+        alto={altos["nubes"] ?? null}
+        onRedimensionar={(delta, actual) => redimensionar("nubes", delta, actual)}
+      >
+        {nubes}
       </Seccion>
 
       {/* **Los planos 2D van junto a los modelos, no en otra pestaña.** Son otra fuente del mismo
