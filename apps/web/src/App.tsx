@@ -1186,6 +1186,28 @@ export function App() {
     [cuadro],
   );
 
+  /**
+   * Lleva las cotas medidas sobre el modelo a una lámina. `F7.3`.
+   *
+   * **El aviso dice cuántas se pusieron y no «hecho»**, porque puede ser menos que las que hay: una
+   * cota entre dos puntos que se proyectan al mismo sitio —una medición vertical en una planta— no
+   * es una cota y se salta. Un «hecho» dejaría a alguien buscando en el DXF una cota que no está.
+   */
+  /**
+   * Cuántas cotas lleva puestas cada lámina. `F7.3`.
+   *
+   * **Se dice en la ficha del plano y no en un aviso general**, y el número importa: puede ser menos
+   * que las mediciones que hay, porque una cota entre dos puntos que se proyectan al mismo sitio —una
+   * medición vertical en una planta— no es una cota y se salta. Un «hecho» dejaría a alguien
+   * buscando en el DXF una cota que no está.
+   */
+  const [cotasPuestas, setCotasPuestas] = useState<Readonly<Record<string, number>>>({});
+
+  const onAcotarPlano = useCallback(async (planoId: string) => {
+    const puestas = (await viewer.current?.addDimensionsToDrawing(planoId)) ?? 0;
+    setCotasPuestas((actual) => ({ ...actual, [planoId]: (actual[planoId] ?? 0) + puestas }));
+  }, []);
+
   const onSection = useCallback((axis: SectionAxis) => {
     setHasSections(true);
     void viewer.current?.addSection(axis);
@@ -1753,6 +1775,15 @@ export function App() {
                   hidden={hiddenDrawings}
                   onAddTable={onPonerCuadroEnPlano}
                   cuadroCargado={cuadro?.category ?? null}
+                  onAddDimensions={onAcotarPlano}
+                  // **Se cuenta de `drawn` y no se le pregunta al visor**: `drawn` es el estado de
+                  // React, así que el botón aparece y desaparece al medir sin depender de que algo
+                  // fuerce un redibujado. Solo las de distancia encendidas, que son las que se
+                  // pueden llevar a un plano.
+                  cotasDisponibles={
+                    drawn.filter((una) => una.visible && una.kind === "distance").length
+                  }
+                  cotasPuestas={cotasPuestas}
                   generating={generating}
                   onGenerate={(vista) => void onGenerateDrawing(vista)}
                   onCancel={() => setGenerating(null)}

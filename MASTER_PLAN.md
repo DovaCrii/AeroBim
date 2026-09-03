@@ -36,9 +36,13 @@ pesos y medidas en 155 ms—, se ordenan, se filtran, cada fila lleva a su eleme
 **Y con `F10.4` la Fase 10 cierra entera**: el informe sale en papel, se pide por etiqueta, el modelo
 saca sus cuadros y la lámina los lleva dentro.
 
-**Lo que sigue, entonces, es `F7.3`**, el acotado y las anotaciones sobre el plano, que es lo que
-hace de una proyección un plano de verdad —una planta sin cotas no se construye—. Después `F7.5`, el
-PDF imprimible, que es la otra salida que pide una oficina.
+**Y `F7.3` va por la mitad que vale**: las cotas medidas sobre el modelo se llevan a la lámina y
+salen en el DXF con su número, así que no hay que acotar dos veces. Quedan ángulos, pendientes y
+llamadas, que son ensamblaje por el mismo camino ya abierto.
+
+**Lo que sigue, entonces, es `F7.5`**: el PDF imprimible. Es la otra salida que pide una oficina —un
+DXF se abre en un CAD y un PDF se manda por correo y se firma— y el servidor ya sabe hacer PDFs con
+membrete, que es la mitad del trabajo.
 
 ## La prioridad cambió el 2026-09-02, y la puso el usuario
 
@@ -118,7 +122,7 @@ Las **veintinueve** filas abiertas, de una vez. `⬜` no empezada · `❓` medid
 | **11 — El portal se ve plano** ⭐        | `F11.7` ayuda con recorrido ⛔ — la decide el usuario _(`F11.1` a `F11.6` y `F11.8` a `F11.10` cerradas)_                       |
 | **10 — Etiquetas, informes y tablas** ⭐ | ✅ **la fase entera** — el informe sale en papel, se pide por etiqueta, el modelo saca sus cuadros y la lámina los lleva dentro |
 | **1 — Visor**                            | `F1.13` ❓ — auditada; quedan tres nombres que decide el usuario                                                                |
-| **7 — Planos, salida**                   | `F7.3` acotado y anotaciones · `F7.5` exportar a PDF ⬜ _(`F7.2` cerrada: capas con nombre, y el viewport recortaba el plano)_  |
+| **7 — Planos, salida**                   | `F7.3` ◐ el acotado ya sale del modelo; quedan angulos, pendientes y llamadas · `F7.5` exportar a PDF ⬜ _(`F7.2` cerrada)_     |
 | **2 — Nubes de puntos**                  | `F2.1` a `F2.6` ⬜ — cargar, alinear, visualizar, medir contra el modelo, documentar el pipeline, y el gaussian splatting       |
 | **6 — Geo + BIM**                        | `F6.1` a `F6.5` ⬜ — Cesium, ortofoto y terreno propios, situar el IFC, 3D Tiles, y recibir de AeroPlanner                      |
 
@@ -2653,7 +2657,7 @@ longitud medida en los dos.
 | ------ | ---------------------------------------------------------------------------------------------------- | ------------ |
 | `F7.1` | Generar vistas 2D desde el modelo (planta, alzados) proyectando sus aristas                          | 🟡           |
 | `F7.2` | Viewports y capas: qué se dibuja, con qué grosor y en qué capa (`DrawingViewports`, `DrawingLayers`) | ✅ ver abajo |
-| `F7.3` | Acotado y anotaciones sobre el plano: cotas lineales, ángulos, pendientes y llamadas                 | ⬜           |
+| `F7.3` | Acotado y anotaciones sobre el plano: cotas lineales, ángulos, pendientes y llamadas                 | ◐ ver abajo  |
 | `F7.4` | **Exportar a DXF** con `DxfExporter`, en A3 y milímetros, listo para el CAD                          | ✅ ver abajo |
 | `F7.5` | Exportar a PDF imprimible, con formato y sello                                                       | ⬜           |
 
@@ -2700,6 +2704,44 @@ pasó y por qué:
 
 Comprobado en las tres vistas: las tres cortan con ese mensaje, la interfaz vuelve y el aviso de
 avance se limpia. **Un cuelgue se convirtió en algo que se puede contar.**
+
+### `F7.3` — ◐ El acotado sale del modelo, y no se mide dos veces
+
+**Lo que se hizo, y es la mitad que vale**: las cotas que ya se midieron sobre el modelo —con el
+ajuste a vértice, que es lo que hace que dos personas midan lo mismo— **se llevan a la lámina** y
+salen en el DXF con su número. El botón está en la ficha de cada plano generado: «Acotar con las 3
+mediciones».
+
+Acotar encima del dibujo, que es la otra forma de hacerlo, sería **medir dos veces la misma cosa** y
+arriesgarse a que los dos números no coincidan. Midiendo una vez sobre el modelo, el número del plano
+es el número del modelo por construcción.
+
+Tres cosas que se ven poco:
+
+- **Los puntos se llevan a coordenadas del dibujo y se aplasta la Y.** Un dibujo es un plano en el
+  espacio, así que una cota entre dos puntos a distinta altura **se proyecta acortada** — igual que
+  la geometría, y es lo correcto: en una planta, una diagonal que sube se dibuja más corta.
+- **Una cota que se proyecta a un punto no es una cota.** Una medición vertical en una planta se
+  aplasta a cero: se salta, y la ficha dice **cuántas entraron** en vez de «hecho». Un «hecho»
+  dejaría a alguien buscando en el DXF una cota que no está.
+- **Solo las encendidas.** Una medición apagada es una que quien mide decidió no mostrar, y el plano
+  tiene que decir lo mismo que la pantalla.
+
+> **El oráculo.** `diag.html?modo=dxf` acota el lado de 10 m del rectángulo de prueba, exporta, y lee
+> el DXF con nuestro lector: entre los textos está **`10.00 m`**, la medida exacta. Es lo que importa
+> de una cota — la línea y las marcas son geometría que el exportador ya escribía; **una cota que no
+> escribe su número no es una cota**.
+
+**Lo que queda de la fila, y por qué**: ángulos, pendientes y llamadas. La librería trae los tres
+sistemas —`AngleAnnotations`, `SlopeAnnotations`, `CalloutAnnotations`— y el camino es el mismo que
+ya está abierto para las cotas lineales, así que es trabajo de ensamblaje y no de investigación. Se
+dejan porque **acotar es lo que hace falta para que una planta se construya**, y los otros tres son
+anotación de detalle.
+
+> **Y lo que no se pudo comprobar en pantalla, dicho:** el botón está tipado, compilado y con lint y
+> formato limpios, pero **no se ha pulsado**, porque para eso hay que generar un plano y `F7.1`
+> necesita un navegador que componga fotogramas — la misma limitación de siempre, la que hizo falta
+> el corte por falta de latido. Lo comprobado es el camino de datos completo hasta el DXF.
 
 ### `F7.2` — ✅ Capas con nombre, y el viewport que se llevaba la mitad del plano
 

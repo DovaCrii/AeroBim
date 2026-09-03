@@ -119,6 +119,8 @@ export class DrawingMaker {
   private siguiente = 1;
   /** El sistema de tablas, creado la primera vez que se pide una. Ver {@link addTable}. */
   private cuadros: CuadrosEnPlano | null = null;
+  /** El sistema de cotas lineales, creado la primera vez que se acota. Ver {@link addDimensions}. */
+  private cotas: OBC.LinearAnnotations | null = null;
 
   constructor(private readonly components: OBC.Components) {}
 
@@ -134,6 +136,49 @@ export class DrawingMaker {
    * esto la tabla queda fuera de la caja y se escribe a medias o no se escribe. Es la misma lección
    * de `F7.2`, y aquí se aplica antes de que muerda.
    */
+  /**
+   * Pasa las cotas medidas sobre el modelo a la lámina, como acotado del plano. `F7.3`.
+   *
+   * **Es el flujo que una oficina hace de verdad**: se mide sobre el modelo —con el ajuste a vértice,
+   * que es lo que hace que dos personas midan lo mismo—, se genera la planta, y las cotas van dentro.
+   * La alternativa sería acotar otra vez encima del dibujo, que es medir dos veces la misma cosa y
+   * arriesgarse a que los dos números no coincidan.
+   *
+   * **Los puntos se llevan a coordenadas del dibujo y se aplasta la Y.** Un dibujo es un plano en el
+   * espacio: una cota tomada entre dos puntos a distinta altura se proyecta sobre él, igual que la
+   * geometría. Eso significa que **la cota del plano puede ser más corta que la del modelo**, y es
+   * correcto: en una planta, una diagonal que sube se dibuja acortada. Lo mide el propio dibujo.
+   *
+   * Solo se llevan las de **distancia entre dos puntos**: un área no es una cota y un ángulo tiene su
+   * propio sistema. Devuelve cuántas se pusieron, que es lo que la interfaz puede decir.
+   */
+  addDimensions(id: string, mediciones: readonly MedicionParaAcotar[]): number {
+    const plano = this.planos.get(id);
+    if (plano === undefined) return 0;
+
+    this.cotas ??= this.components.get(OBC.TechnicalDrawings).use(OBC.LinearAnnotations);
+
+    // El desplazamiento de la línea de cota respecto al segmento medido: una fracción del plano, así
+    // que en una planta de 40 m no se solapa con el dibujo y en un detalle de 2 m no se va lejos.
+    const [ancho, alto] = plano.info.sizeM;
+    const separacion = Math.max(0.3, Math.max(ancho, alto) * 0.04);
+
+    let puestas = 0;
+    for (const medicion of mediciones) {
+      if (medicion.puntos.length < 2) continue;
+
+      const a = aEspacioDelDibujo(medicion.puntos[0]!, plano.drawing);
+      const b = aEspacioDelDibujo(medicion.puntos[1]!, plano.drawing);
+      // Dos puntos que se proyectan al mismo sitio no son una cota: en una planta, una medición
+      // vertical se aplasta a un punto. Se salta en vez de dibujar una cota de longitud cero.
+      if (a.distanceTo(b) < 1e-4) continue;
+
+      this.cotas.add(plano.drawing, { pointA: a, pointB: b, offset: separacion, style: "default" });
+      puestas += 1;
+    }
+    return puestas;
+  }
+
   addTable(id: string, tabla: TablaDeCuadro): boolean {
     const plano = this.planos.get(id);
     if (plano === undefined) return false;
@@ -383,6 +428,28 @@ export class DrawingMaker {
   get list(): readonly GeneratedDrawing[] {
     return [...this.planos.values()].map((plano) => plano.info);
   }
+}
+
+/** Lo que hace falta de una medición para poder acotarla en el plano. `F7.3`. */
+export interface MedicionParaAcotar {
+  /** Los puntos que se clicaron, en coordenadas de la escena. */
+  readonly puntos: readonly (readonly [number, number, number])[];
+}
+
+/**
+ * Un punto de la escena, en coordenadas del dibujo y aplastado sobre su plano.
+ *
+ * **La Y se pone a cero, que es lo que hace de esto una proyección.** El dibujo es un plano en el
+ * espacio y su Y local es la normal: dejarla puesta colocaría la cota flotando delante o detrás del
+ * papel, y el exportador —que lee X y Z— la escribiría en el sitio equivocado.
+ */
+function aEspacioDelDibujo(
+  punto: readonly [number, number, number],
+  drawing: OBC.TechnicalDrawing,
+): THREE.Vector3 {
+  const local = drawing.three.worldToLocal(new THREE.Vector3(punto[0], punto[1], punto[2]));
+  local.y = 0;
+  return local;
 }
 
 /** Cuántos segmentos tiene una geometría de líneas: dos vértices, un segmento. */

@@ -19,6 +19,9 @@ export function DrawingsPanel({
   onExport,
   onAddTable,
   cuadroCargado,
+  onAddDimensions,
+  cotasDisponibles,
+  cotasPuestas,
   onClose,
 }: {
   readonly drawings: readonly GeneratedDrawing[];
@@ -32,6 +35,12 @@ export function DrawingsPanel({
   readonly onToggle: (id: string, visible: boolean) => void;
   readonly onToggleHidden: (id: string, visible: boolean) => void;
   readonly onExport: (id: string) => void;
+  /** Lleva las cotas medidas sobre el modelo a esa lámina. `F7.3`. */
+  readonly onAddDimensions: (id: string) => void;
+  /** Cuántas mediciones de distancia hay encendidas hoy. */
+  readonly cotasDisponibles: number;
+  /** Cuántas cotas lleva puestas cada lámina, por identificador. */
+  readonly cotasPuestas: Readonly<Record<string, number>>;
   /** Pone el cuadro cargado dentro de esa lámina. `F10.4`. */
   readonly onAddTable: (id: string) => void;
   /** La categoría del cuadro que hay cargado, o `null` si no hay ninguno. */
@@ -133,6 +142,36 @@ export function DrawingsPanel({
                     generan igual y se encienden solo cuando se quieren. */}
                 Mostrar las {plano.hiddenSegments.toLocaleString("es-CL")} aristas ocultas
               </label>
+
+              {/* **Las cotas medidas sobre el modelo, dentro de la lámina.** `F7.3`. Es el flujo que
+                  una oficina hace de verdad: se mide con el ajuste a vértice, se genera la planta, y
+                  las cotas van dentro. Acotar encima del dibujo sería medir dos veces la misma cosa
+                  y arriesgarse a dos números distintos. */}
+              {cotasDisponibles > 0 && (
+                <button
+                  type="button"
+                  onClick={() => onAddDimensions(plano.id)}
+                  className="mt-1 w-full rounded-sm border border-borde px-2 py-1 text-nota text-fg-2 hover:border-accent hover:text-fg"
+                  title="Lleva las cotas de distancia que están encendidas a esta lámina"
+                >
+                  Acotar con{" "}
+                  {cotasDisponibles === 1 ? "la medición" : `las ${cotasDisponibles} mediciones`}
+                </button>
+              )}
+
+              {/* **Se dice cuántas entraron, no «hecho».** Puede ser menos que las que hay: una cota
+                  entre dos puntos que se proyectan al mismo sitio —una medición vertical en una
+                  planta— no es una cota y se salta. Un «hecho» dejaría a alguien buscando en el DXF
+                  una cota que no está. */}
+              {cotasPuestas[plano.id] !== undefined && (
+                <p className="pt-0.5 text-micro text-fg-3">
+                  {cotasPuestas[plano.id] === 0
+                    ? "Ninguna cota entró: las mediciones se proyectan a un punto en esta vista."
+                    : `${cotasPuestas[plano.id]} ${
+                        cotasPuestas[plano.id] === 1 ? "cota" : "cotas"
+                      } en la lámina. Salen en el DXF.`}
+                </p>
+              )}
 
               {/* **El cuadro se pone antes de exportar, no después.** `F10.4`: la tabla va dentro
                   de la lámina, así que tiene que estar puesta cuando se serializa. El botón solo

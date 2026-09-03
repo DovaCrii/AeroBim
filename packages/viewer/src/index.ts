@@ -4421,6 +4421,41 @@ export class BimViewer {
   }
 
   /**
+   * Lleva las cotas medidas sobre el modelo a una lámina generada. `F7.3`.
+   *
+   * **Es el acotado del plano sin medir dos veces.** Se mide sobre el modelo con el ajuste a
+   * vértice, se genera la planta, y las cotas van dentro de la lámina y salen en el DXF. Acotar
+   * encima del dibujo sería medir otra vez la misma cosa y arriesgarse a dos números distintos.
+   *
+   * Solo las de **distancia entre dos puntos**: un área no es una cota, y un ángulo tiene su propio
+   * sistema. Y solo las **encendidas**: una medición apagada es una que quien mide decidió no
+   * mostrar, y el plano tiene que decir lo mismo que la pantalla.
+   *
+   * Devuelve cuántas se pusieron. Puede ser menos que las que hay: una cota entre dos puntos que se
+   * proyectan al mismo sitio —una medición vertical en una planta— no es una cota y se salta.
+   */
+  async addDimensionsToDrawing(id: string): Promise<number> {
+    this.assertAlive();
+
+    const mediciones = this.drawn
+      .filter((una) => una.visible && una.kind === "distance" && una.puntos.length >= 2)
+      // `Point3` ya **es** una tripleta `[x, y, z]`, así que se pasa tal cual: convertirla otra vez
+      // fue lo que el compilador rechazó, y con razón.
+      .map((una) => ({ puntos: una.puntos }));
+
+    const puestas = this.drawings.addDimensions(id, mediciones);
+    if (puestas > 0) await this.refresh();
+    return puestas;
+  }
+
+  /** Cuántas mediciones hay hoy que se puedan llevar a un plano. `F7.3`. */
+  get dimensionableCount(): number {
+    return this.drawn.filter(
+      (una) => una.visible && una.kind === "distance" && una.puntos.length >= 2,
+    ).length;
+  }
+
+  /**
    * Pone una tabla dentro de una lámina generada. `F10.4`.
    *
    * **Es lo que hace de una proyección un entregable.** Un plano con el modelo dibujado y sin cuadro

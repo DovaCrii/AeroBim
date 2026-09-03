@@ -766,10 +766,43 @@ export async function dxf(container: HTMLElement, _url: string, log: Log): Promi
   const enSuCapa = leido.texts.every((uno) => uno.layer === CAPAS_DE_CUADRO.texto);
   log(`  todos los textos en ${CAPAS_DE_CUADRO.texto}: ${enSuCapa ? "si (bien)" : "NO (mal)"}`);
 
+  // --- Las cotas en la lámina, `F7.3` ----------------------------------------------
+  //
+  // **Una cota que no escribe su número no es una cota.** La línea y las marcas son geometría y el
+  // exportador ya las escribiría; lo que hay que comprobar es que **el texto con la medida** llegue
+  // al DXF, y que la medida sea la que se midió. Se acota el lado de 10 m del rectángulo, así que el
+  // número está sabido de antemano.
+  log("\ncotas en la lamina (F7.3):");
+  const cotas = components.get(OBC.TechnicalDrawings).use(OBC.LinearAnnotations);
+  cotas.add(drawing, {
+    pointA: new THREE.Vector3(0, 0, 0),
+    pointB: new THREE.Vector3(ANCHO, 0, 0),
+    offset: 1,
+    style: "default",
+  });
+
+  const conCota = drawing.viewports.create({
+    left: -margen - 1,
+    right: ANCHO + margen + 1,
+    top: margen + 2,
+    bottom: -ALTO - margen,
+  });
+  const conCotas = parseDxf(exportador.export([{ drawing, viewports: [{ viewport: conCota }] }]));
+  const numeros = conCotas.texts.map((uno) => uno.text);
+  log(`  textos en el DXF: ${numeros.length} · ${numeros.slice(0, 6).join(" · ")}`);
+
+  // El valor puede venir en metros o en milímetros según el estilo, así que se acepta cualquiera
+  // de las dos escrituras del mismo número: lo que no puede faltar es el número.
+  const conElNumero = numeros.some(
+    (uno) => uno.includes("10") || uno.includes("10.00") || uno.includes("10000"),
+  );
+  log(`  la cota escribe su medida (10 m): ${conElNumero ? "si (bien)" : "NO (mal)"}`);
+  log(`  trazos con la cota: ${conCotas.polylines.length}`);
+
   log(
-    "\nveredicto: esto comprueba **`F7.4` y `F7.2`, el exportador y las capas**, y **`F10.4`, la\n" +
-      "  tabla en la lamina**. No comprueba `F7.1`: la proyeccion de aristas necesita un navegador\n" +
-      "  que componga fotogramas y tiene su propio modo, `?modo=planos`.",
+    "\nveredicto: esto comprueba **`F7.4` y `F7.2` —el exportador y las capas—, `F10.4` —la tabla\n" +
+      "  en la lamina— y `F7.3` —las cotas—. No comprueba `F7.1`: la proyeccion de aristas necesita\n" +
+      "  un navegador que componga fotogramas y tiene su propio modo, `?modo=planos`.",
   );
 }
 

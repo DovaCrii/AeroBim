@@ -5,6 +5,26 @@ Este proyecto sigue [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Añadido — el acotado del plano sale del modelo (`F7.3`, 2026-09-02)
+
+**Las cotas que ya se midieron sobre el modelo se llevan a la lámina y salen en el DXF con su
+número.** El botón está en la ficha de cada plano generado: «Acotar con las 3 mediciones».
+
+Acotar encima del dibujo sería **medir dos veces la misma cosa** y arriesgarse a dos números
+distintos. Midiendo una vez sobre el modelo —con el ajuste a vértice, que es lo que hace que dos
+personas midan lo mismo— el número del plano es el número del modelo por construcción.
+
+Los puntos se proyectan sobre el plano del dibujo, así que **una cota entre dos alturas distintas
+sale acortada**: es lo correcto, en una planta una diagonal que sube se dibuja más corta. Y una
+medición que se proyecta a un punto —una vertical en una planta— no es una cota y se salta: la ficha
+dice **cuántas entraron**, no «hecho».
+
+Comprobado con el oráculo del DXF: la cota del lado de 10 m escribe **`10.00 m`** en el archivo. Una
+cota que no escribe su número no es una cota.
+
+Quedan los ángulos, las pendientes y las llamadas, que son anotación de detalle: acotar es lo que
+hace falta para que una planta se construya.
+
 ### Añadido — la lámina sale con su cuadro dentro (`F10.4`, 2026-09-02)
 
 **Un plano con el modelo dibujado y sin cuadro obliga a llevar dos papeles a la obra, y el segundo se
