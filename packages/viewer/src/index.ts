@@ -4453,21 +4453,91 @@ export class BimViewer {
   async addDimensionsToDrawing(id: string): Promise<number> {
     this.assertAlive();
 
-    const mediciones = this.drawn
-      .filter((una) => una.visible && una.kind === "distance" && una.puntos.length >= 2)
-      // `Point3` ya **es** una tripleta `[x, y, z]`, así que se pasa tal cual: convertirla otra vez
-      // fue lo que el compilador rechazó, y con razón.
-      .map((una) => ({ puntos: una.puntos }));
-
-    const puestas = this.drawings.addDimensions(id, mediciones);
+    // `Point3` ya **es** una tripleta `[x, y, z]`, así que se pasa tal cual: convertirla otra vez
+    // fue lo que el compilador rechazó, y con razón.
+    const puestas = this.drawings.addDimensions(id, this.medicionesParaPlano("distance"));
     if (puestas > 0) await this.refresh();
     return puestas;
+  }
+
+  /**
+   * Anota en la lámina **todo lo que se ha medido**: cotas, ángulos y pendientes. `F7.3`.
+   *
+   * **Va en un solo gesto y no en tres botones.** Quien acota un plano no quiere elegir «ahora las
+   * cotas, ahora los ángulos»: quiere que lo que midió aparezca. Y las tres salen del mismo sitio
+   * —las mediciones encendidas— así que separarlas sería inventar una decisión que nadie tiene.
+   *
+   * La pendiente **se deriva** de las cotas en vez de medirse aparte: una cota entre dos puntos a
+   * distinta altura ya lleva dentro la diferencia de altura y el recorrido. Ver `addSlopes`.
+   *
+   * Devuelve cuántas de cada una entraron, que es lo que la ficha del plano puede decir. Puede ser
+   * menos que lo medido: lo que se proyecta a un punto no es una cota, y lo que está a nivel no
+   * tiene pendiente que anotar.
+   */
+  async annotateDrawing(
+    id: string,
+  ): Promise<{ cotas: number; angulos: number; pendientes: number }> {
+    this.assertAlive();
+
+    const distancias = this.medicionesParaPlano("distance");
+    const angulos = this.medicionesParaPlano("angle");
+
+    const puestas = {
+      cotas: this.drawings.addDimensions(id, distancias),
+      angulos: this.drawings.addAngles(id, angulos),
+      pendientes: this.drawings.addSlopes(id, distancias),
+    };
+    if (puestas.cotas + puestas.angulos + puestas.pendientes > 0) await this.refresh();
+    return puestas;
+  }
+
+  /**
+   * Señala en la lámina los hallazgos que apunten a un elemento dibujado. `F7.3`.
+   *
+   * **Es lo que conecta el plano con la coordinación**, y es el punto de la fase entera: un plano
+   * que dice «aquí falta la cota del vano V-03» es un plano con el que se va a obra. Sin esto son
+   * dos papeles que hay que cruzar a mano.
+   *
+   * Los hallazgos llegan **por GUID**, que es la identidad estable, y aquí se resuelven al
+   * identificador local de cada modelo abierto: es el mismo camino que usa abrir una observación
+   * desde el panel de coordinación.
+   *
+   * Devuelve cuántas entraron. Es normal que sean menos: la planta proyecta lo que estaba
+   * encendido, así que un hallazgo de la estructura no cabe en un plano de arquitectura.
+   */
+  async addCalloutsToDrawing(
+    id: string,
+    hallazgos: readonly { guid: string; titulo: string }[],
+  ): Promise<number> {
+    this.assertAlive();
+
+    const resueltos: { localId: number; titulo: string }[] = [];
+    for (const [, model] of this.fragments.list) {
+      const guids = hallazgos.map((uno) => uno.guid);
+      const locales = await model.getLocalIdsByGuids(guids);
+      for (const [i, localId] of locales.entries()) {
+        if (localId === null || localId === undefined) continue;
+        resueltos.push({ localId, titulo: hallazgos[i]!.titulo });
+      }
+    }
+
+    const puestas = this.drawings.addCallouts(id, resueltos);
+    if (puestas > 0) await this.refresh();
+    return puestas;
+  }
+
+  /** Las mediciones **encendidas** de un tipo, en la forma que espera el generador de planos. */
+  private medicionesParaPlano(kind: MeasureMode) {
+    return this.drawn
+      .filter((una) => una.visible && una.kind === kind && una.puntos.length >= 2)
+      .map((una) => ({ puntos: una.puntos }));
   }
 
   /** Cuántas mediciones hay hoy que se puedan llevar a un plano. `F7.3`. */
   get dimensionableCount(): number {
     return this.drawn.filter(
-      (una) => una.visible && una.kind === "distance" && una.puntos.length >= 2,
+      (una) =>
+        una.visible && (una.kind === "distance" || una.kind === "angle") && una.puntos.length >= 2,
     ).length;
   }
 

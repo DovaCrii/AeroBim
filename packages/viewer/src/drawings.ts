@@ -100,6 +100,17 @@ const NOMBRES: Record<DrawingView, string> = {
  */
 const SIN_AVANCE_MS = 20_000;
 
+/**
+ * Desde cuanto desnivel se considera que una cota tiene pendiente, en metros.
+ *
+ * **Va en milimetros y no en cero a proposito.** Dos puntos ajustados a vertices distintos de la
+ * misma losa difieren en decimas de milimetro por la propia geometria del IFC, y anotar «0,02 %» en
+ * una planta es ruido que ademas hace dudar de la que si importa. Cinco milimetros en un recorrido
+ * de un metro son el 0,5 %, que es la pendiente minima de un desague: por debajo de eso no hay nada
+ * que anotar.
+ */
+const DESNIVEL_MINIMO_M = 0.005;
+
 /** Lo que se guarda de cada plano generado. */
 interface PlanoGenerado {
   readonly info: GeneratedDrawing;
@@ -107,6 +118,25 @@ interface PlanoGenerado {
   readonly viewport: OBC.DrawingViewport;
   /** La caja que ocupa el dibujo, para poder colocar una tabla debajo. Ver {@link DrawingMaker.addTable}. */
   readonly caja: THREE.Box3;
+  /**
+   * De qué elemento es cada grupo de vértices de la proyección, o `null`.
+   *
+   * **Es lo que permite saber dónde cayó un elemento en el plano** —ver
+   * {@link DrawingMaker.addCallouts}— y no se puede reconstruir después: lo devuelve `EdgeProjector`
+   * junto a la geometría y no hay otra forma de recuperarlo.
+   */
+  readonly grupos: Record<number, { modelId: string; localId: number }> | null;
+  /** Las posiciones proyectadas, para promediar las de un elemento. */
+  readonly posiciones: THREE.BufferAttribute | null;
+  /** El atributo `group` por vértice, que indexa {@link grupos}. */
+  readonly deGrupo: THREE.BufferAttribute | null;
+}
+
+/** Lo que hace falta de un hallazgo para poder señalarlo en el plano. `F7.3`. */
+export interface HallazgoParaLlamada {
+  /** El identificador del elemento **en este modelo**, ya resuelto desde su GUID. */
+  readonly localId: number;
+  readonly titulo: string;
 }
 
 /**
@@ -122,6 +152,12 @@ export class DrawingMaker {
   private cuadros: CuadrosEnPlano | null = null;
   /** El sistema de cotas lineales, creado la primera vez que se acota. Ver {@link addDimensions}. */
   private cotas: OBC.LinearAnnotations | null = null;
+  /** El de ángulos. Ver {@link addAngles}. */
+  private angulos: OBC.AngleAnnotations | null = null;
+  /** El de pendientes. Ver {@link addSlopes}. */
+  private pendientes: OBC.SlopeAnnotations | null = null;
+  /** El de llamadas. Ver {@link addCallouts}. */
+  private llamadas: OBC.CalloutAnnotations | null = null;
   /**
    * Las tablas puestas, con lo que hace falta para volver a trazarlas. Ver {@link sheet}.
    *
@@ -186,6 +222,183 @@ export class DrawingMaker {
       puestas += 1;
     }
     return puestas;
+  }
+
+  /**
+   * Pasa los ángulos medidos sobre el modelo a la lámina. `F7.3`.
+   *
+   * **Un ángulo medido tiene tres puntos y el del plano también**: los dos extremos y el vértice,
+   * que es donde se cruzan las dos rectas. Así que la traducción es directa y no hay que inventar
+   * nada — al contrario que la pendiente, que se deriva.
+   *
+   * El radio del arco sale del tamaño del plano: en una planta de 40 m un arco de 20 cm no se ve, y
+   * en un detalle de 2 m uno de 2 m tapa el dibujo.
+   */
+  addAngles(id: string, mediciones: readonly MedicionParaAcotar[]): number {
+    const plano = this.planos.get(id);
+    if (plano === undefined) return 0;
+
+    this.angulos ??= this.components.get(OBC.TechnicalDrawings).use(OBC.AngleAnnotations);
+
+    const [ancho, alto] = plano.info.sizeM;
+    const radio = Math.max(0.3, Math.max(ancho, alto) * 0.05);
+
+    let puestos = 0;
+    for (const medicion of mediciones) {
+      // Tres puntos: la librería del visor los guarda en el orden en que se clicaron, y el vértice
+      // es el del medio — es el punto que las dos rectas comparten.
+      if (medicion.puntos.length < 3) continue;
+
+      const a = aEspacioDelDibujo(medicion.puntos[0]!, plano.drawing);
+      const vertice = aEspacioDelDibujo(medicion.puntos[1]!, plano.drawing);
+      const b = aEspacioDelDibujo(medicion.puntos[2]!, plano.drawing);
+      // Un ángulo cuyos tres puntos se proyectan a lo mismo no es un ángulo: pasa con un ángulo
+      // medido en un plano vertical cuando la lámina es una planta.
+      if (a.distanceTo(vertice) < 1e-4 || b.distanceTo(vertice) < 1e-4) continue;
+
+      this.angulos.add(plano.drawing, {
+        pointA: a,
+        vertex: vertice,
+        pointB: b,
+        arcRadius: radio,
+        style: "default",
+      });
+      puestos += 1;
+    }
+    return puestos;
+  }
+
+  /**
+   * Deriva las pendientes de las cotas medidas y las pone en la lámina. `F7.3`.
+   *
+   * **La pendiente no se mide: ya está medida.** El visor no tiene una herramienta de pendiente, y
+   * no hace falta — una cota entre dos puntos a distinta altura **lleva la pendiente dentro**: es la
+   * diferencia de altura partida por el recorrido en horizontal. Añadir una herramienta para pedir
+   * otra vez lo que ya se sabe sería preguntar dos veces lo mismo.
+   *
+   * Es además lo que se anota de verdad en una planta: la pendiente de un desagüe, de una rampa, de
+   * una cubierta. Y va **cuesta abajo**, que es la convención: la flecha apunta a donde corre el
+   * agua.
+   *
+   * Se salta lo que está a nivel —una cota horizontal no tiene pendiente que anotar— con un umbral
+   * en milímetros y no en cero: dos puntos ajustados a vértices distintos de la misma losa difieren
+   * en décimas de milímetro, y anotar «0,02 %» en un plano es ruido.
+   */
+  addSlopes(id: string, mediciones: readonly MedicionParaAcotar[]): number {
+    const plano = this.planos.get(id);
+    if (plano === undefined) return 0;
+
+    this.pendientes ??= this.components.get(OBC.TechnicalDrawings).use(OBC.SlopeAnnotations);
+
+    let puestas = 0;
+    for (const medicion of mediciones) {
+      if (medicion.puntos.length < 2) continue;
+
+      const [ax, ay, az] = medicion.puntos[0]!;
+      const [bx, by, bz] = medicion.puntos[1]!;
+      const subida = by - ay;
+      const recorrido = Math.hypot(bx - ax, bz - az);
+      // Sin recorrido en horizontal no hay pendiente, hay un poste; y a nivel no hay nada que
+      // anotar. Ver el docstring: el umbral va en milímetros, no en cero.
+      if (recorrido < 1e-3 || Math.abs(subida) < DESNIVEL_MINIMO_M) continue;
+
+      // Cuesta abajo: si el segundo punto está más bajo, la dirección es de A a B; si no, al revés.
+      const bajaHaciaB = subida < 0;
+      const desde = bajaHaciaB ? medicion.puntos[0]! : medicion.puntos[1]!;
+      const hasta = bajaHaciaB ? medicion.puntos[1]! : medicion.puntos[0]!;
+
+      const inicio = aEspacioDelDibujo(desde, plano.drawing);
+      const fin = aEspacioDelDibujo(hasta, plano.drawing);
+      const direccion = fin.clone().sub(inicio);
+      direccion.y = 0;
+      if (direccion.lengthSq() < 1e-8) continue;
+
+      this.pendientes.add(plano.drawing, {
+        position: inicio,
+        direction: direccion.normalize(),
+        slope: Math.abs(subida) / recorrido,
+        style: "default",
+      });
+      puestas += 1;
+    }
+    return puestas;
+  }
+
+  /**
+   * Pone una llamada por cada hallazgo, señalando **dónde cayó su elemento en el plano**. `F7.3`.
+   *
+   * **Es lo que conecta la lámina con la coordinación**, y es el punto de toda la Fase 7: un plano
+   * que dice «aquí falta la cota del vano V-03» es un plano con el que se va a obra. Sin esto, el
+   * plano y la lista de hallazgos son dos papeles que hay que cruzar a mano.
+   *
+   * La posición sale del **mapa de grupos de la proyección**: `EdgeProjector` devuelve, junto a la
+   * geometría, a qué elemento pertenece cada grupo de vértices, y la geometría lleva un atributo
+   * `group` por vértice. Así que la posición de un elemento en el plano es el centro de sus propios
+   * vértices proyectados — no una estimación, sino dónde está dibujado de verdad.
+   *
+   * **Un hallazgo cuyo elemento no está en el plano no se dibuja**, y eso pasa a menudo: la planta
+   * proyecta lo que estaba encendido, así que un hallazgo de la estructura no cabe en un plano de
+   * arquitectura. Devuelve cuántas entraron para poder decirlo.
+   */
+  addCallouts(id: string, hallazgos: readonly HallazgoParaLlamada[]): number {
+    const plano = this.planos.get(id);
+    if (plano === undefined || plano.grupos === null) return 0;
+
+    this.llamadas ??= this.components.get(OBC.TechnicalDrawings).use(OBC.CalloutAnnotations);
+
+    const [ancho, alto] = plano.info.sizeM;
+    const escala = Math.max(ancho, alto);
+    // La caja de la llamada y su brazo, en proporción al plano: en una planta de 40 m una caja de
+    // 30 cm no se lee, y en un detalle de 2 m una de 2 m tapa el dibujo.
+    const medioAncho = Math.max(0.6, escala * 0.06);
+    const medioAlto = Math.max(0.2, escala * 0.018);
+    const brazo = Math.max(0.5, escala * 0.05);
+
+    let puestas = 0;
+    for (const hallazgo of hallazgos) {
+      const donde = this.posicionEnElPlano(plano, hallazgo.localId);
+      if (donde === null) continue;
+
+      // El brazo sale en diagonal hacia arriba y a la derecha, y la caja se apoya al final: es la
+      // colocación de un CAD, y evita que la llamada tape justo el elemento que señala.
+      const codo = new THREE.Vector3(donde.x + brazo, 0, donde.z - brazo);
+      const fin = new THREE.Vector3(codo.x + brazo, 0, codo.z);
+
+      this.llamadas.add(plano.drawing, {
+        center: new THREE.Vector3(fin.x + medioAncho, 0, fin.z),
+        halfW: medioAncho,
+        halfH: medioAlto,
+        elbow: codo,
+        extensionEnd: fin,
+        text: hallazgo.titulo.slice(0, 60),
+        style: "default",
+      });
+      puestas += 1;
+    }
+    return puestas;
+  }
+
+  /**
+   * Dónde cayó un elemento en el plano, o `null` si no está dibujado.
+   *
+   * El centro de sus vértices proyectados: **dónde está dibujado de verdad**, no una estimación a
+   * partir de su caja en el modelo —que en una planta daría un punto que puede no estar ni sobre el
+   * dibujo—.
+   */
+  private posicionEnElPlano(plano: PlanoGenerado, localId: number): THREE.Vector3 | null {
+    if (plano.grupos === null || plano.posiciones === null || plano.deGrupo === null) return null;
+
+    let sumaX = 0;
+    let sumaZ = 0;
+    let cuantos = 0;
+    for (let i = 0; i < plano.deGrupo.count; i += 1) {
+      const grupo = plano.grupos[plano.deGrupo.getX(i)];
+      if (grupo === undefined || grupo.localId !== localId) continue;
+      sumaX += plano.posiciones.getX(i);
+      sumaZ += plano.posiciones.getZ(i);
+      cuantos += 1;
+    }
+    return cuantos === 0 ? null : new THREE.Vector3(sumaX / cuantos, 0, sumaZ / cuantos);
   }
 
   addTable(id: string, tabla: TablaDeCuadro): boolean {
@@ -331,7 +544,17 @@ export class DrawingMaker {
       elapsedMs: performance.now() - empezado,
     };
 
-    this.planos.set(id, { info, drawing, viewport, caja });
+    // **El mapa de grupos se guarda ahora o se pierde**: lo devuelve la proyección y no hay forma
+    // de reconstruirlo después. Es lo que permite señalar un hallazgo en el plano — `addCallouts`.
+    this.planos.set(id, {
+      info,
+      drawing,
+      viewport,
+      caja,
+      grupos: proyeccion.groups ?? null,
+      posiciones: (proyeccion.visible.getAttribute("position") as THREE.BufferAttribute) ?? null,
+      deGrupo: (proyeccion.visible.getAttribute("group") as THREE.BufferAttribute) ?? null,
+    });
     return info;
   }
 

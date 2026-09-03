@@ -121,18 +121,18 @@ Las **veintinueve** filas abiertas, de una vez. `⬜` no empezada · `❓` medid
 
 **Y en el orden de prioridad del 2026-09-02**, no en el de los números de fase.
 
-| Fase                                     | Filas abiertas                                                                                                                                 |
-| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| **5 — Interferencias**                   | ✅ **la fase entera** — `F5.5` cierra con las dos mitades: silenciar y agrupar _(35 interferencias en 13 problemas)_                           |
-| **4 — Coordinación** ⭐                  | `F4.5` ◐ falta el trazo libre; las cotas ya viajan _(`F4.6` cerrada: el ciclo va y vuelve)_                                                    |
-| **3 — Backend**                          | `F3.4` ✅ decidida por el usuario el 2026-09-02: **la petición espera**, y por qué                                                             |
-| **9 — Diseño** ⭐                        | `F9.6` ⛔ — la decide el usuario, y son tres decisiones _(`F9.1` a `F9.5` cerradas)_                                                           |
-| **11 — El portal se ve plano** ⭐        | ✅ **la fase entera** — el portal, la ficha, la lista, los colores y la ayuda con su recorrido                                                 |
-| **10 — Etiquetas, informes y tablas** ⭐ | ✅ **la fase entera** — el informe sale en papel, se pide por etiqueta, el modelo saca sus cuadros y la lámina los lleva dentro                |
-| **1 — Visor**                            | `F1.13` ❓ — auditada; quedan tres nombres que decide el usuario                                                                               |
-| **7 — Planos, salida**                   | `F7.3` ◐ el acotado ya sale del modelo; quedan angulos, pendientes y llamadas _(`F7.2`, `F7.4` y `F7.5` cerradas: capas, DXF y PDF con sello)_ |
-| **2 — Nubes de puntos**                  | `F2.1` a `F2.6` ⬜ — cargar, alinear, visualizar, medir contra el modelo, documentar el pipeline, y el gaussian splatting                      |
-| **6 — Geo + BIM**                        | `F6.1` a `F6.5` ⬜ — Cesium, ortofoto y terreno propios, situar el IFC, 3D Tiles, y recibir de AeroPlanner                                     |
+| Fase                                     | Filas abiertas                                                                                                                  |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| **5 — Interferencias**                   | ✅ **la fase entera** — `F5.5` cierra con las dos mitades: silenciar y agrupar _(35 interferencias en 13 problemas)_            |
+| **4 — Coordinación** ⭐                  | `F4.5` ◐ falta el trazo libre; las cotas ya viajan _(`F4.6` cerrada: el ciclo va y vuelve)_                                     |
+| **3 — Backend**                          | `F3.4` ✅ decidida por el usuario el 2026-09-02: **la petición espera**, y por qué                                              |
+| **9 — Diseño** ⭐                        | `F9.6` ⛔ — la decide el usuario, y son tres decisiones _(`F9.1` a `F9.5` cerradas)_                                            |
+| **11 — El portal se ve plano** ⭐        | ✅ **la fase entera** — el portal, la ficha, la lista, los colores y la ayuda con su recorrido                                  |
+| **10 — Etiquetas, informes y tablas** ⭐ | ✅ **la fase entera** — el informe sale en papel, se pide por etiqueta, el modelo saca sus cuadros y la lámina los lleva dentro |
+| **1 — Visor**                            | `F1.13` ❓ — auditada; quedan tres nombres que decide el usuario                                                                |
+| **7 — Planos, salida**                   | ✅ **la fase entera** — capas, DXF, PDF con sello, y el plano acotado y con sus llamadas                                        |
+| **2 — Nubes de puntos**                  | `F2.1` a `F2.6` ⬜ — cargar, alinear, visualizar, medir contra el modelo, documentar el pipeline, y el gaussian splatting       |
+| **6 — Geo + BIM**                        | `F6.1` a `F6.5` ⬜ — Cesium, ortofoto y terreno propios, situar el IFC, 3D Tiles, y recibir de AeroPlanner                      |
 
 ### Hasta dónde llega este bloque, revisado el 2026-09-03
 
@@ -2712,7 +2712,7 @@ longitud medida en los dos.
 | ------ | ---------------------------------------------------------------------------------------------------- | ------------ |
 | `F7.1` | Generar vistas 2D desde el modelo (planta, alzados) proyectando sus aristas                          | 🟡           |
 | `F7.2` | Viewports y capas: qué se dibuja, con qué grosor y en qué capa (`DrawingViewports`, `DrawingLayers`) | ✅ ver abajo |
-| `F7.3` | Acotado y anotaciones sobre el plano: cotas lineales, ángulos, pendientes y llamadas                 | ◐ ver abajo  |
+| `F7.3` | Acotado y anotaciones sobre el plano: cotas lineales, ángulos, pendientes y llamadas                 | ✅ ver abajo |
 | `F7.4` | **Exportar a DXF** con `DxfExporter`, en A3 y milímetros, listo para el CAD                          | ✅ ver abajo |
 | `F7.5` | Exportar a PDF imprimible, con formato y sello                                                       | ✅ ver abajo |
 
@@ -2820,9 +2820,9 @@ líneas y su número los construye la librería dentro de sus propios grupos, y 
 leer sus entrañas y romperse en su siguiente versión. Para el PDF hace falta el mismo camino que las
 tablas: calcular su trazo nosotros. Queda dicho en el código, en `DrawingMaker.sheet`.
 
-### `F7.3` — ◐ El acotado sale del modelo, y no se mide dos veces
+### `F7.3` — ✅ El acotado sale del modelo, y no se mide dos veces
 
-**Lo que se hizo, y es la mitad que vale**: las cotas que ya se midieron sobre el modelo —con el
+**Las cotas, primero**: las que ya se midieron sobre el modelo —con el
 ajuste a vértice, que es lo que hace que dos personas midan lo mismo— **se llevan a la lámina** y
 salen en el DXF con su número. El botón está en la ficha de cada plano generado: «Acotar con las 3
 mediciones».
@@ -2847,11 +2847,38 @@ Tres cosas que se ven poco:
 > de una cota — la línea y las marcas son geometría que el exportador ya escribía; **una cota que no
 > escribe su número no es una cota**.
 
-**Lo que queda de la fila, y por qué**: ángulos, pendientes y llamadas. La librería trae los tres
-sistemas —`AngleAnnotations`, `SlopeAnnotations`, `CalloutAnnotations`— y el camino es el mismo que
-ya está abierto para las cotas lineales, así que es trabajo de ensamblaje y no de investigación. Se
-dejan porque **acotar es lo que hace falta para que una planta se construya**, y los otros tres son
-anotación de detalle.
+**Y las otras tres, cerradas el 2026-09-03**, cada una con su decisión:
+
+- **Los ángulos se llevan igual que las cotas**: un ángulo medido tiene tres puntos —dos extremos y
+  el vértice— y el del plano también, así que la traducción es directa y no hay que inventar nada.
+- **La pendiente no se mide: ya está medida.** El visor no tiene herramienta de pendiente y no hace
+  falta, porque **una cota entre dos puntos a distinta altura la lleva dentro**: es la diferencia de
+  altura partida por el recorrido en horizontal. Añadir una herramienta para pedir otra vez lo que
+  ya se sabe sería preguntar dos veces lo mismo. Va cuesta abajo, que es la convención —la flecha
+  apunta a donde corre el agua— y se salta lo que está a nivel con un umbral **en milímetros y no en
+  cero**: dos puntos ajustados a vértices distintos de la misma losa difieren en décimas de
+  milímetro, y anotar «0,02 %» en una planta es ruido que hace dudar de la que sí importa.
+- **Las llamadas son el punto de la fase entera**: señalan **dónde cayó el elemento de cada
+  hallazgo** en el plano. Un plano que dice «aquí falta la cota del vano V-03» es un plano con el
+  que se va a obra; sin ellas, el plano y la lista de hallazgos son dos papeles que hay que cruzar a
+  mano.
+
+> **Y la posición de un hallazgo no se estima, se lee del propio dibujo.** `EdgeProjector` devuelve,
+> junto a la geometría, **a qué elemento pertenece cada grupo de vértices**, y la geometría lleva un
+> atributo `group` por vértice. Así que la posición de un elemento en la lámina es el centro de sus
+> vértices **proyectados** — dónde está dibujado de verdad, no dónde estaría su caja del modelo, que
+> en una planta puede caer fuera del dibujo. Ese mapa **se guarda al proyectar o se pierde**: no hay
+> forma de reconstruirlo después.
+
+> **Un solo botón para las tres primeras**, y no tres. Quien acota un plano no quiere elegir «ahora
+> las cotas, ahora los ángulos»: quiere que lo que midió aparezca. Y las tres salen del mismo sitio
+> —las mediciones encendidas—, así que separarlas sería inventar una decisión que nadie tiene. Las
+> llamadas sí van aparte porque salen de otro sitio: los hallazgos de la obra.
+
+> **El oráculo: las cuatro escriben su valor en el DXF.** Medido con `diag.html?modo=dxf`, leyendo
+> el archivo con nuestro propio lector: **`10.00 m`, `90.00°`, `15.00 %`** y **«Falta la cota del
+> vano V-03»**. Es lo que importa de una anotación —las líneas y las marcas son geometría que el
+> exportador ya escribía— y **una cota que no escribe su número no es una cota**.
 
 > **Y lo que no se pudo comprobar en pantalla, dicho:** el botón está tipado, compilado y con lint y
 > formato limpios, pero **no se ha pulsado**, porque para eso hay que generar un plano y `F7.1`

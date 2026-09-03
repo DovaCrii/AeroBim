@@ -22,7 +22,10 @@ export function DrawingsPanel({
   cuadroCargado,
   onAddDimensions,
   cotasDisponibles,
-  cotasPuestas,
+  anotado,
+  onAddCallouts,
+  hallazgosDisponibles,
+  llamadasPuestas,
   onClose,
 }: {
   readonly drawings: readonly GeneratedDrawing[];
@@ -42,8 +45,16 @@ export function DrawingsPanel({
   readonly onAddDimensions: (id: string) => void;
   /** Cuántas mediciones de distancia hay encendidas hoy. */
   readonly cotasDisponibles: number;
-  /** Cuántas cotas lleva puestas cada lámina, por identificador. */
-  readonly cotasPuestas: Readonly<Record<string, number>>;
+  /** Qué anotaciones lleva puestas cada lámina, por identificador. `F7.3`. */
+  readonly anotado: Readonly<
+    Record<string, { cotas: number; angulos: number; pendientes: number }>
+  >;
+  /** Señala en esa lámina los hallazgos del modelo. `F7.3`. */
+  readonly onAddCallouts: (id: string) => void;
+  /** Cuántos hallazgos del modelo hay cargados hoy. */
+  readonly hallazgosDisponibles: number;
+  /** Cuántas llamadas lleva puestas cada lámina. */
+  readonly llamadasPuestas: Readonly<Record<string, number>>;
   /** Pone el cuadro cargado dentro de esa lámina. `F10.4`. */
   readonly onAddTable: (id: string) => void;
   /** La categoría del cuadro que hay cargado, o `null` si no hay ninguno. */
@@ -155,24 +166,58 @@ export function DrawingsPanel({
                   type="button"
                   onClick={() => onAddDimensions(plano.id)}
                   className="mt-1 w-full rounded-sm border border-borde px-2 py-1 text-nota text-fg-2 hover:border-accent hover:text-fg"
-                  title="Lleva las cotas de distancia que están encendidas a esta lámina"
+                  title="Lleva a esta lámina las cotas, los ángulos y las pendientes de lo que has medido"
                 >
-                  Acotar con{" "}
+                  Anotar con{" "}
                   {cotasDisponibles === 1 ? "la medición" : `las ${cotasDisponibles} mediciones`}
                 </button>
               )}
 
-              {/* **Se dice cuántas entraron, no «hecho».** Puede ser menos que las que hay: una cota
-                  entre dos puntos que se proyectan al mismo sitio —una medición vertical en una
-                  planta— no es una cota y se salta. Un «hecho» dejaría a alguien buscando en el DXF
-                  una cota que no está. */}
-              {cotasPuestas[plano.id] !== undefined && (
+              {/* **Se dice qué entró de cada cosa, no «hecho».** Puede ser menos que lo medido: lo
+                  que se proyecta a un punto no es una cota —una medición vertical en una planta— y
+                  lo que está a nivel no tiene pendiente que anotar. Un «hecho» dejaría a alguien
+                  buscando en el DXF una cota que no está. */}
+              {anotado[plano.id] !== undefined && (
                 <p className="pt-0.5 text-micro text-fg-3">
-                  {cotasPuestas[plano.id] === 0
-                    ? "Ninguna cota entró: las mediciones se proyectan a un punto en esta vista."
-                    : `${cotasPuestas[plano.id]} ${
-                        cotasPuestas[plano.id] === 1 ? "cota" : "cotas"
-                      } en la lámina. Salen en el DXF.`}
+                  {anotado[plano.id]!.cotas +
+                    anotado[plano.id]!.angulos +
+                    anotado[plano.id]!.pendientes ===
+                  0
+                    ? "No entró ninguna anotación: lo medido se proyecta a un punto en esta vista."
+                    : [
+                        `${anotado[plano.id]!.cotas} cotas`,
+                        `${anotado[plano.id]!.angulos} ángulos`,
+                        `${anotado[plano.id]!.pendientes} pendientes`,
+                      ].join(" · ") + ". Salen en el DXF."}
+                </p>
+              )}
+
+              {/* **Las llamadas son lo que conecta el plano con la coordinación.** `F7.3`: un plano
+                  que dice «aquí falta la cota del vano V-03» es un plano con el que se va a obra;
+                  sin ellas, el plano y la lista de hallazgos son dos papeles que hay que cruzar a
+                  mano. Solo aparece con hallazgos del modelo cargados. */}
+              {hallazgosDisponibles > 0 && (
+                <button
+                  type="button"
+                  onClick={() => onAddCallouts(plano.id)}
+                  className="mt-1 w-full rounded-sm border border-borde px-2 py-1 text-nota text-fg-2 hover:border-accent hover:text-fg"
+                  title="Señala en la lámina los hallazgos cuyo elemento esté dibujado"
+                >
+                  Señalar{" "}
+                  {hallazgosDisponibles === 1
+                    ? "el hallazgo"
+                    : `los ${hallazgosDisponibles} hallazgos`}
+                </button>
+              )}
+
+              {/* Y cuántos entraron: es normal que sean menos, porque la planta proyecta lo que
+                  estaba encendido y un hallazgo de la estructura no cabe en un plano de
+                  arquitectura. */}
+              {llamadasPuestas[plano.id] !== undefined && (
+                <p className="pt-0.5 text-micro text-fg-3">
+                  {llamadasPuestas[plano.id] === 0
+                    ? "Ningún hallazgo tiene su elemento dibujado en esta vista."
+                    : `${llamadasPuestas[plano.id]} señalados en la lámina.`}
                 </p>
               )}
 

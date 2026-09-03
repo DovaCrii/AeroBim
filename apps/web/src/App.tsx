@@ -1195,14 +1195,16 @@ export function App() {
    * es una cota y se salta. Un «hecho» dejaría a alguien buscando en el DXF una cota que no está.
    */
   /**
-   * Cuántas cotas lleva puestas cada lámina. `F7.3`.
+   * Qué anotaciones lleva puesta cada lámina. `F7.3`.
    *
-   * **Se dice en la ficha del plano y no en un aviso general**, y el número importa: puede ser menos
-   * que las mediciones que hay, porque una cota entre dos puntos que se proyectan al mismo sitio —una
-   * medición vertical en una planta— no es una cota y se salta. Un «hecho» dejaría a alguien
+   * **Se dice en la ficha del plano y no en un aviso general**, y el desglose importa: puede entrar
+   * menos de lo medido, porque lo que se proyecta a un punto no es una cota —una medición vertical
+   * en una planta— y lo que está a nivel no tiene pendiente que anotar. Un «hecho» dejaría a alguien
    * buscando en el DXF una cota que no está.
    */
-  const [cotasPuestas, setCotasPuestas] = useState<Readonly<Record<string, number>>>({});
+  const [anotado, setAnotado] = useState<
+    Readonly<Record<string, { cotas: number; angulos: number; pendientes: number }>>
+  >({});
 
   /**
    * Descarga la lámina en PDF, dibujada por el servidor. `F7.5`.
@@ -1260,9 +1262,42 @@ export function App() {
     [origen],
   );
 
+  /**
+   * Los hallazgos del modelo, para poder señalarlos en un plano. `F7.3`.
+   *
+   * **Los reporta el panel de coordinación, que ya los pide.** Pedirlos aquí otra vez serían dos
+   * peticiones a la misma consulta y dos listas que pueden discrepar por medio segundo.
+   */
+  const [hallazgosDelModelo, setHallazgosDelModelo] = useState<
+    readonly { guid: string; titulo: string }[]
+  >([]);
+  const [llamadasPuestas, setLlamadasPuestas] = useState<Readonly<Record<string, number>>>({});
+
+  const onSenalarHallazgos = useCallback(
+    async (planoId: string) => {
+      const puestas =
+        (await viewer.current?.addCalloutsToDrawing(planoId, hallazgosDelModelo)) ?? 0;
+      setLlamadasPuestas((actual) => ({ ...actual, [planoId]: (actual[planoId] ?? 0) + puestas }));
+    },
+    [hallazgosDelModelo],
+  );
+
   const onAcotarPlano = useCallback(async (planoId: string) => {
-    const puestas = (await viewer.current?.addDimensionsToDrawing(planoId)) ?? 0;
-    setCotasPuestas((actual) => ({ ...actual, [planoId]: (actual[planoId] ?? 0) + puestas }));
+    const vacio = { cotas: 0, angulos: 0, pendientes: 0 };
+    const puestas = (await viewer.current?.annotateDrawing(planoId)) ?? vacio;
+    setAnotado((actual) => {
+      // **Se acumula.** Anotar dos veces añade, no reemplaza: el número tiene que decir lo que hay
+      // en la lámina y no lo que entró en la última pasada.
+      const antes = actual[planoId] ?? vacio;
+      return {
+        ...actual,
+        [planoId]: {
+          cotas: antes.cotas + puestas.cotas,
+          angulos: antes.angulos + puestas.angulos,
+          pendientes: antes.pendientes + puestas.pendientes,
+        },
+      };
+    });
   }, []);
 
   const onSection = useCallback((axis: SectionAxis) => {
@@ -1822,6 +1857,13 @@ export function App() {
                   onAbrir={onAbrirObservacion}
                   recargar={notasGuardadas}
                   sePuedeAnotar={sePuedeAnotar}
+                  // Solo lo que hace falta para señalar en un plano: el GUID y el título. Pasar la
+                  // observación entera acoplaría el generador de planos a la forma de la API.
+                  onCargadas={(lista) =>
+                    setHallazgosDelModelo(
+                      lista.map((una) => ({ guid: una.guid, titulo: una.titulo })),
+                    )
+                  }
                 />
               }
               planCount={plans.length}
@@ -1841,7 +1883,10 @@ export function App() {
                   cotasDisponibles={
                     drawn.filter((una) => una.visible && una.kind === "distance").length
                   }
-                  cotasPuestas={cotasPuestas}
+                  anotado={anotado}
+                  onAddCallouts={(id) => void onSenalarHallazgos(id)}
+                  hallazgosDisponibles={hallazgosDelModelo.length}
+                  llamadasPuestas={llamadasPuestas}
                   generating={generating}
                   onGenerate={(vista) => void onGenerateDrawing(vista)}
                   onCancel={() => setGenerating(null)}

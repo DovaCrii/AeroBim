@@ -781,6 +781,40 @@ export async function dxf(container: HTMLElement, _url: string, log: Log): Promi
     style: "default",
   });
 
+  // **Y un ángulo y una pendiente**, que es lo que cierra `F7.3`. El ángulo se pone recto —90°— y
+  // la pendiente al 15 %, así que los dos números están sabidos de antemano: lo que hay que
+  // comprobar de una anotación es que **escriba su valor**, no que dibuje unas líneas.
+  const angulos = components.get(OBC.TechnicalDrawings).use(OBC.AngleAnnotations);
+  angulos.add(drawing, {
+    pointA: new THREE.Vector3(ANCHO, 0, 0),
+    vertex: new THREE.Vector3(0, 0, 0),
+    pointB: new THREE.Vector3(0, 0, ALTO),
+    arcRadius: 1.5,
+    style: "default",
+  });
+
+  const pendientes = components.get(OBC.TechnicalDrawings).use(OBC.SlopeAnnotations);
+  pendientes.add(drawing, {
+    position: new THREE.Vector3(1, 0, 3),
+    direction: new THREE.Vector3(1, 0, 0),
+    slope: 0.15,
+    style: "default",
+  });
+
+  // **Y una llamada**, que es lo que conecta el plano con la coordinación: un plano que dice «aquí
+  // falta la cota del vano V-03» es un plano con el que se va a obra. Lo que hay que comprobar es
+  // que **el texto del hallazgo** llegue al DXF, porque una llamada sin su texto es una flecha.
+  const llamadas = components.get(OBC.TechnicalDrawings).use(OBC.CalloutAnnotations);
+  llamadas.add(drawing, {
+    center: new THREE.Vector3(6, 0, 4.2),
+    halfW: 2,
+    halfH: 0.3,
+    elbow: new THREE.Vector3(3.5, 0, 4.2),
+    extensionEnd: new THREE.Vector3(4, 0, 4.2),
+    text: "Falta la cota del vano V-03",
+    style: "default",
+  });
+
   const conCota = drawing.viewports.create({
     left: -margen - 1,
     right: ANCHO + margen + 1,
@@ -797,12 +831,23 @@ export async function dxf(container: HTMLElement, _url: string, log: Log): Promi
     (uno) => uno.includes("10") || uno.includes("10.00") || uno.includes("10000"),
   );
   log(`  la cota escribe su medida (10 m): ${conElNumero ? "si (bien)" : "NO (mal)"}`);
-  log(`  trazos con la cota: ${conCotas.polylines.length}`);
+
+  // El angulo recto y la pendiente del 15 %: se acepta cualquier escritura del mismo numero —grados
+  // con o sin decimales, porcentaje o razon— porque el formato lo elige el estilo de la libreria.
+  // Lo que no puede faltar es el numero.
+  const conElAngulo = numeros.some((uno) => /\b90(\.0+)?\s*°?/.test(uno));
+  log(`  el angulo escribe su valor (90°): ${conElAngulo ? "si (bien)" : "NO (mal)"}`);
+  const conLaPendiente = numeros.some((uno) => /15|0\.15|1\s*:\s*6\.6/.test(uno));
+  log(`  la pendiente escribe su valor (15 %): ${conLaPendiente ? "si (bien)" : "NO (mal)"}`);
+  const conLaLlamada = numeros.some((uno) => uno.includes("vano V-03"));
+  log(`  la llamada escribe el hallazgo: ${conLaLlamada ? "si (bien)" : "NO (mal)"}`);
+  log(`  trazos con las cuatro anotaciones: ${conCotas.polylines.length}`);
 
   log(
-    "\nveredicto: esto comprueba **`F7.4` y `F7.2` —el exportador y las capas—, `F10.4` —la tabla\n" +
-      "  en la lamina— y `F7.3` —las cotas—. No comprueba `F7.1`: la proyeccion de aristas necesita\n" +
-      "  un navegador que componga fotogramas y tiene su propio modo, `?modo=planos`.",
+    "\nveredicto: esto comprueba **`F7.2` y `F7.4`** —las capas y el exportador—, **`F10.4`** —la\n" +
+      "  tabla en la lamina— y **`F7.3` entera**: cota, angulo, pendiente y llamada, las cuatro con\n" +
+      "  su valor escrito en el archivo. No comprueba `F7.1`: la proyeccion de aristas necesita un\n" +
+      "  navegador que componga fotogramas y tiene su propio modo, `?modo=planos`.",
   );
 }
 

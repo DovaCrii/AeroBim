@@ -103,6 +103,7 @@ export function Coordinacion({
   onAbrir,
   recargar,
   sePuedeAnotar = false,
+  onCargadas,
 }: {
   /** La obra de la que está abierto el modelo, o `null` si vino de un archivo del disco. */
   readonly proyectoId: string | null;
@@ -110,6 +111,13 @@ export function Coordinacion({
   readonly onAbrir: (observacion: ObservacionDelModelo) => Promise<boolean>;
   /** Cambia para volver a pedir la lista: al guardar una nota, por ejemplo. */
   readonly recargar?: number;
+  /**
+   * Avisa de la lista recién cargada, para quien la necesite fuera de este panel.
+   *
+   * Hoy la usa `F7.3` para señalar los hallazgos en una lámina. **Se reporta en vez de pedirla otra
+   * vez**: dos peticiones a la misma consulta son dos listas que pueden discrepar por medio segundo.
+   */
+  readonly onCargadas?: (observaciones: readonly ObservacionDelModelo[]) => void;
   /**
    * `true` si ahora mismo hay un elemento seleccionado sobre el que se puede anotar.
    *
@@ -175,11 +183,16 @@ export function Coordinacion({
           puedeDescartar?: boolean;
         };
         if (!cancelado) {
+          const observaciones = datos.observaciones ?? [];
           setEstado({
             kind: "listo",
-            observaciones: datos.observaciones ?? [],
+            observaciones,
             puedeDescartar: datos.puedeDescartar === true,
           });
+          // **La lista se reporta hacia arriba en vez de pedirla otra vez.** `F7.3` la necesita
+          // para señalar los hallazgos en un plano, y una segunda petición sería la misma consulta
+          // dos veces —y dos listas que pueden discrepar por medio segundo.
+          onCargadas?.(observaciones);
         }
       } catch (error: unknown) {
         if (!cancelado) {

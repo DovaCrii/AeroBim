@@ -55,6 +55,33 @@ el mismo nombre.
 Las cotas todavía no salen en el PDF, solo en el DXF: las dibuja la librería dentro de sus grupos y
 sacarlas de ahí sería leer sus entrañas.
 
+### Añadido — el plano lleva sus ángulos, sus pendientes y sus hallazgos señalados (`F7.3`, 2026-09-03)
+
+Con esto la lámina lleva **las cuatro anotaciones** y la Fase 7 cierra entera.
+
+- **Los ángulos** se llevan igual que las cotas: un ángulo medido tiene tres puntos y el del plano
+  también, así que la traducción es directa.
+- **La pendiente no se mide: ya está medida.** Una cota entre dos puntos a distinta altura lleva
+  dentro la diferencia de altura y el recorrido, así que la pendiente se deriva. Añadir una
+  herramienta para pedir otra vez lo que ya se sabe sería preguntar dos veces lo mismo. Va cuesta
+  abajo —la flecha apunta a donde corre el agua— y lo que está a nivel se salta con un umbral en
+  milímetros: dos puntos de la misma losa difieren en décimas y anotar «0,02 %» es ruido.
+- **Las llamadas señalan dónde cayó el elemento de cada hallazgo en el plano.** Un plano que dice
+  «aquí falta la cota del vano V-03» es un plano con el que se va a obra; sin ellas, el plano y la
+  lista de hallazgos son dos papeles que hay que cruzar a mano.
+
+Y la posición de un hallazgo **no se estima**: la proyección devuelve a qué elemento pertenece cada
+grupo de vértices, así que la posición es el centro de sus vértices **proyectados** — dónde está
+dibujado de verdad, no dónde estaría su caja del modelo, que en una planta puede caer fuera del
+dibujo.
+
+Las cotas, los ángulos y las pendientes van en **un solo botón**: quien acota no quiere elegir «ahora
+las cotas, ahora los ángulos», y las tres salen de lo mismo. Las llamadas van aparte porque salen de
+otro sitio: los hallazgos de la obra.
+
+Comprobado leyendo el DXF: las cuatro escriben su valor —`10.00 m`, `90.00°`, `15.00 %` y el título
+del hallazgo—. Una anotación que no escribe su valor no es una anotación.
+
 ### Añadido — el acotado del plano sale del modelo (`F7.3`, 2026-09-02)
 
 **Las cotas que ya se midieron sobre el modelo se llevan a la lámina y salen en el DXF con su
