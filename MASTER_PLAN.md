@@ -29,6 +29,7 @@ línea cada cosa. Actualizado el 2026-09-03.
 | **10 · Etiquetas y tablas**    | ✅ entera                                                                                     |
 | **11 · El portal se ve plano** | ✅ entera — incluida la ayuda con su recorrido                                                |
 | **2 · Nubes de puntos**        | 🔶 **casi.** `F2.5` `F2.1` `F2.2` `F2.3` ✅ — abre, se maneja y calza. Falta `F2.4`           |
+| **12 · La interfaz no está**   | ⬜ **encargada el 2026-09-03.** Hay capacidades sin puerta: la nube no se puede ni abrir      |
 | **6 · Geo + BIM**              | ⬜ pospuesta a propósito el 2026-09-02, para poner la coordinación delante                    |
 
 **La Fase 2 va por tres cuartos**, y en un orden que no es el de su numeración. Desde el 2026-09-03
@@ -60,6 +61,13 @@ se comprueba contra **el levantamiento real del CC 741 — Camino Agrícola**, n
 **`F2.6`, el gaussian splatting, queda aparcado por decisión del usuario el 2026-09-03**: «no es tan
 importante de momento; avanzar en los otros pendientes y módulos es mejor». No se descarta, se
 pospone — y con el mismo criterio que la Fase 6.
+
+> **Y una corrección sobre esta misma fase, que hay que decir clara: la Fase 2 está cerrada como
+> capacidad y no como producto.** Cargar la nube, calzarla y medir funcionan —comprobado en un
+> navegador de verdad sobre el levantamiento del Camino Agrícola— **y solo se pueden alcanzar desde
+> `diag.html`**. En `apps/web/src` no hay una sola llamada a `loadPointCloud` fuera del diagnóstico:
+> **no existe ningún botón que abra una nube**. Eso es la **Fase 12**, y es lo más valioso del
+> tablero ahora mismo, porque hay trabajo hecho que nadie puede usar.
 
 **Lo que sigue, entonces, es `F0.6`**: la conversión del IFC en un worker. Gana peso justo ahora,
 porque el usuario avisó de que **se van a incorporar diseños de otras especialidades** y el número de
@@ -4219,6 +4227,145 @@ es una puerta; esto es una explicación.
 > prueba que el proyecto ya tenía —`test_ninguna_traduccion_repite_el_original`— cuando una de esas
 > cadenas se colgó del catálogo. Si algún día hay un segundo idioma, `ayuda.py` es el archivo que se
 > revisa.
+
+---
+
+## FASE 12 — La interfaz no está: hay capacidades sin puerta
+
+**Encargada por el usuario el 2026-09-03**, mirando el visor y el portal:
+
+> «hoy no tiene herramientas tampoco visible y todo es plano sin interfaz inexistente» · «lo mismo
+> aplicable al calce o en general unir todo con el portal» · «el portal, mejorar el ingreso sobre
+> todo; portal como está escrito y representado en la página, mejorar el título de este y cómo
+> muestra los módulos»
+
+### Lo primero, porque cambia el orden de todo lo demás
+
+**La Fase 2 está marcada como cerrada y no se puede usar.** Cargar una nube, calzarla con el modelo y
+medir la desviación funcionan —medido, en un navegador de verdad, sobre el levantamiento del Camino
+Agrícola— **y solo existen en `diag.html`**. Comprobado: en `apps/web/src` no hay una sola aparición
+de `loadPointCloud` fuera del diagnóstico. **No hay ningún botón que abra una nube.**
+
+Las filas decían «cargar una nube en la escena del visor» y eso es cierto como capacidad y falso como
+producto. Es la misma distancia que hay entre que el motor arranque y que el coche tenga volante, y
+la conclusión es que **`F12.1` es lo más valioso del tablero ahora mismo**: hay trabajo hecho que
+nadie puede alcanzar.
+
+### Lo medido, para no discutir impresiones
+
+| Qué                                         | Medido el 2026-09-03                                                           |
+| ------------------------------------------- | ------------------------------------------------------------------------------ |
+| Los nombres de las herramientas de la cinta | **3,56:1** de contraste. La norma pide **4,5:1** para texto                    |
+| La nube de puntos en la aplicación          | **0 referencias** fuera del diagnóstico                                        |
+| El lienzo sin modelo                        | Un rectángulo de ~900 × 700 px con **una frase** centrada                      |
+| El navegador                                | **9 secciones plegadas**, todas del mismo peso, sin nada que diga cuál importa |
+| El cubo de vistas                           | «FRONTAL» y «LATERAL» a **2 px** — se leían como una palabra ✅ _arreglado_    |
+| La marca del visor servido por Django       | **404** ✅ _arreglado_                                                         |
+| Los radios del portal                       | Siete valores a mano ✅ _arreglado en `F9.5`_                                  |
+
+### Las tareas
+
+| #       | Tarea                                                                                         | Estado |
+| ------- | --------------------------------------------------------------------------------------------- | ------ |
+| `F12.1` | **La nube de puntos tiene puerta**: abrirla, verla en el navegador, y sus controles           | ⬜     |
+| `F12.2` | **El calce y la desviación son pantalla, no registro**: señalar puntos, ver el residuo, medir | ⬜     |
+| `F12.3` | **Las herramientas se ven**: contraste, tamaño e importancia relativa en la cinta             | ⬜     |
+| `F12.4` | **El lienzo vacío es una puerta de entrada**, no un vacío con una frase                       | ⬜     |
+| `F12.5` | **El navegador tiene jerarquía**: nueve secciones iguales no dicen por dónde empezar          | ⬜     |
+| `F12.6` | **La entrada al portal**: es la primera pantalla del producto y hoy es un formulario          | ⬜     |
+| `F12.7` | **«Portal» deja de titular la portada**, y los módulos se presentan por lo que resuelven      | ⬜     |
+| `F12.8` | **La costura**: el visor y el portal se leen como un producto, no como dos                    | ⬜     |
+
+**Oráculo de la fase:** el usuario abre las dos mitades y **no dice «está plano»**. No hay medida que
+sustituya eso, y decir lo contrario sería inventarse un número. Lo que sí se mide y entra en el gate:
+el contraste de cada texto, que ninguna capacidad quede sin puerta, y que los tokens sean los mismos
+en las dos mitades.
+
+---
+
+### `F12.1` — La nube de puntos tiene puerta
+
+Hoy hay que escribir una URL de diagnóstico. Lo que falta:
+
+1. **Una sección «Nubes de puntos» en el navegador**, que `docs/UX.md` ya tiene reservada — la regla
+   de crecimiento del propio documento es «una capacidad nueva es una sección del navegador».
+2. **Abrir un `.copc.laz`** por el mismo botón «Abrir» y el mismo arrastrar y soltar que ya toman el
+   IFC y el DXF. La extensión decide, como ya decide entre modelo y plano.
+3. **Que se abra desde el expediente**, como el IFC: una nube es un documento del registro, y ese es
+   el argumento por el que se eligió COPC —un archivo, no un directorio—.
+4. **La ficha antes de cargar**: cuántos puntos, qué extensión, qué sistema de referencia. Se lee en
+   8 ms y es lo que permite decir «son 130 millones, entra el 12 %» **antes** de esperar.
+5. **Los controles de `F2.3`**, que existen y no tienen mando: densidad, tamaño de punto, recorte por
+   caja y los cuatro colores.
+
+> **Y un aviso que la interfaz tiene que dar, porque el formato no perdona:** si el archivo **no
+> declara sistema de referencia**, la nube no se puede cruzar con nada. Hoy eso solo se ve en una
+> línea del diagnóstico.
+
+### `F12.2` — El calce y la desviación son pantalla
+
+La aritmética está probada y el gesto no existe. Lo que falta:
+
+1. **Señalar pares de puntos** —uno en el modelo, uno en la nube— con la marca dibujada donde se
+   pinchó, y poder quitar el último.
+2. **El residuo a la vista mientras se señala**: medio y máximo, y **cuál es el punto que peor
+   calza**. `calzarConPuntos` ya lo devuelve; nadie lo enseña.
+3. **El calce automático cuando se puede**: si el IFC trae emplazamiento, un botón y ya. Y decir por
+   qué no se puede cuando no se puede.
+4. **La desviación como informe**: elegir un elemento, dar una tolerancia, y ver las seis cifras y la
+   nube pintada. Con **la vuelta al ciclo del producto**: abrir una observación sobre ese elemento
+   desde ahí, con su desviación dentro.
+
+### `F12.3` — Las herramientas se ven
+
+**El contraste está medido y no llega**: los nombres bajo los iconos están a 3,56:1 donde la norma
+pide 4,5:1. Eso solo ya explica «no se ven».
+
+Y hay algo más, que es de forma y no de color: **las veintitantas herramientas de la cinta pesan
+todas lo mismo**. «Órbita» y «Todo» ocupan lo que «Sólido» y «Fantasma», y quien abre el programa no
+tiene por dónde empezar. Lo que hacen los CAD de referencia es dar tamaño a lo que se usa: en Revit y
+AutoCAD el botón grande manda y los pequeños acompañan.
+
+### `F12.4` — El lienzo vacío es una puerta
+
+Novecientos por setecientos píxeles con una frase en medio. Los paneles del navegador **ya lo hacen
+bien** —«Arrastra un IFC aquí, usa Abrir arriba, o saca uno de Del registro»— y el lienzo, que es la
+mayor superficie de la pantalla, dice menos que ellos.
+
+### `F12.5` — El navegador tiene jerarquía
+
+Nueve secciones plegadas, del mismo tamaño, el mismo color y el mismo peso: DEL REGISTRO,
+COORDINACIÓN, ESTRUCTURA, CUADROS, MODELOS ABIERTOS, PLANOS 2D, PLANOS GENERADOS, VISTAS GUARDADAS,
+VISTAS DEL PROYECTO. **Una lista de nueve cosas iguales no es una lista, es un muro.**
+
+### `F12.6` — La entrada al portal
+
+Es **la primera pantalla del producto** y la que ve alguien que aún no sabe qué es esto. Hoy tiene el
+formulario y, al lado, un panel que explica bien la propuesta —«El modelo, los planos y la obra en la
+misma pantalla», con tres pasos numerados—. El texto está; lo que falta es que **entrar** se sienta
+como entrar a una herramienta de trabajo.
+
+### `F12.7` — «Portal» no es un título
+
+La portada se titula **`Portal`** y se subtitula «Solo aparece lo que tu rol puede abrir». Eso es el
+programa hablando de su propia estructura: nombra el contenedor, no lo que la persona viene a hacer.
+Quien entra no viene «al portal», viene a mirar su obra.
+
+Y los módulos se presentan **por lo que son** —una rejilla de tarjetas con su nombre— y no **por lo
+que resuelven**. La ayuda de `F11.7` ya tiene escrito el recorrido bueno —«entrar en la obra, abrir
+el modelo, mirar y medir, dejar una nota…»— y la portada no lo usa.
+
+> **El nombre lo decide el usuario**, como los tres de `F1.13`. Lo que este plan aporta es el
+> argumento: un título dice para qué está la pantalla, y «Portal» dice dónde está el usuario dentro
+> del software.
+
+### `F12.8` — La costura
+
+El portal es claro y el visor oscuro, y eso está decidido y bien. Lo que no puede pasar es que se
+lean como dos programas: `F9.1`–`F9.5` ya unificaron los tokens de color, la escala de radios y la de
+elevación. Falta lo que se ve sin medir — el mismo lenguaje de botones, de estados vacíos y de
+cabeceras a los dos lados de la costura, que es la que el usuario cruza cada vez que abre un modelo
+desde su expediente.
 
 ---
 
