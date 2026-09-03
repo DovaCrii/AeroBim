@@ -33,6 +33,35 @@ export interface GeneratedDrawing {
 /** Desde dónde se mira el modelo para dibujarlo. */
 export type DrawingView = "plan" | "front" | "side";
 
+/**
+ * Las capas del plano, con el nombre que llevan **en el DXF**. `F7.2`.
+ *
+ * **Antes todo salía en la capa `0`**, y eso es lo que hace inútil un DXF en una oficina técnica:
+ * quien lo abre no puede apagar las aristas ocultas, ni darles otro grosor de trazo, ni congelarlas
+ * para acotar encima. Un plano en el que todo es la misma capa es un dibujo, no un entregable.
+ *
+ * La causa era que el código montaba las líneas a mano —`drawing.three.add()` y `layers.set(1)`—
+ * en vez de pasarlas por `addProjectionLines()`, que es lo que asigna la capa. La librería tenía la
+ * API desde el principio; lo que faltaba era usarla.
+ *
+ * **Los nombres van cortos y con prefijo.** En un CAD estos planos se insertan en un archivo que ya
+ * tiene sus capas, así que `VISIBLE` a secas se mezclaría con las de la oficina; `AB-` dice de dónde
+ * salió sin ocupar media línea en el desplegable de capas.
+ */
+export const CAPAS = {
+  visibles: "AB-VISIBLE",
+  ocultas: "AB-OCULTA",
+} as const;
+
+/** Una capa de un plano generado, para poder listarla y apagarla desde la interfaz. */
+export interface DrawingLayerInfo {
+  /** El nombre que lleva en el DXF. */
+  readonly name: string;
+  readonly visible: boolean;
+  /** Cuántos segmentos hay en esta capa. */
+  readonly segments: number;
+}
+
 /** Hacia dónde proyecta cada vista. */
 const DIRECCIONES: Record<DrawingView, readonly [number, number, number]> = {
   plan: [0, -1, 0],
@@ -129,36 +158,57 @@ export class DrawingMaker {
     // geometría y la escena parece rota. Se enciende desde su ficha, cuando se quiere mirar.
     drawing.three.visible = false;
 
-    const lineas = new THREE.LineSegments(
-      proyeccion.visible,
-      new THREE.LineBasicMaterial({ color: 0xe8e8ef }),
-    );
-    // La capa 1 es la que dibujan las cámaras del plano; sin esto la geometría existe y el plano
-    // sale en blanco.
-    lineas.layers.set(1);
-    lineas.name = "visibles";
-    drawing.three.add(lineas);
+    // **Las capas se crean antes de colgar nada** — `F7.2`. `addProjectionLines` avisa y cae a la
+    // capa `0` si el nombre no existe, así que sin esto el DXF volvería a salir con todo junto.
+    drawing.layers.create(CAPAS.visibles, {
+      material: new THREE.LineBasicMaterial({ color: 0xe8e8ef }),
+    });
+    drawing.layers.create(CAPAS.ocultas, {
+      // Discontinua y más apagada: en un plano las aristas ocultas se leen como referencia, no como
+      // el trazo del dibujo. `LineDashedMaterial` es un `LineBasicMaterial`, así que la capa lo toma.
+      material: new THREE.LineDashedMaterial({ color: 0x8fa2c8, dashSize: 0.2, gapSize: 0.1 }),
+      visible: false,
+    });
 
-    const ocultas = new THREE.LineSegments(
-      proyeccion.hidden,
-      new THREE.LineDashedMaterial({ color: 0x8fa2c8, dashSize: 0.2, gapSize: 0.1 }),
-    );
+    // Y se cuelgan **por la API de capas** y no a mano: es ella la que asigna la capa del DXF y la
+    // capa 1 de Three.js —la que dibujan las cámaras del plano—, que antes se ponía aquí a pulso.
+    const lineas = new THREE.LineSegments(proyeccion.visible);
+    lineas.name = CAPAS.visibles;
+    drawing.addProjectionLines(lineas, CAPAS.visibles);
+
+    const ocultas = new THREE.LineSegments(proyeccion.hidden);
+    ocultas.name = CAPAS.ocultas;
+    drawing.addProjectionLines(ocultas, CAPAS.ocultas);
+    // El patrón de guiones necesita las distancias calculadas, y hay que hacerlo **después** de que
+    // la capa le ponga su material: sin esto la línea discontinua se dibuja continua.
     ocultas.computeLineDistances();
-    ocultas.layers.set(1);
-    ocultas.name = "ocultas";
-    ocultas.visible = false;
-    drawing.three.add(ocultas);
 
     // El viewport encuadra lo dibujado: sin márgenes el plano sale pegado al borde del papel.
     const caja = new THREE.Box3().setFromBufferAttribute(
       proyeccion.visible.getAttribute("position") as THREE.BufferAttribute,
     );
     const margen = Math.max(0.5, Math.max(caja.max.x - caja.min.x, caja.max.z - caja.min.z) * 0.03);
+
+    // **`top` y `bottom` son coordenadas de papel, no coordenadas Z**, y confundirlas costaba la
+    // mitad del plano.
+    //
+    // La librería define la Y del papel como **−Z**: su `DrawingViewport.bbox` se construye como
+    // `Z ∈ [-top, -bottom]` y su eje Y local está documentado como «world −Z». Pasando las Z tal
+    // cual, como se hacía aquí, la caja de recorte quedaba **al otro lado del dibujo**: para un
+    // plano con z de 0 a 6 aceptaba `z ≤ margen` y tiraba todo lo demás.
+    //
+    // Medido con `diag.html?modo=dxf` sobre un rectángulo de 10 × 6 m con diagonal: salían **4 de 5
+    // segmentos**, el borde superior desaparecía entero y la diagonal se cortaba justo donde cruza
+    // el borde de la caja. Con las coordenadas de papel salen los cinco.
+    //
+    // **Y no lo veía nadie**: la comprobación de `F7.4` miraba la extensión del DXF —que la marca el
+    // recuadro del viewport, no el dibujo— y el número de trazos. La extensión cuadraba con el
+    // plano recortado igual que con el entero. Ahora se comparan **las coordenadas**.
     const viewport = drawing.viewports.create({
       left: caja.min.x - margen,
       right: caja.max.x + margen,
-      top: caja.max.z + margen,
-      bottom: caja.min.z - margen,
+      top: -caja.min.z + margen,
+      bottom: -caja.max.z - margen,
     });
 
     const info: GeneratedDrawing = {
@@ -175,11 +225,49 @@ export class DrawingMaker {
     return info;
   }
 
-  /** Enciende o apaga las aristas ocultas de un plano generado. */
+  /**
+   * Enciende o apaga las aristas ocultas de un plano generado.
+   *
+   * **Va por la capa y no por el objeto** — `F7.2`: apagar el `LineSegments` a mano dejaba la capa
+   * del dibujo diciendo que estaba visible, así que la interfaz y el DXF podían discrepar.
+   */
   setHiddenVisible(id: string, visible: boolean): void {
+    this.setLayerVisible(id, CAPAS.ocultas, visible);
+  }
+
+  /** Enciende o apaga una capa por su nombre. */
+  setLayerVisible(id: string, layer: string, visible: boolean): void {
     const plano = this.planos.get(id);
-    const ocultas = plano?.drawing.three.children.find((hijo) => hijo.name === "ocultas");
-    if (ocultas !== undefined) ocultas.visible = visible;
+    plano?.drawing.layers.setVisibility(layer, visible);
+  }
+
+  /**
+   * Las capas de un plano generado, con cuántos segmentos hay en cada una.
+   *
+   * Es lo que permite que la ficha del plano diga **qué va a salir en el DXF** antes de exportarlo,
+   * en vez de una casilla suelta de «aristas ocultas» que no dice dónde acaban.
+   */
+  layersOf(id: string): readonly DrawingLayerInfo[] {
+    const plano = this.planos.get(id);
+    if (plano === undefined) return [];
+
+    const porCapa = new Map<string, number>();
+    plano.drawing.three.traverse((objeto) => {
+      const lineas = objeto as THREE.LineSegments;
+      if (!lineas.isLineSegments) return;
+      const capa = lineas.name;
+      porCapa.set(capa, (porCapa.get(capa) ?? 0) + contarSegmentos(lineas.geometry));
+    });
+
+    const capas: DrawingLayerInfo[] = [];
+    for (const [nombre, capa] of plano.drawing.layers) {
+      // La capa `0` existe siempre en cualquier dibujo y aquí no se usa: enseñarla vacía en la
+      // ficha solo invita a preguntar qué hay dentro.
+      const segmentos = porCapa.get(nombre) ?? 0;
+      if (segmentos === 0) continue;
+      capas.push({ name: nombre, visible: capa.visible, segments: segmentos });
+    }
+    return capas;
   }
 
   /** Enciende o apaga el plano entero en la vista 3D. */

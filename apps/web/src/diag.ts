@@ -13,7 +13,7 @@ import * as OBC from "@thatopen/components";
 import * as OBF from "@thatopen/components-front";
 import * as THREE from "three";
 import { parseDxf, suggestMetresPerUnit } from "@aerobim/bim-core";
-import { BimViewer } from "@aerobim/viewer";
+import { BimViewer, CAPAS } from "@aerobim/viewer";
 import { createPdfiumEngine } from "@embedpdf/engines/pdfium-direct-engine";
 import rutaWasm from "@embedpdf/pdfium/pdfium.wasm?url";
 
@@ -492,15 +492,55 @@ export async function dxf(container: HTMLElement, _url: string, log: Log): Promi
   const geometria = new THREE.BufferGeometry();
   geometria.setAttribute("position", new THREE.Float32BufferAttribute(puntos, 3));
 
-  const drawing = components.get(OBC.TechnicalDrawings).create(world);
-  const lineas = new THREE.LineSegments(
-    geometria,
-    new THREE.LineBasicMaterial({ color: 0xe8e8ef }),
+  // Una segunda geometría para la otra capa: una cruz dentro del rectángulo. Dos segmentos, y
+  // así el reparto por capas se puede comprobar contando —4+1 en una, 2 en la otra— y no de fiarse.
+  const cruz = new THREE.BufferGeometry();
+  cruz.setAttribute(
+    "position",
+    new THREE.Float32BufferAttribute(
+      [ANCHO / 2, 0, 0, ANCHO / 2, 0, ALTO, 0, 0, ALTO / 2, ANCHO, 0, ALTO / 2],
+      3,
+    ),
   );
-  // La capa 1 es la que dibujan las cámaras del plano, igual que en `drawings.ts`: sin esto la
-  // geometría existe y el plano sale en blanco.
-  lineas.layers.set(1);
-  drawing.three.add(lineas);
+  const SEGMENTOS_OCULTOS = 2;
+
+  // **Una tercera capa con un solo segmento, y es la que decide.** La primera medición dio un
+  // segmento menos en cada capa —5→4 y 2→1—, que es el patrón de un off-by-one. Si con **un** solo
+  // segmento sale **cero**, queda demostrado que el exportador se come el último de cada geometría;
+  // si sale uno, el patrón es otro y hay que buscar en otro sitio.
+  const CAPA_TESTIGO = "AB-TESTIGO";
+  const testigo = new THREE.BufferGeometry();
+  // Va en z = 2, **dentro** del viewport bueno. Estuvo en z = −2 mientras se buscaba el defecto, y
+  // ahí salía «1 de 1» con la caja mala y «0 de 1» con la buena: era la única que caía del lado que
+  // la caja equivocada dejaba pasar. Sirvió para descartar el off-by-one y no vale como control.
+  testigo.setAttribute("position", new THREE.Float32BufferAttribute([0, 0, 2, ANCHO, 0, 2], 3));
+
+  const drawing = components.get(OBC.TechnicalDrawings).create(world);
+
+  // **Las capas con nombre, que es lo que `F7.2` añade.** Antes esto colgaba las líneas a mano con
+  // `layers.set(1)` y todo salía en la capa `0` del DXF: quien lo abre en el CAD no puede apagar las
+  // aristas ocultas ni darles otro grosor. `addProjectionLines` es lo que asigna la capa.
+  drawing.layers.create(CAPAS.visibles, {
+    material: new THREE.LineBasicMaterial({ color: 0xe8e8ef }),
+  });
+  drawing.layers.create(CAPAS.ocultas, {
+    material: new THREE.LineDashedMaterial({ color: 0x8fa2c8, dashSize: 0.2, gapSize: 0.1 }),
+  });
+
+  const lineas = new THREE.LineSegments(geometria);
+  lineas.name = CAPAS.visibles;
+  drawing.addProjectionLines(lineas, CAPAS.visibles);
+
+  const ocultas = new THREE.LineSegments(cruz);
+  ocultas.name = CAPAS.ocultas;
+  drawing.addProjectionLines(ocultas, CAPAS.ocultas);
+
+  drawing.layers.create(CAPA_TESTIGO, {
+    material: new THREE.LineBasicMaterial({ color: 0xff0000 }),
+  });
+  const unico = new THREE.LineSegments(testigo);
+  unico.name = CAPA_TESTIGO;
+  drawing.addProjectionLines(unico, CAPA_TESTIGO);
 
   const margen = 0.5;
   const viewport = drawing.viewports.create({
@@ -510,26 +550,60 @@ export async function dxf(container: HTMLElement, _url: string, log: Log): Promi
     bottom: -margen,
   });
 
-  log(`dibujo armado a mano: ${SEGMENTOS} segmentos, rectangulo de ${ANCHO} x ${ALTO} m`);
+  // **El viewport con el signo bueno**, que es lo que `F7.2` destapó y arregla.
+  //
+  // `top` y `bottom` **no son coordenadas Z**: son coordenadas de papel, y la librería define la Y
+  // del papel como **−Z**. Su propio código lo dice sin lugar a dudas —el `bbox` del viewport se
+  // construye como `Z ∈ [-top, -bottom]` y el eje Y local está documentado como «world −Z»—, así
+  // que pasar las Z tal cual, como se hacía, da una caja de recorte al otro lado del dibujo.
+  //
+  // Medido con la caja mala: el DXF salía con `Y = margen − z` recortado en cero, o sea que el
+  // borde superior del rectángulo —z = 6— **desaparecía** y la diagonal se cortaba en x = 1,3,
+  // justo donde cruza el borde de la caja. Cuatro segmentos de cinco, y en un plano de verdad eso
+  // es la mitad del dibujo.
+  const viewportBueno = drawing.viewports.create({
+    left: -margen,
+    right: ANCHO + margen,
+    top: margen,
+    bottom: -ALTO - margen,
+  });
+
+  log(
+    `dibujo armado a mano: ${SEGMENTOS} segmentos en ${CAPAS.visibles} y ` +
+      `${SEGMENTOS_OCULTOS} en ${CAPAS.ocultas}, rectangulo de ${ANCHO} x ${ALTO} m`,
+  );
 
   const exportador = components.get(OBC.DxfManager).exporter;
   const entrada = [{ drawing, viewports: [{ viewport }] }];
 
+  const conElBueno = [{ drawing, viewports: [{ viewport: viewportBueno }] }];
+
   const casos = [
-    { nombre: "sin papel (unidades del mundo)", papel: undefined, esperado: [ANCHO, ALTO] },
     {
-      nombre: "en A3 y milimetros",
+      nombre: "con el viewport como lo pasaba drawings.ts (Z tal cual)",
+      papel: undefined,
+      esperado: [ANCHO, ALTO],
+      bueno: false,
+    },
+    {
+      nombre: "con el viewport en coordenadas de papel (el arreglo)",
+      papel: undefined,
+      esperado: [ANCHO, ALTO],
+      bueno: true,
+    },
+    {
+      nombre: "en A3 y milimetros, con el viewport bueno",
       papel: { widthMm: 420, heightMm: 297, margin: 10 },
       esperado: null,
+      bueno: true,
     },
   ] as const;
 
   for (const caso of casos) {
     log(`\n${caso.nombre}:`);
+    const cual = caso.bueno ? conElBueno : entrada;
     const texto =
-      caso.papel === undefined
-        ? exportador.export(entrada)
-        : exportador.export(entrada, caso.papel);
+      caso.papel === undefined ? exportador.export(cual) : exportador.export(cual, caso.papel);
     if (typeof texto !== "string" || texto.length === 0) {
       log("  **el exportador no devolvio texto**");
       continue;
@@ -554,6 +628,58 @@ export async function dxf(container: HTMLElement, _url: string, log: Log): Promi
     const ancho = leido.bounds.maxX - leido.bounds.minX;
     const alto = leido.bounds.maxY - leido.bounds.minY;
     log(`  extension: ${ancho.toFixed(2)} x ${alto.toFixed(2)}`);
+
+    // **Las capas, leídas de la tabla del DXF** — `F7.2`. El oráculo es de los buenos: escribe la
+    // librería de That Open y lee **nuestro** lector de DXF, el que se hizo para la mitad de
+    // entrada de la fase. Si el exportador ignorara las capas, aquí saldría todo en `0`.
+    const nombres = leido.layers.map((capa) => `${capa.name}=${capa.count}`).join(" · ");
+    log(`  capas del DXF: ${nombres || "ninguna"} (polilineas)`);
+
+    // **Se cuentan segmentos y no polilíneas**, y la diferencia importa: el exportador junta los
+    // trazos que comparten un extremo en una sola polilínea, así que cinco segmentos de un
+    // rectángulo con diagonal pueden salir como cuatro polilíneas sin que se haya perdido nada. Lo
+    // que tiene que cuadrar es la **geometría**, no cómo se agrupó al escribirla.
+    const segmentosPorCapa = new Map<string, number>();
+    for (const trazo of leido.polylines) {
+      const puntos = trazo.points.length / 2;
+      const segmentos = trazo.closed ? puntos : Math.max(0, puntos - 1);
+      segmentosPorCapa.set(trazo.layer, (segmentosPorCapa.get(trazo.layer) ?? 0) + segmentos);
+    }
+    const visibles = segmentosPorCapa.get(CAPAS.visibles) ?? 0;
+    const enOcultas = segmentosPorCapa.get(CAPAS.ocultas) ?? 0;
+    const unSegmento = segmentosPorCapa.get(CAPA_TESTIGO) ?? 0;
+    log(
+      `  segmentos: ${CAPAS.visibles}=${visibles} (esperado ${SEGMENTOS}) · ` +
+        `${CAPAS.ocultas}=${enOcultas} (esperado ${SEGMENTOS_OCULTOS}) · ` +
+        `${CAPA_TESTIGO}=${unSegmento} (esperado 1) — ` +
+        `${
+          visibles === SEGMENTOS && enOcultas === SEGMENTOS_OCULTOS && unSegmento === 1
+            ? "cuadra (bien)"
+            : "NO CUADRA (mal)"
+        }`,
+    );
+    // Cuando no cuadra, **qué trazo falta**: sin las coordenadas no se puede saber si el exportador
+    // pierde uno, junta dos o recorta por el viewport, y las tres piden arreglos distintos.
+    if (visibles !== SEGMENTOS || enOcultas !== SEGMENTOS_OCULTOS) {
+      for (const capa of [CAPAS.visibles, CAPAS.ocultas, CAPA_TESTIGO]) {
+        const trazos = leido.polylines.filter((t) => t.layer === capa);
+        log(`    ${capa}:`);
+        for (const trazo of trazos) {
+          const puntos: string[] = [];
+          for (let i = 0; i < trazo.points.length; i += 2) {
+            puntos.push(`(${trazo.points[i]!.toFixed(1)},${trazo.points[i + 1]!.toFixed(1)})`);
+          }
+          log(`      ${trazo.closed ? "cerrada" : "abierta"} ${puntos.join(" ")}`);
+        }
+      }
+    }
+    // Y el grosor de trazo, que es la otra mitad de la fila del plan. Si el exportador no lo
+    // escribe, sale `null` y **eso es el dato**: se dice en vez de suponerlo.
+    log(
+      `  grosor declarado por capa: ` +
+        (leido.layers.map((c) => `${c.name}=${c.lineweightMm ?? "por defecto"}`).join(" · ") ||
+          "ninguna"),
+    );
 
     if (caso.esperado !== null) {
       const [ex, ey] = caso.esperado;

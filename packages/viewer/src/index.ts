@@ -61,7 +61,8 @@ import {
 import { DrawingMaker, type DrawingView, type GeneratedDrawing } from "./drawings.js";
 import { GridOverlay } from "./grid.js";
 
-export type { DrawingView, GeneratedDrawing } from "./drawings.js";
+export type { DrawingLayerInfo, DrawingView, GeneratedDrawing } from "./drawings.js";
+export { CAPAS } from "./drawings.js";
 import { PlanOverlay, type LoadedPlan, type PlanHit, type PlanTransform } from "./plan.js";
 
 export type { IfcGridAxis } from "@aerobim/bim-core";

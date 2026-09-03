@@ -24,9 +24,15 @@ que el producto sabe hacer).
 
 **Y la Fase 10 va por el mismo camino**: `F10.1` cerró, así que el informe ya se pide por etiqueta
 —«todo lo de instalaciones que sigue abierto»— y de las cinco filas solo quedan las dos de tablas.
-**Lo que sigue, entonces, es `F7.2`**, y no por orden de fase: `F10.4` —el cuadro de hallazgos
-dentro de la lámina— no se puede empezar sin los viewports y las capas de la lámina, que es donde
-iría dibujado.
+
+**`F7.2` también cerró**, y de camino destapó que el DXF de un plano generado salía **con la mitad
+del dibujo recortada**: el viewport se construía con coordenadas Z donde la librería espera
+coordenadas de papel. Estaba desde que se escribió `F7.4`, y el oráculo de entonces no podía verlo
+porque medía la extensión del archivo —que la marca el recuadro del viewport— y no las coordenadas.
+
+**Lo que sigue, entonces, es `F10.4`**: el cuadro de hallazgos dentro de la lámina, que ya tiene
+debajo lo que le faltaba —capas con nombre y un plano que sale entero—. Y `F7.3`, el acotado, que es
+lo que hace de una proyección un plano de verdad.
 
 ## La prioridad cambió el 2026-09-02, y la puso el usuario
 
@@ -106,7 +112,7 @@ Las **veintinueve** filas abiertas, de una vez. `⬜` no empezada · `❓` medid
 | **11 — El portal se ve plano** ⭐        | `F11.7` ayuda con recorrido ⛔ — la decide el usuario _(`F11.1` a `F11.6` y `F11.8` a `F11.10` cerradas)_                                                        |
 | **10 — Etiquetas, informes y tablas** ⭐ | `F10.4` tablas en el plano ⬜ _(necesita `F7.2`)_ · `F10.5` tablas del modelo ⬜ _(`F10.1` a `F10.3` cerradas: el informe sale en papel y se pide por etiqueta)_ |
 | **1 — Visor**                            | `F1.13` ❓ — auditada; quedan tres nombres que decide el usuario                                                                                                 |
-| **7 — Planos, salida**                   | `F7.2` viewports y capas · `F7.3` acotado y anotaciones · `F7.5` exportar a PDF ⬜                                                                               |
+| **7 — Planos, salida**                   | `F7.3` acotado y anotaciones · `F7.5` exportar a PDF ⬜ _(`F7.2` cerrada: capas con nombre, y el viewport recortaba el plano)_                                   |
 | **2 — Nubes de puntos**                  | `F2.1` a `F2.6` ⬜ — cargar, alinear, visualizar, medir contra el modelo, documentar el pipeline, y el gaussian splatting                                        |
 | **6 — Geo + BIM**                        | `F6.1` a `F6.5` ⬜ — Cesium, ortofoto y terreno propios, situar el IFC, 3D Tiles, y recibir de AeroPlanner                                                       |
 
@@ -2640,7 +2646,7 @@ longitud medida en los dos.
 | #      | Tarea                                                                                                | Estado       |
 | ------ | ---------------------------------------------------------------------------------------------------- | ------------ |
 | `F7.1` | Generar vistas 2D desde el modelo (planta, alzados) proyectando sus aristas                          | 🟡           |
-| `F7.2` | Viewports y capas: qué se dibuja, con qué grosor y en qué capa (`DrawingViewports`, `DrawingLayers`) | ⬜           |
+| `F7.2` | Viewports y capas: qué se dibuja, con qué grosor y en qué capa (`DrawingViewports`, `DrawingLayers`) | ✅ ver abajo |
 | `F7.3` | Acotado y anotaciones sobre el plano: cotas lineales, ángulos, pendientes y llamadas                 | ⬜           |
 | `F7.4` | **Exportar a DXF** con `DxfExporter`, en A3 y milímetros, listo para el CAD                          | ✅ ver abajo |
 | `F7.5` | Exportar a PDF imprimible, con formato y sello                                                       | ⬜           |
@@ -2688,6 +2694,44 @@ pasó y por qué:
 
 Comprobado en las tres vistas: las tres cortan con ese mensaje, la interfaz vuelve y el aviso de
 avance se limpia. **Un cuelgue se convirtió en algo que se puede contar.**
+
+### `F7.2` — ✅ Capas con nombre, y el viewport que se llevaba la mitad del plano
+
+**Dos cosas, y la segunda no se buscaba.**
+
+**Las capas.** Todo salía en la capa `0` del DXF, y eso es lo que hace inútil un plano en una oficina
+técnica: quien lo abre no puede apagar las aristas ocultas, ni darles otro grosor, ni congelarlas
+para acotar encima. Un dibujo en el que todo es la misma capa no es un entregable. La causa era que
+el código colgaba las líneas a mano —`drawing.three.add()` y `layers.set(1)`— en vez de pasarlas por
+`addProjectionLines()`, que es lo que asigna la capa: **la librería tenía la API desde el principio y
+no se estaba usando.** Ahora salen `AB-VISIBLE` y `AB-OCULTA`, con prefijo para no mezclarse con las
+capas de la oficina al insertar el plano en otro archivo.
+
+**Y el viewport, que era un defecto serio.** Al comprobar el reparto por capas salieron **4 de 5
+segmentos**, y de ahí tiró el hilo:
+
+- El exportador escribe cada segmento como `(x, z)` del dibujo, pasado por su transformación.
+- `DrawingViewport.bbox` se construye como `Z ∈ [-top, -bottom]`, y el eje Y local de la librería
+  está documentado como **«world −Z»**. O sea: `top` y `bottom` **son coordenadas de papel, no Z**.
+- `drawings.ts` pasaba las Z tal cual, así que la caja de recorte quedaba **al otro lado del
+  dibujo**: para un plano con z de 0 a 6 aceptaba `z ≤ margen` y tiraba el resto.
+
+Medido sobre un rectángulo de 10 × 6 m con diagonal: el borde superior **desaparecía entero** y la
+diagonal se cortaba en x = 1,3, justo donde cruza el borde de la caja mala. Con las coordenadas de
+papel salen los cinco segmentos, y los dos de la otra capa, y el testigo.
+
+> **Por qué no lo veía nadie, que es la parte que importa.** La comprobación con la que se cerró
+> `F7.4` miraba **la extensión del DXF y el número de trazos**. Y la extensión la marca el recuadro
+> del viewport, no el dibujo: cuadraba igual con el plano recortado que con el entero. Un oráculo que
+> mide el marco no puede ver que falta el cuadro.
+>
+> Ahora se comparan **las coordenadas**, capa por capa y segmento por segmento, contra una geometría
+> de medidas conocidas. Es la diferencia entre «el exportador escribió algo» y «escribió esto».
+
+**Lo que queda de la fila, dicho:** el grosor de trazo. El exportador **no escribe el código 370**,
+así que las tres capas salen con «por defecto» y la jerarquía de grosores —muro gordo, oculta fina—
+habría que ponerla en el CAD. Se mide y se dice en el diagnóstico en vez de suponerlo; darlo por
+hecho sería repetir el error de arriba.
 
 #### `F7.4` cerrada aparte: el exportador **no depende del proyector** (2026-08-26)
 

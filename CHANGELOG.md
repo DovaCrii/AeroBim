@@ -5,6 +5,35 @@ Este proyecto sigue [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Corregido — el DXF de un plano generado salía con la mitad del dibujo recortada (`F7.2`, 2026-09-02)
+
+**El viewport se construía con las coordenadas equivocadas y el recorte se comía el plano.** La
+librería define la vertical del papel como el eje Z negado —su caja de recorte es `Z ∈ [-top,
+-bottom]`— y el código pasaba las Z tal cual, así que la caja quedaba al otro lado del dibujo.
+
+Medido sobre un rectángulo de 10 × 6 m con diagonal: salían **4 de 5 segmentos**, el borde superior
+desaparecía entero y la diagonal se cortaba a un octavo de su largo. Con las coordenadas de papel
+salen los cinco.
+
+**Y no lo veía nadie porque el oráculo medía el marco y no el cuadro**: la comprobación anterior
+miraba la extensión del DXF, que la marca el recuadro del viewport y no el dibujo, así que cuadraba
+igual con el plano recortado que con el entero. Ahora se comparan las coordenadas capa por capa
+contra una geometría de medidas conocidas.
+
+### Añadido — el DXF sale con capas con nombre (`F7.2`, 2026-09-02)
+
+**Todo salía en la capa `0`**, y un plano en el que todo es la misma capa no es un entregable: quien
+lo abre en el CAD no puede apagar las aristas ocultas, ni darles otro grosor, ni congelarlas para
+acotar encima. Ahora salen `AB-VISIBLE` y `AB-OCULTA`, con prefijo para no mezclarse con las capas
+de la oficina al insertar el plano en otro archivo.
+
+La causa era que el código colgaba las líneas a mano en vez de usar la API de capas que la librería
+tenía desde el principio. Apagar las aristas ocultas va también por la capa, así que la pantalla y el
+DXF ya no pueden discrepar.
+
+El grosor de trazo queda dicho y no supuesto: el exportador no lo escribe, así que las capas salen
+con «por defecto» y la jerarquía de grosores habría que ponerla en el CAD.
+
 ### Corregido — cambiar de proyección mientras se mueve la cámara dejaba el modelo sin dibujar (2026-09-02)
 
 **El visor esperaba un aviso que nadie iba a dar.** Al cambiar de proyección se refrescaba una vez,
