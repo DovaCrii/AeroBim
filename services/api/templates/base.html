@@ -71,6 +71,11 @@
       </button>
       {% if user.is_authenticated %}
         <span>{{ user.get_username }}</span>
+        {% comment %}
+          **La ayuda va en la barra y no solo en el portal.** `F11.7`: se busca desde la pantalla en
+          la que uno se ha atascado, no volviendo a la puerta — y en la barra está en todas.
+        {% endcomment %}
+        <a href="{% url 'accounts:ayuda' %}">{% translate "Help" %}</a>
         <a href="{% url 'password_change' %}">{% translate "Change password" %}</a>
         <form method="post" action="{% url 'logout' %}" style="display: inline">
           {% csrf_token %}

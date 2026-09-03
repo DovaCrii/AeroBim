@@ -256,6 +256,29 @@ class PortalView(LoginRequiredMixin, TemplateView):
         }
 
 
+class AyudaView(LoginRequiredMixin, TemplateView):
+    """El recorrido de cómo se usa AeroBim. `F11.7`.
+
+    **Sin permiso de modelo y solo con sesión**, y eso es deliberado: la ayuda explica el producto,
+    no da acceso a nada. Cada paso lleva a su pantalla y esa pantalla comprueba lo suyo; pedir aquí
+    un permiso dejaría sin explicación a quien más la necesita —el rol más acotado— justo el día que
+    entra por primera vez.
+
+    El recorrido y el porqué de que sea generado están en `apps/accounts/ayuda.py`.
+    """
+
+    template_name = "accounts/ayuda.html"
+
+    def get_context_data(self, **kwargs):
+        from apps.accounts.ayuda import pasos_para
+
+        contexto = super().get_context_data(**kwargs)
+        contexto["pasos"] = pasos_para(self.request.user)
+        # Cuántos no le tocan, para poder decirlo arriba en vez de que se descubra bajando.
+        contexto["ajenos"] = sum(1 for uno in contexto["pasos"] if not uno.puedes)
+        return contexto
+
+
 class UsuariosRolesView(ModelViewPermissionRequiredMixin, CsvExportMixin, TemplateView):
     """Quien tiene que rol. **Solo lectura, y con lista blanca al exportar.**
 

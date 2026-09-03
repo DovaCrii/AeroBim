@@ -44,11 +44,13 @@ llamadas, que son ensamblaje por el mismo camino ya abierto.
 solo queda media fila**: los ángulos, las pendientes y las llamadas de `F7.3`, que son ensamblaje por
 el camino que las cotas ya abrieron.
 
-**Lo que queda del plan, entonces, no lo decide este documento.** Las tres son decisiones del
-usuario y están abajo, en «Las decisiones que solo el usuario puede tomar»: `F11.7` —la ayuda con
-recorrido—, `F9.6` —el reparto del navegador del visor— y `F1.13` —tres nombres de la cinta—. Detrás
-de ellas quedan las dos fases pospuestas a propósito, **2 (nubes de puntos) y 6 (geo + BIM)**, que
-son las dos grandes sin empezar y se pospusieron el 2026-09-02 para poner la coordinación delante.
+**Y `F11.7` cerró la Fase 11 entera**: la ayuda es un recorrido de nueve pasos generado de lo que el
+producto sabe hacer, en la barra de todas las pantallas, y con una prueba que impide que se desfase.
+
+**Lo que queda, en orden**, está en «Hasta dónde llega este bloque» más abajo: `F4.5` y lo que falta
+de `F7.3` cierran dos fases y son trabajo por caminos ya abiertos; después la Fase 2, empezando por
+documentar el pipeline y por la alineación, que es el problema real. Y dos decisiones siguen siendo
+del usuario: `F9.6` —el reparto del navegador del visor— y `F1.13` —tres nombres de la cinta—.
 
 ## La prioridad cambió el 2026-09-02, y la puso el usuario
 
@@ -125,12 +127,59 @@ Las **veintinueve** filas abiertas, de una vez. `⬜` no empezada · `❓` medid
 | **4 — Coordinación** ⭐                  | `F4.5` ◐ falta el trazo libre; las cotas ya viajan _(`F4.6` cerrada: el ciclo va y vuelve)_                                                    |
 | **3 — Backend**                          | `F3.4` ✅ decidida por el usuario el 2026-09-02: **la petición espera**, y por qué                                                             |
 | **9 — Diseño** ⭐                        | `F9.6` ⛔ — la decide el usuario, y son tres decisiones _(`F9.1` a `F9.5` cerradas)_                                                           |
-| **11 — El portal se ve plano** ⭐        | `F11.7` ayuda con recorrido ⛔ — la decide el usuario _(`F11.1` a `F11.6` y `F11.8` a `F11.10` cerradas)_                                      |
+| **11 — El portal se ve plano** ⭐        | ✅ **la fase entera** — el portal, la ficha, la lista, los colores y la ayuda con su recorrido                                                 |
 | **10 — Etiquetas, informes y tablas** ⭐ | ✅ **la fase entera** — el informe sale en papel, se pide por etiqueta, el modelo saca sus cuadros y la lámina los lleva dentro                |
 | **1 — Visor**                            | `F1.13` ❓ — auditada; quedan tres nombres que decide el usuario                                                                               |
 | **7 — Planos, salida**                   | `F7.3` ◐ el acotado ya sale del modelo; quedan angulos, pendientes y llamadas _(`F7.2`, `F7.4` y `F7.5` cerradas: capas, DXF y PDF con sello)_ |
 | **2 — Nubes de puntos**                  | `F2.1` a `F2.6` ⬜ — cargar, alinear, visualizar, medir contra el modelo, documentar el pipeline, y el gaussian splatting                      |
 | **6 — Geo + BIM**                        | `F6.1` a `F6.5` ⬜ — Cesium, ortofoto y terreno propios, situar el IFC, 3D Tiles, y recibir de AeroPlanner                                     |
+
+### Hasta dónde llega este bloque, revisado el 2026-09-03
+
+El usuario lo encargó así: **«revisar el plan de los módulos pendientes y ver hasta dónde llegar, ya
+que de momento la coordinación, nubes de puntos e IFC son lo más importante en este bloque»**. Esto
+es la respuesta, con lo que se puede afirmar y lo que no.
+
+**De los tres, dos están hechos y el tercero no ha empezado.**
+
+| Lo importante del bloque | Dónde está de verdad                                                                                                                                                          |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Coordinación**         | **Cerrada salvo medio punto.** Las fases 4, 5, 10 y 11 completas: detectar, agrupar, repartir, descartar, distinguir lo nuevo, el papel, el BCF de ida y vuelta. Queda `F4.5` |
+| **IFC**                  | **Cerrado como camino completo**: se lee, se valida con IDS, se cruza, se anota por GUID, se saca en BCF, en DXF, en PDF y en cuadros. No queda ninguna fila abierta          |
+| **Nubes de puntos**      | **Sin empezar: seis filas.** Y con dos condiciones que hay que decir antes de prometer plazos                                                                                 |
+
+**Lo que queda de coordinación son dos tardes**, no un bloque: `F4.5` —el trazo libre sobre el
+modelo— y las tres anotaciones que faltan de `F7.3` —ángulos, pendientes y llamadas—, las dos por
+caminos que ya están abiertos. Eso es lo que se hace primero, porque cierra dos fases enteras.
+
+**Y sobre las nubes, dos cosas que cambian la conversación:**
+
+1. **El problema real es la alineación, no el render.** Cargar puntos es un `loader` y se hace en una
+   tarde. Que caigan **donde corresponde respecto al modelo** es lo difícil: un IFC viene en
+   coordenadas locales de proyecto y a veces con el norte rotado, mientras la nube viene
+   georreferenciada del vuelo. `F2.1` sin `F2.2` es una nube bonita al lado del edificio, y `F2.4`
+   —medir la desviación entre lo construido y lo modelado, que es para lo que sirve todo esto— mide
+   basura con dos decimales hasta que `F2.2` esté resuelta.
+2. **No se puede verificar en este entorno.** El oráculo de la fase es CloudCompare y el panel del
+   navegador **no compone fotogramas**: es la misma limitación que tuvo `F7.1` parada meses y que
+   obligó al corte por falta de latido. Una nube se juzga mirándola. Lo que sí se puede comprobar sin
+   pantalla es la aritmética de la alineación —una transformación conocida aplicada a puntos
+   conocidos— y ahí es donde conviene poner el esfuerzo medible.
+
+**La recomendación, entonces, en este orden:**
+
+1. `F4.5` y lo que falta de `F7.3`. Cierran las fases 4 y 7 y son trabajo por caminos ya abiertos.
+2. `F2.5` **antes que `F2.1`**, aunque el plan las numere al revés: documentar el pipeline de
+   conversión —`PotreeConverter`, `pdal`— es lo que decide **qué formato entra**, y escribir el
+   cargador antes de saberlo es escribirlo dos veces.
+3. `F2.2`, la alineación, con su prueba de aritmética pura en `bim-core`: transformación conocida,
+   puntos conocidos, desviación esperada. Es la pieza sobre la que se apoya todo lo demás de la fase.
+4. `F2.1` y `F2.3` después, sabiendo que **su aspecto queda pendiente de tu pantalla**, no de la
+   nuestra.
+
+**Y las tres decisiones que siguen bloqueadas** —`F9.6`, `F1.13` y las que aparezcan— no están en
+esta lista porque no son trabajo: son elecciones. Están abajo, en «Las decisiones que solo el usuario
+puede tomar».
 
 ⭐ = prioridad del 2026-09-02. Las fases 2 y 6 **no se descartan, se posponen**: son las dos que no
 tienen ni un archivo con el que verificarse hoy —no hay nube de puntos ni ortofoto en el
@@ -3422,7 +3471,7 @@ de jerarquía**, y por eso no lo cazó el oráculo de la `FASE 9`.
 | `F11.4`  | La portada: dos mitades, para qué sirve esto, y un mensaje para el equipo       | ✅ ver abajo |
 | `F11.5`  | El portal reordenado, y la tarjeta de obra con datos y no con texto             | ✅ ver abajo |
 | `F11.6`  | «Observaciones abiertas»: prioridad, antigüedad y responsable de un vistazo     | ✅ ver abajo |
-| `F11.7`  | Una sección de ayuda con el recorrido de cómo se usa                            | ⛔           |
+| `F11.7`  | Una sección de ayuda con el recorrido de cómo se usa                            | ✅ ver abajo |
 | `F11.8`  | Botones, campos y migas: los controles dejaron de ser los del sistema           | ✅ ver abajo |
 | `F11.9`  | La ficha de un hallazgo en dos columnas: la conversación y la ficha             | ✅ ver abajo |
 | `F11.10` | El portal: nombres de sección, líneas de ayuda, iconos y los cinco acentos      | ✅ ver abajo |
@@ -3740,15 +3789,49 @@ el usuario:
 Se apila en una columna por debajo de 860 px, y **el formulario va primero en el HTML**: así en el
 móvil se entra sin bajar, y en el escritorio la rejilla lo coloca a la derecha.
 
-### `F11.7` — La ayuda, que el usuario pidió aparte
+### `F11.7` — ✅ La ayuda: un recorrido generado, no un recorrido pintado encima
 
 > «una seccion de ayuda como usar el software con un recorrido o como usarlo»
 
-**Y hay una decisión antes de escribirla:** una página de ayuda que se escribe a mano se queda
-vieja a la tercera pantalla que cambia. Las dos formas de que eso no pase son un **recorrido guiado
-sobre la pantalla de verdad** —que envejece con ella porque señala elementos que existen— o una
-ayuda **generada de lo que el producto sabe hacer**. La primera es más útil y más trabajo. Va como
-decisión del usuario, no como elección nuestra.
+**La decisión se dejó al usuario dos veces y pidió avanzar, así que se tomó y queda escrita.** Las
+dos formas eran un recorrido con globos sobre la pantalla —el patrón de `intro.js`— o una ayuda
+generada de lo que el producto sabe hacer. Se eligió la segunda por dos razones:
+
+1. **El recorrido con globos se rompe con cada cambio de interfaz**, y esta interfaz cambia: se
+   ancla a selectores o a posiciones, y el día que un botón se mueve de panel el globo apunta a otro
+   sitio y la ayuda **miente sin avisar**. Es la peor clase de documentación: la que parece correcta.
+2. **No cubre las dos mitades del producto.** El portal es Django y el visor es una aplicación de
+   una página; habría que escribirlo dos veces, con dos librerías, y mantenerlo en dos sitios.
+
+**Lo que hay: nueve pasos en el orden en que se trabaja**, no por módulos — y ese orden es la mitad
+del valor, porque lo que no sabe quien abre esto la primera vez es por dónde se empieza. Entrar en
+la obra, abrir el modelo, mirar y medir, dejar una nota, cruzar los modelos, repartir y seguir, sacar
+el papel, mandar y recibir BCF, sacar los planos. Cada paso dice **para qué sirve** —que es lo que
+casi nunca está escrito en una ayuda y lo único que hace falta para decidir si te interesa—, **qué
+hacer**, y lleva a la pantalla de verdad. Está en la barra de todas las pantallas: se busca desde
+donde uno se ha atascado, no volviendo a la puerta.
+
+**Y enseña el flujo entero marcando lo que no te toca**, que es la diferencia con el portal y es
+deliberada. El portal **esconde** lo que tu rol no puede abrir —un botón que termina en 403 enseña a
+probar puertas— y aquí eso sería mentir por omisión: quien lee esto no entendería de dónde le llegan
+las observaciones que tiene que contestar. Medido con el rol de mandante: **3 de los 9 pasos salen
+marcados, con quién los hace** —«lo hace quien coordina»— y sin botón que acabaría en 403. El portal
+es una puerta; esto es una explicación.
+
+> **El oráculo es lo que impide que se desfase**, y es lo que una ayuda escrita a mano no puede
+> tener: cada destino **resuelve** con el enrutador de Django, cada destino **está además en el
+> catálogo del portal** —si un módulo se quita, el gate lo dice en vez de dejar la ayuda llevando a
+> una pantalla que ya nadie ofrece— y **cada permiso que nombra existe de verdad**. Ese último no es
+> teórico: un permiso mal escrito no falla, **calla** —`has_perm` devuelve `False` siempre— así que
+> el paso saldría marcado como ajeno para todo el mundo y nadie sabría por qué.
+
+> **Y una decisión de idioma que va contra la convención del portal, dicha:** el texto del recorrido
+> es **español literal, sin `gettext`**. El catálogo va de msgid en inglés a msgstr en español, así
+> que marcar prosa que ya está en español obligaría a treinta y cinco traducciones de sí misma. El
+> visor entero ya es literal en español, así que esto es lo consistente. Lo destapó además una
+> prueba que el proyecto ya tenía —`test_ninguna_traduccion_repite_el_original`— cuando una de esas
+> cadenas se colgó del catálogo. Si algún día hay un segundo idioma, `ayuda.py` es el archivo que se
+> revisa.
 
 ---
 

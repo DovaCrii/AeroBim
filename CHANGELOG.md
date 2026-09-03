@@ -5,6 +5,29 @@ Este proyecto sigue [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Añadido — una sección de ayuda con el recorrido de cómo se usa (`F11.7`, 2026-09-02)
+
+**Nueve pasos, en el orden en que se trabaja de verdad** y no por módulos: entrar en la obra, abrir
+el modelo, mirar y medir, dejar una nota, cruzar los modelos, repartir y seguir, sacar el papel,
+mandar y recibir BCF, sacar los planos. Cada paso dice **para qué sirve** —que es lo que casi nunca
+está escrito en una ayuda y lo único que hace falta para decidir si te interesa—, qué hacer, y lleva
+a la pantalla de verdad. Está en la barra de todas las pantallas: se busca desde donde uno se ha
+atascado, no volviendo a la puerta.
+
+**Se descartó el recorrido con globos sobre la interfaz**, que era la otra forma: se ancla a
+selectores y el día que un botón se mueve de panel el globo apunta a otro sitio y la ayuda miente sin
+avisar. Y habría que escribirlo dos veces, porque el portal y el visor son dos aplicaciones.
+
+**Enseña el flujo entero marcando lo que no te toca**, al contrario que el portal, que esconde lo que
+tu rol no puede abrir. Ahí esconderlo es correcto; aquí sería mentir por omisión: quien lo lee no
+entendería de dónde le llegan las observaciones que tiene que contestar. Con el rol de mandante, 3 de
+los 9 pasos salen marcados **con quién los hace** y sin botón que acabaría en 403.
+
+Y lo que impide que se desfase: cada destino resuelve con el enrutador, **cada destino está además
+en el catálogo del portal** —si un módulo se quita, el gate lo dice— y cada permiso que nombra existe
+de verdad. Un permiso mal escrito no falla: calla, y el paso saldría marcado como ajeno para todo el
+mundo.
+
 ### Añadido — la lámina de un plano sale en PDF, en Carta y con el sello de la casa (`F7.5`, 2026-09-02)
 
 **Un DXF se abre en un CAD y un PDF se manda por correo, se firma y se cuelga.** El visor ya sacaba

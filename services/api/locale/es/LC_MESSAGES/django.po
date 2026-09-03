@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-03 09:57-0400\n"
+"POT-Creation-Date: 2026-09-03 10:22-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1309,6 +1309,80 @@ msgstr "Código"
 msgid "Nothing recorded yet."
 msgstr "Todavía no hay nada registrado."
 
+#: .\templates\accounts\ayuda.html:4 .\templates\accounts\ayuda.html:25
+msgid "How AeroBim is used"
+msgstr "Cómo se usa AeroBim"
+
+#: .\templates\accounts\ayuda.html:27
+msgid ""
+"Nine steps, in the order the work actually happens. Each one says what it "
+"is\n"
+"    for, what to do, and takes you to the screen where it happens."
+msgstr ""
+"Nueve pasos, en el orden en que se trabaja de verdad. Cada uno dice para qué "
+"sirve, qué hacer, y te lleva a la pantalla donde ocurre."
+
+#: .\templates\accounts\ayuda.html:33
+#, python-format
+msgid ""
+"One of these steps is not yours to do: it is shown\n"
+"      anyway, marked, because a walkthrough missing a step does not explain "
+"where your work comes\n"
+"      from."
+msgid_plural ""
+"%(total)s of these steps are not yours to do: they are shown anyway,\n"
+"      marked, because a walkthrough missing steps does not explain where "
+"your work comes\n"
+"      from."
+msgstr[0] ""
+"Uno de estos pasos no te toca a ti: se enseña igual, marcado, porque un "
+"recorrido al que le falta un paso no explica de dónde viene tu trabajo."
+msgstr[1] ""
+"%(total)s de estos pasos no te tocan a ti: se enseñan igual, marcados, "
+"porque un recorrido al que le faltan pasos no explica de dónde viene tu "
+"trabajo."
+
+#: .\templates\accounts\ayuda.html:62
+msgid "Go there"
+msgstr "Ir ahí"
+
+#: .\templates\accounts\ayuda.html:68
+msgid "Two things worth knowing"
+msgstr "Dos cosas que conviene saber"
+
+#: .\templates\accounts\ayuda.html:77
+msgid "A finding is anchored to the element, not to a place"
+msgstr "Un hallazgo se ancla al elemento, no a un sitio"
+
+#: .\templates\accounts\ayuda.html:79
+msgid ""
+"It is pinned to the IFC element's GUID, which survives a new revision of\n"
+"        the model. That is why a finding opened in March is still found in "
+"the June model, and why a\n"
+"        model opened from your disk cannot take notes: it has no register to "
+"file them\n"
+"        in."
+msgstr ""
+"Queda clavado al GUID del elemento en el IFC, que sobrevive a una revisión "
+"nueva del modelo. Por eso un hallazgo abierto en marzo se sigue encontrando "
+"en el modelo de junio, y por eso un modelo abierto desde tu disco no puede "
+"llevar notas: no tiene registro donde archivarlas."
+
+#: .\templates\accounts\ayuda.html:86
+msgid "What you can open depends on your role"
+msgstr "Lo que puedes abrir depende de tu rol"
+
+#: .\templates\accounts\ayuda.html:88
+msgid ""
+"The portal only lists what your role can open, and a client sees only\n"
+"        what has been published — not what is still being drafted. If a "
+"screen you need is missing,\n"
+"        it is a role to ask for, not a button that broke."
+msgstr ""
+"El portal solo lista lo que tu rol puede abrir, y un mandante ve solo lo "
+"publicado —no lo que está en curso—. Si te falta una pantalla que necesitas, "
+"es un rol que pedir y no un botón que se rompió."
+
 #: .\templates\accounts\organizaciones.html:9
 msgid ""
 "Who the project data belongs to. Every query is scoped by this.\n"
@@ -1520,18 +1594,22 @@ msgstr "Cambiar al tema oscuro"
 msgid "Switch to the light theme"
 msgstr "Cambiar al tema claro"
 
-#: .\templates\base.html:79
+#: .\templates\base.html:84
+msgid "Help"
+msgstr "Ayuda"
+
+#: .\templates\base.html:85
 #: .\templates\registration\password_change_form.html:4
 #: .\templates\registration\password_change_form.html:7
 #: .\templates\registration\password_change_form.html:16
 msgid "Change password"
 msgstr "Cambiar la contraseña"
 
-#: .\templates\base.html:82
+#: .\templates\base.html:88
 msgid "Sign out"
 msgstr "Salir"
 
-#: .\templates\base.html:85 .\templates\registration\login.html:7
+#: .\templates\base.html:91 .\templates\registration\login.html:7
 #: .\templates\registration\login.html:259
 msgid "Sign in"
 msgstr "Entrar"

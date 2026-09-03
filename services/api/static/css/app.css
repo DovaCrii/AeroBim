@@ -1262,6 +1262,66 @@ input[type="file"]::file-selector-button:hover {
   text-decoration: underline;
 }
 
+/* --- El recorrido de la ayuda ----------------------------------------------------- */
+
+/*
+ * **Nueve pasos numerados, no una lista de enlaces.** `F11.7`. El orden es la mitad del valor —lo
+ * que no sabe quien abre esto la primera vez es por dónde se empieza— así que el número va grande y
+ * a la izquierda, fuera del texto, como en un manual.
+ *
+ * El numerado lo pone el propio contenido del paso (`1 · Entra en la obra`) y no un contador de CSS,
+ * porque el número es parte de lo que se lee en voz alta: un `::before` generado no lo lee un lector
+ * de pantalla en todos los navegadores.
+ */
+.recorrido {
+  list-style: none;
+  margin: 0 0 24px;
+  padding: 0;
+  max-width: 78ch;
+}
+
+.paso-ayuda {
+  padding: 16px 18px;
+  margin-bottom: 12px;
+  background: var(--ab-surface);
+  border: 1px solid var(--ab-border);
+  border-left: 3px solid var(--ab-primary);
+  border-radius: var(--ab-radius);
+}
+
+.paso-ayuda h2 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 8px;
+  font-size: 1.02rem;
+}
+
+/*
+ * El paso que no te toca: **apagado, no escondido.** La franja pierde el color y el texto baja de
+ * tono, que es lo que dice «esto pasa, pero no lo haces tú» sin quitarlo de la explicación.
+ */
+.paso-ajeno {
+  border-left-color: var(--ab-border);
+}
+
+.paso-ajeno h2,
+.paso-ajeno .que-hacer {
+  color: var(--ab-text-secondary);
+}
+
+/* Para qué sirve va primero y con más peso: es lo que decide si este paso te interesa. */
+.para-que {
+  margin: 0 0 8px;
+}
+
+.que-hacer {
+  margin: 0 0 12px;
+  color: var(--ab-text-secondary);
+  font-size: 0.94rem;
+}
+
 /* --- Las herramientas de una sección, en cajas ------------------------------------ */
 
 /*
