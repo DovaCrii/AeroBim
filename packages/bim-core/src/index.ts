@@ -175,6 +175,22 @@ export {
 } from "./nubes/georreferencia.js";
 
 export {
+  cajaDeNodo,
+  contenida,
+  dentroDeLosPlanos,
+  nodosVisibles,
+  pixelesDeNodo,
+  seTocan,
+  type Caja,
+  type ClaveDeNodo,
+  type CriterioDeSeleccion,
+  type Cubo,
+  type NodoDelArbol,
+  type Plano,
+  type Seleccion,
+} from "./nubes/octree.js";
+
+export {
   calzarConPuntos,
   residuoDe,
   type Calce,

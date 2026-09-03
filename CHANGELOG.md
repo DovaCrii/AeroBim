@@ -5,6 +5,66 @@ Este proyecto sigue [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Añadido — la nube se maneja: densidad, recorte, color y solo lo que se ve (`F2.3`, 2026-09-03)
+
+**Desde hoy la fase se comprueba contra el levantamiento real del CC 741 — Camino Agrícola**, que
+entregó el usuario, y no contra un fixture. Lo que trae el archivo, medido: **3,37 GB, 129 724 840
+puntos** en 97 × 143 × 17 m —unos 9 300 puntos por m², densidad de escáner terrestre—, con RGB de
+verdad, **clasificación toda en cero** (sin clasificar) y **sin sistema de referencia declarado**.
+
+Y el hallazgo de `F2.5`, ahora sobre datos reales: en un `Float32Array` la coordenada norte de esa
+nube **pierde 115 mm**. Restando el desplazamiento, 0,0037 mm.
+
+**Convertida con `apps/web/scripts/a-copc.py`**, escrito porque `pdal` no se puede instalar en esta
+máquina: diezmada por rejilla a 3 cm queda en **15 366 674 puntos y 130 MB**, con un octree de 7
+niveles. El diezmado no pierde nada útil para coordinar —3 cm es más fino que cualquier tolerancia de
+obra— y el script **comprueba lo que escribió**: recuento, extensión, y que cada punto caiga dentro
+de la caja de su nodo, que es la propiedad de la que depende que el recorte sea correcto.
+
+**Lo que se puede hacer ahora con una nube**, todo medido en el navegador sobre esa:
+
+|                         |                                                                                    |
+| ----------------------- | ---------------------------------------------------------------------------------- |
+| Abrirla                 | **915 ms** de primer pintado, con la cabecera leída en 8 ms                        |
+| Traer solo lo que se ve | **295 ms** — 694 nodos descartados por no verse, 146 por diminutos                 |
+| Recortar por caja       | 1 176 nodos descartados **antes de descargarlos**                                  |
+| Bajar la densidad       | respeta el techo exacto de puntos                                                  |
+| Cambiar de color        | altura, clase, intensidad y RGB — el más lento, 140 ms, **sin volver a descargar** |
+| Tamaño de punto         | de 1 px en adelante; pedir 0 da 1, porque un punto de 0 px no se ve                |
+| Dibujado por WebGL      | **9 322 089 puntos** en 452 llamadas                                               |
+
+**El recorrido del octree es aritmética pura y vive en `bim-core`** (`nubes/octree.ts`, 31 pruebas):
+la caja de un nodo sale de su clave y del cubo del archivo, y la selección ordena **por los píxeles
+que ocupa cada nodo en pantalla** y no por su distancia en metros — un nodo a los mismos metros ocupa
+la mitad si la ventana es la mitad, así que una regla en metros se rompe al cambiar de pantalla.
+
+**Y el recorte por vista es conservador a propósito**: descarta solo los nodos que quedan enteros al
+otro lado de un plano. Dejar pasar uno de más cuesta memoria; **descartar uno de menos abre un
+agujero en la nube**, que se lee como un defecto del levantamiento.
+
+**Tres cosas se midieron y cambiaron el diseño**, y ninguna se habría visto sin la nube real:
+
+1. **Los nodos eran demasiado pequeños.** Con la rejilla de 128 que dice la especificación, la
+   conversión salió en **15 017 nodos de unos 1 000 puntos**: el visor tardaba **19,7 s** en traer lo
+   que se veía, porque cada nodo es una petición de rango y el tiempo se iba en el ir y venir. Con
+   rejilla de 512 son 1 329 nodos de 11 563 puntos. El conversor ahora **imprime los puntos por nodo
+   y avisa** si quedan pocos.
+2. **El mínimo de píxeles no puede ser 1.** Con el mínimo teórico se traían 6 378 nodos para una
+   imagen idéntica; con 16 px, 85.
+3. **La apertura no debe llenar el presupuesto.** Sin cámara no se descarta nada por tamaño, así que
+   llenar 256 MB eran 8,9 millones de puntos y **7,8 s de pantalla vacía**. Con un tope de primer
+   pintado aparece en 915 ms y el refresco sube el detalle donde hace falta.
+
+**Y una corrección de una prueba propia:** el diagnóstico decía «se dibujaron 35 270 de 36 935 — algo
+se quedó fuera». No era un defecto. Nuestra selección es conservadora y **Three.js hace además su
+propio recorte por objeto**, exacto: dibujar menos de lo cargado es el recorte funcionando dos veces.
+Lo que sí sería un defecto es cero, o más de lo cargado, y así lo dice ahora.
+
+> **Y una pregunta que bloquea el cruce con el IFC: el levantamiento no declara sistema de
+> referencia.** Las coordenadas son claramente UTM de Santiago y lo más probable es **EPSG:32719**,
+> pero **no se adivina** — un sistema supuesto pone la obra en otro sitio y el error no se ve hasta
+> que se mide. Con el dato, el conversor lo escribe dentro con `--epsg`.
+
 ### Añadido — la nube de puntos abre en la escena del visor (`F2.1`, 2026-09-03)
 
 `loadPointCloud` abre un COPC y lo deja junto al modelo; `unloadPointCloud` lo saca **y suelta la

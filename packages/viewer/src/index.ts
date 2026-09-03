@@ -74,9 +74,30 @@ export {
   registrarExportador,
   trazarTabla,
 } from "./cuadro-en-plano.js";
-export type { FichaDeNube, ModoDeColor, NubeCargada, OpcionesDeNube } from "./nubes.js";
-export { abrirNube, fichaDeNube, RUTA_WASM_LAZ } from "./nubes.js";
-import { abrirNube, type NubeCargada, type OpcionesDeNube } from "./nubes.js";
+export type {
+  CriterioVisual,
+  FichaDeNube,
+  InformeDeRefresco,
+  ModoDeColor,
+  NubeCargada,
+  OpcionesDeNube,
+} from "./nubes.js";
+export {
+  abrirNube,
+  fichaDeNube,
+  NubeEnEscena,
+  PIXELES_MINIMOS,
+  PUNTOS_DEL_PRIMER_PINTADO,
+  RUTA_WASM_LAZ,
+} from "./nubes.js";
+import {
+  abrirNube,
+  NubeEnEscena,
+  type CriterioVisual,
+  type InformeDeRefresco,
+  type NubeCargada,
+  type OpcionesDeNube,
+} from "./nubes.js";
 import { PlanOverlay, type LoadedPlan, type PlanHit, type PlanTransform } from "./plan.js";
 
 export type { IfcGridAxis } from "@aerobim/bim-core";
@@ -1393,6 +1414,44 @@ function assertNotCrossOriginIsolated(): void {
   }
 }
 
+/**
+ * Los seis planos del tronco de visión de la cámara, con la normal hacia dentro.
+ *
+ * Es la convención que espera `nodosVisibles`: un punto está dentro cuando `normal·p + constante ≥
+ * 0` en los seis. `THREE.Frustum` los da justamente así, y por eso se toman de ahí en vez de
+ * calcularlos — un signo al revés dejaría el recorte cargando solo lo que **no** se ve.
+ */
+function planosDeLaCamara(camara: THREE.Camera): { a: number; b: number; c: number; d: number }[] {
+  camara.updateMatrixWorld();
+  const proyeccion = new THREE.Matrix4().multiplyMatrices(
+    camara.projectionMatrix,
+    camara.matrixWorldInverse,
+  );
+  const tronco = new THREE.Frustum().setFromProjectionMatrix(proyeccion);
+  return tronco.planes.map((p) => ({
+    a: p.normal.x,
+    b: p.normal.y,
+    c: p.normal.z,
+    d: p.constant,
+  }));
+}
+
+/**
+ * `altoDeLaVentana / (2·tan(fov/2))`, que es lo que convierte metros a píxeles a una distancia.
+ *
+ * **Devuelve `undefined` para una cámara ortogonal**, y eso no es una laguna: en una ortogonal el
+ * tamaño en pantalla **no depende de la distancia**, así que la fórmula no aplica y forzarla daría
+ * un nivel de detalle inventado. Sin factor, la selección ordena por profundidad —lo menos profundo
+ * primero—, que es correcto aunque menos fino; el recorte por vista, que es la mitad importante,
+ * sigue funcionando igual.
+ */
+function factorDeProyeccionDe(camara: THREE.Camera, altoEnPixeles: number): number | undefined {
+  if (!(camara instanceof THREE.PerspectiveCamera)) return undefined;
+  if (!Number.isFinite(altoEnPixeles) || altoEnPixeles <= 0) return undefined;
+  const mitad = (camara.fov * Math.PI) / 360;
+  return altoEnPixeles / (2 * Math.tan(mitad));
+}
+
 export class BimViewer {
   private readonly components: OBC.Components;
   private readonly world: World;
@@ -1404,7 +1463,7 @@ export class BimViewer {
   /** Modelos ya presentes en la escena. Ver {@link wireEvents}. */
   private modelCount = 0;
   /** La nube de puntos abierta, si hay. Una sola: ver {@link loadPointCloud}. */
-  private nube: THREE.Points | null = null;
+  private nube: NubeEnEscena | null = null;
   private renderStyle: RenderStyle = "solid";
   /** El modo de navegación actual: la cámara de That Open no lo devuelve, así que se recuerda. */
   private navigationMode: NavigationMode = "Orbit";
@@ -4196,10 +4255,46 @@ export class BimViewer {
     this.unloadPointCloud();
 
     const cargada = await abrirNube(url, opciones);
-    this.nube = cargada.objeto;
+    this.nube = cargada.nube;
+    // **El recorte local hay que encenderlo en el renderizador**, o los planos del material se
+    // ignoran en silencio: el recorte por caja de `F2.3` no haria nada y no habria error que
+    // mirar. Se enciende al abrir la primera nube y no antes, porque cuesta una variante de
+    // sombreador y el resto de la escena no lo usa.
+    const renderizador = this.world.renderer;
+    if (renderizador !== null) renderizador.three.localClippingEnabled = true;
     this.world.scene.three.add(cargada.objeto);
     await this.refresh();
     return cargada;
+  }
+
+  /**
+   * Vuelve a decidir qué nodos de la nube hacen falta, con la cámara donde esté ahora.
+   *
+   * **Se llama cuando la cámara se asienta, no mientras se mueve.** Cada refresco puede pedir nodos
+   * por la red, y hacerlo en cada fotograma de una órbita sería pedir y tirar lo mismo cien veces.
+   *
+   * Devuelve `null` si no hay nube abierta, que es un caso normal y no un error.
+   */
+  async refreshPointCloud(criterio: CriterioVisual = {}): Promise<InformeDeRefresco | null> {
+    this.assertAlive();
+    if (this.nube === null) return null;
+    const camara = this.camera.three;
+    const factor = factorDeProyeccionDe(camara, this.container.clientHeight);
+    const informe = await this.nube.refrescar({
+      ...criterio,
+      camara: [camara.position.x, camara.position.y, camara.position.z],
+      planos: planosDeLaCamara(camara),
+      // El campo se omite y no se pone en `undefined`: con `exactOptionalPropertyTypes` son cosas
+      // distintas, y "ausente" es lo que significa "ordena por profundidad".
+      ...(factor !== undefined ? { factorDeProyeccion: factor } : {}),
+    });
+    await this.refresh();
+    return informe;
+  }
+
+  /** La nube viva, para sus controles: tamaño de punto, densidad, recorte y color. */
+  get cloud(): NubeEnEscena | null {
+    return this.nube;
   }
 
   /**
@@ -4211,17 +4306,14 @@ export class BimViewer {
    */
   unloadPointCloud(): void {
     if (this.nube === null) return;
-    this.world.scene.three.remove(this.nube);
-    this.nube.geometry.dispose();
-    const material = this.nube.material;
-    if (Array.isArray(material)) for (const m of material) m.dispose();
-    else material.dispose();
+    this.world.scene.three.remove(this.nube.objeto);
+    this.nube.dispose();
     this.nube = null;
   }
 
-  /** La nube que está en la escena, o `null`. Para encuadrarla o medir sobre ella. */
-  get pointCloud(): THREE.Points | null {
-    return this.nube;
+  /** El objeto de la nube en la escena, o `null`. Para encuadrarla o medir sobre ella. */
+  get pointCloud(): THREE.Group | null {
+    return this.nube?.objeto ?? null;
   }
 
   /**

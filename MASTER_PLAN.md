@@ -28,23 +28,33 @@ línea cada cosa. Actualizado el 2026-09-03.
 | **9 · Diseño**                 | ✅ salvo `F9.6`, que son **tres decisiones del usuario** y contradicen tres líneas de `UX.md` |
 | **10 · Etiquetas y tablas**    | ✅ entera                                                                                     |
 | **11 · El portal se ve plano** | ✅ entera — incluida la ayuda con su recorrido                                                |
-| **2 · Nubes de puntos**        | 🔶 **en marcha.** `F2.5` ✅ y `F2.1` ✅ — la nube ya abre; `F2.2` 🔶. Sigue `F2.3`            |
+| **2 · Nubes de puntos**        | 🔶 **en marcha.** `F2.5` `F2.1` `F2.3` ✅ — abre y se maneja; `F2.2` 🔶. Falta `F2.4`         |
 | **6 · Geo + BIM**              | ⬜ pospuesta a propósito el 2026-09-02, para poner la coordinación delante                    |
 
-**La Fase 2 va por la mitad**, y en un orden que no es el de su numeración:
+**La Fase 2 va por tres cuartos**, y en un orden que no es el de su numeración. Desde el 2026-09-03
+se comprueba contra **el levantamiento real del CC 741 — Camino Agrícola**, no contra un fixture:
+129,7 millones de puntos y 3,37 GB, diezmados a 15,4 millones y 130 MB de COPC.
 
 - **`F2.5` ✅** — el formato es **COPC**, decidido midiendo, en
   [`docs/NUBES_DE_PUNTOS.md`](docs/NUBES_DE_PUNTOS.md).
-- **`F2.1` ✅** — la nube abre en la escena, y **comprobado en Chrome**: 62 500 puntos dibujados por
-  WebGL en una sola llamada, todas las peticiones `206 Partial Content`, y la precisión conservada
-  dentro de 0,002 mm.
+- **`F2.1` ✅** — la nube abre en la escena: **915 ms** de primer pintado sobre la nube real, todas
+  las peticiones `206 Partial Content`, y la precisión conservada dentro de 0,004 mm cuando sin
+  restar el desplazamiento se perderían **115 mm**.
+- **`F2.3` ✅** — tamaño de punto, densidad, recorte por caja y los cuatro colores, más el recorte
+  por lo que se está mirando: **295 ms** para rehacer la selección, con 694 nodos descartados por no
+  verse.
 - **`F2.2` 🔶** — la aritmética de la alineación hecha y probada: la georreferencia del archivo, el
   calce señalando puntos, y el hueco del servidor que se dejaba el giro sin leer. Falta **señalar los
   puntos en pantalla**.
 
-**Ahora va `F2.3`** —tamaño de punto, densidad, recorte por caja y color—, que es lo que hace la nube
-usable y de camino levanta el límite que dejó `F2.1`: el recorte por lo que se está mirando. Después
-`F2.2` se cierra con su interacción, y **entonces** `F2.4` puede medir.
+> **Y una pregunta abierta que bloquea el cruce, y solo la puede contestar el usuario: el
+> levantamiento no declara sistema de referencia.** Las coordenadas son claramente UTM de Santiago
+> —E 349 723, N 6 292 883— y lo más probable es **EPSG:32719** (WGS 84 / UTM 19S), pero **no se
+> adivina**: un sistema supuesto pone la obra en otro sitio y el error no se ve hasta que se mide.
+> Con el dato, el conversor lo escribe dentro del archivo con `--epsg`.
+
+**Lo que sigue es cerrar `F2.2`** —señalar los puntos sobre la nube, que ya existe en la escena— y
+**entonces** `F2.4` puede medir del modelo a la nube, que es el objetivo de salida de la fase.
 
 **Y tres cosas no las decide este plan**, porque no son trabajo sino elecciones: `F1.13`, `F9.6` y
 el trazo libre de `F4.5`. Están reunidas abajo, en «Las decisiones que solo el usuario puede tomar».
@@ -1170,7 +1180,7 @@ comparación que nadie puede hacer hoy sin software de pago.
 | ------ | --------------------------------------------------------------------------------------------- | ------ |
 | `F2.1` | Cargar una nube (LAS/LAZ convertida) en la escena Three.js del visor                          | ✅     |
 | `F2.2` | Alinear nube y modelo: origen, rotación y escala, con ajuste manual asistido                  | 🔶     |
-| `F2.3` | Controles de visualización: tamaño de punto, densidad, recorte por caja, color por altura/RGB | ⬜     |
+| `F2.3` | Controles de visualización: tamaño de punto, densidad, recorte por caja, color por altura/RGB | ✅     |
 | `F2.4` | Medir del modelo a la nube (desviación entre lo construido y lo modelado)                     | ⬜     |
 | `F2.5` | Documentar el pipeline de conversión **fuera de la aplicación**: `PotreeConverter` y `pdal`   | ✅     |
 
@@ -1308,11 +1318,66 @@ undefined (reading 'access')`. Se escribió nuestro lector con `fetch` y `Range`
   `copc` lo leyó igual: sin cubo no hay recorte por vista posible, así que la ficha lo dice
   (`hayCubo`) en vez de dejar creer que funciona. El fixture se regeneró con el cubo puesto.
 
-> **Lo que sigue sin verificar, y hay que decirlo: no se ha abierto un COPC hecho por `pdal`.** El
-> fixture lo escribe `copclib` desde Python —el generador está en `apps/web/scripts/nube-sintetica.py`
-> para que no sea un binario opaco— y sus tres nodos **no son un octree de verdad**: reparten por el
-> orden del archivo y no por el espacio. Para `F2.3` hace falta un archivo hecho con `pdal` sobre una
-> nube real, y para eso hace falta `pdal` instalado.
+### `F2.3` cerrada el 2026-09-03 — y sobre la nube real del proyecto
+
+**El usuario entregó el levantamiento del CC 741 — Camino Agrícola** el 2026-09-03, así que la fase
+dejó de comprobarse contra un fixture. Lo que trae el archivo, medido:
+
+| Del `Metro Camino Agricola Recortado.las` |                                                                            |
+| ----------------------------------------- | -------------------------------------------------------------------------- |
+| Tamaño                                    | **3,37 GB**, LAS 1.2, formato de punto 2, de `3DReshaper`                  |
+| Puntos                                    | **129 724 840** en 97,4 × 143,5 × 17,0 m — unos 9 300 puntos por m²        |
+| Coordenadas                               | UTM, E 349 723 · N 6 292 883 · H 561                                       |
+| **Sistema de referencia**                 | **NINGUNO declarado.** Es una pregunta abierta para el usuario             |
+| Color                                     | **RGB de verdad**, no los campos en cero                                   |
+| Clasificación                             | **toda en 0**: sin clasificar, así que «color por clase» no dice nada aquí |
+| En un `float32`                           | **115 mm de error en el norte**. El hallazgo, sobre datos reales           |
+
+**Convertida con `apps/web/scripts/a-copc.py`** —escrito porque `pdal` no se puede instalar en esta
+máquina—: diezmada por rejilla a 3 cm queda en **15 366 674 puntos** (el 11,8 %) y **130 MB**, con un
+octree de 7 niveles y 1 329 nodos. El diezmado no es una pérdida real para coordinar: 3 cm es más
+fino que la tolerancia de cualquier control de obra, y 9 300 puntos por m² es densidad de escáner
+terrestre, no de coordinación.
+
+**Y lo medido en el navegador, sobre esa nube:**
+
+|                                 |                                                                                    |
+| ------------------------------- | ---------------------------------------------------------------------------------- |
+| La cabecera, sin bajar un punto | **8 ms**                                                                           |
+| Primer pintado                  | **915 ms** con 1,5 millones de puntos                                              |
+| Refresco con la cámara          | **295 ms** — 694 nodos descartados por no verse, 146 por ser diminutos             |
+| Recorte por caja                | 1 176 nodos descartados **antes de descargarlos**                                  |
+| Densidad a la mitad             | respeta el techo exacto                                                            |
+| Los cuatro colores              | altura, clase, intensidad y RGB — el más lento, 140 ms, **sin volver a descargar** |
+| Dibujado por WebGL              | **9 322 089 puntos** en 452 llamadas                                               |
+| La precisión                    | 115 mm evitados; error restando, **0,0037 mm**                                     |
+
+**Tres cosas se midieron y cambiaron el diseño**, y ninguna se habría visto sin la nube real:
+
+1. **Los nodos eran demasiado pequeños.** La primera conversión, con la rejilla de 128 que dice la
+   especificación, salió en **15 017 nodos de unos 1 000 puntos**: el visor tardaba **19,7 s** en
+   traer lo que se veía, porque cada nodo es una petición de rango y el tiempo se iba en el ir y
+   venir. Con rejilla de 512 son 1 329 nodos de 11 563 puntos y el refresco baja a **2,2 s**. La
+   referencia de PotreeConverter y PDAL son 50 000 a 100 000 puntos por nodo, y el conversor ahora
+   **imprime esa cifra y avisa** si queda baja.
+2. **El mínimo de píxeles no puede ser 1.** Con el mínimo teórico, `refrescar` traía 6 378 nodos para
+   una imagen idéntica. Con 16 píxeles —lo que un nodo puede aportar de detalle a esa distancia—
+   pasa a 85. De 19,7 s a 295 ms es casi todo esto.
+3. **La apertura no debe llenar el presupuesto.** Sin cámara no se puede descartar nada por tamaño,
+   así que llenar 256 MB eran 8,9 millones de puntos y **7,8 s de pantalla vacía**. Con un tope de
+   primer pintado de 1,5 millones aparece en 915 ms, y el refresco sube el detalle donde hace falta.
+
+**Y una corrección de una prueba propia:** el diagnóstico decía «se dibujaron 35 270 de 36 935 —
+algo se quedó fuera». No era un defecto: nuestra selección es conservadora a propósito y **Three.js
+hace además su propio recorte por objeto**, que es exacto. Dibujar menos de lo cargado es el recorte
+funcionando dos veces; lo que sería un defecto es cero, o más de lo cargado.
+
+> **Lo que sigue sin verificar: no se ha abierto un COPC hecho por `pdal`.** Los archivos de esta
+> fase los escribe `copclib` desde Python, con generadores versionados
+> —`apps/web/scripts/nube-sintetica.py` y `apps/web/scripts/a-copc.py`— para que no sean binarios
+> opacos. El octree que producen **sí reparte por el espacio** y se comprueba que cada punto cae en
+> la caja de su nodo, pero `pdal` sigue siendo la herramienta del oficio y su salida habría que
+> probarla cuando se pueda instalar.
 
 ### `F2.6` — Gaussian splatting: **va aquí y no en AeroPlanner** (decidido el 2026-08-26)
 

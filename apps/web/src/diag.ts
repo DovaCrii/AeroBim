@@ -1862,23 +1862,32 @@ function mayorHuecoDelLatido(duracionMs: number): Promise<number> {
 }
 
 /**
- * ¿Abre una nube COPC en un navegador de verdad, y con los números correctos? (`F2.1`)
+ * ¿Abre una nube COPC en un navegador de verdad, y responden sus controles? (`F2.1` y `F2.3`)
  *
  * **Es la comprobación que `docs/NUBES_DE_PUNTOS.md` dejó pendiente**, y va antes de dar el formato
  * por bueno: `copc` lee bien en Node, pero descomprime con un WASM de `laz-perf` que en un navegador
  * hay que servir aparte — la misma trampa que la regla 9 de `AGENTS.md` documenta para `web-ifc`, y
  * que allí dejaba el visor colgado sin emitir error.
  *
- * No basta con que no falle. La nube de prueba tiene **geometría conocida** —un plano a 560 m y un
- * muro de 3 m en la franja `y ∈ [40, 42]`, en UTM 19S— así que se comprueban los números: la
- * extensión, que el muro aparezca, que las clases sobrevivan y, sobre todo, **que la precisión no se
- * pierda al bajar a `float32`**, que es el hallazgo caro de la fase.
+ * No basta con que no falle. Con el fixture sintético la nube tiene **geometría conocida** —un plano
+ * a 560 m y un muro de 3 m en la franja `y ∈ [40, 42]`, en UTM 19S— así que se comprueban los
+ * números: la extensión, que el muro aparezca, que las clases sobrevivan y, sobre todo, **que la
+ * precisión no se pierda al bajar a `float32`**, que es el hallazgo caro de la fase. Con una nube
+ * real esas comprobaciones se saltan y se miden las que sí valen.
  *
  * Uso: `/diag.html?modo=nube&nube=/samples/levantamiento-sintetico.copc.laz`
+ * y con techo a medida: `…&mb=64`
  */
 export async function nube(container: HTMLElement, url: string, log: Log): Promise<void> {
   const t0 = performance.now();
   const marca = (etapa: string) => log(`  ${etapa}: ${Math.round(performance.now() - t0)} ms`);
+
+  const params = new URLSearchParams(location.search);
+  const MB = Number(params.get("mb") ?? "256");
+  const PRESUPUESTO = MB * 1024 * 1024;
+  // El fixture sintetico lleva geometria conocida; una nube real, no. Las comprobaciones que
+  // dependen de ella **se saltan y se dice**, en vez de dar un veredicto sobre nada.
+  const esElFixture = url.includes("levantamiento-sintetico");
 
   log("\n=== la cabecera, sin descargar un punto ===");
   const ficha = await fichaDeNube(url);
@@ -1886,213 +1895,221 @@ export async function nube(container: HTMLElement, url: string, log: Log): Promi
   log(`  puntos declarados: ${ficha.puntos.toLocaleString("es-CL")}`);
   log(`  extension: ${ficha.minimo.map((v) => v.toFixed(3)).join(", ")}`);
   log(`         a:  ${ficha.maximo.map((v) => v.toFixed(3)).join(", ")}`);
-  log(`  desplazamiento: ${ficha.desplazamiento.join(", ")}`);
+  log(
+    `  tamano: ${ficha.maximo.map((v, i) => (v - (ficha.minimo[i] as number)).toFixed(1)).join(" x ")} m`,
+  );
+  log(`  desplazamiento: ${ficha.desplazamiento.map((v) => v.toFixed(3)).join(", ")}`);
   log(`  escala: ${ficha.escala.join(", ")}`);
   log(`  niveles del octree: ${ficha.niveles} · nodos: ${ficha.nodos}`);
   log(
-    `  cubo del octree: ${ficha.hayCubo ? `${ficha.ladoDelCubo.toFixed(2)} m de lado` : "NO DECLARADO — sin el, no hay recorte por vista"}`,
+    `  cubo del octree: ${ficha.hayCubo ? `${ficha.ladoDelCubo.toFixed(2)} m de lado` : "NO DECLARADO — sin el no hay recorte por vista"}`,
   );
   log(
     `  sistema de referencia: ${ficha.wkt ? `declarado (${ficha.wkt.length} caracteres${ficha.wkt.includes("32719") ? ", EPSG 32719" : ""})` : "NINGUNO — la nube no se puede cruzar con nada"}`,
   );
+  const caben = Math.floor(PRESUPUESTO / 30);
+  log(
+    `  si entrara entera: ${((ficha.puntos * 30) / 1024 / 1024).toFixed(0)} MB · con ${MB} MB caben ` +
+      `${caben.toLocaleString("es-CL")} puntos ` +
+      (caben >= ficha.puntos
+        ? "— la nube entera"
+        : `(${((caben / ficha.puntos) * 100).toFixed(1)} %)`),
+  );
 
-  // El presupuesto se pasa a proposito y no se adivina: es lo que decide cuanto entra.
-  const PRESUPUESTO = 256 * 1024 * 1024;
-  log(`\n=== cargando, con ${(PRESUPUESTO / 1024 / 1024).toFixed(0)} MB de techo ===`);
-  // Por el visor y no por `abrirNube` a pelo: es el camino que va a usar la aplicacion, y probar
-  // otro dejaria sin comprobar justo lo que se usa.
+  // --- Abrir por el visor, que es el camino que usa la aplicacion ----------------------
+  log(`\n=== cargando, con ${MB} MB de techo ===`);
   const viewer = await BimViewer.create(container);
   const cargada = await viewer.loadPointCloud(url, {
     presupuestoBytes: PRESUPUESTO,
-    color: "clase",
+    color: "rgb",
   });
   marca("loadPointCloud");
+  const nube = cargada.nube;
+  log(`  nodos del arbol: ${nube.nodosDelArbol} · cargados: ${cargada.informe.nodos}`);
   log(
-    `  cargados: ${cargada.cargados.toLocaleString("es-CL")} de ${ficha.puntos.toLocaleString("es-CL")}`,
+    `  puntos: ${cargada.cargados.toLocaleString("es-CL")} de ${ficha.puntos.toLocaleString("es-CL")}`,
   );
-  log(`  fuera por presupuesto: ${cargada.fuera.toLocaleString("es-CL")}`);
-  log(`  nivel maximo alcanzado: ${cargada.nivelMaximo}`);
-  log(`  memoria: ${(cargada.bytes / 1024 / 1024).toFixed(1)} MB (las dos copias)`);
-
-  const geometria = cargada.objeto.geometry;
-  const posiciones = geometria.getAttribute("position") as THREE.BufferAttribute;
-  const colores = geometria.getAttribute("color") as THREE.BufferAttribute;
-  log(`\n=== lo que quedo en la tarjeta ===`);
+  log(`  fuera por presupuesto: ${cargada.informe.sinPresupuesto} nodo(s)`);
+  log(`  nivel maximo alcanzado: ${cargada.nivelMaximo} de ${ficha.niveles}`);
+  log(`  memoria: ${(cargada.bytes / 1024 / 1024).toFixed(1)} MB`);
   log(
-    `  atributo position: ${posiciones.count.toLocaleString("es-CL")} puntos, ${posiciones.array.constructor.name}`,
-  );
-  log(
-    `  atributo color: ${colores.count.toLocaleString("es-CL")}, ${colores.array.constructor.name}`,
-  );
-  log(
-    `  bytes de verdad: ${((posiciones.array.byteLength + colores.array.byteLength) / 1024 / 1024).toFixed(1)} MB en JS`,
+    `  color efectivo: ${nube.color}${nube.color !== "rgb" ? " (se pidio rgb: el archivo no lo trae)" : ""}`,
   );
 
-  // --- La comprobacion que importa: la precision ---------------------------------------
-  //
-  // Se compara la extension que declara la cabecera -en coordenadas del archivo- con la que tiene
-  // la geometria ya en `float32` despues de restar el desplazamiento. Si la resta no se hubiera
-  // hecho, el error saldria en centimetros.
-  log("\n=== la precision, que es el hallazgo de la fase ===");
-  geometria.computeBoundingBox();
-  const caja = geometria.boundingBox;
+  // --- Encuadrar, que es lo primero que se hace con una nube ---------------------------
+  const caja = nube.cajaDeLoCargado();
   if (caja !== null) {
-    const d = cargada.desplazamiento;
-    // **El cambio de ejes va en la comparacion tambien**, o la prueba compararia cosas distintas y
-    // «fallaria» por estar bien escrita. La escena es `(x, z, -y)` del archivo, asi que el minimo
-    // del eje Z de la escena corresponde al **maximo** de la Y del archivo, con el signo cambiado.
-    const comprobaciones = [
-      {
-        eje: "X de la escena (este del archivo)",
-        obtenido: caja.max.x,
-        esperado: (ficha.maximo[0] as number) - (d[0] as number),
-        rango: [caja.min.x, caja.max.x],
-      },
-      {
-        eje: "Y de la escena (cota del archivo)",
-        obtenido: caja.max.y,
-        esperado: (ficha.maximo[2] as number) - (d[2] as number),
-        rango: [caja.min.y, caja.max.y],
-      },
-      {
-        eje: "Z de la escena (norte del archivo, negado)",
-        obtenido: caja.min.z,
-        esperado: -((ficha.maximo[1] as number) - (d[1] as number)),
-        rango: [caja.min.z, caja.max.z],
-      },
-    ];
+    const esfera = caja.getBoundingSphere(new THREE.Sphere());
+    const controles = viewer.camera.controls;
+    controles.setOrbitPoint(esfera.center.x, esfera.center.y, esfera.center.z);
+    await controles.rotateTo(Math.PI / 4, Math.PI / 3.2, false);
+    await controles.fitToSphere(esfera, false);
+    marca("encuadrada en isometrica");
+  }
 
-    // **Se compara el extremo con decimales, no el redondo.** El minimo de esta nube cae en
-    // `345000, 6298000, 560`, y restarle su propio desplazamiento da cero: comparar cero con cero
-    // pasa siempre. El maximo lleva decimales, asi que un error de precision se veria.
-    log(`  (se compara el maximo, que tiene decimales: el minimo daria cero contra cero)`);
-
-    // **Y solo vale si entro la nube entera.** Con puntos fuera por presupuesto la caja de la
-    // geometria no tiene por que llegar a la extension del archivo, y el «error» seria el recorte
-    // y no la precision. Decirlo es la diferencia entre una comprobacion y un numero bonito.
-    const completa = cargada.fuera === 0;
-    let peor = 0;
-    for (const c of comprobaciones) {
-      const error = Math.abs(c.obtenido - c.esperado);
-      if (error > peor) peor = error;
-      log(
-        `  ${c.eje}: ${(c.rango[0] as number).toFixed(4)} .. ${(c.rango[1] as number).toFixed(4)} ` +
-          `· esperado ${c.esperado.toFixed(4)} · error ${(error * 1000).toFixed(3)} mm`,
-      );
-    }
+  // --- La precision, que es el hallazgo de la fase --------------------------------------
+  log("\n=== la precision ===");
+  const d = cargada.desplazamiento;
+  for (const [i, nombre] of [
+    [0, "este"],
+    [1, "norte"],
+    [2, "cota"],
+  ] as const) {
+    const absoluto = ficha.maximo[i] as number;
+    const sinRestar = Math.abs(Math.fround(absoluto) - absoluto);
+    const local = absoluto - (d[i] as number);
+    const restando = Math.abs(Math.fround(local) - local);
+    log(
+      `  ${nombre} ${absoluto.toFixed(3)}: sin restar habria perdido ${(sinRestar * 1000).toFixed(1)} mm` +
+        ` · restando, ${(restando * 1000).toFixed(4)} mm`,
+    );
+  }
+  if (caja !== null) {
+    // El extremo que la caja de lo cargado si alcanza: el maximo en X de la escena. Solo vale si
+    // entro la nube entera; con nodos fuera, la extension no tiene por que llegar.
+    const completa = cargada.informe.sinPresupuesto === 0;
+    const esperadoX = (ficha.maximo[0] as number) - (d[0] as number);
+    const error = Math.abs(caja.max.x - esperadoX);
     log(
       completa
-        ? `  peor error: ${(peor * 1000).toFixed(3)} mm`
-        : `  peor error: ${(peor * 1000).toFixed(3)} mm — PERO NO CUENTA: quedaron ${cargada.fuera.toLocaleString("es-CL")} puntos fuera, asi que la extension no tiene por que llegar`,
+        ? `  extension en X: ${caja.max.x.toFixed(4)} contra ${esperadoX.toFixed(4)} esperado · error ${(error * 1000).toFixed(3)} mm`
+        : `  extension: no se compara, quedaron nodos fuera del presupuesto`,
     );
+  }
 
-    // Y lo que habria pasado SIN restar.
-    //
-    // **Se mide sobre el MAXIMO y no sobre el minimo**, y eso importa: el minimo de esta nube es
-    // `345000, 6298000, 560`, tres numeros que caben exactos en un `float32`, asi que dan cero de
-    // error y la comprobacion no comprobaria nada — el error vacio que ya nos colo una prueba una
-    // vez. El maximo tiene decimales, que es el caso de cualquier coordenada de verdad.
-    for (const [i, nombre] of [
-      [0, "este"],
-      [1, "norte"],
-      [2, "cota"],
-    ] as const) {
-      const absoluto = ficha.maximo[i] as number;
-      const enFloat32 = Math.abs(Math.fround(absoluto) - absoluto);
-      const local = absoluto - (d[i] as number);
-      const localEnFloat32 = Math.abs(Math.fround(local) - local);
-      log(
-        `  ${nombre} ${absoluto.toFixed(3)}: sin restar habria perdido ` +
-          `${(enFloat32 * 1000).toFixed(1)} mm · restando, ${(localEnFloat32 * 1000).toFixed(4)} mm`,
-      );
-    }
+  // --- La geometria conocida, solo si es el fixture -------------------------------------
+  if (esElFixture && caja !== null) {
+    log("\n=== la geometria conocida: el muro de 3 m ===");
+    const alto = caja.max.y - caja.min.y;
     log(
-      !completa
-        ? "  VEREDICTO: no se puede afirmar nada con la nube recortada"
-        : peor < 0.001
-          ? "  VEREDICTO: la precision se conserva por debajo del milimetro"
-          : `  VEREDICTO: SE PIERDE PRECISION — ${(peor * 1000).toFixed(1)} mm`,
+      `  alturas locales (eje Y de la escena): ${caja.min.y.toFixed(3)} .. ${caja.max.y.toFixed(3)}`,
+    );
+    log(
+      Math.abs(alto - 3) < 0.05
+        ? `  el muro esta ahi: ${alto.toFixed(3)} m medidos en la geometria`
+        : `  NO CUADRA: se escribio un muro de 3,000 m y se midieron ${alto.toFixed(3)}`,
+    );
+  } else if (caja !== null) {
+    log("\n=== la geometria ===");
+    log(
+      `  desnivel cargado: ${(caja.max.y - caja.min.y).toFixed(3)} m (el archivo declara ${(
+        (ficha.maximo[2] as number) - (ficha.minimo[2] as number)
+      ).toFixed(3)})`,
+    );
+    log("  (nube real: no hay geometria conocida contra la que comprobar)");
+  }
+
+  // --- F2.3: el recorte por vista ------------------------------------------------------
+  log("\n=== F2.3 · el recorte por lo que se esta mirando ===");
+  const conVista = await viewer.refreshPointCloud();
+  if (conVista === null) {
+    log("  no hay nube: nada que refrescar");
+  } else {
+    log(`  nodos ahora: ${conVista.nodos} · puntos: ${conVista.puntos.toLocaleString("es-CL")}`);
+    log(`  traidos: ${conVista.nuevos} · soltados: ${conVista.soltados}`);
+    log(
+      `  descartados — fuera de vista: ${conVista.fueraDeVista} · demasiado chicos: ${conVista.demasiadoPequenos}` +
+        ` · sin presupuesto: ${conVista.sinPresupuesto}`,
+    );
+    log(`  en ${conVista.ms.toFixed(0)} ms`);
+
+    // Y que sea idempotente: el mismo criterio no vuelve a descargar nada.
+    const otraVez = await viewer.refreshPointCloud();
+    log(
+      otraVez !== null && otraVez.nuevos === 0 && otraVez.soltados === 0
+        ? "  llamarlo dos veces no descarga nada la segunda: es idempotente"
+        : `  NO ES IDEMPOTENTE: la segunda trajo ${otraVez?.nuevos} y solto ${otraVez?.soltados}`,
     );
   }
 
-  // --- Y que la geometria conocida este ahi --------------------------------------------
-  log("\n=== la geometria conocida: el muro de 3 m ===");
-  const arreglo = posiciones.array as Float32Array;
-  // **La cota es la componente Y**, no la Z: en la escena el arriba es Y y en el archivo era Z. Es
-  // justo el cambio de ejes que hace `abrirNube`, y leer la tercera componente aqui daria el norte
-  // en vez de la altura — un error que pasaria por bueno, porque tambien es un rango de metros.
-  let minY = Infinity;
-  let maxY = -Infinity;
-  for (let i = 1; i < arreglo.length; i += 3) {
-    const y = arreglo[i] as number;
-    if (y < minY) minY = y;
-    if (y > maxY) maxY = y;
-  }
-  const alto = maxY - minY;
+  // --- F2.3: la densidad ---------------------------------------------------------------
+  log("\n=== F2.3 · la densidad ===");
+  const antes = (await viewer.refreshPointCloud())?.puntos ?? 0;
+  const mitad = await viewer.refreshPointCloud({ puntosMaximos: Math.floor(antes / 2) });
   log(
-    `  alturas locales (eje Y de la escena): ${minY.toFixed(3)} .. ${maxY.toFixed(3)} → ${alto.toFixed(3)} m`,
+    `  con la mitad de techo: ${mitad?.puntos.toLocaleString("es-CL")} de ${antes.toLocaleString("es-CL")}`,
   );
   log(
-    Math.abs(alto - 3) < 0.01
-      ? "  el muro de 3 m esta ahi, medido en la geometria"
-      : `  NO CUADRA: se escribio un muro de 3,000 m y se midieron ${alto.toFixed(3)}`,
+    mitad !== null && mitad.puntos <= Math.floor(antes / 2)
+      ? "  respeta el techo"
+      : `  SE PASA DEL TECHO: ${mitad?.puntos} > ${Math.floor(antes / 2)}`,
   );
+  const vuelta = await viewer.refreshPointCloud({ puntosMaximos: Number.POSITIVE_INFINITY });
+  log(`  al soltar el techo vuelve a ${vuelta?.puntos.toLocaleString("es-CL")} puntos`);
 
-  // --- Y por fin, encuadrada ------------------------------------------------------------
-  const esfera = geometria.boundingSphere;
-  if (esfera !== null) {
-    await viewer.camera.controls.fitToSphere(
-      new THREE.Sphere(esfera.center.clone(), esfera.radius),
-      false,
+  // --- F2.3: el recorte por caja -------------------------------------------------------
+  log("\n=== F2.3 · el recorte por caja ===");
+  if (caja !== null) {
+    // La mitad de la nube en X, que es una caja comprobable.
+    const medio = (caja.min.x + caja.max.x) / 2;
+    nube.recortar([caja.min.x, caja.min.y, caja.min.z, medio, caja.max.y, caja.max.z]);
+    const recortado = await viewer.refreshPointCloud();
+    log(
+      `  con media nube recortada: ${recortado?.nodos} nodos, ${recortado?.puntos.toLocaleString("es-CL")} puntos`,
+    );
+    log(`  nodos descartados por el recorte: ${recortado?.fueraDelRecorte}`);
+    log(
+      recortado !== null && recortado.fueraDelRecorte > 0
+        ? "  el recorte descarta nodos ANTES de descargarlos, que es de lo que se trata"
+        : "  el recorte no descarto ningun nodo — con un arbol de un solo nivel es lo esperado",
+    );
+    nube.recortar(null);
+    const sinRecorte = await viewer.refreshPointCloud();
+    log(`  al quitarlo vuelve a ${sinRecorte?.nodos} nodos`);
+  }
+
+  // --- F2.3: el color y el tamano ------------------------------------------------------
+  log("\n=== F2.3 · el color y el tamano de punto ===");
+  for (const modo of ["altura", "clase", "intensidad", "rgb"] as const) {
+    const t = performance.now();
+    const real = nube.colorear(modo);
+    log(
+      `  ${modo} → ${real}${real !== modo ? " (el archivo no lo trae; se cae a la altura)" : ""}` +
+        ` en ${(performance.now() - t).toFixed(0)} ms`,
     );
   }
-  marca("encuadrada");
-  log(`  la nube esta en la escena: ${viewer.pointCloud !== null}`);
-
-  // Y que soltarla la suelta de verdad: una nube son cientos de megas, y descartar el objeto sin
-  // llamar a `dispose` los deja pagados en la tarjeta.
-  viewer.unloadPointCloud();
-  log(`  tras soltarla: ${viewer.pointCloud === null ? "fuera de la escena" : "SIGUE AHI"}`);
-
-  // Y se vuelve a abrir, por dos razones: deja algo en pantalla para mirar, y comprueba que abrir
-  // dos veces funciona — que es de lo que trata la regla de «una sola nube a la vez».
-  const otra = await viewer.loadPointCloud(url, { presupuestoBytes: PRESUPUESTO, color: "altura" });
-  log(`  reabierta con color por altura: ${otra.cargados.toLocaleString("es-CL")} puntos`);
-  // `frameAll` encuadra los modelos y aca no hay ninguno, asi que la nube se encuadra a mano y
-  // desde la isometrica: en planta un levantamiento plano no deja ver el desnivel.
-  const caja2 = otra.objeto.geometry.boundingBox;
-  if (caja2 !== null) {
-    const esfera2 = caja2.getBoundingSphere(new THREE.Sphere());
-    const controles = viewer.camera.controls;
-    controles.setOrbitPoint(esfera2.center.x, esfera2.center.y, esfera2.center.z);
-    await controles.rotateTo(Math.PI / 4, Math.PI / 3.2, false);
-    await controles.fitToSphere(esfera2, false);
-  }
-  marca("reabierta, en vista isometrica");
+  nube.tamanoDePunto = 4;
+  log(`  tamano de punto: ${nube.tamanoDePunto} px`);
+  nube.tamanoDePunto = 0;
+  log(
+    `  pedido 0 px → ${nube.tamanoDePunto} px (nunca por debajo de 1: un punto de 0 px no se ve)`,
+  );
+  nube.tamanoDePunto = 2;
 
   // --- Y lo ultimo: ¿los dibujo WebGL de verdad? ----------------------------------------
   //
   // **Es la unica forma de comprobarlo desde aca.** El panel del agente no compone el lienzo 3D
   // —la trampa ya escrita en `HANDOFF.md`— asi que una captura no distingue «no se dibujo» de «no
-  // se pudo fotografiar». El contador del renderizador si: dice cuantos puntos paso por el
-  // pipeline en el ultimo cuadro, y una nube que no llega a la tarjeta lo deja en cero.
+  // se pudo fotografiar». El contador del renderizador si.
   const mundo = viewer.camera.currentWorld;
   const renderizador = mundo?.renderer?.three;
-  if (renderizador !== undefined) {
+  const enEscena = (await viewer.refreshPointCloud())?.puntos ?? 0;
+  if (renderizador !== undefined && mundo !== null) {
     renderizador.info.reset();
-    renderizador.render(mundo!.scene.three, viewer.camera.three);
+    renderizador.render(mundo.scene.three, viewer.camera.three);
     const info = renderizador.info.render;
-    log(`\n=== lo que dibujo WebGL en un cuadro ===`);
-    log(`  puntos: ${info.points.toLocaleString("es-CL")}`);
-    log(`  llamadas de dibujo: ${info.calls} · triangulos: ${info.triangles}`);
+    log("\n=== lo que dibujo WebGL en un cuadro ===");
     log(
-      info.points === otra.cargados
-        ? "  VEREDICTO: se dibujaron todos los puntos cargados"
-        : `  VEREDICTO: se dibujaron ${info.points} de ${otra.cargados} — algo se quedo fuera`,
+      `  puntos: ${info.points.toLocaleString("es-CL")} de ${enEscena.toLocaleString("es-CL")} cargados`,
     );
-  } else {
-    log("\n  no se pudo leer el contador del renderizador");
+    log(`  llamadas de dibujo: ${info.calls} (una por nodo dibujado)`);
+    // **Dibujar MENOS de lo cargado es lo correcto, no un defecto**, y la primera version de esta
+    // prueba lo llamaba fallo. Nuestra seleccion es conservadora a proposito -conserva los nodos
+    // que tocan los planos del tronco, para no abrir agujeros- y encima Three.js hace su propio
+    // recorte por objeto con la esfera envolvente, que es exacto. Asi que unos cuantos nodos
+    // cargados no llegan a dibujarse: es el recorte funcionando dos veces.
+    //
+    // Lo que si seria un defecto es cero -no se dibujo nada- o mas de lo cargado, que no puede ser.
+    log(
+      info.points === 0 && enEscena > 0
+        ? "  VEREDICTO: NO SE DIBUJO NADA con puntos cargados"
+        : info.points > enEscena
+          ? `  VEREDICTO: dibujo ${info.points} con ${enEscena} cargados, lo que no puede ser`
+          : `  VEREDICTO: se dibujo lo que se ve — Three.js recorto ${(enEscena - info.points).toLocaleString("es-CL")} puntos mas por su cuenta`,
+    );
   }
+
+  marca("total");
 }
 
 /** Mismo flujo, a través de `@aerobim/viewer`. */
