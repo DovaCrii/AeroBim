@@ -5,6 +5,31 @@ Este proyecto sigue [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Añadido — el calce automático, y dos riesgos cerrados antes de que llegue el modelo (2026-09-03)
+
+El modelo de la pasarela **todavía no existe** —está en construcción— y eso no era razón para no
+cerrar lo que se podía. Con un IFC de prueba situado en las coordenadas del Camino Agrícola se
+contestaron dos preguntas que iban a aparecer el día que llegue el de verdad:
+
+**1. Un IFC en coordenadas UTM absolutas no pierde precisión.** Era una duda legítima: la nube pierde
+115 mm en el norte por el `float32`. Medido sobre el fixture: el muro de 4,000 × 3,000 × 0,200 m
+vuelve con **0,00 mm de error**.
+
+**2. Y se sabe por qué: Fragments recentra el modelo y guarda su emplazamiento.** La caja vuelve en
+el origen y `getCoordinates()` devuelve `-349 721,696 · -564,466 · 6 292 883,778`, **ya en ejes de
+escena**. La geometría nunca llega a manejar seis millones de metros.
+
+**Eso abre `alignPointCloudToModel()`: calzar sin señalar un punto.** Si el modelo trae su
+emplazamiento y la nube el suyo, juntarlos es una resta. **Comprobado con el levantamiento real**: el
+muro situado en las coordenadas de la obra cae **dentro** de la nube tras un traslado de
+`1,304 · -3,466 · 0,778` m. Con los ejes o el signo mal, caería a kilómetros.
+
+Señalar puntos sigue siendo el camino que se usará casi siempre —la mayoría de los IFC de obra no
+traen emplazamiento— pero cuando lo traen, el automático es exacto y no depende del pulso de nadie.
+
+> **No comprueba que los dos estén en el mismo sistema de referencia.** Con el modelo en UTM 19S y la
+> nube en otro huso, la resta daría un número y el edificio acabaría a cientos de kilómetros.
+
 ### Añadido — medir la diferencia entre lo modelado y lo construido (`F2.4`, 2026-09-03)
 
 Es el objetivo de salida de la Fase 2, y la comparación por la que existe el producto. Se mide **de

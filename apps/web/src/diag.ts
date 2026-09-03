@@ -2467,6 +2467,75 @@ export async function desviacion(container: HTMLElement, ifcUrl: string, log: Lo
       : "  LA CAJA NO RECORTA: trae lo mismo",
   );
 
+  // --- 3. ¿Sobrevive la precision si el IFC viene en coordenadas UTM absolutas? ---------
+  //
+  // **Hay que tenerlo contestado antes de que llegue el modelo de la obra.** La nube ya demostro
+  // que un `Float32Array` pierde 115 mm en la coordenada norte de un UTM chileno; la geometria del
+  // modelo va por otro camino —Fragments— y la respuesta podria ser distinta.
+  //
+  // El fixture `muro-en-utm.ifc` es el mismo muro de 4,000 x 0,200 x 3,000 m puesto en el
+  // emplazamiento del Camino Agricola. Si las medidas salen exactas, un IFC con el emplazamiento
+  // metido en las coordenadas no da problema; si no, hay que exigir `IfcMapConversion`.
+  log("\n=== un IFC en coordenadas UTM absolutas: ¿pierde precision? ===");
+  const conUtm = await BimViewer.create(document.createElement("div"));
+  try {
+    const bytesUtm = new Uint8Array(await (await fetch("/samples/muro-en-utm.ifc")).arrayBuffer());
+    const utm = await conUtm.loadIfc(bytesUtm, "muro-en-utm.ifc");
+    const geoUtm = await conUtm.elementGeometry("0WALLUTM00000000000000" as never);
+    if (geoUtm === null) {
+      log("  no se pudo obtener la geometria del muro en UTM");
+    } else {
+      const c = geoUtm.caja;
+      const lados = [c.max.x - c.min.x, c.max.y - c.min.y, c.max.z - c.min.z].sort((p, q) => q - p);
+      log(
+        `  caja: ${c.min
+          .toArray()
+          .map((v) => v.toFixed(3))
+          .join(", ")}`,
+      );
+      log(
+        `     a: ${c.max
+          .toArray()
+          .map((v) => v.toFixed(3))
+          .join(", ")}`,
+      );
+      log(`  lados medidos: ${lados.map((v) => v.toFixed(4)).join(" x ")} m`);
+      // El muro es 4,000 x 3,000 x 0,200 m. Se comparan ordenados de mayor a menor para no
+      // depender de en que eje acabe cada uno tras el cambio de convencion.
+      const esperados = [4, 3, 0.2];
+      const peor = Math.max(...lados.map((v, i) => Math.abs(v - (esperados[i] as number))));
+      log(`  peor error en un lado: ${(peor * 1000).toFixed(2)} mm`);
+      log(
+        peor < 0.001
+          ? "  VEREDICTO: la geometria aguanta en UTM absoluto — un IFC asi no da problema"
+          : `  VEREDICTO: SE PIERDE PRECISION — ${(peor * 1000).toFixed(1)} mm en un muro de 4 m.` +
+              " Hay que exigir el modelo en coordenadas locales con IfcMapConversion.",
+      );
+
+      // **Y la caja sale en el origen, no en UTM**: Fragments recentra el modelo. Eso explica que
+      // la precision aguante —la geometria nunca llega a manejar seis millones de metros— y trae
+      // una consecuencia util: el desplazamiento no se pierde, se guarda.
+      const origen = await utm.model.getCoordinates();
+      const matriz = await utm.model.getCoordinationMatrix();
+      const t = new THREE.Vector3().setFromMatrixPosition(matriz);
+      log(`\n  coordenadas guardadas del modelo: ${origen.map((v) => v.toFixed(3)).join(", ")}`);
+      log(
+        `  traslacion de la matriz de coordinacion: ${t
+          .toArray()
+          .map((v) => v.toFixed(3))
+          .join(", ")}`,
+      );
+      const recentrado = origen.some((v) => Math.abs(v) > 1000);
+      log(
+        recentrado
+          ? "  Fragments RECENTRA el modelo y guarda su emplazamiento: no se pierde, hay que ir a buscarlo"
+          : "  el modelo no trae emplazamiento guardado",
+      );
+    }
+  } catch (fallo) {
+    log(`  el fixture en UTM no se pudo cargar: ${String(fallo)}`);
+  }
+
   // Y que estén **en coordenadas del mundo**: si no se aplicara la matriz de cada malla, caerían
   // fuera de la caja que el propio Fragments declara para ese elemento.
   if (enSuCaja.triangulos.length > 0) {
@@ -2489,6 +2558,145 @@ export async function desviacion(container: HTMLElement, ifcUrl: string, log: Lo
         ? "  caen dentro de la caja del elemento: la matriz de la malla se aplico"
         : "  NO CAEN EN LA CAJA DEL ELEMENTO: la matriz de la malla no se esta aplicando",
     );
+  }
+}
+
+/**
+ * ¿Se calzan solos un IFC georreferenciado y la nube del mismo sitio? (`F2.2`, calce automático)
+ *
+ * Señalar puntos funciona siempre y es una estimación con residuos. Cuando el modelo trae su
+ * emplazamiento no hace falta: los dos saben dónde están y calzarlos es una resta.
+ *
+ * Se carga el muro de prueba **situado en las coordenadas del Camino Agrícola** y el levantamiento
+ * de verdad, se pide el calce automático, y se comprueba que el muro cae **dentro** de la nube. Si
+ * el signo o los ejes estuvieran mal, caería a kilómetros y se vería al instante.
+ *
+ * Uso: `/diag.html?modo=calceauto&nube=/samples/camino-agricola.copc.laz`
+ */
+export async function calceauto(container: HTMLElement, nubeUrl: string, log: Log): Promise<void> {
+  container.style.width = "1200px";
+  container.style.height = "700px";
+
+  const viewer = await BimViewer.create(container);
+
+  log("\n=== el modelo, situado en las coordenadas de la obra ===");
+  const bytes = new Uint8Array(await (await fetch("/samples/muro-en-utm.ifc")).arrayBuffer());
+  const cargado = await viewer.loadIfc(bytes, "muro-en-utm.ifc");
+  const coordenadas = await cargado.model.getCoordinates();
+  log(
+    `  emplazamiento guardado: ${coordenadas
+      .slice(0, 3)
+      .map((v) => v.toFixed(3))
+      .join(", ")}`,
+  );
+
+  const geoMuro = await viewer.elementGeometry("0WALLUTM00000000000000" as never);
+  if (geoMuro === null) {
+    log("  no se pudo obtener la geometria del muro");
+    return;
+  }
+  log(
+    `  el muro en la escena: ${geoMuro.caja.min
+      .toArray()
+      .map((v) => v.toFixed(2))
+      .join(", ")} a ` +
+      `${geoMuro.caja.max
+        .toArray()
+        .map((v) => v.toFixed(2))
+        .join(", ")}`,
+  );
+
+  log("\n=== la nube ===");
+  const nubeCargada = await viewer.loadPointCloud(nubeUrl, {
+    presupuestoBytes: 128 * 1024 * 1024,
+    color: "rgb",
+  });
+  log(
+    `  ${nubeCargada.cargados.toLocaleString("es-CL")} puntos · CRS: ${nubeCargada.ficha.wkt ? "declarado" : "NINGUNO"}`,
+  );
+
+  const antes = nubeCargada.nube.cajaDeLoCargado();
+  log(
+    antes === null
+      ? "  sin puntos cargados"
+      : `  donde la puso el cargador: ${antes.min
+          .toArray()
+          .map((v) => v.toFixed(1))
+          .join(", ")} a ` +
+          `${antes.max
+            .toArray()
+            .map((v) => v.toFixed(1))
+            .join(", ")}`,
+  );
+
+  log("\n=== el calce automatico ===");
+  const traslado = await viewer.alignPointCloudToModel();
+  if (traslado === null) {
+    log("  ningun modelo trae emplazamiento: habria que senalar puntos");
+    return;
+  }
+  log(`  traslado aplicado: ${traslado.map((v) => v.toFixed(3)).join(", ")}`);
+
+  // Dónde queda la nube ahora, ya en el mundo.
+  nubeCargada.nube.objeto.updateMatrixWorld(true);
+  const despues = new THREE.Box3().setFromObject(nubeCargada.nube.objeto);
+  log(
+    `  donde queda la nube: ${despues.min
+      .toArray()
+      .map((v) => v.toFixed(1))
+      .join(", ")} a ` +
+      `${despues.max
+        .toArray()
+        .map((v) => v.toFixed(1))
+        .join(", ")}`,
+  );
+
+  // **La comprobación:** el muro está en el sitio del levantamiento, así que su caja tiene que
+  // caer dentro de la extensión de la nube. Con los ejes o el signo mal, caería a kilómetros.
+  const toca = despues.intersectsBox(geoMuro.caja);
+  const centroMuro = geoMuro.caja.getCenter(new THREE.Vector3());
+  const centroNube = despues.getCenter(new THREE.Vector3());
+  log(
+    `  centro del muro: ${centroMuro
+      .toArray()
+      .map((v) => v.toFixed(1))
+      .join(", ")}`,
+  );
+  log(
+    `  centro de la nube: ${centroNube
+      .toArray()
+      .map((v) => v.toFixed(1))
+      .join(", ")}`,
+  );
+  log(`  distancia entre centros: ${centroMuro.distanceTo(centroNube).toFixed(2)} m`);
+  log(
+    toca
+      ? "  VEREDICTO: el muro cae DENTRO de la nube — el calce automatico funciona"
+      : "  VEREDICTO: el muro cae FUERA de la nube — el calce automatico esta mal",
+  );
+
+  // Y medir contra ese muro, que es el ciclo entero: modelo georreferenciado + nube + desviacion.
+  const medida = await viewer.measureDeviation("0WALLUTM00000000000000" as never, {
+    toleranciaM: 0.05,
+  });
+  log("\n=== y medir contra el, que es el ciclo entero ===");
+  if (medida === null) {
+    log("  no se pudo medir");
+  } else {
+    log(`  triangulos: ${medida.triangulos} · puntos de la nube en su caja: ${medida.puntos}`);
+    if (medida.puntos === 0) {
+      log("  no hay puntos del levantamiento en la caja de ese muro — es un muro inventado,");
+      log("  puesto en el sitio pero no donde hay superficie escaneada. Es lo esperado.");
+    } else {
+      log(
+        `  media: ${(medida.resumen.media * 1000).toFixed(0)} mm · maxima: ${(medida.resumen.maxima * 1000).toFixed(0)} mm` +
+          ` · p95: ${(medida.resumen.p95 * 1000).toFixed(0)} mm`,
+      );
+      log(
+        `  sesgo: ${(medida.resumen.sesgo * 1000).toFixed(0)} mm · signo fiable: ${medida.resumen.signoFiable}`,
+      );
+      log("  (el muro es inventado: las cifras miden la maquinaria, no la obra)");
+    }
   }
 }
 

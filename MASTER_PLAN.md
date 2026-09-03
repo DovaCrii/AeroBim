@@ -1232,9 +1232,37 @@ puntos —un instante— **y el resultado se puede atribuir a ese elemento**, qu
 para abrir una observación sobre él.
 
 > **Lo que falta para cerrarla, y no depende de escribir código: el IFC de la pasarela del CC 741.**
-> Sin modelo del mismo sitio que la nube no hay contra qué medir de verdad, y **el oráculo de la fase
-> —la misma nube y el mismo modelo en CloudCompare— solo lo puede correr el usuario**. La nube
-> convertida está en `D:\I+D\nubes\camino-agricola.copc.laz`.
+> El usuario avisó el 2026-09-03 de que **el modelo está en construcción y todavía no existe**. Sin
+> modelo del mismo sitio que la nube no hay contra qué medir de verdad, y **el oráculo de la fase —la
+> misma nube y el mismo modelo en CloudCompare— solo lo puede correr el usuario**. La nube convertida
+> está en `D:\I+D\nubes\camino-agricola.copc.laz`.
+
+### El calce automático, y dos preguntas contestadas antes de que llegue el modelo
+
+Esperar al modelo no era razón para no cerrar riesgos. Con un IFC de prueba **situado en las
+coordenadas del Camino Agrícola** (`apps/web/public/samples/muro-en-utm.ifc`) se contestaron dos
+cosas que iban a aparecer el día que llegue el de verdad:
+
+**1. Un IFC en coordenadas UTM absolutas NO pierde precisión.** Era una duda legítima: la nube pierde
+115 mm en el norte por el `float32`, y la geometría del modelo va por otro camino. Medido: el muro de
+4,000 × 3,000 × 0,200 m vuelve con **0,00 mm de error** en sus lados.
+
+**2. Y se sabe por qué: Fragments recentra el modelo y guarda su emplazamiento.** La caja vuelve en
+el origen —no en UTM— y `getCoordinates()` devuelve `-349 721,696 · -564,466 · 6 292 883,778`, **ya
+en ejes de escena**. La geometría nunca llega a manejar seis millones de metros, así que no hay nada
+que perder.
+
+**Eso abre el calce sin señalar un punto.** Si el modelo trae su emplazamiento y la nube el suyo,
+juntarlos es una resta: `alignPointCloudToModel()`. **Comprobado con el levantamiento real**: el muro
+situado en las coordenadas de la obra cae **dentro** de la nube tras un traslado de `1,304 · -3,466 ·
+0,778` m. Con los ejes o el signo mal, caería a kilómetros.
+
+Señalar puntos sigue siendo el camino que se usará casi siempre —la mayoría de los IFC de obra no
+traen emplazamiento— pero cuando lo traen, el automático es exacto y no depende del pulso de nadie.
+
+> **Lo que el calce automático no comprueba: que los dos estén en el mismo sistema de referencia.**
+> Si el modelo estuviera en UTM 19S y la nube en otro huso, la resta daría un número y el edificio
+> acabaría a cientos de kilómetros. Comparar los CRS es de quien decide.
 
 **Oráculo:** la misma nube y el mismo modelo cargados en **CloudCompare**; las
 desviaciones medidas deben coincidir dentro de la tolerancia del levantamiento.

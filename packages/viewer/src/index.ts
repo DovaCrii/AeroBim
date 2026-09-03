@@ -36,6 +36,7 @@ import {
   resolveUnitSymbol,
   escenaAArchivo,
   matrizDeCalce,
+  trasladoAlModelo,
   type Alineacion,
   type BcfCamera,
   type IfcGridAxis,
@@ -4499,6 +4500,49 @@ export class BimViewer {
       if (mallas.length === 0) continue;
 
       return { caja: union, mallas };
+    }
+    return null;
+  }
+
+  /**
+   * Calza la nube con el modelo **sin señalar un solo punto**, cuando el IFC trae su emplazamiento.
+   *
+   * Señalar puntos funciona siempre y es una estimación con residuos. Cuando el modelo viene
+   * georreferenciado no hace falta: los dos saben dónde están y calzarlos es una resta.
+   *
+   * **Fragments recentra el modelo al convertirlo y guarda dónde estaba** — comprobado con un IFC
+   * cuyo muro está en E 349 723, N 6 292 883: vuelve con la caja en el origen, las medidas exactas
+   * al milímetro, y `getCoordinates()` devolviendo el emplazamiento ya en ejes de escena.
+   *
+   * Devuelve `null` si no hay nube, o si **ningún modelo trae emplazamiento** — que es el caso
+   * corriente y no un error: entonces toca señalar puntos.
+   *
+   * > **No comprueba que los dos estén en el mismo sistema de referencia.** Si el modelo está en
+   * > UTM 19S y la nube en otro huso, la resta da un número y el edificio acaba a cientos de
+   * > kilómetros. Comparar los CRS es de quien decide, no de este método.
+   */
+  async alignPointCloudToModel(): Promise<[number, number, number] | null> {
+    this.assertAlive();
+    if (this.nube === null) return null;
+
+    for (const [, model] of this.fragments.list) {
+      const coordenadas = await model.getCoordinates();
+      const emplazamiento: [number, number, number] = [
+        coordenadas[0] ?? 0,
+        coordenadas[1] ?? 0,
+        coordenadas[2] ?? 0,
+      ];
+      // Un modelo sin emplazamiento devuelve ceros, y eso **no es un emplazamiento en el origen**:
+      // es que no lo trae. Se distingue por la magnitud, que es lo único disponible.
+      if (emplazamiento.every((v) => Math.abs(v) < 1)) continue;
+
+      const t = trasladoAlModelo(this.nube.desplazamiento, emplazamiento);
+      const objeto = this.nube.objeto;
+      objeto.matrixAutoUpdate = false;
+      objeto.matrix.identity().setPosition(t[0], t[1], t[2]);
+      objeto.matrixWorldNeedsUpdate = true;
+      await this.refresh();
+      return t;
     }
     return null;
   }

@@ -195,6 +195,49 @@ export function cajaAArchivo(
 }
 
 /**
+ * La traslación que calza la nube con un modelo **que trae su emplazamiento**: el calce automático.
+ *
+ * ## Cuándo se puede, y por qué es lo mejor que puede pasar
+ *
+ * Señalar puntos a mano funciona siempre y **es una estimación con residuos**. Cuando el IFC viene
+ * georreferenciado no hace falta: los dos saben dónde están, y calzarlos es una resta. Sin puntos
+ * que señalar, sin residuo, y sin depender del pulso de nadie.
+ *
+ * ## De dónde salen los dos desplazamientos
+ *
+ * **Fragments recentra el modelo al convertirlo** —comprobado: un IFC con el muro en E 349 723,
+ * N 6 292 883 vuelve con su caja en el origen y las medidas exactas al milímetro— y guarda el
+ * emplazamiento en `getCoordinates()`, **ya en ejes de escena**. Así que:
+ *
+ * ```
+ * modelo en la escena = ejes(archivo del modelo) + coordenadasDelModelo
+ * nube   en la escena = ejes(archivo de la nube) − ejes(desplazamientoDeLaNube)
+ * ```
+ *
+ * Igualando, la nube tiene que moverse `ejes(desplazamiento) + coordenadas`. No hay giro: los dos
+ * están en el mismo sistema de referencia y con el norte en el mismo sitio.
+ *
+ * ## Y lo que este cálculo NO comprueba
+ *
+ * **No comprueba que los dos estén en el mismo sistema de referencia.** Si el modelo está en UTM 19S
+ * y la nube en otro huso, la resta da un número y el resultado es un edificio a cientos de
+ * kilómetros. Los CRS se comparan antes, y eso lo hace quien llama.
+ */
+export function trasladoAlModelo(
+  desplazamientoDeLaNube: readonly [number, number, number],
+  coordenadasDelModelo: readonly [number, number, number],
+): [number, number, number] {
+  // El desplazamiento de la nube está en ejes del archivo y hay que pasarlo a los de la escena
+  // antes de sumarlo: `coordenadas` ya viene en los de la escena.
+  const enEscena = archivoAEscena(desplazamientoDeLaNube, [0, 0, 0]);
+  return [
+    enEscena[0] + coordenadasDelModelo[0],
+    enEscena[1] + coordenadasDelModelo[1],
+    enEscena[2] + coordenadasDelModelo[2],
+  ];
+}
+
+/**
  * Aplica una matriz por columnas a un punto. Está acá para poder **probar la matriz**.
  *
  * Sin esto, comprobar `matrizDeCalce` sería comparar dieciséis números contra otros dieciséis

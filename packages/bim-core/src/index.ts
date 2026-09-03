@@ -193,6 +193,7 @@ export {
   escenaAArchivo,
   matrizDeCalce,
   planoAArchivo,
+  trasladoAlModelo,
   type Matriz4,
 } from "./nubes/matriz.js";
 

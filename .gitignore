@@ -96,3 +96,8 @@ apps/web/public/wasm/
 # en `apps/web/scripts/nube-sintetica.py`, asi que se puede regenerar y se sabe que contiene.
 # Cualquier otro .laz o .copc.laz sigue fuera, que es lo que protege los del usuario.
 !apps/web/public/samples/levantamiento-sintetico.copc.laz
+
+# El fixture del muro en coordenadas UTM (F2.4): sintetico, escrito a mano, sin dato alguno de un
+# proyecto real. Existe para comprobar que un IFC con el emplazamiento en las coordenadas no pierde
+# precision, y que el calce automatico contra la nube funciona.
+!apps/web/public/samples/muro-en-utm.ifc

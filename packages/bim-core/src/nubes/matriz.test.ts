@@ -7,6 +7,7 @@ import {
   escenaAArchivo,
   matrizDeCalce,
   planoAArchivo,
+  trasladoAlModelo,
 } from "./matriz.js";
 import { alineacionDeMapa, localAMapa, type Alineacion } from "./georreferencia.js";
 import { calzarConPuntos, type ParDePuntos } from "./calce.js";
@@ -267,6 +268,64 @@ describe("matrizDeCalce — la nube cae sobre el modelo", () => {
     const m = matrizDeCalce({ ...conocida(30), escala: 0 }, DESPLAZAMIENTO);
     expect(m.every((v) => v === 0)).toBe(true);
     expect(m.some((v) => Number.isNaN(v))).toBe(false);
+  });
+});
+
+describe("trasladoAlModelo — el calce automatico", () => {
+  it("un punto que es el mismo en los dos acaba en el mismo sitio", () => {
+    // **La propiedad que importa.** Se toma un punto del mundo real, se calcula dónde lo pone el
+    // cargador de nubes y dónde lo pone Fragments, y se exige que el traslado los junte.
+    const puntoReal: Punto3 = [349_750.25, 6_292_950.5, 570.75];
+
+    // La nube: el cargador le resta su desplazamiento y cambia los ejes.
+    const dNube: [number, number, number] = [349_723, 6_292_883, 561];
+    const enLaNube = archivoAEscena(puntoReal, dNube);
+
+    // El modelo: Fragments recentra y guarda las coordenadas, ya en ejes de escena. Son las que
+    // llevan el punto de sus coordenadas locales a la escena, así que las de este ejemplo salen
+    // de exigir que el mismo punto real caiga donde Fragments lo pondría.
+    const coordenadas: [number, number, number] = [-349_721.696, -564.466, 6_292_883.778];
+    const enElModelo = archivoAEscena(puntoReal, [0, 0, 0]).map(
+      (v, i) => v + (coordenadas[i] as number),
+    ) as [number, number, number];
+
+    const t = trasladoAlModelo(dNube, coordenadas);
+    const movida = enLaNube.map((v, i) => v + (t[i] as number));
+
+    for (let i = 0; i < 3; i += 1) {
+      expect(movida[i], `eje ${i}`).toBeCloseTo(enElModelo[i] as number, 6);
+    }
+  });
+
+  it("sin desplazamientos, no mueve nada", () => {
+    expect(trasladoAlModelo([0, 0, 0], [0, 0, 0])).toEqual([0, 0, 0]);
+  });
+
+  it("el desplazamiento de la nube entra con los ejes cambiados", () => {
+    // El norte del archivo es la Z **negada** de la escena, y la cota es la Y. Sumarlo sin cambiar
+    // los ejes dejaría la nube a millones de metros en el eje equivocado.
+    expect(trasladoAlModelo([10, 20, 30], [0, 0, 0])).toEqual([10, 30, -20]);
+  });
+
+  it("vale para cualquier punto, no solo para uno", () => {
+    const dNube: [number, number, number] = [349_723, 6_292_883, 561];
+    const coordenadas: [number, number, number] = [-349_721.696, -564.466, 6_292_883.778];
+    const t = trasladoAlModelo(dNube, coordenadas);
+
+    for (const real of [
+      [349_723.696, 6_292_883.878, 561.466],
+      [349_821.092, 6_293_027.385, 578.473],
+      [349_750, 6_292_950, 570],
+    ] as Punto3[]) {
+      const enLaNube = archivoAEscena(real, dNube);
+      const movida = enLaNube.map((v, i) => v + (t[i] as number));
+      const enElModelo = archivoAEscena(real, [0, 0, 0]).map(
+        (v, i) => v + (coordenadas[i] as number),
+      );
+      for (let i = 0; i < 3; i += 1) {
+        expect(movida[i], `${JSON.stringify(real)}[${i}]`).toBeCloseTo(enElModelo[i] as number, 5);
+      }
+    }
   });
 });
 
