@@ -14,7 +14,7 @@
     "dev:host": "npm run build:packages && npm run dev -w apps/web -- --host",
     "build:packages": "npm run build -w packages/bim-core && npm run build -w packages/viewer",
     "build": "npm run build:packages && npm run build -w apps/web",
-    "test": "npm run test -w packages/bim-core",
+    "test": "npm run test -w packages/bim-core && npm run test -w packages/viewer",
     "lint": "oxlint packages/ apps/",
     "lint:fix": "oxlint --fix packages/ apps/",
     "fmt": "prettier --write .",

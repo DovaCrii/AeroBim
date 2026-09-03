@@ -5,5 +5,8 @@
     "rootDir": "./src",
     "lib": ["ES2022", "DOM", "DOM.Iterable"]
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*"],
+  // Las pruebas no van al `dist`: es un paquete que otro importa, y su superficie es lo que
+  // exporta, no cómo se comprueba. Misma línea que `bim-core`.
+  "exclude": ["src/**/*.test.ts"]
 }
