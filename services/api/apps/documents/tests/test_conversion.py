@@ -233,6 +233,40 @@ class TestDgnSeAcepta:
         assert b"\x08\x09\xfe" in FIRMAS["dgn"]  # v7: formato propio anterior
 
 
+class TestLaSaludLoDice:
+    """El conversor se ve en `/health/`, **sin poner el servidor en amarillo**."""
+
+    @override_settings(ODA_CONVERTER="")
+    def test_ausente_se_informa(self, client):
+        cuerpo = client.get("/health/").json()
+        assert cuerpo["comprobaciones"]["conversor_cad"] == "ausente"
+
+    def test_instalado_se_informa(self, tmp_path, client):
+        falso = tmp_path / "ODAFileConverter"
+        falso.write_text("no importa: solo se mira que exista", encoding="utf8")
+        with override_settings(ODA_CONVERTER=str(falso)):
+            cuerpo = client.get("/health/").json()
+        assert cuerpo["comprobaciones"]["conversor_cad"] == "instalado"
+
+    def test_tenerlo_o_no_NO_cambia_el_estado_del_servidor(self, tmp_path, client):
+        # **Es la propiedad que importa, y se comprueba comparando en vez de fijando un valor.**
+        #
+        # Afirmar «responde 200» ataría esta prueba a que el resto del entorno esté sano —y no lo
+        # está: en integración el health devuelve 503 por otras razones—. Lo que este cambio tiene
+        # que garantizar es que el conversor **no mueva la aguja**, y eso se ve mirando el mismo
+        # servidor con y sin él.
+        falso = tmp_path / "ODAFileConverter"
+        falso.write_text("existe", encoding="utf8")
+
+        with override_settings(ODA_CONVERTER=""):
+            sin = client.get("/health/")
+        with override_settings(ODA_CONVERTER=str(falso)):
+            con = client.get("/health/")
+
+        assert sin.status_code == con.status_code
+        assert sin.json()["estado"] == con.json()["estado"]
+
+
 def _envoltorio(tmp_path: Path, script: Path) -> Path:
     """Un `.cmd`/`.sh` que llama al script con el intérprete actual.
 

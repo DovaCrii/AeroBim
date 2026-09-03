@@ -19,12 +19,13 @@
 
 ## Lo que hace falta en la máquina
 
-| Qué                  | Para qué                                                                 |
-| -------------------- | ------------------------------------------------------------------------ |
-| Python ≥ 3.12 y `uv` | La aplicación y su entorno                                               |
-| PostgreSQL           | Opcional: con SQLite basta hasta que haya concurrencia real de escritura |
-| nginx                | TLS y el socket de UNIX. Django no termina TLS                           |
-| Node ≥ 22            | **Solo para construir el visor.** No hace falta en tiempo de ejecución   |
+| Qué                  | Para qué                                                                             |
+| -------------------- | ------------------------------------------------------------------------------------ |
+| Python ≥ 3.12 y `uv` | La aplicación y su entorno                                                           |
+| PostgreSQL           | Opcional: con SQLite basta hasta que haya concurrencia real de escritura             |
+| nginx                | TLS y el socket de UNIX. Django no termina TLS                                       |
+| Node ≥ 22            | **Solo para construir el visor.** No hace falta en tiempo de ejecución               |
+| ODA File Converter   | **Opcional, y hay que instalarlo a mano.** Sin él no se abren DWG ni DGN — ver abajo |
 
 Usuario y directorios, con la aplicación fuera de `/home`:
 
@@ -36,6 +37,38 @@ sudo install -d -o aerobim -g aerobim /opt/aerobim /var/lib/aerobim /var/log/aer
 `/var/lib/aerobim` es donde van los documentos y `/var/log/aerobim` los registros. Los
 dos están fuera del repositorio a propósito: los datos de una obra no viven en git, y un
 `git pull` no puede borrarlos.
+
+### ODA File Converter — para abrir DWG y DGN
+
+**Hay que instalarlo a mano y AeroBim no lo trae.** Es un ejecutable **gratuito** de la Open Design
+Alliance, con su propia licencia: no se distribuye con el producto, no se descarga solo, y **ningún
+paso automático del despliegue lo va a traer**. Si nadie lo instala, no está.
+
+Es lo único de esta lista que se instala fuera de `uv` y de `npm`, y por eso se pasa por alto — de
+ahí que esté escrito dos veces: aquí y en [`docs/FORMATOS.md`](FORMATOS.md).
+
+1. Descargarlo de la web de la Open Design Alliance —pide un registro gratuito— e instalarlo **en la
+   máquina del servidor**.
+2. Poner en el `.env`:
+
+   ```bash
+   ODA_CONVERTER=/opt/oda/ODAFileConverter
+   ```
+
+   En Windows suele ser `C:\Program Files\ODA\ODAFileConverter <versión>\ODAFileConverter.exe`.
+
+3. Reiniciar el servicio.
+
+**Qué pasa si no está, y por qué no es una emergencia.** Subir un DWG o un DGN **sigue funcionando**:
+el archivo se guarda, se descarga y queda en el expediente como cualquier entregable. Lo único que no
+ocurre es la conversión, así que **esa revisión no se puede abrir en el visor** y lo dice con su
+motivo. Un registro documental que rechazara el archivo por no tener una herramienta de conversión
+sería un registro que pierde el archivo.
+
+> **Y si se instala más tarde, las revisiones ya subidas no se convierten solas.** La conversión pasa
+> al recibir el archivo, así que lo que entró antes se queda sin DXF. Hoy la salida es volver a subir
+> la revisión; si algún día hay muchas, hace falta una orden de gestión que las recorra — **no está
+> escrita**, y queda dicho para que nadie la dé por hecha.
 
 ## El despliegue, paso a paso
 
@@ -146,8 +179,21 @@ curl -s https://bim.<dominio>/health/ | python3 -m json.tool
 ```
 
 ```json
-{ "estado": "ok", "comprobaciones": { "base": "ok", "documentos": "ok", "visor": "ok" } }
+{
+  "estado": "ok",
+  "comprobaciones": {
+    "base": "ok",
+    "documentos": "ok",
+    "visor": "ok",
+    "conversor_cad": "ausente"
+  }
+}
 ```
+
+> **`conversor_cad` es informativo y no cambia el estado.** Dice `instalado` o `ausente`, y `ausente`
+> **no pone el servidor en amarillo**: la mayoría de los despliegues no reciben ni un DWG, y una
+> alarma que suena siempre deja de mirarse. Está ahí porque es **lo único del despliegue que no
+> traen `uv` ni `npm`**, y por eso es lo que se olvida — así se ve sin leer esta página.
 
 Qué significa cada respuesta:
 

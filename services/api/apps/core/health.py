@@ -94,6 +94,22 @@ def _revisar_visor() -> str:
     return ESTADO_OK
 
 
+#: Lo que dice `conversor_cad`. **No son estados de salud**: son «esta» o «no esta».
+CONVERSOR_INSTALADO = "instalado"
+CONVERSOR_AUSENTE = "ausente"
+
+
+def _revisar_conversor() -> str:
+    """¿Esta ODA File Converter? Se mira la ruta configurada, **sin ejecutar nada**.
+
+    Arrancar el programa para preguntarle su version costaria segundos en una respuesta que un
+    monitor pide cada minuto.
+    """
+    from apps.documents.conversion import hay_conversor
+
+    return CONVERSOR_INSTALADO if hay_conversor() else CONVERSOR_AUSENTE
+
+
 class SaludView(View):
     """¿Puede atender este proceso? Un 200 dice que si; un 503, que no.
 
@@ -108,6 +124,15 @@ class SaludView(View):
             "base": _revisar_base_de_datos(),
             "documentos": _revisar_directorio(Path(settings.DOCUMENTS_DIR)),
             "visor": _revisar_visor(),
+            # **Informativo, y a proposito no es `degradado`.**
+            #
+            # El conversor de DWG y DGN se instala a mano y es opcional: la mayoria de los
+            # despliegues no reciben ni un DWG. Marcarlo como degradado pondria en amarillo a
+            # todos los servidores sanos, y una alarma que suena siempre deja de mirarse.
+            #
+            # Pero tiene que **verse**: es lo unico del despliegue que no traen `uv` ni `npm`, y
+            # por eso es lo que se olvida. Aqui se ve sin leer documentacion.
+            "conversor_cad": _revisar_conversor(),
         }
 
         # El visor degradado no saca de servicio; una comprobacion fatal en fallo, si.
