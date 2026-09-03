@@ -3,7 +3,7 @@
 > **Fuente única de verdad del trabajo pendiente.** Consolida el estudio de
 > alternativas open-source (verificado el 2026-08-18 contra la API de GitHub y los
 > registros de npm/PyPI) en un tablero ejecutable con seguimiento de estado.
-> **Creado:** 2026-08-18 · **Actualizado:** 2026-09-02 (tablero de lo abierto, y la Fase 9 en marcha)
+> **Creado:** 2026-08-18 · **Actualizado:** 2026-09-03 (siete fases cerradas; sigue la Fase 2)
 > **Rama base:** `main`
 > **Regla de oro:** cada fase termina en algo **que alguien puede usar**. No se abre
 > una fase nueva con la anterior a medio cerrar, y no se agrega alcance fuera de lo
@@ -13,44 +13,31 @@
 
 ## Por dónde se empieza
 
-**Las fases 9 y 11 están cerradas salvo lo que decide el usuario.** El visor tiene tokens, escala
-calibrada, anillo de foco, áreas de toque de 44 px y ninguna acción escondida detrás del ratón; el
-portal tiene distintivo de disciplina, portada, tarjeta de obra con datos, controles propios, migas
-y paso a paso, y la lista de hallazgos se tría de un vistazo — todo con el contraste comprobado en
-el gate. **Lo que queda de las dos no lo decide este plan**: `F9.6` son tres decisiones del usuario
-que contradicen tres líneas escritas de `UX.md`, y `F11.7` es la ayuda con recorrido, que hay que
-elegir antes de escribirla (un recorrido guiado sobre la pantalla real, o una ayuda generada de lo
-que el producto sabe hacer).
+**Siete de las diez fases con trabajo están cerradas enteras**, y lo que queda se cuenta en una
+línea cada cosa. Actualizado el 2026-09-03.
 
-**Y la Fase 10 va por el mismo camino**: `F10.1` cerró, así que el informe ya se pide por etiqueta
-—«todo lo de instalaciones que sigue abierto»— y de las cinco filas solo quedan las dos de tablas.
+| Fase                           | Estado                                                                                        |
+| ------------------------------ | --------------------------------------------------------------------------------------------- |
+| **0 · Cimientos**              | ✅ salvo `F0.6`, la conversión en un worker                                                   |
+| **1 · Visor**                  | ✅ salvo `F1.13`, que son **tres nombres que decide el usuario**                              |
+| **3 · Backend**                | ✅ entera                                                                                     |
+| **4 · Coordinación**           | ✅ salvo `F4.5`, el trazo libre, **condicionado a que el usuario mire un BCF exportado**      |
+| **5 · Interferencias**         | ✅ entera                                                                                     |
+| **7 · Planos, salida**         | ✅ entera — capas, DXF, PDF con sello, y el plano acotado y con sus llamadas                  |
+| **8 · Registro documental**    | ✅ entera                                                                                     |
+| **9 · Diseño**                 | ✅ salvo `F9.6`, que son **tres decisiones del usuario** y contradicen tres líneas de `UX.md` |
+| **10 · Etiquetas y tablas**    | ✅ entera                                                                                     |
+| **11 · El portal se ve plano** | ✅ entera — incluida la ayuda con su recorrido                                                |
+| **2 · Nubes de puntos**        | 🔶 **en marcha.** `F2.5` cerrada: el formato es **COPC**. Sigue `F2.2`                        |
+| **6 · Geo + BIM**              | ⬜ pospuesta a propósito el 2026-09-02, para poner la coordinación delante                    |
 
-**`F7.2` también cerró**, y de camino destapó que el DXF de un plano generado salía **con la mitad
-del dibujo recortada**: el viewport se construía con coordenadas Z donde la librería espera
-coordenadas de papel. Estaba desde que se escribió `F7.4`, y el oráculo de entonces no podía verlo
-porque medía la extensión del archivo —que la marca el recuadro del viewport— y no las coordenadas.
+**Lo que sigue es la Fase 2**, y en un orden que no es el de su numeración: `F2.5` ya está cerrada
+—decidió que **entra COPC**, y está en [`docs/NUBES_DE_PUNTOS.md`](docs/NUBES_DE_PUNTOS.md)—, así que
+**ahora va `F2.2`**, la alineación, que es el problema real y donde apareció el hallazgo de los
+20 cm; después `F2.1` y `F2.3`. El porqué del orden está en «Hasta dónde llega este bloque».
 
-**Y `F10.5` cerró**: el modelo saca sus cuadros por categoría —300 perfiles con sus 24 columnas de
-pesos y medidas en 155 ms—, se ordenan, se filtran, cada fila lleva a su elemento y salen en CSV.
-
-**Y con `F10.4` la Fase 10 cierra entera**: el informe sale en papel, se pide por etiqueta, el modelo
-saca sus cuadros y la lámina los lleva dentro.
-
-**Y `F7.3` va por la mitad que vale**: las cotas medidas sobre el modelo se llevan a la lámina y
-salen en el DXF con su número, así que no hay que acotar dos veces. Quedan ángulos, pendientes y
-llamadas, que son ensamblaje por el mismo camino ya abierto.
-
-**Y `F7.5` cerró**: la lámina sale en PDF, en Carta y con el sello de la casa. Con eso **de la Fase 7
-solo queda media fila**: los ángulos, las pendientes y las llamadas de `F7.3`, que son ensamblaje por
-el camino que las cotas ya abrieron.
-
-**Y `F11.7` cerró la Fase 11 entera**: la ayuda es un recorrido de nueve pasos generado de lo que el
-producto sabe hacer, en la barra de todas las pantallas, y con una prueba que impide que se desfase.
-
-**Lo que queda, en orden**, está en «Hasta dónde llega este bloque» más abajo: `F4.5` y lo que falta
-de `F7.3` cierran dos fases y son trabajo por caminos ya abiertos; después la Fase 2, empezando por
-documentar el pipeline y por la alineación, que es el problema real. Y dos decisiones siguen siendo
-del usuario: `F9.6` —el reparto del navegador del visor— y `F1.13` —tres nombres de la cinta—.
+**Y tres cosas no las decide este plan**, porque no son trabajo sino elecciones: `F1.13`, `F9.6` y
+el trazo libre de `F4.5`. Están reunidas abajo, en «Las decisiones que solo el usuario puede tomar».
 
 ## La prioridad cambió el 2026-09-02, y la puso el usuario
 
@@ -131,7 +118,7 @@ Las **veintinueve** filas abiertas, de una vez. `⬜` no empezada · `❓` medid
 | **10 — Etiquetas, informes y tablas** ⭐ | ✅ **la fase entera** — el informe sale en papel, se pide por etiqueta, el modelo saca sus cuadros y la lámina los lleva dentro |
 | **1 — Visor**                            | `F1.13` ❓ — auditada; quedan tres nombres que decide el usuario                                                                |
 | **7 — Planos, salida**                   | ✅ **la fase entera** — capas, DXF, PDF con sello, y el plano acotado y con sus llamadas                                        |
-| **2 — Nubes de puntos**                  | `F2.1` a `F2.6` ⬜ — cargar, alinear, visualizar, medir contra el modelo, documentar el pipeline, y el gaussian splatting       |
+| **2 — Nubes de puntos**                  | `F2.5` ✅ el formato es **COPC**; `F2.1` `F2.2` `F2.3` `F2.4` `F2.6` ⬜ — cargar, alinear, visualizar, medir, y el splatting    |
 | **6 — Geo + BIM**                        | `F6.1` a `F6.5` ⬜ — Cesium, ortofoto y terreno propios, situar el IFC, 3D Tiles, y recibir de AeroPlanner                      |
 
 ### Hasta dónde llega este bloque, revisado el 2026-09-03
@@ -168,14 +155,18 @@ caminos que ya están abiertos. Eso es lo que se hace primero, porque cierra dos
 
 **La recomendación, entonces, en este orden:**
 
-1. `F4.5` y lo que falta de `F7.3`. Cierran las fases 4 y 7 y son trabajo por caminos ya abiertos.
-2. `F2.5` **antes que `F2.1`**, aunque el plan las numere al revés: documentar el pipeline de
-   conversión —`PotreeConverter`, `pdal`— es lo que decide **qué formato entra**, y escribir el
-   cargador antes de saberlo es escribirlo dos veces.
-3. `F2.2`, la alineación, con su prueba de aritmética pura en `bim-core`: transformación conocida,
-   puntos conocidos, desviación esperada. Es la pieza sobre la que se apoya todo lo demás de la fase.
+1. ~~`F4.5` y lo que falta de `F7.3`~~ — **`F7.3` cerrada el 2026-09-03**, y con ella la fase 7
+   entera. `F4.5` sigue condicionada a que mires un BCF exportado.
+2. ~~`F2.5` **antes que `F2.1`**~~ — **cerrada el 2026-09-03**, y acertó el orden: decidió que entra
+   **COPC** y no Potree, con lo que el cargador se escribe una vez. Está en
+   [`docs/NUBES_DE_PUNTOS.md`](docs/NUBES_DE_PUNTOS.md).
+3. **`F2.2`, la alineación** — es lo que sigue, con su prueba de aritmética pura en `bim-core`:
+   transformación conocida, puntos conocidos, desviación esperada. Y ahora se sabe que empieza por
+   **restar el desplazamiento**, no por rotar: en coordenadas UTM absolutas el `float32` de WebGL ya
+   pierde 20 cm antes de que nadie alinee nada.
 4. `F2.1` y `F2.3` después, sabiendo que **su aspecto queda pendiente de tu pantalla**, no de la
-   nuestra.
+   nuestra. Y que lo primero de `F2.1` es comprobar que `copc` + `laz-perf` abren en el navegador el
+   archivo que escribe `pdal` — eso está **sin verificar**, y el documento lo dice.
 
 **Y las tres decisiones que siguen bloqueadas** —`F9.6`, `F1.13` y las que aparezcan— no están en
 esta lista porque no son trabajo: son elecciones. Están abajo, en «Las decisiones que solo el usuario
@@ -1171,7 +1162,7 @@ comparación que nadie puede hacer hoy sin software de pago.
 | `F2.2` | Alinear nube y modelo: origen, rotación y escala, con ajuste manual asistido                  | ⬜     |
 | `F2.3` | Controles de visualización: tamaño de punto, densidad, recorte por caja, color por altura/RGB | ⬜     |
 | `F2.4` | Medir del modelo a la nube (desviación entre lo construido y lo modelado)                     | ⬜     |
-| `F2.5` | Documentar el pipeline de conversión **fuera de la aplicación**: `PotreeConverter` y `pdal`   | ⬜     |
+| `F2.5` | Documentar el pipeline de conversión **fuera de la aplicación**: `PotreeConverter` y `pdal`   | ✅     |
 
 **Oráculo:** la misma nube y el mismo modelo cargados en **CloudCompare**; las
 desviaciones medidas deben coincidir dentro de la tolerancia del levantamiento.
@@ -1181,12 +1172,53 @@ desviaciones medidas deben coincidir dentro de la tolerancia del levantamiento.
 > con octree ocurre fuera, con herramientas de línea de comandos, y `F2.5`
 > simplemente lo deja escrito.
 
+### `F2.5` cerrada el 2026-09-03 — y el formato es **COPC**
+
+El documento entero está en **[`docs/NUBES_DE_PUNTOS.md`](docs/NUBES_DE_PUNTOS.md)**: qué formato
+entra, por qué, los comandos de `pdal` —marcados como **no ejecutados**, porque `pdal` no está
+instalado— y qué queda fijado para `F2.1` a `F2.6`.
+
+**Se decidió COPC** (`.copc.laz`) y no Potree, y las razones se midieron:
+
+- **Es un archivo**, así que cabe en el expediente como cualquier documento. `PotreeConverter`
+  produce un directorio con miles, y el registro guarda un archivo por documento.
+- **CloudCompare lo abre**, con lo que el oráculo de la fase sigue existiendo. 3D Tiles no.
+- **Los tres cargadores de Potree para Three.js no se pueden usar hoy:** `@pnext/three-loader` 1.0.0
+  fija `three: ~0.160.0` y estamos en 0.185.1; `potree-loader` 1.10.4 se construyó contra three
+  0.138.3 y lleva **`vite ^2.8.6` como dependencia de runtime**, con vite 8 en el repositorio.
+- **Trae dentro el desplazamiento y el WKT**, comprobado escribiendo y leyendo un COPC de verdad: el
+  `AUTHORITY["EPSG","32719"]` vuelve intacto, y `GetPointsWithinBox` sobre la caja de un elemento
+  devolvió **260 puntos en 17 ms** — que es literalmente la operación del cruce con el IFC.
+
+> **El hallazgo más caro de la fase, y cambia `F2.2`: `float32` pierde 20 cm en UTM.**
+> Medido sobre 62 500 puntos en UTM 19S (Santiago), comparando cada coordenada con la misma pasada
+> por `Float32Array` —que es lo que acepta WebGL—: **200 mm de error en el norte** (6 298 000 m),
+> 12,5 mm en el este, 0 en la altura. Los **mismos** puntos restando primero el desplazamiento de la
+> cabecera: **0,003 mm**.
+>
+> Y falla de la peor manera: el error **no es ruido**, es un escalonado, así que la nube **se ve bien
+> y miente con dos decimales**. Con 200 mm de regla, la promesa de `F2.4` —medir la desviación entre
+> lo construido y lo modelado— es imposible.
+>
+> La aritmética quedó probada en `packages/bim-core/src/nubes/precision.ts`, con los vectores
+> medidos en Python como oráculo. Si alguien vuelve a perder precisión, **falla el gate**.
+
+**Y el presupuesto de memoria, que es por qué hace falta un octree y no un `loader`:** verificado
+contra Three.js r185 leyendo `BufferAttribute.array.byteLength`, un punto con posición y color son 15
+bytes **y se pagan dos veces** —el `TypedArray` y su copia en la tarjeta—. **50 millones de puntos =
+1,5 GB.** Un levantamiento de obra mediana son 50 a 200 millones. Está en
+`packages/bim-core/src/nubes/presupuesto.ts` y lo usará `F2.3`.
+
 ### La alineación es el problema real, no el render
 
 Cargar puntos es un `loader`. Que los puntos caigan donde corresponde respecto al
 modelo es lo difícil: un IFC suele venir en coordenadas locales de proyecto (y a
 veces con el norte rotado), mientras la nube viene georreferenciada del vuelo. Sin
 `F2.2` resuelta, `F2.4` mide basura con dos decimales.
+
+Y ahora se sabe que **no es solo cuestión de que calce a la vista**: con la nube en coordenadas
+absolutas el error de representación es de 20 cm antes de empezar. Restar el desplazamiento no es un
+detalle de la alineación, es su **primer paso obligatorio**.
 
 ### `F2.6` — Gaussian splatting: **va aquí y no en AeroPlanner** (decidido el 2026-08-26)
 

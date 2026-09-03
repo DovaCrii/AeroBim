@@ -147,6 +147,23 @@ export {
 } from "./views/vistaCompartida.js";
 
 export {
+  BYTES_DE_ATRIBUTO,
+  bytesPorPunto,
+  presupuesto,
+  puntosQueCaben,
+  saltoParaCaber,
+  type Atributo,
+  type Presupuesto,
+} from "./nubes/presupuesto.js";
+
+export {
+  desplazamientoLocal,
+  errorEnFloat32,
+  escalonDeFloat32,
+  seSostieneEnFloat32,
+} from "./nubes/precision.js";
+
+export {
   isDimensionlessIfcType,
   isTextIfcType,
   looksNumeric,

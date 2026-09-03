@@ -5,6 +5,49 @@ Este proyecto sigue [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Decidido — el visor abrirá **COPC**, y `float32` perdía 20 cm en UTM (`F2.5`, 2026-09-03)
+
+**El formato que entra es COPC** (`.copc.laz`), convertido con `pdal` fuera de la aplicación. Está en
+[`docs/NUBES_DE_PUNTOS.md`](docs/NUBES_DE_PUNTOS.md), y se decidió midiendo, no recordando.
+
+**Potree quedó descartado, y por razones comprobables.** Los tres cargadores que existen para
+Three.js no sirven con el visor de hoy: `@pnext/three-loader` fija `three: ~0.160.0` y estamos en
+0.185.1, y `potree-loader` se construyó contra three 0.138.3 y arrastra **`vite ^2.8.6` como
+dependencia de runtime** teniendo nosotros vite 8. Por encima de eso hay una razón de producto:
+`PotreeConverter` produce **un directorio con miles de archivos** y el registro documental guarda un
+archivo por documento. COPC es un archivo, cabe en el expediente, y **CloudCompare lo abre** —con lo
+que el oráculo de la fase sigue existiendo—.
+
+**Y el cruce con el IFC se comprobó, no se supuso.** Escribiendo y leyendo un COPC de verdad en UTM
+19S: el `AUTHORITY["EPSG","32719"]` vuelve intacto dentro del archivo, el nodo raíz se puede pedir
+solo —977 puntos, el 18 % del archivo— y **pedir la caja de un elemento devolvió 260 puntos en
+17 ms**, con sus clases. Eso _es_ el cruce: la caja del elemento del IFC, los puntos de dentro, la
+desviación.
+
+> **El hallazgo caro: `float32` pierde 200 mm en la coordenada norte de un UTM chileno.**
+> WebGL solo acepta `Float32Array` y un `float32` tiene siete cifras significativas; la coordenada
+> norte de Santiago (6 298 000 m) ya las gasta en la parte entera. Medido sobre 62 500 puntos:
+> **200 mm de error en el norte**, 12,5 mm en el este, 0 en la altura. Los mismos puntos restando
+> primero el desplazamiento de la cabecera: **0,003 mm**.
+>
+> Con 200 mm de regla, la promesa de `F2.4` —medir la desviación entre lo construido y lo modelado—
+> era imposible. Y falla de la peor manera: el error no es ruido sino un escalonado, así que **la
+> nube se ve perfectamente bien y miente con dos decimales**. De ahí un requisito del formato que no
+> es negociable: el archivo tiene que traer el desplazamiento dentro.
+
+**Dos módulos nuevos en `bim-core`, probados**, porque estas cuentas no pueden volver a perderse:
+`nubes/precision.ts` —el error y el escalón del `float32`, con los vectores medidos en Python como
+oráculo— y `nubes/presupuesto.ts` —lo que pesa una nube en la tarjeta, verificado contra Three.js
+r185 leyendo `BufferAttribute.array.byteLength`: 15 bytes por punto con color, **y se pagan dos
+veces**, así que 50 millones de puntos son **1,5 GB**—. Eso es por qué hace falta un octree y no un
+`loader`.
+
+**Los comandos de `pdal` van marcados como no ejecutados**, porque `pdal` no está instalado en la
+máquina de desarrollo —tampoco `PotreeConverter`, `untwine` ni `entwine`—: están escritos desde su
+documentación y hay que correrlos antes de darlos por buenos. Y queda dicho lo que **no** está
+verificado: que `copc` + `laz-perf` abran en el navegador el archivo que escribe `pdal`. Es lo primero
+que tiene que hacer `F2.1`, antes de escribir una línea de cargador.
+
 ### Añadido — una sección de ayuda con el recorrido de cómo se usa (`F11.7`, 2026-09-02)
 
 **Nueve pasos, en el orden en que se trabaja de verdad** y no por módulos: entrar en la obra, abrir
