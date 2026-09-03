@@ -1,5 +1,6 @@
 import {
   BimViewer,
+  csvDe,
   type DistanceMode,
   type DrawingView,
   type DrawnMeasurement,
@@ -17,6 +18,7 @@ import {
   type Projection,
   type RenderStyle,
   type SavedView,
+  type Schedule,
   type SectionAxis,
   type SnapMode,
   type SpatialNode,
@@ -27,6 +29,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DrawingsPanel } from "./components/DrawingsPanel.js";
 import { ModelsPanel } from "./components/ModelsPanel.js";
 import { Coordinacion, type ObservacionDelModelo } from "./components/Coordinacion.js";
+import { CuadroFlotante } from "./components/CuadroFlotante.js";
+import { CuadrosPanel } from "./components/CuadrosPanel.js";
 import { NotaFlotante } from "./components/NotaFlotante.js";
 import { Origen } from "./components/Origen.js";
 import { PlansPanel } from "./components/PlansPanel.js";
@@ -1112,6 +1116,59 @@ export function App() {
     [drawings],
   );
 
+  /* --- Los cuadros del modelo: `F10.5` -------------------------------------------- */
+
+  /** El cuadro que está abierto sobre el modelo, o `null`. */
+  const [cuadro, setCuadro] = useState<Schedule | null>(null);
+
+  const onCategorias = useCallback(
+    async (modelId: string) => (await viewer.current?.categoriesOf(modelId)) ?? new Map(),
+    [],
+  );
+
+  const onCuadro = useCallback(
+    async (modelId: string, categoria: string) =>
+      (await viewer.current?.scheduleOf(modelId, categoria)) ?? null,
+    [],
+  );
+
+  /**
+   * Descarga el cuadro como CSV.
+   *
+   * El nombre lleva la categoría y el modelo: quien lo recibe por correo tiene que saber de qué
+   * cuadro es sin abrirlo, que es la misma regla que el informe del servidor.
+   */
+  const onDescargarCuadro = useCallback(
+    (cual: Schedule) => {
+      const modelo = models.find((uno) => uno.id === cual.modelId);
+      const enlace = document.createElement("a");
+      // **El tipo lleva `charset=utf-8` y el texto su BOM**, que es lo que necesita un Excel en
+      // configuración castellana para no partir las tildes. El BOM lo pone `csvDe`.
+      enlace.href = URL.createObjectURL(
+        new Blob([csvDe(cual)], { type: "text/csv;charset=utf-8" }),
+      );
+      enlace.download = `${modelo?.name ?? "modelo"}-${cual.category}.csv`;
+      enlace.click();
+      URL.revokeObjectURL(enlace.href);
+    },
+    [models],
+  );
+
+  /**
+   * Lleva el visor al elemento de una fila del cuadro.
+   *
+   * **Es lo que convierte el cuadro en una herramienta de revisión** y no en una tabla: se ve el
+   * perfil raro entre trescientos y se va a mirarlo donde está. Reusa el mismo camino que abrir una
+   * observación —seleccionar y encuadrar—, así que el gesto es el que ya se conoce.
+   */
+  const onIrAlElementoDelCuadro = useCallback(
+    (localId: number) => {
+      if (cuadro === null) return;
+      void viewer.current?.selectById(cuadro.modelId, localId);
+    },
+    [cuadro],
+  );
+
   const onSection = useCallback((axis: SectionAxis) => {
     setHasSections(true);
     void viewer.current?.addSection(axis);
@@ -1599,6 +1656,18 @@ export function App() {
             />
           )}
 
+          {/* **El cuadro, encima del modelo y no en el panel.** Un cuadro de perfiles de acero
+              trae veinticuatro columnas y el panel de la derecha mide unos 320 px: ahí dentro no es
+              una tabla, es una lista de celdas cortadas. Mismo reparto que la nota flotante. */}
+          {cuadro !== null && (
+            <CuadroFlotante
+              cuadro={cuadro}
+              onCerrar={() => setCuadro(null)}
+              onDescargar={() => onDescargarCuadro(cuadro)}
+              onIrAlElemento={onIrAlElementoDelCuadro}
+            />
+          )}
+
           <ViewCube
             view={standardView}
             disabled={models.length === 0 && plans.length === 0}
@@ -1730,6 +1799,15 @@ export function App() {
                     onToggleVisible={onToggleVisible}
                   />
                 )
+              }
+              cuadros={
+                <CuadrosPanel
+                  models={models}
+                  cargarCategorias={onCategorias}
+                  cargarCuadro={onCuadro}
+                  onVerTabla={setCuadro}
+                  onDescargar={onDescargarCuadro}
+                />
               }
               planos={
                 <PlansPanel

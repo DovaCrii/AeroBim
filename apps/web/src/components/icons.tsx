@@ -302,6 +302,22 @@ export function IconDistance(props: IconProps) {
   );
 }
 
+/**
+ * Cuadro: una tabla con su fila de cabecera. `F10.5`.
+ *
+ * La cabecera marcada y no una rejilla suelta: lo que distingue un cuadro de una rejilla cualquiera
+ * es que la primera fila nombra las columnas.
+ */
+export function IconTable(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M3.5 5.5h17v13h-17z" />
+      <path d="M3.5 9.5h17" />
+      <path d="M9.5 9.5v9M15 9.5v9M3.5 14h17" />
+    </Svg>
+  );
+}
+
 /** Ángulo: dos lados y el arco entre ellos. */
 export function IconAngle(props: IconProps) {
   return (

@@ -28,6 +28,7 @@ export function ProjectBrowser({
   registro,
   coordinacion,
   estructura,
+  cuadros,
   modelos,
   planos,
   planCount,
@@ -48,6 +49,8 @@ export function ProjectBrowser({
   /** Las observaciones del modelo, con el clic que lleva al problema. */
   readonly coordinacion: React.ReactNode;
   readonly estructura: React.ReactNode;
+  /** Los cuadros por categoría: qué hay en el modelo y cuántas hay. */
+  readonly cuadros: React.ReactNode;
   readonly modelos: React.ReactNode;
   /** Los planos 2D cargados, con sus capas y su ajuste. */
   readonly planos: React.ReactNode;
@@ -141,6 +144,20 @@ export function ProjectBrowser({
         onRedimensionar={(delta, actual) => redimensionar("estructura", delta, actual)}
       >
         {estructura}
+      </Seccion>
+
+      {/* **Los cuadros van junto a la estructura, no con los planos.** El árbol dice **dónde** está
+          cada cosa y el cuadro dice **qué es y cuántas hay**: son las dos preguntas que uno se hace
+          mirando el modelo, y se contestan una detrás de la otra. Exportar es lo que se hace
+          después, no lo que las emparenta. */}
+      <Seccion
+        titulo="Cuadros del modelo"
+        abierta={abiertas.has("cuadros")}
+        onAlternar={() => alternar("cuadros")}
+        alto={altos["cuadros"] ?? null}
+        onRedimensionar={(delta, actual) => redimensionar("cuadros", delta, actual)}
+      >
+        {cuadros}
       </Seccion>
 
       <Seccion

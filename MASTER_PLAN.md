@@ -30,6 +30,9 @@ del dibujo recortada**: el viewport se construía con coordenadas Z donde la lib
 coordenadas de papel. Estaba desde que se escribió `F7.4`, y el oráculo de entonces no podía verlo
 porque medía la extensión del archivo —que la marca el recuadro del viewport— y no las coordenadas.
 
+**Y `F10.5` cerró**: el modelo saca sus cuadros por categoría —300 perfiles con sus 24 columnas de
+pesos y medidas en 155 ms—, se ordenan, se filtran, cada fila lleva a su elemento y salen en CSV.
+
 **Lo que sigue, entonces, es `F10.4`**: el cuadro de hallazgos dentro de la lámina, que ya tiene
 debajo lo que le faltaba —capas con nombre y un plano que sale entero—. Y `F7.3`, el acotado, que es
 lo que hace de una proyección un plano de verdad.
@@ -103,18 +106,18 @@ Las **veintinueve** filas abiertas, de una vez. `⬜` no empezada · `❓` medid
 
 **Y en el orden de prioridad del 2026-09-02**, no en el de los números de fase.
 
-| Fase                                     | Filas abiertas                                                                                                                                                   |
-| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **5 — Interferencias**                   | ✅ **la fase entera** — `F5.5` cierra con las dos mitades: silenciar y agrupar _(35 interferencias en 13 problemas)_                                             |
-| **4 — Coordinación** ⭐                  | `F4.5` ◐ falta el trazo libre; las cotas ya viajan _(`F4.6` cerrada: el ciclo va y vuelve)_                                                                      |
-| **3 — Backend**                          | `F3.4` ✅ decidida por el usuario el 2026-09-02: **la petición espera**, y por qué                                                                               |
-| **9 — Diseño** ⭐                        | `F9.6` ⛔ — la decide el usuario, y son tres decisiones _(`F9.1` a `F9.5` cerradas)_                                                                             |
-| **11 — El portal se ve plano** ⭐        | `F11.7` ayuda con recorrido ⛔ — la decide el usuario _(`F11.1` a `F11.6` y `F11.8` a `F11.10` cerradas)_                                                        |
-| **10 — Etiquetas, informes y tablas** ⭐ | `F10.4` tablas en el plano ⬜ _(necesita `F7.2`)_ · `F10.5` tablas del modelo ⬜ _(`F10.1` a `F10.3` cerradas: el informe sale en papel y se pide por etiqueta)_ |
-| **1 — Visor**                            | `F1.13` ❓ — auditada; quedan tres nombres que decide el usuario                                                                                                 |
-| **7 — Planos, salida**                   | `F7.3` acotado y anotaciones · `F7.5` exportar a PDF ⬜ _(`F7.2` cerrada: capas con nombre, y el viewport recortaba el plano)_                                   |
-| **2 — Nubes de puntos**                  | `F2.1` a `F2.6` ⬜ — cargar, alinear, visualizar, medir contra el modelo, documentar el pipeline, y el gaussian splatting                                        |
-| **6 — Geo + BIM**                        | `F6.1` a `F6.5` ⬜ — Cesium, ortofoto y terreno propios, situar el IFC, 3D Tiles, y recibir de AeroPlanner                                                       |
+| Fase                                     | Filas abiertas                                                                                                                                                                |
+| ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **5 — Interferencias**                   | ✅ **la fase entera** — `F5.5` cierra con las dos mitades: silenciar y agrupar _(35 interferencias en 13 problemas)_                                                          |
+| **4 — Coordinación** ⭐                  | `F4.5` ◐ falta el trazo libre; las cotas ya viajan _(`F4.6` cerrada: el ciclo va y vuelve)_                                                                                   |
+| **3 — Backend**                          | `F3.4` ✅ decidida por el usuario el 2026-09-02: **la petición espera**, y por qué                                                                                            |
+| **9 — Diseño** ⭐                        | `F9.6` ⛔ — la decide el usuario, y son tres decisiones _(`F9.1` a `F9.5` cerradas)_                                                                                          |
+| **11 — El portal se ve plano** ⭐        | `F11.7` ayuda con recorrido ⛔ — la decide el usuario _(`F11.1` a `F11.6` y `F11.8` a `F11.10` cerradas)_                                                                     |
+| **10 — Etiquetas, informes y tablas** ⭐ | `F10.4` tablas en el plano ⬜ — ya tiene debajo `F7.2` _(`F10.1` a `F10.3` y `F10.5` cerradas: el informe sale en papel, se pide por etiqueta, y el modelo saca sus cuadros)_ |
+| **1 — Visor**                            | `F1.13` ❓ — auditada; quedan tres nombres que decide el usuario                                                                                                              |
+| **7 — Planos, salida**                   | `F7.3` acotado y anotaciones · `F7.5` exportar a PDF ⬜ _(`F7.2` cerrada: capas con nombre, y el viewport recortaba el plano)_                                                |
+| **2 — Nubes de puntos**                  | `F2.1` a `F2.6` ⬜ — cargar, alinear, visualizar, medir contra el modelo, documentar el pipeline, y el gaussian splatting                                                     |
+| **6 — Geo + BIM**                        | `F6.1` a `F6.5` ⬜ — Cesium, ortofoto y terreno propios, situar el IFC, 3D Tiles, y recibir de AeroPlanner                                                                    |
 
 ⭐ = prioridad del 2026-09-02. Las fases 2 y 6 **no se descartan, se posponen**: son las dos que no
 tienen ni un archivo con el que verificarse hoy —no hay nube de puntos ni ortofoto en el
@@ -3033,7 +3036,7 @@ que falta es lo que se imprime, se firma y se cuelga.
 | `F10.2` | La nota de la decisión: qué se guarda además del hilo de comentarios                   | ✅ decidida por el usuario: **no era un campo nuevo** |
 | `F10.3` | Informe de coordinación imprimible, con la foto del hallazgo y las mismas cifras       | ✅ ver abajo                                          |
 | `F10.4` | Tablas en el plano: el cuadro de hallazgos o de elementos dentro de la lámina que sale | ⬜                                                    |
-| `F10.5` | Tablas desde el modelo: cuadros por categoría con sus psets, y su exportación          | ⬜                                                    |
+| `F10.5` | Tablas desde el modelo: cuadros por categoría con sus psets, y su exportación          | ✅ ver abajo                                          |
 
 **Oráculo de la fase, y es exigente a propósito:** un informe **impreso en A4** que alguien lleva a
 una reunión de obra y con el que puede trabajar sin abrir la aplicación. Si hay que volver a la
@@ -3067,6 +3070,61 @@ Tres decisiones que no son obvias:
 - **La clave del temporal vive en la sesión y no en la URL.** Un parámetro lo escribe cualquiera; y
   la sesión guarda además **a qué obra pertenece**, porque con dos pestañas abiertas en dos
   proyectos el «confirmar» de una podría escribir en la otra. Tiene su prueba.
+
+### `F10.5` — ✅ Cuadros desde el modelo, y las columnas se descubren
+
+Es el cuadro de carpinterías o de pilares de una oficina: **todos los elementos de una categoría con
+sus propiedades, en filas**. El visor ya sabía enseñar las propiedades de un elemento al clicarlo; lo
+que faltaba es verlas de todos a la vez, que es cuando se ve lo que falta — el perfil sin nombre, los
+diez muros sin material.
+
+Medido sobre el modelo de 32 MB del usuario: `IFCMEMBER` da **300 filas de 805 y 24 columnas en
+155 ms**, con los psets de cantidades de acero y sus unidades leídas del archivo —peso en kg,
+volumen en m³, superficie en m², alto y ancho en mm—.
+
+Cuatro decisiones, y las cuatro salieron de medir:
+
+- **Las columnas se descubren, no se declaran.** Un IFC no tiene un juego fijo de propiedades:
+  dependen del exportador y de lo que el modelador rellenó. Una lista escrita a mano enseñaría
+  columnas vacías y esconderia las que ese modelo sí trae. Y se **ordenan por cuántas filas las
+  llevan de verdad**: una propiedad presente en 2 de 300 muros no es una columna, es una excepción.
+- **Solo las categorías con geometría**, y esto era un defecto de la primera versión: las tres
+  categorías más numerosas de ese archivo son `IFCPROPERTYSINGLEVALUE` (**23.946**), `IFCPROPERTYSET`
+  (839) e `IFCSIUNIT` (10) — fontanería del formato, no cosas del edificio. La categoría por defecto
+  era la primera de esa lista, así que lo primero que se veía era basura. El filtro es «tener
+  geometría» y no una lista negra de clases: un cuadro es de cosas que se ven y se cuentan, y esa es
+  la definición.
+- **La tabla va flotando sobre el modelo, no en el panel.** El panel mide unos 320 px y el cuadro
+  trae veinticuatro columnas: ahí dentro no es una tabla, es una lista de celdas cortadas. Mismo
+  reparto que la nota flotante.
+- **El nombre de cada fila lleva al elemento.** Es lo que convierte el cuadro en una herramienta de
+  revisión y no en una tabla: se ve el perfil raro entre trescientos y se va a mirarlo donde está.
+
+> **El oráculo, y es el que importa de un cuadro.** Lo que hay que comprobar no es que salga, es que
+> **diga lo mismo que la ficha**: el cuadro lee trescientos elementos y la ficha uno, y si las dos
+> rutas discreparan en un valor o en una unidad, el cuadro sería una tabla bonita con datos que no
+> son los del modelo. `diag.html?modo=cuadros` elige una fila y la compara **celda por celda** con la
+> ficha de ese mismo elemento: **21 de 21**. Por eso el cuadro reusa `describeItemById` en vez de
+> leer por su cuenta.
+>
+> Y el CSV se lee de vuelta con un lector mínimo escrito aparte —otra implementación, que es lo que
+> lo hace oráculo—: 300 filas, 26 columnas, todas con el mismo número de celdas.
+
+> **Y una prueba que pasaba sin comprobar nada.** El cruce con la ficha decía «0 de 0 celdas iguales
+> — cuadra (bien)» cuando el elemento no traía propiedades, que es el caso de casi todo `Piso 5.ifc`.
+> Cero celdas comparadas no es verde, es que no se miró: ahora lo dice y sugiere una categoría que sí
+> las traiga.
+
+> **Y un defecto propio, encontrado ordenando en pantalla.** La ordenación numérica limpiaba el punto
+> como separador de miles, así que «98.1597» se convertía en 981597 y ordenar por peso daba 98,16 ·
+> 9,15 · 91,07 — el orden de texto disfrazado de numérico. **El punto no se puede dar por separador
+> de miles**: si hay coma, la coma es el decimal; si no, el punto lo es. Se ve mirando los cinco
+> primeros valores, y no se ve leyendo el código.
+
+**Lo que queda fuera, y por qué:** el tope de 300 filas. Leer las propiedades de un elemento con sus
+relaciones es una consulta, así que un cuadro de cinco mil congela la pestaña; trescientas alcanzan
+para comprobar un cuadro y ver qué falta, y el total sale de una consulta barata y se dice al lado.
+Subirlo pide leer en segundo plano, que es otra tarea.
 
 ### `F10.1` — ✅ Etiquetas, y por qué **no** son texto libre
 

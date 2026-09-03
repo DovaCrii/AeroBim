@@ -5,6 +5,32 @@ Este proyecto sigue [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Añadido — cuadros desde el modelo: una categoría, sus elementos y sus propiedades (`F10.5`, 2026-09-02)
+
+**Es el cuadro de carpinterías o de pilares de una oficina.** El visor sabía enseñar las propiedades
+de un elemento al clicarlo; ahora las enseña de todos a la vez, que es cuando se ve lo que falta —el
+perfil sin nombre, los diez muros sin material—. Medido sobre un modelo de 32 MB: 300 filas de 805
+perfiles con 24 columnas en 155 ms, con los pesos en kg, los volúmenes en m³ y las medidas en mm
+leídas del propio archivo.
+
+Se ordena por cualquier columna, se filtra por texto, y **el nombre de cada fila lleva al elemento en
+el modelo**: es lo que lo convierte en una herramienta de revisión y no en una tabla. Y se descarga
+como CSV, con `;` y BOM igual que el informe del servidor.
+
+Tres cosas que no se ven y sostienen lo demás:
+
+- **Las columnas se descubren de los datos** y se ordenan por cuántas filas las llevan. Un IFC no
+  tiene un juego fijo de propiedades, así que una lista escrita a mano enseñaría columnas vacías y
+  esconderia las que ese modelo sí trae.
+- **Solo se ofrecen las categorías con geometría.** Las tres más numerosas de ese archivo son
+  `IFCPROPERTYSINGLEVALUE` (23.946), `IFCPROPERTYSET` (839) e `IFCSIUNIT` (10): fontanería del
+  formato, no cosas del edificio. Sin el filtro, lo primero que se veía era eso.
+- **El cuadro y la ficha de un elemento leen por el mismo camino**, así que no pueden discrepar sobre
+  un valor ni sobre una unidad. Hay una comprobación que lo cruza celda por celda.
+
+Se leen como mucho 300 elementos por cuadro —leer propiedades es una consulta por elemento— y
+**cuando se corta se dice**, con el total al lado.
+
 ### Corregido — el DXF de un plano generado salía con la mitad del dibujo recortada (`F7.2`, 2026-09-02)
 
 **El viewport se construía con las coordenadas equivocadas y el recorte se comía el plano.** La

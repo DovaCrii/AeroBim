@@ -58,11 +58,14 @@ import {
   type ConvertLocation,
   type Converter,
 } from "./converter.js";
+import { categoriasDe, cuadroDe, type Schedule } from "./cuadros.js";
 import { DrawingMaker, type DrawingView, type GeneratedDrawing } from "./drawings.js";
 import { GridOverlay } from "./grid.js";
 
 export type { DrawingLayerInfo, DrawingView, GeneratedDrawing } from "./drawings.js";
 export { CAPAS } from "./drawings.js";
+export type { Schedule, ScheduleColumn, ScheduleRow } from "./cuadros.js";
+export { csvDe, encabezadoDe, MAXIMO_COLUMNAS, MAXIMO_FILAS } from "./cuadros.js";
 import { PlanOverlay, type LoadedPlan, type PlanHit, type PlanTransform } from "./plan.js";
 
 export type { IfcGridAxis } from "@aerobim/bim-core";
@@ -2526,6 +2529,66 @@ export class BimViewer {
     });
 
     return describeItem(modelId, localId, data, this.unitsByModel.get(modelId) ?? NO_IFC_UNITS);
+  }
+
+  /**
+   * Selecciona un elemento por su identificador y lo encuadra. `F10.5`.
+   *
+   * **Es el camino del cuadro al modelo**, que es lo que convierte una tabla en una herramienta de
+   * revisión: se ve el perfil raro entre trescientas filas y se va a mirarlo donde está. Hace lo
+   * mismo que abrir una observación —seleccionar y encuadrar— sin pasar por el GUID, porque aquí el
+   * elemento ya se conoce por su identificador local del propio modelo.
+   */
+  async selectById(modelId: string, localId: number): Promise<PickedItem | null> {
+    this.assertAlive();
+
+    const model = this.fragments.list.get(modelId);
+    if (!model) return null;
+
+    this.selection = { modelId, localId };
+    await this.applyHighlights();
+    await this.frameItem(modelId, localId);
+    return this.describeItemById(modelId, localId);
+  }
+
+  /**
+   * Qué categorías de IFC hay en un modelo abierto, y cuántos elementos tiene cada una. `F10.5`.
+   *
+   * Es la lista con la que se elige un cuadro: sin las cuentas, elegir categoría es adivinar cuál
+   * de las cuarenta que trae el archivo tiene algo dentro.
+   */
+  async categoriesOf(modelId: string): Promise<ReadonlyMap<string, number>> {
+    this.assertAlive();
+
+    const model = this.fragments.list.get(modelId);
+    if (!model) return new Map();
+    return categoriasDe(model);
+  }
+
+  /**
+   * El cuadro de una categoría: sus elementos en filas y sus propiedades en columnas. `F10.5`.
+   *
+   * **Reusa `describeItemById`**, que es el mismo camino que la ficha de un elemento al clicarlo, y
+   * eso no es una comodidad: es lo que hace que el cuadro y la ficha no puedan discrepar sobre el
+   * valor de una propiedad ni sobre su unidad. Con una lectura propia dentro del cuadro, el día que
+   * cambie el manejo de unidades una de las dos se queda atrás y nadie se entera.
+   */
+  async scheduleOf(
+    modelId: string,
+    category: string,
+    onProgress?: (leidos: number, de: number) => void,
+  ): Promise<Schedule | null> {
+    this.assertAlive();
+
+    const model = this.fragments.list.get(modelId);
+    if (!model) return null;
+
+    return cuadroDe(
+      model,
+      category,
+      (localId) => this.describeItemById(modelId, localId),
+      onProgress,
+    );
   }
 
   /**

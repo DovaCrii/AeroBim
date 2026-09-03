@@ -13,7 +13,7 @@ import * as OBC from "@thatopen/components";
 import * as OBF from "@thatopen/components-front";
 import * as THREE from "three";
 import { parseDxf, suggestMetresPerUnit } from "@aerobim/bim-core";
-import { BimViewer, CAPAS } from "@aerobim/viewer";
+import { BimViewer, CAPAS, csvDe, encabezadoDe, MAXIMO_FILAS } from "@aerobim/viewer";
 import { createPdfiumEngine } from "@embedpdf/engines/pdfium-direct-engine";
 import rutaWasm from "@embedpdf/pdfium/pdfium.wasm?url";
 
@@ -1046,6 +1046,194 @@ export async function psets(
     log(`\n  ${grupo.name}`);
     for (const p of grupo.properties) log(linea(p));
   }
+}
+
+/**
+ * Un cuadro desde el modelo, y su CSV, para `F10.5`.
+ *
+ * **Lo que hay que comprobar de un cuadro no es que salga, es que diga lo mismo que la ficha.** El
+ * cuadro lee las propiedades de trescientos elementos y la ficha las de uno; si las dos rutas
+ * discreparan en una unidad o en un valor, el cuadro sería una tabla bonita con datos que no son los
+ * del modelo. Así que se elige una fila al azar del cuadro y se compara **celda por celda** contra
+ * lo que devuelve la ficha de ese mismo elemento.
+ *
+ * Lo demás que se mide: que las columnas salgan ordenadas por cuántas filas las llevan —que es lo
+ * que hace legible un cuadro de un modelo con cuarenta psets—, que los topes se digan cuando cortan,
+ * y que el CSV **se pueda leer de vuelta** con el mismo número de filas y columnas.
+ *
+ * Uso: `/diag.html?modo=cuadros&ifc=/samples/Piso%205.ifc&categoria=IFCWALL`
+ *
+ * Sin `categoria` toma **la más numerosa del modelo**, para que el modo sirva en cualquier archivo
+ * sin tener que saber antes qué trae dentro.
+ */
+export async function cuadros(
+  container: HTMLElement,
+  ifcUrl: string,
+  log: Log,
+  _espera = 0,
+  categoria?: string,
+): Promise<void> {
+  const viewer = await BimViewer.create(container);
+  const bytes = new Uint8Array(await (await fetch(ifcUrl)).arrayBuffer());
+  const loaded = await viewer.loadIfc(bytes, ifcUrl);
+
+  const porCategoria = await viewer.categoriesOf(loaded.id);
+  const ordenadas = [...porCategoria.entries()].sort((una, otra) => otra[1] - una[1]);
+  log(`categorias en el modelo: ${ordenadas.length}`);
+  for (const [nombre, cuantos] of ordenadas.slice(0, 8)) log(`  ${nombre}: ${cuantos}`);
+  if (ordenadas.length > 8) log(`  … y ${ordenadas.length - 8} mas`);
+
+  const elegida = categoria ?? ordenadas[0]?.[0];
+  if (elegida === undefined) {
+    log("\nel modelo no trae ninguna categoria IFC: no hay cuadro que armar");
+    return;
+  }
+
+  log(`\ncuadro de ${elegida}:`);
+  const cuadro = await viewer.scheduleOf(loaded.id, elegida);
+  if (cuadro === null) {
+    log("  el modelo no respondio");
+    return;
+  }
+
+  log(
+    `  ${cuadro.rows.length} filas de ${cuadro.total} · ${cuadro.columns.length} columnas` +
+      `${cuadro.hiddenColumns > 0 ? ` (+${cuadro.hiddenColumns} fuera del tope)` : ""} · ` +
+      `${Math.round(cuadro.elapsedMs)} ms`,
+  );
+  if (cuadro.truncated) log(`  **cortado por el tope de ${MAXIMO_FILAS} filas**, y lo dice`);
+
+  log("\n  columnas, por cuantas filas las llevan:");
+  for (const columna of cuadro.columns) {
+    // Va el conteo y no solo el porcentaje: con 300 filas, una columna que está en una sola
+    // redondea a «0 %» y se lee como un fallo cuando lo que dice es «1 de 300».
+    log(
+      `    ${String(columna.filled).padStart(4)} de ${cuadro.rows.length}  ${encabezadoDe(columna)}`,
+    );
+  }
+
+  // **El orden de las columnas es parte de lo que hace legible el cuadro**, así que se comprueba.
+  const enOrden = cuadro.columns.every(
+    (columna, i) => i === 0 || cuadro.columns[i - 1]!.filled >= columna.filled,
+  );
+  log(`\n  ordenadas de mas rellena a menos: ${enOrden ? "si (bien)" : "NO (mal)"}`);
+
+  // --- El oráculo: el cuadro y la ficha no pueden discrepar -------------------------
+  const fila = cuadro.rows[Math.floor(cuadro.rows.length / 2)];
+  if (fila === undefined) {
+    log("\n  el cuadro salio vacio: no hay nada que cruzar con la ficha");
+    return;
+  }
+
+  const ficha = await viewer.describeItemById(loaded.id, fila.localId);
+  if (ficha === null) {
+    log("\n  la ficha de esa fila no devolvio datos");
+    return;
+  }
+
+  // Se rearma el diccionario de la ficha con las mismas claves que usa el cuadro.
+  const deLaFicha = new Map<string, string>();
+  for (const atributo of ficha.attributes) {
+    if (!deLaFicha.has(atributo.name)) deLaFicha.set(atributo.name, atributo.value);
+  }
+  for (const grupo of ficha.groups) {
+    for (const propiedad of grupo.properties) {
+      const clave = `${grupo.name} · ${propiedad.name}`;
+      if (!deLaFicha.has(clave)) deLaFicha.set(clave, propiedad.value);
+    }
+  }
+
+  let iguales = 0;
+  const distintas: string[] = [];
+  for (const [clave, valor] of fila.values) {
+    const enFicha = deLaFicha.get(clave);
+    if (enFicha === valor) iguales += 1;
+    else distintas.push(`${clave}: cuadro=«${valor}» ficha=«${enFicha ?? "(no esta)"}»`);
+  }
+
+  // **Cero celdas comparadas no es «cuadra»: es que no se comprobó nada.** Un elemento sin
+  // propiedades hace pasar este cruce sin mirar nada, y eso es peor que fallar — parece verde. Se
+  // dice, y se dice qué hacer: elegir una categoría que sí traiga propiedades.
+  if (fila.values.size === 0) {
+    log(
+      `\n  el elemento ${fila.guid ?? fila.localId} no trae ninguna propiedad, asi que ` +
+        `**el cruce con la ficha no comprueba nada**.\n` +
+        `  Prueba con una categoria que si las traiga: ?modo=cuadros&categoria=IFCDOOR`,
+    );
+  } else {
+    log(
+      `\n  cruce con la ficha del elemento ${fila.guid ?? fila.localId}: ` +
+        `${iguales} de ${fila.values.size} celdas iguales — ` +
+        `${distintas.length === 0 ? "cuadra (bien)" : "NO CUADRA (mal)"}`,
+    );
+    for (const diferencia of distintas.slice(0, 6)) log(`    ${diferencia}`);
+  }
+
+  // --- Y el CSV, leído de vuelta ---------------------------------------------------
+  const csv = csvDe(cuadro);
+  const conBom = csv.startsWith("﻿");
+  const lineas = csv.replace(/^﻿/, "").trimEnd().split("\r\n");
+  const cabecera = lineas[0] ?? "";
+  log(
+    `\n  CSV: ${Math.round(csv.length / 1024)} KB · ${lineas.length - 1} filas + cabecera · ` +
+      `BOM ${conBom ? "si (bien)" : "NO (mal, Excel castellano parte las tildes)"}`,
+  );
+  log(`    cabecera: ${cabecera.slice(0, 160)}${cabecera.length > 160 ? "…" : ""}`);
+
+  const columnasEsperadas = cuadro.columns.length + 2;
+  const columnasLeidas = celdasDe(cabecera).length;
+  log(
+    `    columnas: ${columnasLeidas} leidas, ${columnasEsperadas} esperadas (GUID + Nombre + ` +
+      `${cuadro.columns.length}) — ${columnasLeidas === columnasEsperadas ? "cuadra (bien)" : "NO CUADRA (mal)"}`,
+  );
+  log(
+    `    filas: ${lineas.length - 1} leidas, ${cuadro.rows.length} esperadas — ` +
+      `${lineas.length - 1 === cuadro.rows.length ? "cuadra (bien)" : "NO CUADRA (mal)"}`,
+  );
+
+  // **Y que un valor con punto y coma no parta la fila**, que es el defecto clásico de un CSV
+  // escrito a mano y aparece de verdad: «Muro; 20 cm» es un nombre de tipo posible.
+  const conSeparador = lineas
+    .slice(1)
+    .map((fila) => celdasDe(fila).length)
+    .filter((cuantas) => cuantas !== columnasEsperadas);
+  log(
+    `    todas las filas con el mismo numero de celdas: ` +
+      `${conSeparador.length === 0 ? "si (bien)" : `NO (mal, ${conSeparador.length} filas descuadran)`}`,
+  );
+}
+
+/**
+ * Las celdas de una línea de CSV con `;`, respetando las comillas.
+ *
+ * Es un lector mínimo **a propósito**: hace de oráculo del escritor, y para eso tiene que ser otra
+ * implementación. Si aquí se llamara a la misma función que escribe, lo único que se comprobaría es
+ * que es consistente consigo misma.
+ */
+function celdasDe(linea: string): readonly string[] {
+  const celdas: string[] = [];
+  let actual = "";
+  let dentro = false;
+
+  for (let i = 0; i < linea.length; i += 1) {
+    const caracter = linea[i]!;
+    if (dentro) {
+      if (caracter === '"') {
+        if (linea[i + 1] === '"') {
+          actual += '"';
+          i += 1;
+        } else dentro = false;
+      } else actual += caracter;
+      continue;
+    }
+    if (caracter === '"') dentro = true;
+    else if (caracter === ";") {
+      celdas.push(actual);
+      actual = "";
+    } else actual += caracter;
+  }
+  celdas.push(actual);
+  return celdas;
 }
 
 /** El árbol espacial completo, para ver cómo viene estructurado el modelo. */
