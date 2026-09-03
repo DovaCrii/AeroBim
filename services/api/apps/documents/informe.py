@@ -38,10 +38,15 @@ licencia BSD sin condiciones, y **es el unico candidato que corre en la maquina 
 gate** — con WeasyPrint (necesita GTK del sistema) o con LibreOffice headless (~500 MB y un proceso
 externo) el informe solo se generaria en la VM, o sea sin oraculo que lo compruebe.
 
-## El membrete es el de la casa, y sale de su propio formato
+## El membrete es el de la casa, y **vive en `membrete.py`**
 
 El usuario entrego `Formato Carta 2023 Nuevo Logo.docx` —el formato de carta de J.E.J. Ingenieria—
-para que el informe salga con el. **Todo lo que hay abajo se leyo de ese archivo**, no se estimo:
+para que el informe salga con el, y **todo lo que hay abajo se leyo de ese archivo**, no se estimo.
+
+Las piezas y la funcion que las dibuja se mudaron a `apps/documents/membrete.py` cuando la lamina de
+un plano —`F7.5`— empezo a necesitar el mismo membrete: con una copia en cada salida, la segunda se
+queda atras en el primer cambio y el producto manda dos papeles distintos con el mismo nombre. La
+tabla de lo medido se queda aqui porque es donde se midio:
 
 | Lo que dice el formato | Valor            | Consecuencia                                     |
 | ---------------------- | ---------------- | ------------------------------------------------ |
@@ -82,6 +87,7 @@ from django.db.models import Q
 from django.utils import timezone
 from django.utils.html import escape
 
+from apps.documents.membrete import AZUL, GRIS, MARGEN_MM, sellar
 from apps.documents.models import Observacion
 
 #: Los ordenes que se ofrecen, y el criterio de cada uno. La clave es lo que llega por la URL.
@@ -110,39 +116,6 @@ ESTADOS = {
     "cerradas": (Observacion.CERRADA, Observacion.DESCARTADA),
     "todo": None,
 }
-
-#: El membrete de J.E.J., leido de `Formato Carta 2023 Nuevo Logo.docx`. Ver el docstring.
-#:
-#: Cada pieza con **el tamaño al que Word la coloca**, en milimetros, para que el informe se parezca
-#: a la carta y no a una version libre de ella.
-MEMBRETE = {
-    "logo": ("img/membrete/jej-logo.png", 34.0, 16.3),
-    "arco": ("img/membrete/jej-arco.png", 40.7, 41.9),
-}
-
-#: El bloque de contacto del pie, **como texto y no como imagen**. Ver el docstring del modulo.
-#:
-#: La primera linea va en el azul de la casa y en negrita, como en la carta; el resto en gris.
-CONTACTO = (
-    "jej.cl",
-    "E-mail: jej@jej.cl",
-    "Fono: +56 2 2722 5000",
-    "Avda. Apoquindo 2930, Piso 11",
-    "Las Condes, Santiago de Chile.",
-)
-
-#: Los colores de la casa, muestreados del propio logotipo y con su contraste sobre papel blanco.
-AZUL = "#1F428D"  # 9,45:1 — sirve para texto
-AZUL_CLARO = "#68B8E5"  # 2,19:1 — decoracion, nunca texto
-GRIS = "#585756"  # 7,21:1
-
-#: La pagina, tal como la declara el formato: **Carta y no A4**, con sus margenes.
-#:
-#: Los laterales y el de abajo son los de la carta. **El de arriba es 38 y no los 52,4 del
-#: formato**, y es una diferencia deliberada: en una carta ese margen tan alto deja sitio al
-#: destinatario y a la referencia, que aqui no hay — el membrete acaba en la linea de los 28 mm. Con
-#: 52,4 quedaban **24 mm de papel en blanco** entre la linea y el titulo, medidos en la prueba.
-MARGEN_MM = {"izquierda": 30.0, "derecha": 30.0, "arriba": 38.0, "abajo": 26.8}
 
 #: Tope de hallazgos por informe.
 #:
@@ -355,19 +328,6 @@ def _miniatura(observacion: Observacion, alto_mm: float):
         return None
 
 
-def _pieza(clave: str):
-    """La ruta de una pieza del membrete, o `None` si no esta.
-
-    **Con el buscador de estaticos de Django y no con una ruta a mano**: asi funciona igual en
-    desarrollo y con `collectstatic` hecho, que son dos sitios distintos en disco.
-    """
-    from django.contrib.staticfiles import finders
-
-    ruta, _ancho, _alto = MEMBRETE[clave]
-    encontrada = finders.find(ruta)
-    return encontrada if encontrada else None
-
-
 def pdf_de(proyecto, opciones: Opciones, *, pedido_por=None) -> bytes:
     """Los bytes del informe. Quien llama decide si los manda como descarga o los guarda."""
     from reportlab.lib import colors
@@ -455,91 +415,19 @@ def pdf_de(proyecto, opciones: Opciones, *, pedido_por=None) -> bytes:
     def membrete(lienzo, doc):
         """El membrete de la casa en cada pagina, y el pie que dice de donde salio la hoja.
 
-        **Una hoja suelta tiene que decir de donde salio.** Un informe se fotocopia, se reparte y se
-        queda en una carpeta seis meses; una pagina sin obra ni fecha es una pagina que alguien va a
-        leer creyendo que es la de hoy.
-
-        Las tres piezas se dibujan **si estan**: ver el docstring del modulo, un membrete que falta
-        no tumba el informe.
+        **Lo dibuja `apps/documents/membrete.py`, en una sola copia.** Se extrajo ahi cuando la
+        lamina de un plano —`F7.5`— empezo a necesitar el mismo membrete: con una copia en cada
+        salida, la segunda se queda atras en el primer cambio y el producto manda dos papeles
+        distintos con el mismo nombre.
         """
-        from reportlab.lib.utils import ImageReader
-
-        lienzo.saveState()
-
-        # El arco de esquina, abajo a la derecha y **por debajo de todo**: es decoracion, y va
-        # primero para que ni el texto del pie ni el numero de pagina queden tapados.
-        arco = _pieza("arco")
-        if arco:
-            _ruta, ancho_mm, alto_mm = MEMBRETE["arco"]
-            lienzo.drawImage(
-                ImageReader(arco),
-                ancho_pagina - ancho_mm * mm,
-                0,
-                width=ancho_mm * mm,
-                height=alto_mm * mm,
-                mask="auto",
-            )
-
-        logo = _pieza("logo")
-        if logo:
-            _ruta, ancho_mm, alto_mm = MEMBRETE["logo"]
-            lienzo.drawImage(
-                ImageReader(logo),
-                MARGEN_MM["izquierda"] * mm,
-                alto_pagina - 14 * mm - alto_mm * mm,
-                width=ancho_mm * mm,
-                height=alto_mm * mm,
-                mask="auto",
-            )
-
-        # El bloque de contacto, compuesto y no pegado. De abajo hacia arriba, con la ultima linea
-        # a 12 mm del borde, que es donde la pone la carta.
-        for indice, linea in enumerate(reversed(CONTACTO)):
-            alto = (12 + indice * 3.4) * mm
-            if indice == len(CONTACTO) - 1:
-                lienzo.setFont("Helvetica-Bold", 8)
-                lienzo.setFillColor(colors.HexColor(AZUL))
-            else:
-                lienzo.setFont("Helvetica", 7)
-                lienzo.setFillColor(colors.HexColor(GRIS))
-            lienzo.drawString(MARGEN_MM["izquierda"] * mm, alto, linea)
-
-        # La franja de la obra, justo debajo del logo: es lo que convierte la carta en un informe.
-        lienzo.setFillColor(colors.HexColor(AZUL))
-        lienzo.setFont("Helvetica-Bold", 8)
-        lienzo.drawRightString(
-            ancho_pagina - MARGEN_MM["derecha"] * mm,
-            alto_pagina - 20 * mm,
-            f"{proyecto.codigo} · Informe de coordinación",
+        sellar(
+            lienzo,
+            ancho_pagina=ancho_pagina,
+            alto_pagina=alto_pagina,
+            titulo=f"{proyecto.codigo} · Informe de coordinación",
+            fecha=hoy,
+            pagina=doc.page,
         )
-        lienzo.setFillColor(colors.HexColor(GRIS))
-        lienzo.setFont("Helvetica", 7)
-        lienzo.drawRightString(
-            ancho_pagina - MARGEN_MM["derecha"] * mm,
-            alto_pagina - 24 * mm,
-            hoy.isoformat(),
-        )
-        lienzo.setLineWidth(0.6)
-        lienzo.setStrokeColor(colors.HexColor(AZUL_CLARO))
-        lienzo.line(
-            MARGEN_MM["izquierda"] * mm,
-            alto_pagina - 28 * mm,
-            ancho_pagina - MARGEN_MM["derecha"] * mm,
-            alto_pagina - 28 * mm,
-        )
-
-        # **El numero de pagina termina antes del arco**, no en el margen derecho: el arco ocupa los
-        # 40,7 mm de la esquina, y alineado al margen el texto se metia diez milimetros debajo del
-        # azul. Se vio en la primera prueba impresa.
-        _r, ancho_arco, _a = MEMBRETE["arco"]
-        lienzo.setFillColor(colors.HexColor(GRIS))
-        lienzo.setFont("Helvetica", 7)
-        lienzo.drawRightString(
-            ancho_pagina - (ancho_arco + 4) * mm,
-            14 * mm,
-            f"Página {doc.page} · sacado de AeroBim el {hoy.isoformat()}",
-        )
-        lienzo.restoreState()
 
     documento.build(piezas, onFirstPage=membrete, onLaterPages=membrete)
     return memoria.getvalue()

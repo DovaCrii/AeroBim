@@ -71,6 +71,11 @@ urlpatterns = [
         views.InformeCoordinacionView.as_view(),
         name="informe-coordinacion",
     ),
+    path(
+        "proyectos/<uuid:pk>/lamina/",
+        views.LaminaPdfView.as_view(),
+        name="lamina-pdf",
+    ),
     path("observaciones/<uuid:pk>/", views.ObservacionView.as_view(), name="observacion"),
     path(
         "observaciones/<uuid:pk>/comentar/",

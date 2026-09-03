@@ -416,7 +416,9 @@ def test_las_piezas_del_membrete_estan_donde_se_las_busca():
     desarrollo y con `collectstatic` hecho."""
     from django.contrib.staticfiles import finders
 
-    from apps.documents.informe import MEMBRETE
+    # Las piezas viven en `membrete.py` desde que la lámina de un plano —`F7.5`— necesitó el mismo
+    # membrete: con una copia en cada salida, la segunda se queda atrás en el primer cambio.
+    from apps.documents.membrete import MEMBRETE
 
     for clave, (ruta, ancho, alto) in MEMBRETE.items():
         assert finders.find(ruta), f"falta la pieza «{clave}» del membrete: {ruta}"
@@ -426,10 +428,12 @@ def test_las_piezas_del_membrete_estan_donde_se_las_busca():
 @pytest.mark.django_db
 def test_un_membrete_que_falta_no_tumba_el_informe(proyecto, revisor, proyectista, monkeypatch):
     """**Un informe sin logo es utilizable; una descarga que falla no.**"""
-    import apps.documents.informe as modulo
+    # **Se parchea `membrete.pieza` y no la de `informe`**: el dibujo del membrete se mudó a su
+    # propio módulo, y parchear donde ya no está dejaría la prueba pasando sin comprobar nada.
+    import apps.documents.membrete as modulo
 
     anotar(proyecto, revisor, proyectista, "Un hallazgo")
-    monkeypatch.setattr(modulo, "_pieza", lambda _clave: None)
+    monkeypatch.setattr(modulo, "pieza", lambda _clave: None)
 
     contenido = pdf_de(proyecto, Opciones())
 
@@ -447,7 +451,7 @@ def test_el_azul_de_la_casa_se_lee_impreso():
     Por eso el primero titula y el segundo solo dibuja la línea: un texto en el azul claro no se
     lee, y menos fotocopiado.
     """
-    from apps.documents.informe import AZUL, AZUL_CLARO, GRIS
+    from apps.documents.membrete import AZUL, AZUL_CLARO, GRIS
 
     def ratio(hex_color: str) -> float:
         def canal(v: float) -> float:

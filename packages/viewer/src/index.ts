@@ -4421,6 +4421,22 @@ export class BimViewer {
   }
 
   /**
+   * La lámina de un plano generado, lista para que el servidor la dibuje en PDF. `F7.5`.
+   *
+   * **El navegador proyecta y el servidor compone el papel**, y ese reparto no es casual: proyectar
+   * aristas necesita un renderizador —en un servidor sin pantalla es justo lo que no hay— y el
+   * membrete de J.E.J. ya vive en el servidor, medido del formato de la oficina.
+   *
+   * Lo que sale de aquí son **los segmentos y los textos ya situados en coordenadas del dibujo**,
+   * que es lo mismo que se escribe en el DXF: así el PDF y el DXF dibujan el mismo plano. Se
+   * recorren las capas encendidas, porque el papel tiene que decir lo mismo que la pantalla.
+   */
+  sheetOf(id: string): { nombre: string; segmentos: number[][]; textos: unknown[][] } | null {
+    this.assertAlive();
+    return this.drawings.sheet(id);
+  }
+
+  /**
    * Lleva las cotas medidas sobre el modelo a una lámina generada. `F7.3`.
    *
    * **Es el acotado del plano sin medir dos veces.** Se mide sobre el modelo con el ajuste a

@@ -15,6 +15,7 @@ import * as OBC from "@thatopen/components";
 import * as THREE from "three";
 import {
   CuadrosEnPlano,
+  type MedidasDeTabla,
   registrarExportador,
   type TablaDeCuadro,
   trazarTabla,
@@ -121,6 +122,14 @@ export class DrawingMaker {
   private cuadros: CuadrosEnPlano | null = null;
   /** El sistema de cotas lineales, creado la primera vez que se acota. Ver {@link addDimensions}. */
   private cotas: OBC.LinearAnnotations | null = null;
+  /**
+   * Las tablas puestas, con lo que hace falta para volver a trazarlas. Ver {@link sheet}.
+   *
+   * **Se apuntan aquí y no se leen del sistema de anotación**: la lámina del PDF necesita los
+   * textos ya situados, y `trazarTabla` los calcula de la tabla y sus medidas. Ir a buscarlos
+   * dentro de los grupos que dibuja la librería sería leer sus entrañas.
+   */
+  private readonly tablas: { tabla: TablaDeCuadro; medidas: MedidasDeTabla }[] = [];
 
   constructor(private readonly components: OBC.Components) {}
 
@@ -200,6 +209,7 @@ export class DrawingMaker {
     };
 
     this.cuadros.add(plano.drawing, { tabla, medidas });
+    this.tablas.push({ tabla, medidas });
 
     // **Y el viewport crece para incluirla.** `top`/`bottom` van en coordenadas de papel —la Y del
     // papel es `−Z`, ver el comentario de `create`— así que la tabla, que cae por debajo del dibujo
@@ -405,6 +415,54 @@ export class DrawingMaker {
         [{ drawing: plano.drawing, viewports: [{ viewport: plano.viewport }] }],
         paper,
       );
+  }
+
+  /**
+   * La lámina lista para que el servidor la dibuje en PDF. `F7.5`.
+   *
+   * **Lo que sale es lo mismo que se escribe en el DXF**, y por eso el PDF y el DXF dibujan el
+   * mismo plano: los segmentos de las capas **encendidas** —el papel tiene que decir lo mismo que
+   * la pantalla— y los textos de las tablas ya situados por `trazarTabla`.
+   *
+   * **Las cotas no salen aquí, y es una carencia que conviene decir.** Sus líneas y su número los
+   * construye la librería dentro de sus propios grupos, y sacarlos de ahí sería leer sus entrañas y
+   * romperse en su siguiente versión. En el DXF sí van, porque el exportador de la librería las
+   * conoce. Para el PDF hace falta el mismo camino que las tablas: calcular su trazo nosotros.
+   */
+  sheet(id: string): { nombre: string; segmentos: number[][]; textos: unknown[][] } | null {
+    const plano = this.planos.get(id);
+    if (plano === undefined) return null;
+
+    const apagadas = new Set(
+      [...plano.drawing.layers].filter(([, capa]) => !capa.visible).map(([nombre]) => nombre),
+    );
+
+    const segmentos: number[][] = [];
+    plano.drawing.three.traverse((objeto) => {
+      const lineas = objeto as THREE.LineSegments;
+      if (!lineas.isLineSegments || !lineas.visible) return;
+      if (apagadas.has(lineas.name)) return;
+
+      const posiciones = lineas.geometry.getAttribute("position");
+      if (posiciones === undefined) return;
+      // Se leen X y Z, que es el plano del dibujo: la misma pareja que escribe el exportador.
+      for (let i = 0; i + 1 < posiciones.count; i += 2) {
+        segmentos.push([
+          posiciones.getX(i),
+          posiciones.getZ(i),
+          posiciones.getX(i + 1),
+          posiciones.getZ(i + 1),
+        ]);
+      }
+    });
+
+    const textos: unknown[][] = [];
+    for (const puesta of this.tablas) {
+      const trazo = trazarTabla(puesta.tabla, puesta.medidas);
+      for (const texto of trazo.texts) textos.push([texto.x, texto.z, texto.height, texto.text]);
+    }
+
+    return { nombre: plano.info.name, segmentos, textos };
   }
 
   /** Cierra un plano generado y libera su geometría. */

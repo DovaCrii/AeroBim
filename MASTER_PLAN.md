@@ -40,9 +40,15 @@ saca sus cuadros y la lámina los lleva dentro.
 salen en el DXF con su número, así que no hay que acotar dos veces. Quedan ángulos, pendientes y
 llamadas, que son ensamblaje por el mismo camino ya abierto.
 
-**Lo que sigue, entonces, es `F7.5`**: el PDF imprimible. Es la otra salida que pide una oficina —un
-DXF se abre en un CAD y un PDF se manda por correo y se firma— y el servidor ya sabe hacer PDFs con
-membrete, que es la mitad del trabajo.
+**Y `F7.5` cerró**: la lámina sale en PDF, en Carta y con el sello de la casa. Con eso **de la Fase 7
+solo queda media fila**: los ángulos, las pendientes y las llamadas de `F7.3`, que son ensamblaje por
+el camino que las cotas ya abrieron.
+
+**Lo que queda del plan, entonces, no lo decide este documento.** Las tres son decisiones del
+usuario y están abajo, en «Las decisiones que solo el usuario puede tomar»: `F11.7` —la ayuda con
+recorrido—, `F9.6` —el reparto del navegador del visor— y `F1.13` —tres nombres de la cinta—. Detrás
+de ellas quedan las dos fases pospuestas a propósito, **2 (nubes de puntos) y 6 (geo + BIM)**, que
+son las dos grandes sin empezar y se pospusieron el 2026-09-02 para poner la coordinación delante.
 
 ## La prioridad cambió el 2026-09-02, y la puso el usuario
 
@@ -113,18 +119,18 @@ Las **veintinueve** filas abiertas, de una vez. `⬜` no empezada · `❓` medid
 
 **Y en el orden de prioridad del 2026-09-02**, no en el de los números de fase.
 
-| Fase                                     | Filas abiertas                                                                                                                  |
-| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| **5 — Interferencias**                   | ✅ **la fase entera** — `F5.5` cierra con las dos mitades: silenciar y agrupar _(35 interferencias en 13 problemas)_            |
-| **4 — Coordinación** ⭐                  | `F4.5` ◐ falta el trazo libre; las cotas ya viajan _(`F4.6` cerrada: el ciclo va y vuelve)_                                     |
-| **3 — Backend**                          | `F3.4` ✅ decidida por el usuario el 2026-09-02: **la petición espera**, y por qué                                              |
-| **9 — Diseño** ⭐                        | `F9.6` ⛔ — la decide el usuario, y son tres decisiones _(`F9.1` a `F9.5` cerradas)_                                            |
-| **11 — El portal se ve plano** ⭐        | `F11.7` ayuda con recorrido ⛔ — la decide el usuario _(`F11.1` a `F11.6` y `F11.8` a `F11.10` cerradas)_                       |
-| **10 — Etiquetas, informes y tablas** ⭐ | ✅ **la fase entera** — el informe sale en papel, se pide por etiqueta, el modelo saca sus cuadros y la lámina los lleva dentro |
-| **1 — Visor**                            | `F1.13` ❓ — auditada; quedan tres nombres que decide el usuario                                                                |
-| **7 — Planos, salida**                   | `F7.3` ◐ el acotado ya sale del modelo; quedan angulos, pendientes y llamadas · `F7.5` exportar a PDF ⬜ _(`F7.2` cerrada)_     |
-| **2 — Nubes de puntos**                  | `F2.1` a `F2.6` ⬜ — cargar, alinear, visualizar, medir contra el modelo, documentar el pipeline, y el gaussian splatting       |
-| **6 — Geo + BIM**                        | `F6.1` a `F6.5` ⬜ — Cesium, ortofoto y terreno propios, situar el IFC, 3D Tiles, y recibir de AeroPlanner                      |
+| Fase                                     | Filas abiertas                                                                                                                                 |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| **5 — Interferencias**                   | ✅ **la fase entera** — `F5.5` cierra con las dos mitades: silenciar y agrupar _(35 interferencias en 13 problemas)_                           |
+| **4 — Coordinación** ⭐                  | `F4.5` ◐ falta el trazo libre; las cotas ya viajan _(`F4.6` cerrada: el ciclo va y vuelve)_                                                    |
+| **3 — Backend**                          | `F3.4` ✅ decidida por el usuario el 2026-09-02: **la petición espera**, y por qué                                                             |
+| **9 — Diseño** ⭐                        | `F9.6` ⛔ — la decide el usuario, y son tres decisiones _(`F9.1` a `F9.5` cerradas)_                                                           |
+| **11 — El portal se ve plano** ⭐        | `F11.7` ayuda con recorrido ⛔ — la decide el usuario _(`F11.1` a `F11.6` y `F11.8` a `F11.10` cerradas)_                                      |
+| **10 — Etiquetas, informes y tablas** ⭐ | ✅ **la fase entera** — el informe sale en papel, se pide por etiqueta, el modelo saca sus cuadros y la lámina los lleva dentro                |
+| **1 — Visor**                            | `F1.13` ❓ — auditada; quedan tres nombres que decide el usuario                                                                               |
+| **7 — Planos, salida**                   | `F7.3` ◐ el acotado ya sale del modelo; quedan angulos, pendientes y llamadas _(`F7.2`, `F7.4` y `F7.5` cerradas: capas, DXF y PDF con sello)_ |
+| **2 — Nubes de puntos**                  | `F2.1` a `F2.6` ⬜ — cargar, alinear, visualizar, medir contra el modelo, documentar el pipeline, y el gaussian splatting                      |
+| **6 — Geo + BIM**                        | `F6.1` a `F6.5` ⬜ — Cesium, ortofoto y terreno propios, situar el IFC, 3D Tiles, y recibir de AeroPlanner                                     |
 
 ⭐ = prioridad del 2026-09-02. Las fases 2 y 6 **no se descartan, se posponen**: son las dos que no
 tienen ni un archivo con el que verificarse hoy —no hay nube de puntos ni ortofoto en el
@@ -2659,7 +2665,7 @@ longitud medida en los dos.
 | `F7.2` | Viewports y capas: qué se dibuja, con qué grosor y en qué capa (`DrawingViewports`, `DrawingLayers`) | ✅ ver abajo |
 | `F7.3` | Acotado y anotaciones sobre el plano: cotas lineales, ángulos, pendientes y llamadas                 | ◐ ver abajo  |
 | `F7.4` | **Exportar a DXF** con `DxfExporter`, en A3 y milímetros, listo para el CAD                          | ✅ ver abajo |
-| `F7.5` | Exportar a PDF imprimible, con formato y sello                                                       | ⬜           |
+| `F7.5` | Exportar a PDF imprimible, con formato y sello                                                       | ✅ ver abajo |
 
 **Oráculo:** el DXF exportado **abre en AutoCAD o BricsCAD** con sus capas y cotas
 intactas, y una distancia medida en el plano coincide con la del modelo. Un plano que solo
@@ -2704,6 +2710,66 @@ pasó y por qué:
 
 Comprobado en las tres vistas: las tres cortan con ese mensaje, la interfaz vuelve y el aviso de
 avance se limpia. **Un cuelgue se convirtió en algo que se puede contar.**
+
+### `F7.5` — ✅ La lámina en PDF, y el reparto navegador/servidor
+
+**Un DXF se abre en un CAD y un PDF se manda por correo, se firma y se cuelga.** El visor ya sacaba
+el DXF; esto cubre el caso más común de todos, que es mandarle la planta a alguien que no tiene
+AutoCAD. Sale en **Carta con el membrete de J.E.J.**, igual que el informe.
+
+**El navegador proyecta y el servidor compone el papel**, y ese reparto no es una comodidad:
+
+- **Proyectar aristas necesita un renderizador**, y en un servidor sin pantalla es justo lo que no
+  hay. Mandar el modelo para proyectarlo allí significaría además convertir el IFC dos veces y tener
+  `web-ifc` en el servidor.
+- **El membrete ya vive en el servidor**, medido del formato de la oficina. Y es la decisión que el
+  usuario tomó para el informe: «la meta es desde el servidor, así buscamos que sea interno».
+
+Lo que viaja son **los segmentos y los textos ya situados en coordenadas del dibujo** —lo mismo que
+se escribe en el DXF—, así que el PDF y el DXF dibujan el mismo plano. Solo las capas encendidas: el
+papel tiene que decir lo mismo que la pantalla.
+
+Tres decisiones del papel:
+
+- **La misma escala en los dos ejes**, y escrita en la hoja. Escalar cada eje por su cuenta llenaría
+  más el papel y **deformaría el plano**, que es lo peor que le puede pasar a un dibujo del que
+  alguien va a medir. No se redondea a 1:50 ni a 1:100 —eso obligaría a recortar o a dejar media hoja
+  vacía— pero la que salió se dice: «Escala aproximada 1:64».
+- **Trazo de 0,3 pt.** Una planta con trazo de un punto se convierte en una mancha negra en cuanto
+  hay dos muros cerca; 0,3 es lo que usa un CAD para la capa de proyección.
+- **Tope de 60.000 segmentos, y cuando se recorta se dice en el propio papel.** Una lámina que calla
+  lo que dejó fuera hace creer que el plano está completo, y de ahí salen decisiones sobre lo que no
+  se ve. Por encima de ese tope lo que se quiere es el DXF, que es geometría y no papel.
+
+> **El oráculo, y uno de sus asertos no es de texto.** `pypdf` lee el archivo: página Carta —612 ×
+> 792 pt—, el sello con el código de la obra, el contacto copiable, la escala. Pero **un PDF con
+> membrete y sin una sola línea pasaría cualquier prueba de texto y sería una hoja en blanco con
+> sello**, así que se cuentan los operadores de trazo del flujo de contenido.
+>
+> Costó mirar el flujo de verdad para acertar: reportlab escribe la ruta entera **en una sola
+> línea** —`n x y m x y l … S`—, así que anclar la búsqueda a principio de renglón no encontraba
+> nada; y las cadenas de texto van entre paréntesis en el mismo flujo, así que hay que quitarlas o
+> una `l` dentro de «Planta» cuenta como un trazo.
+>
+> Y hay una prueba de que **el dibujo no se deforma**: un dibujo de 40 × 1 m tiene que salir a una
+> escala del orden de 1:260, no llenando la hoja.
+
+> **El membrete se extrajo a `membrete.py` y lo usan las dos salidas.** Con una copia en cada una, la
+> segunda se queda atrás en el primer cambio —el logotipo nuevo, otro teléfono— y el producto manda
+> dos papeles distintos con el mismo nombre. Las pruebas del informe que comprobaban el membrete
+> apuntan ahora al módulo nuevo, y las 24 del informe siguen pasando: eso es lo que prueba que la
+> extracción no cambió el papel.
+
+> **Y un error propio que hay que dejar escrito.** Al escribir `membrete.py` **inventé el bloque de
+> contacto** —una dirección y un teléfono que no son los de la oficina— en vez de copiar el que
+> había. Lo destaparon las pruebas del informe, que comprueban «jej.cl» en el PDF, y se recuperó de
+> `git show HEAD:…`. Mover código es copiar, no reescribir de memoria: si el original está a un
+> comando de distancia, se lee.
+
+**Lo que queda fuera, y por qué:** las cotas de `F7.3` **no salen en el PDF**, solo en el DXF. Sus
+líneas y su número los construye la librería dentro de sus propios grupos, y sacarlos de ahí sería
+leer sus entrañas y romperse en su siguiente versión. Para el PDF hace falta el mismo camino que las
+tablas: calcular su trazo nosotros. Queda dicho en el código, en `DrawingMaker.sheet`.
 
 ### `F7.3` — ◐ El acotado sale del modelo, y no se mide dos veces
 

@@ -17,6 +17,7 @@ export function DrawingsPanel({
   onToggle,
   onToggleHidden,
   onExport,
+  onLaminaPdf,
   onAddTable,
   cuadroCargado,
   onAddDimensions,
@@ -35,6 +36,8 @@ export function DrawingsPanel({
   readonly onToggle: (id: string, visible: boolean) => void;
   readonly onToggleHidden: (id: string, visible: boolean) => void;
   readonly onExport: (id: string) => void;
+  /** Descarga la lámina en PDF, dibujada por el servidor. `F7.5`. */
+  readonly onLaminaPdf: (id: string) => void;
   /** Lleva las cotas medidas sobre el modelo a esa lámina. `F7.3`. */
   readonly onAddDimensions: (id: string) => void;
   /** Cuántas mediciones de distancia hay encendidas hoy. */
@@ -195,6 +198,18 @@ export function DrawingsPanel({
                 title="Descarga el plano en DXF, en milímetros y colocado en una hoja A3"
               >
                 Exportar a DXF (A3)
+              </button>
+
+              {/* **Y el PDF, que es la otra salida.** `F7.5`: un DXF se abre en un CAD y un PDF se
+                  manda por correo, se firma y se cuelga. Lo dibuja el servidor, que es donde vive el
+                  membrete de la casa. */}
+              <button
+                type="button"
+                onClick={() => onLaminaPdf(plano.id)}
+                className="mt-1 w-full rounded-sm border border-accent/40 px-2 py-1 text-nota text-accent hover:bg-accent/15"
+                title="Descarga la lámina en PDF, en Carta y con el membrete de la casa"
+              >
+                Exportar a PDF (Carta)
               </button>
             </li>
           );

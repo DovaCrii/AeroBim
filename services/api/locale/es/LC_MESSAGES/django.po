@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-02 17:45-0400\n"
+"POT-Creation-Date: 2026-09-03 09:57-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -53,12 +53,12 @@ msgid "Not a role: notification group for the executive summary."
 msgstr "No es un rol: grupo de notificación para el resumen ejecutivo."
 
 #: .\apps\accounts\views.py:56 .\apps\documents\notify.py:200
-#: .\apps\documents\views.py:1249
+#: .\apps\documents\views.py:1319
 msgid "Overdue"
 msgstr "Vencido"
 
 #: .\apps\accounts\views.py:57 .\apps\documents\notify.py:201
-#: .\apps\documents\views.py:1250
+#: .\apps\documents\views.py:1320
 msgid "Next 7 days"
 msgstr "Próximos 7 días"
 
@@ -493,7 +493,7 @@ msgstr "A · Publicado y autorizado"
 msgid "B · Published with comments"
 msgstr "B · Publicado con comentarios"
 
-#: .\apps\documents\models.py:68
+#: .\apps\documents\models.py:68 .\apps\documents\views.py:467
 msgid "Drawing"
 msgstr "Plano"
 
@@ -762,11 +762,11 @@ msgstr "Documentos (%(n)s):"
 msgid "[AeroBim] Transmittal %(folio)s: %(asunto)s"
 msgstr "[AeroBim] Transmittal %(folio)s: %(asunto)s"
 
-#: .\apps\documents\notify.py:202 .\apps\documents\views.py:1251
+#: .\apps\documents\notify.py:202 .\apps\documents\views.py:1321
 msgid "Next 15 days"
 msgstr "Próximos 15 días"
 
-#: .\apps\documents\notify.py:203 .\apps\documents\views.py:1252
+#: .\apps\documents\notify.py:203 .\apps\documents\views.py:1322
 msgid "Next 30 days"
 msgstr "Próximos 30 días"
 
@@ -901,69 +901,77 @@ msgstr "Revisión %(rev)s subida (%(kb)s KB)."
 msgid "This project has no observations to export."
 msgstr "Este proyecto no tiene observaciones que exportar."
 
-#: .\apps\documents\views.py:469
+#: .\apps\documents\views.py:461 .\apps\documents\views.py:463
+msgid "The sheet did not arrive as JSON."
+msgstr "La lámina no llegó como JSON."
+
+#: .\apps\documents\views.py:470
+msgid "The sheet arrived with nothing to draw."
+msgstr "La lámina llegó sin nada que dibujar."
+
+#: .\apps\documents\views.py:539
 msgid "The BCF was left without importing anything."
 msgstr "Se dejó el BCF sin importar nada."
 
-#: .\apps\documents\views.py:477
+#: .\apps\documents\views.py:547
 msgid "Choose a BCF file to import."
 msgstr "Elige un archivo BCF para importar."
 
-#: .\apps\documents\views.py:544 .\apps\documents\views.py:552
+#: .\apps\documents\views.py:614 .\apps\documents\views.py:622
 msgid "That BCF is no longer available. Upload it again."
 msgstr "Ese BCF ya no está disponible. Vuelve a subirlo."
 
-#: .\apps\documents\views.py:609
+#: .\apps\documents\views.py:679
 msgid "Coverage can only be measured on an IFC model."
 msgstr "La cobertura solo se puede medir sobre un modelo IFC."
 
-#: .\apps\documents\views.py:659
+#: .\apps\documents\views.py:729
 #, python-format
 msgid "Information requirement of %(codigo)s"
 msgstr "Requisito de información de %(codigo)s"
 
-#: .\apps\documents\views.py:694
+#: .\apps\documents\views.py:764
 msgid "Starting IDS generated. Review it before agreeing it with the client."
 msgstr "IDS de partida generado. Revísalo antes de acordarlo con el mandante."
 
-#: .\apps\documents\views.py:759
+#: .\apps\documents\views.py:829
 msgid "Untitled"
 msgstr "Sin título"
 
-#: .\apps\documents\views.py:767
+#: .\apps\documents\views.py:837
 msgid "Information requirement uploaded."
 msgstr "Requisito de información subido."
 
-#: .\apps\documents\views.py:787
+#: .\apps\documents\views.py:857
 msgid "Only an IFC can be validated against an IDS."
 msgstr "Contra un IDS solo se puede validar un IFC."
 
-#: .\apps\documents\views.py:795
+#: .\apps\documents\views.py:865
 msgid "This project has no information requirement yet: upload an IDS first."
 msgstr ""
 "Este proyecto todavía no tiene requisito de información: primero hay que "
 "subir un IDS."
 
-#: .\apps\documents\views.py:819
+#: .\apps\documents\views.py:889
 #, python-format
 msgid "Validated against %(total)s requirements: %(ok)s comply."
 msgstr "Validado contra %(total)s requisitos: %(ok)s cumplen."
 
-#: .\apps\documents\views.py:899 .\templates\documents\observaciones.html:60
+#: .\apps\documents\views.py:969 .\templates\documents\observaciones.html:60
 #: .\templates\projects\proyecto.html:175
 msgid "Priority"
 msgstr "Prioridad"
 
-#: .\apps\documents\views.py:900 .\templates\projects\proyecto.html:176
+#: .\apps\documents\views.py:970 .\templates\projects\proyecto.html:176
 msgid "Finding"
 msgstr "Hallazgo"
 
-#: .\apps\documents\views.py:901 .\templates\documents\observacion.html:160
+#: .\apps\documents\views.py:971 .\templates\documents\observacion.html:160
 #: .\templates\projects\proyecto.html:177
 msgid "On"
 msgstr "Sobre"
 
-#: .\apps\documents\views.py:902 .\templates\documents\actividades.html:23
+#: .\apps\documents\views.py:972 .\templates\documents\actividades.html:23
 #: .\templates\documents\entregables.html:24
 #: .\templates\documents\expediente.html:249
 #: .\templates\documents\expediente.html:275
@@ -972,7 +980,7 @@ msgstr "Sobre"
 msgid "Owner"
 msgstr "Responsable"
 
-#: .\apps\documents\views.py:903 .\templates\documents\actividades.html:24
+#: .\apps\documents\views.py:973 .\templates\documents\actividades.html:24
 #: .\templates\documents\expediente.html:250
 #: .\templates\documents\expediente.html:276
 #: .\templates\documents\observacion.html:144
@@ -980,7 +988,7 @@ msgstr "Responsable"
 msgid "Due"
 msgstr "Vence"
 
-#: .\apps\documents\views.py:904 .\templates\documents\actividades.html:25
+#: .\apps\documents\views.py:974 .\templates\documents\actividades.html:25
 #: .\templates\documents\expediente.html:251
 #: .\templates\documents\expediente.html:277
 #: .\templates\documents\observaciones.html:71
@@ -989,105 +997,105 @@ msgstr "Vence"
 msgid "State"
 msgstr "Estado"
 
-#: .\apps\documents\views.py:991
+#: .\apps\documents\views.py:1061
 msgid "The comment cannot be empty."
 msgstr "El comentario no puede estar vacío."
 
-#: .\apps\documents\views.py:1014
+#: .\apps\documents\views.py:1084
 msgid "Those tags do not belong to this project."
 msgstr "Esas etiquetas no son de este proyecto."
 
-#: .\apps\documents\views.py:1019
+#: .\apps\documents\views.py:1089
 msgid "Tags saved."
 msgstr "Etiquetas guardadas."
 
-#: .\apps\documents\views.py:1031
+#: .\apps\documents\views.py:1101
 msgid "An observation is not closed without saying how."
 msgstr "Una observación no se cierra sin decir cómo se resolvió."
 
-#: .\apps\documents\views.py:1036
+#: .\apps\documents\views.py:1106
 msgid "Observation closed."
 msgstr "Observación cerrada."
 
-#: .\apps\documents\views.py:1121
+#: .\apps\documents\views.py:1191
 msgid "Add at least one revision."
 msgstr "Agregar al menos una revisión."
 
-#: .\apps\documents\views.py:1123
+#: .\apps\documents\views.py:1193
 msgid "Add at least one recipient."
 msgstr "Agregar al menos un destinatario."
 
-#: .\apps\documents\views.py:1168
+#: .\apps\documents\views.py:1238
 msgid "Draft transmittal created. Review the cover and issue it."
 msgstr "Transmittal creado en borrador. Revisa la carátula y emítelo."
 
-#: .\apps\documents\views.py:1198
+#: .\apps\documents\views.py:1268
 #, python-format
 msgid "Transmittal %(folio)s issued, %(n)s recipients notified."
 msgstr "Transmittal %(folio)s emitido, %(n)s destinatarios avisados."
 
-#: .\apps\documents\views.py:1207
+#: .\apps\documents\views.py:1277
 #, python-format
 msgid "No email address for %(quienes)s: they were not notified."
 msgstr "Sin dirección de correo para %(quienes)s: no se les avisó."
 
-#: .\apps\documents\views.py:1230
+#: .\apps\documents\views.py:1300
 msgid "Receipt acknowledged."
 msgstr "Recibo acusado."
 
-#: .\apps\documents\views.py:1269
+#: .\apps\documents\views.py:1339
 #, python-format
 msgid "Saved, but %(quien)s has no email address: nobody was notified."
 msgstr "Se guardó, pero %(quien)s no tiene correo: no se avisó a nadie."
 
-#: .\apps\documents\views.py:1362
+#: .\apps\documents\views.py:1432
 msgid "Observation opened and the owner notified."
 msgstr "Observación abierta, y se avisó al responsable."
 
-#: .\apps\documents\views.py:1421
+#: .\apps\documents\views.py:1491
 msgid "That is not the next step for this activity."
 msgstr "Ese no es el paso siguiente de esta actividad."
 
-#: .\apps\documents\views.py:1429
+#: .\apps\documents\views.py:1499
 #, python-format
 msgid "Activity moved to %(estado)s."
 msgstr "Actividad movida a %(estado)s."
 
-#: .\apps\documents\views.py:1454
+#: .\apps\documents\views.py:1524
 msgid "Pick the deliverable the activity belongs to."
 msgstr "Elige el entregable al que pertenece la actividad."
 
-#: .\apps\documents\views.py:1460
+#: .\apps\documents\views.py:1530
 msgid "Activity created and the owner notified."
 msgstr "Actividad creada, y se avisó al responsable."
 
-#: .\apps\documents\views.py:1508
+#: .\apps\documents\views.py:1578
 msgid "There is only one model in this project: nothing to compare it against."
 msgstr "Esta obra tiene un solo modelo: no hay nada contra qué compararlo."
 
-#: .\apps\documents\views.py:1513
+#: .\apps\documents\views.py:1583
 #, python-format
 msgid "Checked %(resumen)s. Nothing new."
 msgstr "Revisado %(resumen)s. Nada nuevo."
 
-#: .\apps\documents\views.py:1518
+#: .\apps\documents\views.py:1588
 #, python-format
 msgid "Checked %(resumen)s. The new ones are in the open observations below."
 msgstr ""
 "Revisado %(resumen)s. Los nuevos están abajo, entre las observaciones "
 "abiertas."
 
-#: .\apps\documents\views.py:1527
+#: .\apps\documents\views.py:1597
 #, python-format
 msgid "Left out, their file is not on disk: %(cuales)s"
 msgstr "Quedaron fuera, su archivo no está en el disco: %(cuales)s"
 
-#: .\apps\documents\views.py:1560
+#: .\apps\documents\views.py:1630
 #, python-format
 msgid "Revision %(rev)s is now %(cod)s."
 msgstr "La revisión %(rev)s queda en %(cod)s."
 
-#: .\apps\documents\views.py:1589
+#: .\apps\documents\views.py:1659
 msgid "Deliverable created."
 msgstr "Entregable creado."
 

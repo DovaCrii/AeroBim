@@ -25,6 +25,7 @@ import {
   type StandardView,
 } from "@aerobim/viewer";
 import { parseSavedViews, type RegistryOrigin } from "@aerobim/bim-core";
+import { cabecerasDeEscritura, motivoDe403 } from "./csrf.js";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DrawingsPanel } from "./components/DrawingsPanel.js";
 import { ModelsPanel } from "./components/ModelsPanel.js";
@@ -1203,6 +1204,62 @@ export function App() {
    */
   const [cotasPuestas, setCotasPuestas] = useState<Readonly<Record<string, number>>>({});
 
+  /**
+   * Descarga la lámina en PDF, dibujada por el servidor. `F7.5`.
+   *
+   * **El navegador manda la geometría ya proyectada y el servidor compone el papel.** Proyectar
+   * aristas necesita un renderizador —en un servidor sin pantalla no lo hay— y el membrete de
+   * J.E.J. ya vive allí: es la misma decisión que el usuario tomó para el informe, «desde el
+   * servidor, así buscamos que sea interno».
+   */
+  const onLaminaPdf = useCallback(
+    async (planoId: string) => {
+      const proyectoId = origen?.proyectoId;
+      if (proyectoId === undefined) {
+        setStatus({
+          kind: "error",
+          // Sin obra no hay dónde sellar la hoja: el membrete lleva el código del proyecto.
+          message:
+            "Este modelo se abrió desde el disco, así que la lámina no tiene obra que sellar. " +
+            "Ábrelo desde su expediente y el PDF sale con el membrete de la casa.",
+        });
+        return;
+      }
+
+      const hoja = viewer.current?.sheetOf(planoId);
+      if (hoja === null || hoja === undefined) return;
+
+      const respuesta = await fetch(`/documentos/proyectos/${proyectoId}/lamina/`, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: cabecerasDeEscritura(),
+        body: JSON.stringify(hoja),
+      });
+      if (respuesta.status === 403) {
+        setStatus({
+          kind: "error",
+          message: motivoDe403(await respuesta.json().catch(() => ({}))),
+        });
+        return;
+      }
+      if (!respuesta.ok) {
+        const cuerpo = (await respuesta.json().catch(() => ({}))) as { error?: string };
+        setStatus({
+          kind: "error",
+          message: cuerpo.error ?? `El servidor respondió ${respuesta.status}.`,
+        });
+        return;
+      }
+
+      const enlace = document.createElement("a");
+      enlace.href = URL.createObjectURL(await respuesta.blob());
+      enlace.download = `${hoja.nombre}.pdf`;
+      enlace.click();
+      URL.revokeObjectURL(enlace.href);
+    },
+    [origen],
+  );
+
   const onAcotarPlano = useCallback(async (planoId: string) => {
     const puestas = (await viewer.current?.addDimensionsToDrawing(planoId)) ?? 0;
     setCotasPuestas((actual) => ({ ...actual, [planoId]: (actual[planoId] ?? 0) + puestas }));
@@ -1773,6 +1830,7 @@ export function App() {
                 <DrawingsPanel
                   drawings={drawings}
                   hidden={hiddenDrawings}
+                  onLaminaPdf={(id) => void onLaminaPdf(id)}
                   onAddTable={onPonerCuadroEnPlano}
                   cuadroCargado={cuadro?.category ?? null}
                   onAddDimensions={onAcotarPlano}

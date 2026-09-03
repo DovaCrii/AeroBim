@@ -5,6 +5,33 @@ Este proyecto sigue [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Añadido — la lámina de un plano sale en PDF, en Carta y con el sello de la casa (`F7.5`, 2026-09-02)
+
+**Un DXF se abre en un CAD y un PDF se manda por correo, se firma y se cuelga.** El visor ya sacaba
+el DXF; esto cubre el caso más común, que es mandarle la planta a alguien que no tiene AutoCAD.
+Botón «Exportar a PDF (Carta)» en la ficha de cada plano generado.
+
+**El navegador proyecta y el servidor compone el papel**: proyectar aristas necesita un renderizador
+—en un servidor sin pantalla no lo hay— y el membrete de J.E.J. ya vive en el servidor. Es la misma
+decisión que el usuario tomó para el informe: desde el servidor, para que sea interno.
+
+Lo que viaja son los segmentos y textos ya situados, los mismos que se escriben en el DXF, así que
+**el PDF y el DXF dibujan el mismo plano**. Y solo las capas encendidas: el papel dice lo mismo que
+la pantalla.
+
+- **La misma escala en los dos ejes, y escrita en la hoja.** Escalar cada eje por su cuenta llenaría
+  más el papel y deformaría el plano, que es lo peor que le puede pasar a un dibujo del que alguien
+  va a medir.
+- **Tope de 60.000 segmentos, y cuando se recorta se dice en el propio papel.** Una lámina que calla
+  lo que dejó fuera hace creer que el plano está completo.
+
+El membrete se extrajo a su propio módulo y lo usan el informe y la lámina: con una copia en cada
+salida, la segunda se queda atrás en el primer cambio y el producto manda dos papeles distintos con
+el mismo nombre.
+
+Las cotas todavía no salen en el PDF, solo en el DXF: las dibuja la librería dentro de sus grupos y
+sacarlas de ahí sería leer sus entrañas.
+
 ### Añadido — el acotado del plano sale del modelo (`F7.3`, 2026-09-02)
 
 **Las cotas que ya se midieron sobre el modelo se llevan a la lámina y salen en el DXF con su

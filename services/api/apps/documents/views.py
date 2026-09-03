@@ -12,7 +12,7 @@ from io import BytesIO
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
-from django.http import FileResponse, Http404
+from django.http import FileResponse, Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
 from django.utils import timezone
@@ -418,6 +418,76 @@ class InformeCoordinacionView(ModelViewPermissionRequiredMixin, View):
         # avisar. Es la tercera vez que este defecto aparece en este archivo.
         return FileResponse(
             BytesIO(contenido), as_attachment=True, filename=nombre, content_type=tipo
+        )
+
+
+class LaminaPdfView(ModelViewPermissionRequiredMixin, View):
+    """La lámina de un plano, en PDF y con el sello de la casa. `F7.5`.
+
+    **Un DXF se abre en un CAD y un PDF se manda por correo, se firma y se cuelga.** El visor ya
+    sacaba el DXF; esto cubre el caso más común de todos, que es mandarle la planta a alguien que no
+    tiene AutoCAD.
+
+    **El navegador proyecta y el servidor compone el papel**, y ese reparto no es casual: proyectar
+    aristas necesita un renderizador —en un servidor sin pantalla es justo lo que no hay— y el
+    membrete de J.E.J. ya vive aquí, medido del formato de la oficina. Es además la decisión que el
+    usuario tomó para el informe: «la meta es desde el servidor, así buscamos que sea interno».
+
+    **Pide `view_revision` y no `add_*`**: dibujar un plano de lo que ya se puede ver es leer. No
+    crea nada en la base —la lámina se manda y no se guarda— y por eso tampoco lleva permiso de
+    escritura. Y va acotada por organización a través del proyecto, como todo lo demás.
+    """
+
+    model = Revision
+
+    def post(self, request, *args, **kwargs):
+        import json
+
+        from apps.core.tenancy import scope_queryset_to_organizacion
+        from apps.documents.lamina import Lamina, pdf_de
+        from apps.projects.models import Proyecto
+
+        proyecto = (
+            scope_queryset_to_organizacion(Proyecto.objects.all(), request.user)
+            .filter(pk=kwargs["pk"])
+            .first()
+        )
+        if proyecto is None:
+            raise Http404
+
+        try:
+            datos = json.loads(request.body or b"{}")
+        except ValueError:
+            return JsonResponse({"error": _("The sheet did not arrive as JSON.")}, status=400)
+        if not isinstance(datos, dict):
+            return JsonResponse({"error": _("The sheet did not arrive as JSON.")}, status=400)
+
+        # El nombre de la vista lo pone el visor —«Planta», «Alzado frontal»— y se recorta: va al
+        # sello de la hoja, no a una consulta.
+        vista = str(datos.get("nombre") or _("Drawing"))[:60]
+        lamina = Lamina.desde(datos, titulo=f"{proyecto.codigo} · {vista}")
+        if not lamina.segmentos and not lamina.textos:
+            return JsonResponse({"error": _("The sheet arrived with nothing to draw.")}, status=400)
+
+        set_audit_context(
+            request,
+            proyecto,
+            action="lamina_pdf",
+            metadata={
+                "vista": vista,
+                "segmentos": len(lamina.segmentos),
+                "textos": len(lamina.textos),
+                "recortada": lamina.recortada,
+            },
+        )
+
+        contenido = pdf_de(lamina, pedido_por=request.user.get_username())
+        nombre = f"{proyecto.codigo}-{vista}-{timezone.localdate().isoformat()}.pdf"
+        return FileResponse(
+            BytesIO(contenido),
+            as_attachment=True,
+            filename=nombre,
+            content_type="application/pdf",
         )
 
 
