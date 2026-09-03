@@ -17,6 +17,8 @@ export function DrawingsPanel({
   onToggle,
   onToggleHidden,
   onExport,
+  onAddTable,
+  cuadroCargado,
   onClose,
 }: {
   readonly drawings: readonly GeneratedDrawing[];
@@ -30,6 +32,10 @@ export function DrawingsPanel({
   readonly onToggle: (id: string, visible: boolean) => void;
   readonly onToggleHidden: (id: string, visible: boolean) => void;
   readonly onExport: (id: string) => void;
+  /** Pone el cuadro cargado dentro de esa lámina. `F10.4`. */
+  readonly onAddTable: (id: string) => void;
+  /** La categoría del cuadro que hay cargado, o `null` si no hay ninguno. */
+  readonly cuadroCargado: string | null;
   readonly onClose: (id: string) => void;
 }) {
   return (
@@ -127,6 +133,21 @@ export function DrawingsPanel({
                     generan igual y se encienden solo cuando se quieren. */}
                 Mostrar las {plano.hiddenSegments.toLocaleString("es-CL")} aristas ocultas
               </label>
+
+              {/* **El cuadro se pone antes de exportar, no después.** `F10.4`: la tabla va dentro
+                  de la lámina, así que tiene que estar puesta cuando se serializa. El botón solo
+                  aparece con un cuadro cargado —si no, no hay nada que poner— y dice cuál es: poner
+                  «el cuadro» sin saber de qué categoría es una lámina que hay que volver a hacer. */}
+              {cuadroCargado !== null && (
+                <button
+                  type="button"
+                  onClick={() => onAddTable(plano.id)}
+                  className="mt-1 w-full rounded-sm border border-borde px-2 py-1 text-nota text-fg-2 hover:border-accent hover:text-fg"
+                  title="Dibuja el cuadro debajo del plano, dentro de la misma lámina"
+                >
+                  Poner el cuadro de {cuadroCargado}
+                </button>
+              )}
 
               <button
                 type="button"

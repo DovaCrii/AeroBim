@@ -13,6 +13,12 @@
 
 import * as OBC from "@thatopen/components";
 import * as THREE from "three";
+import {
+  CuadrosEnPlano,
+  registrarExportador,
+  type TablaDeCuadro,
+  trazarTabla,
+} from "./cuadro-en-plano.js";
 
 /** Un plano ya generado, con lo que la interfaz necesita para listarlo y exportarlo. */
 export interface GeneratedDrawing {
@@ -98,6 +104,8 @@ interface PlanoGenerado {
   readonly info: GeneratedDrawing;
   readonly drawing: OBC.TechnicalDrawing;
   readonly viewport: OBC.DrawingViewport;
+  /** La caja que ocupa el dibujo, para poder colocar una tabla debajo. Ver {@link DrawingMaker.addTable}. */
+  readonly caja: THREE.Box3;
 }
 
 /**
@@ -109,8 +117,55 @@ interface PlanoGenerado {
 export class DrawingMaker {
   private readonly planos = new Map<string, PlanoGenerado>();
   private siguiente = 1;
+  /** El sistema de tablas, creado la primera vez que se pide una. Ver {@link addTable}. */
+  private cuadros: CuadrosEnPlano | null = null;
 
   constructor(private readonly components: OBC.Components) {}
+
+  /**
+   * Pone una tabla en un plano generado, dentro de la lámina. `F10.4`.
+   *
+   * **Se coloca debajo del dibujo y no encima**, y con el ancho del propio dibujo como referencia:
+   * una tabla puesta en el medio tapa justamente lo que el plano dibuja. El alto de fila y el ancho
+   * de carácter se derivan del tamaño del plano, así que un cuadro en una lámina de un edificio y
+   * otro en una de un detalle salen los dos legibles y no uno microscópico.
+   *
+   * Y **el viewport se agranda para que quepa**, porque el recorte del exportador es implacable: sin
+   * esto la tabla queda fuera de la caja y se escribe a medias o no se escribe. Es la misma lección
+   * de `F7.2`, y aquí se aplica antes de que muerda.
+   */
+  addTable(id: string, tabla: TablaDeCuadro): boolean {
+    const plano = this.planos.get(id);
+    if (plano === undefined) return false;
+
+    this.cuadros ??= this.components.get(OBC.TechnicalDrawings).use(CuadrosEnPlano);
+    // El exportador se registra con el sistema: sin él el DXF sale con la rejilla y sin texto.
+    registrarExportador(this.components);
+
+    const [anchoPlano, altoPlano] = plano.info.sizeM;
+    // El alto de fila es una fracción del lado mayor, con un mínimo: en un plano de 40 m, filas de
+    // 4 cm no se leen ni impresas ni en pantalla.
+    const rowHeight = Math.max(0.25, Math.max(anchoPlano, altoPlano) * 0.02);
+    const medidas = {
+      x: plano.caja.min.x,
+      // Debajo del dibujo, separada un par de filas: pegada al plano se lee como parte de él.
+      z: plano.caja.max.z + rowHeight * 2,
+      rowHeight,
+      charWidth: rowHeight * 0.62,
+    };
+
+    this.cuadros.add(plano.drawing, { tabla, medidas });
+
+    // **Y el viewport crece para incluirla.** `top`/`bottom` van en coordenadas de papel —la Y del
+    // papel es `−Z`, ver el comentario de `create`— así que la tabla, que cae por debajo del dibujo
+    // en Z, baja el `bottom`.
+    const trazo = trazarTabla(tabla, medidas);
+    const margen = Math.max(0.5, Math.max(anchoPlano, altoPlano) * 0.03);
+    plano.viewport.left = Math.min(plano.viewport.left, medidas.x - margen);
+    plano.viewport.right = Math.max(plano.viewport.right, medidas.x + trazo.width + margen);
+    plano.viewport.bottom = Math.min(plano.viewport.bottom, -(medidas.z + trazo.height) - margen);
+    return true;
+  }
 
   /**
    * Proyecta los elementos indicados y arma el plano.
@@ -221,7 +276,7 @@ export class DrawingMaker {
       elapsedMs: performance.now() - empezado,
     };
 
-    this.planos.set(id, { info, drawing, viewport });
+    this.planos.set(id, { info, drawing, viewport, caja });
     return info;
   }
 

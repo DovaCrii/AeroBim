@@ -13,7 +13,17 @@ import * as OBC from "@thatopen/components";
 import * as OBF from "@thatopen/components-front";
 import * as THREE from "three";
 import { parseDxf, suggestMetresPerUnit } from "@aerobim/bim-core";
-import { BimViewer, CAPAS, csvDe, encabezadoDe, MAXIMO_FILAS } from "@aerobim/viewer";
+import {
+  BimViewer,
+  CAPAS,
+  CAPAS_DE_CUADRO,
+  csvDe,
+  CuadrosEnPlano,
+  encabezadoDeColumna,
+  MAXIMO_FILAS,
+  registrarExportador,
+  trazarTabla,
+} from "@aerobim/viewer";
 import { createPdfiumEngine } from "@embedpdf/engines/pdfium-direct-engine";
 import rutaWasm from "@embedpdf/pdfium/pdfium.wasm?url";
 
@@ -696,9 +706,70 @@ export async function dxf(container: HTMLElement, _url: string, log: Log): Promi
     }
   }
 
+  // --- La tabla dentro de la lámina, `F10.4` ---------------------------------------
+  //
+  // **Lo que hay que comprobar de un cuadro en un plano es que el texto llegue.** La rejilla es
+  // geometría de línea y el exportador ya la escribía; el texto solo lo escribe de los sistemas de
+  // anotación, y sin él una tabla son cuadrículas vacías. Así que se cuentan **los textos del DXF**
+  // y se comprueba que las cadenas son las que entraron.
+  log("\ntabla dentro de la lamina (F10.4):");
+  registrarExportador(components);
+  const sistema = components.get(OBC.TechnicalDrawings).use(CuadrosEnPlano);
+
+  const tabla = {
+    title: "CUADRO DE PRUEBA · 3",
+    headers: ["Elemento", "Perfil", "Peso (kg)"],
+    // Una celda con punto y coma y otra larguísima: los dos casos que rompen una tabla escrita a
+    // mano —el separador y el desbordamiento— y los dos aparecen en modelos de verdad.
+    rows: [
+      ["P-01", "HEB 200; laminado", "61.3"],
+      ["P-02", "IPE 300", "42.2"],
+      ["P-03", "43248*716-LCD-ME-ISUP-D-TEST!Design Model - Base", "7.5"],
+    ],
+  } as const;
+
+  const medidas = { x: 0, z: ALTO + 1, rowHeight: 0.4, charWidth: 0.25 };
+  sistema.add(drawing, { tabla, medidas });
+
+  const trazo = trazarTabla(tabla, medidas);
   log(
-    "\nveredicto: esto comprueba **`F7.4`, el exportador**, no `F7.1`. La proyeccion de aristas\n" +
-      "  necesita un navegador que componga fotogramas y tiene su propio modo, `?modo=planos`.",
+    `  la tabla ocupa ${trazo.width.toFixed(2)} x ${trazo.height.toFixed(2)} m · ` +
+      `${trazo.lines.length} lineas · ${trazo.texts.length} textos`,
+  );
+
+  // El viewport tiene que incluirla o el recorte se la come — la lección de `F7.2`.
+  const conTabla = drawing.viewports.create({
+    left: -margen,
+    right: Math.max(ANCHO, trazo.width) + margen,
+    top: margen,
+    bottom: -(medidas.z + trazo.height) - margen,
+  });
+
+  const texto = exportador.export([{ drawing, viewports: [{ viewport: conTabla }] }]);
+  const leido = parseDxf(texto);
+  const escritos = leido.texts.map((uno) => uno.text);
+  log(`  textos en el DXF: ${leido.texts.length} · trazos: ${leido.polylines.length}`);
+
+  // Se comprueban las cadenas, no solo la cuenta: un exportador que escriba tres textos vacíos
+  // pasaría un conteo y no serviría de nada.
+  const buscados = ["CUADRO DE PRUEBA · 3", "Peso (kg)", "P-01", "HEB 200; laminado", "61.3"];
+  for (const buscado of buscados) {
+    const esta = escritos.some((uno) => uno === buscado);
+    log(`    «${buscado}» — ${esta ? "esta (bien)" : "NO ESTA (mal)"}`);
+  }
+  const recortado = escritos.find((uno) => uno.endsWith("…"));
+  log(
+    `  el valor largo se recorta con «…»: ${
+      recortado === undefined ? "NO (mal)" : `si (bien) — «${recortado}»`
+    }`,
+  );
+  const enSuCapa = leido.texts.every((uno) => uno.layer === CAPAS_DE_CUADRO.texto);
+  log(`  todos los textos en ${CAPAS_DE_CUADRO.texto}: ${enSuCapa ? "si (bien)" : "NO (mal)"}`);
+
+  log(
+    "\nveredicto: esto comprueba **`F7.4` y `F7.2`, el exportador y las capas**, y **`F10.4`, la\n" +
+      "  tabla en la lamina**. No comprueba `F7.1`: la proyeccion de aristas necesita un navegador\n" +
+      "  que componga fotogramas y tiene su propio modo, `?modo=planos`.",
   );
 }
 
@@ -1108,7 +1179,7 @@ export async function cuadros(
     // Va el conteo y no solo el porcentaje: con 300 filas, una columna que está en una sola
     // redondea a «0 %» y se lee como un fallo cuando lo que dice es «1 de 300».
     log(
-      `    ${String(columna.filled).padStart(4)} de ${cuadro.rows.length}  ${encabezadoDe(columna)}`,
+      `    ${String(columna.filled).padStart(4)} de ${cuadro.rows.length}  ${encabezadoDeColumna(columna)}`,
     );
   }
 

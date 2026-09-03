@@ -58,14 +58,22 @@ import {
   type ConvertLocation,
   type Converter,
 } from "./converter.js";
-import { categoriasDe, cuadroDe, type Schedule } from "./cuadros.js";
+import type { TablaDeCuadro } from "./cuadro-en-plano.js";
+import { categoriasDe, cuadroDe, encabezadoDeColumna, type Schedule } from "./cuadros.js";
 import { DrawingMaker, type DrawingView, type GeneratedDrawing } from "./drawings.js";
 import { GridOverlay } from "./grid.js";
 
 export type { DrawingLayerInfo, DrawingView, GeneratedDrawing } from "./drawings.js";
 export { CAPAS } from "./drawings.js";
 export type { Schedule, ScheduleColumn, ScheduleRow } from "./cuadros.js";
-export { csvDe, encabezadoDe, MAXIMO_COLUMNAS, MAXIMO_FILAS } from "./cuadros.js";
+export { csvDe, encabezadoDeColumna, MAXIMO_COLUMNAS, MAXIMO_FILAS } from "./cuadros.js";
+export type { TablaDeCuadro, TrazoDeTabla } from "./cuadro-en-plano.js";
+export {
+  CAPAS_DE_CUADRO,
+  CuadrosEnPlano,
+  registrarExportador,
+  trazarTabla,
+} from "./cuadro-en-plano.js";
 import { PlanOverlay, type LoadedPlan, type PlanHit, type PlanTransform } from "./plan.js";
 
 export type { IfcGridAxis } from "@aerobim/bim-core";
@@ -4410,6 +4418,50 @@ export class BimViewer {
   ): string | null {
     this.assertAlive();
     return this.drawings.exportDxf(id, paper);
+  }
+
+  /**
+   * Pone una tabla dentro de una lámina generada. `F10.4`.
+   *
+   * **Es lo que hace de una proyección un entregable.** Un plano con el modelo dibujado y sin cuadro
+   * obliga a llevar dos papeles a la obra, y el segundo se pierde. La tabla llega ya en texto, así
+   * que sirve igual para un cuadro de elementos —el de `F10.5`— que para uno de hallazgos: es la
+   * misma tabla con otro contenido, y quien la arma decide qué columnas valen la pena en papel.
+   */
+  async addTableToDrawing(id: string, tabla: TablaDeCuadro): Promise<boolean> {
+    this.assertAlive();
+    const puesta = this.drawings.addTable(id, tabla);
+    if (puesta) await this.refresh();
+    return puesta;
+  }
+
+  /**
+   * El cuadro de una categoría, reducido a una tabla que quepa en un plano. `F10.4`.
+   *
+   * **Un cuadro de pantalla y un cuadro de papel no son la misma tabla**, y por eso esto existe: en
+   * pantalla se puede desplazar y hay veinticuatro columnas; en una lámina, veinticuatro columnas
+   * son ilegibles a cualquier escala. Se quedan las que **más filas llevan**, que es el mismo
+   * criterio con el que se ordenan, y el título dice de qué es y cuántos hay — incluido lo que no
+   * cupo, porque un cuadro que parece el total y no lo es se cuenta mal en una reunión.
+   */
+  tablaDeCuadro(cuadro: Schedule, columnas = 6, filas = 40): TablaDeCuadro {
+    const elegidas = cuadro.columns.slice(0, columnas);
+    const recorte = cuadro.rows.slice(0, filas);
+    const total =
+      cuadro.rows.length === cuadro.total
+        ? `${cuadro.total}`
+        : `${cuadro.rows.length} de ${cuadro.total}`;
+
+    return {
+      title:
+        `${cuadro.category} · ${total}` +
+        (recorte.length < cuadro.rows.length ? ` · en el plano, ${recorte.length}` : ""),
+      headers: ["Nombre", ...elegidas.map((columna) => encabezadoDeColumna(columna))],
+      rows: recorte.map((fila) => [
+        fila.name ?? `#${fila.localId}`,
+        ...elegidas.map((columna) => fila.values.get(columna.key) ?? ""),
+      ]),
+    };
   }
 
   /** Enciende o apaga las aristas ocultas de un plano generado. */

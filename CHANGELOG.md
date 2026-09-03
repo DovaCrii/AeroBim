@@ -5,6 +5,26 @@ Este proyecto sigue [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Añadido — la lámina sale con su cuadro dentro (`F10.4`, 2026-09-02)
+
+**Un plano con el modelo dibujado y sin cuadro obliga a llevar dos papeles a la obra, y el segundo se
+pierde.** Ahora el plano generado lleva su tabla dentro —título, cabecera y filas, debajo del
+dibujo— en el mismo DXF, y se ve también en pantalla.
+
+Se pone desde «Planos generados» cuando hay un cuadro cargado, y el botón dice de qué categoría es:
+poner «el cuadro» sin saber cuál es una lámina que hay que volver a hacer.
+
+**La tabla del papel no es la de la pantalla**, y eso es deliberado: en pantalla hay veinticuatro
+columnas y se puede desplazar; en una lámina son ilegibles a cualquier escala. Se quedan las seis que
+más filas llevan y cuarenta filas, con lo que no cupo dicho en el título. Y las celdas se recortan a
+22 caracteres con `…`, porque hay valores de sesenta y sin tope la tabla mide cuarenta metros de
+papel.
+
+Lo que costó averiguar: el exportador de DXF escribe líneas de toda la geometría pero **texto solo de
+los sistemas de anotación**, y una tabla sin texto son cuadrículas vacías. La aritmética de la tabla
+vive en una sola función que usan la pantalla y el DXF — con dos cálculos, el cuadro que se imprime y
+el que se ve se separan en la primera columna que cambie de ancho.
+
 ### Añadido — cuadros desde el modelo: una categoría, sus elementos y sus propiedades (`F10.5`, 2026-09-02)
 
 **Es el cuadro de carpinterías o de pilares de una oficina.** El visor sabía enseñar las propiedades

@@ -222,7 +222,7 @@ export async function cuadroDe(
  * él, una fila de una hoja de cálculo no señala a ningún elemento.
  */
 export function csvDe(cuadro: Schedule): string {
-  const cabecera = ["GUID", "Nombre", ...cuadro.columns.map(encabezadoDe)];
+  const cabecera = ["GUID", "Nombre", ...cuadro.columns.map(encabezadoDeColumna)];
   const lineas = [cabecera.map(celda).join(";")];
 
   for (const fila of cuadro.rows) {
@@ -238,7 +238,7 @@ export function csvDe(cuadro: Schedule): string {
 }
 
 /** El encabezado de una columna, con su unidad cuando la hay. */
-export function encabezadoDe(columna: ScheduleColumn): string {
+export function encabezadoDeColumna(columna: ScheduleColumn): string {
   const nombre =
     columna.group === null ? columna.name : `${columna.group}${SEPARADOR}${columna.name}`;
   return columna.unit === null ? nombre : `${nombre} (${columna.unit})`;

@@ -33,9 +33,12 @@ porque medía la extensión del archivo —que la marca el recuadro del viewport
 **Y `F10.5` cerró**: el modelo saca sus cuadros por categoría —300 perfiles con sus 24 columnas de
 pesos y medidas en 155 ms—, se ordenan, se filtran, cada fila lleva a su elemento y salen en CSV.
 
-**Lo que sigue, entonces, es `F10.4`**: el cuadro de hallazgos dentro de la lámina, que ya tiene
-debajo lo que le faltaba —capas con nombre y un plano que sale entero—. Y `F7.3`, el acotado, que es
-lo que hace de una proyección un plano de verdad.
+**Y con `F10.4` la Fase 10 cierra entera**: el informe sale en papel, se pide por etiqueta, el modelo
+saca sus cuadros y la lámina los lleva dentro.
+
+**Lo que sigue, entonces, es `F7.3`**, el acotado y las anotaciones sobre el plano, que es lo que
+hace de una proyección un plano de verdad —una planta sin cotas no se construye—. Después `F7.5`, el
+PDF imprimible, que es la otra salida que pide una oficina.
 
 ## La prioridad cambió el 2026-09-02, y la puso el usuario
 
@@ -106,18 +109,18 @@ Las **veintinueve** filas abiertas, de una vez. `⬜` no empezada · `❓` medid
 
 **Y en el orden de prioridad del 2026-09-02**, no en el de los números de fase.
 
-| Fase                                     | Filas abiertas                                                                                                                                                                |
-| ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **5 — Interferencias**                   | ✅ **la fase entera** — `F5.5` cierra con las dos mitades: silenciar y agrupar _(35 interferencias en 13 problemas)_                                                          |
-| **4 — Coordinación** ⭐                  | `F4.5` ◐ falta el trazo libre; las cotas ya viajan _(`F4.6` cerrada: el ciclo va y vuelve)_                                                                                   |
-| **3 — Backend**                          | `F3.4` ✅ decidida por el usuario el 2026-09-02: **la petición espera**, y por qué                                                                                            |
-| **9 — Diseño** ⭐                        | `F9.6` ⛔ — la decide el usuario, y son tres decisiones _(`F9.1` a `F9.5` cerradas)_                                                                                          |
-| **11 — El portal se ve plano** ⭐        | `F11.7` ayuda con recorrido ⛔ — la decide el usuario _(`F11.1` a `F11.6` y `F11.8` a `F11.10` cerradas)_                                                                     |
-| **10 — Etiquetas, informes y tablas** ⭐ | `F10.4` tablas en el plano ⬜ — ya tiene debajo `F7.2` _(`F10.1` a `F10.3` y `F10.5` cerradas: el informe sale en papel, se pide por etiqueta, y el modelo saca sus cuadros)_ |
-| **1 — Visor**                            | `F1.13` ❓ — auditada; quedan tres nombres que decide el usuario                                                                                                              |
-| **7 — Planos, salida**                   | `F7.3` acotado y anotaciones · `F7.5` exportar a PDF ⬜ _(`F7.2` cerrada: capas con nombre, y el viewport recortaba el plano)_                                                |
-| **2 — Nubes de puntos**                  | `F2.1` a `F2.6` ⬜ — cargar, alinear, visualizar, medir contra el modelo, documentar el pipeline, y el gaussian splatting                                                     |
-| **6 — Geo + BIM**                        | `F6.1` a `F6.5` ⬜ — Cesium, ortofoto y terreno propios, situar el IFC, 3D Tiles, y recibir de AeroPlanner                                                                    |
+| Fase                                     | Filas abiertas                                                                                                                  |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| **5 — Interferencias**                   | ✅ **la fase entera** — `F5.5` cierra con las dos mitades: silenciar y agrupar _(35 interferencias en 13 problemas)_            |
+| **4 — Coordinación** ⭐                  | `F4.5` ◐ falta el trazo libre; las cotas ya viajan _(`F4.6` cerrada: el ciclo va y vuelve)_                                     |
+| **3 — Backend**                          | `F3.4` ✅ decidida por el usuario el 2026-09-02: **la petición espera**, y por qué                                              |
+| **9 — Diseño** ⭐                        | `F9.6` ⛔ — la decide el usuario, y son tres decisiones _(`F9.1` a `F9.5` cerradas)_                                            |
+| **11 — El portal se ve plano** ⭐        | `F11.7` ayuda con recorrido ⛔ — la decide el usuario _(`F11.1` a `F11.6` y `F11.8` a `F11.10` cerradas)_                       |
+| **10 — Etiquetas, informes y tablas** ⭐ | ✅ **la fase entera** — el informe sale en papel, se pide por etiqueta, el modelo saca sus cuadros y la lámina los lleva dentro |
+| **1 — Visor**                            | `F1.13` ❓ — auditada; quedan tres nombres que decide el usuario                                                                |
+| **7 — Planos, salida**                   | `F7.3` acotado y anotaciones · `F7.5` exportar a PDF ⬜ _(`F7.2` cerrada: capas con nombre, y el viewport recortaba el plano)_  |
+| **2 — Nubes de puntos**                  | `F2.1` a `F2.6` ⬜ — cargar, alinear, visualizar, medir contra el modelo, documentar el pipeline, y el gaussian splatting       |
+| **6 — Geo + BIM**                        | `F6.1` a `F6.5` ⬜ — Cesium, ortofoto y terreno propios, situar el IFC, 3D Tiles, y recibir de AeroPlanner                      |
 
 ⭐ = prioridad del 2026-09-02. Las fases 2 y 6 **no se descartan, se posponen**: son las dos que no
 tienen ni un archivo con el que verificarse hoy —no hay nube de puntos ni ortofoto en el
@@ -3035,7 +3038,7 @@ que falta es lo que se imprime, se firma y se cuelga.
 | `F10.1` | Etiquetas de proyecto: vocabulario controlado, asignables a un hallazgo, y se filtra   | ✅ ver abajo                                          |
 | `F10.2` | La nota de la decisión: qué se guarda además del hilo de comentarios                   | ✅ decidida por el usuario: **no era un campo nuevo** |
 | `F10.3` | Informe de coordinación imprimible, con la foto del hallazgo y las mismas cifras       | ✅ ver abajo                                          |
-| `F10.4` | Tablas en el plano: el cuadro de hallazgos o de elementos dentro de la lámina que sale | ⬜                                                    |
+| `F10.4` | Tablas en el plano: el cuadro de hallazgos o de elementos dentro de la lámina que sale | ✅ ver abajo                                          |
 | `F10.5` | Tablas desde el modelo: cuadros por categoría con sus psets, y su exportación          | ✅ ver abajo                                          |
 
 **Oráculo de la fase, y es exigente a propósito:** un informe **impreso en A4** que alguien lleva a
@@ -3070,6 +3073,45 @@ Tres decisiones que no son obvias:
 - **La clave del temporal vive en la sesión y no en la URL.** Un parámetro lo escribe cualquiera; y
   la sesión guarda además **a qué obra pertenece**, porque con dos pestañas abiertas en dos
   proyectos el «confirmar» de una podría escribir en la otra. Tiene su prueba.
+
+### `F10.4` — ✅ El cuadro dentro de la lámina, y el texto era el problema
+
+Un plano con el modelo dibujado y sin cuadro obliga a llevar dos papeles a la obra, y el segundo se
+pierde. Ahora la lámina sale **con su tabla dentro**: título, cabecera y filas, debajo del dibujo,
+en el mismo DXF.
+
+**Lo que costó averiguar fue cómo escribir texto.** El exportador de DXF escribe líneas de toda la
+geometría del dibujo, pero **texto solo de los sistemas de anotación** — y una tabla sin texto son
+cuadrículas vacías. La salida es `registerSystemExporter`, que la librería expone justo para esto: se
+declara un `AnnotationSystem` propio —pide tres miembros, `enabled`, `_buildGroup` y `pickHandle`— y
+su exportador recibe un contexto con `writeText`. De paso sale gratis lo demás: la tabla se dibuja
+**también en pantalla** dentro del plano.
+
+Cuatro decisiones:
+
+- **La aritmética de la tabla vive en una sola función.** `trazarTabla` dice dónde cae cada línea y
+  cada texto, y la consumen la pantalla y el DXF. Con dos cálculos, el cuadro del papel y el de la
+  pantalla se separan en la primera columna que cambie de ancho — y el que se imprime es el que
+  nadie mira antes de mandarlo.
+- **La tabla del papel no es la de la pantalla.** En pantalla hay veinticuatro columnas y se puede
+  desplazar; en una lámina, veinticuatro columnas son ilegibles a cualquier escala. Se quedan **las
+  seis que más filas llevan** y cuarenta filas, y el título dice lo que no cupo.
+- **Las celdas se recortan a 22 caracteres con `…`.** En el modelo del usuario hay valores de
+  sesenta —`43248*716-LCD-ME-ISUP-D-TEST!Design Model - Base`— y sin tope una tabla de esas mide
+  cuarenta metros de papel.
+- **El viewport crece para incluirla**, aplicando la lección de `F7.2` antes de que muerda: sin eso
+  el recorte se come la tabla igual que se comía el dibujo.
+
+> **El oráculo.** `diag.html?modo=dxf` pone una tabla con los dos casos que rompen una tabla escrita
+> a mano —una celda con punto y coma y otra larguísima—, exporta, y lee el DXF con **nuestro** lector:
+> **13 textos, todos en `AB-CUADRO-TEXTO`**, y se comprueban las cadenas una por una —el título, una
+> cabecera con unidad, `HEB 200; laminado` intacto, el número— porque un exportador que escriba trece
+> textos vacíos pasaría un conteo.
+
+> **Y un fallo de la primera ejecución que conviene dejar escrito**: `AnnotationSystem` no trae
+> ningún estilo, así que `_getMaterial` revienta con `Cannot read properties of undefined (reading
+'color')`. La traza señala a la librería y lo que falta es de aquí — el estilo por defecto se
+> registra en el constructor.
 
 ### `F10.5` — ✅ Cuadros desde el modelo, y las columnas se descubren
 

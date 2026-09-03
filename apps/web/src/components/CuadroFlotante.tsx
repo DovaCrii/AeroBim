@@ -1,5 +1,5 @@
 import type { Schedule } from "@aerobim/viewer";
-import { encabezadoDe } from "@aerobim/viewer";
+import { encabezadoDeColumna } from "@aerobim/viewer";
 import { useMemo, useState } from "react";
 import { IconX } from "./icons.js";
 
@@ -126,7 +126,7 @@ export function CuadroFlotante({
                 <Th
                   key={columna.key}
                   clave={columna.key}
-                  texto={encabezadoDe(columna)}
+                  texto={encabezadoDeColumna(columna)}
                   orden={orden}
                   onAlternar={alternar}
                   ayuda={`${columna.filled} de ${cuadro.rows.length} elementos la traen`}

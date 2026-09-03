@@ -1169,6 +1169,23 @@ export function App() {
     [cuadro],
   );
 
+  /**
+   * Pone el cuadro cargado dentro de una lámina generada. `F10.4`.
+   *
+   * **La tabla del papel no es la de la pantalla**, y de eso se encarga `tablaDeCuadro`: en pantalla
+   * hay veinticuatro columnas y se puede desplazar; en una lámina, veinticuatro columnas son
+   * ilegibles a cualquier escala. Se quedan las que más filas llevan.
+   */
+  const onPonerCuadroEnPlano = useCallback(
+    (planoId: string) => {
+      if (cuadro === null) return;
+      const tabla = viewer.current?.tablaDeCuadro(cuadro);
+      if (tabla === undefined) return;
+      void viewer.current?.addTableToDrawing(planoId, tabla);
+    },
+    [cuadro],
+  );
+
   const onSection = useCallback((axis: SectionAxis) => {
     setHasSections(true);
     void viewer.current?.addSection(axis);
@@ -1734,6 +1751,8 @@ export function App() {
                 <DrawingsPanel
                   drawings={drawings}
                   hidden={hiddenDrawings}
+                  onAddTable={onPonerCuadroEnPlano}
+                  cuadroCargado={cuadro?.category ?? null}
                   generating={generating}
                   onGenerate={(vista) => void onGenerateDrawing(vista)}
                   onCancel={() => setGenerating(null)}
