@@ -175,6 +175,18 @@ export {
 } from "./nubes/georreferencia.js";
 
 export {
+  colorDeDesviacion,
+  distanciaAlModelo,
+  distanciaAlTriangulo,
+  resumirDesviaciones,
+  SIN_MEDIR,
+  type Distancia,
+  type Punto as PuntoDeMedida,
+  type ResumenDeDesviacion,
+  type Triangulo,
+} from "./nubes/desviacion.js";
+
+export {
   aplicar,
   archivoAEscena,
   cajaAArchivo,

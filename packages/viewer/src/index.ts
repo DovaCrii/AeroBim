@@ -93,6 +93,15 @@ export {
   PUNTOS_DEL_PRIMER_PINTADO,
   RUTA_WASM_LAZ,
 } from "./nubes.js";
+export type { MallaDeFragments, MedicionDeDesviacion } from "./desviacion.js";
+export {
+  MAXIMO_PUNTOS,
+  MAXIMO_TRIANGULOS,
+  medirDesviacion,
+  NADA_MEDIDO,
+  triangulosEnLaCaja,
+} from "./desviacion.js";
+import { medirDesviacion, type MallaDeFragments, type MedicionDeDesviacion } from "./desviacion.js";
 import {
   abrirNube,
   NubeEnEscena,
@@ -4410,6 +4419,88 @@ export class BimViewer {
     objeto.matrix.fromArray(matrizDeCalce(alineacion, this.nube.desplazamiento));
     objeto.matrixWorldNeedsUpdate = true;
     return true;
+  }
+
+  /**
+   * Mide cuánto se aparta lo construido de lo modelado, **en la zona de un elemento**: `F2.4`.
+   *
+   * Es el objetivo de salida de la Fase 2, y la comparación por la que existe el producto. Se toma
+   * la caja del elemento —holgada por `margenM`, porque lo construido se sale de lo modelado y ahí
+   * está justamente lo que interesa— y se miden contra su superficie todos los puntos del
+   * levantamiento que caen dentro.
+   *
+   * `toleranciaM` es la exigencia, y **la pone quien coordina**: cinco centímetros pueden ser
+   * tolerancia en una excavación y un problema grave en un pilar. El visor no opina sobre la obra.
+   *
+   * Devuelve `null` si no hay nube o si el elemento no existe. Cuando hay nube y elemento pero nada
+   * que medir, devuelve una medición con `puntos: 0` — que es distinto de «cero desviación».
+   */
+  async measureDeviation(
+    guid: IfcGuid,
+    opciones: { toleranciaM?: number; margenM?: number; pintar?: boolean } = {},
+  ): Promise<MedicionDeDesviacion | null> {
+    this.assertAlive();
+    if (this.nube === null) return null;
+
+    const encontrado = await this.geometriaDeGuid(guid);
+    if (encontrado === null) return null;
+    const { caja, mallas } = encontrado;
+
+    // **La caja se agranda a propósito.** Lo construido se sale de lo modelado —de eso trata la
+    // medición— así que ceñirse a la caja del modelo dejaría fuera justo los puntos que delatan el
+    // problema. El margen por omisión son 30 cm, que cubre los desvíos de obra corrientes sin
+    // tragarse el elemento de al lado.
+    const margen = opciones.margenM ?? 0.3;
+    const holgada = caja.clone().expandByScalar(margen);
+
+    const medida = medirDesviacion(mallas, this.nube.objeto, holgada, {
+      toleranciaM: opciones.toleranciaM ?? 0.02,
+      ...(opciones.pintar !== undefined ? { pintar: opciones.pintar } : {}),
+    });
+    if (opciones.pintar === true) await this.refresh();
+    return medida;
+  }
+
+  /**
+   * La caja y las mallas de un elemento, por su GUID. Público porque `F2.4` no es su único uso:
+   * cualquier medida contra la geometría de un elemento pasa por aquí.
+   */
+  async elementGeometry(
+    guid: IfcGuid,
+  ): Promise<{ caja: THREE.Box3; mallas: MallaDeFragments[] } | null> {
+    this.assertAlive();
+    return this.geometriaDeGuid(guid);
+  }
+
+  /**
+   * La caja y las mallas de un elemento por su GUID, o `null` si no está.
+   *
+   * **La geometría se le pide a Fragments y no se busca en la escena**, porque en la escena no
+   * está: con un IFC cargado, el grafo de Three.js tiene la escena, tres luces y dos `Object3D`
+   * vacíos — Fragments dibuja por su propio camino. Se comprobó recorriéndolo.
+   */
+  private async geometriaDeGuid(
+    guid: IfcGuid,
+  ): Promise<{ caja: THREE.Box3; mallas: MallaDeFragments[] } | null> {
+    for (const [, model] of this.fragments.list) {
+      const localIds = await model.getLocalIdsByGuids([guid]);
+      const localId = localIds[0];
+      if (localId === undefined || localId === null) continue;
+
+      const cajas = await model.getBoxes([localId]);
+      const union = new THREE.Box3();
+      for (const c of cajas) union.union(c);
+      if (union.isEmpty()) continue;
+
+      // `getItemsGeometry` devuelve una lista de mallas **por elemento**, de ahí el doble nivel.
+      const porElemento = await model.getItemsGeometry([localId]);
+      const mallas: MallaDeFragments[] = [];
+      for (const grupo of porElemento) for (const malla of grupo) mallas.push(malla);
+      if (mallas.length === 0) continue;
+
+      return { caja: union, mallas };
+    }
+    return null;
   }
 
   /** Deshace el calce: la nube vuelve a donde la puso el cargador. */

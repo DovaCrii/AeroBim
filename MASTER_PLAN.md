@@ -53,10 +53,17 @@ se comprueba contra **el levantamiento real del CC 741 — Camino Agrícola**, n
 > caracteres de WKT, comprobado al leerlo de vuelta— porque el conversor lo escribe con `--epsg`. Así
 > no depende de que nadie lo recuerde.
 
-**Lo que sigue es `F2.4`**, el objetivo de salida de la fase: medir del modelo a la nube, o sea la
-desviación entre lo construido y lo modelado. Ya están las tres piezas que necesita —la nube en la
-escena, el calce, y la vuelta exacta a coordenadas del archivo—, y **su oráculo es CloudCompare**,
-que solo puede correr el usuario. Para eso hace falta el IFC de la pasarela.
+- **`F2.4` 🔶** — la medida funciona y está comprobada con una respuesta calculable a mano: una losa
+  y una nube 5 cm por encima dan `50,000 mm`. Falta el **IFC de la pasarela** para medir de verdad, y
+  el oráculo —CloudCompare— **solo lo puede correr el usuario**.
+
+**`F2.6`, el gaussian splatting, queda aparcado por decisión del usuario el 2026-09-03**: «no es tan
+importante de momento; avanzar en los otros pendientes y módulos es mejor». No se descarta, se
+pospone — y con el mismo criterio que la Fase 6.
+
+**Lo que sigue, entonces, es `F0.6`**: la conversión del IFC en un worker. Gana peso justo ahora,
+porque el usuario avisó de que **se van a incorporar diseños de otras especialidades** y el número de
+modelos abiertos a la vez va a crecer: hoy la conversión bloquea el hilo de la interfaz.
 
 **Y tres cosas no las decide este plan**, porque no son trabajo sino elecciones: `F1.13`, `F9.6` y
 el trazo libre de `F4.5`. Están reunidas abajo, en «Las decisiones que solo el usuario puede tomar».
@@ -1183,8 +1190,51 @@ comparación que nadie puede hacer hoy sin software de pago.
 | `F2.1` | Cargar una nube (LAS/LAZ convertida) en la escena Three.js del visor                          | ✅     |
 | `F2.2` | Alinear nube y modelo: origen, rotación y escala, con ajuste manual asistido                  | ✅     |
 | `F2.3` | Controles de visualización: tamaño de punto, densidad, recorte por caja, color por altura/RGB | ✅     |
-| `F2.4` | Medir del modelo a la nube (desviación entre lo construido y lo modelado)                     | ⬜     |
+| `F2.4` | Medir del modelo a la nube (desviación entre lo construido y lo modelado)                     | 🔶     |
 | `F2.5` | Documentar el pipeline de conversión **fuera de la aplicación**: `PotreeConverter` y `pdal`   | ✅     |
+
+### `F2.4` el 2026-09-03 — la medida funciona; falta el modelo del usuario y su oráculo
+
+**Se mide de cada punto del levantamiento a la superficie del modelo más cercana**, acotado a la caja
+de un elemento. Con signo, porque un muro 5 cm más grueso y uno 5 cm más delgado dan la misma
+distancia y son problemas opuestos: uno se come el espacio libre y el otro deja hueco.
+
+**Comprobado en el navegador con una respuesta calculable a mano:** una losa modelada y una nube
+puesta **5 cm por encima** dan `media: 50,000 mm`, `máxima: 50,000 mm`, `sesgo: +50,000 mm` sobre los
+400 puntos, y la nube queda pintada por desviación. Y del `muro-minimo.ifc` real se extraen sus **12
+triángulos** con la matriz de la malla aplicada, comprobado porque caen dentro de la caja que el
+propio Fragments declara para ese elemento.
+
+**El resumen da seis cifras y no una**, porque una sola miente: media, mediana, máxima, cuadrática
+media, **percentil 95** —lo que se suele exigir en un control de obra— y **sesgo**. El sesgo es el
+que distingue «la obra está corrida 3 cm» de «la obra está mal rematada»: con la distancia a secas
+los dos casos se ven idénticos.
+
+**Y el signo se declara no fiable** cuando todo lo que se sale de tolerancia cae del mismo lado, que
+es lo que produce un modelo con las caras invertidas o una nube mal calzada. Entonces el sesgo no
+informa de la obra sino del error, y decirlo es mejor que dar un número que parece medido.
+
+> **Un hallazgo que costará tiempo a quien no lo sepa: la geometría del modelo NO está en la escena
+> de Three.js.** Con un IFC cargado, el grafo tiene la escena, tres luces y **dos `Object3D`
+> vacíos** — Fragments 3.x dibuja por su propio camino. Se descubrió recorriéndolo. La geometría se
+> pide con `model.getItemsGeometry`, que devuelve posiciones, índices y **la matriz de cada malla**;
+> un modelo con cien pilares iguales guarda una malla y cien matrices, así que ignorarla mediría
+> contra el primero y daría la desviación de los otros noventa y nueve como si estuvieran todos en el
+> mismo sitio.
+>
+> `EdgeProjector` —lo que usa el generador de planos— tampoco vale: **lee la escena dibujada**, y en
+> un navegador que no compone fotogramas no resuelve nunca.
+
+**Se mide por zonas y no de golpe, y no es una limitación sino la forma correcta.** 15 millones de
+puntos contra decenas de miles de triángulos son cientos de miles de millones de operaciones: no es
+que tarde, es que no acaba. Acotando a la caja de un elemento son cientos de triángulos y miles de
+puntos —un instante— **y el resultado se puede atribuir a ese elemento**, que es lo que hace falta
+para abrir una observación sobre él.
+
+> **Lo que falta para cerrarla, y no depende de escribir código: el IFC de la pasarela del CC 741.**
+> Sin modelo del mismo sitio que la nube no hay contra qué medir de verdad, y **el oráculo de la fase
+> —la misma nube y el mismo modelo en CloudCompare— solo lo puede correr el usuario**. La nube
+> convertida está en `D:\I+D\nubes\camino-agricola.copc.laz`.
 
 **Oráculo:** la misma nube y el mismo modelo cargados en **CloudCompare**; las
 desviaciones medidas deben coincidir dentro de la tolerancia del levantamiento.

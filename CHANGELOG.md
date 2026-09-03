@@ -5,6 +5,39 @@ Este proyecto sigue [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Añadido — medir la diferencia entre lo modelado y lo construido (`F2.4`, 2026-09-03)
+
+Es el objetivo de salida de la Fase 2, y la comparación por la que existe el producto. Se mide **de
+cada punto del levantamiento a la superficie del modelo más cercana**, acotado a la caja de un
+elemento — y **con signo**, porque un muro 5 cm más grueso y uno 5 cm más delgado dan la misma
+distancia y son problemas opuestos: uno se come el espacio libre y el otro deja hueco.
+
+**Comprobado con una respuesta calculable a mano:** una losa modelada y una nube puesta 5 cm por
+encima dan `media: 50,000 mm`, `máxima: 50,000 mm` y `sesgo: +50,000 mm` sobre 400 puntos, con la
+nube pintada por desviación. Y del `muro-minimo.ifc` real se extraen sus **12 triángulos** con la
+matriz de la malla aplicada.
+
+**El resumen da seis cifras y no una**, porque una sola miente: media, mediana, máxima, cuadrática
+media, percentil 95 y **sesgo**. El sesgo distingue «la obra está corrida 3 cm» de «la obra está mal
+rematada»; con la distancia a secas los dos casos se ven idénticos. Y **el signo se declara no
+fiable** cuando todo lo que se sale cae del mismo lado, que es lo que produce un modelo con las caras
+invertidas o una nube mal calzada: entonces informa del error, no de la obra.
+
+> **Un hallazgo que costará tiempo a quien no lo sepa: la geometría del modelo no está en la escena
+> de Three.js.** Con un IFC cargado, el grafo tiene la escena, tres luces y **dos `Object3D`
+> vacíos** — Fragments 3.x dibuja por su propio camino. Se descubrió recorriéndolo. La geometría se
+> pide con `getItemsGeometry`, que devuelve posiciones, índices y **la matriz de cada malla**: un
+> modelo con cien pilares iguales guarda una malla y cien matrices, así que ignorarla mediría contra
+> el primero. `EdgeProjector` tampoco vale aquí, porque lee la escena dibujada.
+
+**Se mide por zonas y no de golpe**, y no es una limitación: 15 millones de puntos contra decenas de
+miles de triángulos no acaba nunca, mientras que la caja de un elemento son cientos de triángulos y
+miles de puntos — y el resultado **se puede atribuir a ese elemento**, que es lo que hace falta para
+abrir una observación sobre él.
+
+> **Falta el IFC de la pasarela del CC 741 para medir de verdad**, y el oráculo de la fase —la misma
+> nube y el mismo modelo en CloudCompare— **solo lo puede correr el usuario**.
+
 ### Añadido — la nube calza con el modelo (`F2.2` cerrada, 2026-09-03)
 
 Se señalan puntos sobre la nube —`pickPointCloud` los devuelve **en los dos sistemas**: el de la

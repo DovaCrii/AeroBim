@@ -25,6 +25,8 @@ import {
 import {
   BimViewer,
   CAPAS,
+  medirDesviacion,
+  triangulosEnLaCaja,
   CAPAS_DE_CUADRO,
   csvDe,
   CuadrosEnPlano,
@@ -2287,6 +2289,207 @@ export async function nube(container: HTMLElement, url: string, log: Log): Promi
   }
 
   marca("total");
+}
+
+/**
+ * ¿Mide bien la diferencia entre lo modelado y lo construido? (`F2.4`)
+ *
+ * Va en dos partes, porque son dos cosas que fallan por separado:
+ *
+ * 1. **La medida**, con una superficie y una nube **fabricadas aquí**, a una distancia conocida. Si
+ *    el resultado no es esa distancia, la aritmética o el paso a coordenadas del mundo están mal — y
+ *    con una nube y un modelo reales no se podría distinguir un error de una obra torcida.
+ * 2. **Sacar los triángulos de un IFC de verdad**, que es lo que puede romperse por otro lado: las
+ *    mallas de Fragments son instanciadas y llevan su propia transformación, y quedarse con los
+ *    vértices sin transformar mediría contra un modelo que está en otro sitio.
+ *
+ * Uso: `/diag.html?modo=desviacion&ifc=/samples/muro-minimo.ifc`
+ */
+export async function desviacion(container: HTMLElement, ifcUrl: string, log: Log): Promise<void> {
+  container.style.width = "1200px";
+  container.style.height = "700px";
+
+  // --- 1. Una superficie y una nube conocidas ------------------------------------------
+  log("\n=== la medida, con una distancia conocida ===");
+
+  // Una losa de 10 x 10 m en el plano y = 0, hecha con dos triángulos.
+  const losa = new THREE.Mesh(
+    new THREE.PlaneGeometry(10, 10).rotateX(-Math.PI / 2),
+    new THREE.MeshBasicMaterial(),
+  );
+  const modeloFalso = new THREE.Group();
+  modeloFalso.add(losa);
+  modeloFalso.updateMatrixWorld(true);
+
+  // Y una nube de 400 puntos **5 cm por encima**: es una losa construida 5 cm alta.
+  const SUBIDA = 0.05;
+  const posiciones: number[] = [];
+  for (let i = 0; i < 20; i += 1) {
+    for (let j = 0; j < 20; j += 1) {
+      posiciones.push(-4 + (i * 8) / 19, SUBIDA, -4 + (j * 8) / 19);
+    }
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(posiciones, 3));
+  geo.setAttribute("color", new THREE.BufferAttribute(new Uint8Array(posiciones.length), 3, true));
+  geo.computeBoundingBox();
+  const nubeFalsa = new THREE.Group();
+  nubeFalsa.add(new THREE.Points(geo, new THREE.PointsMaterial()));
+  nubeFalsa.updateMatrixWorld(true);
+
+  // La losa como se la pasaría Fragments: posiciones, índices y su matriz.
+  const geoLosa = losa.geometry as THREE.BufferGeometry;
+  const indicesLosa = geoLosa.getIndex()?.array as Uint16Array | undefined;
+  const mallaLosa = {
+    positions: (geoLosa.getAttribute("position") as THREE.BufferAttribute).array as Float32Array,
+    transform: losa.matrixWorld.clone(),
+    ...(indicesLosa !== undefined ? { indices: indicesLosa } : {}),
+  };
+
+  const caja = new THREE.Box3(new THREE.Vector3(-6, -1, -6), new THREE.Vector3(6, 1, 6));
+  const m = medirDesviacion([mallaLosa], nubeFalsa, caja, { toleranciaM: 0.02, pintar: true });
+
+  log(`  triangulos del modelo en la caja: ${m.triangulos}`);
+  log(`  puntos medidos: ${m.puntos} de 400`);
+  log(
+    `  media: ${(m.resumen.media * 1000).toFixed(3)} mm · maxima: ${(m.resumen.maxima * 1000).toFixed(3)} mm`,
+  );
+  log(
+    `  sesgo: ${(m.resumen.sesgo * 1000).toFixed(3)} mm · signo fiable: ${m.resumen.signoFiable}`,
+  );
+  log(`  fuera de la tolerancia de 20 mm: ${m.resumen.fuera} de ${m.puntos}`);
+  log(`  en ${m.ms.toFixed(1)} ms`);
+  log(
+    Math.abs(m.resumen.media - SUBIDA) < 1e-4 && m.puntos === 400
+      ? `  VEREDICTO: mide los ${SUBIDA * 1000} mm que se pusieron`
+      : `  VEREDICTO: NO CUADRA — se pusieron ${SUBIDA * 1000} mm y midio ${(m.resumen.media * 1000).toFixed(3)}`,
+  );
+
+  // El signo tiene que ser positivo: la losa construida está **por encima** de la modelada. Con
+  // todo del mismo lado el resumen declara el signo NO fiable, y eso es correcto: es justo lo que
+  // pasaría con las normales invertidas, y quien lea el informe tiene que dudar.
+  log(
+    m.resumen.sesgo > 0
+      ? "  el sesgo es positivo: la obra esta POR ENCIMA de lo modelado"
+      : "  EL SESGO NO SEÑALA EL LADO CORRECTO",
+  );
+
+  // Y que pintar haya pintado: sin esto, «pintar: true» podría no hacer nada y nadie lo notaría.
+  const colorPintado = (nubeFalsa.children[0] as THREE.Points).geometry.getAttribute("color");
+  const pintados = colorPintado.array as Uint8Array;
+  const hayColor = pintados.some((v) => v !== 0);
+  log(hayColor ? "  la nube quedo pintada por desviacion" : "  PINTAR NO PINTO NADA");
+
+  // --- 2. Los triangulos de un IFC de verdad -------------------------------------------
+  log("\n=== sacar los triangulos de un IFC de verdad ===");
+  const viewer = await BimViewer.create(container);
+  const bytes = new Uint8Array(await (await fetch(ifcUrl)).arrayBuffer());
+  const cargado = await viewer.loadIfc(bytes, ifcUrl);
+  log(`  ${ifcUrl.split("/").pop()} cargado`);
+
+  // **La escena de Three.js no tiene la geometría**, y comprobarlo aquí impide que alguien vuelva
+  // a intentar recorrerla: con un IFC cargado el grafo trae la escena, tres luces y dos `Object3D`
+  // vacíos. Fragments dibuja por su propio camino.
+  const escena = viewer.camera.currentWorld?.scene.three;
+  if (escena !== undefined) {
+    let conGeometria = 0;
+    escena.traverse((o) => {
+      const g = (o as THREE.Mesh).geometry as THREE.BufferGeometry | undefined;
+      if (g?.getAttribute?.("position") !== undefined) conGeometria += 1;
+    });
+    log(
+      `  objetos con geometria en la escena de Three.js: ${conGeometria}` +
+        (conGeometria === 0 ? "  ← por eso se le pide a Fragments" : ""),
+    );
+  }
+
+  // La vía buena: se toma un elemento del modelo y se le piden sus mallas a Fragments.
+  const categorias = await viewer.categoriesOf(cargado.id);
+  const nombres = [...categorias.keys()];
+  log(`  categorias: ${nombres.join(", ") || "ninguna"}`);
+
+  let guid: string | null = null;
+  for (const categoria of nombres) {
+    const cuadro = await viewer.scheduleOf(cargado.id, categoria);
+    if (cuadro === null) continue;
+    const fila = cuadro.rows.find((f) => f.guid !== null);
+    if (fila?.guid != null) {
+      guid = fila.guid;
+      log(`  elemento de prueba: ${categoria} · ${fila.name ?? "sin nombre"} · ${guid}`);
+      break;
+    }
+  }
+
+  if (guid === null) {
+    log("  ningun elemento del modelo declara GUID: no hay de que pedir geometria");
+    return;
+  }
+
+  const geometria = await viewer.elementGeometry(guid as never);
+  if (geometria === null) {
+    log("  Fragments no devolvio geometria para ese elemento");
+    return;
+  }
+
+  const { caja: suCaja, mallas } = geometria;
+  log(`  mallas devueltas por Fragments: ${mallas.length}`);
+  log(
+    `  su caja: ${suCaja.min
+      .toArray()
+      .map((v) => v.toFixed(2))
+      .join(", ")} a ` +
+      `${suCaja.max
+        .toArray()
+        .map((v) => v.toFixed(2))
+        .join(", ")}`,
+  );
+
+  const holgada = suCaja.clone().expandByScalar(0.3);
+  const t0 = performance.now();
+  const enSuCaja = triangulosEnLaCaja(mallas, holgada);
+  log(
+    `  triangulos en su caja: ${enSuCaja.triangulos.length} en ${(performance.now() - t0).toFixed(1)} ms`,
+  );
+  log(
+    enSuCaja.triangulos.length > 0
+      ? "  se extraen triangulos de las mallas de Fragments"
+      : "  NO SE EXTRAJO NINGUN TRIANGULO",
+  );
+
+  // Que la caja recorte de verdad: media caja tiene que traer menos.
+  const mitad = holgada.clone();
+  mitad.max.x = (holgada.min.x + holgada.max.x) / 2;
+  const enMedia = triangulosEnLaCaja(mallas, mitad);
+  log(`  triangulos en media caja: ${enMedia.triangulos.length}`);
+  log(
+    enMedia.triangulos.length < enSuCaja.triangulos.length
+      ? "  la caja recorta: media caja trae menos"
+      : "  LA CAJA NO RECORTA: trae lo mismo",
+  );
+
+  // Y que estén **en coordenadas del mundo**: si no se aplicara la matriz de cada malla, caerían
+  // fuera de la caja que el propio Fragments declara para ese elemento.
+  if (enSuCaja.triangulos.length > 0) {
+    const suya = new THREE.Box3();
+    for (const t of enSuCaja.triangulos) {
+      for (const v of t) suya.expandByPoint(new THREE.Vector3(v[0], v[1], v[2]));
+    }
+    log(
+      `  los triangulos ocupan: ${suya.min
+        .toArray()
+        .map((v) => v.toFixed(2))
+        .join(", ")} a ` +
+        `${suya.max
+          .toArray()
+          .map((v) => v.toFixed(2))
+          .join(", ")}`,
+    );
+    log(
+      holgada.containsBox(suya)
+        ? "  caen dentro de la caja del elemento: la matriz de la malla se aplico"
+        : "  NO CAEN EN LA CAJA DEL ELEMENTO: la matriz de la malla no se esta aplicando",
+    );
+  }
 }
 
 /** Mismo flujo, a través de `@aerobim/viewer`. */
