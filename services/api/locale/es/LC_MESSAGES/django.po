@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-03 10:22-0400\n"
+"POT-Creation-Date: 2026-09-03 11:40-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -145,7 +145,7 @@ msgstr "Lo mío"
 msgid "Yours alone, soonest due first: what you have to answer."
 msgstr "Solo lo tuyo, y lo que antes vence primero: lo que te toca contestar."
 
-#: .\apps\accounts\views.py:211 .\templates\documents\expediente.html:241
+#: .\apps\accounts\views.py:211 .\templates\documents\expediente.html:253
 #: .\templates\documents\observacion.html:51
 #: .\templates\documents\observaciones.html:4
 #: .\templates\documents\observaciones.html:7
@@ -158,7 +158,7 @@ msgstr "Todo lo que hay que resolver, con responsable y fecha de vencimiento."
 
 #: .\apps\accounts\views.py:218 .\templates\documents\actividades.html:4
 #: .\templates\documents\actividades.html:7
-#: .\templates\documents\expediente.html:270
+#: .\templates\documents\expediente.html:282
 msgid "Activities"
 msgstr "Actividades"
 
@@ -973,24 +973,24 @@ msgstr "Sobre"
 
 #: .\apps\documents\views.py:972 .\templates\documents\actividades.html:23
 #: .\templates\documents\entregables.html:24
-#: .\templates\documents\expediente.html:249
-#: .\templates\documents\expediente.html:275
+#: .\templates\documents\expediente.html:261
+#: .\templates\documents\expediente.html:287
 #: .\templates\documents\observacion.html:140
 #: .\templates\projects\proyecto.html:178
 msgid "Owner"
 msgstr "Responsable"
 
 #: .\apps\documents\views.py:973 .\templates\documents\actividades.html:24
-#: .\templates\documents\expediente.html:250
-#: .\templates\documents\expediente.html:276
+#: .\templates\documents\expediente.html:262
+#: .\templates\documents\expediente.html:288
 #: .\templates\documents\observacion.html:144
 #: .\templates\projects\proyecto.html:179
 msgid "Due"
 msgstr "Vence"
 
 #: .\apps\documents\views.py:974 .\templates\documents\actividades.html:25
-#: .\templates\documents\expediente.html:251
-#: .\templates\documents\expediente.html:277
+#: .\templates\documents\expediente.html:263
+#: .\templates\documents\expediente.html:289
 #: .\templates\documents\observaciones.html:71
 #: .\templates\documents\transmittal.html:19
 #: .\templates\documents\transmittals.html:25
@@ -1425,8 +1425,8 @@ msgstr "Continuar"
 #: .\templates\documents\actividades.html:21
 #: .\templates\documents\bandeja.html:47
 #: .\templates\documents\entregables.html:22
-#: .\templates\documents\expediente.html:248
-#: .\templates\documents\expediente.html:274
+#: .\templates\documents\expediente.html:260
+#: .\templates\documents\expediente.html:286
 #: .\templates\documents\requisitos_ids.html:21
 #: .\templates\documents\transmittal.html:67
 #: .\templates\projects\proyecto.html:439
@@ -1574,7 +1574,7 @@ msgid "Active"
 msgstr "Activo"
 
 #: .\templates\accounts\usuarios_roles.html:30
-#: .\templates\documents\expediente.html:231
+#: .\templates\documents\expediente.html:243
 msgid "Yes"
 msgstr "Sí"
 
@@ -1982,63 +1982,72 @@ msgstr "Qué trae"
 msgid "elements"
 msgstr "elementos"
 
-#: .\templates\documents\expediente.html:135
+#: .\templates\documents\expediente.html:147
 msgid "georeferenced"
 msgstr "georreferenciado"
 
-#: .\templates\documents\expediente.html:137
+#: .\templates\documents\expediente.html:147
+#, python-format
+msgid "rotated %(grados)s°"
+msgstr "girado %(grados)s° respecto al norte"
+
+#: .\templates\documents\expediente.html:147
+msgid "no rotation declared"
+msgstr "sin giro declarado"
+
+#: .\templates\documents\expediente.html:149
 msgid "not georeferenced"
 msgstr "sin georreferenciar"
 
-#: .\templates\documents\expediente.html:142
+#: .\templates\documents\expediente.html:154
 msgid "the file's own data could not be read"
 msgstr "no se pudieron leer los datos del propio archivo"
 
-#: .\templates\documents\expediente.html:163
+#: .\templates\documents\expediente.html:175
 msgid "nothing was checked"
 msgstr "no se comprobó nada"
 
-#: .\templates\documents\expediente.html:166
-#: .\templates\documents\expediente.html:190
+#: .\templates\documents\expediente.html:178
+#: .\templates\documents\expediente.html:202
 msgid "of"
 msgstr "de"
 
-#: .\templates\documents\expediente.html:167
+#: .\templates\documents\expediente.html:179
 msgid "specifications fail"
 msgstr "especificaciones fallan"
 
-#: .\templates\documents\expediente.html:179
+#: .\templates\documents\expediente.html:191
 msgid "did not apply to this model"
 msgstr "no aplicaron a este modelo"
 
-#: .\templates\documents\expediente.html:201
+#: .\templates\documents\expediente.html:213
 msgid "open an observation"
 msgstr "abrir una observación"
 
-#: .\templates\documents\expediente.html:208
+#: .\templates\documents\expediente.html:220
 msgid "in total"
 msgstr "en total"
 
-#: .\templates\documents\expediente.html:224
+#: .\templates\documents\expediente.html:236
 msgid "Validate against the IDS"
 msgstr "Validar contra el IDS"
 
-#: .\templates\documents\expediente.html:235
+#: .\templates\documents\expediente.html:247
 #: .\templates\documents\transmittals.html:56
 msgid "Nothing issued yet."
 msgstr "Todavía no se ha emitido nada."
 
-#: .\templates\documents\expediente.html:243
+#: .\templates\documents\expediente.html:255
 #: .\templates\documents\nueva_observacion.html:4
 #: .\templates\documents\nueva_observacion.html:7
 msgid "Open an observation"
 msgstr "Abrir una observación"
 
-#: .\templates\documents\expediente.html:264
+#: .\templates\documents\expediente.html:276
 msgid "No observation."
 msgstr "Sin observaciones."
 
-#: .\templates\documents\expediente.html:290
+#: .\templates\documents\expediente.html:302
 msgid "No activity."
 msgstr "Sin actividades."
 

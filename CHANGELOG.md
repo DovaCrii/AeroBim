@@ -5,6 +5,50 @@ Este proyecto sigue [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Corregido — el expediente leía la georreferencia **sin el giro** (`F2.2`, 2026-09-03)
+
+**El extractor de IFC leía dónde está el edificio y no cómo está orientado.** De
+`IfcMapConversion` tomaba `Eastings`, `Northings`, `OrthogonalHeight` y `Scale`, y **se dejaba
+`XAxisAbscissa` y `XAxisOrdinate`** — las dos componentes del eje X local medidas en el sistema del
+mapa, que son de donde sale el ángulo. Con lo que llegaba al visor se podía **trasladar el modelo y
+no orientarlo**, y un edificio girado 20° sobre su levantamiento no se cruza con nada. Se descubrió
+al escribir la alineación de `F2.2`.
+
+Ahora se leen las dos, junto al **sistema de referencia** de `TargetCRS`, y el expediente lo dice:
+«georreferenciado (IfcMapConversion, EPSG:32719, girado 30,0° respecto al norte)». Con eso quien
+recibe el modelo puede comprobarlo en obra —una brújula mide 30°— y sabe si su levantamiento está en
+el mismo sistema. Y **«sin giro declarado» se dice también**, porque no es «girado 0°»: es lo que
+decide si la nube se puede calzar leyendo el archivo o hay que señalar puntos a mano. El `(0, 0)` que
+escriben los exportadores que no saben la orientación se trata como «no lo declara», el mismo caso
+que la latitud en cero y la isla nula.
+
+### Añadido — la aritmética de alinear la nube con el modelo (`F2.2`, 2026-09-03)
+
+Dos módulos en `bim-core`, probados contra el oráculo que pedía el plan: **una transformación
+conocida aplicada a puntos conocidos**.
+
+- **`nubes/georreferencia.ts`** — `IfcMapConversion` en las dos direcciones, porque el sentido que se
+  usa de verdad es el de vuelta: la nube viene al sistema del modelo, y no al revés, porque mover el
+  modelo movería las observaciones, las vistas guardadas y los planos. El giro sale de `atan2` sobre
+  las dos componentes y no de dividirlas: dividir **pierde el cuadrante** y pone el edificio girado
+  180°. Probado en nueve ángulos.
+- **`nubes/calce.ts`** — calzar señalando puntos que son el mismo punto, que es **el camino que se va
+  a usar casi siempre**: en IFC2X3 `IfcMapConversion` no existe y en los IFC4 de obra suele venir
+  vacía. Solución cerrada, sin iterar. Recupera una transformación conocida con residuo por debajo de
+  una micra.
+
+**Tres decisiones que cambian el resultado.** El giro va **solo alrededor del vertical**, porque un
+edificio y un levantamiento están los dos aplomados y dejar que el ajuste gire en tres dimensiones le
+permite inclinar el edificio para absorber el error de quien señaló los puntos —el residuo baja
+mientras la alineación empeora—. **La escala se queda en 1** salvo que se pida: un 1,003 ajustado no
+es que el edificio mida distinto, es un error de unidades, y absorberlo lo esconde. Y **el residuo
+sale siempre con su máximo**, no solo el medio, porque el medio diluye el punto mal señalado y el
+máximo lo delata y dice cuál fue.
+
+> **Lo que falta de `F2.2`: señalar los puntos.** La aritmética está lista pero **no hay dónde
+> pinchar hasta `F2.1`** — no hay ninguna nube en la escena todavía. Escribir la interacción antes
+> sería escribirla contra una escena imaginaria, así que la tarea queda a medias a conciencia.
+
 ### Decidido — el visor abrirá **COPC**, y `float32` perdía 20 cm en UTM (`F2.5`, 2026-09-03)
 
 **El formato que entra es COPC** (`.copc.laz`), convertido con `pdal` fuera de la aplicación. Está en

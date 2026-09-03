@@ -28,13 +28,18 @@ línea cada cosa. Actualizado el 2026-09-03.
 | **9 · Diseño**                 | ✅ salvo `F9.6`, que son **tres decisiones del usuario** y contradicen tres líneas de `UX.md` |
 | **10 · Etiquetas y tablas**    | ✅ entera                                                                                     |
 | **11 · El portal se ve plano** | ✅ entera — incluida la ayuda con su recorrido                                                |
-| **2 · Nubes de puntos**        | 🔶 **en marcha.** `F2.5` cerrada: el formato es **COPC**. Sigue `F2.2`                        |
+| **2 · Nubes de puntos**        | 🔶 **en marcha.** `F2.5` ✅ entra **COPC**; `F2.2` 🔶 la aritmética hecha. Sigue `F2.1`       |
 | **6 · Geo + BIM**              | ⬜ pospuesta a propósito el 2026-09-02, para poner la coordinación delante                    |
 
-**Lo que sigue es la Fase 2**, y en un orden que no es el de su numeración: `F2.5` ya está cerrada
-—decidió que **entra COPC**, y está en [`docs/NUBES_DE_PUNTOS.md`](docs/NUBES_DE_PUNTOS.md)—, así que
-**ahora va `F2.2`**, la alineación, que es el problema real y donde apareció el hallazgo de los
-20 cm; después `F2.1` y `F2.3`. El porqué del orden está en «Hasta dónde llega este bloque».
+**Lo que sigue es la Fase 2**, y en un orden que no es el de su numeración. `F2.5` cerrada —entra
+**COPC**, en [`docs/NUBES_DE_PUNTOS.md`](docs/NUBES_DE_PUNTOS.md)— y `F2.2` con **la aritmética de la
+alineación hecha y probada**: la georreferencia del archivo, el calce señalando puntos, y el hueco
+del servidor que se dejaba el giro sin leer.
+
+**Ahora va `F2.1`, el cargador**, porque es lo que desbloquea el resto: sin una nube en la escena no
+hay dónde señalar puntos, así que `F2.2` se cierra con ella. Y lo primero de `F2.1` no es código sino
+una comprobación: que `copc` + `laz-perf` abran en el navegador el archivo que escribe `pdal` —eso
+está **sin verificar**, y el documento lo dice—. Después `F2.3` y `F2.4`.
 
 **Y tres cosas no las decide este plan**, porque no son trabajo sino elecciones: `F1.13`, `F9.6` y
 el trazo libre de `F4.5`. Están reunidas abajo, en «Las decisiones que solo el usuario puede tomar».
@@ -1159,7 +1164,7 @@ comparación que nadie puede hacer hoy sin software de pago.
 | #      | Tarea                                                                                         | Estado |
 | ------ | --------------------------------------------------------------------------------------------- | ------ |
 | `F2.1` | Cargar una nube (LAS/LAZ convertida) en la escena Three.js del visor                          | ⬜     |
-| `F2.2` | Alinear nube y modelo: origen, rotación y escala, con ajuste manual asistido                  | ⬜     |
+| `F2.2` | Alinear nube y modelo: origen, rotación y escala, con ajuste manual asistido                  | 🔶     |
 | `F2.3` | Controles de visualización: tamaño de punto, densidad, recorte por caja, color por altura/RGB | ⬜     |
 | `F2.4` | Medir del modelo a la nube (desviación entre lo construido y lo modelado)                     | ⬜     |
 | `F2.5` | Documentar el pipeline de conversión **fuera de la aplicación**: `PotreeConverter` y `pdal`   | ✅     |
@@ -1219,6 +1224,41 @@ veces con el norte rotado), mientras la nube viene georreferenciada del vuelo. S
 Y ahora se sabe que **no es solo cuestión de que calce a la vista**: con la nube en coordenadas
 absolutas el error de representación es de 20 cm antes de empezar. Restar el desplazamiento no es un
 detalle de la alineación, es su **primer paso obligatorio**.
+
+### `F2.2` el 2026-09-03 — la aritmética está hecha y probada; el señalar puntos espera a `F2.1`
+
+**Lo que está cerrado**, todo con prueba en `bim-core` y con el oráculo de una **transformación
+conocida aplicada a puntos conocidos**:
+
+- **`nubes/georreferencia.ts`** — `IfcMapConversion` resuelto en las dos direcciones. El giro sale de
+  `atan2` sobre las dos componentes del eje y no de dividirlas, porque dividir **pierde el
+  cuadrante**: un eje al suroeste da el mismo cociente que uno al noreste, y ese error pone el
+  edificio girado 180°. Probado en nueve ángulos, incluidos los cuadrantes.
+- **`nubes/calce.ts`** — el calce señalando puntos, que es **el camino que se va a usar casi
+  siempre**: en IFC2X3 `IfcMapConversion` no existe, y en los IFC4 de obra suele venir vacía. Es
+  Procrustes ortogonal, con solución cerrada. Recupera una transformación conocida con residuo por
+  debajo de 10⁻⁶ m.
+- **El hueco del servidor, que era grave.** El extractor leía `Eastings`, `Northings`,
+  `OrthogonalHeight` y `Scale` y **se dejaba `XAxisAbscissa` y `XAxisOrdinate`**: con lo que llegaba
+  al visor se podía trasladar el modelo y **no orientarlo**. Se añadieron, junto al sistema de
+  referencia de `TargetCRS`, y el expediente ya dice «georreferenciado (IfcMapConversion, EPSG:32719,
+  girado 30,0° respecto al norte)» — o «sin giro declarado», que es distinto de 0°.
+
+**Tres decisiones del calce que cambian el resultado, y quedan escritas:**
+
+1. **El giro es solo alrededor del vertical.** Un edificio y un levantamiento están los dos
+   aplomados. Dejar que el ajuste gire en tres dimensiones le permite **inclinar el edificio** para
+   absorber el error de quien señaló los puntos: el residuo baja mientras la alineación empeora. Es
+   el fallo clásico de estos ajustes.
+2. **La escala se queda en 1 salvo que se pida.** Una escala ajustada de 1,003 no es que el edificio
+   mida distinto: es un error de unidades o unos puntos mal señalados, y absorberla lo esconde.
+3. **El residuo se devuelve siempre, con el máximo además del medio.** El medio diluye el punto que
+   se señaló mal; el máximo lo delata y dice cuál fue.
+
+> **Lo que falta de `F2.2`, y por qué no se puede hacer todavía: señalar los puntos.** La aritmética
+> está lista, pero no hay dónde pinchar — **no hay ninguna nube en la escena hasta `F2.1`**. Escribir
+> la interacción antes sería escribirla contra una escena imaginaria. Así que `F2.2` queda en 🔶 a
+> conciencia, y se cierra con `F2.1`.
 
 ### `F2.6` — Gaussian splatting: **va aquí y no en AeroPlanner** (decidido el 2026-08-26)
 

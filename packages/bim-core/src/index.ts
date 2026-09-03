@@ -164,6 +164,26 @@ export {
 } from "./nubes/precision.js";
 
 export {
+  alineacionDeMapa,
+  alineacionDeNorteVerdadero,
+  localAMapa,
+  mapaALocal,
+  type Alineacion,
+  type ConversionDeMapa,
+  type Punto3 as PuntoDeNube,
+  type ViaDeGiro,
+} from "./nubes/georreferencia.js";
+
+export {
+  calzarConPuntos,
+  residuoDe,
+  type Calce,
+  type OpcionesDeCalce,
+  type ParDePuntos,
+  type Residuo,
+} from "./nubes/calce.js";
+
+export {
   isDimensionlessIfcType,
   isTextIfcType,
   looksNumeric,

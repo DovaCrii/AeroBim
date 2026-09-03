@@ -143,6 +143,22 @@ def _georreferencia(archivo) -> dict:
                 "norte": _numero(getattr(conversion, "Northings", None)),
                 "altura": _numero(getattr(conversion, "OrthogonalHeight", None)),
                 "escala": _numero(getattr(conversion, "Scale", None)),
+                # **El giro, que faltaba y es media alineacion.** `XAxisAbscissa` y `XAxisOrdinate`
+                # son las dos componentes del eje X local medidas en el sistema del mapa: de ellas
+                # sale el angulo, con `atan2` para no perder el cuadrante. Sin esto se podia
+                # trasladar el modelo y **no orientarlo**, y un edificio girado 20° sobre la nube no
+                # se cruza con nada. Se descubrio al escribir `F2.2`.
+                "abscisaEjeX": _numero(getattr(conversion, "XAxisAbscissa", None)),
+                "ordenadaEjeX": _numero(getattr(conversion, "XAxisOrdinate", None)),
+                # El angulo, **solo para mostrarlo**. La alineacion de verdad se calcula en el visor
+                # con el seno y el coseno del vector, sin volver a pasar por grados; esto existe
+                # porque "girado 30° respecto al norte" es una frase que se puede comprobar en obra
+                # y `(0.866, 0.5)` no. Se calcula aca y no en la plantilla porque una plantilla no
+                # tiene `atan2`.
+                "giroGrados": _giro_en_grados(conversion),
+                # Y en que sistema estan esas coordenadas. Un desplazamiento sin sistema de
+                # referencia no dice donde esta el edificio: dice un par de numeros.
+                "sistema": _nombre_de_crs(getattr(conversion, "TargetCRS", None)),
             }
         )
 
@@ -167,6 +183,46 @@ def _georreferencia(archivo) -> dict:
         "conversiones": conversiones,
         "sitios": sitios,
     }
+
+
+def _giro_en_grados(conversion):
+    """El giro del eje X local respecto al este del mapa, o `None` si el archivo no lo declara.
+
+    Con `atan2` y no dividiendo las componentes: **dividir pierde el cuadrante**, y un eje que
+    apunta al suroeste daria el mismo cociente que uno al noreste. Ese error pone el edificio girado
+    180°, que se ve pero solo si alguien mira.
+
+    **El vector nulo no es cero grados.** `(0, 0)` es lo que escriben los exportadores que no saben
+    la orientacion —el mismo caso que el `(0,0,0,0)` de la latitud— y devolver `0.0` lo convertiria
+    en un dato medido. Se devuelve `None`, que es «no lo declara».
+    """
+    import math
+
+    abscisa = _numero(getattr(conversion, "XAxisAbscissa", None))
+    ordenada = _numero(getattr(conversion, "XAxisOrdinate", None))
+    if abscisa is None or ordenada is None:
+        return None
+    if abscisa == 0 and ordenada == 0:
+        return None
+    return math.degrees(math.atan2(ordenada, abscisa))
+
+
+def _nombre_de_crs(crs) -> str:
+    """El nombre del sistema de referencia de destino, `EPSG:32719` o como lo declare el archivo.
+
+    Se lee de `TargetCRS`, que en IFC4 es un `IfcProjectedCRS`. Se prefiere el `Name` porque es
+    donde va el codigo EPSG; si viene vacio se cae al `Description`, que es donde algunos
+    exportadores lo escriben en prosa. **Si no hay ninguno se devuelve vacio y no se adivina**: un
+    sistema de referencia supuesto pone el edificio en otro pais, y ya tenemos el precedente de la
+    isla nula.
+    """
+    if crs is None:
+        return ""
+    for campo in ("Name", "Description"):
+        valor = getattr(crs, campo, None)
+        if valor:
+            return str(valor)
+    return ""
 
 
 def _situa(sitio: dict) -> bool:
