@@ -4275,6 +4275,7 @@ nadie puede alcanzar.
 | `F12.6` | **La entrada al portal**: es la primera pantalla del producto y hoy es un formulario          | ⬜     |
 | `F12.7` | **«Portal» deja de titular la portada**, y los módulos se presentan por lo que resuelven      | ⬜     |
 | `F12.8` | **La costura**: el visor y el portal se leen como un producto, no como dos                    | ⬜     |
+| `F12.9` | **La cota lleva su número encima**, en la escena y no en la barra de abajo                    | ⬜     |
 
 **Oráculo de la fase:** el usuario abre las dos mitades y **no dice «está plano»**. No hay medida que
 sustituya eso, y decir lo contrario sería inventarse un número. Lo que sí se mide y entra en el gate:
@@ -4358,6 +4359,31 @@ el modelo, mirar y medir, dejar una nota…»— y la portada no lo usa.
 > **El nombre lo decide el usuario**, como los tres de `F1.13`. Lo que este plan aporta es el
 > argumento: un título dice para qué está la pantalla, y «Portal» dice dónde está el usuario dentro
 > del software.
+
+### `F12.9` — La cota lleva su número encima
+
+**Lo trajo el usuario el 2026-09-03** con una captura de **Cyclone 3DR** midiendo sobre una nube: dos
+puntos señalados en un pretil, un marcador numerado, y **pegado a la medida** un recuadro con
+`Distance 2,693 · Horizontal 2,692 · Vertical 0,071`. «Sumar una opción así de acotado en general».
+
+**Y buena parte ya está hecha, que es lo que hace esta tarea corta:**
+
+| Lo que hace falta                 | Dónde está hoy                                                                                      |
+| --------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Las tres magnitudes               | ✅ `distancePartsM` en `bim-core`, y `Measurement` ya trae `distanceM`, `horizontalM` y `verticalM` |
+| Enseñarlas con su nombre          | ✅ La barra de estado ya pone **Directa · En planta · Desnivel**                                    |
+| Etiquetas ancladas en la escena   | ✅ `OBF.Mark` y `estilarEtiqueta`, que es lo que ya rotula cada cota                                |
+| **Que el número esté en la cota** | ❌ **Falta**: el rótulo de la escena lleva **un** valor y los tres viven abajo                      |
+| **Que cada cota se distinga**     | ❌ Falta el número de orden del marcador                                                            |
+
+**El defecto, dicho en una frase: con tres medidas en el mismo puente, los números de la barra no
+dicen a cuál pertenecen.** Una cota de CAD lleva su valor encima justamente por eso — es lo que la
+hace una cota y no una medición suelta. Y en un levantamiento se miden diez cosas seguidas.
+
+Lo que hay que decidir al hacerla, y no antes: **cuánto cabe en el rótulo**. Tres líneas por cota
+sobre una nube de puntos tapan la nube; Cyclone lo resuelve con un recuadro que se despliega. Una
+salida razonable es la directa siempre visible y las otras dos al pasar por encima o al seleccionar
+la cota — pero eso se prueba mirando, no razonando.
 
 ### `F12.8` — La costura
 
