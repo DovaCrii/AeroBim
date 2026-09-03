@@ -535,6 +535,17 @@ const TOLERANCIA_OPACIDAD = 0.01;
 const REPINTADOS_POR_GESTO = 4;
 
 /**
+ * Cuánto se espera para el refresco diferido de un cambio de proyección, en milisegundos.
+ *
+ * Ver {@link BimViewer.refrescarAlAsentarse}. **No es un número mágico: es más que un fotograma y
+ * menos que un gesto humano.** Tiene que dejar pasar el reordenamiento del nivel de detalle que
+ * dispara el cambio de cámara —que no es instantáneo, va por tandas asíncronas— y a la vez ocurrir
+ * antes de que alguien mire la pantalla y la vea a medias. Medido: a los 400 ms la escena ya tiene
+ * mallas otra vez.
+ */
+const MS_HASTA_EL_REFRESCO_DIFERIDO = 400;
+
+/**
  * Cuánta luz ambiental deja el sombreado legible.
  *
  * **`ShadowedScene.setup()` la deja en 1,50**, y con la direccional también en 1,50 el término
@@ -1470,6 +1481,13 @@ export class BimViewer {
    * fantasma y cada vez que la cámara descansa, que son los momentos en que el usuario hizo algo.
    */
   private presupuestoDePintura = 0;
+  /**
+   * El refresco diferido que queda por disparar, o `null`.
+   *
+   * Ver {@link refrescarAlAsentarse}. Se guarda para poder reprogramarlo y para poder cancelarlo al
+   * destruir el visor: un `setTimeout` vivo sobre una escena ya liberada revienta al dispararse.
+   */
+  private refrescoPendiente: ReturnType<typeof setTimeout> | null = null;
   /**
    * Las mediciones tomadas, en orden, con lo que se dibuja de cada una.
    *
@@ -2598,6 +2616,35 @@ export class BimViewer {
     // Y repintando: el cambio de cámara reordena los niveles de detalle, y la geometría que entra
     // nueva llega sin el resaltado. Alternando proyección y aspecto se veía el modelo a medias.
     await this.refresh();
+    // **Y otra vez cuando la cámara se haya asentado.** Ver {@link refrescarAlAsentarse}: el
+    // refresco de arriba corre con la cámara donde esté *ahora*, que si el usuario venía moviéndola
+    // es a mitad de camino.
+    this.refrescarAlAsentarse();
+  }
+
+  /**
+   * Vuelve a refrescar un instante después, sin depender de que la cámara avise.
+   *
+   * **Es el arreglo de «al mover y cambiar de órbita a ortográfica pasaba eso».** Medido con
+   * `diag.html?modo=fantasma`: al cambiar de proyección **en medio de un movimiento**, la escena se
+   * queda con **cero mallas auditables** —el modelo desaparece o se ve como dibujo de línea— y solo
+   * vuelve a dibujarse cuando algo emite `rest`. Con la cámara ya quieta, ese `rest` **no llega**:
+   * camera-controls lo emite al terminar un movimiento, y el cambio de proyección interrumpió el
+   * que estaba en marcha. El visor se quedaba esperando un aviso que nadie iba a dar.
+   *
+   * Así que el refresco no se cuelga solo del evento: se pide **también** un poco después, a ciegas.
+   * Es una sola pasada de más por cambio de proyección, y es lo que garantiza que el nivel de
+   * detalle se recalcule con la cámara final y no con la de mitad del gesto.
+   *
+   * No se acumula: si ya hay uno pendiente, se reprograma en vez de encadenar refrescos.
+   */
+  private refrescarAlAsentarse(): void {
+    if (this.refrescoPendiente !== null) clearTimeout(this.refrescoPendiente);
+    this.refrescoPendiente = setTimeout(() => {
+      this.refrescoPendiente = null;
+      if (this.disposed || this.loading) return;
+      void this.refresh();
+    }, MS_HASTA_EL_REFRESCO_DIFERIDO);
   }
 
   /** Proyección actual. */
@@ -4548,6 +4595,12 @@ export class BimViewer {
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
+    // El refresco diferido se cancela: un `setTimeout` vivo sobre una escena ya liberada revienta
+    // al dispararse, y con la vista cerrada nadie vería el resultado de todas formas.
+    if (this.refrescoPendiente !== null) {
+      clearTimeout(this.refrescoPendiente);
+      this.refrescoPendiente = null;
+    }
     porContenedor.delete(this.container);
     // El worker de conversión también se termina: es un hilo con un WASM de varios megabytes
     // dentro, y sin esto sobreviviría al visor sin que nadie pueda volver a usarlo.

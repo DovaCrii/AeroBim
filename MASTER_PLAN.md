@@ -3248,32 +3248,44 @@ visor; lo que no está comprobado es **la jerarquía**. La forma medible de deci
 cuántos pesos y tamaños distintos de texto hay, y si el elemento más importante es el más marcado.
 Se escribe cuando `F11.5` y `F11.6` estén, para no fijar un número antes de saber qué mide.
 
-### ❓ El fantasma al pasar a ortográfica — **no reproducido, y queda dicho**
+### ❓ El fantasma al pasar a ortográfica — dos arreglos, y una pregunta que este entorno no puede cerrar
 
 > «Sigue el fantasma al pasar a ortográfica.»
+>
+> «Al momento de mover y cambiar de órbita a ortográfica pasaba eso.»
 
-**Lo que se midió dice que la pintura del fantasma sale limpia**, y por eso esto queda abierto en vez
-de cerrado. El auditor de pintura —`paintAudit`, el mismo oráculo con el que se cerró `F1.15`—
-cuenta cuántas mallas llevan puesta la pintura translúcida, y en vista sólida tiene que ser cero. Se
-midió alternando proyección tres veces sobre los dos modelos de muestra, incluido el de 32 MB que es
-el que el usuario tenía abierto: **cero en las seis mediciones**, y también con el arreglo de abajo
-desactivado a propósito para comprobar que el defecto se reproducía. No se reprodujo.
+**El segundo mensaje fue el que hizo avanzar esto**, porque nombra el gesto: el cambio de proyección
+ocurre **con el movimiento en marcha**. La primera medición no lo reproducía porque esperaba y
+emitía `rest` antes de cambiar, y con la cámara descansada el repintado ya había corrido.
 
-**Así que lo que se ve en la pantalla del usuario probablemente no es la pintura del fantasma.** En
-su captura el modelo sale como dibujo de línea blanca, y eso encaja mejor con el **nivel de detalle
-de Fragments** —`LODMesh`, lo que dibuja como alambre mientras la cámara se mueve— quedándose puesto
-después de que el cambio de proyección sustituya el objeto de cámara. El volcado de mallas por
-proyección ya está en el modo de diagnóstico para poder confirmarlo o descartarlo con datos.
+**Lo que se encontró midiendo el gesto de verdad**, con el modelo encuadrado antes de cada pasada
+para no confundir «la escena se quedó vacía» con «la cámara mira a otro lado»: al cambiar de
+proyección en medio de un movimiento, **la escena se queda sin mallas** y sigue así dos segundos
+después sin que nadie toque nada. Con `rest` emitido a mano vuelve a dibujar. O sea: el visor
+esperaba un aviso que **nadie iba a dar**, porque camera-controls emite `rest` al terminar un
+movimiento y el cambio de proyección interrumpió el que estaba en marcha.
 
-**Lo que sí se arregló de camino** es una asimetría real que estaba en el código y que podía producir
-exactamente ese síntoma en otro modelo: **entrar** en la vista fantasma tenía un bucle que insiste
-hasta que no queda geometría sin pintar, y **salir** no tenía nada equivalente. Una malla creada por
-el nivel de detalle después de despintar nacía vistiendo un clon translúcido y nadie la devolvía a
-sólido. Ahora hay un camino de vuelta que no se borra nunca y un barrido con el mismo oráculo y el
-mismo presupuesto que el de entrada.
+Eso está arreglado: el refresco ya no se cuelga solo del evento, se pide **también** un poco después
+a ciegas (`refrescarAlAsentarse`, 400 ms medidos). Y de camino se cerró la otra asimetría real:
+**entrar** en la vista fantasma tenía un bucle que insiste hasta que no queda geometría sin pintar y
+**salir** no tenía nada equivalente, así que una malla creada por el nivel de detalle después de
+despintar nacía translúcida y nadie la devolvía a sólido.
 
-Queda pendiente: reproducirlo con el modelo y el gesto exactos del usuario, y mirar el nivel de
-detalle en vez de la pintura.
+**Y lo que queda abierto, dicho con precisión**: en el arnés, la pasada que va a **Perspective**
+termina con cero mallas incluso con la cámara descansada, mientras las de **Orthographic** dibujan 53. Eso puede ser un defecto —perder el encuadre al volver de ortográfica a perspectiva— o un
+artefacto del entorno: **el panel del navegador no corre el bucle de dibujo**, y `paintAudit` cuenta
+mallas que Fragments crea _al dibujar_, así que un cero puede significar «no se compuso ningún
+fotograma para esa cámara» y no «la escena está vacía». Este arnés no puede distinguir las dos
+cosas, y por eso no se cierra aquí.
+
+**Cómo cerrarlo, para quien siga**: `diag.html?modo=fantasma` deja la receta ejecutable —encuadrar,
+ensuciar con fantasma, mover y cambiar de proyección sin `rest`—; lo que falta es mirarlo en una
+pantalla de verdad con el modelo del usuario y decir si lo que queda es dibujo de línea, nada, o el
+modelo entero.
+
+**Y la pintura del fantasma sale limpia en todas las mediciones** —cero mallas pintadas en las seis
+pasadas, sobre los dos modelos de muestra y también con el barrido desactivado a propósito—, así que
+lo que se ve en la captura del usuario **no es la pintura**: es lo que la escena deja de dibujar.
 
 ### El visor no podía escribir en ningún navegador, y el gate no lo veía
 

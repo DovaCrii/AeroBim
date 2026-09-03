@@ -315,14 +315,66 @@ export async function fantasma(container: HTMLElement, ifcUrl: string, log: Log)
     );
   }
 
-  // **Y el cambio de proyección, que es donde el fantasma se quedaba pegado.**
+  // **El gesto exacto del usuario: mover y cambiar a ortográfica sin dejar descansar la cámara.**
   //
-  // El usuario lo dijo así: «sigue el fantasma al pasar a ortográfica». La proyección no era la
-  // causa: cambiarla **rehace las mallas del nivel de detalle**, y algunas nacían vistiendo un clon
-  // translúcido nuestro. Como llegaban después de despintar, nadie las devolvía a sólido.
+  // Lo dijo así: «al momento de mover y cambiar de órbita a ortográfica pasaba eso». Y es la
+  // diferencia que hacía que no se reprodujera: la primera versión de esta medición esperaba y
+  // emitía `rest` antes de cambiar de proyección, y con la cámara descansada el repintado ya había
+  // corrido. **Cambiar de proyección con el movimiento en marcha** es otro camino: el nivel de
+  // detalle está a medio traer mallas, y las que llegan lo hacen después del cambio de cámara.
   //
-  // Se mide aquí porque es el único sitio donde se puede: en vista sólida, `ghosted` **tiene que
-  // ser cero**, y una pantalla no lo dice con un número.
+  // Se mide entrando y saliendo del fantasma primero, para que existan clones que puedan quedarse
+  // pegados: sin ese paso previo no hay pintura que arrastrar y la medición no dice nada.
+  log("\nmover y cambiar de proyeccion sin descansar:");
+  for (const [i, proyeccion] of (
+    ["Orthographic", "Perspective", "Orthographic"] as const
+  ).entries()) {
+    // **Se encuadra antes de cada pasada, y es un control necesario y no ceremonia.** Sin él la
+    // primera medición dio «0 mallas» y parecía el defecto, cuando lo que pasaba era que el giro
+    // había dejado la cámara mirando a otro sitio: cero mallas dibujándose era la respuesta
+    // correcta. Con el modelo encuadrado, un cero **sí** significa que la escena se quedó vacía.
+    await viewer.frameAll("iso");
+    await new Promise((listo) => setTimeout(listo, 900));
+
+    // Se ensucia a propósito: fantasma, un movimiento pequeño, y de vuelta a sólido.
+    await viewer.setRenderStyle("wireframe");
+    await controls.rotateTo(Math.PI / 4 + i * 0.2, Math.PI / 3, false);
+    controls.update(1 / 60);
+    await new Promise((listo) => setTimeout(listo, 900));
+    await viewer.setRenderStyle("solid");
+
+    // Y ahora el gesto: se mueve y **en medio del movimiento** se cambia la proyección, sin `rest`.
+    // El giro es pequeño a propósito: mover la cámara al otro lado del modelo confundiría «la
+    // escena se quedó vacía» con «la cámara no está mirando el modelo».
+    void controls.rotateTo(Math.PI / 4 + i * 0.2 + 0.35, Math.PI / 3, true);
+    controls.update(1 / 60);
+    await viewer.setProjection(proyeccion);
+
+    const enCaliente = viewer.paintAudit;
+    log(`  ${proyeccion} en caliente: ${enCaliente.ghosted} fantasma / ${enCaliente.solid} opacos`);
+
+    // **Y aquí está la medición que importa, y no es la de la pintura.**
+    //
+    // Se espera **sin emitir `rest` a mano**, que es la situación del usuario: mueve, cambia de
+    // proyección y suelta. Lo medido el 2026-09-02 con la versión anterior: la escena se quedaba
+    // con **cero mallas** —el modelo desaparecía o se veía de línea— y solo volvía a dibujarse si
+    // algo emitía `rest`, que con la cámara ya quieta no llega nunca porque el cambio de proyección
+    // interrumpió el movimiento en marcha.
+    //
+    // Así que lo que se comprueba es que **haya mallas dibujándose sin que nadie toque nada**.
+    await new Promise((listo) => setTimeout(listo, 2000));
+    const solo = viewer.paintAudit;
+    const dibuja = solo.ghosted + solo.solid + solo.translucent;
+    log(
+      `    sin tocar nada: ${dibuja} mallas (${solo.ghosted} fantasma / ${solo.solid} opacas) — ` +
+        `${dibuja === 0 ? "LA ESCENA SE QUEDO VACIA" : "sigue dibujando"}`,
+    );
+    if (solo.ghosted !== 0) log("    y ademas SE QUEDO PINTURA de fantasma");
+  }
+  await viewer.setProjection("Perspective");
+
+  // **Y el mismo cambio con la cámara descansada**, que es la línea base: si este sale limpio y el
+  // de arriba no, la diferencia es el movimiento y no la proyección.
   log("\nvolver a solido y cambiar de proyeccion:");
   for (const proyeccion of ["Orthographic", "Perspective", "Orthographic"] as const) {
     await viewer.setProjection(proyeccion);

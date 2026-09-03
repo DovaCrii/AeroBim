@@ -5,19 +5,25 @@ Este proyecto sigue [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
-### Corregido — salir de la vista fantasma no limpiaba la geometría que llegaba después (2026-09-02)
+### Corregido — cambiar de proyección mientras se mueve la cámara dejaba el modelo sin dibujar (2026-09-02)
 
-**Entrar en la vista fantasma tenía un bucle que insiste hasta que no queda nada sin pintar; salir
-no tenía nada equivalente.** Una malla creada por el nivel de detalle **después** de volver a sólido
-nacía vistiendo un material translúcido y nadie la devolvía: se quedaba en fantasma para siempre.
-Ahora hay un camino de vuelta que no se borra y un barrido con el mismo oráculo y el mismo tope que
-el de entrada.
+**El visor esperaba un aviso que nadie iba a dar.** Al cambiar de proyección se refrescaba una vez,
+y el refresco de verdad se dejaba para cuando la cámara avisara de que había parado. Pero
+camera-controls avisa al **terminar** un movimiento, y el cambio de proyección interrumpe el que
+está en marcha: ese aviso no llegaba nunca. Medido: la escena se quedaba sin mallas y seguía así dos
+segundos después sin que nadie tocara nada; con el aviso emitido a mano volvía a dibujar.
 
-**Y lo que lo motivó no está reproducido, que es lo que hay que decir**: el usuario reportó que el
-fantasma sigue al pasar a ortográfica, y las mediciones dicen que la pintura sale limpia —cero
-mallas pintadas en seis mediciones, sobre los dos modelos de muestra y con el arreglo desactivado a
-propósito—. Lo que se ve en su pantalla apunta más al nivel de detalle del visor que a la pintura.
-El modo de diagnóstico ya vuelca las mallas por proyección para poder cerrarlo con datos.
+Es lo que el usuario reportó como «al momento de mover y cambiar de órbita a ortográfica pasaba
+eso». Ahora el refresco no se cuelga solo del evento: se pide también un poco después, a ciegas.
+
+En la misma pasada se cerró otra asimetría: **entrar** en la vista fantasma tenía un bucle que
+insiste hasta que no queda geometría sin pintar y **salir** no tenía nada equivalente, así que una
+malla creada después de volver a sólido nacía translúcida y nadie la devolvía.
+
+**Lo que queda abierto va dicho en el plan**: volver de ortográfica a perspectiva termina sin mallas
+también con la cámara quieta, y este entorno no puede distinguir un defecto de un artefacto —el
+panel del navegador no compone fotogramas, y el auditor cuenta mallas que se crean al dibujar—. La
+receta para reproducirlo está en el modo de diagnóstico.
 
 ### Corregido — el visor no podía escribir nada desde un navegador (2026-09-02)
 
