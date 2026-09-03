@@ -4230,6 +4230,32 @@ es una puerta; esto es una explicación.
 
 ---
 
+## Qué formatos entran, decidido el 2026-09-03
+
+El usuario preguntó si el visor puede abrir **DWG** y **DGN de Bentley**. La respuesta, con su
+argumento y con la lista de lo que hay que pedir a quien entrega archivos, está en
+[`docs/FORMATOS.md`](docs/FORMATOS.md). En resumen:
+
+**AeroBim lee IFC, DXF y COPC. No lee DWG ni DGN, y es una decisión, no una carencia.** DWG y DGN v8
+son formatos cerrados y el único lector completo de los dos es el de la Open Design Alliance, que es
+comercial; la alternativa abierta para DWG —LibreDWG— es **GPL-3 y contagiaría la licencia del
+producto entero**.
+
+**Y para Bentley hay una respuesta mejor que convertir, ya probada aquí**: AeroBim abre el IFC de
+32,7 MB exportado por **ProStructures 24** que está documentado más abajo — el mismo que destapó el
+defecto de los `IFCPROXY`. El camino Bentley → IFC → AeroBim está comprobado con un modelo de obra
+real.
+
+> **Y de paso, lo que conviene pedir junto al IFC: `IfcMapConversion` con su EPSG.** No es un
+> capricho — si el modelo trae su emplazamiento, **la nube se calza sola**, sin señalar un punto y
+> sin residuo. Está medido en `F12.2`.
+
+Si algún día hay que aceptar DWG o DGN igualmente, el camino es **ODA File Converter** —gratuito— en
+el servidor, normalizando al entrar al expediente, como ya se hace con las nubes. Queda decidido y
+**no hecho a propósito**: hoy no hay ni un archivo que lo necesite.
+
+---
+
 ## FASE 12 — La interfaz no está: hay capacidades sin puerta
 
 **Encargada por el usuario el 2026-09-03**, mirando el visor y el portal:
