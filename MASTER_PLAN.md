@@ -4267,8 +4267,8 @@ nadie puede alcanzar.
 
 | #       | Tarea                                                                                         | Estado |
 | ------- | --------------------------------------------------------------------------------------------- | ------ |
-| `F12.1` | **La nube de puntos tiene puerta**: abrirla, verla en el navegador, y sus controles           | ⬜     |
-| `F12.2` | **El calce y la desviación son pantalla, no registro**: señalar puntos, ver el residuo, medir | ⬜     |
+| `F12.1` | **La nube de puntos tiene puerta**: abrirla, verla en el navegador, y sus controles           | ✅     |
+| `F12.2` | **El calce y la desviación son pantalla, no registro**: señalar puntos, ver el residuo, medir | 🔶     |
 | `F12.3` | **Las herramientas se ven**: contraste, tamaño e importancia relativa en la cinta             | ⬜     |
 | `F12.4` | **El lienzo vacío es una puerta de entrada**, no un vacío con una frase                       | ⬜     |
 | `F12.5` | **El navegador tiene jerarquía**: nueve secciones iguales no dicen por dónde empezar          | ⬜     |
@@ -4305,7 +4305,33 @@ Hoy hay que escribir una URL de diagnóstico. Lo que falta:
 
 ### `F12.2` — El calce y la desviación son pantalla
 
-La aritmética está probada y el gesto no existe. Lo que falta:
+**Hecho el 2026-09-03, y comprobado desde la aplicación:** la sección «Calce y desviación» del
+navegador, con el calce automático y el informe de las seis cifras. Cargando `muro-en-utm.ifc` y el
+levantamiento del Camino Agrícola por el botón «Abrir» y pulsando **Calzar automáticamente**:
+`Calzada: movida 1,30 · -3,47 · 0,78 m` — los mismos números que daba el diagnóstico.
+
+Y con **la vuelta al ciclo del producto**: el informe lleva un botón que abre una observación sobre
+ese elemento **con las cifras ya escritas en el detalle**. Medir y tener que copiar seis números a
+mano es donde se pierden los hallazgos, o donde se transcriben mal, que es peor.
+
+**Tres decisiones que tomó esta pantalla:**
+
+1. **La tolerancia la pone quien mide**, con un control, y por omisión 20 mm. El programa no opina
+   sobre qué es un defecto: cinco centímetros son tolerancia en una excavación y un problema grave
+   en un pilar.
+2. **La medición se borra al cambiar de elemento.** Dejarla puesta sería lo peor que puede hacer
+   esta pantalla: seis cifras junto al nombre de otro elemento se leen como suyas, y quien abra una
+   observación con ellas estaría anotando la desviación de una viga sobre un pilar.
+3. **Cuando el modelo no trae emplazamiento, se dice por qué** en vez de no hacer nada. El motivo
+   —que el modelo no sabe dónde está— es además lo que hay que pedirle a quien modela.
+
+> **Queda en 🔶 y la propia pantalla lo dice: señalar pares de puntos a mano no está.** El calce
+> automático solo sirve si el IFC trae su emplazamiento, y **la mayoría de los IFC de obra no lo
+> traen**, así que el camino corriente sigue sin existir. La aritmética está probada —recupera un
+> giro de 22,5° con residuo cero— y lo que falta es el gesto: pinchar en el modelo, pinchar en la
+> nube, ver el residuo mientras se señala, y poder quitar el último par.
+
+Lo que falta:
 
 1. **Señalar pares de puntos** —uno en el modelo, uno en la nube— con la marca dibujada donde se
    pinchó, y poder quitar el último.

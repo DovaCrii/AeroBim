@@ -31,6 +31,7 @@ export function ProjectBrowser({
   cuadros,
   modelos,
   nubes,
+  calce,
   planos,
   planCount,
   generados,
@@ -55,6 +56,8 @@ export function ProjectBrowser({
   readonly modelos: React.ReactNode;
   /** La nube de puntos: su ficha y sus mandos (`F12.1`). */
   readonly nubes: React.ReactNode;
+  /** Calzar la nube con el modelo y medir lo que se aparta (`F12.2`). */
+  readonly calce: React.ReactNode;
   /** Los planos 2D cargados, con sus capas y su ajuste. */
   readonly planos: React.ReactNode;
   readonly planCount: number;
@@ -184,6 +187,19 @@ export function ProjectBrowser({
         onRedimensionar={(delta, actual) => redimensionar("nubes", delta, actual)}
       >
         {nubes}
+      </Seccion>
+
+      {/* **El calce va justo debajo de la nube y no en Coordinación**, aunque acabe en una
+          observación: es lo que se hace *con* la nube y antes de poder medir nada. Separarlos
+          obligaría a saltar entre dos secciones para un solo trabajo. */}
+      <Seccion
+        titulo="Calce y desviación"
+        abierta={abiertas.has("calce")}
+        onAlternar={() => alternar("calce")}
+        alto={altos["calce"] ?? null}
+        onRedimensionar={(delta, actual) => redimensionar("calce", delta, actual)}
+      >
+        {calce}
       </Seccion>
 
       {/* **Los planos 2D van junto a los modelos, no en otra pestaña.** Son otra fuente del mismo

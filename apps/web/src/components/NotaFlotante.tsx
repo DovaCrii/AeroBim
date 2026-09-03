@@ -55,7 +55,10 @@ export function NotaFlotante({
   marcadoDeAhora,
   onCerrar,
   onGuardada,
+  descripcionInicial = null,
 }: {
+  /** Un borrador para el detalle. Lo llena la medición de desviación (`F12.2`). */
+  readonly descripcionInicial?: string | null;
   /** El elemento sobre el que se anota. Su GUID es el ancla. */
   readonly item: PickedItem;
   readonly revisionId: string;
@@ -89,7 +92,14 @@ export function NotaFlotante({
   const [titulo, setTitulo] = useState(
     [item.category, item.name].filter(Boolean).join(" · ").slice(0, 250),
   );
-  const [descripcion, setDescripcion] = useState("");
+  /**
+   * El detalle, que puede llegar **ya escrito**.
+   *
+   * Lo usa la medición de desviación (`F12.2`): medir y tener que copiar seis cifras a mano en la
+   * nota es donde se pierden los hallazgos — o se transcriben mal, que es peor. Sigue siendo un
+   * campo normal: lo que llega es un borrador, no un texto cerrado.
+   */
+  const [descripcion, setDescripcion] = useState(descripcionInicial ?? "");
   const [prioridad, setPrioridad] = useState<string>("media");
   const [envio, setEnvio] = useState<Envio>({ kind: "escribiendo" });
   /** Dónde está la tarjeta. Se arrastra por la cabecera. */

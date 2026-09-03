@@ -6,6 +6,7 @@ import {
   type DrawnMeasurement,
   type FichaDeNube,
   type InformeDeRefresco,
+  type MedicionDeDesviacion,
   type ModoDeColor,
   type GeneratedDrawing,
   type LoadedModel,
@@ -41,6 +42,7 @@ import { PlansPanel } from "./components/PlansPanel.js";
 import { ProjectBrowser } from "./components/ProjectBrowser.js";
 import { Resizer } from "./components/Resizer.js";
 import { Selector } from "./components/Selector.js";
+import { CalcePanel } from "./components/CalcePanel.js";
 import { NubesPanel } from "./components/NubesPanel.js";
 import { Plan2DCard, PropertiesPanel } from "./components/PropertiesPanel.js";
 import { Ribbon, type RibbonTab } from "./components/Ribbon.js";
@@ -327,6 +329,12 @@ export function App() {
   const urlDeLaNube = useRef<string | null>(null);
   /** El `input` de archivo escondido tras «Abrir», para poder pulsarlo desde el panel de nubes. */
   const entradaDeArchivo = useRef<HTMLInputElement | null>(null);
+
+  // --- El calce y la desviación (`F12.2`) ----------------------------------------------
+  const [calce, setCalce] = useState<string | null>(null);
+  const [medicion, setMedicion] = useState<MedicionDeDesviacion | null>(null);
+  /** De qué elemento es la medición que se está enseñando. Ver el efecto que la borra. */
+  const [medicionDe, setMedicionDe] = useState<string | null>(null);
   const [snapMode, setSnapMode] = useState<SnapMode>("vertex");
   const [distanceMode, setDistanceMode] = useState<DistanceMode>("points");
   const [hasSections, setHasSections] = useState(false);
@@ -634,6 +642,78 @@ export function App() {
     },
     [refrescarNube],
   );
+
+  /**
+   * Calza la nube con el modelo, si el IFC trae su emplazamiento.
+   *
+   * **Y si no lo trae, lo dice.** Devolver `null` en silencio dejaría a alguien pulsando el botón
+   * sin entender por qué no pasa nada; el motivo —que el modelo no sabe dónde está— es además la
+   * información que hay que pedirle a quien modela.
+   */
+  const calzarAutomaticamente = useCallback(async () => {
+    const instance = viewer.current;
+    if (!instance) return;
+    const traslado = await instance.alignPointCloudToModel();
+    if (traslado === null) {
+      setCalce(
+        "El modelo no trae su emplazamiento, así que no hay de dónde sacar el calce. " +
+          "Pídelo como IFC4 con IfcMapConversion, o señala pares de puntos.",
+      );
+      return;
+    }
+    setCalce(
+      `Calzada: movida ${traslado.map((v) => v.toFixed(2)).join(", ")} m. ` +
+        "Comprueba que la nube cae sobre el modelo antes de medir.",
+    );
+    void refrescarNube();
+  }, [refrescarNube]);
+
+  /** Mide lo construido contra lo modelado, en la zona del elemento seleccionado. */
+  const medirDesviacionDelElemento = useCallback(
+    async (toleranciaM: number) => {
+      const instance = viewer.current;
+      const guid = selected?.guid ?? null;
+      if (!instance || guid === null) return;
+      const medida = await instance.measureDeviation(guid, { toleranciaM, pintar: true });
+      setMedicion(medida);
+      setMedicionDe(guid);
+    },
+    [selected],
+  );
+
+  /**
+   * La medición se borra al cambiar de elemento.
+   *
+   * **Dejarla puesta sería lo peor que puede hacer esta pantalla**: seis cifras junto al nombre de
+   * otro elemento se leen como suyas, y quien abra una observación con ellas estará anotando la
+   * desviación de una viga sobre un pilar.
+   */
+  useEffect(() => {
+    if (medicionDe !== null && selected?.guid !== medicionDe) {
+      setMedicion(null);
+      setMedicionDe(null);
+    }
+  }, [selected, medicionDe]);
+
+  /**
+   * El borrador de la nota cuando se anota una desviación: las cifras ya escritas.
+   *
+   * Medir y tener que copiar seis números a mano es donde se pierden los hallazgos — o donde se
+   * transcriben mal, que es peor. Sigue siendo un borrador: el campo se edita como cualquier otro.
+   */
+  const borradorDeDesviacion = useMemo(() => {
+    if (medicion === null || medicion.resumen.puntos === 0) return null;
+    const mm = (m: number) => `${(m * 1000).toFixed(0)} mm`;
+    const r = medicion.resumen;
+    return (
+      `Desviación medida contra el levantamiento, con tolerancia de ` +
+      `${(medicion.toleranciaM * 1000).toFixed(0)} mm:\n` +
+      `· Media ${mm(r.media)} · Mediana ${mm(r.mediana)} · Máxima ${mm(r.maxima)}\n` +
+      `· Percentil 95 ${mm(r.p95)} · Sesgo ${r.sesgo >= 0 ? "+" : ""}${mm(r.sesgo)}\n` +
+      `· ${r.fuera} de ${r.puntos} puntos fuera de tolerancia` +
+      (r.signoFiable ? "" : "\n· Aviso: el signo puede ser del calce, no de la obra.")
+    );
+  }, [medicion]);
 
   /** Cierra la nube y **suelta el `blob:`**, que si no se queda el archivo entero en memoria. */
   const cerrarNube = useCallback(() => {
@@ -1934,6 +2014,7 @@ export function App() {
           {notaAbierta && selected !== null && origen !== null && (
             <NotaFlotante
               item={selected}
+              descripcionInicial={borradorDeDesviacion}
               revisionId={origen.revisionId}
               camaraDeAhora={() => viewer.current?.cameraState ?? null}
               visibilidadDeAhora={async () =>
@@ -2118,6 +2199,22 @@ export function App() {
                     onToggleVisible={onToggleVisible}
                   />
                 )
+              }
+              calce={
+                <CalcePanel
+                  hayNube={nube !== null}
+                  hayModelo={models.length > 0}
+                  elementoSeleccionado={
+                    selected?.guid != null
+                      ? (selected.name ?? selected.category ?? "el elemento")
+                      : null
+                  }
+                  calce={calce}
+                  medicion={medicion}
+                  onCalzarAuto={() => void calzarAutomaticamente()}
+                  onMedir={(t: number) => void medirDesviacionDelElemento(t)}
+                  onObservar={() => setNotaAbierta(true)}
+                />
               }
               nubes={
                 <NubesPanel
