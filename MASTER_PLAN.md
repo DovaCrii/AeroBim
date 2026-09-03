@@ -1174,13 +1174,18 @@ sentido, así que cada propiedad reaparecía como bloque propio y el elemento se
 mismo. Ahora las relaciones ya leídas (`HasProperties`, `Quantities`) no se recorren otra
 vez, y el propio elemento se excluye de sus relacionados.
 
-> **Pendiente honesto: las cantidades de longitud salen en las unidades del modelo.**
-> `Length 4000` son 4000 mm, pero el panel no lo dice porque **no sabe la unidad**: los
-> metadatos que expone Fragments traen esquema, nombres y CRS, y no `IfcUnitAssignment`.
-> Convertir exige leer las unidades del IFC crudo con `web-ifc` durante la carga y guardar
-> el factor — `bim-core` ya tiene `parseLengthUnit` y `toMeters` esperando para eso. Hasta
-> entonces el valor se muestra tal como está en el archivo, sin inventar una unidad. Las
-> áreas y volúmenes no tienen el problema: llegan en metros porque así los declara el IFC.
+> **~~Pendiente honesto: las cantidades de longitud salen sin unidad.~~ Resuelto, y esta nota
+> llevaba desde entonces sin borrarse.** Decía que el panel no podía saber la unidad porque los
+> metadatos de Fragments no traen `IfcUnitAssignment`. Se resolvió leyendo las unidades **del texto
+> del IFC antes de convertirlo** y guardándolas por modelo (`unitsByModel`). Comprobado hoy
+> —2026-09-03— sobre `muro-con-psets.ifc`, que declara milímetros:
+>
+> ```
+> unidades declaradas: {"length":"mm","area":"m²","volume":"m³",…}
+>   Length      = 4000 mm  [IFCLENGTHMEASURE]
+>   NetSideArea = 12 m²    [IFCAREAMEASURE]
+>   NetVolume   = 2.4 m³   [IFCVOLUMEMEASURE]
+> ```
 
 **Objetivo de salida:** el levantamiento y el modelo en la misma escena, que es la
 comparación que nadie puede hacer hoy sin software de pago.
