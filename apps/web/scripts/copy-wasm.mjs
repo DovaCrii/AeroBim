@@ -1,10 +1,16 @@
 /**
- * Copia el WASM de `web-ifc` a `public/wasm/`.
+ * Copia a `public/wasm/` los WASM que la aplicación tiene que servir ella misma.
  *
  * AeroBim es local-first: la aplicación tiene que abrir un modelo en una faena sin
- * internet. That Open descarga este WASM de un CDN por defecto, así que se sirve
+ * internet. That Open descarga su WASM de un CDN por defecto, así que se sirve
  * desde el propio despliegue. Los archivos son artefactos de `node_modules` y no se
  * confirman al repositorio — este script los repone en cada `dev` y `build`.
+ *
+ * **Son dos paquetes, y el segundo llegó con las nubes de puntos (`F2.1`).** `laz-perf` es
+ * quien descomprime un LAZ, y hace lo mismo: su WASM va en un archivo aparte y por defecto
+ * lo busca al lado de su propio JavaScript, que empaquetado no está donde él cree. Si no se
+ * copia aquí, la nube abre en la máquina de quien lo escribió —donde el archivo quedó a
+ * mano— y falla en todas las demás. `packages/viewer/src/nubes.ts` le dice dónde está.
  *
  * **El de PDFium no está aquí, y es a propósito.** También sale de un CDN por defecto y
  * también hay que servirlo local (`F8.6`), pero ese lo resuelve Vite con un `import
@@ -32,4 +38,9 @@ for (const file of files) {
   await copyFile(require.resolve(`web-ifc/${file}`), join(target, file));
 }
 
-console.log(`web-ifc: ${files.length} archivos WASM copiados a public/wasm/`);
+// `laz-perf` sí exporta su `package.json`, pero se resuelve por la ruta del archivo dentro del
+// paquete y **por la variante `web`**: las de `node` y `worker` son el mismo WASM con otro
+// pegamento de JavaScript, y la que carga el navegador es esta.
+await copyFile(require.resolve("laz-perf/lib/web/laz-perf.wasm"), join(target, "laz-perf.wasm"));
+
+console.log(`WASM copiados a public/wasm/: ${files.join(", ")}, laz-perf.wasm`);

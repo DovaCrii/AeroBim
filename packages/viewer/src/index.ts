@@ -74,6 +74,9 @@ export {
   registrarExportador,
   trazarTabla,
 } from "./cuadro-en-plano.js";
+export type { FichaDeNube, ModoDeColor, NubeCargada, OpcionesDeNube } from "./nubes.js";
+export { abrirNube, fichaDeNube, RUTA_WASM_LAZ } from "./nubes.js";
+import { abrirNube, type NubeCargada, type OpcionesDeNube } from "./nubes.js";
 import { PlanOverlay, type LoadedPlan, type PlanHit, type PlanTransform } from "./plan.js";
 
 export type { IfcGridAxis } from "@aerobim/bim-core";
@@ -1400,6 +1403,8 @@ export class BimViewer {
   private loading = false;
   /** Modelos ya presentes en la escena. Ver {@link wireEvents}. */
   private modelCount = 0;
+  /** La nube de puntos abierta, si hay. Una sola: ver {@link loadPointCloud}. */
+  private nube: THREE.Points | null = null;
   private renderStyle: RenderStyle = "solid";
   /** El modo de navegación actual: la cámara de That Open no lo devuelve, así que se recuerda. */
   private navigationMode: NavigationMode = "Orbit";
@@ -4171,6 +4176,52 @@ export class BimViewer {
     this.unitsByModel.delete(modelId);
     this.modelCount = Math.max(0, this.modelCount - 1);
     if (this.modelCount > 0) await this.refresh();
+  }
+
+  /**
+   * Abre una nube de puntos COPC y la deja en la escena, junto al modelo: `F2.1`.
+   *
+   * **La nube no se mueve al modelo ni el modelo a la nube.** Entra en las coordenadas que le
+   * corresponden —las del archivo, menos su desplazamiento y con los ejes de la escena— y ahí se ve
+   * si calza o no. Traerla «a ojo» al lado del edificio la haría parecer alineada sin estarlo, que
+   * es lo contrario de lo que sirve: la Fase 2 existe para **medir** si lo construido coincide con lo
+   * modelado. Alinearla es `F2.2`, con la georreferencia del archivo o señalando puntos.
+   *
+   * Solo se sostiene **una nube a la vez**, y a propósito: dos levantamientos de la misma obra en la
+   * escena son dos verdades sobre lo mismo, y no hay forma de saber a cuál se le está midiendo. La
+   * anterior se descarta al abrir otra.
+   */
+  async loadPointCloud(url: string, opciones: OpcionesDeNube): Promise<NubeCargada> {
+    this.assertAlive();
+    this.unloadPointCloud();
+
+    const cargada = await abrirNube(url, opciones);
+    this.nube = cargada.objeto;
+    this.world.scene.three.add(cargada.objeto);
+    await this.refresh();
+    return cargada;
+  }
+
+  /**
+   * Quita la nube y **suelta su memoria**.
+   *
+   * Descartar el objeto no basta: la geometría se queda en la tarjeta hasta que alguien llama a
+   * `dispose`, y una nube son cientos de megas. Sin esto, abrir tres levantamientos seguidos deja
+   * los tres pagados.
+   */
+  unloadPointCloud(): void {
+    if (this.nube === null) return;
+    this.world.scene.three.remove(this.nube);
+    this.nube.geometry.dispose();
+    const material = this.nube.material;
+    if (Array.isArray(material)) for (const m of material) m.dispose();
+    else material.dispose();
+    this.nube = null;
+  }
+
+  /** La nube que está en la escena, o `null`. Para encuadrarla o medir sobre ella. */
+  get pointCloud(): THREE.Points | null {
+    return this.nube;
   }
 
   /**

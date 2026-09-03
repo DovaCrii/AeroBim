@@ -28,18 +28,23 @@ línea cada cosa. Actualizado el 2026-09-03.
 | **9 · Diseño**                 | ✅ salvo `F9.6`, que son **tres decisiones del usuario** y contradicen tres líneas de `UX.md` |
 | **10 · Etiquetas y tablas**    | ✅ entera                                                                                     |
 | **11 · El portal se ve plano** | ✅ entera — incluida la ayuda con su recorrido                                                |
-| **2 · Nubes de puntos**        | 🔶 **en marcha.** `F2.5` ✅ entra **COPC**; `F2.2` 🔶 la aritmética hecha. Sigue `F2.1`       |
+| **2 · Nubes de puntos**        | 🔶 **en marcha.** `F2.5` ✅ y `F2.1` ✅ — la nube ya abre; `F2.2` 🔶. Sigue `F2.3`            |
 | **6 · Geo + BIM**              | ⬜ pospuesta a propósito el 2026-09-02, para poner la coordinación delante                    |
 
-**Lo que sigue es la Fase 2**, y en un orden que no es el de su numeración. `F2.5` cerrada —entra
-**COPC**, en [`docs/NUBES_DE_PUNTOS.md`](docs/NUBES_DE_PUNTOS.md)— y `F2.2` con **la aritmética de la
-alineación hecha y probada**: la georreferencia del archivo, el calce señalando puntos, y el hueco
-del servidor que se dejaba el giro sin leer.
+**La Fase 2 va por la mitad**, y en un orden que no es el de su numeración:
 
-**Ahora va `F2.1`, el cargador**, porque es lo que desbloquea el resto: sin una nube en la escena no
-hay dónde señalar puntos, así que `F2.2` se cierra con ella. Y lo primero de `F2.1` no es código sino
-una comprobación: que `copc` + `laz-perf` abran en el navegador el archivo que escribe `pdal` —eso
-está **sin verificar**, y el documento lo dice—. Después `F2.3` y `F2.4`.
+- **`F2.5` ✅** — el formato es **COPC**, decidido midiendo, en
+  [`docs/NUBES_DE_PUNTOS.md`](docs/NUBES_DE_PUNTOS.md).
+- **`F2.1` ✅** — la nube abre en la escena, y **comprobado en Chrome**: 62 500 puntos dibujados por
+  WebGL en una sola llamada, todas las peticiones `206 Partial Content`, y la precisión conservada
+  dentro de 0,002 mm.
+- **`F2.2` 🔶** — la aritmética de la alineación hecha y probada: la georreferencia del archivo, el
+  calce señalando puntos, y el hueco del servidor que se dejaba el giro sin leer. Falta **señalar los
+  puntos en pantalla**.
+
+**Ahora va `F2.3`** —tamaño de punto, densidad, recorte por caja y color—, que es lo que hace la nube
+usable y de camino levanta el límite que dejó `F2.1`: el recorte por lo que se está mirando. Después
+`F2.2` se cierra con su interacción, y **entonces** `F2.4` puede medir.
 
 **Y tres cosas no las decide este plan**, porque no son trabajo sino elecciones: `F1.13`, `F9.6` y
 el trazo libre de `F4.5`. Están reunidas abajo, en «Las decisiones que solo el usuario puede tomar».
@@ -1163,7 +1168,7 @@ comparación que nadie puede hacer hoy sin software de pago.
 
 | #      | Tarea                                                                                         | Estado |
 | ------ | --------------------------------------------------------------------------------------------- | ------ |
-| `F2.1` | Cargar una nube (LAS/LAZ convertida) en la escena Three.js del visor                          | ⬜     |
+| `F2.1` | Cargar una nube (LAS/LAZ convertida) en la escena Three.js del visor                          | ✅     |
 | `F2.2` | Alinear nube y modelo: origen, rotación y escala, con ajuste manual asistido                  | 🔶     |
 | `F2.3` | Controles de visualización: tamaño de punto, densidad, recorte por caja, color por altura/RGB | ⬜     |
 | `F2.4` | Medir del modelo a la nube (desviación entre lo construido y lo modelado)                     | ⬜     |
@@ -1259,6 +1264,55 @@ conocida aplicada a puntos conocidos**:
 > está lista, pero no hay dónde pinchar — **no hay ninguna nube en la escena hasta `F2.1`**. Escribir
 > la interacción antes sería escribirla contra una escena imaginaria. Así que `F2.2` queda en 🔶 a
 > conciencia, y se cierra con `F2.1`.
+
+### `F2.1` cerrada el 2026-09-03 — y comprobada en un navegador, no en Node
+
+`packages/viewer/src/nubes.ts` abre un COPC y lo deja en la escena, con `loadPointCloud` y
+`unloadPointCloud` en el visor. El diagnóstico es
+`/diag.html?modo=nube&nube=/samples/levantamiento-sintetico.copc.laz`, y **lo medido en Chrome**
+sobre una nube de geometría conocida —un plano y un muro de 3 m, en UTM 19S—:
+
+| Lo que había que comprobar                       | Medido en el navegador                                                   |
+| ------------------------------------------------ | ------------------------------------------------------------------------ |
+| Que `copc` + `laz-perf` abran de verdad          | **62 500 de 62 500 puntos**, en 88 ms                                    |
+| Que se lea **por partes** y no el archivo entero | Todas las peticiones **`206 Partial Content`** — nunca un `200`          |
+| Que la cabecera se lea sin bajar puntos          | 4 ms: extensión, escala, desplazamiento, 3 nodos y el WKT con EPSG 32719 |
+| Que **WebGL los dibuje**                         | `renderer.info.render.points` = **62 500**, en **una** llamada de dibujo |
+| Que la precisión sobreviva                       | error máximo **0,002 mm** frente a la extensión declarada                |
+| Que la geometría conocida esté ahí               | el muro mide **3,000 m** medido en la geometría de la escena             |
+
+**Y la demostración del hallazgo, ahora en el navegador:** la misma coordenada norte
+—6 298 099,600— guardada sin restar el desplazamiento **habría perdido 100,0 mm**; restándolo,
+0,0015 mm.
+
+**Tres defectos que solo aparecen en un navegador, y por eso la comprobación no era opcional:**
+
+1. **`Getter.create` de `copc` tomaba el camino de Node.** Decide entre `fs` y HTTP **mirando si la
+   cadena parece una URL**, y `/samples/…` no se lo parece: moría con `Cannot read properties of
+undefined (reading 'access')`. Se escribió nuestro lector con `fetch` y `Range`, que además deja
+   a la vista que cada nodo es una petición de rango.
+2. **El WASM de `laz-perf` va aparte** —214 KB— y por defecto lo busca al lado de su JavaScript, que
+   empaquetado no está donde él cree. Es la trampa de la regla 9 de `AGENTS.md`, la del WASM de
+   `web-ifc`. Se sirve desde `public/wasm/` y se le dice dónde está.
+3. **Los ejes.** Un LAS tiene la cota en **Z** y la escena de Three.js el arriba en **Y**: sin
+   convertir, el levantamiento entra **de canto**. Se usa `(x, z, -y)`, la misma transformación que
+   ya usaban los ejes de replanteo y el plano DXF de referencia.
+
+**Y dos límites dichos, que `F2.3` tiene que levantar:**
+
+- **No hay recorte por lo que se está mirando.** Se carga por niveles de arriba abajo hasta el
+  presupuesto que se le dé, y el nivel se toma entero o no se toma —media capa deja la nube con una
+  zona fina y otra gruesa por el orden de la jerarquía, y eso se ve como un defecto del
+  levantamiento—. El recorte por vista pide las cajas de los nodos, que salen del cubo del octree.
+- **El cubo no siempre está declarado.** El primer COPC de prueba salió con el cubo en cero y
+  `copc` lo leyó igual: sin cubo no hay recorte por vista posible, así que la ficha lo dice
+  (`hayCubo`) en vez de dejar creer que funciona. El fixture se regeneró con el cubo puesto.
+
+> **Lo que sigue sin verificar, y hay que decirlo: no se ha abierto un COPC hecho por `pdal`.** El
+> fixture lo escribe `copclib` desde Python —el generador está en `apps/web/scripts/nube-sintetica.py`
+> para que no sea un binario opaco— y sus tres nodos **no son un octree de verdad**: reparten por el
+> orden del archivo y no por el espacio. Para `F2.3` hace falta un archivo hecho con `pdal` sobre una
+> nube real, y para eso hace falta `pdal` instalado.
 
 ### `F2.6` — Gaussian splatting: **va aquí y no en AeroPlanner** (decidido el 2026-08-26)
 

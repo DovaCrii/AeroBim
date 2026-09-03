@@ -5,6 +5,56 @@ Este proyecto sigue [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Añadido — la nube de puntos abre en la escena del visor (`F2.1`, 2026-09-03)
+
+`loadPointCloud` abre un COPC y lo deja junto al modelo; `unloadPointCloud` lo saca **y suelta la
+memoria de la tarjeta**, que descartar el objeto no hace y una nube son cientos de megas. Una sola
+nube a la vez, a propósito: dos levantamientos de la misma obra son dos verdades sobre lo mismo y no
+habría forma de saber a cuál se le está midiendo.
+
+**Y la nube no se trae «al lado» del edificio.** Entra en las coordenadas que le corresponden y ahí
+se ve si calza o no; acercarla a ojo la haría parecer alineada sin estarlo, que es lo contrario de
+para lo que sirve. Alinearla es `F2.2`.
+
+**Comprobado en Chrome y no en Node**, sobre una nube de geometría conocida —un plano y un muro de
+3 m, en UTM 19S—:
+
+| Lo que había que comprobar                   | Medido en el navegador                                                   |
+| -------------------------------------------- | ------------------------------------------------------------------------ |
+| Que `copc` + `laz-perf` abran de verdad      | **62 500 de 62 500 puntos**, en 88 ms                                    |
+| Que se lea por partes y no el archivo entero | Todas las peticiones **`206 Partial Content`** — nunca un `200`          |
+| Que la cabecera se lea sin bajar puntos      | 4 ms: extensión, escala, desplazamiento, 3 nodos y el WKT con EPSG 32719 |
+| Que **WebGL los dibuje**                     | `renderer.info.render.points` = **62 500**, en una llamada de dibujo     |
+| Que la precisión sobreviva                   | error máximo **0,002 mm** frente a la extensión declarada                |
+| Que la geometría conocida esté ahí           | el muro mide **3,000 m** medido en la geometría de la escena             |
+
+Y la demostración del hallazgo de `F2.5`, ahora en el navegador: la coordenada norte 6 298 099,600
+guardada sin restar el desplazamiento **habría perdido 100,0 mm**; restándolo, 0,0015 mm.
+
+**Tres defectos que solo aparecen en un navegador**, y por eso la comprobación no era opcional:
+
+1. **`Getter.create` de `copc` tomaba el camino de Node.** Elige entre `fs` y HTTP mirando si la
+   cadena parece una URL, y `/samples/…` no se lo parece: moría con `Cannot read properties of
+undefined (reading 'access')`. Ahora el lector es nuestro, con `fetch` y `Range`, lo que además
+   deja a la vista que cada nodo del octree es una petición de rango.
+2. **El WASM de `laz-perf` va en un archivo aparte** —214 KB— y lo busca al lado de su JavaScript,
+   que empaquetado no está donde él cree. Es la trampa de la regla 9 de `AGENTS.md`, la misma que ya
+   dejaba el visor colgado con `web-ifc`. Se sirve desde `public/wasm/` y se le dice dónde está.
+3. **Los ejes.** Un LAS tiene la cota en **Z** y la escena de Three.js el arriba en **Y**: sin
+   convertir, el levantamiento entra **de canto** respecto al modelo. Se usa `(x, z, -y)`, la misma
+   transformación que ya usaban los ejes de replanteo y el plano DXF de referencia.
+
+**Dos límites dichos**, que levanta `F2.3`: no hay recorte por lo que se está mirando —se carga por
+niveles hasta el presupuesto, y el nivel entero o nada, porque media capa se ve como un defecto del
+levantamiento—, y **el cubo del octree no siempre está declarado**: el primer fixture salió con el
+cubo en cero y `copc` lo leyó igual, así que la ficha lo dice en vez de dejar creer que el recorte
+funciona.
+
+> **Y lo que sigue sin verificar: no se ha abierto un COPC hecho por `pdal`.** El fixture lo escribe
+> `copclib` desde Python —el generador está versionado en `apps/web/scripts/nube-sintetica.py` para
+> que no sea un binario opaco— y sus tres nodos **no son un octree de verdad**: reparten por el orden
+> del archivo, no por el espacio. Para `F2.3` hace falta un archivo hecho con `pdal`.
+
 ### Corregido — el expediente leía la georreferencia **sin el giro** (`F2.2`, 2026-09-03)
 
 **El extractor de IFC leía dónde está el edificio y no cómo está orientado.** De
