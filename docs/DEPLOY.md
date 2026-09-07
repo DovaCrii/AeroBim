@@ -156,6 +156,42 @@ Dos cosas de esas unidades que conviene tener presentes:
   `ReadWritePaths`. Si `DOCUMENTS_DIR` o `LOGS_DIR` apuntan fuera de ahí, el servicio
   arranca y falla al guardar el primer documento. `/health/` lo dice antes.
 
+**5 bis. El resumen diario por correo.** Es su propio par de unidades, y **hasta hoy no existía**:
+el comando `enviar_resumen` estaba escrito y nadie lo disparaba, así que el resumen no salía nunca.
+
+```bash
+sudo cp services/api/deploy/aerobim-resumen.service /etc/systemd/system/
+sudo cp services/api/deploy/aerobim-resumen.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now aerobim-resumen.timer
+systemctl list-timers aerobim-resumen.timer      # cuándo toca la siguiente
+```
+
+Y **antes de esperar a mañana**, comprobarlo en seco: cuenta a quién le llegaría sin mandar nada.
+
+```bash
+cd /opt/aerobim/services/api
+sudo -u aerobim .venv/bin/python manage.py enviar_resumen --dry-run
+sudo systemctl start aerobim-resumen.service     # el de verdad, una vez
+journalctl -u aerobim-resumen.service -n 30
+```
+
+Tres cosas de esas unidades:
+
+- **`OnCalendar=07:30` en hora local, no UTC.** El resumen dice qué vence hoy, así que llega antes
+  de la jornada. Con la VM en UTC sale a las 03:30 **o a las 04:30 según el horario de verano**, y
+  ese salto de una hora dos veces al año no se relaciona con la zona:
+  `timedatectl set-timezone America/Santiago`.
+- **`Persistent=true`.** Si la máquina estaba apagada a esa hora, sale al arrancar. Sin esto un
+  reinicio nocturno se lleva el resumen del día y en `/cuentas/trabajos/` se ve como «no corrió» sin
+  motivo.
+- **Sin `Restart=on-failure`.** Un SMTP caído reintentaría, y la gente recibiría el mismo correo
+  cuatro veces.
+
+**Dónde se comprueba que salió:** `/cuentas/trabajos/`. Cada corrida deja su fila en `JobRun`, y si
+el correo no sale de la máquina el resumen de la fila lo dice con un prefijo — **una corrida que fue
+bien y un correo que no salió se ven igual** si nadie lo marca.
+
 **6. nginx.** Lo mínimo, y **sin tocar la CSP ni añadir COOP/COEP**:
 
 ```nginx
@@ -251,7 +287,47 @@ de "reiniciado y sirviendo".
   32,7 MB: extraer metadatos 1,4 s, medir cobertura 1,5 s, validar un IDS 0,7 s. El `timeout`
   de 120 s es holgura, no un parche. Si algún día un trabajo llega a 30 s sobre un archivo
   real, ese es el momento de sacarlo de la petición.
-- **Copias de seguridad.** No hay nada escrito. Lo que hay que copiar son dos cosas y
-  están separadas a propósito: la base de datos y `/var/lib/aerobim`.
 - **Qué dominio y si comparte VM** con AeroControl y AeroPlanner. Es una decisión del
   usuario, y sigue abierta en `HANDOFF.md`.
+- **Llevar el respaldo fuera de la VM.** El guion de abajo copia a `/var/backups`, que protege de un
+  borrado y **no** de que se muera el disco ni de que se pierda la máquina. Con qué se saca —`rclone`,
+  un `scp` a otra máquina, el respaldo del hipervisor— es una decisión de infraestructura del
+  usuario. Y si la copia sale de la VM **tiene que ir cifrada**: el volcado lleva correos y hashes de
+  contraseña.
+
+## Copias de seguridad
+
+**Son dos cosas, y están separadas a propósito.** La base guarda _qué_ existe —el entregable, su
+revisión, su `sha256`, quién la subió— y `/var/lib/aerobim/documentos` guarda _los bytes_. Los
+archivos no pasan por la base, así que un `pg_dump` solo es un catálogo de archivos que no están, y
+una copia de los documentos sin la base es un montón de ficheros con nombre de hash y sin nadie que
+sepa qué son. Por eso el guion copia las dos **en el mismo instante**: recuperar mitades de fechas
+distintas deja revisiones apuntando a archivos que todavía no existen.
+
+```bash
+sudo mkdir -p /var/backups/aerobim && sudo chown aerobim:aerobim /var/backups/aerobim
+sudo -u aerobim /opt/aerobim/services/api/deploy/respaldo.sh
+sudo -u aerobim /opt/aerobim/services/api/deploy/respaldo.sh --verificar
+```
+
+Deja un juego por corrida en `/var/backups/aerobim/AAAAMMDD-HHMMSS/`: `base.dump` (`pg_dump
+--format=custom`, restaurable por tablas), `documentos.tar` y `sha256sums.txt`. Guarda **14 juegos**
+y borra los anteriores. Toma la conexión del `.env` —`DB_NAME`, `DB_USER`…— y no de un
+`DATABASE_URL` propio: la misma conexión escrita de dos formas acaba apuntando a otra base sin
+decirlo.
+
+**`--verificar` es lo que hace de esto un respaldo y no un archivo grande.** Comprueba los `sha256`,
+restaura el volcado en **una base aparte** —nunca sobre producción—, corre `manage.py check
+--database default` contra ella y cuenta las migraciones aplicadas; después comprueba que el `tar`
+trae archivos dentro. Un volcado que nunca se restauró no es un respaldo: es un archivo del que se
+supone algo. Y hasta que `--verificar` pase una vez, el piloto no arranca (`docs/PILOTO.md`).
+
+Los documentos **no se comprimen**: son IFC, LAZ y PDF, ya comprimidos —el COPC del CC 741 son
+124,7 MB de LAZ que no bajan de forma útil—. El `tar` está para conservar rutas y permisos.
+
+**Y para que corra solo**, el mismo patrón que el resumen: un `.service` de `Type=oneshot` que llame
+al guion y un `.timer` con `OnCalendar=*-*-* 02:00:00` y `Persistent=true`. No van en el repositorio
+todavía porque **el guion no se ha corrido nunca en una máquina de verdad** —se escribió y se
+comprobó en Windows: sintaxis con `bash -n` y la rotación con 20 juegos falsos, que deja los 14 más
+nuevos—; `pg_dump`, `pg_restore` y `createdb` no se han ejecutado. Programarlo antes de verlo
+funcionar a mano dejaría un respaldo que se cree hecho.

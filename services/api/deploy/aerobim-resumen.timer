@@ -1,0 +1,35 @@
+# Cuando sale el resumen: **una vez al dia, temprano y en hora local**.
+#
+#   sudo cp aerobim-resumen.{service,timer} /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now aerobim-resumen.timer
+#   systemctl list-timers aerobim-resumen.timer     # cuando toca la siguiente
+#
+# **07:30 y no a medianoche.** El resumen dice que vence hoy y que esta atrasado: llega
+# antes de la jornada y se lee al empezar. A medianoche compite con el respaldo y con
+# `logrotate`, y ademas quien lo abre por la mañana ya lo tiene enterrado.
+#
+# **Hora local de la obra y no UTC.** systemd usa la zona del sistema, asi que la VM tiene
+# que estar en `America/Santiago` (`timedatectl set-timezone America/Santiago`). Con la VM
+# en UTC este resumen sale a las 03:30 o a las 04:30 segun el horario de verano — y ese
+# salto de una hora dos veces al año es el tipo de cosa que nadie relaciona con la zona.
+#
+# **`Persistent=true`**: si la maquina estaba apagada a la hora, el resumen sale al
+# arrancar. Sin esto, un reinicio de la noche se lleva el resumen del dia sin dejar rastro,
+# y en la pantalla de trabajos se ve como «no corrio» sin motivo.
+#
+# **`RandomizedDelaySec` no se pone.** Es para repartir carga entre muchas maquinas; aqui
+# hay una, y una hora exacta hace que «no llego el resumen» se pueda comprobar mirando el
+# reloj.
+
+[Unit]
+Description=Dispara el resumen de pendientes de AeroBim cada dia
+Requires=aerobim-resumen.service
+
+[Timer]
+OnCalendar=*-*-* 07:30:00
+Persistent=true
+Unit=aerobim-resumen.service
+
+[Install]
+WantedBy=timers.target

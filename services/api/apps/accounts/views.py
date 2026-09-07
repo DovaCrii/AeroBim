@@ -337,9 +337,18 @@ class TrabajosView(ModelViewPermissionRequiredMixin, TemplateView):
     template_name = "accounts/trabajos.html"
     model = JobRun
 
-    # Los trabajos que este servicio va a tener. Se listan aunque no existan todavia:
-    # "nunca corrio" es una respuesta, y la que hace falta al desplegar.
-    ESPERADOS = ("avisar_vencimientos", "enviar_resumen", "verificar_respaldo")
+    # Los trabajos que **corren solos** en esta maquina, y por eso hay que vigilar si corrieron.
+    #
+    # **Aqui habia dos comandos que no existen** —`avisar_vencimientos` y `verificar_respaldo`—,
+    # escritos cuando esto se pensaba como una lista de intenciones: «se listan aunque no existan
+    # todavia». El efecto era el contrario del que buscaba esta pantalla: dos filas eternas en
+    # «nunca corrio» que no se pueden arreglar, y que enseñan a no mirar la lista. Un aviso que
+    # nunca se apaga no es un aviso.
+    #
+    # Asi que aqui va **solo lo programado que existe**, y una prueba comprueba que cada nombre es
+    # un comando de verdad (`test_trabajos.py`). `detectar_interferencias` no entra: pide dos UUID
+    # de revision, se lanza a mano, y «nunca corrio» no seria un problema.
+    ESPERADOS = ("enviar_resumen",)
 
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)
