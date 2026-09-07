@@ -661,6 +661,252 @@ main {
   color: var(--ab-text-muted);
 }
 
+/* --- La puerta: la pantalla de entrada -------------------------------------------- */
+
+/*
+ * `F12.6`. Vivía en un `<style>` dentro de `registration/login.html`, con **diez tokens
+ * `--login-*` propios** que eran los mismos hexadecimales que los `--ab-*`.
+ *
+ * El motivo escrito era que la pantalla de entrada «no tiene que depender de que el resto de la
+ * hoja de estilos cargue bien». Suena razonable y no se sostiene: si `app.css` no carga, todas las
+ * demás pantallas están rotas también, y que la puerta se vea bien es lo de menos. En producción,
+ * además, la sirve el mismo proceso con el hash en el nombre.
+ *
+ * Lo que sí costaba, medido:
+ *
+ * 1. **El arreglo de contraste del paso 1 no llegó aquí.** Los campos seguían con `--login-border`,
+ *    `#dbe3ee`, o sea **1,24:1** contra su fondo: WCAG 1.4.11 pide 3:1, y esta es la primera
+ *    pantalla que alguien ve. Ahora usan `--ab-border-control`.
+ * 2. **El tema elegido se ignoraba.** Seguía `prefers-color-scheme` y no leía `data-theme`, así que
+ *    quien elige el claro en el portal entraba en oscuro cada mañana.
+ * 3. **Diez hexadecimales duplicados a mano.** Es la misma trampa de `--ab-shell`, que decía «=
+ *    --color-shell» y valía otra cosa: la copia se separa y nadie lo ve.
+ */
+body.puerta {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+}
+
+.portada {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  gap: 56px;
+  align-items: center;
+  width: min(920px, calc(100vw - 48px));
+}
+
+/* **El formulario va primero en el HTML** para que en el móvil se entre sin bajar, y la rejilla lo
+   coloca a la derecha en el escritorio. Se apila por debajo de 860 px, que es donde la mitad de la
+   izquierda deja de tener sitio para respirar. */
+.portada .tarjeta {
+  order: 2;
+  width: min(380px, calc(100vw - 32px));
+  padding: 28px;
+  background: var(--ab-surface);
+  border: 1px solid var(--ab-border);
+  border-radius: var(--ab-radius);
+  box-shadow: var(--ab-shadow);
+}
+
+.presenta {
+  order: 1;
+}
+
+@media (max-width: 860px) {
+  .portada {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+    width: min(420px, calc(100vw - 32px));
+  }
+
+  .portada .tarjeta {
+    order: 1;
+  }
+
+  .presenta {
+    order: 2;
+  }
+}
+
+/*
+ * La marca, en dos versiones según el tema. **No es un adorno**: el relleno del dibujo original es
+ * `#1B2A4A` y contra los fondos oscuros del producto da 1,00 / 1,10 / 1,15:1, o sea que el cuerpo
+ * del dron y las caras del cubo desaparecen y queda media marca. La variante oscura deja esos
+ * rellenos transparentes y lleva el trazo en el acento: 7,46:1 sobre esta tarjeta.
+ *
+ * Hubo una placa blanca en medio y se quitó: resolvía el contraste poniendo un parche que no
+ * pertenece a la paleta.
+ *
+ * **Y ahora va por `data-theme`, no por `prefers-color-scheme`.** Antes miraba la preferencia del
+ * sistema, así que quien elegía el claro en el portal veía aquí la marca oscura sobre una tarjeta
+ * blanca.
+ *
+ * Se hace con `[data-theme]` y **sin media query**, aunque la primera versión de esto llevaba una:
+ * el resto de `app.css` no consulta `prefers-color-scheme` en ninguna regla —el tema lo decide
+ * `tema.js` y solo él—, así que una media query aquí habría puesto la marca en oscuro mientras las
+ * superficies siguen claras. Un archivo con dos formas de decidir el tema tiene dos temas.
+ */
+.puerta .marca {
+  display: block;
+  width: 52px;
+  height: 39px;
+  margin-bottom: 14px;
+}
+
+/* **Los selectores llevan `.puerta` a propósito**, y eso lo enseñó medirlo: con `.solo-oscuro` a
+   secas, `.puerta .marca { display: block }` le gana por especificidad (0,2,0 contra 0,1,0) y en
+   tema claro salían **las dos marcas a la vez**. En el `<style>` original no pasaba porque `.marca`
+   y `.solo-oscuro` empataban y ganaba la última escrita. */
+.puerta .solo-oscuro {
+  display: none;
+}
+
+[data-theme="dark"] .puerta .solo-claro {
+  display: none;
+}
+
+[data-theme="dark"] .puerta .solo-oscuro {
+  display: block;
+}
+
+.puerta h1 {
+  margin: 0 0 4px;
+  font-size: 1.35rem;
+}
+
+.puerta p.sub {
+  margin: 0 0 22px;
+  color: var(--ab-text-secondary);
+  font-size: 0.92rem;
+}
+
+.puerta label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+/* La regla general de los campos ya usa `--ab-border-control`; aquí solo cambian la altura y el
+   ancho, que son de esta pantalla. */
+.puerta input[type="text"],
+.puerta input[type="password"] {
+  width: 100%;
+  height: 42px;
+  margin-bottom: 16px;
+  padding: 0 12px;
+  background: var(--ab-bg);
+}
+
+.puerta button[type="submit"] {
+  width: 100%;
+  height: 42px;
+  border: 0;
+  border-radius: var(--ab-radio-md);
+  background: var(--ab-primary);
+  color: #fff;
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.puerta button[type="submit"]:hover {
+  background: var(--ab-primary-hover);
+}
+
+.puerta .error {
+  margin-bottom: 16px;
+  padding: 10px 12px;
+  border: 1px solid var(--ab-danger);
+  border-radius: var(--ab-radio-md);
+  color: var(--ab-danger);
+  font-size: 0.9rem;
+}
+
+.puerta .pie {
+  margin: 20px 0 0;
+  color: var(--ab-text-secondary);
+  font-size: 0.82rem;
+}
+
+.presenta h2 {
+  margin: 0 0 10px;
+  font-size: clamp(1.6rem, 3.4vw, 2.3rem);
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+
+/* El verbo de la frase en el violeta de acción: es lo que la hace leerse como una idea y no como
+   un eslogan. */
+.presenta h2 em {
+  color: var(--ab-primary);
+  font-style: normal;
+}
+
+.presenta > p {
+  margin: 0 0 22px;
+  color: var(--ab-text-secondary);
+  max-width: 46ch;
+}
+
+/*
+ * **Las tres cosas que el equipo hace aquí**, y no una lista de funciones. Cada una empieza por un
+ * verbo porque lo que se recuerda de una herramienta es lo que te deja hacer.
+ *
+ * El punto de color no sustituye al texto: es un ancla para la vista al recorrerlas.
+ */
+.presenta ul {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.presenta li {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  align-items: start;
+  gap: 12px;
+  font-size: 0.94rem;
+}
+
+.presenta li b {
+  display: block;
+}
+
+.presenta li span {
+  color: var(--ab-text-secondary);
+  font-size: 0.88rem;
+}
+
+.presenta .punto {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--ab-radio-sm);
+  background: var(--ab-primary-soft);
+  color: var(--ab-primary);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+/* El guiño para el equipo. Va al final y en pequeño: acompaña, no grita. */
+.animo {
+  margin: 26px 0 0;
+  padding-top: 18px;
+  border-top: 1px solid var(--ab-border);
+  color: var(--ab-text-secondary);
+  font-size: 0.86rem;
+  max-width: 46ch;
+}
+
+.animo b {
+  color: var(--ab-text);
+}
+
 /* --- El control segmentado, y la acción visible de una fila ----------------------- */
 
 /*

@@ -7,201 +7,29 @@
     <title>{% translate "Sign in" %} · AeroBim</title>
     <link rel="icon" type="image/svg+xml" href="{% static 'img/aerobim-mark.svg' %}" />
     {% comment %}
-      **Autocontenida a proposito.** No extiende `base.html` ni carga `app.css`: la
-      pagina de ingreso es lo primero que alguien ve y no tiene que depender de que el
-      resto de la hoja de estilos cargue bien. Sus tokens son suyos, y respeta el modo
-      oscuro del sistema.
+      **Usa el CSS del producto, y desde el 2026-09-07.** Tenia un `<style>` propio con diez tokens
+      `--login-*` que eran los mismos hexadecimales que los `--ab-*`. El motivo escrito era que esta
+      pantalla «no tiene que depender de que el resto de la hoja de estilos cargue bien», y no se
+      sostiene: si `app.css` no carga, todas las demas pantallas estan rotas tambien.
 
-      Y va con `{% templatetag openblock %} comment {% templatetag closeblock %}` y no
-      con la marca de una linea: esa **solo comenta una linea**, asi que un comentario
-      de varias se imprime en la pagina. Se vio al abrirla.
+      Lo que si costaba, medido: **los campos seguian con un contorno de 1,24:1** —el arreglo de
+      WCAG 1.4.11 del paso 1 no llego a la primera pantalla que alguien ve— y **el tema elegido se
+      ignoraba**, porque seguia `prefers-color-scheme` y no leia `data-theme`. Lo que es de esta
+      pantalla vive en `app.css`, en la seccion «La puerta».
+
+      Y va con `{% templatetag openblock %} comment {% templatetag closeblock %}` y no con la marca
+      de una linea: esa **solo comenta una linea**, asi que un comentario de varias se imprime en la
+      pagina. Se vio al abrirla.
     {% endcomment %}
-    <style>
-      :root {
-        --login-bg: #f4f7fb;
-        --login-surface: #ffffff;
-        --login-border: #dbe3ee;
-        --login-text: #172238;
-        --login-muted: #626f85;
-        --login-primary: #5b3a9e;
-        --login-primary-hover: #472d7d;
-        --login-danger: #c53b4d;
-        --login-primary-soft: #efe7fb;
-        --login-primary-ink: #472d7d;
-      }
-      @media (prefers-color-scheme: dark) {
-        :root {
-          --login-bg: #131a26;
-          --login-surface: #1b2432;
-          --login-border: #2b3648;
-          --login-text: #eef1f6;
-          --login-muted: #97a3b6;
-          --login-primary: #c3a6f0;
-          --login-primary-hover: #d5c2f6;
-          --login-primary-soft: #2a2140;
-          --login-primary-ink: #d5c2f6;
-        }
-      }
-      * { box-sizing: border-box; }
-      body {
-        margin: 0;
-        min-height: 100vh;
-        display: grid;
-        place-items: center;
-        background: var(--login-bg);
-        color: var(--login-text);
-        font: 15px/1.55 system-ui, "Segoe UI", sans-serif;
-      }
-      .tarjeta {
-        width: min(380px, calc(100vw - 32px));
-        padding: 28px;
-        background: var(--login-surface);
-        border: 1px solid var(--login-border);
-        border-radius: 14px;
-        box-shadow: 0 10px 30px rgb(18 34 59 / 10%);
-      }
-      {% comment %}
-        **La marca en la primera pantalla, que es donde más hace falta y donde no estaba.**
-
-        Y en dos versiones según el tema, que **no es un adorno**: el relleno del dibujo original es
-        `#1B2A4A` y contra los fondos oscuros del producto da 1,00 / 1,10 / 1,15:1, o sea que el
-        cuerpo del dron y las caras del cubo desaparecen y queda media marca. La variante oscura
-        deja esos rellenos transparentes y lleva el trazo en el acento: 7,46:1 sobre esta tarjeta.
-
-        Hubo una placa blanca en medio y se quitó: resolvía el contraste y ponía un parche que no
-        pertenece a la paleta.
-      {% endcomment %}
-      .marca {
-        display: block;
-        width: 52px;
-        height: 39px;
-        margin-bottom: 14px;
-      }
-      /* La del sistema no se puede elegir cambiando el `src` desde CSS, así que van las dos y
-         sobra la que no toca. */
-      .solo-oscuro { display: none; }
-      @media (prefers-color-scheme: dark) {
-        .solo-claro { display: none; }
-        .solo-oscuro { display: block; }
-      }
-      h1 { margin: 0 0 4px; font-size: 1.35rem; }
-      p.sub { margin: 0 0 22px; color: var(--login-muted); font-size: 0.92rem; }
-      label { display: block; margin-bottom: 4px; font-size: 0.88rem; font-weight: 600; }
-      input[type="text"], input[type="password"] {
-        width: 100%;
-        height: 42px;
-        margin-bottom: 16px;
-        padding: 0 12px;
-        color: var(--login-text);
-        background: var(--login-bg);
-        border: 1px solid var(--login-border);
-        border-radius: 10px;
-        font: inherit;
-      }
-      button {
-        width: 100%;
-        height: 42px;
-        border: 0;
-        border-radius: 10px;
-        background: var(--login-primary);
-        color: #fff;
-        font: inherit;
-        font-weight: 650;
-        cursor: pointer;
-      }
-      button:hover { background: var(--login-primary-hover); }
-      .error {
-        margin-bottom: 16px;
-        padding: 10px 12px;
-        border: 1px solid var(--login-danger);
-        border-radius: 10px;
-        color: var(--login-danger);
-        font-size: 0.9rem;
-      }
-      .pie { margin: 20px 0 0; color: var(--login-muted); font-size: 0.82rem; }
-
-      {% comment %}
-        **La portada dejó de ser una tarjeta sola en el medio.** Es la primera pantalla y era un
-        formulario flotando: ahora hay dos mitades — a la izquierda quién eres y para qué sirve
-        esto, a la derecha la puerta.
-
-        Se apila en una columna por debajo de 860 px, que es donde la de la izquierda deja de tener
-        sitio para respirar. Y el orden en el HTML es **el formulario primero**: así en el móvil se
-        entra sin bajar, y en el escritorio la rejilla lo coloca a la derecha con `order`.
-      {% endcomment %}
-      .portada {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) 380px;
-        gap: 56px;
-        align-items: center;
-        width: min(920px, calc(100vw - 48px));
-      }
-      .portada .tarjeta { order: 2; }
-      .presenta { order: 1; }
-
-      @media (max-width: 860px) {
-        .portada {
-          grid-template-columns: minmax(0, 1fr);
-          gap: 28px;
-          width: min(420px, calc(100vw - 32px));
-        }
-        .portada .tarjeta { order: 1; }
-        .presenta { order: 2; }
-      }
-
-      .presenta h2 {
-        margin: 0 0 10px;
-        font-size: clamp(1.6rem, 3.4vw, 2.3rem);
-        line-height: 1.15;
-        letter-spacing: -0.01em;
-      }
-      /* El verbo de la frase en el violeta de acción: es lo que la hace leerse como una idea y no
-         como un eslogan. */
-      .presenta h2 em { color: var(--login-primary); font-style: normal; }
-      .presenta p { margin: 0 0 22px; color: var(--login-muted); max-width: 46ch; }
-
-      {% comment %}
-        **Las tres cosas que el equipo hace aquí**, y no una lista de funciones. Cada una empieza
-        por un verbo porque lo que se recuerda de una herramienta es lo que te deja hacer.
-
-        El punto de color va con el token de acento y **no** sustituye al texto: es un ancla para la
-        vista al recorrerlas, no la información.
-      {% endcomment %}
-      .presenta ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 12px; }
-      .presenta li {
-        display: grid;
-        grid-template-columns: 26px minmax(0, 1fr);
-        align-items: start;
-        gap: 12px;
-        font-size: 0.94rem;
-      }
-      .presenta li b { display: block; }
-      .presenta li span { color: var(--login-muted); font-size: 0.88rem; }
-      .presenta .punto {
-        width: 26px;
-        height: 26px;
-        border-radius: 8px;
-        display: grid;
-        place-items: center;
-        background: var(--login-primary-soft);
-        color: var(--login-primary-ink);
-        font-size: 0.82rem;
-        font-weight: 700;
-      }
-
-      /* El guiño para el equipo. Va al final y en pequeño: acompaña, no grita. */
-      .animo {
-        margin: 26px 0 0;
-        padding-top: 18px;
-        border-top: 1px solid var(--login-border);
-        color: var(--login-muted);
-        font-size: 0.86rem;
-        max-width: 46ch;
-      }
-      .animo b { color: var(--login-text); }
-    </style>
+    <link rel="stylesheet" href="{% static 'css/app.css' %}" />
+    {% comment %}
+      El tema, antes de pintar: es la misma clave que el resto del portal
+      (`localStorage["aerobim:tema"]`), asi que quien elige el claro entra en claro. Puesto despues
+      del contenido se veria un destello del tema equivocado en cada carga.
+    {% endcomment %}
+    <script src="{% static 'js/tema.js' %}"></script>
   </head>
-  <body>
+  <body class="puerta">
     <div class="portada">
       <form class="tarjeta" method="post">
       {% csrf_token %}
@@ -216,7 +44,11 @@
       {% endcomment %}
       <img class="marca solo-claro" src="{% static 'img/aerobim-mark.svg' %}" alt="" />
       <img class="marca solo-oscuro" src="{% static 'img/aerobim-mark-oscuro.svg' %}" alt="" />
-      <h1>AeroBim</h1>
+      {% comment %}
+        **Decia «AeroBim», debajo del dibujo de la marca.** Repetia el nombre que ya esta ahi
+        dibujado y no contestaba lo unico que hace falta saber en esta pantalla: que se hace aqui.
+      {% endcomment %}
+      <h1>{% translate "Sign in to your work" %}</h1>
       <p class="sub">{% translate "Model, plans and document control." %}</p>
 
       {% if form.errors %}

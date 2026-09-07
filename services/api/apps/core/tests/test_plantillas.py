@@ -150,6 +150,26 @@ def test_la_base_declara_cada_bloque_una_sola_vez():
 # --- Lo que la CSP prohíbe -------------------------------------------------------------
 
 
+def test_la_puerta_usa_el_css_del_producto():
+    """`F12.6`. **Tenía diez tokens propios que eran los mismos hexadecimales que los del sistema.**
+
+    El motivo escrito era que la pantalla de entrada «no tiene que depender de que el resto de la
+    hoja de estilos cargue bien». No se sostiene —si `app.css` no carga, todas las demás pantallas
+    están rotas también— y costaba dos cosas medidas: el arreglo de contraste de los campos no
+    llegaba aquí, y el tema elegido se ignoraba.
+
+    Esta prueba fija las tres: que cargue `app.css`, que cargue `tema.js`, y que no vuelva a tener
+    un `<style>` con tokens suyos.
+    """
+    puerta = (PLANTILLAS / "registration" / "login.html").read_text(encoding="utf-8")
+    limpio = _sin_comentarios(puerta)
+
+    assert "css/app.css" in limpio, "la puerta no carga el CSS del producto"
+    assert "js/tema.js" in limpio, "la puerta no respeta el tema elegido"
+    assert "--login-" not in limpio, "la puerta volvió a tener sus propios tokens"
+    assert "<style" not in limpio, "la puerta volvió a tener CSS embebido"
+
+
 @pytest.mark.parametrize("plantilla", _extienden_la_base(), ids=lambda p: p.name)
 def test_ninguna_plantilla_lleva_un_manejador_en_linea(plantilla):
     """**La CSP lo bloquea en producción y hasta hoy nadie lo vigilaba.**

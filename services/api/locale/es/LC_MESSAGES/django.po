@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-07 15:57-0300\n"
+"POT-Creation-Date: 2026-09-07 16:20-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1580,7 +1580,7 @@ msgid "Download CSV"
 msgstr "Descargar CSV"
 
 #: .\templates\accounts\usuarios_roles.html:19
-#: .\templates\registration\login.html:240
+#: .\templates\registration\login.html:71
 msgid "Username"
 msgstr "Nombre de usuario"
 
@@ -1633,7 +1633,7 @@ msgid "Sign out"
 msgstr "Salir"
 
 #: .\templates\base.html:100 .\templates\registration\login.html:7
-#: .\templates\registration\login.html:259
+#: .\templates\registration\login.html:90
 msgid "Sign in"
 msgstr "Entrar"
 
@@ -2782,27 +2782,31 @@ msgstr ""
 msgid "No project registered yet."
 msgstr "Todavía no hay ningún proyecto registrado."
 
-#: .\templates\registration\login.html:225
+#: .\templates\registration\login.html:55
+msgid "Sign in to your work"
+msgstr "Entra a tu obra"
+
+#: .\templates\registration\login.html:56
 msgid "Model, plans and document control."
 msgstr "Modelo, planos y control documental."
 
-#: .\templates\registration\login.html:237
+#: .\templates\registration\login.html:68
 msgid "Invalid username or password. Try again."
 msgstr "Usuario o contraseña inválidos. Inténtalo de nuevo."
 
-#: .\templates\registration\login.html:250
+#: .\templates\registration\login.html:81
 msgid "Password"
 msgstr "Contraseña"
 
-#: .\templates\registration\login.html:263
+#: .\templates\registration\login.html:94
 msgid "There is no self sign-up: an administrator creates the accounts."
 msgstr "No hay auto-registro: las cuentas las crea un administrador."
 
-#: .\templates\registration\login.html:277
+#: .\templates\registration\login.html:108
 msgid "The model, the drawings and the site <em>on one screen</em>."
 msgstr "El modelo, los planos y la obra <em>en la misma pantalla</em>."
 
-#: .\templates\registration\login.html:279
+#: .\templates\registration\login.html:110
 msgid ""
 "Nothing to install, and the project does not go up to anybody's\n"
 "          cloud: the models open in the browser and the files stay in the "
@@ -2811,11 +2815,11 @@ msgstr ""
 "Sin instalar nada y sin subir la obra a la nube de nadie: los modelos se "
 "abren en el navegador y los archivos se quedan en casa."
 
-#: .\templates\registration\login.html:286
+#: .\templates\registration\login.html:117
 msgid "Open the model from its own record"
 msgstr "Abre el modelo desde su expediente"
 
-#: .\templates\registration\login.html:287
+#: .\templates\registration\login.html:118
 msgid ""
 "The IFC and the DXF already in the register, one click and no hunting for "
 "the file."
@@ -2823,28 +2827,28 @@ msgstr ""
 "El IFC y el DXF que ya están en el registro, con un clic y sin buscar el "
 "archivo."
 
-#: .\templates\registration\login.html:293
+#: .\templates\registration\login.html:124
 msgid "Cross the disciplines and hand out what clashes"
 msgstr "Cruza las disciplinas y reparte lo que choca"
 
-#: .\templates\registration\login.html:294
+#: .\templates\registration\login.html:125
 msgid "Neighbouring conflicts arrive as one problem, not as thirty-five rows."
 msgstr ""
 "Los conflictos vecinos llegan como un problema, no como treinta y cinco "
 "filas."
 
-#: .\templates\registration\login.html:300
+#: .\templates\registration\login.html:131
 msgid "Take it out on paper or as BCF"
 msgstr "Sácalo en papel o en BCF"
 
-#: .\templates\registration\login.html:301
+#: .\templates\registration\login.html:132
 msgid ""
 "A report on the company letterhead, or the file the client's software opens."
 msgstr ""
 "Un informe con el membrete de la casa, o el archivo que abre el software del "
 "mandante."
 
-#: .\templates\registration\login.html:307
+#: .\templates\registration\login.html:138
 msgid ""
 "<b>We built this for the team.</b> Every finding you write down saves\n"
 "          somebody a trip to site, and every model you upload saves half a "
