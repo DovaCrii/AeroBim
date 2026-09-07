@@ -219,11 +219,23 @@ cerrar modelo, borrar cota y borrar vista no existe para el teclado, no existe e
 aparece bajo el dedo justo cuando el cursor pasa por encima. Van siempre visibles, apagadas,
 y se encienden al acercarse.
 
+> **Y esto es donde no se copia a Asana**, decidido el 2026-09-07 al mirar su interfaz como
+> referencia. Asana esconde las acciones de una fila en el hover, y le funciona: tiene una lista por
+> pantalla en un monitor ancho. Aquí no — un rol acotado no sabe que existen, y en un táctil nada
+> pasa el ratón.
+>
+> **De Asana se toma la calma, no el escondite**, y se consigue con tres reglas que sí se pueden
+> comprobar: **una sola acción por fila**, en tono apagado; las de conjunto a la cabecera; y **nada
+> aparece ni cambia de tamaño** al pasar por encima, que es lo que obliga a apuntar dos veces.
+> `apps/documents/tests/test_observaciones_lista.py` lo fija sobre la lista de hallazgos.
+
 ## Dónde vive esto, y quién lo comprueba
 
-**Este documento es la tabla normativa; el código es su implementación.** Hoy la implementa un solo
-archivo: [`apps/web/src/index.css`](../apps/web/src/index.css), con los `--color-*` que Tailwind
-convierte en utilidades. Los nombres cambian en dos sitios y solo por legibilidad de la utilidad:
+**Este documento es la tabla normativa; el código es su implementación.** La implementan **dos**
+archivos: [`apps/web/src/index.css`](../apps/web/src/index.css) en el visor, con los `--color-*` que
+Tailwind convierte en utilidades, y
+[`services/api/static/css/app.css`](../services/api/static/css/app.css) en el portal, con los
+`--ab-*`. Los nombres cambian en dos sitios del visor y solo por legibilidad de la utilidad:
 
 | Aquí                  | En el visor        | Por qué                                    |
 | --------------------- | ------------------ | ------------------------------------------ |
@@ -232,9 +244,27 @@ convierte en utilidades. Los nombres cambian en dos sitios y solo por legibilida
 | `--ab-disabled-*`     | `--color-apagado*` | Igual                                      |
 | `--ab-canvas-ink`     | `--color-ink`      | Ya existía con ese nombre, y con ese valor |
 
-**El portal (`app.css`) todavía no.** Converge cuando estos tokens estén vistos en pantalla, así
-que de momento los mismos hexadecimales viven en dos archivos: es una duplicación con fecha de
-caducidad, no una decisión.
+**El portal tiene su propio gate desde el 2026-09-07** (`F12` bloque 2):
+`apps/core/tests/test_sistema_de_diseno.py` **lee `app.css`** y lo mide con el oráculo que ya
+existía en `apps/projects/color.py` —la misma fórmula de WCAG 2.1 y la misma constante que
+`contraste.ts`, escritas para colorear las etiquetas de disciplina—. No se portó nada: **un oráculo
+que es código de la prueba mide su propio error.**
+
+> **Lo que encontró en su primera corrida**, y por eso hace falta:
+>
+> 1. **`--ab-track` se usaba y no estaba declarado.** La pista de la barra de avance no se pintaba
+>    —`rgba(0,0,0,0)` medido en el navegador—, y una obra realmente al 0 % no mostraba nada.
+> 2. **El contorno de los campos daba 1,24:1 en claro y 1,17:1 en oscuro**, contra los 3:1 de WCAG
+>    1.4.11. Este documento lo pedía y el portal no lo cumplía.
+> 3. **Tres tokens declarados sin un solo `var()`**: `--ab-control-height`, `--ab-sidebar-width` y
+>    `--ab-shell`.
+> 4. **Y una costura ya rota**: `--ab-shell` decía en su comentario «= `--color-shell`» y valía
+>    `#161f2d` contra el `#101725` del visor. Nadie lo veía porque el token no pintaba nada.
+>
+> Ese cuarto punto es el motivo de que la duplicación **ya no sea aceptable como estaba escrita**:
+> un comentario que promete igualdad no impide que uno de los dos cambie. Ahora hay una prueba que
+> compara los hexadecimales de los dos archivos, y `--ab-navy` y `--ab-violet` no pueden separarse
+> de `--color-ink` y `--color-brand` sin que el gate lo diga.
 
 **Y los ratios de este documento son una prueba, no una afirmación.**
 `packages/bim-core/src/color/contraste.ts` implementa la fórmula de WCAG 2.1 —con los vectores
@@ -244,6 +274,19 @@ los tres rellenos de acción, el contorno de campo contra 3:1, y que la marca **
 que es la razón de que exista un acento aparte. Comprueba además que el visor no pueda volver a
 escribir `white/NN`, ni un color de la paleta de Tailwind haciendo de estado, ni un `font-size` en
 porcentaje. Bajar un color por debajo del mínimo **falla el gate**.
+
+El del portal mide lo equivalente sobre `app.css`, y tres cosas más que son suyas: que la **pista**
+de la barra de avance deje ver su relleno (3:1, indicador no textual), que los **cinco acentos** de
+grupo se lean sobre su superficie **y no se parezcan entre sí** —el par más cercano por encima de 40
+grados de tono; ya pasó estar en 21 y el usuario lo dijo como «todo del mismo tono»—, y que ningún
+token quede declarado sin usar.
+
+> **Un fallo del propio gate, y cómo se encontró.** El oráculo de aquel paso era «pasa, y **falla al
+> revertir `--ab-track`**». Al quitarlo del bloque claro, la prueba de «todo `var()` está
+> declarado» **siguió pasando**: miraba el archivo entero y el token seguía declarado en
+> `[data-theme="dark"]`. O sea que **un token declarado solo en oscuro pasaba el gate** y la pista
+> seguía sin pintarse en claro, que es el tema de partida. Ahora la prueba mira el CSS **como lo ve
+> el tema claro**, quitando los bloques oscuros. Un gate que no se muta no se sabe si mide.
 
 ## Referencia visual
 

@@ -12,6 +12,11 @@
 > **Los colores, los tamaños de letra y los estados están en
 > [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md)** (2026-09-01). Este documento dice qué zonas hay y qué
 > entra en cada una; aquel dice con qué se pintan. Donde los dos hablen de lo mismo, manda este.
+>
+> **Y desde el 2026-09-07 este documento cubre las dos mitades.** Hasta entonces solo hablaba del
+> visor —cero menciones al portal, medidas— y el portal creció sin una regla escrita de dónde entra
+> lo que llegue: la consecuencia fue que la navegación acabó siendo la portada, porque nunca se
+> decidió que hubiera otra. La sección **«El portal»** está al final.
 
 ## La regla de fondo
 
@@ -169,3 +174,100 @@ trabajo entero —coordinar no es medir—, y nunca para un solo botón.
   entero, porque la pintaba el resaltado de la librería; ahora se pinta por cuenta propia al 30 %
   de opacidad sobre el color que ya tenía cada cosa. Mirando detrás de un muro se sigue
   distinguiendo una viga de una losa, que es para lo que se enciende el modo.
+
+---
+
+## El portal
+
+> **Escrito el 2026-09-07**, y con tres semanas de retraso: este documento no mencionaba el portal
+> en ninguna línea, así que el portal creció sin una regla escrita de dónde entra lo que llegue. La
+> consecuencia se vio al medirlo: **la navegación acabó siendo la portada**, porque nunca se decidió
+> que hubiera otra. La barra superior llevaba marca, tema, usuario, ayuda, clave y salir — cero
+> enlaces a módulos.
+
+### Dos referencias, cada una para lo suyo
+
+**CAD manda en el visor** —eso no cambia, es la cabecera de este documento— **y Asana manda en el
+portal.** No es una preferencia estética: son dos poblaciones distintas de pantalla. El visor es un
+lienzo con herramientas alrededor, como AutoCAD; el portal es una lista de trabajo con navegación
+al lado, como cualquier gestor de tareas que la gente ya sabe usar.
+
+De Asana se toma:
+
+- **«Mi trabajo» como punto de partida**: lo pendiente de uno, primero, antes de cualquier menú.
+- **Barra lateral persistente**, con los módulos agrupados y el activo marcado.
+- **Cada cosa es una tarea** con dueño, fecha y estado — las observaciones ya lo eran.
+- **Vista lista y vista tablero** sobre los mismos datos.
+- **Jerarquía tipográfica clara, aire, superficies limpias separadas por borde.**
+
+Y no se toma:
+
+| Lo que no se copia                    | Por qué                                                                        |
+| ------------------------------------- | ------------------------------------------------------------------------------ |
+| **Acciones escondidas en hover**      | No existen para el teclado ni en táctil. Ver `DESIGN_SYSTEM.md`                |
+| **Arrastrar tarjetas entre columnas** | Pide JavaScript y una vista POST que no existe: el estado se cambia con motivo |
+| Los proyectos como listas genéricas   | Aquí una obra es un expediente ISO 19650, con su vocabulario                   |
+| El buscador global como centro        | No hay volumen que lo justifique todavía                                       |
+| Superficies blancas en el visor       | Ahí el modelo manda y el lienzo es oscuro                                      |
+
+### Las cuatro zonas
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ barra   marca · tema · usuario · Ayuda · Clave · Salir  │  navy, en las dos
+├──────────────┬──────────────────────────────────────────┤
+│ rail         │ cabecera   migas · título · sub · acciones│
+│ Mi trabajo   ├──────────────────────────────────────────┤
+│ [grupos]     │ contenido                                 │
+│ Cómo se usa  │                                           │
+└──────────────┴──────────────────────────────────────────┘
+```
+
+**1 · La barra** es identidad y sesión, nunca navegación de contenido: lo que se pone aquí está en
+todas las pantallas y no cambia nunca. El interruptor de tema y la ayuda viven aquí porque se
+buscan desde la pantalla en la que uno se atascó, no volviendo a la puerta.
+
+**2 · El rail** es la navegación, y **es la única**. Sale del catálogo de
+`apps/accounts/modulos.py`, así que añadir un módulo es añadir una fila de datos — no tocar una
+plantilla. Tres anchos, **sin una línea de JavaScript** porque la CSP lo prohíbe: 248 px con rótulo,
+64 px solo iconos, y tira horizontal en el teléfono. El rótulo se escribe siempre, aunque no se vea.
+
+**3 · La cabecera** es del sistema y no de cada plantilla: migas, título, subtítulo y acciones, en
+ese orden. Antes cada una de las treinta plantillas ponía su propio `<h1>` con su propio margen, y
+el hueco entre título y subtítulo era distinto según la pantalla — no porque nadie lo eligiera, sino
+porque era la suma de tres márgenes escritos en tres sitios.
+
+**4 · El contenido** es de cada pantalla. Y **la fila de tarea es compartida**
+(`generic/_fila_tarea.html`): la portada y la bandeja pintan la misma, así que no pueden divergir.
+
+### La regla para crecer
+
+| Lo que llegue                       | Dónde entra sin rediseñar nada                                       |
+| ----------------------------------- | -------------------------------------------------------------------- |
+| Un módulo nuevo                     | Una fila en `CATALOGO`, con su grupo, su permiso y su icono          |
+| Una vista nueva de los mismos datos | Un segmento más en el conmutador, y **la misma fuente de datos**     |
+| Una acción de pantalla              | `{% block acciones %}` de la cabecera; uno primario, el resto sordos |
+| Un filtro rápido                    | Un segmento en el control segmentado, con su valor en la URL         |
+| Un dato en una tarea                | Un campo en `Tarea` (`apps/documents/tareas.py`), y sale en las dos  |
+
+**Tres reglas cerradas**, y las tres se pueden comprobar:
+
+1. **Una capacidad nueva es una fila del catálogo**, igual que en el visor es una sección del
+   navegador. Un grupo nuevo del rail solo se justifica con un ámbito de trabajo entero.
+2. **Dos vistas de lo mismo salen de la misma consulta.** No es una preferencia: una tarea que sale
+   en una vista y no en la otra se lee como que ya está hecha, y quien lo note sospecha de su
+   memoria antes que de la pantalla. `test_bandeja.py` compara los conjuntos.
+3. **Nada se aplica con JavaScript que no funcione sin él.** La CSP sirve `script-src 'self'` sin
+   `'unsafe-inline'`, así que un `onclick` **funciona en desarrollo y no en producción** — ya pasó
+   con tres `onchange` de los filtros. El comportamiento va en `static/js/`, y siempre con un camino
+   que no lo necesita: el botón «Filtrar» se queda al lado del desplegable que se autoenvía.
+
+### Lo que falta en el portal, dicho en voz alta
+
+- **El detalle lateral de una observación** (`?abrir=<pk>` reutilizando `.hallazgo`): abrir un
+  hallazgo sin perder la lista. Planteado y pospuesto a la segunda pasada.
+- **La captura adjunta en un comentario** (`F12.11`): hoy una queja del portal no lleva imagen.
+- **`--ab-surface-3`**, una tercera superficie para el tablero. No entra hasta que algo la use: el
+  gate falla con un token declarado sin un `var()`, y eso es a propósito.
+- **`base_puerta.html`**, una base mínima para pantallas anónimas. Hoy solo existiría para el login,
+  que no la necesita — entra cuando haya una segunda, un 404 por ejemplo.

@@ -3,7 +3,8 @@
 > **Fuente única de verdad del trabajo pendiente.** Consolida el estudio de
 > alternativas open-source (verificado el 2026-08-18 contra la API de GitHub y los
 > registros de npm/PyPI) en un tablero ejecutable con seguimiento de estado.
-> **Creado:** 2026-08-18 · **Actualizado:** 2026-09-03 (siete fases cerradas; sigue la Fase 2)
+> **Creado:** 2026-08-18 · **Actualizado:** 2026-09-07 (diez fases cerradas; la Fase 12 por su
+> tercer bloque, el visor)
 > **Rama base:** `main`
 > **Regla de oro:** cada fase termina en algo **que alguien puede usar**. No se abre
 > una fase nueva con la anterior a medio cerrar, y no se agrega alcance fuera de lo
@@ -13,24 +14,24 @@
 
 ## Por dónde se empieza
 
-**Siete de las diez fases con trabajo están cerradas enteras**, y lo que queda se cuenta en una
-línea cada cosa. Actualizado el 2026-09-03.
+**Diez de las doce fases con trabajo están cerradas**, y lo que queda se cuenta en una línea cada
+cosa. Actualizado el 2026-09-07.
 
-| Fase                           | Estado                                                                                        |
-| ------------------------------ | --------------------------------------------------------------------------------------------- |
-| **0 · Cimientos**              | ✅ entera — `F0.6` cerró el 2026-09-02 y esta línea llevaba desde entonces sin actualizar     |
-| **1 · Visor**                  | ✅ salvo `F1.13`, que son **tres nombres que decide el usuario**                              |
-| **3 · Backend**                | ✅ entera                                                                                     |
-| **4 · Coordinación**           | ✅ salvo `F4.5`, el trazo libre, **condicionado a que el usuario mire un BCF exportado**      |
-| **5 · Interferencias**         | ✅ entera                                                                                     |
-| **7 · Planos, salida**         | ✅ entera — capas, DXF, PDF con sello, y el plano acotado y con sus llamadas                  |
-| **8 · Registro documental**    | ✅ entera                                                                                     |
-| **9 · Diseño**                 | ✅ salvo `F9.6`, que son **tres decisiones del usuario** y contradicen tres líneas de `UX.md` |
-| **10 · Etiquetas y tablas**    | ✅ entera                                                                                     |
-| **11 · El portal se ve plano** | ✅ entera — incluida la ayuda con su recorrido                                                |
-| **2 · Nubes de puntos**        | 🔶 **casi.** `F2.5` `F2.1` `F2.2` `F2.3` ✅ — abre, se maneja y calza. Falta `F2.4`           |
-| **12 · La interfaz no está**   | ⬜ **encargada el 2026-09-03.** Hay capacidades sin puerta: la nube no se puede ni abrir      |
-| **6 · Geo + BIM**              | ⬜ pospuesta a propósito el 2026-09-02, para poner la coordinación delante                    |
+| Fase                           | Estado                                                                                          |
+| ------------------------------ | ----------------------------------------------------------------------------------------------- |
+| **0 · Cimientos**              | ✅ entera — `F0.6` cerró el 2026-09-02 y esta línea llevaba desde entonces sin actualizar       |
+| **1 · Visor**                  | ✅ salvo `F1.13`, que son **tres nombres que decide el usuario**                                |
+| **3 · Backend**                | ✅ entera                                                                                       |
+| **4 · Coordinación**           | ✅ salvo `F4.5`, el trazo libre, **condicionado a que el usuario mire un BCF exportado**        |
+| **5 · Interferencias**         | ✅ entera                                                                                       |
+| **7 · Planos, salida**         | ✅ entera — capas, DXF, PDF con sello, y el plano acotado y con sus llamadas                    |
+| **8 · Registro documental**    | ✅ entera                                                                                       |
+| **9 · Diseño**                 | ✅ salvo `F9.6`, **ya decidida** el 2026-09-07 — se cierra al reescribir `UX.md` en el bloque 3 |
+| **10 · Etiquetas y tablas**    | ✅ entera                                                                                       |
+| **11 · El portal se ve plano** | ✅ entera — incluida la ayuda con su recorrido                                                  |
+| **2 · Nubes de puntos**        | 🔶 abre, se maneja, calza y **entra al expediente**. `F2.4` espera **el IFC de la pasarela**    |
+| **12 · La interfaz**           | 🔶 **el piloto desbloqueado y el portal cerrado**; queda el visor — ver los bloques abajo       |
+| **6 · Geo + BIM**              | ⬜ pospuesta a propósito el 2026-09-02, para poner la coordinación delante                      |
 
 **La Fase 2 va por tres cuartos**, y en un orden que no es el de su numeración. Desde el 2026-09-03
 se comprueba contra **el levantamiento real del CC 741 — Camino Agrícola**, no contra un fixture:
@@ -3523,9 +3524,25 @@ quien más lo necesita, y lo que el propio comentario de `index.css` daba como r
 están documentados, y renombrarlos serían noventa y siete ediciones que no cambian un píxel. La
 equivalencia queda en la tabla de arriba.
 
-### `F9.6`: por qué está bloqueada y no simplemente pendiente
+### `F9.6`: estaba bloqueada, y el 2026-09-07 se decidió
 
-La revisión propuso además reordenar el shell: barra de aplicación con migas compartida con el
+> **Las tres decisiones, tomadas.** El usuario las respondió al aprobar el plan de la Fase 12:
+>
+> | Propuesta                             | Decisión                                                               |
+> | ------------------------------------- | ---------------------------------------------------------------------- |
+> | Herramientas flotando sobre el lienzo | **Rechazada** — sigue en pie «nada permanente flota»                   |
+> | Propiedades como tarjeta anclada      | **Rechazada** — sigue siendo panel fijo                                |
+> | El navegador repartido en un rail     | **Aceptada como estado plegado** del mismo navegador, no como destinos |
+>
+> La tercera es la que cambia algo, y lo cambia poco: el rail **no** reparte el contenido en siete
+> sitios, es el mismo acordeón a 44 px. Así que la regla de crecimiento —«una capacidad nueva es una
+> sección del navegador»— **se conserva**, que era lo que la propuesta original rompía.
+>
+> **Queda cerrarla escribiéndolo.** La regla de este documento es que si se acepta alguna se
+> reescribe `UX.md` primero y se toca el código después; eso es el paso B0 del bloque 3. La sección
+> del portal de `UX.md` ya está escrita (2026-09-07); falta la del visor.
+
+Lo que la revisión había propuesto: barra de aplicación con migas compartida con el
 portal, **rail de siete secciones** en vez del acordeón del navegador, **herramientas flotando
 sobre el lienzo** con las opciones de la activa desplegándose debajo, y **propiedades como
 tarjeta anclada a la selección** en vez de panel fijo.
@@ -4298,7 +4315,7 @@ nadie puede alcanzar.
 | `F12.3` | **Las herramientas se ven**: contraste, tamaño e importancia relativa en la cinta             | ⬜     |
 | `F12.4` | **El lienzo vacío es una puerta de entrada**, no un vacío con una frase                       | ⬜     |
 | `F12.5` | **El navegador tiene jerarquía**: nueve secciones iguales no dicen por dónde empezar          | ⬜     |
-| `F12.6` | **La entrada al portal**: es la primera pantalla del producto y hoy es un formulario          | ⬜     |
+| `F12.6` | **La entrada al portal**: es la primera pantalla del producto y hoy es un formulario          | ✅     |
 | `F12.7` | **«Portal» deja de titular la portada**, y los módulos se presentan por lo que resuelven      | ✅     |
 | `F12.8` | **La costura**: el visor y el portal se leen como un producto, no como dos                    | ⬜     |
 | `F12.9` | **La cota lleva su número encima**, en la escena y no en la barra de abajo                    | ⬜     |
@@ -4317,6 +4334,39 @@ producto, no de estilo, y **bloquean que personas reales usen esto**.
 sustituya eso, y decir lo contrario sería inventarse un número. Lo que sí se mide y entra en el gate:
 el contraste de cada texto, que ninguna capacidad quede sin puerta, y que los tokens sean los mismos
 en las dos mitades.
+
+### Cómo va la Fase 12, por bloques
+
+El plan del 2026-09-07 la reparte en tres, en este orden: **primero lo que bloquea el piloto,
+después el portal, después el visor**.
+
+| Bloque                        | Pasos                                                                                                  | Estado       |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------ | ------------ |
+| **1 · Desbloquear el piloto** | `F12.10` · `preparar_piloto` · timer y respaldo · `F12.13` · `PILOTO.md` · `F12.12`                    | ✅ los seis  |
+| **2 · El portal**             | tokens y gate · catálogo · rail · cabecera · «Mi trabajo» · bandeja · observaciones · la puerta · docs | ✅ los nueve |
+| **3 · El visor**              | `UX.md` · gate · movimiento · `F12.9` · `F12.4` · `F12.3` · `F12.5` · rail · tema claro · `F12.8`      | ⬜           |
+
+**El bloque 2 cerró el 2026-09-07**, en la rama `codex/portal-asana`. Lo que dejó, además de las
+nueve tareas:
+
+- **Un gate que lee `app.css`** (`apps/core/tests/test_sistema_de_diseno.py`), que hasta entonces no
+  existía: ninguna prueba leía ese archivo. Encontró cuatro cosas en su primera corrida, y una en sí
+  mismo — un token declarado solo en el bloque oscuro pasaba la prueba de «todo `var()` está
+  declarado» mientras la pista de la barra de avance seguía sin pintarse en tema claro.
+- **Tres reglas de plantilla comprobadas** (`apps/core/tests/test_plantillas.py`): ningún `<h1>`
+  dentro de `contenido`, ninguna pantalla sin título, y **ningún manejador en línea** — la CSP los
+  bloquea en producción y funcionan en desarrollo, que es la forma de desplegar algo roto sin un
+  mensaje. Cazó los tres `onchange` de los filtros de observaciones.
+- **Un vocabulario común de tarea** (`apps/documents/tareas.py`), para que la portada y la bandeja no
+  puedan discrepar sobre qué está pendiente.
+- **`docs/UX.md` cubre el portal**, que era el hueco de fondo: no lo mencionaba en ninguna línea, y
+  por eso el portal creció sin una regla escrita de dónde entra lo que llegue — la navegación acabó
+  siendo la portada porque nunca se decidió que hubiera otra.
+
+Y una deuda que el bloque destapó y pagó: **la pasada de la cabecera reindentó los
+`blocktranslate`**, y el `msgid` de un `blocktranslate` incluye los espacios literales. Veintiuna
+entradas dejaron de encontrarse y salían en inglés, sin que nada fallara. Lo cazó
+`test_traducciones.py` al correr `makemessages`.
 
 ---
 
