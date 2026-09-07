@@ -1,0 +1,62 @@
+{% load i18n %}
+{% comment %}
+  **La barra lateral del portal.** Hasta hoy la navegación era la portada: para ir de una
+  observación a un entregable había que volver a `/` y elegir otra tarjeta. La barra superior
+  llevaba **cero enlaces a módulos** —marca, tema, usuario, ayuda, clave y salir— así que el portal
+  no tenía navegación persistente en absoluto.
+
+  Tres cosas de cómo está hecho, y las tres tienen su motivo:
+
+  1. **Sin JavaScript.** `apps/core/middleware.py` sirve `script-src 'self'` sin `'unsafe-inline'`,
+     así que un `onclick` no corre en producción. Los tres anchos son media queries y el estado
+     activo lo pone el servidor.
+  2. **`aria-current="page"` y no solo un color.** El módulo activo se distingue por fondo, por
+     borde y por el atributo: quien navega con lector de pantalla oye «página actual», y quien no
+     distingue el violeta ve el borde.
+  3. **El rótulo se escribe siempre, aunque a 64 px no se vea, y nunca va en un `title`.** Un
+     `title` no lo lee un lector de pantalla de forma fiable y no existe en el móvil. Cuando el rail
+     se pliega, el `<span>` se saca de la vista con posición y `clip-path` —no con `display: none`,
+     que lo quitaría también del árbol de accesibilidad y dejaría doce enlaces sin nombre—.
+{% endcomment %}
+<nav class="rail" aria-label="{% translate 'Sections' %}">
+  <a class="rail-item{% if not modulo_activo and request.path == '/' %} rail-activo{% endif %}"
+     href="/"
+     {% if not modulo_activo and request.path == '/' %}aria-current="page"{% endif %}>
+    <svg class="rail-icono" aria-hidden="true"><use href="#i-mi-trabajo"></use></svg>
+    <span class="rail-rotulo">{% translate "My work" %}</span>
+  </a>
+
+  {% for grupo, modulos in grupos_de_navegacion %}
+    {% comment %}
+      El rótulo del grupo lleva su acento, el mismo que las tarjetas de la portada: es lo que hace
+      que «El registro documental» y «Coordinación» no sean dos bloques idénticos de texto gris.
+
+      `aria-hidden` en el rótulo **no** va: es la única forma de saber que las tres entradas
+      siguientes son un grupo. Se pinta como `<p>` y no como cabecera porque el `<nav>` ya tiene su
+      nombre accesible, y una jerarquía de cabeceras dentro de la barra compite con la del contenido.
+    {% endcomment %}
+    <p class="rail-grupo acento-{{ forloop.counter0 }}">{{ grupo }}</p>
+    <ul class="rail-lista acento-{{ forloop.counter0 }}">
+      {% for modulo in modulos %}
+        <li>
+          <a class="rail-item{% if modulo == modulo_activo %} rail-activo{% endif %}"
+             href="{{ modulo.url }}"
+             {% if modulo == modulo_activo %}aria-current="page"{% endif %}>
+            <svg class="rail-icono" aria-hidden="true"><use href="#{{ modulo.icono }}"></use></svg>
+            <span class="rail-rotulo">{{ modulo.titulo }}</span>
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% endfor %}
+
+  {% comment %}
+    La ayuda va abajo y separada: es el recorrido de cómo se usa el producto (`F11.7`), no un módulo
+    de trabajo. Está también en la barra de arriba, y eso es a propósito — se busca desde la
+    pantalla en la que uno se atascó.
+  {% endcomment %}
+  <a class="rail-item rail-pie" href="{% url 'accounts:ayuda' %}">
+    <svg class="rail-icono" aria-hidden="true"><use href="#i-ayuda"></use></svg>
+    <span class="rail-rotulo">{% translate "How it works" %}</span>
+  </a>
+</nav>

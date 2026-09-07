@@ -127,10 +127,11 @@
   {% endif %}
 
   {% comment %}
-    Los símbolos se declaran una vez, acá, y las tarjetas los usan con `<use>`. Ver
-    `generic/_iconos.html`: ni una librería ni una petición más, y heredan el color de su tarjeta.
+    El sprite de iconos ya no se incluye acá: subió a `base.html` el 2026-09-07, porque el rail lo
+    necesita en todas las páginas. Incluirlo dos veces duplicaría los `id` de los símbolos, y con
+    `id` repetidos `<use href="#...">` toma el primero — o sea que funcionaría, y por eso nadie lo
+    notaría hasta que uno de los dos se editara.
   {% endcomment %}
-  {% include "generic/_iconos.html" %}
 
   {% comment %}
     **Cada grupo con su propio acento, y el violeta deja de ser el uniforme.** El violeta es la

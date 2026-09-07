@@ -71,6 +71,12 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                # La barra lateral se pinta en `base.html`, que extienden treinta y tantas
+                # plantillas de siete aplicaciones: sin esto habria que meter los modulos en el
+                # contexto de cada vista, y el sintoma de olvidarse en una seria un rail que
+                # desaparece en una pantalla suelta. Es diferido, asi que una respuesta sin
+                # plantilla no paga los permisos.
+                "apps.accounts.context_processors.navegacion",
             ]
         },
     }

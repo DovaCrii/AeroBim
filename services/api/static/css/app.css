@@ -70,6 +70,17 @@
   --ab-radio-sm: 6px; /* controles: botón, campo, fila */
   --ab-radio-md: 10px; /* tarjetas y desplegables */
   --ab-radius: 12px; /* el contenedor grande. Se conserva el nombre: lo usan 14 reglas */
+
+  /* La barra lateral, en sus dos anchos.
+   *
+   * 248 px es el ancho con rótulo: cabe «Requisitos de información» —el nombre más largo del
+   * catálogo— en una línea, y eso es lo que decide la cifra. 64 px es el plegado: el icono de 20 px
+   * centrado en un área de toque de 44, que es el mínimo de `F9.4`. */
+  --ab-sidebar-width: 248px;
+  --ab-rail-plegado: 64px;
+  /* El área de toque mínima, medida en `F9.4` sobre la cinta del visor. Aquí es lo que fija la
+   * altura de cada fila del rail: una lista de doce enlaces es justo donde se falla al pulsar. */
+  --ab-touch-min: 44px;
 }
 
 /* **Aquí había tres tokens que nadie usaba**: `--ab-control-height: 42px`, `--ab-sidebar-width:
@@ -155,7 +166,15 @@ a:hover {
 .barra {
   display: flex;
   align-items: center;
-  gap: 16px;
+  /* **Envuelve, y hasta hoy no.** Medido a 390 px: los seis elementos —marca, tema, usuario,
+   * Ayuda, Cambiar la contraseña y Salir— piden **482 px** en una línea, así que el botón de salir
+   * se salía de la pantalla y arrastraba la página entera de lado. Con `nowrap` no había forma de
+   * llegar a él.
+   *
+   * Es un defecto anterior al rail; se arregla aquí porque es el mismo ancho que este paso dice
+   * haber comprobado. */
+  flex-wrap: wrap;
+  gap: 8px 16px;
   padding: 10px 20px;
   background: var(--ab-navy);
   color: #fff;
@@ -191,13 +210,255 @@ a:hover {
   flex: 1;
 }
 
+/* --- El marco: rail y contenido --------------------------------------------------- */
+
+/*
+ * **Hasta hoy el portal no tenía navegación.** La barra de arriba llevaba marca, tema, usuario,
+ * ayuda, clave y salir: **cero enlaces a módulos**. Para ir de una observación a un entregable
+ * había que volver a `/` y elegir otra tarjeta, o sea que la portada *era* el menú.
+ *
+ * Es una rejilla de dos columnas y no un `position: fixed` porque el contenido tiene que poder
+ * ocupar lo que sobra sin que nadie calcule un `margin-left` que se desincronice del ancho del
+ * rail. El rail se queda quieto con `position: sticky`, que hace lo mismo sin sacarlo del flujo.
+ */
+.marco {
+  display: grid;
+  grid-template-columns: var(--ab-sidebar-width) 1fr;
+  align-items: start;
+}
+
+/* Sin sesión no hay rail: **una columna de 248 px de nada** al lado del formulario de entrada
+   sería peor que no tenerla. La clase la pone `base.html`. */
+.marco-sin-rail {
+  grid-template-columns: 1fr;
+}
+
+.rail {
+  position: sticky;
+  /* La barra superior mide 10 px de relleno + 27 del dibujo + 10 = 47. Se redondea a 48: pegarlo
+     al píxel exacto obliga a tocar esto cada vez que la barra cambie de altura, y 1 px de holgura
+     no se ve. */
+  top: 0;
+  align-self: start;
+  max-height: 100vh;
+  overflow-y: auto;
+  padding: 16px 12px 24px;
+  border-right: 1px solid var(--ab-border);
+  background: var(--ab-surface);
+}
+
+.rail-grupo {
+  margin: 18px 0 6px;
+  padding-left: 10px;
+  border-left: 3px solid var(--acento);
+  /* 11 px es el mínimo del sistema, y aquí es el sitio donde tiene sentido: es un rótulo de
+     agrupamiento, no algo que haya que leer seguido. */
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ab-text-secondary);
+}
+
+.rail-lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rail-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  /* **El área de toque completa, no solo el texto.** `min-height` en vez de una altura fija:
+     «Requisitos de información» cabe en una línea a 248 px, y si algún día un nombre no cabe, la
+     fila crece en vez de recortar. */
+  min-height: var(--ab-touch-min);
+  padding: 0 10px;
+  border-radius: var(--ab-radio-sm);
+  color: var(--ab-text-secondary);
+  text-decoration: none;
+  font-size: 0.92rem;
+}
+
+.rail-item:hover {
+  background: var(--ab-surface-alt);
+  color: var(--ab-text);
+}
+
+/*
+ * El módulo activo: **fondo, borde y `aria-current`, los tres.**
+ *
+ * Solo con color, quien no distingue el violeta no sabe dónde está; solo con borde, se pierde entre
+ * los rótulos de grupo que también llevan uno. Y `aria-current="page"` es lo que hace que un lector
+ * de pantalla diga «página actual» en vez de leer doce enlaces iguales.
+ */
+.rail-activo,
+.rail-activo:hover {
+  background: var(--ab-primary-soft);
+  color: var(--ab-primary);
+  font-weight: 600;
+  box-shadow: inset 3px 0 0 var(--ab-primary);
+}
+
+.rail-icono {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  fill: none;
+  /* Lo que pinta un icono de trazo es `stroke`, no `color` — la lección de `_iconos.html`. */
+  stroke: currentcolor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* «Cómo se usa» al pie, separado: es el recorrido del producto, no un módulo de trabajo. */
+.rail-pie {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--ab-border);
+  border-radius: 0;
+}
+
+/*
+ * **Los tres anchos, sin una línea de JavaScript.** La CSP sirve `script-src 'self'` sin
+ * `'unsafe-inline'` (`apps/core/middleware.py`), así que un botón con `onclick` no corre en
+ * producción — ya pasó con los tres `onchange` de los filtros. Aquí son media queries.
+ */
+
+/* Entre 760 y 1100: solo iconos.
+ *
+ * **El rótulo sigue en el árbol de accesibilidad**: se saca de la vista con posición y `clip-path`,
+ * no con `display: none` ni `visibility: hidden`, que lo quitarían también del árbol y dejarían
+ * doce enlaces sin nombre. Es la técnica de siempre para texto que tiene que estar sin verse, y va
+ * escrita aquí en vez de en una clase suelta porque **depende del ancho**: el mismo rótulo se ve a
+ * 1200 px y no a 900. */
+@media (max-width: 1100px) {
+  .marco {
+    grid-template-columns: var(--ab-rail-plegado) 1fr;
+  }
+
+  .rail-rotulo,
+  .rail-grupo {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  /* **El área de toque se fija por el enlace, no por lo que sobra del rail.**
+   *
+   * Medido, y en dos pasos. Con el relleno original de 12 px a cada lado, un enlace quedaba en
+   * **39 × 44 px**: pasa WCAG 2.5.8 (24 px) y **no llega a la regla propia de `F9.4`**, que son 44
+   * medidos en la cinta del visor. Bajar el relleno a 10 —64 − 2 × 10 = 44— dio **43**: el rail
+   * lleva `overflow-y: auto` y con doce entradas la barra de desplazamiento se come el píxel que
+   * faltaba.
+   *
+   * Así que el relleno baja a 8 y el enlace declara su propio mínimo. Depender de la resta deja el
+   * área de toque a merced de si aparece una barra de desplazamiento, que cambia con el alto de la
+   * ventana y con el sistema operativo. */
+  .rail {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  .rail-item {
+    justify-content: center;
+    min-width: var(--ab-touch-min);
+    padding: 0;
+  }
+}
+
+/* Por debajo de 760: una tira horizontal arriba del contenido. Un rail de 64 px en un teléfono de
+   390 se come una sexta parte del ancho para no decir nada. */
+@media (max-width: 760px) {
+  .marco,
+  .marco-sin-rail {
+    grid-template-columns: 1fr;
+  }
+
+  .rail {
+    position: static;
+    display: flex;
+    gap: 4px;
+    max-height: none;
+    padding: 8px 12px;
+    overflow-x: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--ab-border);
+  }
+
+  .rail-lista {
+    display: flex;
+    gap: 4px;
+  }
+
+  .rail-item {
+    min-width: var(--ab-touch-min);
+  }
+
+  .rail-pie {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: 0;
+  }
+}
+
 main {
   /* **Sube de 1100 a 1400 px.** Con 1100 en un monitor de 1900 quedaba media pantalla muerta, y
      una línea de tiempo de un año necesita ancho para que las barras no se encimen. Sigue con
-     tope: una tabla de texto a 1900 px de ancho obliga a mover la cabeza para seguir una fila. */
+     tope: una tabla de texto a 1900 px de ancho obliga a mover la cabeza para seguir una fila.
+
+     **`width: 100%` no es redundante: es lo que arregla el `margin: 0 auto`.** En un elemento de
+     rejilla, un margen automático **anula el estirado** y lo dimensiona por su contenido. Medido a
+     390 px: la columna del marco valía 390 y `main` salía a **699**, o sea que la tabla se escapaba
+     por la derecha del rail. Con `width: 100%` el elemento llena su columna y el margen automático
+     queda inofensivo — sigue centrando cuando la columna pasa de 1400.
+
+     Y `min-width: 0` para que el ancho mínimo de contenido de una tabla ancha no empuje la columna
+     y saque el rail de la pantalla. */
+  width: 100%;
   max-width: 1400px;
+  min-width: 0;
   margin: 0 auto;
   padding: 24px 20px 60px;
+}
+
+/*
+ * **En el teléfono, lo ancho se desplaza dentro del contenido y no arrastra la página.**
+ *
+ * Las tablas del registro tienen seis columnas —prioridad, hallazgo, sobre, responsable, vence,
+ * estado— y su ancho mínimo son 659 px medidos. A 390 no caben, y sin esto la página entera se
+ * desplaza de lado: la barra de arriba y el rail se van con ella, así que se pierde la navegación
+ * al mirar la última columna.
+ *
+ * Va aquí y no envolviendo cada tabla porque envolverlas serían las treinta plantillas, y esto es
+ * una línea. Cuando la pasada de la cabecera toque cada una, la tabla podrá llevar su propio
+ * contenedor y esto sobra.
+ */
+@media (max-width: 760px) {
+  main {
+    overflow-x: auto;
+  }
+}
+
+/*
+ * La cabecera de cada pantalla, y **el motivo de que se esconda vacía**.
+ *
+ * Los bloques de `base.html` tienen defecto vacío para que la pasada por las treinta plantillas se
+ * pueda hacer de una en una. Mientras una no se ha tocado, su cabecera sale sin contenido, y
+ * `{% spaceless %}` la deja literalmente vacía para que `:empty` la reconozca. Sin esto habría una
+ * franja de margen en blanco encima de cada pantalla sin migrar.
+ */
+.cabecera-pagina {
+  margin-bottom: 20px;
+}
+
+.cabecera-pagina:empty {
+  display: none;
 }
 
 h1 {

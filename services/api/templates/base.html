@@ -86,6 +86,23 @@
       {% endif %}
     </header>
 
+    {% comment %}
+      **El sprite de iconos sube del portal a la base.** Vivía en `portal.html`, que era el único
+      sitio que usaba iconos; ahora los usa el rail, que está en todas las páginas. Va antes del
+      marco porque `<use href="#...">` solo encuentra un símbolo que ya esté en el documento.
+    {% endcomment %}
+    {% include "generic/_iconos.html" %}
+
+    {% comment %}
+      **El marco: rail y contenido, en una rejilla de dos columnas.**
+
+      El rail solo existe con sesión: sin ella, `grupos_de_navegacion` viene vacío y una columna de
+      248 px de nada al lado del formulario de entrada sería peor que no tenerla. La clase del marco
+      cambia con ello para que el `grid-template-columns` no reserve el hueco.
+    {% endcomment %}
+    <div class="marco{% if not user.is_authenticated %} marco-sin-rail{% endif %}">
+      {% if user.is_authenticated %}{% include "generic/_rail.html" %}{% endif %}
+
     <main id="contenido">
       {% comment %}
         **El nivel del mensaje se pinta**, y hasta hoy no: `.aviso` era rojo para todo, así que un
@@ -104,7 +121,41 @@
           </div>
         {% endfor %}
       {% endif %}
+      {% comment %}
+        **La cabecera de la pantalla, como bloques con defecto vacío.**
+
+        Hasta hoy `base.html` exponía **un solo bloque** (`contenido`), así que las treinta y tantas
+        plantillas repetían su propio `<h1>` y su subtítulo, cada una con su margen. Aquí quedan
+        declarados para que la pasada mecánica siguiente los pueda ir llenando **una a una**, sin
+        que las que todavía no se han tocado cambien: con el defecto vacío, una plantilla que aún
+        lleva su `<h1>` dentro de `contenido` se pinta exactamente igual que antes.
+
+        El bloque se llama `titulo_pagina` y no `titulo` porque **`titulo` ya existe** y es el
+        `<title>` de la pestaña. Dos bloques con el mismo nombre serían un error silencioso: el
+        segundo gana y el primero desaparece.
+
+        Y `cabecera` envuelve a los cuatro para que las dos pantallas de título compuesto —la ficha
+        de una observación y la de una obra, que llevan código y nombre en la misma línea— puedan
+        sobreescribirla entera en vez de pelearse con las piezas.
+
+        **El `{% templatetag openblock %} spaceless {% templatetag closeblock %}` no es cosmético:
+        es lo que hace que el defecto vacío no se vea.** Sin él la cabecera sin llenar sale como
+        `<header>` con saltos de línea dentro, o sea que `:empty` de CSS no la reconoce como vacía y
+        quedaría una franja de margen en blanco encima de cada una de las treinta plantillas que
+        todavía no se han tocado. Con él, `.cabecera-pagina:empty` la esconde del todo.
+      {% endcomment %}
+      {% block cabecera %}
+        {% spaceless %}
+          <header class="cabecera-pagina">
+            {% block migas %}{% endblock %}
+            {% block titulo_pagina %}{% endblock %}
+            {% block subtitulo %}{% endblock %}
+            {% block acciones %}{% endblock %}
+          </header>
+        {% endspaceless %}
+      {% endblock %}
       {% block contenido %}{% endblock %}
     </main>
+    </div>
   </body>
 </html>
