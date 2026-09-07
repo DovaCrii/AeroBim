@@ -27,7 +27,7 @@ from django.contrib.auth.models import Permission
 from django.urls import NoReverseMatch, reverse
 
 from apps.accounts.ayuda import PASOS, pasos_para
-from apps.accounts.views import PortalView
+from apps.accounts.modulos import CATALOGO
 
 
 def dar(user, *permisos):
@@ -56,7 +56,9 @@ def test_todos_los_destinos_resuelven():
 def test_cada_destino_esta_en_el_catalogo_del_portal():
     """**Es el guardián de verdad.** Si un módulo se quita del portal, la ayuda deja de tener
     sentido y esto lo dice: sin la prueba, seguiría llevando a una pantalla que ya nadie ofrece."""
-    del_portal = {ruta for _g, _t, ruta, _p, _d in PortalView()._definicion() if ruta}
+    # El catálogo salió de `PortalView` a `modulos.py` el 2026-09-07, porque el rail lo necesita en
+    # todas las páginas. La prueba sigue midiendo lo mismo desde su sitio nuevo.
+    del_portal = {modulo.ruta for modulo in CATALOGO}
 
     for paso in PASOS:
         if paso.ruta is None:

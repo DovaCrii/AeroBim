@@ -7,10 +7,10 @@ probar puertas.
 """
 
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import TemplateView
 
+from apps.accounts.modulos import modulos_para
 from apps.core.exports import CsvExportMixin
 from apps.core.jobs import trabajos_colgados, ultima_corrida
 from apps.core.mail import mail_is_delivered, undelivered_reason
@@ -31,9 +31,10 @@ class PortalView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)
-        contexto["modulos"] = [
-            m for m in (self._modulo(*args) for args in self._definicion()) if m is not None
-        ]
+        # **El catálogo vive en `modulos.py` desde el 2026-09-07.** La barra lateral lo necesita en
+        # todas las páginas, así que dejarlo aquí obligaba a duplicar la lista: dos verdades sobre
+        # qué módulos existen, que se separan al primer cambio.
+        contexto["modulos"] = modulos_para(self.request.user)
         self._continuar(contexto)
         return contexto
 
@@ -114,146 +115,6 @@ class PortalView(LoginRequiredMixin, TemplateView):
             proyecto.abiertas = fila.get("abiertas", 0)
             proyecto.vencidas = fila.get("vencidas", 0)
             proyecto.altas = fila.get("altas", 0)
-
-    #: El icono de cada entrada, por su ruta. **Va aparte de la definición a propósito**: la
-    #: matriz de módulos se lee para saber quién ve qué, y meterle una sexta columna de dibujo
-    #: haría más difícil leer lo que importa. Los símbolos viven en `generic/_iconos.html`.
-    ICONOS = {
-        "projects:proyectos": "i-proyecto",
-        "core:organizaciones": "i-organizacion",
-        "visor:visor": "i-modelo",
-        "documents:bandeja": "i-bandeja",
-        "documents:entregables": "i-entregable",
-        "documents:transmittals": "i-transmittal",
-        "documents:requisitos-ids": "i-requisito",
-        "documents:observaciones": "i-observacion",
-        "documents:actividades": "i-actividad",
-        "accounts:usuarios-roles": "i-usuarios",
-        "accounts:auditoria": "i-auditoria",
-        "accounts:trabajos": "i-trabajos",
-    }
-
-    def _definicion(self):
-        """(grupo, titulo, url, permiso, descripcion) de cada entrada.
-
-        **Los nombres se revisaron enteros el 2026-09-02**, a peticion del usuario: «buscar los
-        mejores nombres para cada seccion y mejorar las etiquetas de ayuda». Tres reglas salieron de
-        ahi, y valen para lo que se añada despues:
-
-        1. **El grupo dice de que trata, no que clase de objeto es.** «Proyecto», «Modelo» y
-           «Documentos» son nombres de tablas; «Las obras», «El modelo» y «El registro documental»
-           son sitios a los que se va. La lista se lee como una tabla de contenidos.
-        2. **La linea de ayuda contesta «que encuentro ahi» y no repite el titulo.** «A quien
-           pertenecen los datos del proyecto» describe un campo de la base; «De que oficina es cada
-           obra y quien puede verla» describe lo que se va a mirar.
-        3. **Ninguna promete lo que no hay.** El transmittal no dice «con acuse de recibo» porque no
-           lo tiene todavia.
-
-        Y **«Lo mio» cambia de grupo**: lista observaciones y actividades, o sea coordinacion, y
-        estaba en documentos porque el permiso que pide es de observaciones. El permiso no es el
-        sitio.
-        """
-        return [
-            (
-                _("The works"),
-                _("Projects"),
-                "projects:proyectos",
-                "projects.view_proyecto",
-                _("Each work with its progress, its calendar and what it has open."),
-            ),
-            (
-                _("The works"),
-                _("Organisations"),
-                "core:organizaciones",
-                "core.view_organizacion",
-                _("Which office each work belongs to, and who can see it."),
-            ),
-            (
-                _("The model"),
-                _("BIM viewer"),
-                "visor:visor",
-                # Sin permiso: mirar un modelo es lo que cualquiera que pueda entrar viene a
-                # hacer. Lo que **sí** está guardado es qué revisiones puede abrir, y eso lo
-                # decide `view_revision` en la API.
-                None,
-                _("Open the IFC and DXF in force: measure, section and note on the model."),
-            ),
-            (
-                _("The document register"),
-                _("Deliverables"),
-                "documents:entregables",
-                "documents.view_entregable",
-                _("What has to be delivered, which revision it is on and how far along."),
-            ),
-            (
-                _("The document register"),
-                _("Transmittals"),
-                "documents:transmittals",
-                "documents.view_transmittal",
-                _("What was issued, to whom and on what date."),
-            ),
-            (
-                _("The document register"),
-                _("Information requirements"),
-                "documents:requisitos-ids",
-                "documents.view_requisitoids",
-                _("What the client demands every model carry, checked against IDS."),
-            ),
-            (
-                _("Coordination"),
-                _("My plate"),
-                "documents:bandeja",
-                "documents.view_observacion",
-                _("Yours alone, soonest due first: what you have to answer."),
-            ),
-            (
-                _("Coordination"),
-                _("Observations"),
-                "documents:observaciones",
-                "documents.view_observacion",
-                _("Everything to be resolved, with an owner and a due date."),
-            ),
-            (
-                _("Coordination"),
-                _("Activities"),
-                "documents:actividades",
-                "documents.view_actividad",
-                _("Planned work: who does what, and by when."),
-            ),
-            (
-                _("Administration"),
-                _("Users and roles"),
-                "accounts:usuarios-roles",
-                "auth.view_user",
-                _("Who holds which role, and what that role can open. Read-only."),
-            ),
-            (
-                _("Administration"),
-                _("Audit trail"),
-                "accounts:auditoria",
-                "core.view_auditevent",
-                _("Every change, in order and impossible to erase."),
-            ),
-            (
-                _("Administration"),
-                _("Scheduled jobs"),
-                "accounts:trabajos",
-                "core.view_jobrun",
-                _("Whether last night's warnings and backup actually ran."),
-            ),
-        ]
-
-    def _modulo(self, grupo, titulo, ruta, permiso, descripcion):
-        if permiso is not None and not self.request.user.has_perm(permiso):
-            return None
-        return {
-            "grupo": grupo,
-            "titulo": titulo,
-            "url": reverse(ruta) if ruta else None,
-            "descripcion": descripcion,
-            # Sin icono la tarjeta se dibuja igual: es un adorno con función, no un requisito.
-            "icono": self.ICONOS.get(ruta, ""),
-        }
 
 
 class AyudaView(LoginRequiredMixin, TemplateView):
