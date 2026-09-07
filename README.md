@@ -9,7 +9,8 @@
 [![Licencia: MIT](https://img.shields.io/badge/licencia-MIT-9B5DE5.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/typescript-5.x-1B2A4A.svg)](https://www.typescriptlang.org/)
 [![Three.js](https://img.shields.io/badge/three.js-r170+-1B2A4A.svg)](https://threejs.org/)
-[![Estado](https://img.shields.io/badge/estado-fase%201%20completa%20·%20planos%202D%20en%20marcha-9B5DE5.svg)](#estado-actual)
+[![Versión](https://img.shields.io/badge/versión-0.1.0%20sin%20publicar-1B2A4A.svg)](#dónde-vamos-la-meta-y-la-versión)
+[![Estado](https://img.shields.io/badge/estado-fase%2012%20·%20la%20interfaz-9B5DE5.svg)](#en-qué-punto-estamos-hoy)
 
 Aplicaciones hermanas: **[AeroControl](https://github.com/DovaCrii/AeroControl)** (flota y cumplimiento) · **[AeroPlanner](https://github.com/DovaCrii/AeroPlanner)** (planificación de misiones) · **[AeroLink](https://github.com/DovaCrii/AeroLink)** (telemetría y evidencia) — funcionan por separado, se comunican cuando conviene
 
@@ -65,11 +66,85 @@ La zona gris son las nubes de puntos, y se reparte por propósito: la nube como
 nube como **as-built contra modelo** (verificación de avance, coordinación) vive
 aquí.
 
-## Estado actual
+## Dónde vamos: la meta y la versión
 
-**Fase 1 completa, y la mitad de entrada de la Fase 7 en marcha** (2026-08-19). La
-aplicación abre modelos IFC reales y planos DXF del mismo proyecto, en el mismo
-espacio. Medido sobre los archivos de la organización, no sobre ejemplos:
+**Versión `0.1.0`, sin publicar.** Es el número que llevan los cuatro paquetes
+(`package.json`, `services/api/pyproject.toml`) y **no hay ninguna etiqueta de git**: no se ha
+liberado nada todavía, y decir otra cosa sería inventarlo. La primera versión con número propio
+sale cuando el piloto del CC 741 cierre su Etapa 1.
+
+**La meta de la `0.1.0`** es la frase de alcance de [`docs/MVP.md`](docs/MVP.md): abrir un IFC en el
+navegador, recorrerlo, consultar sus propiedades, compararlo con el levantamiento, y dejar la
+observación de coordinación en un formato que el resto de la industria entienda. Todo lo que no
+sirve a esa frase queda fuera — en particular **no** se está construyendo un modelador.
+
+| Hito                      | Qué significa que esté hecho                                               | Estado |
+| ------------------------- | -------------------------------------------------------------------------- | ------ |
+| **El motor**              | Visor, registro ISO 19650, coordinación, BCF, interferencias, planos, nube | ✅     |
+| **La interfaz** (Fase 12) | Que las capacidades tengan puerta y el producto no se lea como dos mitades | 🔶     |
+| **El piloto** (CC 741)    | Un ciclo de trabajo real hecho por personas de la obra                     | ⬜     |
+| **`0.1.0` publicada**     | Etapa 1 del piloto cerrada, con su etiqueta de git                         | ⬜     |
+
+### En qué punto estamos hoy
+
+Actualizado el **2026-09-07**. La fuente de verdad de lo pendiente sigue siendo
+[MASTER_PLAN.md](MASTER_PLAN.md); esto es el resumen de una línea.
+
+**Diez de las doce fases con trabajo están cerradas.** Queda la Fase 2 a falta de un modelo que el
+usuario todavía no tiene, la Fase 12 —la interfaz— en marcha, y la Fase 6 pospuesta a propósito.
+
+| Fase                       | Estado                                                                    |
+| -------------------------- | ------------------------------------------------------------------------- |
+| 0 · Cimientos              | ✅                                                                        |
+| 1 · Visor                  | ✅ salvo `F1.13`, tres nombres que decide el usuario                      |
+| 3 · Backend                | ✅                                                                        |
+| 4 · Coordinación           | ✅ salvo `F4.5`, condicionado a que el usuario mire un BCF exportado      |
+| 5 · Interferencias         | ✅                                                                        |
+| 7 · Planos y salida        | ✅                                                                        |
+| 8 · Registro documental    | ✅                                                                        |
+| 9 · Diseño                 | ✅ salvo `F9.6`, que se cierra al reescribir `docs/UX.md`                 |
+| 10 · Etiquetas y tablas    | ✅                                                                        |
+| 11 · El portal se ve plano | ✅                                                                        |
+| **2 · Nubes de puntos**    | 🔶 abre, se maneja, calza y entra al expediente. `F2.4` espera **el IFC** |
+| **12 · La interfaz**       | 🔶 **en marcha.** El piloto desbloqueado y el portal por el paso 8 de 9   |
+| 6 · Geo + BIM              | ⬜ pospuesta el 2026-09-02, para poner la coordinación delante            |
+
+**La Fase 12, en detalle**, porque es donde está el trabajo:
+
+| Bloque                    | Qué es                                                                                                                | Estado    |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------- | --------- |
+| 1 · Desbloquear el piloto | Repartir hallazgos, `preparar_piloto`, timer del resumen, respaldo, COPC en el expediente, `docs/PILOTO.md`, métricas | ✅        |
+| 2 · El portal             | Gate de `app.css`, catálogo, barra lateral, cabecera, «Mi trabajo», bandeja, observaciones, la puerta, docs           | 🔶 8 de 9 |
+| 3 · El visor              | `UX.md`, tokens, cota con su número, puerta de entrada, cinta, navegador, tema claro, costura                         | ⬜        |
+
+**El levantamiento del CC 741 se abre desde el expediente**, medido: 130.795.022 bytes de COPC
+servidos por tramos, 62 peticiones y **26,9 %** del archivo para el primer encuadre, con la ficha
+diciendo 97,4 × 143,5 × 17,0 m y UTM 19S declarado dentro.
+
+**Lo que falta para la `0.1.0`** son tres cosas y ninguna es de código:
+
+1. **El IFC de la pasarela**, que está en construcción — sin él, `F2.4` no se puede cerrar.
+2. **Que el usuario mire un BCF exportado** en Solibri o Navisworks (`F4.5`).
+3. **Correr el piloto** con las personas de la obra ([`docs/PILOTO.md`](docs/PILOTO.md)).
+
+### Cómo se comprueba que esto funciona
+
+```powershell
+pwsh services/api/scripts/setup.ps1   # dependencias, migraciones y roles
+pwsh services/api/scripts/verify.ps1  # el gate: check, pytest, ruff, bandit, pip-audit
+npm test                              # el visor y el dominio
+```
+
+**978 pruebas** en `services/api` y **486** en `packages/*` y `apps/web`. La regla que las ordena
+está en [AGENTS.md](AGENTS.md): cada capacidad se comprueba contra **un oráculo independiente** —
+Bonsai para el IFC, Solibri o BIMcollab para el BCF, CloudCompare y `pdal` para la nube, el CAD de
+la oficina para el DXF — y **cada número se mide, no se estima**.
+
+---
+
+## Lo que ya hace, medido
+
+**Sobre los archivos de la organización, no sobre ejemplos.** Fase 1, comprobada el 2026-08-19:
 
 | Lo que hace                                                                          | Comprobado con                                                |
 | ------------------------------------------------------------------------------------ | ------------------------------------------------------------- |
@@ -83,23 +158,19 @@ espacio. Medido sobre los archivos de la organización, no sobre ejemplos:
 | **Clic en un trazo del plano** → capa, plano de origen y largo del tramo             | `0-MUROS`, 0,71 m — el largo exacto del segmento              |
 | Avisa cuando el archivo trae elementos que no se cargaron                            | Delató 433 `IfcProxy` en un modelo real                       |
 
-**Y desde el 2026-08-26 hay una puerta y un registro** (`services/api`, Django 6): portal de
-ingreso con roles, control documental con el vocabulario de ISO 19650, y aviso por correo a
-quien le toca. Comprobado con el servidor corriendo: un `Mandante` ve el registro y **no** la
-administración —pedir esa URL a mano devuelve 403—, un ejecutable renombrado a `.pdf` se
-rechaza, y el nombre del archivo del cliente nunca llega al disco.
+**La puerta y el registro** (`services/api`, Django 6), desde el 2026-08-26: portal de ingreso con
+roles, control documental con el vocabulario de ISO 19650, y aviso por correo a quien le toca.
+Comprobado con el servidor corriendo: un `Mandante` ve el registro y **no** la administración
+—pedir esa URL a mano devuelve 403—, un ejecutable renombrado a `.pdf` se rechaza, y el nombre del
+archivo del cliente nunca llega al disco.
 
-```powershell
-pwsh services/api/scripts/setup.ps1   # dependencias, migraciones y roles
-pwsh services/api/scripts/verify.ps1  # el gate: check, pytest, ruff, bandit, pip-audit
-```
+**La coordinación y la nube**, después: interferencias contra los dos modelos reales de la
+organización (20 s, sin duplicar al repetir), BCF 2.1 que va y vuelve, DWG y DGN convertidos al
+entrar, y el levantamiento del CC 741 abierto por tramos desde su expediente.
 
-**182 pruebas** en `packages/bim-core` y **122** en `services/api` (92 % de cobertura); build,
-lint y formato en verde. La fidelidad del plano se comprueba sin necesitar un archivo de
-cliente: `/diag.html?modo=plano&dxf=/samples/fidelidad-2d.dxf`.
-[MASTER_PLAN.md](MASTER_PLAN.md) es la fuente de verdad de lo que sigue, y
-[docs/UX.md](docs/UX.md) explica cómo está repartida la pantalla y con qué regla
-crece.
+La fidelidad del plano se comprueba sin necesitar un archivo de cliente:
+`/diag.html?modo=plano&dxf=/samples/fidelidad-2d.dxf`. Y [docs/UX.md](docs/UX.md) explica cómo está
+repartida la pantalla y con qué regla crece.
 
 Se parte con una decisión ya tomada y documentada: **That Open Company**
 (MIT/MPL-2.0) para el visor, no xeokit — que es técnicamente superior pero AGPL, y
@@ -108,16 +179,21 @@ razonamiento está en [docs/REFERENCES.md](docs/REFERENCES.md).
 
 ## Cómo se lee este repositorio
 
-| Documento                                                          | Para qué                                                           |
-| ------------------------------------------------------------------ | ------------------------------------------------------------------ |
-| [MASTER_PLAN.md](MASTER_PLAN.md)                                   | **Fuente de verdad del trabajo pendiente**, por fases y con estado |
-| [HANDOFF.md](HANDOFF.md)                                           | Punto exacto de retome                                             |
-| [AGENTS.md](AGENTS.md)                                             | Convenciones obligatorias antes de tocar código                    |
-| [docs/MVP.md](docs/MVP.md)                                         | Qué entra en la primera versión y qué queda fuera, con el motivo   |
-| [docs/UX.md](docs/UX.md)                                           | Cómo se reparte la pantalla, por qué, y con qué regla crece        |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)                       | Paquetes, límites entre capas y flujo de datos                     |
-| [docs/REFERENCES.md](docs/REFERENCES.md)                           | Cada proyecto de referencia, su licencia y qué se toma de él       |
-| [docs/INTEGRATION_AEROPLANNER.md](docs/INTEGRATION_AEROPLANNER.md) | Contrato con AeroPlanner: qué cruza la frontera y qué no           |
+| Documento                                                          | Para qué                                                              |
+| ------------------------------------------------------------------ | --------------------------------------------------------------------- |
+| [MASTER_PLAN.md](MASTER_PLAN.md)                                   | **Fuente de verdad del trabajo pendiente**, por fases y con estado    |
+| [HANDOFF.md](HANDOFF.md)                                           | Punto exacto de retome                                                |
+| [AGENTS.md](AGENTS.md)                                             | Convenciones obligatorias antes de tocar código                       |
+| [docs/MVP.md](docs/MVP.md)                                         | Qué entra en la primera versión y qué queda fuera, con el motivo      |
+| [docs/UX.md](docs/UX.md)                                           | Cómo se reparte la pantalla, por qué, y con qué regla crece           |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)                       | Paquetes, límites entre capas y flujo de datos                        |
+| [docs/REFERENCES.md](docs/REFERENCES.md)                           | Cada proyecto de referencia, su licencia y qué se toma de él          |
+| [docs/INTEGRATION_AEROPLANNER.md](docs/INTEGRATION_AEROPLANNER.md) | Contrato con AeroPlanner: qué cruza la frontera y qué no              |
+| [docs/PILOTO.md](docs/PILOTO.md)                                   | El guion del piloto en el CC 741: etapas, roles, y qué no se prueba   |
+| [docs/DEPLOY.md](docs/DEPLOY.md)                                   | Poner esto en una VM, y las dos cosas que rompen el visor en silencio |
+| [docs/FORMATOS.md](docs/FORMATOS.md)                               | Qué formatos entran, qué se convierte y qué hay que pedir             |
+| [docs/NUBES_DE_PUNTOS.md](docs/NUBES_DE_PUNTOS.md)                 | Por qué COPC y no Potree ni 3D Tiles, medido                          |
+| [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md)                     | Los tokens, y qué prohíbe el sistema                                  |
 
 ## Aplicaciones hermanas
 
