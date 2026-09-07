@@ -4351,11 +4351,42 @@ mano es donde se pierden los hallazgos, o donde se transcriben mal, que es peor.
 3. **Cuando el modelo no trae emplazamiento, se dice por qué** en vez de no hacer nada. El motivo
    —que el modelo no sabe dónde está— es además lo que hay que pedirle a quien modela.
 
-> **Queda en 🔶 y la propia pantalla lo dice: señalar pares de puntos a mano no está.** El calce
-> automático solo sirve si el IFC trae su emplazamiento, y **la mayoría de los IFC de obra no lo
-> traen**, así que el camino corriente sigue sin existir. La aritmética está probada —recupera un
-> giro de 22,5° con residuo cero— y lo que falta es el gesto: pinchar en el modelo, pinchar en la
-> nube, ver el residuo mientras se señala, y poder quitar el último par.
+**Y el 2026-09-03, más tarde, el calce a mano** — que es el camino corriente, porque la mayoría de
+los IFC de obra no traen emplazamiento. El gesto es: se pulsa «Empezar a señalar», y el panel **dice
+qué se espera de cada clic** —«pincha el punto en el MODELO», «ahora el MISMO punto en la NUBE»—.
+Con tres pares aparece el residuo, **y aparece mientras se señala y no al final**: es lo que dice si
+los puntos que se están marcando son de verdad el mismo sitio.
+
+**Cuatro decisiones de ese gesto:**
+
+1. **El punto del modelo se toma con `pointOnModel`, que ya existía y viene con el ajuste a
+   vértices** del medidor. Escribí un segundo camino con un rayo propio antes de encontrarlo, y era
+   **peor además de duplicado**: sin ajuste, marcar la esquina de un muro es marcar un punto
+   cualquiera cerca de la esquina.
+2. **Se dice cuál es el par que peor calza.** `calzarConPuntos` ya lo devolvía y nadie lo enseñaba;
+   sin eso, un residuo alto obliga a borrarlos todos y empezar de cero.
+3. **Los pares se guardan en coordenadas del archivo**, no de la escena: es el sistema de los datos,
+   y guardarlos en el del renderizador los ataría a la convención de hoy.
+4. **Calzar se come el clic**, igual que alinear un plano: con seleccionar y medir escuchando, un
+   clic entraba en las tres cosas.
+
+> **Un defecto de React que solo se ve en pantalla, y así se vio.** `onCanvasClick` no llevaba
+> `clicDeCalce` en sus dependencias, así que se quedaba con la primera versión —la de cuando el
+> calce estaba apagado— y **el clic caía en seleccionar**. En la pantalla: el muro quedaba
+> seleccionado y el panel seguía pidiendo «pincha el punto en el MODELO» para siempre. Ninguna
+> prueba de Node lo habría encontrado.
+
+> **Lo que queda sin comprobar en la aplicación, y por eso `F12.2` sigue en 🔶.** Con clics
+> simulados, **la mitad del modelo funciona** —el paso avanza de «modelo» a «nube»— y **la mitad de
+> la nube no se pudo ejercer**: el panel se queda esperando el punto del levantamiento. La función
+> de señalar sobre la nube **sí está comprobada** en `/diag.html?modo=nube` —devuelve un punto a 0 mm
+> del rayo y su conversión al archivo es exacta—, así que lo que falta por verificar es el gesto
+> entero seguido, con la cámara donde una persona la pondría.
+>
+> Y hay una razón por la que cuesta aquí: **el panel del agente deja el lienzo a 0 de alto**, así que
+> hay que forzarle el tamaño a mano antes de poder pinchar nada. Es la misma trampa que ya está
+> escrita para las áreas de toque y para `diag.html`. **Esto lo cierra el usuario mirándolo**, y es
+> honesto decirlo en vez de dar por bueno lo que no se pudo ver.
 
 Lo que falta:
 

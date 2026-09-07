@@ -4357,6 +4357,12 @@ export class BimViewer {
       -((clientY - caja.top) / caja.height) * 2 + 1,
     );
 
+    // **Las matrices se refrescan antes de lanzar el rayo.** `Points.raycast` usa `matrixWorld`, y
+    // tras un calce el grupo lleva su matriz puesta a mano con `matrixAutoUpdate` apagado: sin
+    // esto, señalar sobre una nube ya calzada usaría la posición anterior — y devolvería un punto
+    // que está donde la nube **estaba**.
+    this.nube.objeto.updateMatrixWorld(true);
+
     const rayo = new THREE.Raycaster();
     rayo.setFromCamera(ndc, this.camera.three);
 

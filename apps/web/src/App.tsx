@@ -28,7 +28,13 @@ import {
   type SpatialNode,
   type StandardView,
 } from "@aerobim/viewer";
-import { parseSavedViews, type RegistryOrigin } from "@aerobim/bim-core";
+import {
+  calzarConPuntos,
+  escenaAArchivo,
+  parseSavedViews,
+  type ParDePuntos,
+  type RegistryOrigin,
+} from "@aerobim/bim-core";
 import { cabecerasDeEscritura, motivoDe403 } from "./csrf.js";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DrawingsPanel } from "./components/DrawingsPanel.js";
@@ -335,6 +341,20 @@ export function App() {
   const [medicion, setMedicion] = useState<MedicionDeDesviacion | null>(null);
   /** De qué elemento es la medición que se está enseñando. Ver el efecto que la borra. */
   const [medicionDe, setMedicionDe] = useState<string | null>(null);
+
+  /**
+   * El calce a mano: los pares señalados y en qué paso va.
+   *
+   * **Es el camino corriente**, no el excepcional: la mayoría de los IFC de obra no traen su
+   * emplazamiento, así que el automático no aplica y hay que señalar.
+   *
+   * `paso` dice qué se espera del siguiente clic. Sin eso, el gesto sería adivinar: se pincha en
+   * el modelo, se pincha en la nube, y nadie sabe cuál de los dos estaba pendiente.
+   */
+  const [pares, setPares] = useState<readonly ParDePuntos[]>([]);
+  const [pasoDelCalce, setPasoDelCalce] = useState<"apagado" | "modelo" | "nube">("apagado");
+  /** El punto del modelo ya señalado, esperando su pareja en la nube. */
+  const puntoDelModelo = useRef<[number, number, number] | null>(null);
   const [snapMode, setSnapMode] = useState<SnapMode>("vertex");
   const [distanceMode, setDistanceMode] = useState<DistanceMode>("points");
   const [hasSections, setHasSections] = useState(false);
@@ -668,6 +688,82 @@ export function App() {
     void refrescarNube();
   }, [refrescarNube]);
 
+  /**
+   * Recoge un clic del lienzo mientras se está calzando a mano.
+   *
+   * Devuelve `true` si el clic **era para el calce**, para que quien lo llame no lo deje pasar
+   * también a seleccionar o a medir: con las tres cosas escuchando, un clic entraba en todas.
+   */
+  const clicDeCalce = useCallback(
+    async (clientX: number, clientY: number): Promise<boolean> => {
+      const instance = viewer.current;
+      if (!instance || pasoDelCalce === "apagado") return false;
+
+      if (pasoDelCalce === "modelo") {
+        // **`pointOnModel` y no un rayo propio**: ya existe y **viene con el ajuste a vértices**
+        // del medidor puesto, que es exactamente lo que se quiere al marcar una esquina. Escribí un
+        // segundo camino sin ajuste antes de encontrarlo, y era peor además de duplicado.
+        const enElModelo = await instance.pointOnModel(clientX, clientY);
+        // Pinchar al vacío no avanza el paso ni deja el par a medias: se ignora y se sigue
+        // esperando el punto del modelo. Avanzar sin punto pediría el de la nube para nada.
+        if (enElModelo === null) return true;
+        // El modelo no lleva desplazamiento restado: su vuelta al sistema del archivo es solo el
+        // cambio de ejes.
+        puntoDelModelo.current = escenaAArchivo(enElModelo, [0, 0, 0]);
+        setPasoDelCalce("nube");
+        return true;
+      }
+
+      const enLaNube = instance.pickPointCloud(clientX, clientY);
+      if (enLaNube === null) return true;
+      const local = puntoDelModelo.current;
+      if (local === null) {
+        setPasoDelCalce("modelo");
+        return true;
+      }
+      // **El par se guarda en coordenadas del archivo**, que es el sistema de los datos. Guardarlo
+      // en coordenadas de escena lo ataría a la convención del renderizador de hoy.
+      setPares((actuales) => [...actuales, { local, nube: enLaNube.archivo }]);
+      puntoDelModelo.current = null;
+      setPasoDelCalce("modelo");
+      return true;
+    },
+    [pasoDelCalce],
+  );
+
+  /** Quita el último par señalado. Es el «deshacer» del gesto, y sin él hay que empezar de cero. */
+  const quitarUltimoPar = useCallback(() => {
+    setPares((actuales) => actuales.slice(0, -1));
+    puntoDelModelo.current = null;
+    setPasoDelCalce((actual) => (actual === "apagado" ? actual : "modelo"));
+  }, []);
+
+  /**
+   * El resultado del calce con los pares señalados, recalculado en cada par.
+   *
+   * **Se enseña mientras se señala y no al final.** El residuo es lo que dice si los puntos que se
+   * están marcando son los mismos en las dos cosas; verlo al terminar obliga a empezar de nuevo sin
+   * saber cuál estaba mal.
+   */
+  const calceDePares = useMemo(() => {
+    if (pares.length < 3) return null;
+    return calzarConPuntos(pares);
+  }, [pares]);
+
+  /** Aplica el calce señalado a mano. */
+  const aplicarCalceDePares = useCallback(() => {
+    const instance = viewer.current;
+    if (!instance || calceDePares === null) return;
+    instance.alignPointCloud(calceDePares.alineacion);
+    setCalce(
+      `Calzada con ${pares.length} pares · residuo medio ` +
+        `${(calceDePares.residuo.medio * 1000).toFixed(0)} mm, máximo ` +
+        `${(calceDePares.residuo.maximo * 1000).toFixed(0)} mm.`,
+    );
+    setPasoDelCalce("apagado");
+    void refrescarNube();
+  }, [calceDePares, pares.length, refrescarNube]);
+
   /** Mide lo construido contra lo modelado, en la zona del elemento seleccionado. */
   const medirDesviacionDelElemento = useCallback(
     async (toleranciaM: number) => {
@@ -939,6 +1035,10 @@ export function App() {
       clickInFlight.current = true;
 
       try {
+        // **Calzar la nube se come el clic**, igual que alinear un plano y por lo mismo: mientras
+        // se están señalando pares, seleccionar o medir sería justo lo que no se quiere.
+        if (await clicDeCalce(event.clientX, event.clientY)) return;
+
         // **Alinear se come el clic**, y antes que nada: mientras se están señalando los cuatro
         // puntos, seleccionar o medir sería justo lo que no se quiere.
         if (aligning !== null) {
@@ -1009,7 +1109,11 @@ export function App() {
         clickInFlight.current = false;
       }
     },
-    [measureMode, aligning],
+    // **`clicDeCalce` va en las dependencias, y faltaba.** Sin ella, `onCanvasClick` se quedaba
+    // con la primera versión —la de cuando el calce estaba apagado— y el clic **caía en
+    // seleccionar** en vez de tomar el punto. Se vio en pantalla: el muro quedaba seleccionado y
+    // el panel seguía pidiendo «pincha el punto en el MODELO» para siempre.
+    [measureMode, aligning, clicDeCalce],
   );
 
   /** Doble clic: cierra el contorno si se está midiendo un área, y si no encuadra el elemento. */
@@ -2211,6 +2315,22 @@ export function App() {
                   }
                   calce={calce}
                   medicion={medicion}
+                  pares={pares.length}
+                  paso={pasoDelCalce}
+                  residuo={
+                    calceDePares === null
+                      ? null
+                      : {
+                          medio: calceDePares.residuo.medio,
+                          maximo: calceDePares.residuo.maximo,
+                          peor: calceDePares.residuo.peor,
+                        }
+                  }
+                  giroIndeterminado={calceDePares?.giroIndeterminado ?? false}
+                  onSenalar={() => setPasoDelCalce("modelo")}
+                  onParar={() => setPasoDelCalce("apagado")}
+                  onQuitarPar={quitarUltimoPar}
+                  onAplicarPares={aplicarCalceDePares}
                   onCalzarAuto={() => void calzarAutomaticamente()}
                   onMedir={(t: number) => void medirDesviacionDelElemento(t)}
                   onObservar={() => setNotaAbierta(true)}

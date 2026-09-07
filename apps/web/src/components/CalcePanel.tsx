@@ -30,7 +30,15 @@ export function CalcePanel({
   elementoSeleccionado,
   calce,
   medicion,
+  pares,
+  paso,
+  residuo,
+  giroIndeterminado,
   onCalzarAuto,
+  onSenalar,
+  onParar,
+  onQuitarPar,
+  onAplicarPares,
   onMedir,
   onObservar,
 }: {
@@ -41,7 +49,19 @@ export function CalcePanel({
   /** Qué pasó en el último intento de calce: el traslado aplicado, o por qué no se pudo. */
   readonly calce: string | null;
   readonly medicion: MedicionDeDesviacion | null;
+  /** Cuántos pares se han señalado. */
+  readonly pares: number;
+  /** Qué se espera del siguiente clic. */
+  readonly paso: "apagado" | "modelo" | "nube";
+  /** El residuo de los pares señalados, o `null` con menos de tres. */
+  readonly residuo: { medio: number; maximo: number; peor: number | null } | null;
+  /** `true` si los puntos están casi en línea y el giro no queda determinado. */
+  readonly giroIndeterminado: boolean;
   readonly onCalzarAuto: () => void;
+  readonly onSenalar: () => void;
+  readonly onParar: () => void;
+  readonly onQuitarPar: () => void;
+  readonly onAplicarPares: () => void;
   readonly onMedir: (toleranciaM: number) => void;
   readonly onObservar: () => void;
 }) {
@@ -75,9 +95,90 @@ export function CalcePanel({
         )}
         {calce !== null && <p className="text-fg-2">{calce}</p>}
         <p className="text-fg-3">
-          Solo funciona si el IFC trae su emplazamiento. Si no lo trae, hay que señalar pares de
-          puntos — <span className="text-warn">todavía no está en pantalla</span>.
+          Solo funciona si el IFC trae su emplazamiento. Si no lo trae, se señalan pares de puntos.
         </p>
+
+        <hr className="border-borde" />
+
+        {/* --- El calce a mano, que es el camino corriente --- */}
+        <p className="font-semibold text-fg-2">Señalar pares de puntos</p>
+
+        {paso === "apagado" ? (
+          <button
+            type="button"
+            onClick={onSenalar}
+            disabled={!hayModelo}
+            className="min-h-9 rounded-sm bg-surface-2 px-3 text-xs text-fg hover:bg-surface-3 disabled:text-apagado-fg"
+          >
+            {pares === 0 ? "Empezar a señalar" : `Seguir señalando (${pares} pares)`}
+          </button>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {/* **Se dice qué se espera del siguiente clic.** Sin esto el gesto es adivinar: se
+                pincha en el modelo, se pincha en la nube, y nadie sabe cuál estaba pendiente. */}
+            <p className="rounded-sm bg-action/25 px-2 py-1.5 text-fg">
+              {paso === "modelo"
+                ? `Pincha el punto en el MODELO${pares > 0 ? ` · par ${pares + 1}` : ""}`
+                : "Ahora el MISMO punto en la NUBE"}
+            </p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={onQuitarPar}
+                disabled={pares === 0}
+                className="min-h-8 flex-1 rounded-sm bg-surface-2 text-xs text-fg-2 hover:bg-surface-3 disabled:text-apagado-fg"
+              >
+                Quitar el último
+              </button>
+              <button
+                type="button"
+                onClick={onParar}
+                className="min-h-8 flex-1 rounded-sm bg-surface-2 text-xs text-fg-2 hover:bg-surface-3"
+              >
+                Parar
+              </button>
+            </div>
+          </div>
+        )}
+
+        {pares > 0 && pares < 3 && (
+          // **Con menos de tres no se puede calcular nada**, y decirlo es mejor que dejar el botón
+          // apagado sin motivo: dos puntos dan infinitas orientaciones posibles.
+          <p className="text-fg-3">
+            {pares} {pares === 1 ? "par" : "pares"} · hacen falta 3 para poder calzar.
+          </p>
+        )}
+
+        {residuo !== null && (
+          <div className="flex flex-col gap-2">
+            <p className="text-fg-2">
+              {pares} pares · residuo medio{" "}
+              <strong className="text-fg">{(residuo.medio * 1000).toFixed(0)} mm</strong>, máximo{" "}
+              <strong className="text-fg">{(residuo.maximo * 1000).toFixed(0)} mm</strong>
+            </p>
+            {residuo.peor !== null && (
+              // **Cuál es el par que peor calza**, que es lo que hay que quitar. Sin esto, un
+              // residuo alto obliga a borrarlos todos y empezar de cero.
+              <p className="text-warn">
+                El par {residuo.peor + 1} es el que más se desvía:{" "}
+                {(residuo.maximo * 1000).toFixed(0)} mm.
+              </p>
+            )}
+            {giroIndeterminado && (
+              <p className="text-warn">
+                Los puntos están casi en línea, así que el giro no queda determinado. Señala uno
+                fuera de esa línea.
+              </p>
+            )}
+            <button
+              type="button"
+              onClick={onAplicarPares}
+              className="min-h-9 rounded-sm bg-action px-3 text-xs font-medium text-fg hover:bg-action-hover"
+            >
+              Calzar con estos pares
+            </button>
+          </div>
+        )}
       </div>
 
       <hr className="border-borde" />
