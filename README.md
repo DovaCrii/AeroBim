@@ -102,20 +102,20 @@ usuario todavía no tiene, la Fase 12 —la interfaz— en marcha, y la Fase 6 p
 | 5 · Interferencias         | ✅                                                                        |
 | 7 · Planos y salida        | ✅                                                                        |
 | 8 · Registro documental    | ✅                                                                        |
-| 9 · Diseño                 | ✅ salvo `F9.6`, que se cierra al reescribir `docs/UX.md`                 |
+| 9 · Diseño                 | ✅ salvo `F9.6`, **ya decidida**; se cierra al reescribir `docs/UX.md`    |
 | 10 · Etiquetas y tablas    | ✅                                                                        |
 | 11 · El portal se ve plano | ✅                                                                        |
 | **2 · Nubes de puntos**    | 🔶 abre, se maneja, calza y entra al expediente. `F2.4` espera **el IFC** |
-| **12 · La interfaz**       | 🔶 **en marcha.** El piloto desbloqueado y el portal por el paso 8 de 9   |
+| **12 · La interfaz**       | 🔶 **en marcha.** El piloto y el portal cerrados; queda el visor          |
 | 6 · Geo + BIM              | ⬜ pospuesta el 2026-09-02, para poner la coordinación delante            |
 
 **La Fase 12, en detalle**, porque es donde está el trabajo:
 
-| Bloque                    | Qué es                                                                                                                | Estado    |
-| ------------------------- | --------------------------------------------------------------------------------------------------------------------- | --------- |
-| 1 · Desbloquear el piloto | Repartir hallazgos, `preparar_piloto`, timer del resumen, respaldo, COPC en el expediente, `docs/PILOTO.md`, métricas | ✅        |
-| 2 · El portal             | Gate de `app.css`, catálogo, barra lateral, cabecera, «Mi trabajo», bandeja, observaciones, la puerta, docs           | 🔶 8 de 9 |
-| 3 · El visor              | `UX.md`, tokens, cota con su número, puerta de entrada, cinta, navegador, tema claro, costura                         | ⬜        |
+| Bloque                    | Qué es                                                                                                                | Estado |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------- | ------ |
+| 1 · Desbloquear el piloto | Repartir hallazgos, `preparar_piloto`, timer del resumen, respaldo, COPC en el expediente, `docs/PILOTO.md`, métricas | ✅     |
+| 2 · El portal             | Gate de `app.css`, catálogo, barra lateral, cabecera, «Mi trabajo», bandeja, observaciones, la puerta, docs           | ✅     |
+| 3 · El visor              | `UX.md`, tokens, cota con su número, puerta de entrada, cinta, navegador, tema claro, costura                         | ⬜     |
 
 **El levantamiento del CC 741 se abre desde el expediente**, medido: 130.795.022 bytes de COPC
 servidos por tramos, 62 peticiones y **26,9 %** del archivo para el primer encuadre, con la ficha
