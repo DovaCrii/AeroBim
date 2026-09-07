@@ -83,6 +83,11 @@ urlpatterns = [
         name="comentar-observacion",
     ),
     path(
+        "observaciones/<uuid:pk>/repartir/",
+        views.RepartirObservacionView.as_view(),
+        name="repartir-observacion",
+    ),
+    path(
         "observaciones/<uuid:pk>/cerrar/",
         views.CerrarObservacionView.as_view(),
         name="cerrar-observacion",

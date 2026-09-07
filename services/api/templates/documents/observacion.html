@@ -172,6 +172,25 @@
             {% endif %}
           </dd>
         </dl>
+
+        {% comment %}
+          **El reparto, junto a lo que reparte** — `F12.10`. Va aquí y no en una pantalla aparte
+          porque la pregunta «¿de quién es esto?» y la acción «que sea de esta persona» son el mismo
+          gesto: leer arriba y cambiar debajo.
+
+          Sin este formulario, dueño y fecha solo se podían fijar al crear la observación, y una
+          nota abierta desde el visor quedaba a nombre de su autor para siempre — o sea fuera de la
+          bandeja de quien tiene que arreglarla.
+        {% endcomment %}
+        {% if puede_cerrar %}
+          <form class="reparto" method="post"
+                action="{% url 'documents:repartir-observacion' observacion.pk %}">
+            {% csrf_token %}
+            <h3>{% translate "Hand it over" %}</h3>
+            {{ form_reparto.as_p }}
+            <button type="submit" class="boton secundario">{% translate "Save" %}</button>
+          </form>
+        {% endif %}
       </section>
 
       {% if etiquetas or hay_etiquetas %}

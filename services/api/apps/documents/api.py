@@ -624,4 +624,3 @@ class RevisionContenidoAPI(APIView):
         if convertido:
             respuesta["X-Aerobim-Convertido"] = "dxf"
         return respuesta
-

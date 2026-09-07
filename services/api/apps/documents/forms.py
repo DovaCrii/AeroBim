@@ -168,6 +168,48 @@ class ObservacionForm(forms.ModelForm):
         return datos
 
 
+class RepartoForm(forms.ModelForm):
+    """Repartir un hallazgo ya abierto: **quien lo tiene, para cuando y cuanto corre**. `F12.10`.
+
+    ## El hueco que cierra
+
+    Hasta hoy dueño, fecha y prioridad **solo se podian fijar al crear** la observacion, en
+    `entregables/<pk>/observar/`. Una nota abierta desde el visor se guarda con el autor como
+    responsable —y su propio texto lo dice: «Repartela desde la pantalla de observaciones cuando
+    toque»— pero esa pantalla era **solo una lista**: no habia ningun `editar/`.
+
+    O sea que el reparto, que es lo que convierte un hallazgo en una tarea de alguien, no existia.
+    Sin dueño y sin fecha un hallazgo no aparece en la bandeja de nadie (`pendientes_por_tramo`
+    filtra por `responsable` y `vence`), no entra en el resumen por correo, y el ciclo de
+    coordinacion se queda en «alguien deberia mirar esto».
+
+    ## Por que estos tres campos y no mas
+
+    El titulo y la descripcion **no se editan**: son lo que se vio, y reescribirlos despues cambia
+    el hallazgo en vez de repartirlo — y el hilo de comentarios, que es donde vive la conversacion,
+    quedaria hablando de otra cosa. El estado tiene sus propias puertas (`cerrar`, `descartar`), que
+    piden motivo. Las etiquetas ya tienen su formulario.
+    """
+
+    class Meta:
+        model = Observacion
+        fields = ("responsable", "vence", "prioridad")
+        widgets = {"vence": forms.DateInput(attrs={"type": "date"})}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # **La fecha si es opcional; el dueño no.**
+        #
+        # `Observacion.responsable` es `NOT NULL` (`models.py:445`), asi que un hallazgo **siempre**
+        # tiene dueño: no existe «sin repartir». Se escribio este formulario dandolo por opcional y
+        # el resultado fue un `IntegrityError` —un 500— al intentar vaciarlo; lo cazo la prueba.
+        # Repartir es cambiar de dueño, nunca quitarlo.
+        #
+        # `vence` si admite nulo (`models.py:451`), y la ficha ya sabe decir «sin fecha · abierta
+        # hace N»: un hallazgo puede estar repartido y todavia sin plazo.
+        self.fields["vence"].required = False
+
+
 class CierreForm(forms.Form):
     """Cerrar una observacion **diciendo como**. Sin esto, «cerrada» no dice nada."""
 

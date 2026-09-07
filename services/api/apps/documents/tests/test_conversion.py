@@ -146,9 +146,7 @@ class TestConUnConversorDeMentira:
         assert recursivo == "0"
         assert auditar == "1"
 
-    def test_si_no_escribe_ningun_dxf_se_dice_aunque_el_programa_diga_que_todo_bien(
-        self, tmp_path
-    ):
+    def test_si_no_escribe_ningun_dxf_se_dice_aunque_el_programa_diga_que_todo_bien(self, tmp_path):
         # **El conversor devuelve 0 aunque no convierta nada**, así que creerse el código de salida
         # daría por buena una conversión que no ocurrió — y el visor recibiría un archivo vacío.
         # Este falso termina bien y no escribe nada.
@@ -278,6 +276,8 @@ def _envoltorio(tmp_path: Path, script: Path) -> Path:
         envoltorio.write_text(f'@"{sys.executable}" "{script}" %*\n', encoding="utf8")
     else:
         envoltorio = tmp_path / "conversor.sh"
-        envoltorio.write_text(f'#!/bin/sh\nexec "{sys.executable}" "{script}" "$@"\n', encoding="utf8")
+        envoltorio.write_text(
+            f'#!/bin/sh\nexec "{sys.executable}" "{script}" "$@"\n', encoding="utf8"
+        )
         envoltorio.chmod(0o755)
     return envoltorio

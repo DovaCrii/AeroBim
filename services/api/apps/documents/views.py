@@ -39,6 +39,7 @@ from apps.documents.forms import (
     EtiquetasForm,
     IdoneidadForm,
     ObservacionForm,
+    RepartoForm,
     RequisitoIdsForm,
     RevisionForm,
     TransmittalForm,
@@ -1053,6 +1054,10 @@ class ObservacionView(
         # **El botón solo si se puede ejecutar.**
         contexto["puede_comentar"] = self.request.user.has_perm("documents.add_comentario")
         contexto["puede_cerrar"] = self.request.user.has_perm("documents.change_observacion")
+        # **El reparto: quien lo tiene, para cuando y cuanto corre** — `F12.10`. Sale relleno con
+        # lo que ya lleva: en blanco, guardar sin mirar borraria el dueño y la fecha puestos.
+        # Mismo permiso que cerrar (`change_observacion`), asi que se reusa la bandera.
+        contexto["form_reparto"] = RepartoForm(instance=self.object)
         # **Las etiquetas, que es lo transversal** — `F10.1`. El formulario sale marcado con las
         # que ya lleva: un formulario en blanco haría que guardar sin mirar borrase las puestas.
         contexto["etiquetas"] = list(self.object.etiquetas.all())
@@ -1113,6 +1118,61 @@ class EtiquetarObservacionView(ModelPermissionRequiredMixin, View):
         observacion.etiquetas.set(form.cleaned_data["etiquetas"])
         set_audit_context(request, observacion, action="etiquetar_observacion")
         messages.success(request, _("Tags saved."))
+        return redirect("documents:observacion", pk=observacion.pk)
+
+
+class RepartirObservacionView(ModelPermissionRequiredMixin, View):
+    """Cambiar dueño, fecha y prioridad de un hallazgo ya abierto: `F12.10`.
+
+    **Es lo que convierte una nota en una tarea de alguien.** Una nota del visor nace con el autor
+    como responsable y sin fecha; hasta hoy no habia forma de repartirla, asi que no aparecia en la
+    bandeja de nadie ni en el resumen por correo.
+
+    Se registra en la auditoria con **quien la tenia antes**: repartir es una decision de
+    coordinacion, y dentro de un mes «¿por que es mia?» se contesta mirando la traza.
+    """
+
+    model = Observacion
+    permission_action = "change"
+
+    def post(self, request, *args, **kwargs):
+        observacion = get_object_or_404(Observacion, pk=kwargs["pk"])
+        # Quien la tenia, leido **antes** de que el formulario la modifique: `form.save()` escribe
+        # sobre la misma instancia, asi que despues ya no se puede saber de donde venia.
+        antes = observacion.responsable
+
+        form = RepartoForm(request.POST, instance=observacion)
+        if not form.is_valid():
+            # El motivo se le enseña a quien reparte: es lo que le dice que arreglar. Se junta en
+            # una linea porque el mensaje de Django no lleva formulario de vuelta.
+            messages.error(request, "; ".join(form.errors.as_text().splitlines()).strip("; *"))
+            return redirect("documents:observacion", pk=observacion.pk)
+
+        form.save()
+        set_audit_context(
+            request,
+            observacion,
+            action="repartir_observacion",
+            metadata={
+                "antes": antes.get_username() if antes else "",
+                "ahora": (
+                    observacion.responsable.get_username() if observacion.responsable else ""
+                ),
+                "vence": observacion.vence.isoformat() if observacion.vence else "",
+                "prioridad": observacion.prioridad,
+            },
+        )
+
+        # **El aviso dice a quien le toca, y no solo que se guardo.** Repartir sin avisar deja al
+        # nuevo dueño sin saberlo hasta el resumen del dia siguiente.
+        if observacion.responsable is not None and observacion.responsable != antes:
+            avisar_asignacion(observacion)
+            messages.success(
+                request,
+                _("Assigned to %(quien)s.") % {"quien": observacion.responsable.get_username()},
+            )
+        else:
+            messages.success(request, _("Observation updated."))
         return redirect("documents:observacion", pk=observacion.pk)
 
 
@@ -1684,4 +1744,3 @@ class NuevoEntregableView(ModelPermissionRequiredMixin, View):
         set_audit_context(request, entregable, action="crear_entregable")
         messages.success(request, _("Deliverable created."))
         return redirect("documents:expediente", pk=entregable.pk)
-

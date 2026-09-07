@@ -8,8 +8,8 @@ normaliza al entrar. Es el mismo patrón que ya tienen las nubes de puntos, y es
 simple el visor: un lector, no tres.
 
 **No se puede hacer en el navegador.** DWG y DGN v8 son formatos cerrados y el único lector completo
-es el de la Open Design Alliance. La alternativa abierta para DWG —LibreDWG— es **GPL-3 y contagiaría
-la licencia del producto entero**.
+es el de la Open Design Alliance. La alternativa abierta para DWG —LibreDWG— es **GPL-3 y
+contagiaría la licencia del producto entero**.
 
 ## La herramienta, y que hay que instalarla a mano
 
