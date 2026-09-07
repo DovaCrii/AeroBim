@@ -109,8 +109,16 @@
       </ol>
 
       {% if puede_comentar %}
-        {# El campo a lo ancho y con su rótulo encima: ver el comentario de arriba. #}
-        <form class="bloque-campo" method="post"
+        {% comment %}
+          El campo a lo ancho y con su rótulo encima: ver el comentario de arriba.
+
+          **El `id="responder"` es el destino de la acción de la lista** (`observaciones.html`): el
+          enlace abre el hallazgo con el formulario de respuesta a la vista, en vez de dejar a
+          alguien en la cabecera buscando dónde se contesta. Si se quita, el enlace sigue
+          funcionando y aterriza arriba — o sea que se rompe sin dar error, y por eso hay una prueba
+          que comprueba que el ancla existe.
+        {% endcomment %}
+        <form id="responder" class="bloque-campo" method="post"
               action="{% url 'documents:comentar-observacion' observacion.pk %}">
           {% csrf_token %}
           <label for="{{ form_comentario.texto.id_for_label }}">

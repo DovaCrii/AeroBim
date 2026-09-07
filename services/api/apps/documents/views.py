@@ -992,6 +992,22 @@ class ObservacionesView(
             resto.pop(fuera, None)
         cola = f"&{resto.urlencode()}" if resto else ""
 
+        # **Cuál de los tres filtros rápidos está puesto.** Se decide aquí y no en la plantilla:
+        # allí habría que preguntar en cada uno por la ausencia de los otros dos, y esa condición se
+        # queda mal el día que haya un cuarto.
+        if self.request.GET.get("mias"):
+            contexto["filtro_rapido"] = "mias"
+        elif self.request.GET.get("abiertas"):
+            contexto["filtro_rapido"] = "abiertas"
+        else:
+            contexto["filtro_rapido"] = "todas"
+
+        # **El permiso, una vez para la lista entera y no una por fila.** `has_perm` consulta la
+        # base la primera vez y luego cachea, así que treinta llamadas no son treinta consultas —
+        # pero preguntarlo en la plantilla deja la decisión de qué se ofrece repartida en el HTML,
+        # que es donde nadie la busca al revisar permisos.
+        contexto["puede_responder"] = self.request.user.has_perm("documents.add_comentario")
+
         etiquetas = {
             "prioridad": _("Priority"),
             "hallazgo": _("Finding"),

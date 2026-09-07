@@ -1,17 +1,46 @@
 {% extends "base.html" %}
-{% load i18n disciplinas tiempo %}
+{% load i18n disciplinas personas tiempo %}
 
 {% block titulo %}{% translate "Observations" %} · AeroBim{% endblock %}
 
 {% block titulo_pagina %}<h1>{% translate "Observations" %}</h1>{% endblock %}
 
 {% block subtitulo %}
-<p class="subtitulo">
-  {% blocktranslate %}Findings and errors, each with an owner and a due date.{% endblocktranslate %}
-  <a href="?mias=1">{% translate "Only mine" %}</a> ·
-  <a href="?abiertas=1">{% translate "Only open" %}</a> ·
-  <a href="{% url 'documents:observaciones' %}">{% translate "All" %}</a>
-</p>
+  <p class="subtitulo">
+    {% blocktranslate %}Findings and errors, each with an owner and a due date.{% endblocktranslate %}
+  </p>
+{% endblock %}
+
+{% comment %}
+  **Los tres filtros rápidos suben del subtítulo a las acciones de la cabecera**, y como control
+  segmentado en vez de tres enlaces separados por puntos.
+
+  Iban dentro de la frase —«…con responsable y fecha de vencimiento. Solo las mías · Solo abiertas ·
+  Todas»— y ahí no se leen como controles: se leen como el final de la frase. Son **una elección
+  entre tres**, y la forma tiene que decir cuál está puesta.
+
+  Cuál está activo lo calcula la vista y no esta plantilla: aquí habría que preguntar en cada uno
+  por la ausencia de los otros dos, y ese es el tipo de condición que se queda mal el día que haya
+  un cuarto.
+{% endcomment %}
+{% block acciones %}
+  <nav class="segmentado" aria-label="{% translate 'Quick filters' %}">
+    <a href="{% url 'documents:observaciones' %}"
+       class="segmento{% if filtro_rapido == 'todas' %} segmento-activo{% endif %}"
+       {% if filtro_rapido == "todas" %}aria-current="page"{% endif %}>
+      {% translate "All" %}
+    </a>
+    <a href="?mias=1"
+       class="segmento{% if filtro_rapido == 'mias' %} segmento-activo{% endif %}"
+       {% if filtro_rapido == "mias" %}aria-current="page"{% endif %}>
+      {% translate "Only mine" %}
+    </a>
+    <a href="?abiertas=1"
+       class="segmento{% if filtro_rapido == 'abiertas' %} segmento-activo{% endif %}"
+       {% if filtro_rapido == "abiertas" %}aria-current="page"{% endif %}>
+      {% translate "Only open" %}
+    </a>
+  </nav>
 {% endblock %}
 
 {% block contenido %}
@@ -127,6 +156,23 @@
           comentario de dos se imprime en la pantalla. Es la segunda vez que pasa en este repositorio
           y la lección ya estaba escrita en `login.html`.
         {% endcomment %}
+        {% comment %}
+          **Agrupada por estado cuando se ordena por estado.** `{% templatetag openblock %}
+          ifchanged {% templatetag closeblock %}` no cuesta una consulta: la lista ya viene ordenada
+          por esa columna, así que basta con mirar cuándo cambia el valor.
+
+          Sin esto, ordenar por estado deja treinta filas seguidas con la misma píldora repetida —la
+          columna está ordenada y no se ve dónde acaba un grupo—. Y solo cuando se ordena por
+          estado: en cualquier otro orden, los estados se alternan y un rótulo por fila sería ruido.
+        {% endcomment %}
+        {% if orden_columna == "estado" %}
+          {% ifchanged observacion.estado %}
+            <tr class="fila-grupo">
+              {# Seis columnas, las de `etiquetas` en la vista. #}
+              <th colspan="6" scope="colgroup">{{ observacion.get_estado_display }}</th>
+            </tr>
+          {% endifchanged %}
+        {% endif %}
         <tr class="fila-hallazgo {% if observacion.estado == 'cerrada' or observacion.estado == 'descartada' %}fila-resuelta{% endif %}">
           <td style="width: 96px">
             <span class="pildora pildora-prioridad {{ observacion.prioridad }}">
@@ -143,6 +189,27 @@
                 {% for una in observacion.etiquetas.all %}{% marca_etiqueta una %}{% endfor %}
               </span>
             {% endif %}
+            {% comment %}
+              **La acción va visible, y nunca en `opacity: 0`.** Es la regla del sistema
+              (`DESIGN_SYSTEM.md`) y aquí es donde se decide no copiar a Asana: allí las acciones
+              aparecen al pasar el ratón, y eso funciona con una lista por pantalla en un monitor
+              ancho — no con un rol que no sabe que existen y, en un táctil, con nada que pase el
+              ratón.
+
+              **Una sola por fila, y en tono apagado.** Lo que se hace todos los días con un
+              hallazgo abierto es contestarlo; cerrar tiene su propia puerta en la ficha, que pide
+              resolución. Dos acciones por fila en una lista de treinta pesan más que la lista.
+
+              Y lleva a **un ancla de la ficha**, no a un POST: el enlace abre el hallazgo con el
+              formulario de respuesta a la vista. Un botón que escribe desde una lista se pulsa sin
+              haber leído el hilo.
+            {% endcomment %}
+            {% if puede_responder and observacion.estado == "abierta" %}
+              <a class="accion-fila"
+                 href="{% url 'documents:observacion' observacion.pk %}#responder">
+                {% translate "Answer" %}
+              </a>
+            {% endif %}
           </td>
           <td style="width: 190px">
             {% if observacion.proyecto %}
@@ -156,7 +223,13 @@
               <span class="tenue">{{ observacion.ancla }}</span>
             {% endif %}
           </td>
-          <td style="width: 150px">{{ observacion.responsable }}</td>
+          {% comment %}
+            **El dueño con su inicial de color.** En treinta filas, el nombre repetido en gris es
+            una columna de ruido; con la inicial se ve de un vistazo que veinte son de la misma
+            persona. El nombre sigue escrito al lado: una inicial no distingue a dos personas que
+            empiezan igual, y el color no lo lee quien no distingue colores.
+          {% endcomment %}
+          <td style="width: 170px">{% persona observacion.responsable.get_username %}</td>
           <td style="width: 150px">
             {% if observacion.vence %}
               {% if observacion.vencida %}

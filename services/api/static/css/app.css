@@ -661,6 +661,92 @@ main {
   color: var(--ab-text-muted);
 }
 
+/* --- El control segmentado, y la acción visible de una fila ----------------------- */
+
+/*
+ * Los filtros rápidos de observaciones, como **una elección entre tres** y no tres enlaces.
+ *
+ * Iban dentro del subtítulo, separados por puntos: «…con responsable y fecha. Solo las mías · Solo
+ * abiertas · Todas». Ahí no se leen como controles — se leen como el final de la frase.
+ *
+ * Comparte la forma con `.vistas` de la bandeja porque **es el mismo gesto**, y no comparte la
+ * clase porque uno vive en la cabecera y el otro en el contenido: unirlos obligaría a que los dos
+ * tuvieran el mismo margen, y no lo tienen.
+ */
+.segmentado {
+  display: inline-flex;
+  border: 1px solid var(--ab-border-control);
+  border-radius: var(--ab-radio-sm);
+  overflow: hidden;
+}
+
+.segmento {
+  display: grid;
+  place-items: center;
+  min-height: var(--ab-touch-min);
+  padding: 0 14px;
+  color: var(--ab-text-secondary);
+  text-decoration: none;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.segmento + .segmento {
+  border-left: 1px solid var(--ab-border-control);
+}
+
+.segmento:hover {
+  background: var(--ab-surface-alt);
+  color: var(--ab-text);
+}
+
+.segmento-activo,
+.segmento-activo:hover {
+  background: var(--ab-primary);
+  color: #fff;
+  font-weight: 600;
+}
+
+/*
+ * La acción de una fila. **Visible siempre, nunca `opacity: 0`.**
+ *
+ * Es la regla del sistema y aquí es donde se decide no copiar a Asana: allí las acciones aparecen
+ * al pasar el ratón, y eso funciona con una lista por pantalla en un monitor ancho — no con un rol
+ * que no sabe que existen, y no en un táctil, donde nada pasa el ratón.
+ *
+ * La calma se consigue con el tono: apagada en reposo, del color de acción al pasar por encima. Lo
+ * que **no** hace es aparecer ni cambiar de tamaño, que es lo que obliga a apuntar dos veces.
+ */
+.accion-fila {
+  display: inline-block;
+  margin-left: 8px;
+  color: var(--ab-text-muted);
+  text-decoration: none;
+  font-size: 0.85rem;
+}
+
+.accion-fila:hover {
+  color: var(--ab-primary);
+  text-decoration: underline;
+}
+
+/*
+ * El rótulo de grupo dentro de la tabla, cuando se ordena por estado.
+ *
+ * Sin él, ordenar por estado deja treinta filas seguidas con la misma píldora repetida: la columna
+ * está ordenada y no se ve dónde acaba un grupo.
+ */
+.fila-grupo > th {
+  padding: 14px 10px 6px;
+  background: var(--ab-surface-alt);
+  text-align: left;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ab-text-secondary);
+}
+
 /* --- Lista o tablero: el conmutador y las columnas -------------------------------- */
 
 /*
