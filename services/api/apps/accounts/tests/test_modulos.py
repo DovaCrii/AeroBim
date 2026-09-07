@@ -55,7 +55,10 @@ ESPERADO = [
         "documents:requisitos-ids",
         "documents.view_requisitoids",
     ),
-    ("Coordination", "My plate", "documents:bandeja", "documents.view_observacion"),
+    # «My plate» hasta el 2026-09-07: cambia **a propósito** con `F12.7`, porque la portada pasó a
+    # llamarse «Mi trabajo» y dos entradas «mías» son dos sitios donde buscar lo mismo. Esta lista
+    # se actualiza cuando el cambio es deliberado; el resto del tiempo es la que avisa.
+    ("Coordination", "Everything pending", "documents:bandeja", "documents.view_observacion"),
     ("Coordination", "Observations", "documents:observaciones", "documents.view_observacion"),
     ("Coordination", "Activities", "documents:actividades", "documents.view_actividad"),
     ("Administration", "Users and roles", "accounts:usuarios-roles", "auth.view_user"),

@@ -1388,25 +1388,56 @@ class AcusarTransmittalView(ModelPermissionRequiredMixin, View):
 
 
 class MiBandejaView(ModelViewPermissionRequiredMixin, TemplateView):
-    """Lo que le toca a quien está mirando. **Es la pantalla que se abre cada mañana.**"""
+    """Lo que le toca a quien está mirando. **Es la pantalla que se abre cada mañana.**
+
+    Se llama **«Todo lo pendiente»** desde el 2026-09-07, porque la portada pasó a llamarse «Mi
+    trabajo» (`F12.7`): dos pantallas «mías» con nombres parecidos son dos sitios donde buscar lo
+    mismo. La portada trae lo que arde —vencido y esta semana— y esta trae el mes entero.
+
+    Y tiene **dos vistas de los mismos datos**: lista por tramo de fecha, y tablero por punto del
+    trabajo. No son dos consultas: las dos salen de `pendientes_por_tramo`, y hay una prueba que
+    exige que el conjunto de tareas sea idéntico — dos vistas que discrepan sobre qué está pendiente
+    valen menos que una.
+    """
 
     model = Observacion
     template_name = "documents/bandeja.html"
 
+    #: Las vistas que existen. **Un valor que no esté aquí cae a la lista en silencio**, que es la
+    #: misma regla que `orden.criterio`: una URL compartida por correo con un parámetro viejo tiene
+    #: que seguir abriendo la pantalla, no dar un error.
+    VISTAS = ("lista", "tablero")
+
     def get_context_data(self, **kwargs):
         from apps.documents.notify import pendientes_por_tramo
+        from apps.documents.tareas import COLUMNAS, como_tareas
 
         contexto = super().get_context_data(**kwargs)
         tramos = pendientes_por_tramo(self.request.user)
+
+        pedida = self.request.GET.get("vista", "")
+        contexto["vista"] = pedida if pedida in self.VISTAS else "lista"
+        contexto["vistas"] = self.VISTAS
+
         # La etiqueta se arma acá y no en la plantilla: un diccionario recorrido en una
         # plantilla de Django no puede traducir su clave, y una lista de `if` con los
         # cuatro nombres es la lista que se separa del código en el primer cambio.
         contexto["tramos_etiquetados"] = [
-            (tramos["vencido"], _("Overdue")),
-            (tramos["en_7"], _("Next 7 days")),
-            (tramos["en_15"], _("Next 15 days")),
-            (tramos["en_30"], _("Next 30 days")),
+            (_("Overdue"), como_tareas(tramos["vencido"]), True),
+            (_("Next 7 days"), como_tareas(tramos["en_7"]), False),
+            (_("Next 15 days"), como_tareas(tramos["en_15"]), False),
+            (_("Next 30 days"), como_tareas(tramos["en_30"]), False),
         ]
+
+        # **El tablero se arma de la misma lista de tareas, no de otra consulta.** Es lo que hace
+        # imposible que las dos vistas digan cosas distintas: si el reparto por columnas se hiciera
+        # con su propio `filter`, un estado nuevo caería en una vista y no en la otra.
+        todas = [tarea for _e, tareas, _u in contexto["tramos_etiquetados"] for tarea in tareas]
+        contexto["columnas"] = [
+            (clave, etiqueta, [t for t in todas if t.columna == clave])
+            for clave, etiqueta in COLUMNAS
+        ]
+
         contexto["entregables"] = (
             Entregable.objects.filter(responsable=self.request.user, is_active=True)
             .select_related("proyecto", "disciplina")

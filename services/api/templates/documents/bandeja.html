@@ -1,72 +1,128 @@
 {% extends "base.html" %}
 {% load i18n %}
 
-{% block titulo %}{% translate "My plate" %} · AeroBim{% endblock %}
+{% block titulo %}{% translate "Everything pending" %} · AeroBim{% endblock %}
 
-{% block titulo_pagina %}<h1>{% translate "My plate" %}</h1>{% endblock %}
+{% comment %}
+  **Se llamaba «Lo mío», y cambia porque la portada pasó a llamarse «Mi trabajo»** (`F12.7`). Dos
+  pantallas «mías» con nombres parecidos son dos sitios donde buscar lo mismo: la portada trae lo
+  que arde —vencido y esta semana— y esta trae el mes entero.
+{% endcomment %}
+{% block titulo_pagina %}<h1>{% translate "Everything pending" %}</h1>{% endblock %}
 
 {% block subtitulo %}
-<p class="subtitulo">
-  {% blocktranslate %}What is assigned to you, by how soon it is due. It is the same split the
-  daily digest uses: what is overdue and what is due in a month need different
-  reactions.{% endblocktranslate %}
-</p>
+  <p class="subtitulo">
+    {% blocktranslate %}What is assigned to you, by how soon it is due. It is the same split the
+    daily digest uses: what is overdue and what is due in a month need different
+    reactions.{% endblocktranslate %}
+  </p>
 {% endblock %}
 
 {% block contenido %}
-  {% for clave, etiqueta in tramos_etiquetados %}
-    <p class="grupo">{{ etiqueta }}</p>
-    <table>
-      <tbody>
-        {% for item in clave %}
-          <tr>
-            <td style="width: 110px">{{ item.vence|date:"Y-m-d" }}</td>
-            {% comment %}
-              **La fila es un enlace, y era texto plano**: se veía que algo vencía y no se podía
-              ir — la pantalla que se abre cada mañana no llevaba a ninguna parte.
+  {% comment %}
+    **El conmutador de vista, y las dos son los mismos datos.**
 
-              Y funciona sin preguntar de qué tipo es cada fila: la lista mezcla observaciones y
-              actividades a propósito —para quien mira son lo mismo, algo con fecha y
-              responsable— y las dos llevan `get_absolute_url` en el modelo.
-            {% endcomment %}
-            <td><a href="{{ item.get_absolute_url }}">{{ item.titulo }}</a></td>
-            <td>{{ item.proyecto }}</td>
+    Lista por tramo de fecha —cuándo hay que hacerlo— y tablero por punto del trabajo —en qué
+    posición está—. Las dos salen de `pendientes_por_tramo`, y hay una prueba que exige que el
+    conjunto de tareas sea idéntico: dos vistas que discrepan sobre qué está pendiente valen menos
+    que una.
+
+    Es un `<nav>` con dos enlaces y no un `<select>`: **sin JavaScript**, porque la CSP prohíbe el
+    inline y un desplegable que no envía su formulario no cambia nada. Y con enlaces, la vista queda
+    en la URL y se puede compartir o guardar en favoritos.
+
+    **Sin arrastrar tarjetas entre columnas**, y eso está decidido: mover una tarjeta pediría
+    JavaScript y una vista que reciba el POST, y esa vista no existe — el estado de una observación
+    se cambia por sus propias puertas, que piden motivo. Una tarjeta que se arrastra y vuelve a su
+    sitio al recargar es peor que una que no se arrastra.
+  {% endcomment %}
+  <nav class="vistas" aria-label="{% translate 'How to see it' %}">
+    <a href="?vista=lista"
+       class="vista{% if vista == 'lista' %} vista-activa{% endif %}"
+       {% if vista == "lista" %}aria-current="page"{% endif %}>
+      {% translate "List" %}
+    </a>
+    <a href="?vista=tablero"
+       class="vista{% if vista == 'tablero' %} vista-activa{% endif %}"
+       {% if vista == "tablero" %}aria-current="page"{% endif %}>
+      {% translate "Board" %}
+    </a>
+  </nav>
+
+  {% if vista == "tablero" %}
+    <div class="tablero">
+      {% for clave, etiqueta, tareas in columnas %}
+        <section class="columna">
+          {% comment %}
+            La cifra va en la cabecera de la columna: es lo que dice si el trabajo está atascado en
+            un punto sin tener que contar las tarjetas a ojo.
+          {% endcomment %}
+          <h2 class="columna-cabeza">
+            {{ etiqueta }}
+            <span class="columna-cifra">{{ tareas|length }}</span>
+          </h2>
+          <ol class="tareas tareas-columna">
+            {% for tarea in tareas %}{% include "generic/_fila_tarea.html" %}{% endfor %}
+          </ol>
+          {% if not tareas %}
+            <p class="columna-vacia">{% translate "Nothing here." %}</p>
+          {% endif %}
+        </section>
+      {% endfor %}
+    </div>
+  {% else %}
+    {% for etiqueta, tareas, urgente in tramos_etiquetados %}
+      <section class="bloque">
+        <h2 class="tramo{% if urgente %} tramo-arde{% endif %}">
+          {% if urgente %}<span aria-hidden="true">⚠</span> {% endif %}{{ etiqueta }}
+        </h2>
+        {% if tareas %}
+          <ol class="tareas">
+            {% for tarea in tareas %}{% include "generic/_fila_tarea.html" %}{% endfor %}
+          </ol>
+        {% else %}
+          <div class="vacio">{% translate "Nothing." %}</div>
+        {% endif %}
+      </section>
+    {% endfor %}
+  {% endif %}
+
+  {% comment %}
+    **Los entregables siguen como tabla, y a propósito.** No son tareas con dueño y fecha: son
+    filas con código, título, revisión vigente y avance — cuatro columnas que todas las filas
+    tienen. Una tabla es la forma correcta de eso, y convertirlas en tarjetas de tablero sería
+    meterlas en un flujo que no siguen.
+  {% endcomment %}
+  <section class="bloque">
+    <h2 class="grupo">{% translate "Deliverables you own" %}</h2>
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">{% translate "Code" %}</th>
+          <th scope="col">{% translate "Title" %}</th>
+          <th scope="col">{% translate "Current revision" %}</th>
+          <th scope="col">{% translate "Progress" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for entregable in entregables %}
+          <tr>
+            <td>
+              <a href="{% url 'documents:expediente' entregable.pk %}">{{ entregable.codigo }}</a>
+            </td>
+            <td>{{ entregable.titulo }}</td>
+            <td>
+              {{ entregable.revision_vigente.correlativo|default:"—" }}
+              {{ entregable.revision_vigente.idoneidad|default:"" }}
+            </td>
+            <td>{{ entregable.avance|floatformat:"-2" }}</td>
           </tr>
         {% empty %}
           <tr>
-            <td>{% translate "Nothing." %}</td>
+            <td colspan="4">{% translate "You do not own any deliverable." %}</td>
           </tr>
         {% endfor %}
       </tbody>
     </table>
-  {% endfor %}
-
-  <p class="grupo">{% translate "Deliverables you own" %}</p>
-  <table>
-    <thead>
-      <tr>
-        <th scope="col">{% translate "Code" %}</th>
-        <th scope="col">{% translate "Title" %}</th>
-        <th scope="col">{% translate "Current revision" %}</th>
-        <th scope="col">{% translate "Progress" %}</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for entregable in entregables %}
-        <tr>
-          <td><a href="{% url 'documents:expediente' entregable.pk %}">{{ entregable.codigo }}</a></td>
-          <td>{{ entregable.titulo }}</td>
-          <td>
-            {{ entregable.revision_vigente.correlativo|default:"—" }}
-            {{ entregable.revision_vigente.idoneidad|default:"" }}
-          </td>
-          <td>{{ entregable.avance|floatformat:"-2" }}</td>
-        </tr>
-      {% empty %}
-        <tr>
-          <td colspan="4">{% translate "You do not own any deliverable." %}</td>
-        </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  </section>
 {% endblock %}

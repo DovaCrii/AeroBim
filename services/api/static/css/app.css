@@ -661,6 +661,139 @@ main {
   color: var(--ab-text-muted);
 }
 
+/* --- Lista o tablero: el conmutador y las columnas -------------------------------- */
+
+/*
+ * El conmutador de vista. **Son dos enlaces y no un desplegable**: sin JavaScript —la CSP prohíbe
+ * el inline— un `<select>` no cambia nada, y con enlaces la vista queda en la URL y se puede
+ * compartir.
+ *
+ * Como control segmentado y no como dos botones separados, porque son **una elección entre dos** y
+ * no dos acciones: la forma tiene que decir que solo una está activa.
+ */
+.vistas {
+  display: inline-flex;
+  margin-bottom: 16px;
+  border: 1px solid var(--ab-border-control);
+  border-radius: var(--ab-radio-sm);
+  overflow: hidden;
+}
+
+.vista {
+  display: grid;
+  place-items: center;
+  /* La misma área de toque que el rail y las filas: es un control que se pulsa. */
+  min-height: var(--ab-touch-min);
+  padding: 0 16px;
+  color: var(--ab-text-secondary);
+  text-decoration: none;
+  font-size: 0.92rem;
+}
+
+.vista + .vista {
+  border-left: 1px solid var(--ab-border-control);
+}
+
+.vista:hover {
+  background: var(--ab-surface-alt);
+  color: var(--ab-text);
+}
+
+/* La activa lleva fondo **y** negrita, además del `aria-current`: con solo el fondo, quien no
+   distingue el violeta del gris no sabe en cuál está. */
+.vista-activa,
+.vista-activa:hover {
+  background: var(--ab-primary);
+  color: #fff;
+  font-weight: 600;
+}
+
+/*
+ * El tablero: tres columnas.
+ *
+ * `minmax(0, 1fr)` y no `1fr`: con `1fr` el ancho mínimo de contenido de un título largo empuja la
+ * columna y el tablero se sale de la pantalla. Es el mismo cuidado que `min-width: 0` en `main`, y
+ * el mismo fallo que ya costó una vuelta ahí.
+ */
+.tablero {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+.columna {
+  padding: 12px;
+  background: var(--ab-surface-alt);
+  border: 1px solid var(--ab-border);
+  border-radius: var(--ab-radio-md);
+}
+
+.columna-cabeza {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ab-text-secondary);
+}
+
+/* La cifra dice si el trabajo está atascado en un punto sin contar las tarjetas a ojo.
+   `tabular-nums` para que 9 y 10 ocupen lo mismo y la cabecera no se mueva. */
+.columna-cifra {
+  min-width: 22px;
+  padding: 1px 6px;
+  border: 1px solid var(--ab-border);
+  border-radius: 999px;
+  background: var(--ab-surface);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Dentro de una columna las tareas van como tarjetas apiladas y no como una lista con marco: la
+   columna ya tiene el suyo, y dos marcos anidados se leen como una tabla dentro de una caja. */
+.tareas-columna {
+  border: 0;
+  border-radius: 0;
+  background: none;
+  overflow: visible;
+}
+
+.tareas-columna .tarea {
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+  background: var(--ab-surface);
+  border: 1px solid var(--ab-border);
+  border-radius: var(--ab-radio-sm);
+}
+
+/* En una columna estrecha los datos van debajo del título: en línea, cinco piezas a la derecha
+   dejan el título en dos caracteres. */
+.tareas-columna .tarea-datos {
+  justify-content: flex-start;
+  width: 100%;
+  padding-left: 24px;
+}
+
+.columna-vacia {
+  margin: 0;
+  padding: 8px 4px;
+  color: var(--ab-text-muted);
+  font-size: 0.88rem;
+}
+
+/* Por debajo de 900 px las tres columnas no caben: se apilan. Un tablero de tres columnas de
+   110 px son tres listas de una palabra por línea. */
+@media (max-width: 900px) {
+  .tablero {
+    grid-template-columns: 1fr;
+  }
+}
+
 /*
  * La cifra del día, en el subtítulo de la portada.
  *

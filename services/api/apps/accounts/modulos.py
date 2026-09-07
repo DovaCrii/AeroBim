@@ -133,7 +133,11 @@ CATALOGO: tuple[Modulo, ...] = (
     ),
     Modulo(
         grupo=_("Coordination"),
-        titulo=_("My plate"),
+        # **Se llamaba «Lo mío» y cambia con la portada** (`F12.7`, 2026-09-07): con «Mi trabajo»
+        # arriba, dos entradas «mías» eran dos sitios donde buscar lo mismo. El rail y el título de
+        # la pantalla tienen que decir lo mismo — se vio mirándolo, con el rail diciendo «Lo mío» al
+        # lado de una pantalla titulada «Todo lo pendiente».
+        titulo=_("Everything pending"),
         ruta="documents:bandeja",
         permiso="documents.view_observacion",
         descripcion=_("Yours alone, soonest due first: what you have to answer."),

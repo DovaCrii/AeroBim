@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-07 15:15-0300\n"
+"POT-Creation-Date: 2026-09-07 15:29-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -96,8 +96,7 @@ msgstr "Lo que el mandante exige que traiga cada modelo, comprobado con IDS."
 msgid "Coordination"
 msgstr "Coordinación"
 
-#: .\apps\accounts\modulos.py:136 .\templates\documents\bandeja.html:4
-#: .\templates\documents\bandeja.html:6
+#: .\apps\accounts\modulos.py:136
 msgid "My plate"
 msgstr "Lo mío"
 
@@ -189,12 +188,12 @@ msgid "Not a role: notification group for the executive summary."
 msgstr "No es un rol: grupo de notificación para el resumen ejecutivo."
 
 #: .\apps\accounts\views.py:62 .\apps\documents\notify.py:200
-#: .\apps\documents\views.py:1405
+#: .\apps\documents\views.py:1426
 msgid "Overdue"
 msgstr "Vencido"
 
 #: .\apps\accounts\views.py:63 .\apps\documents\notify.py:201
-#: .\apps\documents\views.py:1406
+#: .\apps\documents\views.py:1427
 msgid "Next 7 days"
 msgstr "Próximos 7 días"
 
@@ -787,11 +786,11 @@ msgstr "Documentos (%(n)s):"
 msgid "[AeroBim] Transmittal %(folio)s: %(asunto)s"
 msgstr "[AeroBim] Transmittal %(folio)s: %(asunto)s"
 
-#: .\apps\documents\notify.py:202 .\apps\documents\views.py:1407
+#: .\apps\documents\notify.py:202 .\apps\documents\views.py:1428
 msgid "Next 15 days"
 msgstr "Próximos 15 días"
 
-#: .\apps\documents\notify.py:203 .\apps\documents\views.py:1408
+#: .\apps\documents\notify.py:203 .\apps\documents\views.py:1429
 msgid "Next 30 days"
 msgstr "Próximos 30 días"
 
@@ -1081,59 +1080,59 @@ msgstr "Sin dirección de correo para %(quienes)s: no se les avisó."
 msgid "Receipt acknowledged."
 msgstr "Recibo acusado."
 
-#: .\apps\documents\views.py:1425
+#: .\apps\documents\views.py:1456
 #, python-format
 msgid "Saved, but %(quien)s has no email address: nobody was notified."
 msgstr "Se guardó, pero %(quien)s no tiene correo: no se avisó a nadie."
 
-#: .\apps\documents\views.py:1518
+#: .\apps\documents\views.py:1549
 msgid "Observation opened and the owner notified."
 msgstr "Observación abierta, y se avisó al responsable."
 
-#: .\apps\documents\views.py:1577
+#: .\apps\documents\views.py:1608
 msgid "That is not the next step for this activity."
 msgstr "Ese no es el paso siguiente de esta actividad."
 
-#: .\apps\documents\views.py:1585
+#: .\apps\documents\views.py:1616
 #, python-format
 msgid "Activity moved to %(estado)s."
 msgstr "Actividad movida a %(estado)s."
 
-#: .\apps\documents\views.py:1610
+#: .\apps\documents\views.py:1641
 msgid "Pick the deliverable the activity belongs to."
 msgstr "Elige el entregable al que pertenece la actividad."
 
-#: .\apps\documents\views.py:1616
+#: .\apps\documents\views.py:1647
 msgid "Activity created and the owner notified."
 msgstr "Actividad creada, y se avisó al responsable."
 
-#: .\apps\documents\views.py:1664
+#: .\apps\documents\views.py:1695
 msgid "There is only one model in this project: nothing to compare it against."
 msgstr "Esta obra tiene un solo modelo: no hay nada contra qué compararlo."
 
-#: .\apps\documents\views.py:1669
+#: .\apps\documents\views.py:1700
 #, python-format
 msgid "Checked %(resumen)s. Nothing new."
 msgstr "Revisado %(resumen)s. Nada nuevo."
 
-#: .\apps\documents\views.py:1674
+#: .\apps\documents\views.py:1705
 #, python-format
 msgid "Checked %(resumen)s. The new ones are in the open observations below."
 msgstr ""
 "Revisado %(resumen)s. Los nuevos están abajo, entre las observaciones "
 "abiertas."
 
-#: .\apps\documents\views.py:1683
+#: .\apps\documents\views.py:1714
 #, python-format
 msgid "Left out, their file is not on disk: %(cuales)s"
 msgstr "Quedaron fuera, su archivo no está en el disco: %(cuales)s"
 
-#: .\apps\documents\views.py:1716
+#: .\apps\documents\views.py:1747
 #, python-format
 msgid "Revision %(rev)s is now %(cod)s."
 msgstr "La revisión %(rev)s queda en %(cod)s."
 
-#: .\apps\documents\views.py:1745
+#: .\apps\documents\views.py:1776
 msgid "Deliverable created."
 msgstr "Entregable creado."
 
@@ -1464,7 +1463,8 @@ msgid_plural "And %(total)s more due within the month."
 msgstr[0] "Y uno más que vence dentro del mes."
 msgstr[1] "Y %(total)s más que vencen dentro del mes."
 
-#: .\templates\accounts\portal.html:90
+#: .\templates\accounts\portal.html:90 .\templates\documents\bandeja.html:4
+#: .\templates\documents\bandeja.html:11
 msgid "Everything pending"
 msgstr "Todo lo pendiente"
 
@@ -1646,7 +1646,7 @@ msgid "overdue"
 msgstr "vencida"
 
 #: .\templates\documents\actividad.html:23
-#: .\templates\documents\bandeja.html:52
+#: .\templates\documents\bandeja.html:107
 #: .\templates\documents\entregables.html:30
 #: .\templates\projects\proyecto.html:446
 #: .\templates\projects\proyectos.html:30
@@ -1714,7 +1714,7 @@ msgid "New activity"
 msgstr "Nueva actividad"
 
 #: .\templates\documents\actividades.html:24
-#: .\templates\documents\bandeja.html:50
+#: .\templates\documents\bandeja.html:105
 #: .\templates\documents\entregables.html:25
 #: .\templates\documents\expediente.html:263
 #: .\templates\documents\expediente.html:289
@@ -1725,30 +1725,43 @@ msgid "Title"
 msgstr "Título"
 
 #: .\templates\documents\actividades.html:50
+#: .\templates\documents\bandeja.html:70
 #: .\templates\documents\observaciones.html:189
 msgid "Nothing here."
 msgstr "Nada por acá."
 
-#: .\templates\documents\bandeja.html:10
+#: .\templates\documents\bandeja.html:15
 msgid ""
 "What is assigned to you, by how soon it is due. It is the same split the\n"
-"  daily digest uses: what is overdue and what is due in a month need "
+"    daily digest uses: what is overdue and what is due in a month need "
 "different\n"
-"  reactions."
+"    reactions."
 msgstr ""
 "Lo que tienes asignado, ordenado por lo pronto que vence. Es el mismo "
 "reparto que usa el resumen diario: lo que venció y lo que vence en un mes "
 "piden reacciones distintas."
 
-#: .\templates\documents\bandeja.html:38
+#: .\templates\documents\bandeja.html:40
+msgid "How to see it"
+msgstr "Cómo verlo"
+
+#: .\templates\documents\bandeja.html:44
+msgid "List"
+msgstr "Lista"
+
+#: .\templates\documents\bandeja.html:49
+msgid "Board"
+msgstr "Tablero"
+
+#: .\templates\documents\bandeja.html:86
 msgid "Nothing."
 msgstr "Nada."
 
-#: .\templates\documents\bandeja.html:45
+#: .\templates\documents\bandeja.html:100
 msgid "Deliverables you own"
 msgstr "Entregables a tu cargo"
 
-#: .\templates\documents\bandeja.html:49
+#: .\templates\documents\bandeja.html:104
 #: .\templates\documents\entregables.html:24
 #: .\templates\documents\transmittal.html:69
 #: .\templates\projects\proyecto.html:441
@@ -1756,13 +1769,13 @@ msgstr "Entregables a tu cargo"
 msgid "Code"
 msgstr "Código"
 
-#: .\templates\documents\bandeja.html:51
+#: .\templates\documents\bandeja.html:106
 #: .\templates\documents\entregables.html:28
 #: .\templates\projects\proyecto.html:444
 msgid "Current revision"
 msgstr "Revisión vigente"
 
-#: .\templates\documents\bandeja.html:68
+#: .\templates\documents\bandeja.html:125
 msgid "You do not own any deliverable."
 msgstr "No tienes ningún entregable a tu cargo."
 
