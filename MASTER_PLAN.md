@@ -4310,7 +4310,7 @@ producto, no de estilo, y **bloquean que personas reales usen esto**.
 | -------- | ------------------------------------------------------------------------------------- | ------ |
 | `F12.10` | **Repartir un hallazgo**: dueño, fecha y prioridad desde la ficha, no solo al crearla | ✅     |
 | `F12.11` | **Una captura adjunta al comentario**: hoy una queja del portal no lleva imagen       | ⬜     |
-| `F12.12` | **Métricas del piloto**: comando de solo lectura sobre lo que ya guarda la base       | ⬜     |
+| `F12.12` | **Métricas del piloto**: comando de solo lectura sobre lo que ya guarda la base       | ✅     |
 | `F12.13` | **El levantamiento entra al expediente**: la nube como revisión, y servida por tramos | ✅     |
 
 **Oráculo de la fase:** el usuario abre las dos mitades y **no dice «está plano»**. No hay medida que
