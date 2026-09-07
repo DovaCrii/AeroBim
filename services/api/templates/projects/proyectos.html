@@ -3,20 +3,23 @@
 
 {% block titulo %}{% translate "Projects" %} · AeroBim{% endblock %}
 
-{% block contenido %}
-  <h1>{% translate "Projects" %}</h1>
-  <p class="subtitulo">
-    {% blocktranslate %}The works. Every deliverable, observation and model hangs off one of
-    these.{% endblocktranslate %}
-    {% for clave, etiqueta in etapas %}
-      <a href="?etapa={{ clave }}">{{ etiqueta }}</a> ·
-    {% endfor %}
-    <a href="{% url 'projects:proyectos' %}">{% translate "All" %}</a>
-    {% if puede_crear %}
-      · <a href="{% url 'projects:nuevo-proyecto' %}">{% translate "New project" %}</a>
-    {% endif %}
-  </p>
+{% block titulo_pagina %}<h1>{% translate "Projects" %}</h1>{% endblock %}
 
+{% block subtitulo %}
+<p class="subtitulo">
+  {% blocktranslate %}The works. Every deliverable, observation and model hangs off one of
+  these.{% endblocktranslate %}
+  {% for clave, etiqueta in etapas %}
+    <a href="?etapa={{ clave }}">{{ etiqueta }}</a> ·
+  {% endfor %}
+  <a href="{% url 'projects:proyectos' %}">{% translate "All" %}</a>
+  {% if puede_crear %}
+    · <a href="{% url 'projects:nuevo-proyecto' %}">{% translate "New project" %}</a>
+  {% endif %}
+</p>
+{% endblock %}
+
+{% block contenido %}
   <table>
     <thead>
       <tr>

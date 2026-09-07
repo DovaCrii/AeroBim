@@ -3,13 +3,16 @@
 
 {% block titulo %}{% translate "Users and roles" %} · AeroBim{% endblock %}
 
-{% block contenido %}
-  <h1>{% translate "Users and roles" %}</h1>
-  <p class="subtitulo">
-    {% translate "Read-only." %}
-    <a href="?formato=csv">{% translate "Download CSV" %}</a>
-  </p>
+{% block titulo_pagina %}<h1>{% translate "Users and roles" %}</h1>{% endblock %}
 
+{% block subtitulo %}
+<p class="subtitulo">
+  {% translate "Read-only." %}
+  <a href="?formato=csv">{% translate "Download CSV" %}</a>
+</p>
+{% endblock %}
+
+{% block contenido %}
   <table>
     <thead>
       <tr>

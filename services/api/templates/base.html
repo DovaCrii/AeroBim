@@ -26,6 +26,14 @@
       escribir: sin la guarda, la página entera se queda sin pintar por una preferencia.
     {% endcomment %}
     <script src="{% static 'js/tema.js' %}"></script>
+    {% comment %}
+      **Los filtros que se aplican al cambiar el desplegable.** Va aquí y no en `observaciones.html`
+      porque la CSP prohíbe el JavaScript en línea y una plantilla no puede añadir un `<script>` a
+      la cabecera; y con `defer` no bloquea el pintado. Escucha en `document`, así que sirve para
+      cualquier pantalla que marque un control con `data-envia-al-cambiar` — y como es un solo
+      oyente, no cuesta nada en las que no lo usan.
+    {% endcomment %}
+    <script src="{% static 'js/filtros.js' %}" defer></script>
   </head>
   <body>
     <a class="salto" href="#contenido">{% translate "Skip to content" %}</a>

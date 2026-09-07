@@ -116,8 +116,18 @@ def test_el_rail_solo_lista_lo_que_esta_persona_puede_abrir(client, dentro):
 # --- 2. Marca una, y la correcta ------------------------------------------------------
 
 
+def _solo_el_rail(html: str) -> str:
+    """El trozo del `<nav class="rail">`, y solo ese.
+
+    **Se acota al rail a propósito.** Hay pantallas con migas —la ficha de un hallazgo— y una miga
+    marca su último salto con `aria-current="page"`: eso es correcto y esperado. Contar en toda la
+    página mezclaría las dos cosas y esta prueba fallaría por algo que está bien.
+    """
+    return html[html.index('<nav class="rail"') : html.index("</nav>")]
+
+
 def _cuantos_current(html: str) -> int:
-    return len(re.findall(r'aria-current="page"', html))
+    return len(re.findall(r'aria-current="page"', _solo_el_rail(html)))
 
 
 @pytest.mark.parametrize(
@@ -227,14 +237,25 @@ def test_mi_trabajo_no_comparte_icono_con_lo_mio(client, dentro):
 # --- 4. La cabecera vacía no se ve ---------------------------------------------------
 
 
-def test_la_cabecera_sin_llenar_queda_literalmente_vacia(client, dentro):
-    """**Es lo que permite migrar las treinta plantillas de una en una.**
+def test_la_cabecera_sin_llenar_queda_literalmente_vacia():
+    """El defecto vacío, probado **renderizando la base a pelo**.
 
-    Los bloques tienen defecto vacío, y `{% spaceless %}` deja la cabecera sin un solo carácter
-    dentro para que `.cabecera-pagina:empty` la esconda. Sin eso quedaría una franja de margen en
-    blanco encima de cada pantalla todavía sin migrar.
+    Sirvió para migrar las treinta plantillas de una en una: mientras una no se había tocado, su
+    cabecera salía sin contenido y `.cabecera-pagina:empty` la escondía. Hoy todas tienen título
+    —lo exige `test_toda_pantalla_tiene_titulo_de_alguna_forma`—, así que ya no hay ninguna página
+    donde comprobarlo por URL.
+
+    Se queda porque protege a **la siguiente** plantilla que alguien escriba: sin el
+    `{% spaceless %}`, la cabecera saldría con saltos de línea dentro, `:empty` no la reconocería
+    como vacía, y quedaría una franja de margen en blanco encima del contenido.
     """
-    html = cuerpo(client.get(reverse("documents:observaciones")))
+    from django.contrib.auth.models import AnonymousUser
+    from django.template.loader import render_to_string
+
+    html = render_to_string(
+        "base.html",
+        {"user": AnonymousUser(), "grupos_de_navegacion": (), "modulo_activo": None},
+    )
 
     assert '<header class="cabecera-pagina"></header>' in html
 

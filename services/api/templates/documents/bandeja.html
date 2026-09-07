@@ -3,14 +3,17 @@
 
 {% block titulo %}{% translate "My plate" %} · AeroBim{% endblock %}
 
-{% block contenido %}
-  <h1>{% translate "My plate" %}</h1>
-  <p class="subtitulo">
-    {% blocktranslate %}What is assigned to you, by how soon it is due. It is the same split the
-    daily digest uses: what is overdue and what is due in a month need different
-    reactions.{% endblocktranslate %}
-  </p>
+{% block titulo_pagina %}<h1>{% translate "My plate" %}</h1>{% endblock %}
 
+{% block subtitulo %}
+<p class="subtitulo">
+  {% blocktranslate %}What is assigned to you, by how soon it is due. It is the same split the
+  daily digest uses: what is overdue and what is due in a month need different
+  reactions.{% endblocktranslate %}
+</p>
+{% endblock %}
+
+{% block contenido %}
   {% for clave, etiqueta in tramos_etiquetados %}
     <p class="grupo">{{ etiqueta }}</p>
     <table>

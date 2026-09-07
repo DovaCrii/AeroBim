@@ -3,13 +3,16 @@
 
 {% block titulo %}{% translate "New project" %} · AeroBim{% endblock %}
 
-{% block contenido %}
-  <h1>{% translate "New project" %}</h1>
-  <p class="subtitulo">
-    {% blocktranslate %}The code is what will be read on every drawing and every transmittal, so it
-    is stored in upper case and cannot repeat within the organisation.{% endblocktranslate %}
-  </p>
+{% block titulo_pagina %}<h1>{% translate "New project" %}</h1>{% endblock %}
 
+{% block subtitulo %}
+<p class="subtitulo">
+  {% blocktranslate %}The code is what will be read on every drawing and every transmittal, so it
+  is stored in upper case and cannot repeat within the organisation.{% endblocktranslate %}
+</p>
+{% endblock %}
+
+{% block contenido %}
   <form method="post" style="max-width: 560px">
     {% csrf_token %}
     {{ form.as_p }}

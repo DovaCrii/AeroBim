@@ -3,15 +3,18 @@
 
 {% block titulo %}{% translate "Observations" %} · AeroBim{% endblock %}
 
-{% block contenido %}
-  <h1>{% translate "Observations" %}</h1>
-  <p class="subtitulo">
-    {% blocktranslate %}Findings and errors, each with an owner and a due date.{% endblocktranslate %}
-    <a href="?mias=1">{% translate "Only mine" %}</a> ·
-    <a href="?abiertas=1">{% translate "Only open" %}</a> ·
-    <a href="{% url 'documents:observaciones' %}">{% translate "All" %}</a>
-  </p>
+{% block titulo_pagina %}<h1>{% translate "Observations" %}</h1>{% endblock %}
 
+{% block subtitulo %}
+<p class="subtitulo">
+  {% blocktranslate %}Findings and errors, each with an owner and a due date.{% endblocktranslate %}
+  <a href="?mias=1">{% translate "Only mine" %}</a> ·
+  <a href="?abiertas=1">{% translate "Only open" %}</a> ·
+  <a href="{% url 'documents:observaciones' %}">{% translate "All" %}</a>
+</p>
+{% endblock %}
+
+{% block contenido %}
   {% comment %}
     **Exportar a BCF es lo que hace que estas observaciones valgan fuera de AeroBim** (`F4.4`): un
     hallazgo anclado al GUID de una viga es lo que el mandante abre en Solibri o en Navisworks.
@@ -55,7 +58,7 @@
   <form class="accion barra-filtros" method="get">
     <label class="junto">
       {% translate "Priority" %}
-      <select name="prioridad" onchange="this.form.submit()">
+      <select name="prioridad" data-envia-al-cambiar>
         <option value="">{% translate "any" %}</option>
         {% for valor, texto in prioridades %}
           <option value="{{ valor }}" {% if filtro_actual.prioridad == valor %}selected{% endif %}>
@@ -66,7 +69,7 @@
     </label>
     <label class="junto">
       {% translate "State" %}
-      <select name="estado" onchange="this.form.submit()">
+      <select name="estado" data-envia-al-cambiar>
         <option value="">{% translate "any" %}</option>
         {% for valor, texto in estados %}
           <option value="{{ valor }}" {% if filtro_actual.estado == valor %}selected{% endif %}>
@@ -78,7 +81,7 @@
     {% if obras|length > 1 %}
       <label class="junto">
         {% translate "Project" %}
-        <select name="obra" onchange="this.form.submit()">
+        <select name="obra" data-envia-al-cambiar>
           <option value="">{% translate "any" %}</option>
           {% for codigo in obras %}
             <option value="{{ codigo }}" {% if filtro_actual.obra == codigo %}selected{% endif %}>

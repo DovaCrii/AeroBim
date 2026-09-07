@@ -3,14 +3,17 @@
 
 {% block titulo %}{% translate "Information requirements" %} · AeroBim{% endblock %}
 
-{% block contenido %}
-  <h1>{% translate "Information requirements" %}</h1>
-  <p class="subtitulo">
-    {% blocktranslate %}What the client requires each model to carry, written in IDS — the
-    buildingSMART standard. Revisar a mano si cada elemento trae el pset exigido no escala; un IDS lo
-    verifica en segundos.{% endblocktranslate %}
-  </p>
+{% block titulo_pagina %}<h1>{% translate "Information requirements" %}</h1>{% endblock %}
 
+{% block subtitulo %}
+<p class="subtitulo">
+  {% blocktranslate %}What the client requires each model to carry, written in IDS — the
+  buildingSMART standard. Revisar a mano si cada elemento trae el pset exigido no escala; un IDS lo
+  verifica en segundos.{% endblocktranslate %}
+</p>
+{% endblock %}
+
+{% block contenido %}
   {% if puede_subir %}
     <p><a href="{% url 'documents:nuevo-requisito-ids' %}">{% translate "Upload a requirement" %}</a></p>
   {% endif %}

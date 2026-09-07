@@ -3,14 +3,17 @@
 
 {% block titulo %}{% translate "Open an observation" %} · AeroBim{% endblock %}
 
-{% block contenido %}
-  <h1>{% translate "Open an observation" %}</h1>
-  <p class="subtitulo">
-    {{ entregable.codigo }} · {{ entregable.titulo }}<br />
-    {% blocktranslate %}The owner gets an email with the link, the due date and the
-    description.{% endblocktranslate %}
-  </p>
+{% block titulo_pagina %}<h1>{% translate "Open an observation" %}</h1>{% endblock %}
 
+{% block subtitulo %}
+<p class="subtitulo">
+  {{ entregable.codigo }} · {{ entregable.titulo }}<br />
+  {% blocktranslate %}The owner gets an email with the link, the due date and the
+  description.{% endblocktranslate %}
+</p>
+{% endblock %}
+
+{% block contenido %}
   <form method="post" style="max-width: 560px">
     {% csrf_token %}
     {{ form.as_p }}

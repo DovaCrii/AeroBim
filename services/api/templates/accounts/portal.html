@@ -3,12 +3,15 @@
 
 {% block titulo %}{% translate "Portal" %} · AeroBim{% endblock %}
 
-{% block contenido %}
-  <h1>{% translate "Portal" %}</h1>
-  <p class="subtitulo">
-    {% blocktranslate %}Only what your role can open is listed.{% endblocktranslate %}
-  </p>
+{% block titulo_pagina %}<h1>{% translate "Portal" %}</h1>{% endblock %}
 
+{% block subtitulo %}
+<p class="subtitulo">
+  {% blocktranslate %}Only what your role can open is listed.{% endblocktranslate %}
+</p>
+{% endblock %}
+
+{% block contenido %}
   {% comment %}
     **«Continuar» va encima de las tarjetas, y ese orden es la idea.** Un menú de módulos dice a
     qué sitios puedes entrar; esto dice en qué ibas, que es la pregunta que uno tiene al abrir la

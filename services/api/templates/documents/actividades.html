@@ -3,18 +3,21 @@
 
 {% block titulo %}{% translate "Activities" %} · AeroBim{% endblock %}
 
-{% block contenido %}
-  <h1>{% translate "Activities" %}</h1>
-  <p class="subtitulo">
-    {% blocktranslate %}Planned work: who does what, and by when. Not every task comes from a
-    finding.{% endblocktranslate %}
-    <a href="?mias=1">{% translate "Only mine" %}</a> ·
-    <a href="{% url 'documents:actividades' %}">{% translate "All" %}</a>
-    {% if perms.documents.add_actividad %}
-      · <a href="{% url 'documents:nueva-actividad' %}">{% translate "New activity" %}</a>
-    {% endif %}
-  </p>
+{% block titulo_pagina %}<h1>{% translate "Activities" %}</h1>{% endblock %}
 
+{% block subtitulo %}
+<p class="subtitulo">
+  {% blocktranslate %}Planned work: who does what, and by when. Not every task comes from a
+  finding.{% endblocktranslate %}
+  <a href="?mias=1">{% translate "Only mine" %}</a> ·
+  <a href="{% url 'documents:actividades' %}">{% translate "All" %}</a>
+  {% if perms.documents.add_actividad %}
+    · <a href="{% url 'documents:nueva-actividad' %}">{% translate "New activity" %}</a>
+  {% endif %}
+</p>
+{% endblock %}
+
+{% block contenido %}
   <table>
     <thead>
       <tr>

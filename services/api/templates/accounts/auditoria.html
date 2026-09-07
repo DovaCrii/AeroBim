@@ -3,13 +3,16 @@
 
 {% block titulo %}{% translate "Audit trail" %} · AeroBim{% endblock %}
 
-{% block contenido %}
-  <h1>{% translate "Audit trail" %}</h1>
-  <p class="subtitulo">
-    {% blocktranslate %}Append-only: nothing here can be edited or deleted from the
-    application.{% endblocktranslate %}
-  </p>
+{% block titulo_pagina %}<h1>{% translate "Audit trail" %}</h1>{% endblock %}
 
+{% block subtitulo %}
+<p class="subtitulo">
+  {% blocktranslate %}Append-only: nothing here can be edited or deleted from the
+  application.{% endblocktranslate %}
+</p>
+{% endblock %}
+
+{% block contenido %}
   <table>
     <thead>
       <tr>

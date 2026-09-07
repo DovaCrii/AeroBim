@@ -461,6 +461,30 @@ main {
   display: none;
 }
 
+/*
+ * **El `<h1>` y el subtítulo pierden sus márgenes propios dentro de la cabecera.**
+ *
+ * Los tenían porque cada plantilla se los ponía por su cuenta: `h1 { margin: 0 0 4px }` y
+ * `.subtitulo { margin-top: 0 }` sumaban con el margen del bloque de arriba, y el hueco entre
+ * título y subtítulo era distinto según la pantalla. Ahora el espaciado lo pone **la cabecera**, en
+ * un sitio, con `gap`.
+ */
+.cabecera-pagina {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cabecera-pagina > h1,
+.cabecera-pagina > .subtitulo {
+  margin: 0;
+}
+
+/* **El bloque `acciones` existe en `base.html` y todavía no lo llena nadie**, así que aquí no hay
+ * regla para él. Escribir el CSS de algo que ninguna plantilla usa es la misma trampa que un token
+ * declarado sin un solo `var()`: parece una decisión tomada y no lo está — y encima no se puede
+ * comprobar mirándolo. Entra cuando la pantalla de observaciones lo use. */
+
 h1 {
   font-size: 1.5rem;
   margin: 0 0 4px;

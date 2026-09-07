@@ -3,6 +3,15 @@
 
 {% block titulo %}{% translate "Review the BCF" %} · {{ proyecto.codigo }} · AeroBim{% endblock %}
 
+{% block titulo_pagina %}<h1>{% translate "This is what the BCF brings" %}</h1>{% endblock %}
+
+{% block subtitulo %}
+<p class="subtitulo">
+  {{ nombre }} · {{ proyecto.codigo }} ·
+  {% blocktranslate count total=vistazos|length %}{{ total }} topic{% plural %}{{ total }} topics{% endblocktranslate %}
+</p>
+{% endblock %}
+
 {% block contenido %}
   {% comment %}
     **Importar era a ciegas: se subía el archivo y se escribía.** `F4.11`.
@@ -13,11 +22,6 @@
     de la misma regla que después aplica —el GUID del tema es la identidad— así que la pantalla y lo
     que ocurre no pueden discrepar.
   {% endcomment %}
-  <h1>{% translate "This is what the BCF brings" %}</h1>
-  <p class="subtitulo">
-    {{ nombre }} · {{ proyecto.codigo }} ·
-    {% blocktranslate count total=vistazos|length %}{{ total }} topic{% plural %}{{ total }} topics{% endblocktranslate %}
-  </p>
 
   <form method="post" action="{% url 'documents:importar-bcf' proyecto.pk %}" class="accion">
     {% csrf_token %}

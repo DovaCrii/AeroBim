@@ -3,18 +3,21 @@
 
 {% block titulo %}{{ proyecto.codigo }} · AeroBim{% endblock %}
 
-{% block contenido %}
-  <h1>{{ proyecto.codigo }} · {{ proyecto.nombre }}</h1>
-  <p class="subtitulo">
-    {{ proyecto.get_status_display }}
-    {% if proyecto.cliente %} · {{ proyecto.cliente }}{% endif %}
-    · {% blocktranslate with avance=proyecto.avance_fisico|floatformat:"-2" %}Progress
-    {{ avance }}{% endblocktranslate %}
-    {% if puede_exportar_bcf %}
-      · <a href="{% url 'documents:exportar-bcf' proyecto.pk %}">{% translate "Export to BCF 2.1" %}</a>
-    {% endif %}
-  </p>
+{% block titulo_pagina %}<h1>{{ proyecto.codigo }} · {{ proyecto.nombre }}</h1>{% endblock %}
 
+{% block subtitulo %}
+<p class="subtitulo">
+  {{ proyecto.get_status_display }}
+  {% if proyecto.cliente %} · {{ proyecto.cliente }}{% endif %}
+  · {% blocktranslate with avance=proyecto.avance_fisico|floatformat:"-2" %}Progress
+  {{ avance }}{% endblocktranslate %}
+  {% if puede_exportar_bcf %}
+    · <a href="{% url 'documents:exportar-bcf' proyecto.pk %}">{% translate "Export to BCF 2.1" %}</a>
+  {% endif %}
+</p>
+{% endblock %}
+
+{% block contenido %}
   {% comment %}
     **Esta pantalla contesta «¿dónde sigo?», no «qué hay».** El orden de los bloques es la
     respuesta: primero lo que exige una decisión hoy, después el trabajo de coordinación, y al

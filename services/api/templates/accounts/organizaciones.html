@@ -3,13 +3,16 @@
 
 {% block titulo %}{% translate "Organisations" %} · AeroBim{% endblock %}
 
-{% block contenido %}
-  <h1>{% translate "Organisations" %}</h1>
-  <p class="subtitulo">
-    {% blocktranslate %}Who the project data belongs to. Every query is scoped by this.
-    {% endblocktranslate %}
-  </p>
+{% block titulo_pagina %}<h1>{% translate "Organisations" %}</h1>{% endblock %}
 
+{% block subtitulo %}
+<p class="subtitulo">
+  {% blocktranslate %}Who the project data belongs to. Every query is scoped by this.
+  {% endblocktranslate %}
+</p>
+{% endblock %}
+
+{% block contenido %}
   <table>
     <thead>
       <tr>

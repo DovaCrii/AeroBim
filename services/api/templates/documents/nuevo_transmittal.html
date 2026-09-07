@@ -3,14 +3,17 @@
 
 {% block titulo %}{% translate "New transmittal" %} · AeroBim{% endblock %}
 
-{% block contenido %}
-  <h1>{% translate "New transmittal" %}</h1>
-  <p class="subtitulo">
-    {% blocktranslate %}Pick the revisions that go out and who they go to. The project is taken from
-    the revisions. It is created as a draft: issuing it is a separate step, so somebody can read the
-    cover before it leaves.{% endblocktranslate %}
-  </p>
+{% block titulo_pagina %}<h1>{% translate "New transmittal" %}</h1>{% endblock %}
 
+{% block subtitulo %}
+<p class="subtitulo">
+  {% blocktranslate %}Pick the revisions that go out and who they go to. The project is taken from
+  the revisions. It is created as a draft: issuing it is a separate step, so somebody can read the
+  cover before it leaves.{% endblocktranslate %}
+</p>
+{% endblock %}
+
+{% block contenido %}
   <form method="post" style="max-width: 720px">
     {% csrf_token %}
     {{ form.as_p }}

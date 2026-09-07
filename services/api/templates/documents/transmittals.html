@@ -3,13 +3,16 @@
 
 {% block titulo %}{% translate "Transmittals" %} · AeroBim{% endblock %}
 
-{% block contenido %}
-  <h1>{% translate "Transmittals" %}</h1>
-  <p class="subtitulo">
-    {% blocktranslate %}What was issued, to whom and when. It is what turns «I emailed it» into a
-    record.{% endblocktranslate %}
-  </p>
+{% block titulo_pagina %}<h1>{% translate "Transmittals" %}</h1>{% endblock %}
 
+{% block subtitulo %}
+<p class="subtitulo">
+  {% blocktranslate %}What was issued, to whom and when. It is what turns «I emailed it» into a
+  record.{% endblocktranslate %}
+</p>
+{% endblock %}
+
+{% block contenido %}
   {% if puede_crear %}
     <p><a href="{% url 'documents:nuevo-transmittal' %}">{% translate "New transmittal" %}</a></p>
   {% endif %}

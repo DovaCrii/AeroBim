@@ -3,14 +3,17 @@
 
 {% block titulo %}{% translate "Upload a requirement" %} · AeroBim{% endblock %}
 
-{% block contenido %}
-  <h1>{% translate "Upload a requirement" %}</h1>
-  <p class="subtitulo">
-    {% blocktranslate %}An IDS declares, for a set of elements, what data they must carry. The file is
-    checked before it is stored: a requirement that cannot be read would not reject anything nor
-    approve anything — it would just fail on every validation.{% endblocktranslate %}
-  </p>
+{% block titulo_pagina %}<h1>{% translate "Upload a requirement" %}</h1>{% endblock %}
 
+{% block subtitulo %}
+<p class="subtitulo">
+  {% blocktranslate %}An IDS declares, for a set of elements, what data they must carry. The file is
+  checked before it is stored: a requirement that cannot be read would not reject anything nor
+  approve anything — it would just fail on every validation.{% endblocktranslate %}
+</p>
+{% endblock %}
+
+{% block contenido %}
   <form method="post" enctype="multipart/form-data" style="max-width: 560px">
     {% csrf_token %}
     {{ form.as_p }}

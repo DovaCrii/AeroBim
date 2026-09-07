@@ -3,18 +3,21 @@
 
 {% block titulo %}{% translate "Deliverables" %} · AeroBim{% endblock %}
 
-{% block contenido %}
-  <h1>{% translate "Deliverables" %}</h1>
-  <p class="subtitulo">
-    {% blocktranslate %}The register: what has to be delivered, who owns it and how far along it
-    is.{% endblocktranslate %}
-    <a href="?mios=1">{% translate "Only mine" %}</a> ·
-    <a href="{% url 'documents:entregables' %}">{% translate "All" %}</a>
-    {% if perms.documents.add_entregable %}
-      · <a href="{% url 'documents:nuevo-entregable' %}">{% translate "New deliverable" %}</a>
-    {% endif %}
-  </p>
+{% block titulo_pagina %}<h1>{% translate "Deliverables" %}</h1>{% endblock %}
 
+{% block subtitulo %}
+<p class="subtitulo">
+  {% blocktranslate %}The register: what has to be delivered, who owns it and how far along it
+  is.{% endblocktranslate %}
+  <a href="?mios=1">{% translate "Only mine" %}</a> ·
+  <a href="{% url 'documents:entregables' %}">{% translate "All" %}</a>
+  {% if perms.documents.add_entregable %}
+    · <a href="{% url 'documents:nuevo-entregable' %}">{% translate "New deliverable" %}</a>
+  {% endif %}
+</p>
+{% endblock %}
+
+{% block contenido %}
   <table>
     <thead>
       <tr>

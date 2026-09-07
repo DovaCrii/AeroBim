@@ -3,13 +3,16 @@
 
 {% block titulo %}{% translate "Scheduled jobs" %} · AeroBim{% endblock %}
 
-{% block contenido %}
-  <h1>{% translate "Scheduled jobs" %}</h1>
-  <p class="subtitulo">
-    {% blocktranslate %}A job that stops running raises no error: nothing happens, and the
-    notices it owed are simply not sent.{% endblocktranslate %}
-  </p>
+{% block titulo_pagina %}<h1>{% translate "Scheduled jobs" %}</h1>{% endblock %}
 
+{% block subtitulo %}
+<p class="subtitulo">
+  {% blocktranslate %}A job that stops running raises no error: nothing happens, and the
+  notices it owed are simply not sent.{% endblocktranslate %}
+</p>
+{% endblock %}
+
+{% block contenido %}
   {% if not correo_entrega %}
     {% comment %}
       **Va arriba y en rojo.** Un trabajo que corrio bien y un correo que no salio se

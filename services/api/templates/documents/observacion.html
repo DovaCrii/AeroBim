@@ -3,6 +3,40 @@
 
 {% block titulo %}{{ observacion.titulo }} · AeroBim{% endblock %}
 
+{% block cabecera %}
+  {% comment %}
+    **Esta pantalla sobreescribe la cabecera entera, y por eso no usa `titulo_pagina`.**
+
+    El título de un hallazgo no es una línea de texto: son las migas, la píldora de prioridad y
+    el título, en ese orden y en la misma caja. Con las piezas por separado habría que pelearse
+    con el orden y el `display` de cada bloque para conseguir lo mismo.
+  {% endcomment %}
+  <header class="cabecera-pagina">
+  <nav class="migas" aria-label="{% translate 'Where you are' %}">
+    <a href="{% url 'portal' %}">{% translate "Portal" %}</a>
+    {% if observacion.proyecto %}
+      <span aria-hidden="true">›</span>
+      <a href="{% url 'projects:proyecto' observacion.proyecto.pk %}">
+        {{ observacion.proyecto.codigo }}
+      </a>
+    {% endif %}
+    <span aria-hidden="true">›</span>
+    {% comment %}
+      La miga dice el nombre de la pantalla a la que lleva, no un sinónimo: si el portal y el
+      encabezado de ahí dicen «Observaciones», la miga no puede decir otra cosa.
+    {% endcomment %}
+    <a href="{% url 'documents:observaciones' %}">{% translate "Observations" %}</a>
+    <span aria-hidden="true">›</span>
+    <span aria-current="page">{{ observacion.titulo|truncatechars:48 }}</span>
+  </nav>
+
+  <div class="hallazgo-cabeza">
+    <span class="pildora pildora-prioridad {{ observacion.prioridad }}">{{ observacion.get_prioridad_display }}</span>
+    <h1>{{ observacion.titulo }}</h1>
+  </div>
+  </header>
+{% endblock %}
+
 {% block contenido %}
   {% comment %}
     **El flujo de esta pantalla no se entendía, y el usuario lo dijo dos veces.** Primero: «al
@@ -33,29 +67,6 @@
        y cerrar es lo que se hace una vez; con los dos como bloques iguales, el último es el que
        parece el principal por estar abajo.
   {% endcomment %}
-  <nav class="migas" aria-label="{% translate 'Where you are' %}">
-    <a href="{% url 'portal' %}">{% translate "Portal" %}</a>
-    {% if observacion.proyecto %}
-      <span aria-hidden="true">›</span>
-      <a href="{% url 'projects:proyecto' observacion.proyecto.pk %}">
-        {{ observacion.proyecto.codigo }}
-      </a>
-    {% endif %}
-    <span aria-hidden="true">›</span>
-    {% comment %}
-      La miga dice el nombre de la pantalla a la que lleva, no un sinónimo: si el portal y el
-      encabezado de ahí dicen «Observaciones», la miga no puede decir otra cosa.
-    {% endcomment %}
-    <a href="{% url 'documents:observaciones' %}">{% translate "Observations" %}</a>
-    <span aria-hidden="true">›</span>
-    <span aria-current="page">{{ observacion.titulo|truncatechars:48 }}</span>
-  </nav>
-
-  <div class="hallazgo-cabeza">
-    <span class="pildora pildora-prioridad {{ observacion.prioridad }}">{{ observacion.get_prioridad_display }}</span>
-    <h1>{{ observacion.titulo }}</h1>
-  </div>
-
   <div class="hallazgo">
     {# --- La conversación: de qué va, qué se ha dicho, y responder ------------------ #}
     <div class="hallazgo-cuerpo">

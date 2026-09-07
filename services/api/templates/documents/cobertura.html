@@ -3,16 +3,19 @@
 
 {% block titulo %}{% translate "What the model carries" %} · AeroBim{% endblock %}
 
-{% block contenido %}
-  <h1>{% translate "What the model carries" %}</h1>
-  <p class="subtitulo">
-    {{ revision.entregable.codigo }} rev. {{ revision.correlativo }} · {{ revision.nombre_original }}
-    <br />
-    {% blocktranslate %}Before requiring anything, this is what the model already has. A requirement
-    written blind is either one the model already meets — which says nothing — or one it does not
-    meet at all, which gets ignored from day one.{% endblocktranslate %}
-  </p>
+{% block titulo_pagina %}<h1>{% translate "What the model carries" %}</h1>{% endblock %}
 
+{% block subtitulo %}
+<p class="subtitulo">
+  {{ revision.entregable.codigo }} rev. {{ revision.correlativo }} · {{ revision.nombre_original }}
+  <br />
+  {% blocktranslate %}Before requiring anything, this is what the model already has. A requirement
+  written blind is either one the model already meets — which says nothing — or one it does not
+  meet at all, which gets ignored from day one.{% endblocktranslate %}
+</p>
+{% endblock %}
+
+{% block contenido %}
   {% if medicion.error %}
     <div class="aviso">{{ medicion.error }}</div>
   {% else %}

@@ -3,12 +3,15 @@
 
 {% block titulo %}{% translate "New activity" %} · AeroBim{% endblock %}
 
-{% block contenido %}
-  <h1>{% translate "New activity" %}</h1>
-  <p class="subtitulo">
-    {% blocktranslate %}The owner gets an email with the link and the due date.{% endblocktranslate %}
-  </p>
+{% block titulo_pagina %}<h1>{% translate "New activity" %}</h1>{% endblock %}
 
+{% block subtitulo %}
+<p class="subtitulo">
+  {% blocktranslate %}The owner gets an email with the link and the due date.{% endblocktranslate %}
+</p>
+{% endblock %}
+
+{% block contenido %}
   <form method="post" style="max-width: 560px">
     {% csrf_token %}
     {{ form.as_p }}

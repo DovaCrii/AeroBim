@@ -3,6 +3,15 @@
 
 {% block titulo %}{% translate "How AeroBim is used" %} · AeroBim{% endblock %}
 
+{% block titulo_pagina %}<h1>{% translate "How AeroBim is used" %}</h1>{% endblock %}
+
+{% block subtitulo %}
+<p class="subtitulo">
+  {% blocktranslate %}Nine steps, in the order the work actually happens. Each one says what it is
+  for, what to do, and takes you to the screen where it happens.{% endblocktranslate %}
+</p>
+{% endblock %}
+
 {% block contenido %}
   {% comment %}
     **El recorrido de cómo se usa el producto.** `F11.7`. El usuario lo pidió así: «una sección de
@@ -21,11 +30,6 @@
     El contenido sale de `apps/accounts/ayuda.py`, no de esta plantilla: ahí está escrito por qué se
     genera en vez de dibujarse con globos sobre la interfaz.
   {% endcomment %}
-  <h1>{% translate "How AeroBim is used" %}</h1>
-  <p class="subtitulo">
-    {% blocktranslate %}Nine steps, in the order the work actually happens. Each one says what it is
-    for, what to do, and takes you to the screen where it happens.{% endblocktranslate %}
-  </p>
 
   {% if ajenos %}
     <div class="aviso">

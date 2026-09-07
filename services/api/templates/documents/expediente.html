@@ -3,13 +3,16 @@
 
 {% block titulo %}{{ entregable.codigo }} · AeroBim{% endblock %}
 
-{% block contenido %}
-  <h1>{{ entregable.codigo }}</h1>
-  <p class="subtitulo">
-    {{ entregable.titulo }} · {{ entregable.disciplina }} ·
-    {% translate "owner" %}: {{ entregable.responsable }}
-  </p>
+{% block titulo_pagina %}<h1>{{ entregable.codigo }}</h1>{% endblock %}
 
+{% block subtitulo %}
+<p class="subtitulo">
+  {{ entregable.titulo }} · {{ entregable.disciplina }} ·
+  {% translate "owner" %}: {{ entregable.responsable }}
+</p>
+{% endblock %}
+
+{% block contenido %}
   {% comment %}
     **Lo que falta va primero, y nombrado.** No un porcentaje: la fila concreta y el
     atajo que la cierra -- y el atajo solo si el usuario puede ejecutarlo, porque

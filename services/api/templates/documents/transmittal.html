@@ -3,13 +3,16 @@
 
 {% block titulo %}{{ transmittal.folio }} · AeroBim{% endblock %}
 
-{% block contenido %}
-  <h1>{{ transmittal.folio }}</h1>
-  <p class="subtitulo">
-    {{ transmittal.asunto }} · {{ transmittal.proyecto }} ·
-    {% translate "issued by" %} {{ transmittal.emisor }}
-  </p>
+{% block titulo_pagina %}<h1>{{ transmittal.folio }}</h1>{% endblock %}
 
+{% block subtitulo %}
+<p class="subtitulo">
+  {{ transmittal.asunto }} · {{ transmittal.proyecto }} ·
+  {% translate "issued by" %} {{ transmittal.emisor }}
+</p>
+{% endblock %}
+
+{% block contenido %}
   {% comment %}
     El paso a paso se **deriva del modelo** (`status_steps`), nunca se teclea aqui: una lista
     de estados escrita en la plantilla se separa de los reales en el primer cambio, y entonces
