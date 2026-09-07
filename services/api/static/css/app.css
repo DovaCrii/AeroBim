@@ -13,12 +13,30 @@
      hace que las dos mitades se lean como un producto: el portal y el visor comparten marca. */
   --ab-navy: #1b2a4a; /* = --color-ink */
   --ab-violet: #9b5de5; /* = --color-brand — decorativo, 2,9:1 sobre blanco: no para texto */
-  --ab-shell: #161f2d; /* = --color-shell, el fondo del visor */
 
   --ab-bg: #f4f7fb;
   --ab-surface: #ffffff;
   --ab-surface-alt: #f8fafc; /* filas alternas y cabeceras: separa sin dibujar una línea más */
-  --ab-border: #dbe3ee;
+  --ab-border: #dbe3ee; /* 1,3:1 — separa bloques, **no vale como contorno de un control** */
+
+  /* **El contorno de un control, que hasta hoy no existía.**
+   *
+   * `--ab-border` da **1,24:1** contra el fondo del campo (`#dbe3ee` sobre `#f8fafc`), y WCAG
+   * 1.4.11 pide **3:1** para lo que transmite información sin ser texto — y el contorno de un campo
+   * lo es: es lo único que dice dónde se puede escribir. El comentario de más abajo ya decía que
+   * este token «no existe en este archivo»; ahora existe y está medido.
+   *
+   * 3,45:1 sobre la superficie y 3,30:1 sobre el fondo del propio campo, que es el par más
+   * exigente de los dos. */
+  --ab-border-control: #7f8b9e;
+
+  /* La pista de la barra de avance. **Se usaba sin declararla**, o sea que no se pintaba: una barra
+   * sin pista se lee como una barra al 0 %. Lo cazó el gate de `test_sistema_de_diseno.py` en su
+   * primera corrida.
+   *
+   * Lo que tiene que verse es **el relleno contra la pista**, y ahí hay 6,80:1. La pista contra la
+   * tarjeta se queda en 1,21:1 a propósito: es el hueco, no un dato. */
+  --ab-track: #e2eaf4;
 
   --ab-text: #172238; /* 14,2:1 sobre --ab-surface */
   --ab-text-secondary: #4f5b72; /* 7,4:1 */
@@ -52,9 +70,18 @@
   --ab-radio-sm: 6px; /* controles: botón, campo, fila */
   --ab-radio-md: 10px; /* tarjetas y desplegables */
   --ab-radius: 12px; /* el contenedor grande. Se conserva el nombre: lo usan 14 reglas */
-  --ab-control-height: 42px;
-  --ab-sidebar-width: 248px;
 }
+
+/* **Aquí había tres tokens que nadie usaba**: `--ab-control-height: 42px`, `--ab-sidebar-width:
+ * 248px` y `--ab-shell: #161f2d`. Un token declarado y sin un solo `var()` es una decisión que
+ * parece tomada y no lo está: quien lee el archivo cree que hay una altura de control acordada, y
+ * las nueve alturas de los controles siguen escritas a mano.
+ *
+ * El de la barra lateral vuelve cuando el rail lo use, y no antes. Y `--ab-shell` se va además por
+ * otra razón: **su comentario decía «= --color-shell» y era falso** —`#161f2d` aquí contra
+ * `#101725` en `apps/web/src/index.css`—, o sea que la costura que prometía estaba rota y nadie lo
+ * veía porque el token no pintaba nada. La prueba de la costura ahora mide los dos que sí se usan.
+ */
 
 /*
  * **Estos tokens eran código muerto hasta hoy.** Estaban escritos y ninguna plantilla ponía nunca
@@ -67,6 +94,10 @@
   --ab-surface: #1b2432;
   --ab-surface-alt: #202b3b;
   --ab-border: #2b3648;
+  /* 3,51:1 sobre la superficie y 3,21:1 sobre el fondo del campo. En oscuro el problema era peor:
+     `--ab-border` daba **1,17:1**, o sea que el campo no tenía contorno visible en absoluto. */
+  --ab-border-control: #6b7890;
+  --ab-track: #313d51; /* el relleno `--ab-primary` encima da 5,23:1 */
   --ab-text: #eef1f6;
   --ab-text-secondary: #b6c0d1;
   --ab-text-muted: #97a3b6;
@@ -1174,9 +1205,14 @@ button:disabled {
  * un hallazgo tenía dos rectángulos blancos encima de un fondo azul oscuro. Los tokens ya existían;
  * lo que faltaba era usarlos.
  *
- * `--ab-border-control` no existe en este archivo, así que el contorno es `--ab-border` reforzado
- * al enfocar: WCAG 1.4.11 pide 3:1 para el contorno de un control, y el del sistema no lo cumplía
- * en oscuro porque simplemente no había contorno — había un relleno blanco.
+ * **Y el contorno era `--ab-border`, que no llega.** Medido: 1,24:1 en claro y **1,17:1** en oscuro
+ * contra el fondo del propio campo. WCAG 1.4.11 pide 3:1 para lo que transmite información sin ser
+ * texto, y el contorno de un campo es lo único que dice dónde se puede escribir: por debajo de eso
+ * el campo no parece un campo. Ahora va `--ab-border-control`, declarado arriba y medido en los dos
+ * temas (3,30:1 y 3,21:1 sobre el fondo del campo).
+ *
+ * `--ab-border` se queda para separar bloques, que es otra cosa: una línea entre dos filas de una
+ * tabla no tiene que gritar.
  */
 input[type="text"],
 input[type="password"],
@@ -1190,7 +1226,7 @@ textarea {
   padding: 7px 10px;
   color: var(--ab-text);
   background: var(--ab-surface-alt);
-  border: 1px solid var(--ab-border);
+  border: 1px solid var(--ab-border-control);
   border-radius: var(--ab-radio-md);
   font: inherit;
 }
