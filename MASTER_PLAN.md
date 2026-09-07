@@ -17,21 +17,21 @@
 **Diez de las doce fases con trabajo están cerradas**, y lo que queda se cuenta en una línea cada
 cosa. Actualizado el 2026-09-07.
 
-| Fase                           | Estado                                                                                          |
-| ------------------------------ | ----------------------------------------------------------------------------------------------- |
-| **0 · Cimientos**              | ✅ entera — `F0.6` cerró el 2026-09-02 y esta línea llevaba desde entonces sin actualizar       |
-| **1 · Visor**                  | ✅ salvo `F1.13`, que son **tres nombres que decide el usuario**                                |
-| **3 · Backend**                | ✅ entera                                                                                       |
-| **4 · Coordinación**           | ✅ salvo `F4.5`, el trazo libre, **condicionado a que el usuario mire un BCF exportado**        |
-| **5 · Interferencias**         | ✅ entera                                                                                       |
-| **7 · Planos, salida**         | ✅ entera — capas, DXF, PDF con sello, y el plano acotado y con sus llamadas                    |
-| **8 · Registro documental**    | ✅ entera                                                                                       |
-| **9 · Diseño**                 | ✅ salvo `F9.6`, **ya decidida** el 2026-09-07 — se cierra al reescribir `UX.md` en el bloque 3 |
-| **10 · Etiquetas y tablas**    | ✅ entera                                                                                       |
-| **11 · El portal se ve plano** | ✅ entera — incluida la ayuda con su recorrido                                                  |
-| **2 · Nubes de puntos**        | 🔶 abre, se maneja, calza y **entra al expediente**. `F2.4` espera **el IFC de la pasarela**    |
-| **12 · La interfaz**           | 🔶 **el piloto desbloqueado y el portal cerrado**; queda el visor — ver los bloques abajo       |
-| **6 · Geo + BIM**              | ⬜ pospuesta a propósito el 2026-09-02, para poner la coordinación delante                      |
+| Fase                           | Estado                                                                                       |
+| ------------------------------ | -------------------------------------------------------------------------------------------- |
+| **0 · Cimientos**              | ✅ entera — `F0.6` cerró el 2026-09-02 y esta línea llevaba desde entonces sin actualizar    |
+| **1 · Visor**                  | ✅ salvo `F1.13`, que son **tres nombres que decide el usuario**                             |
+| **3 · Backend**                | ✅ entera                                                                                    |
+| **4 · Coordinación**           | ✅ salvo `F4.5`, el trazo libre, **condicionado a que el usuario mire un BCF exportado**     |
+| **5 · Interferencias**         | ✅ entera                                                                                    |
+| **7 · Planos, salida**         | ✅ entera — capas, DXF, PDF con sello, y el plano acotado y con sus llamadas                 |
+| **8 · Registro documental**    | ✅ entera                                                                                    |
+| **9 · Diseño**                 | ✅ **entera** — `F9.6` cerró el 2026-09-07 al reescribir `docs/UX.md`                        |
+| **10 · Etiquetas y tablas**    | ✅ entera                                                                                    |
+| **11 · El portal se ve plano** | ✅ entera — incluida la ayuda con su recorrido                                               |
+| **2 · Nubes de puntos**        | 🔶 abre, se maneja, calza y **entra al expediente**. `F2.4` espera **el IFC de la pasarela** |
+| **12 · La interfaz**           | 🔶 **el piloto desbloqueado y el portal cerrado**; queda el visor — ver los bloques abajo    |
+| **6 · Geo + BIM**              | ⬜ pospuesta a propósito el 2026-09-02, para poner la coordinación delante                   |
 
 **La Fase 2 va por tres cuartos**, y en un orden que no es el de su numeración. Desde el 2026-09-03
 se comprueba contra **el levantamiento real del CC 741 — Camino Agrícola**, no contra un fixture:
@@ -74,8 +74,9 @@ pospone — y con el mismo criterio que la Fase 6.
 porque el usuario avisó de que **se van a incorporar diseños de otras especialidades** y el número de
 modelos abiertos a la vez va a crecer: hoy la conversión bloquea el hilo de la interfaz.
 
-**Y tres cosas no las decide este plan**, porque no son trabajo sino elecciones: `F1.13`, `F9.6` y
-el trazo libre de `F4.5`. Están reunidas abajo, en «Las decisiones que solo el usuario puede tomar».
+**Y dos cosas no las decide este plan**, porque no son trabajo sino elecciones: `F1.13` y el trazo
+libre de `F4.5`. Están reunidas abajo, en «Las decisiones que solo el usuario puede tomar». `F9.6`
+estaba ahí y **se decidió el 2026-09-07**.
 
 ## La prioridad cambió el 2026-09-02, y la puso el usuario
 
@@ -151,7 +152,7 @@ Las **veintinueve** filas abiertas, de una vez. `⬜` no empezada · `❓` medid
 | **5 — Interferencias**                   | ✅ **la fase entera** — `F5.5` cierra con las dos mitades: silenciar y agrupar _(35 interferencias en 13 problemas)_            |
 | **4 — Coordinación** ⭐                  | `F4.5` ◐ falta el trazo libre; las cotas ya viajan _(`F4.6` cerrada: el ciclo va y vuelve)_                                     |
 | **3 — Backend**                          | `F3.4` ✅ decidida por el usuario el 2026-09-02: **la petición espera**, y por qué                                              |
-| **9 — Diseño** ⭐                        | `F9.6` ⛔ — la decide el usuario, y son tres decisiones _(`F9.1` a `F9.5` cerradas)_                                            |
+| **9 — Diseño** ⭐                        | ✅ **la fase entera** — `F9.6` se decidió y se escribió en `docs/UX.md` el 2026-09-07                                           |
 | **11 — El portal se ve plano** ⭐        | ✅ **la fase entera** — el portal, la ficha, la lista, los colores y la ayuda con su recorrido                                  |
 | **10 — Etiquetas, informes y tablas** ⭐ | ✅ **la fase entera** — el informe sale en papel, se pide por etiqueta, el modelo saca sus cuadros y la lámina los lleva dentro |
 | **1 — Visor**                            | `F1.13` ❓ — auditada; quedan tres nombres que decide el usuario                                                                |
@@ -206,7 +207,7 @@ caminos que ya están abiertos. Eso es lo que se hace primero, porque cierra dos
    nuestra. Y que lo primero de `F2.1` es comprobar que `copc` + `laz-perf` abren en el navegador el
    archivo que escribe `pdal` — eso está **sin verificar**, y el documento lo dice.
 
-**Y las tres decisiones que siguen bloqueadas** —`F9.6`, `F1.13` y las que aparezcan— no están en
+**Y las decisiones que siguen bloqueadas** —`F1.13` y las que aparezcan— no están en
 esta lista porque no son trabajo: son elecciones. Están abajo, en «Las decisiones que solo el usuario
 puede tomar».
 
@@ -223,16 +224,16 @@ grandes que quedan por empezar, y ninguna se abre con la anterior a medio cerrar
 No son tareas: son preguntas abiertas que bloquean o desvían trabajo, y hasta hoy estaban
 repartidas por el documento.
 
-| #                                 | Qué hay que decidir                                                                                                                                                                                                                                                                                              |
-| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `F9.6` — **tres**, y por separado | Si el navegador de la derecha **se reparte** en un rail de destinos; si algo **puede flotar** sobre el modelo; si propiedades **se ancla** al elemento. Las tres contradicen una línea escrita de `UX.md`. Se puede aceptar una y rechazar las otras dos, y **si se acepta alguna se reescribe `UX.md` primero** |
-| `F1.13` — **tres nombres**        | El grupo «Trabajo» de la cinta no dice qué contiene; **«Guardar vista»** es un mandato y solo vive en el panel derecho; y **calzar un plano, cortar a su altura, generar un plano y observar** son mandatos que hoy solo salen de un panel o de una ficha                                                        |
-| `F3.4` — **el umbral**            | Ya está el número que la reabre: **30 s** sobre un archivo real. Hoy lo más lento son 1,5 s                                                                                                                                                                                                                      |
-| ~~`F10.2` — qué es «una nota»~~   | ✅ **Contestada el 2026-09-02**: son los comentarios que ya existen, y lo que faltaba era elegir qué se imprime. Se cerró sin escribir ni un modelo nuevo — la pregunta valió más que el desarrollo que se habría hecho sin hacerla                                                                              |
-| ~~`F10.3` — el papel~~            | ✅ **Contestada el 2026-09-02**: PDF desde el servidor, «así buscamos que sea interno». Con reportlab, elegido midiendo cinco opciones                                                                                                                                                                           |
-| Despliegue                        | Qué dominio (`bim.<dominio>`), y si comparte VM con AeroControl y AeroPlanner                                                                                                                                                                                                                                    |
-| Copias de seguridad               | No hay nada escrito. Son dos cosas separadas a propósito: la base y `/var/lib/aerobim`                                                                                                                                                                                                                           |
-| Modelos de prueba                 | Falta uno **> 50 MB** y uno de instalaciones. Son los dos que decidirían si `F3.4` procede                                                                                                                                                                                                                       |
+| #                                     | Qué hay que decidir                                                                                                                                                                                                                                       |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ~~`F9.6` — **tres**, y por separado~~ | **Contestada el 2026-09-07.** Herramientas flotantes: rechazada. Propiedades ancladas: rechazada. El rail: aceptado **como estado plegado** del mismo navegador, no como destinos. Escrito en `docs/UX.md`, que era la condición                          |
+| `F1.13` — **tres nombres**            | El grupo «Trabajo» de la cinta no dice qué contiene; **«Guardar vista»** es un mandato y solo vive en el panel derecho; y **calzar un plano, cortar a su altura, generar un plano y observar** son mandatos que hoy solo salen de un panel o de una ficha |
+| `F3.4` — **el umbral**                | Ya está el número que la reabre: **30 s** sobre un archivo real. Hoy lo más lento son 1,5 s                                                                                                                                                               |
+| ~~`F10.2` — qué es «una nota»~~       | ✅ **Contestada el 2026-09-02**: son los comentarios que ya existen, y lo que faltaba era elegir qué se imprime. Se cerró sin escribir ni un modelo nuevo — la pregunta valió más que el desarrollo que se habría hecho sin hacerla                       |
+| ~~`F10.3` — el papel~~                | ✅ **Contestada el 2026-09-02**: PDF desde el servidor, «así buscamos que sea interno». Con reportlab, elegido midiendo cinco opciones                                                                                                                    |
+| Despliegue                            | Qué dominio (`bim.<dominio>`), y si comparte VM con AeroControl y AeroPlanner                                                                                                                                                                             |
+| Copias de seguridad                   | No hay nada escrito. Son dos cosas separadas a propósito: la base y `/var/lib/aerobim`                                                                                                                                                                    |
+| Modelos de prueba                     | Falta uno **> 50 MB** y uno de instalaciones. Son los dos que decidirían si `F3.4` procede                                                                                                                                                                |
 
 > **La trampa que más cara salió, para no repetirla:** el despliegue **no debe servir**
 > las cabeceras COOP/COEP. Con aislamiento de origen, `web-ifc` elige su WASM multihilo,
@@ -3311,7 +3312,7 @@ teclado sabiendo dónde se está.
 | `F9.3` | **`:focus-visible` global** y los **230** usos de `white/NN` reemplazados por papel con nombre        | ✅ ver abajo |
 | `F9.4` | **Las acciones dejan de esconderse**: fuera `opacity-0 group-hover`, áreas de toque a 44 px           | ✅ ver abajo |
 | `F9.5` | **Estados vacíos con puerta de entrada**, y escala de radio y elevación compartida con el portal      | ✅ ver abajo |
-| `F9.6` | **Reordenar el shell del visor** — _bloqueada: contradice `docs/UX.md`, la decide el usuario_         | ⛔           |
+| `F9.6` | **Reordenar el shell del visor** — _decidida y escrita en `docs/UX.md` el 2026-09-07_                 | ✅           |
 
 ### `F9.4` y `F9.5` cerradas el 2026-09-03, y la mitad ya estaba hecha
 
@@ -3499,7 +3500,8 @@ usuario preguntó «cómo puedo cargar una observación, no está claro eso» te
 `opacity-0`, que la regla del área de toque exista con sus 44 px, que la escala de radio sea 6/10/12
 y que las tres elevaciones sean oscuras.
 
-**Con esto la Fase 9 está cerrada salvo `F9.6`**, que es una decisión del usuario y son tres.
+**Con esto la Fase 9 quedó cerrada salvo `F9.6`**, que era una decisión del usuario y eran tres.
+**Las contestó el 2026-09-07** y la fase cierra entera: ver más abajo.
 
 ### `F9.2`: la escala se **mapea**, no se borra
 
@@ -3538,9 +3540,12 @@ equivalencia queda en la tabla de arriba.
 > sitios, es el mismo acordeón a 44 px. Así que la regla de crecimiento —«una capacidad nueva es una
 > sección del navegador»— **se conserva**, que era lo que la propuesta original rompía.
 >
-> **Queda cerrarla escribiéndolo.** La regla de este documento es que si se acepta alguna se
-> reescribe `UX.md` primero y se toca el código después; eso es el paso B0 del bloque 3. La sección
-> del portal de `UX.md` ya está escrita (2026-09-07); falta la del visor.
+> **Y cerrada el 2026-09-07**, escribiéndolo donde tenía que escribirse: `docs/UX.md` recoge las
+> tres decisiones, reescribe la regla 3 —lo permanente no flota, lo transitorio sí, con sus cuatro
+> condiciones—, agrupa las doce secciones del navegador en cuatro, y añade «Qué pesa cada
+> herramienta» y «Tema». La regla del propio documento era que si se acepta alguna **se reescribe
+> ahí primero y se toca el código después**; eso es lo que se ha hecho, y por eso `F9.6` cierra
+> antes de que el bloque 3 toque una línea de `apps/web`.
 
 Lo que la revisión había propuesto: barra de aplicación con migas compartida con el
 portal, **rail de siete secciones** en vez del acordeón del navegador, **herramientas flotando

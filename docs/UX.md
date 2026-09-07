@@ -1,13 +1,26 @@
 # UX de AeroBim — cómo se reparte la pantalla y por qué
 
 > **Qué es esto.** La estructura de la interfaz: qué zonas hay, qué entra en cada una y con qué
-> regla crece cuando lleguen las nubes de puntos, el BCF y las interferencias. Escrito el
-> 2026-08-19 a pedido del usuario, después de la primera prueba con un plano DXF y un IFC abiertos
-> a la vez.
+> regla crece. Escrito el 2026-08-19 a pedido del usuario, después de la primera prueba con un plano
+> DXF y un IFC abiertos a la vez — cuando las nubes de puntos, el BCF y las interferencias todavía
+> no existían. **Las tres entraron después donde esta regla decía que entrarían**, y esa es la razón
+> de que el documento siga mandando.
 >
-> La referencia declarada es **AutoCAD, Revit y los modeladores de Bentley**, porque de ahí vienen
-> quienes van a usar esto. No se copia por gusto: se copia para que nadie tenga que aprender otra
+> **Dos referencias, y cada una manda en lo suyo** (decidido el 2026-09-07).
+>
+> **CAD —AutoCAD, Revit y los modeladores de Bentley— manda en _dónde_ están las herramientas y
+> cómo se comportan**: la cinta con pestañas por tipo de trabajo, el cubo de vistas arriba a la
+> derecha, la barra de estado al pie, la ficha densa, el amarillo del ajuste. De ahí vienen quienes
+> van a usar esto, y no se copia por gusto: se copia para que nadie tenga que aprender otra
 > pantalla.
+>
+> **Asana manda en _cómo se ve y se lee_**: superficies limpias separadas por borde, aire, dos
+> niveles tipográficos en vez de cinco, navegación lateral que se pliega a rail, acciones visibles,
+> estados con color suave **y texto**, y tema claro además del oscuro.
+>
+> Y lo que **no** se toma de Asana, dicho para no discutirlo después: acciones escondidas en hover,
+> tarjetas ancladas a la selección, herramientas flotando sobre el lienzo, y la densidad de página
+> de una herramienta de gestión — aquí el lienzo se lleva la pantalla.
 >
 > **Los colores, los tamaños de letra y los estados están en
 > [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md)** (2026-09-01). Este documento dice qué zonas hay y qué
@@ -31,8 +44,25 @@ gobiernan el resto:
 2. **Los paneles laterales se mueven.** Ancho arrastrable por su borde y **alto de cada sección
    arrastrable por su separador**. Revisar capas de un plano pide panel; medir pide lienzo, y la
    elección cambia cada diez minutos: no puede estar cableada.
-3. **Nada flota sobre el modelo** salvo el cubo de vistas. Los avisos van a la barra de estado, que
-   es donde ya mira quien viene de un CAD.
+3. **Nada _permanente_ flota sobre el modelo** salvo el cubo de vistas. Los avisos van a la barra de
+   estado, que es donde ya mira quien viene de un CAD.
+
+   **Lo _transitorio_ sí flota** —reescrito el 2026-09-07— y esto es una corrección, no un cambio
+   de opinión: la regla decía «nada flota» y el código ya tenía dos cosas flotando desde antes
+   (`NotaFlotante` y `CuadroFlotante`, las dos `absolute z-20` sobre el lienzo, comprobado). Un
+   documento normativo que contradice al código no gobierna nada: o se borra el código o se corrige
+   la regla, y aquí lo correcto es corregir la regla, porque las dos cosas que flotan **están
+   bien**.
+
+   Lo transitorio es la nota mientras se escribe, el cuadro mientras se consulta y la puerta
+   mientras no hay nada abierto. Y lleva sus condiciones, que es lo que lo separa de «todo puede
+   flotar»:
+
+   - **se arrastra** a donde no moleste;
+   - **se cierra con Esc**;
+   - **no sobrevive a su tarea** — al guardar la nota, desaparece;
+   - **no lleva herramientas dentro.** Una herramienta flotante es permanente por definición: se usa
+     una y otra vez, así que su sitio es la cinta.
 
 ## Las cinco zonas
 
@@ -58,15 +88,14 @@ midiendo, y se cambia de contenido pocas veces.
 Es la zona que más va a crecer, y por eso tiene una regla explícita: **cada fuente de datos es una
 sección de la misma lista**, no una pestaña aparte.
 
+**Y desde el 2026-09-07 las secciones van en cuatro grupos**, porque doce seguidas con la misma
+cabecera son un muro: la lista dejó de decir por dónde empezar en cuanto pasó de siete.
+
 ```
-ESTRUCTURA DEL MODELO   ← el árbol espacial del IFC
-MODELOS ABIERTOS        ← los IFC, con orden, apagado y cierre
-PLANOS 2D               ← los DXF, con sus capas y su ajuste     (hoy)
-NUBES DE PUNTOS         ← el levantamiento                        (Fase 2)
-VISTAS GUARDADAS        ← cámara + visibilidad + cortes
-MEDICIONES TOMADAS      ← aparece sola cuando hay alguna
-TEMAS BCF               ← coordinación                            (Fase 4)
-INTERFERENCIAS          ← resultados navegables                   (Fase 5)
+EMPEZAR       Del registro · Coordinación
+LO ABIERTO    Modelos abiertos · Planos 2D · Nube de puntos · Calce y desviación
+EL MODELO     Estructura · Cuadros · Planos generados
+LO GUARDADO   Vistas guardadas · Vistas del proyecto · Mediciones tomadas
 ```
 
 **Por qué juntas y no en pestañas.** La pregunta que trae a alguien aquí es "¿esto que dice el plano
@@ -74,7 +103,53 @@ está modelado?", y responderla es encender y apagar de dos fuentes distintas. C
 comparación cuesta dos clics de ida y dos de vuelta; en la misma columna cuesta uno.
 
 Cada sección se pliega y **se le puede fijar el alto**; las que no tienen alto fijo se reparten lo
-que sobra. Así siete secciones conviven sin que ninguna empuje a las demás fuera de la pantalla.
+que sobra. Así doce secciones conviven sin que ninguna empuje a las demás fuera de la pantalla.
+
+**El grupo no es un destino.** Es un rótulo que separa, y las cuatro listas están a la vez en la
+misma columna: repartirlas en cuatro sitios rompería la razón de que estén juntas.
+
+#### El rail: el navegador plegado, no un menú aparte
+
+`F9.6`, decidido el 2026-09-07. El navegador se pliega a **44 px de iconos** y se despliega con un
+clic, con la sección de ese icono abierta. Recupera **302 px de lienzo** medidos.
+
+**Y es un estado, no una navegación**, que es la diferencia que hace que esto no contradiga la regla
+de arriba: el rail no reparte el contenido en doce destinos con uno visible a la vez —eso era la
+propuesta original y por eso estaba bloqueada—; es el mismo acordeón con los rótulos escondidos. La
+regla de crecimiento se conserva entera: **una capacidad nueva sigue siendo una sección**, ahora con
+su icono y en el grupo que le toca.
+
+### Qué pesa cada herramienta
+
+**No todas las herramientas de una pestaña valen lo mismo, y hasta el 2026-09-07 se dibujaban
+iguales**: 36 botones del mismo tamaño en 12 grupos, así que nada decía cuál se usa treinta veces al
+día y cuál una vez por proyecto.
+
+El criterio, para que no se decida botón por botón:
+
+**Es grande la herramienta que (a) abre el modo de trabajo de su pestaña, o (b) es la vuelta
+segura.** Como mucho **tres por pestaña** — con cinco, «grande» deja de significar algo. Y las que
+duplican al cubo de vistas son siempre pequeñas: el cubo ya está ahí y es más rápido.
+
+| Pestaña  | Grandes                 |
+| -------- | ----------------------- |
+| Vista    | Todo · Modo 2D · Órbita |
+| Medición | Seleccionar · Distancia |
+| Modelo   | Horizontal · Ver todo   |
+
+**La altura de la cinta no cambia.** Lo pequeño va con icono de 16 y su nombre a la derecha, **dos
+por columna**, no tres: tres apilados bajan de los 44 px de área mínima, que es una regla del
+sistema y no una preferencia.
+
+### Tema
+
+**Oscuro por defecto en el visor**, porque el lienzo es oscuro y una interfaz clara alrededor de un
+modelo oscuro obliga a la pupila a adaptarse en cada mirada. **Claro disponible**, porque hay
+oficinas con ventanal al sur.
+
+**La clave es la misma que el portal** (`localStorage["aerobim:tema"]`), y eso es la costura: quien
+elige claro en el portal entra en un visor claro. Con dos claves distintas, cruzar del expediente al
+modelo cambiaría de tema a mitad de un gesto.
 
 ### 2D y 3D: una sola ventana, con un modo para cada trabajo
 
@@ -126,28 +201,39 @@ desde la ficha o desde el árbol y el camino de vuelta tiene que estar a la vist
 
 ## Escalabilidad: qué se añade y dónde
 
-| Lo que llegue                          | Dónde entra sin rediseñar nada                                         |
-| -------------------------------------- | ---------------------------------------------------------------------- |
-| Nubes de puntos (Fase 2)               | Sección propia en el navegador + grupo "Nube" en la pestaña Modelo     |
-| Temas BCF (Fase 4)                     | Sección propia + pestaña "Coordinación" en la cinta                    |
-| Interferencias (Fase 5)                | Sección propia; el resultado lleva la cámara y aísla los dos elementos |
-| Herramientas CAD de revisión (`F7.11`) | Grupo nuevo en la pestaña Medición, con los ajustes de snap            |
-| Más de un plano a la vez               | Ya funciona: la lista crece y cada uno lleva su ajuste y sus capas     |
+**Esta tabla ya se cumplió**, y se conserva porque su valor es haber acertado: las tres capacidades
+grandes que llegaron después entraron **donde estaba escrito que entrarían**, sin rediseñar nada.
 
-**La regla para crecer:** una capacidad nueva es _una sección del navegador_ y, como mucho, _un
-grupo en una pestaña existente_. Una pestaña nueva solo se justifica cuando aparece un modo de
-trabajo entero —coordinar no es medir—, y nunca para un solo botón.
+| Lo que llegó                           | Dónde entró, como estaba previsto                                      | ¿Se cumplió? |
+| -------------------------------------- | ---------------------------------------------------------------------- | ------------ |
+| Nubes de puntos (Fase 2)               | Sección propia en el navegador + grupo "Nube" en la pestaña Modelo     | ✅           |
+| Temas BCF (Fase 4)                     | Sección propia + pestaña "Coordinación" en la cinta                    | ✅           |
+| Interferencias (Fase 5)                | Sección propia; el resultado lleva la cámara y aísla los dos elementos | ✅           |
+| Herramientas CAD de revisión (`F7.11`) | Grupo nuevo en la pestaña Medición, con los ajustes de snap            | ✅           |
+| Más de un plano a la vez               | La lista crece y cada uno lleva su ajuste y sus capas                  | ✅           |
+
+**La regla para crecer:** una capacidad nueva es _una sección del navegador_ —con su icono y en el
+grupo que le toca— y, como mucho, _un grupo en una pestaña existente_. Una pestaña nueva solo se
+justifica cuando aparece un modo de trabajo entero —coordinar no es medir—, y nunca para un solo
+botón.
 
 ## Lo que falta, dicho en voz alta
 
-- **Hay una propuesta de reordenar el shell que contradice tres decisiones de este documento**
-  (revisión de diseño del 2026-09-01, `F9.6` en `MASTER_PLAN.md`). Propone herramientas
-  flotando sobre el lienzo, el navegador repartido en un rail de siete destinos y propiedades
-  como tarjeta anclada a la selección. Aquí está escrito que **nada flota sobre el modelo salvo
-  el cubo**, que el navegador es **el contenido del proyecto todo junto**, y que una capacidad
-  nueva es **una sección del navegador**. Son tres decisiones separadas y se puede aceptar una
-  sin las otras. **Mientras no se decida, manda lo que dice este documento**; si se acepta
-  alguna, se reescribe aquí primero y se toca el código después.
+- ~~**Hay una propuesta de reordenar el shell que contradice tres decisiones de este
+  documento**~~ — **decidida el 2026-09-07, y escrita arriba.** `F9.6` cierra aquí, que es donde
+  tenía que cerrar: la regla de este documento era que si se acepta alguna se reescribe esto primero
+  y se toca el código después.
+
+  | Lo que proponía la revisión del 2026-09-01 | Decisión                                                |
+  | ------------------------------------------ | ------------------------------------------------------- |
+  | Herramientas flotando sobre el lienzo      | **Rechazada.** Sigue en pie «nada permanente flota»     |
+  | Propiedades como tarjeta anclada           | **Rechazada.** Sigue siendo panel fijo a la izquierda   |
+  | El navegador repartido en un rail          | **Aceptada como estado plegado**, no como doce destinos |
+
+  La tercera es la única que cambia algo, y lo cambia poco a propósito: como estado plegado, la
+  regla de crecimiento —«una capacidad nueva es una sección del navegador»— **se conserva**. Era
+  justo lo que la propuesta original rompía, y el motivo de que estuviera bloqueada en vez de
+  pendiente.
 
 - **Herramientas CAD de revisión** (`F7.11`): snap a extremo/medio/intersección sobre el plano,
   medir del plano al modelo, y marcar sobre el plano. Hoy se puede seleccionar un trazo y leer su
