@@ -1,83 +1,111 @@
 {% extends "base.html" %}
 {% load i18n %}
 
-{% block titulo %}{% translate "Portal" %} · AeroBim{% endblock %}
+{% block titulo %}{% translate "My work" %} · AeroBim{% endblock %}
 
-{% block titulo_pagina %}<h1>{% translate "Portal" %}</h1>{% endblock %}
+{% comment %}
+  **La portada dejó de llamarse «Portal».** `F12.7`.
 
+  «Portal» es el nombre de la cosa, no de lo que hay dentro: nadie abre una aplicación buscando su
+  portal. La pregunta que uno tiene al abrirla por la mañana es **«¿qué me toca?»**, y ese es el
+  nombre que la pantalla lleva ahora. El nombre lo eligió el usuario entre tres candidatos.
+
+  Y con «Mi trabajo» arriba, la bandeja pasa a llamarse **«Todo lo pendiente»**: dos pantallas «mías»
+  con nombres parecidos son dos sitios donde buscar lo mismo.
+{% endcomment %}
+{% block titulo_pagina %}<h1>{% translate "My work" %}</h1>{% endblock %}
+
+{% comment %}
+  **El subtítulo era «Solo se lista lo que tu rol puede abrir» y eso no es lo que hace falta saber.**
+
+  Describía la regla de la pantalla —cierta, y en la que nadie piensa por la mañana— en el sitio más
+  visible. Ahora lleva **la cifra del día**: lo vencido, lo de esta semana y cuántas obras. Es lo
+  que decide si hay que entrar corriendo a algo o no.
+
+  Y la regla del rol no se pierde: sigue siendo verdad y sigue escrita en la ayuda, que es donde se
+  explica el producto.
+{% endcomment %}
 {% block subtitulo %}
-<p class="subtitulo">
-  {% blocktranslate %}Only what your role can open is listed.{% endblocktranslate %}
-</p>
+  <p class="subtitulo cifra-del-dia">
+    {% comment %}
+      **El hueco entre las piezas lo pone el CSS, no un espacio en el HTML**, y esto costó un rato
+      entender: la cabecera va dentro de un `{% templatetag openblock %} spaceless
+      {% templatetag closeblock %}` —que es lo que permite que una cabecera sin llenar se esconda—
+      y `spaceless` **quita el blanco entre etiquetas**. Escribiendo un espacio antes del separador
+      salía igual «esta semana·2 obras».
+
+      Así que `.cifra-del-dia` es un `flex` con `gap`. Vale para cualquier cosa que se ponga en la
+      cabecera: ahí dentro, el espaciado que dependa del blanco del HTML no existe.
+
+      Y lo vencido va en rojo y en negrita, solo lo vencido: es lo único de esta línea que pide
+      hacer algo hoy. El resto es contexto.
+    {% endcomment %}
+    {% for pieza in cifra_del_dia %}
+      {% if not forloop.first %}<span aria-hidden="true">·</span>{% endif %}
+      {% if forloop.first and mis_vencidas %}
+        <b class="cifra-arde">{{ pieza }}</b>
+      {% else %}<span>{{ pieza }}</span>{% endif %}
+    {% endfor %}
+  </p>
 {% endblock %}
 
 {% block contenido %}
   {% comment %}
-    **«Continuar» va encima de las tarjetas, y ese orden es la idea.** Un menú de módulos dice a
-    qué sitios puedes entrar; esto dice en qué ibas, que es la pregunta que uno tiene al abrir la
-    aplicación por la mañana.
+    **Lo que te toca va primero, y ese orden es la idea.** Un menú de módulos dice a qué sitios
+    puedes entrar; esto dice en qué ibas.
 
     Lo pendiente sale de `pendientes_por_tramo`, la misma función que alimenta el resumen por
     correo: así la pantalla y el correo **no pueden discrepar** sobre qué está vencido.
   {% endcomment %}
-  {% if mis_pendientes or mis_proyectos %}
-    <p class="grupo">{% translate "Continue" %}</p>
+  {% if mis_pendientes %}
+    <section class="bloque">
+      <h2 class="grupo">{% translate "What is on you" %}</h2>
 
-    {% for etiqueta, items, urgente in mis_tramos %}
-      {% if items %}
-        <table>
-          <thead>
-            <tr>
-              <th scope="col" style="width: 130px">
-                {% if urgente %}⚠ {% endif %}{{ etiqueta }}
-              </th>
-              <th scope="col">{% translate "Title" %}</th>
-              <th scope="col" style="width: 160px">{% translate "Project" %}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for item in items %}
-              <tr>
-                <td>{{ item.vence|date:"Y-m-d" }}</td>
-                {% comment %}
-                  **La fila es un enlace, y hasta hoy era texto plano**: se veía que algo vencía y
-                  no se podía ir. Funciona sin preguntar de qué tipo es cada fila porque las dos
-                  —observación y actividad— llevan `get_absolute_url` en el modelo, que es donde
-                  toca: «dónde vivo» es asunto del objeto.
-                {% endcomment %}
-                <td><a href="{{ item.get_absolute_url }}">{{ item.titulo }}</a></td>
-                <td>{{ item.proyecto.codigo }}</td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+      {% comment %}
+        **Filas de tarea y no una tabla de tres columnas.** La tabla obligaba a que todas las filas
+        tuvieran las mismas celdas, y no las tienen: una actividad no lleva prioridad, así que esa
+        columna salía vacía en la mitad de las filas — y una celda vacía se lee como un dato que
+        falta, no como uno que no existe.
+
+        El parcial es el mismo que usa la bandeja: ver `generic/_fila_tarea.html`.
+      {% endcomment %}
+      {% for etiqueta, tareas, urgente in mis_tramos %}
+        {% if tareas %}
+          <h3 class="tramo{% if urgente %} tramo-arde{% endif %}">
+            {% if urgente %}<span aria-hidden="true">⚠</span> {% endif %}{{ etiqueta }}
+          </h3>
+          <ol class="tareas">
+            {% for tarea in tareas %}{% include "generic/_fila_tarea.html" %}{% endfor %}
+          </ol>
+        {% endif %}
+      {% endfor %}
+
+      {% if mis_mas_alla %}
+        <p class="subtitulo">
+          {% blocktranslate count total=mis_mas_alla %}And one more due within the
+          month.{% plural %}And {{ total }} more due within the month.{% endblocktranslate %}
+          <a href="{% url 'documents:bandeja' %}">{% translate "Everything pending" %}</a>
+        </p>
       {% endif %}
-    {% endfor %}
+    </section>
+  {% else %}
+    <div class="vacio">
+      {% blocktranslate %}Nothing assigned to you with a due date. What is on the board without a
+      date does not show up here.{% endblocktranslate %}
+    </div>
+  {% endif %}
 
-    {% if mis_mas_alla %}
-      <p class="subtitulo">
-        {% blocktranslate count total=mis_mas_alla %}And one more due within the
-        month.{% plural %}And {{ total }} more due within the month.{% endblocktranslate %}
-        <a href="{% url 'documents:bandeja' %}">{% translate "My plate" %}</a>
-      </p>
-    {% elif not mis_pendientes %}
-      <div class="vacio">
-        {% blocktranslate %}Nothing assigned to you with a due date. What is on the board without a
-        date does not show up here.{% endblocktranslate %}
-      </div>
-    {% endif %}
-
-    {% if mis_proyectos %}
+  {% if mis_proyectos %}
+    <section class="bloque">
+      <h2 class="grupo">{% translate "Your works" %}</h2>
       {% comment %}
         **La tarjeta de obra decía «Edificio corporativo · Anteproyecto · avance 1» y eso no es un
         dato**: es la etapa y un número sin unidad. Lo que se quiere saber al abrir la puerta por la
         mañana es cuánto lleva la obra y **si hay algo que arde**, porque eso es lo que decide dónde
         entrar.
 
-        Ahora lleva la barra de avance con su porcentaje y, cuando las hay, las cifras que importan:
-        lo vencido en rojo, lo de prioridad alta, y lo abierto en total. **Las tres van con su
-        palabra al lado y no solo con su color**, que es la regla de siempre — y el cero no se
-        dibuja: «0 vencidas» es ruido en una puerta.
+        Las cifras van **con su palabra al lado y no solo con su color**, y el cero no se dibuja:
+        «0 vencidas» es ruido en una puerta.
       {% endcomment %}
       <div class="tarjetas tarjetas-obra">
         {% for proyecto in mis_proyectos %}
@@ -88,7 +116,8 @@
             </div>
             <div class="obra-nombre">{{ proyecto.nombre }}</div>
 
-            <div class="avance" role="img"
+            <div class="avance"
+                 role="img"
                  aria-label="{% blocktranslate with pct=proyecto.avance_pct %}Progress {{ pct }} per cent{% endblocktranslate %}">
               <span class="avance-relleno" style="width: {{ proyecto.avance_pct }}%"></span>
             </div>
@@ -126,67 +155,46 @@
           </a>
         {% endfor %}
       </div>
-    {% endif %}
+    </section>
   {% endif %}
 
   {% comment %}
-    El sprite de iconos ya no se incluye acá: subió a `base.html` el 2026-09-07, porque el rail lo
-    necesita en todas las páginas. Incluirlo dos veces duplicaría los `id` de los símbolos, y con
-    `id` repetidos `<use href="#...">` toma el primero — o sea que funcionaría, y por eso nadie lo
-    notaría hasta que uno de los dos se editara.
+    **Aquí estaban las doce tarjetas de módulo, y se van.** `F12.7`.
+
+    Con la barra lateral al lado, doce tarjetas que llevan a los mismos doce sitios son decir dos
+    veces lo mismo — y encima ocupaban toda la pantalla debajo de lo que sí importa, así que lo
+    pendiente quedaba arriba y el resto de la página era un menú repetido.
+
+    En su lugar van **los pasos del recorrido** (`apps/accounts/ayuda.py`), que es exactamente lo que
+    `F12.7` pedía: «los módulos se presentan por lo que resuelven». Un paso dice qué se consigue y a
+    dónde ir; una tarjeta de módulo decía el nombre de la pantalla.
+
+    Se enseñan los tres primeros que esta persona **puede** hacer, no los tres primeros: para el
+    mandante, los pasos de subir una revisión no son un camino, son una puerta cerrada.
   {% endcomment %}
-
-  {% comment %}
-    **Cada grupo con su propio acento, y el violeta deja de ser el uniforme.** El violeta es la
-    marca; usarlo también para los cinco grupos deja una página de un solo color, que es
-    exactamente lo que se lee como plana. Ahora cada grupo tiene el suyo —proyecto, modelo,
-    documentos, coordinación, administración— y el ojo navega por color antes de leer el rótulo.
-
-    Los cinco están medidos sobre las dos superficies del sistema: ver `.grupo-acento` en
-    `app.css`. Y **el color no sustituye al rótulo**, que sigue escrito: es un ancla para la vista,
-    no la información.
-
-    `forloop.counter0` da el índice del grupo, y el CSS tiene cinco variantes: con más grupos que
-    variantes vuelve a empezar, que es mejor que quedarse sin color.
-  {% endcomment %}
-  {% regroup modulos by grupo as por_grupo %}
-  {% for grupo in por_grupo %}
-    <p class="grupo grupo-acento acento-{{ forloop.counter0 }}">{{ grupo.grouper }}</p>
-    <div class="tarjetas acento-{{ forloop.counter0 }}">
-      {% for modulo in grupo.list %}
-        {% comment %}
-          **El icono va con el título, no suelto arriba.** Un símbolo grande centrado en una
-          tarjeta la convierte en un botón de aplicación móvil; al lado del nombre hace lo que un
-          icono tiene que hacer: dejar reconocer la fila sin leerla, que es lo que sirve cuando ya
-          te sabes la pantalla y solo buscas entrar.
-        {% endcomment %}
-        {% if modulo.url %}
-          <a class="tarjeta" href="{{ modulo.url }}">
-            <div class="titulo">
-              {% if modulo.icono %}
-                <svg class="icono" aria-hidden="true"><use href="#{{ modulo.icono }}"></use></svg>
-              {% endif %}
-              {{ modulo.titulo }}
-            </div>
-            <div class="detalle">{{ modulo.descripcion }}</div>
-          </a>
-        {% else %}
-          <div class="tarjeta">
-            <div class="titulo">
-              {% if modulo.icono %}
-                <svg class="icono" aria-hidden="true"><use href="#{{ modulo.icono }}"></use></svg>
-              {% endif %}
-              {{ modulo.titulo }}
-            </div>
-            <div class="detalle">{{ modulo.descripcion }}</div>
-          </div>
-        {% endif %}
-      {% endfor %}
-    </div>
-  {% empty %}
-    <div class="vacio">
-      {% blocktranslate %}Your account has no module assigned yet. Ask an administrator for a
-      role.{% endblocktranslate %}
-    </div>
-  {% endfor %}
+  {% if pasos %}
+    <section class="bloque">
+      <h2 class="grupo">{% translate "Where to go next" %}</h2>
+      <ol class="pasos-cortos">
+        {% for paso in pasos %}
+          {% comment %}
+            `paso` es un `PasoResuelto`, que envuelve al `Paso` con su URL y con si le toca. De ahí
+            el `paso.paso`: la envoltura no copia los campos del original, y copiarlos sería tener
+            los mismos textos en dos sitios.
+          {% endcomment %}
+          <li>
+            {% if paso.url %}
+              <a href="{{ paso.url }}">{{ paso.paso.titulo }}</a>
+            {% else %}
+              <span>{{ paso.paso.titulo }}</span>
+            {% endif %}
+            <span class="detalle">{{ paso.paso.para_que }}</span>
+          </li>
+        {% endfor %}
+      </ol>
+      <p class="subtitulo">
+        <a href="{% url 'accounts:ayuda' %}">{% translate "See the whole walkthrough" %}</a>
+      </p>
+    </section>
+  {% endif %}
 {% endblock %}

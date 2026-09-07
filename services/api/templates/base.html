@@ -151,6 +151,12 @@
         `<header>` con saltos de línea dentro, o sea que `:empty` de CSS no la reconoce como vacía y
         quedaría una franja de margen en blanco encima de cada una de las treinta plantillas que
         todavía no se han tocado. Con él, `.cabecera-pagina:empty` la esconde del todo.
+
+        **Y tiene una consecuencia que hay que saber al escribir aquí dentro:** `spaceless` quita el
+        blanco **entre etiquetas**, así que dos `<span>` seguidos quedan pegados aunque en la
+        plantilla haya un espacio entre ellos. Lo que separe piezas de una línea tiene que venir del
+        CSS —`gap`, márgenes—, no del blanco del HTML. La cifra del día de la portada se escribió
+        dos veces por esto.
       {% endcomment %}
       {% block cabecera %}
         {% spaceless %}

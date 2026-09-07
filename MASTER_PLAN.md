@@ -4299,7 +4299,7 @@ nadie puede alcanzar.
 | `F12.4` | **El lienzo vacío es una puerta de entrada**, no un vacío con una frase                       | ⬜     |
 | `F12.5` | **El navegador tiene jerarquía**: nueve secciones iguales no dicen por dónde empezar          | ⬜     |
 | `F12.6` | **La entrada al portal**: es la primera pantalla del producto y hoy es un formulario          | ⬜     |
-| `F12.7` | **«Portal» deja de titular la portada**, y los módulos se presentan por lo que resuelven      | ⬜     |
+| `F12.7` | **«Portal» deja de titular la portada**, y los módulos se presentan por lo que resuelven      | ✅     |
 | `F12.8` | **La costura**: el visor y el portal se leen como un producto, no como dos                    | ⬜     |
 | `F12.9` | **La cota lleva su número encima**, en la escena y no en la barra de abajo                    | ⬜     |
 

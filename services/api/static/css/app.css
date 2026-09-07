@@ -485,6 +485,211 @@ main {
  * declarado sin un solo `var()`: parece una decisión tomada y no lo está — y encima no se puede
  * comprobar mirándolo. Entra cuando la pantalla de observaciones lo use. */
 
+/* --- Las filas de tarea ----------------------------------------------------------- */
+
+/*
+ * **Sustituyen a las tablas de tres columnas** de la portada y la bandeja.
+ *
+ * La tabla obligaba a que todas las filas tuvieran las mismas celdas, y no las tienen: una actividad
+ * no lleva prioridad, así que esa columna salía vacía en la mitad de las filas — y una celda vacía
+ * se lee como un dato que falta, no como uno que no existe.
+ */
+.bloque {
+  margin-bottom: 32px;
+}
+
+.tareas {
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--ab-border);
+  border-radius: var(--ab-radio-md);
+  overflow: hidden;
+  background: var(--ab-surface);
+}
+
+.tarea {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  /* El área de toque de la fila entera, por la misma razón que en el rail: una lista de treinta
+     filas es donde se falla al pulsar. */
+  min-height: var(--ab-touch-min);
+  padding: 8px 12px;
+}
+
+.tarea + .tarea {
+  border-top: 1px solid var(--ab-border);
+}
+
+.tarea:hover {
+  background: var(--ab-surface-alt);
+}
+
+/*
+ * El círculo de estado. **Es `role="img"` y no un checkbox**, y esa es la decisión que separa esto
+ * de Asana: allí se marca hecho desde la lista, y aquí no existe ese POST para una observación — se
+ * cierra con su resolución, que es un formulario con motivo. Un checkbox que no guarda nada es peor
+ * que ningún checkbox.
+ *
+ * Las tres columnas se distinguen por **relleno y no solo por color**: vacío, medio y lleno. Con
+ * tres tonos del mismo violeta, quien no distingue matices ve tres círculos iguales.
+ */
+.tarea-estado {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--ab-text-muted);
+  border-radius: 50%;
+}
+
+.tarea-en_marcha {
+  border-color: var(--ab-primary);
+  /* Medio lleno: el gradiente es la mitad exacta, que se lee como «va por la mitad». */
+  background: linear-gradient(90deg, var(--ab-primary) 50%, transparent 50%);
+}
+
+.tarea-en_revision {
+  border-color: var(--ab-primary);
+  background: var(--ab-primary);
+}
+
+.tarea-titulo {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--ab-text);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.tarea-titulo:hover {
+  color: var(--ab-primary);
+  text-decoration: underline;
+}
+
+.tarea-datos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex: none;
+  font-size: 0.85rem;
+  color: var(--ab-text-secondary);
+}
+
+.tarea-vence {
+  white-space: nowrap;
+}
+
+/* Vencida en rojo **y** en negrita: el color solo no lo distingue quien no distingue rojos. */
+.tarea-vencida {
+  color: var(--ab-danger);
+  font-weight: 600;
+}
+
+.tarea-sin-fecha {
+  color: var(--ab-text-muted);
+  font-style: italic;
+}
+
+/* El rótulo de cada tramo dentro de un bloque: «Vencido», «Próximos 7 días». */
+.tramo {
+  margin: 14px 0 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ab-text-secondary);
+}
+
+.tramo-arde {
+  color: var(--ab-danger);
+}
+
+/* --- La inicial de una persona ---------------------------------------------------- */
+
+/*
+ * Para reconocer de quién es una fila **sin leerla**: en treinta hallazgos, el nombre repetido en
+ * gris es una columna de ruido.
+ *
+ * **El nombre sigue escrito al lado.** Una inicial no distingue a dos personas que empiezan igual,
+ * y el color no lo lee quien no distingue colores: la inicial es un ancla para la vista, no la
+ * información. El color sale de los cinco acentos ya medidos, elegido con `crc32` del nombre —no
+ * con `hash()`, que Python aleatoriza en cada proceso—.
+ */
+.persona {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.persona-inicial {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--acento);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* --- Los pasos del recorrido, en la puerta ---------------------------------------- */
+
+/*
+ * **Aquí estaban las doce tarjetas de módulo.** Con la barra lateral al lado eran decir dos veces
+ * lo mismo, y ocupaban toda la pantalla debajo de lo que sí importa.
+ *
+ * Un paso dice qué se consigue y a dónde ir; una tarjeta decía el nombre de la pantalla.
+ */
+.pasos-cortos {
+  margin: 0;
+  padding-left: 22px;
+  display: grid;
+  gap: 10px;
+}
+
+.pasos-cortos > li {
+  color: var(--ab-text-secondary);
+}
+
+.pasos-cortos .detalle {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.88rem;
+  color: var(--ab-text-muted);
+}
+
+/*
+ * La cifra del día, en el subtítulo de la portada.
+ *
+ * **`flex` con `gap` y no espacios en el HTML.** La cabecera va dentro de un `{% spaceless %}`
+ * —que es lo que permite esconder una cabecera sin llenar— y `spaceless` **quita el blanco entre
+ * etiquetas**: con un espacio escrito antes del separador salía «esta semana·2 obras». Se vio
+ * mirándolo, y vale para cualquier cosa que se ponga en la cabecera.
+ */
+.cifra-del-dia {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 8px;
+  font-size: 0.95rem;
+}
+
+@media (max-width: 700px) {
+  /* En el teléfono los datos bajan debajo del título: en una línea, cinco piezas a la derecha
+     dejan el título en dos caracteres. */
+  .tarea {
+    flex-wrap: wrap;
+  }
+
+  .tarea-datos {
+    justify-content: flex-start;
+    width: 100%;
+    padding-left: 24px;
+  }
+}
+
 h1 {
   font-size: 1.5rem;
   margin: 0 0 4px;

@@ -49,30 +49,102 @@ class PortalView(LoginRequiredMixin, TemplateView):
         otra vez acá es como se llega a un correo que dice tres y una pantalla que dice cuatro.
         """
         from apps.documents.notify import pendientes_por_tramo
+        from apps.documents.tareas import como_tareas
         from apps.projects.models import Proyecto
 
         usuario = self.request.user
         tramos = pendientes_por_tramo(usuario)
+        # **Se traducen a `Tarea` aquí y no en la plantilla.** Un hallazgo y una actividad no
+        # comparten nombres —`estado` frente a `status`, y la prioridad solo existe en el primero—,
+        # y resolverlo en la plantilla obliga a que la portada y la bandeja lo resuelvan cada una
+        # a su manera. Ver `apps/documents/tareas.py`.
         contexto["mis_tramos"] = [
-            (_("Overdue"), tramos["vencido"], True),
-            (_("Next 7 days"), tramos["en_7"], False),
+            (_("Overdue"), como_tareas(tramos["vencido"]), True),
+            (_("Next 7 days"), como_tareas(tramos["en_7"]), False),
         ]
         # Cuánto queda en total, para poder decir «y N más» sin listar treinta filas en la puerta.
         contexto["mis_pendientes"] = sum(len(v) for v in tramos.values())
         contexto["mis_mas_alla"] = len(tramos["en_15"]) + len(tramos["en_30"])
 
+        contexto["mis_vencidas"] = len(tramos["vencido"])
+        contexto["mis_de_la_semana"] = len(tramos["en_7"])
+
         # **Las obras con lo que cada una necesita.** Solo si el rol puede leerlas: si no, la
         # sección no existe en vez de aparecer vacía.
+        contexto["mis_obras_cuantas"] = 0
         if usuario.has_perm("projects.view_proyecto"):
-            proyectos = list(
+            visibles = (
                 scope_queryset_to_organizacion(Proyecto.objects.all(), usuario)
                 .filter(is_active=True)
                 .exclude(status=Proyecto.ETAPA_CERRADO)
-                .prefetch_related("entregables__revisiones")
-                .order_by("codigo")[:6]
+            )
+            # **La cifra se cuenta antes de recortar a seis.** `len()` sobre la lista recortada
+            # diría «6 obras» en una oficina con doce, que es peor que no decirlo: parecería que
+            # faltan y en realidad es el tope de las tarjetas.
+            contexto["mis_obras_cuantas"] = visibles.count()
+            proyectos = list(
+                visibles.prefetch_related("entregables__revisiones").order_by("codigo")[:6]
             )
             self._cifras_de_obra(proyectos, usuario)
             contexto["mis_proyectos"] = proyectos
+
+        contexto["cifra_del_dia"] = self._cifra_del_dia(
+            vencidas=contexto["mis_vencidas"],
+            de_la_semana=contexto["mis_de_la_semana"],
+            obras=contexto["mis_obras_cuantas"],
+        )
+        self._por_donde_seguir(contexto, usuario)
+
+    @staticmethod
+    def _cifra_del_dia(*, vencidas: int, de_la_semana: int, obras: int) -> list[str]:
+        """Las piezas del subtítulo de la portada. `F12.7`.
+
+        **Antes decía «Solo se lista lo que tu rol puede abrir»**: la regla de la pantalla —cierta,
+        y en la que nadie piensa por la mañana— en el sitio más visible. Ahora dice lo que decide
+        si hay que entrar corriendo a algo: lo vencido, lo de esta semana y cuántas obras.
+
+        Se arma aquí y no en la plantilla **porque el separador es el problema**. Con `{% if %}`
+        anidados hay que preguntar en cada pieza si alguna de las anteriores salió, y la primera
+        versión de esto imprimió «2 works Nothing overdue and nothing due this week» — dos frases
+        pegadas sin punto. Una lista que se une con «·» no tiene ese caso.
+
+        Y devuelve las piezas en vez de la cadena unida para que la plantilla pueda pintar la
+        primera en rojo: lo vencido no es un dato más de la línea.
+        """
+        from django.utils.translation import ngettext
+
+        piezas: list[str] = []
+        if vencidas:
+            piezas.append(ngettext("%(n)s overdue", "%(n)s overdue", vencidas) % {"n": vencidas})
+        if de_la_semana:
+            piezas.append(
+                ngettext("%(n)s this week", "%(n)s this week", de_la_semana) % {"n": de_la_semana}
+            )
+        # **La frase tranquilizadora solo cuando no hay nada de lo anterior.** Puesta siempre,
+        # decía «3 vencidas · nada vencido», que es la clase de contradicción que hace desconfiar
+        # de la pantalla entera.
+        if not piezas:
+            piezas.append(str(_("Nothing overdue and nothing due this week")))
+        if obras:
+            piezas.append(ngettext("%(n)s work", "%(n)s works", obras) % {"n": obras})
+        return piezas
+
+    def _por_donde_seguir(self, contexto, usuario) -> None:
+        """Los tres primeros pasos del recorrido que **esta persona puede hacer**.
+
+        Sustituye a las doce tarjetas de módulo, que con la barra lateral al lado eran decir dos
+        veces lo mismo. Un paso dice qué se consigue y a dónde ir; una tarjeta decía el nombre de la
+        pantalla.
+
+        **Se filtran los que no le tocan, y aquí sí.** La pantalla de ayuda los enseña todos —los
+        ajenos incluidos— porque explica el producto entero, y eso es correcto ahí. En la puerta no:
+        para el mandante, «sube una revisión» no es un camino, es una puerta cerrada.
+        """
+        from apps.accounts.ayuda import pasos_para
+
+        # `PasoResuelto` ya trae la URL resuelta y si le toca, así que aquí solo se filtra y se
+        # corta. Es `frozen`, y está bien que lo sea: la puerta no tiene nada que añadirle.
+        contexto["pasos"] = [uno for uno in pasos_para(usuario) if uno.puedes][:3]
 
     def _cifras_de_obra(self, proyectos: list, usuario) -> None:
         """Le cuelga a cada obra **lo que hace que su tarjeta sirva**: avance y lo que arde.
