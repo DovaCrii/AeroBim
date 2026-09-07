@@ -126,6 +126,29 @@
               «high priority» ya existían en el catálogo con otro sentido —«open» estaba traducido
               como «abierta por»— así que reusar el mismo `msgid` habría puesto en la tarjeta la
               traducción de otra pantalla. Con `context` cada una es su propia entrada.
+
+              **Y las tres cifras van con `count`**, que es lo que faltaba: con `translate` la
+              palabra es fija, así que una obra con una sola observación vencida decía **«1
+              vencidas»** y **«1 abiertas»**. Se vio en la pantalla el 2026-09-07.
+
+              El inglés no distingue —«overdue» y «open» valen para uno y para muchos— así que el
+              `msgid` y el `msgid_plural` son iguales. Eso es correcto y es lo que hace falta: el
+              plural lo pone cada idioma en su catálogo, y el español sí lo distingue.
+
+              «high priority» **es invariable también en español** —«1 de prioridad alta» ya se leía
+              bien—, y se pasa igual: la forma uniforme evita que la siguiente cifra que alguien
+              añada copie la que no lleva plural, y otro idioma sí puede declinarla.
+
+              `issued` se queda con `translate`: acompaña a un porcentaje, no a una cuenta, y «100 %
+              emitido» no tiene plural en ningún caso.
+
+              **Y las tres cifras se llevan su propio contexto, `cifra de obra`.** El `overdue` de
+              «tarjeta de obra» lo comparten otras tres plantillas
+              —`observacion.html`, `observaciones.html` y `projects/proyecto.html`— y ahí significa
+              **otra cosa**: es la etiqueta de **una** observación vencida, «vencida el 04-09», no
+              una cuenta. Con un solo `msgid` para los dos sentidos, el plural de uno decide la
+              palabra del otro. Para eso está `context`: son dos cadenas distintas que en inglés se
+              escriben igual.
             {% endcomment %}
             <div class="avance-cifra">
               <b>{{ proyecto.avance_pct }}%</b>
@@ -137,18 +160,18 @@
                 {% if proyecto.vencidas %}
                   <span class="cifra cifra-arde">
                     <b>{{ proyecto.vencidas }}</b>
-                    {% translate "overdue" context "tarjeta de obra" %}
+                    {% blocktranslate count total=proyecto.vencidas context "cifra de obra" %}overdue{% plural %}overdue{% endblocktranslate %}
                   </span>
                 {% endif %}
                 {% if proyecto.altas %}
                   <span class="cifra cifra-alta">
                     <b>{{ proyecto.altas }}</b>
-                    {% translate "high priority" context "tarjeta de obra" %}
+                    {% blocktranslate count total=proyecto.altas context "cifra de obra" %}high priority{% plural %}high priority{% endblocktranslate %}
                   </span>
                 {% endif %}
                 <span class="cifra">
                   <b>{{ proyecto.abiertas }}</b>
-                  {% translate "open" context "tarjeta de obra" %}
+                  {% blocktranslate count total=proyecto.abiertas context "cifra de obra" %}open{% plural %}open{% endblocktranslate %}
                 </span>
               </div>
             {% endif %}
