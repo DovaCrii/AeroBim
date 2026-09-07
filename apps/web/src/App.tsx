@@ -636,19 +636,38 @@ export function App() {
     }
   }, [nubeTecho]);
 
-  const openCloud = useCallback(
-    async (file: File) => {
+  /**
+   * Abre una nube que ya tiene URL, sea un `blob:` del disco o una del registro.
+   *
+   * **La URL es la unidad y no los bytes**, y eso es la decisión. El lector de COPC pide tramos
+   * (`Range`) según lo que quepa en pantalla; darle una URL de la que puede pedir por partes es lo
+   * que hace que el primer punto salga en menos de un segundo sobre 124,7 MB. Pasarle un `File`
+   * obligaría a tenerlo entero antes de empezar.
+   *
+   * `revocable` distingue las dos: un `blob:` hay que devolverlo al cerrar la nube, y una del
+   * registro no —`revokeObjectURL` sobre una `http:` no falla, pero dejaría escrito que se revoca
+   * algo que nadie creó—.
+   */
+  const abrirNube = useCallback(
+    async (url: string, nombre: string, { revocable }: { revocable: boolean }) => {
       const instance = viewer.current;
       if (!instance) return;
 
-      setStatus({ kind: "loading", name: file.name, stage: "reading" });
-      const url = URL.createObjectURL(file);
+      setStatus({ kind: "loading", name: nombre, stage: "reading" });
       try {
         const cargada = await instance.loadPointCloud(url, {
           presupuestoBytes: 256 * 1024 * 1024,
           color: "rgb",
+          // **La misma trampa que ya costó una sesión con `web-ifc`, y aquí sin arreglar.**
+          //
+          // El valor por omisión de `laz-perf` es `/wasm/laz-perf.wasm`, absoluto desde la raíz.
+          // Eso funciona en el servidor de Vite, donde la aplicación vive en `/`, y **da 404 bajo
+          // `/visor/`**: la nube no se abría desde el portal —solo desde el disco en desarrollo—.
+          // Medido: `GET /wasm/laz-perf.wasm → 404` y `Aborted(Both async and sync fetching of the
+          // wasm failed)` en la barra, con las peticiones de tramos ya respondiendo 206.
+          rutaWasm: `${RUTA_WASM}laz-perf.wasm`,
         });
-        urlDeLaNube.current = url;
+        urlDeLaNube.current = revocable ? url : null;
         setNube(cargada.ficha);
         setNubeInforme(cargada.informe);
         setNubePuntos(cargada.cargados);
@@ -656,11 +675,16 @@ export function App() {
         setStatus({ kind: "ready" });
         requestAnimationFrame(() => void refrescarNube());
       } catch (error: unknown) {
-        URL.revokeObjectURL(url);
+        if (revocable) URL.revokeObjectURL(url);
         setStatus({ kind: "error", message: describe(error) });
       }
     },
     [refrescarNube],
+  );
+
+  const openCloud = useCallback(
+    (file: File) => abrirNube(URL.createObjectURL(file), file.name, { revocable: true }),
+    [abrirNube],
   );
 
   /**
@@ -953,14 +977,30 @@ export function App() {
         const etiqueta = `${datos.entregable.codigo} rev. ${datos.correlativo}`;
         setStatus({ kind: "loading", name: etiqueta, stage: "reading" });
 
-        const archivo = await fetch(datos.contenido, { credentials: "same-origin" });
-        if (!archivo.ok) {
-          setStatus({ kind: "error", message: `No se pudo leer el archivo (${archivo.status}).` });
-          return;
+        if (datos.nombre.toLowerCase().endsWith(".copc.laz")) {
+          // **La nube no se descarga: se lee por tramos** (`F12.13`).
+          //
+          // Es la única que sale del camino común, y por una razón medida: el COPC del CC 741 son
+          // 124,7 MB, y el lector solo necesita la cabecera y los nodos que caen en pantalla. Meter
+          // esos bytes en un `File` primero descargaría el archivo entero **antes** de mirar nada
+          // — justo lo que el formato existe para evitar.
+          //
+          // El endpoint responde `206` a un `Range` desde `apps/documents/rangos.py`; sin esa mitad
+          // esta línea no serviría de nada.
+          await abrirNube(datos.contenido, datos.nombre, { revocable: false });
+        } else {
+          const archivo = await fetch(datos.contenido, { credentials: "same-origin" });
+          if (!archivo.ok) {
+            setStatus({
+              kind: "error",
+              message: `No se pudo leer el archivo (${archivo.status}).`,
+            });
+            return;
+          }
+          // El nombre original viaja en los metadatos, y es el que decide el camino: `openFile`
+          // manda un `.dxf` al lector de planos y todo lo demás al de IFC.
+          await openFile(new File([await archivo.blob()], datos.nombre));
         }
-        // El nombre original viaja en los metadatos, y es el que decide el camino: `openFile`
-        // manda un `.dxf` al lector de planos y todo lo demás al de IFC.
-        await openFile(new File([await archivo.blob()], datos.nombre));
 
         // **Después de abrir, no antes**: `openIfc` borra el origen a propósito —un archivo del
         // disco no tiene registro donde anotar— y ponerlo antes se perdería en esa limpieza.
@@ -985,7 +1025,7 @@ export function App() {
         setStatus({ kind: "error", message: describe(error) });
       }
     },
-    [openFile],
+    [openFile, abrirNube],
   );
 
   /**

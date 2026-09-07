@@ -21,7 +21,7 @@ Las tres reglas de acceso son las mismas que en las pantallas, y se escriben una
   lo puede decir un permiso.
 """
 
-from django.http import FileResponse, Http404
+from django.http import Http404
 from django.utils import timezone
 from django.utils.translation import gettext as _
 from rest_framework.generics import ListAPIView, RetrieveAPIView
@@ -34,7 +34,7 @@ from apps.core.views import (
     PersonalStatePermissions,
     ViewModelPermissions,
 )
-from apps.documents import abribles, storage
+from apps.documents import abribles, rangos, storage
 from apps.documents.abribles import VISOR_MODELO, abre_en, visor_de
 from apps.documents.models import MarcaDeCoordinacion, Observacion, Revision
 from apps.documents.views import revisiones_visibles
@@ -606,15 +606,21 @@ class RevisionContenidoAPI(APIView):
         clave = abribles.clave_para_el_visor(revision)
         convertido = clave != revision.clave_archivo
 
+        # **Por tramos si el cliente los pide** (`F12.13`). Lo necesita la nube de puntos: el visor
+        # lee la cabecera del COPC, decide qué nodos caen en pantalla y pide solo esos: sin `Range`
+        # tendría que descargar los ~130 MB del levantamiento para ver el primer punto, y el
+        # servidor los tendría enteros en memoria. Ver `rangos.py`.
+        #
+        # No es solo para la nube: un IFC federado se sirve igual, y el navegador puede reanudar.
         try:
-            contenido = storage.leer(clave)
+            ruta = storage.ruta_de(clave)
+            respuesta = rangos.respuesta_de_archivo(
+                ruta, request.headers.get("Range"), tipo="application/octet-stream"
+            )
         except (OSError, storage.CargaRechazada) as error:
             # El registro dice que hay archivo y el disco dice que no. Es un 404 honesto: lo
             # que no está no está, y el motivo va al log, no a la respuesta.
             raise Http404 from error
-
-        respuesta = FileResponse(iter([contenido]), content_type="application/octet-stream")
-        respuesta["Content-Length"] = str(len(contenido))
         # Que el sha viaje permite al visor comprobar que abrió lo que el registro dice.
         #
         # **Y de un convertido se manda el del original**, no el del DXF: el sha es la prueba de

@@ -38,10 +38,29 @@ RUTA_POR_VISOR = {
 POR_SU_DXF = frozenset({"dwg", "dgn"})
 
 
+#: Cómo se reconoce una nube que el visor **sí** puede abrir: `F12.13`.
+#:
+#: El visor lee **COPC** y no un LAZ cualquiera (`docs/NUBES_DE_PUNTOS.md`): un LAZ normal no lleva
+#: el octree dentro, así que no se puede pedir por partes — habría que descargarlo entero para ver
+#: el primer punto.
+#:
+#: **Y no se distinguen por la extensión**, que es la trampa: `Path("x.copc.laz").suffix` es
+#: `.laz`, igual que un LAZ suelto. Se distinguen por el nombre compuesto, que es la convención del
+#: formato y lo que escribe el conversor (`apps/web/scripts/a-copc.py`).
+#:
+#: Un `.las` o un `.laz` suelto **se archiva igual** —es el original que entregó el topógrafo— y no
+#: se ofrece abrir: un enlace que lleva a un visor que no sabe leerlo es peor que no ofrecerlo.
+SUFIJO_DE_NUBE_ABRIBLE = ".copc.laz"
+
+
 def visor_de(revision) -> str | None:
     """Con qué visor se abre esta revisión, o `None` si no se sabe abrir."""
     nombre = revision.nombre_original or ""
     extension = Path(nombre).suffix.lower().lstrip(".")
+
+    # La nube va antes que el resto: su extensión es `.laz`, y hay que mirar el nombre entero.
+    if extension in {"laz", "las"}:
+        return VISOR_MODELO if nombre.lower().endswith(SUFIJO_DE_NUBE_ABRIBLE) else None
 
     # **Un DWG sin DXF no es abrible, y con DXF sí.** Mirar solo la extensión diría que sí en los
     # dos casos y llevaría a una pantalla en blanco al que no se pudo convertir.

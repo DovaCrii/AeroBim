@@ -68,6 +68,15 @@ FIRMAS: dict[str, tuple[bytes, ...]] = {
     # convertir o no lo decide el conversor, y si no puede lo dice — no es motivo para rechazar el
     # archivo al entrar.
     "dgn": (b"\xd0\xcf\x11\xe0", b"\x08\x09\xfe"),
+    # **El levantamiento** — `F12.13`. LAS y LAZ empiezan los dos por `LASF`: es la firma que
+    # declara la especificacion, y la lleva tanto el LAS sin comprimir como el LAZ y el COPC, que
+    # son LAS 1.4 por dentro.
+    #
+    # Se acepta el `.las` ademas del `.laz` porque **es lo que entrega un topografo**: el visor solo
+    # abre COPC, y convertirlo es un paso posterior (`apps/web/scripts/a-copc.py`). Rechazar el
+    # original al entrar obligaria a convertir antes de archivar, o sea a archivar solo la copia.
+    "las": (b"LASF",),
+    "laz": (b"LASF",),
 }
 
 # `ids` es el requisito de informacion del proyecto (`F3.5`): XML de buildingSMART, texto, y sin
@@ -79,6 +88,14 @@ EXTENSIONES_ACEPTADAS = set(FIRMAS) | SIN_FIRMA
 
 # 200 MB. Un IFC federado de obra los alcanza, y un DXF nunca. Por encima de esto el
 # archivo no es un entregable: es un respaldo, y va por otro camino.
+#
+# **El tope se revisa con la nube de puntos (`F12.13`) y se mantiene, medido.** El levantamiento
+# del CC 741 son 3,37 GB en LAS; convertido a COPC con diezmado a 3 cm son **124,7 MB**
+# (130.795.022 bytes, medidos sobre `camino-agricola.copc.laz`), o sea que el
+# archivo que se mira cabe con margen. El original no cabe, y eso es lo correcto: 3,37 GB no es un
+# entregable que se descargue desde un navegador, y `nginx` lleva el mismo tope
+# (`docs/DEPLOY.md:167`, `client_max_body_size 200M`) — subirlo aqui sin subirlo alli daria un 413
+# sin explicacion.
 TAMANO_MAXIMO_BYTES = 200 * 1024 * 1024
 
 

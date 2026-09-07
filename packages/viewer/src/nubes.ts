@@ -76,7 +76,18 @@ import {
   type Plano,
 } from "@aerobim/bim-core";
 
-/** Dónde se sirve el WASM de `laz-perf`. Local, y por las razones del encabezado. */
+/**
+ * Dónde se sirve el WASM de `laz-perf`. Local, y por las razones del encabezado.
+ *
+ * **Es solo el valor de reserva, y quien monta la aplicación tiene que pasar el suyo.** Esta ruta
+ * es absoluta desde la raíz, así que sirve donde la aplicación vive en `/` —el servidor de Vite— y
+ * **da 404 bajo `/visor/`**, que es como la sirve Django. Medido: `GET /wasm/laz-perf.wasm → 404`
+ * con `Aborted(Both async and sync fetching of the wasm failed)`, o sea que la nube no se abría
+ * desde el portal aunque los tramos ya respondieran 206.
+ *
+ * Se queda como reserva y no se borra porque las pruebas y `diag.html` viven en la raíz; lo que la
+ * aplicación pasa es `rutaWasm` (ver {@link OpcionesDeNube}), calculado con `import.meta.env.BASE_URL`.
+ */
 export const RUTA_WASM_LAZ = "/wasm/laz-perf.wasm";
 
 /**

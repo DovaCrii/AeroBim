@@ -4303,6 +4303,16 @@ nadie puede alcanzar.
 | `F12.8` | **La costura**: el visor y el portal se leen como un producto, no como dos                    | ⬜     |
 | `F12.9` | **La cota lleva su número encima**, en la escena y no en la barra de abajo                    | ⬜     |
 
+Y cuatro que salieron al planificar el piloto del CC 741 (plan del 2026-09-07): son huecos de
+producto, no de estilo, y **bloquean que personas reales usen esto**.
+
+| #        | Tarea                                                                                 | Estado |
+| -------- | ------------------------------------------------------------------------------------- | ------ |
+| `F12.10` | **Repartir un hallazgo**: dueño, fecha y prioridad desde la ficha, no solo al crearla | ✅     |
+| `F12.11` | **Una captura adjunta al comentario**: hoy una queja del portal no lleva imagen       | ⬜     |
+| `F12.12` | **Métricas del piloto**: comando de solo lectura sobre lo que ya guarda la base       | ⬜     |
+| `F12.13` | **El levantamiento entra al expediente**: la nube como revisión, y servida por tramos | ✅     |
+
 **Oráculo de la fase:** el usuario abre las dos mitades y **no dice «está plano»**. No hay medida que
 sustituya eso, y decir lo contrario sería inventarse un número. Lo que sí se mide y entra en el gate:
 el contraste de cada texto, que ninguna capacidad quede sin puerta, y que los tokens sean los mismos
@@ -4475,6 +4485,54 @@ lean como dos programas: `F9.1`–`F9.5` ya unificaron los tokens de color, la e
 elevación. Falta lo que se ve sin medir — el mismo lenguaje de botones, de estados vacíos y de
 cabeceras a los dos lados de la costura, que es la que el usuario cruza cada vez que abre un modelo
 desde su expediente.
+
+---
+
+### `F12.13` — El levantamiento entra al expediente ✅
+
+**Hecho el 2026-09-07.** Hasta hoy la nube solo se abría arrastrando un archivo al lienzo: el
+levantamiento —que es un entregable de obra, con su topógrafo y su fecha— quedaba fuera del
+registro, sin correlativo, sin idoneidad y sin nadie que pudiera decir cuál es la versión vigente.
+
+Tres cosas, y las tres medidas sobre el COPC real del CC 741 (`camino-agricola.copc.laz`,
+**130.795.022 bytes**):
+
+1. **Entra.** `.las` y `.laz` se aceptan con la firma `LASF`, la que declara la especificación y
+   llevan las tres variantes. Se acepta el `.las` original y no solo el COPC porque **es lo que
+   entrega un topógrafo**: rechazarlo obligaría a archivar solo la copia convertida. El tope de
+   200 MB **se revisó y se mantiene**: el COPC diezmado a 3 cm son 124,7 MB y cabe; los 3,37 GB del
+   original no, y eso es correcto —`nginx` lleva el mismo tope (`docs/DEPLOY.md:167`)—.
+2. **Se ofrece abrir solo lo que el visor sabe leer.** Un `.copc.laz` sí, un `.laz` suelto no: el
+   visor lee COPC, y un LAZ normal no lleva el octree dentro. Y **no se distinguen por la
+   extensión** —`Path("x.copc.laz").suffix` es `.laz`—, así que se mira el nombre entero. El
+   original se archiva y se descarga igual; lo que no se ofrece es abrirlo.
+3. **Se sirve por tramos.** `apps/documents/rangos.py`: `Range` → `206`, con `Accept-Ranges` en las
+   dos respuestas y `416` con el tamaño real cuando se pide más allá del final. Sin esto el diseño
+   del COPC se caía del lado del servidor: `FileResponse(iter([contenido]))` tenía el archivo
+   **entero en memoria** y el navegador descargaba 124,7 MB antes de ver el primer punto.
+
+**Medido en el navegador, con la nube abierta desde el expediente** (`/documentos/entregables/…` →
+«Abrir en el visor», lienzo de 739 × 754 px):
+
+| Qué                     | Medida                                                  |
+| ----------------------- | ------------------------------------------------------- |
+| Peticiones de tramo     | 62, todas `206`                                         |
+| Bytes traídos           | 33,6 MB = **26,9 %** del archivo                        |
+| Primer tramo respondido | 617 ms                                                  |
+| Ficha de la nube        | 97,4 × 143,5 × 17,0 m · UTM 19S **declarado** dentro    |
+| Nodos                   | 45 en escena · 439 fuera de vista · 803 sin presupuesto |
+
+**Y un fallo que esto sacó, que no era de este requisito.** `laz-perf` se pedía en
+`/wasm/laz-perf.wasm`, absoluto desde la raíz: eso funciona en el servidor de Vite, donde la
+aplicación vive en `/`, y **daba 404 bajo `/visor/`**. O sea que la nube **nunca se había abierto
+desde el portal** — solo desde el disco en desarrollo. `GET /wasm/laz-perf.wasm → 404` y
+`Aborted(Both async and sync fetching of the wasm failed)` en la barra, con los tramos ya
+respondiendo `206`. Es **la misma trampa que ya costó una sesión con `web-ifc`** y que `App.tsx:201`
+tiene documentada: la nube se quedó sin arreglar. Ahora pasa `rutaWasm` calculado con
+`import.meta.env.BASE_URL`, y se sirve de `/static/visor/wasm/laz-perf.wasm`.
+
+29 pruebas del rango (la aritmética por tabla, y los tramos seguidos pegados contra el archivo
+original) + 13 de la nube en el expediente.
 
 ---
 
