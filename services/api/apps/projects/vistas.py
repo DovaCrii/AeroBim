@@ -12,6 +12,8 @@ todo se descubre el dia que alguien abre la vista que le pasaron.
 
 import json
 
+from apps.core.numeros import terna
+
 #: Cuantos cortes se admiten. El visor pone tres ejes; **el mismo numero que `MAXIMO_CORTES` de
 #: `bim-core`**, y mas de una docena es un dato escrito a mano.
 MAXIMO_CORTES = 12
@@ -22,22 +24,6 @@ LEJOS_M = 1_000_000.0
 
 #: Bajo esto una normal es cero y **no define ningun plano**.
 EPSILON = 1e-9
-
-
-def _terna(valor) -> list[float] | None:
-    """Tres numeros finitos, o `None`. Acepta `int` y rechaza `bool`, que en Python es `int`."""
-    if not isinstance(valor, (list, tuple)) or len(valor) != 3:
-        return None
-    salida = []
-    for componente in valor:
-        if isinstance(componente, bool) or not isinstance(componente, (int, float)):
-            return None
-        numero = float(componente)
-        # `nan` e `inf` pasan por `isinstance` y envenenan cualquier cuenta posterior.
-        if numero != numero or numero in (float("inf"), float("-inf")):
-            return None
-        salida.append(numero)
-    return salida
 
 
 #: Tope del JSON que se acepta. Doce cortes son unos ochocientos caracteres; mil deja aire.
@@ -70,15 +56,17 @@ def leer_cortes(valor) -> list[dict]:
     for bruto in valor[:MAXIMO_CORTES]:
         if not isinstance(bruto, dict):
             continue
-        normal = _terna(bruto.get("normal"))
-        origen = _terna(bruto.get("origen"))
+        # **El tope va solo en el origen**, que es la posicion del plano. La normal es una
+        # direccion: acotarla no querria decir nada, y aca ni siquiera se exige que mida 1 —solo
+        # que no sea cero—, asi que se lee sin tope. Antes el tope del origen iba en un `any()`
+        # dos lineas mas abajo; es la misma comprobacion, con el mismo `continue` si falla.
+        normal = terna(bruto.get("normal"))
+        origen = terna(bruto.get("origen"), lejos=LEJOS_M)
         if normal is None or origen is None:
             continue
         # Una normal de ceros no define un plano: el corte no cortaria nada y el visor lo aplicaria
         # igual, dejando una vista que no es la que se guardo.
         if sum(componente * componente for componente in normal) < EPSILON:
-            continue
-        if any(abs(componente) > LEJOS_M for componente in origen):
             continue
         cortes.append({"normal": normal, "origen": origen})
     return cortes

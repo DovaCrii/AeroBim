@@ -15,6 +15,8 @@ el viewpoint sale con su camara y su foto, que es lo que hacia antes de que esto
 
 import json
 
+from apps.core.numeros import terna
+
 #: Cuantos segmentos se admiten, **el mismo numero que `MAXIMO_LINEAS` de `bim-core`**.
 #:
 #: No es un limite del formato: es que un BCF no es un archivo de dibujo. Doscientos segmentos son
@@ -27,24 +29,6 @@ LARGO_MAXIMO = MAXIMO_LINEAS * 120 + 200
 #: Cuan lejos del origen se admite un punto, en metros. Mismo criterio que la camara: no es un
 #: limite fisico, es la marca de que algo se leyo en las unidades equivocadas.
 LEJOS_M = 1_000_000.0
-
-
-def _terna(valor) -> list[float] | None:
-    """Tres numeros finitos, o `None`. Acepta `int` y rechaza `bool`, que en Python es `int`."""
-    if not isinstance(valor, (list, tuple)) or len(valor) != 3:
-        return None
-    salida = []
-    for componente in valor:
-        if isinstance(componente, bool) or not isinstance(componente, (int, float)):
-            return None
-        numero = float(componente)
-        # `nan` e `inf` pasan por `isinstance` y envenenan cualquier cuenta posterior.
-        if numero != numero or numero in (float("inf"), float("-inf")):
-            return None
-        if abs(numero) > LEJOS_M:
-            return None
-        salida.append(numero)
-    return salida
 
 
 def leer(crudo) -> list[dict]:
@@ -76,8 +60,9 @@ def leer(crudo) -> list[dict]:
     for bruto in crudo:
         if not isinstance(bruto, dict):
             continue
-        inicio = _terna(bruto.get("inicio"))
-        fin = _terna(bruto.get("fin"))
+        # Los dos extremos son posiciones, asi que los dos llevan tope.
+        inicio = terna(bruto.get("inicio"), lejos=LEJOS_M)
+        fin = terna(bruto.get("fin"), lejos=LEJOS_M)
         if inicio is None or fin is None or inicio == fin:
             continue
         lineas.append({"inicio": inicio, "fin": fin})

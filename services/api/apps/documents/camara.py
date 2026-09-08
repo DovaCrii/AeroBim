@@ -19,6 +19,8 @@ Quien abrio la observacion no escribio ese parametro y no tiene por que ver un e
 
 import json
 
+from apps.core.numeros import terna
+
 #: Los dos tipos que distingue BCF. Ver `bcf.py`.
 PERSPECTIVA = "perspectiva"
 ORTOGONAL = "ortogonal"
@@ -43,31 +45,23 @@ TOLERANCIA_UNITARIA = 1e-3
 LARGO_MAXIMO = 1_000
 
 
-def _terna(valor) -> list[float] | None:
-    """Tres numeros finitos, o `None`. Acepta `int` y rechaza `bool`, que en Python es `int`."""
-    if not isinstance(valor, (list, tuple)) or len(valor) != 3:
-        return None
-    salida = []
-    for componente in valor:
-        if isinstance(componente, bool) or not isinstance(componente, (int, float)):
-            return None
-        numero = float(componente)
-        # `nan` y `inf` pasan por `isinstance` y envenenan cualquier cuenta posterior.
-        if numero != numero or numero in (float("inf"), float("-inf")):
-            return None
-        salida.append(numero)
-    return salida
-
-
 def _unitario(valor) -> list[float] | None:
-    """Una terna que ademas mide 1. Un vector de direccion que no lo sea no es una direccion."""
-    terna = _terna(valor)
-    if terna is None:
+    """Una terna que ademas mide 1. Un vector de direccion que no lo sea no es una direccion.
+
+    **Sin tope de distancia**, y no es un olvido: un vector que mide 1 no puede estar lejos de
+    ningun sitio, porque no es una posicion.
+
+    La variable local **no puede llamarse `terna`**: en Python, asignar a un nombre lo vuelve local
+    en todo el cuerpo de la funcion, asi que `terna = terna(valor)` intentaria llamar a la local
+    antes de que exista y daria `UnboundLocalError`. Se llama `tres`.
+    """
+    tres = terna(valor)
+    if tres is None:
         return None
-    largo = sum(componente * componente for componente in terna) ** 0.5
+    largo = sum(componente * componente for componente in tres) ** 0.5
     if abs(largo - 1.0) > TOLERANCIA_UNITARIA:
         return None
-    return terna
+    return tres
 
 
 def leer(crudo: str | None) -> dict:
@@ -91,12 +85,13 @@ def leer(crudo: str | None) -> dict:
     if tipo not in TIPOS:
         return {}
 
-    punto = _terna(datos.get("punto"))
+    # **El tope va solo en el punto**, que es la posicion; la direccion y el arriba miden 1 y no
+    # pueden estar lejos de nada. Antes iba en un `any()` de esta funcion y ahora lo pone la propia
+    # lectura: son la misma comprobacion, y con el mismo resultado —`{}`— si falla.
+    punto = terna(datos.get("punto"), lejos=LEJOS_M)
     direccion = _unitario(datos.get("direccion"))
     arriba = _unitario(datos.get("arriba"))
     if punto is None or direccion is None or arriba is None:
-        return {}
-    if any(abs(componente) > LEJOS_M for componente in punto):
         return {}
 
     # **El arriba tiene que ser perpendicular a la direccion**, y no es una formalidad: el XSD de

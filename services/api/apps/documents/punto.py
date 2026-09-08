@@ -26,6 +26,8 @@ error sobre un parametro que no escribio. Lo que hay que conservar es el hallazg
 
 import json
 
+from apps.core.numeros import terna
+
 #: Cuan lejos del origen se admite un punto, en metros.
 #:
 #: Veinte millones: el eje norte de UTM llega a diez millones en el ecuador de su hemisferio, y las
@@ -45,6 +47,9 @@ def leer(valor) -> list[float] | None:
     Acepta la lista ya decodificada o el JSON en texto, que es como viaja en una peticion. Devuelve
     `None` ante cualquier cosa que no sea exactamente tres numeros usables — sin distinguir el
     motivo, porque quien llama no hace nada distinto con cada uno.
+
+    **Lo propio de este modulo es el tope y el texto**; la validacion de la forma es la de
+    `apps.core.numeros.terna`, compartida con la camara, el marcado y los cortes.
     """
     if valor is None:
         return None
@@ -58,22 +63,7 @@ def leer(valor) -> list[float] | None:
         except (ValueError, TypeError):
             return None
 
-    if not isinstance(valor, (list, tuple)) or len(valor) != 3:
-        return None
-
-    salida: list[float] = []
-    for componente in valor:
-        # `bool` es `int` en Python, y `[True, 0, 0]` no es un punto.
-        if isinstance(componente, bool) or not isinstance(componente, (int, float)):
-            return None
-        numero = float(componente)
-        # `nan` e `inf` pasan por `isinstance` y envenenan cualquier cuenta posterior.
-        if numero != numero or numero in (float("inf"), float("-inf")):
-            return None
-        if abs(numero) > LEJOS_M:
-            return None
-        salida.append(numero)
-    return salida
+    return terna(valor, lejos=LEJOS_M)
 
 
 def como_texto(punto: list[float] | tuple[float, float, float] | None) -> str:
