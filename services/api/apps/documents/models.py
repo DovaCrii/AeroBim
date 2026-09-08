@@ -466,6 +466,21 @@ class Observacion(StatusFlowMixin, BaseModel):
     ancla_x = models.FloatField(null=True, blank=True)
     ancla_y = models.FloatField(null=True, blank=True)
 
+    # Ancla en el levantamiento: un punto de la nube, `F12.14`.
+    #
+    # **Tres columnas propias y no `ancla_x`/`ancla_y` mas una.** Las de arriba son la posicion
+    # dentro de una pagina de un PDF —relativas a la hoja— y estas son metros en el sistema del
+    # archivo del levantamiento, o sea UTM en esta obra. Mismo nombre, unidades distintas, y una
+    # observacion que mezclara las dos no se podria dibujar en ningun sitio.
+    #
+    # **Y son las coordenadas del archivo, no las de la escena del visor**: la escena es un detalle
+    # de implementacion —si cambia la convencion de ejes, un punto guardado en ella empieza a
+    # mentir— y las del archivo son el dato del topografo, el que se puede volver a replantear.
+    # Ver `apps/documents/punto.py`, que lo lee y lo escribe para leerlo.
+    ancla_nube_x = models.FloatField(null=True, blank=True)
+    ancla_nube_y = models.FloatField(null=True, blank=True)
+    ancla_nube_z = models.FloatField(null=True, blank=True)
+
     # Ancla en el modelo. **El GUID de IFC es la identidad, siempre** —regla de
     # `AGENTS.md`— y es lo que viaja en un BCF.
     ifc_guid = models.CharField(max_length=22, blank=True, db_index=True)
@@ -536,10 +551,30 @@ class Observacion(StatusFlowMixin, BaseModel):
         return reverse("documents:observacion", args=[self.pk])
 
     @property
+    def punto_de_la_nube(self) -> tuple[float, float, float] | None:
+        """El punto del levantamiento al que esta anclada, o `None`.
+
+        Las tres columnas van juntas o no van: media coordenada no señala nada, asi que se piden
+        las tres y una sola ausente devuelve `None`. Es lo mismo que hace la camara descartandose
+        entera cuando le falta un vector.
+        """
+        if self.ancla_nube_x is None or self.ancla_nube_y is None or self.ancla_nube_z is None:
+            return None
+        return (self.ancla_nube_x, self.ancla_nube_y, self.ancla_nube_z)
+
+    @property
     def ancla(self) -> str:
-        """Sobre que esta puesta: `documento`, `modelo` o `proyecto`."""
+        """Sobre que esta puesta: `modelo`, `nube`, `documento` o `proyecto`.
+
+        **El GUID gana al punto**, y el orden importa: una observacion de desviacion nace sobre un
+        elemento del modelo *y* tiene un punto del levantamiento, y lo que la identifica es el
+        elemento — es lo que la selecciona en Solibri y lo que sobrevive a la version siguiente del
+        modelo. El punto es donde se midio.
+        """
         if self.ifc_guid:
             return "modelo"
+        if self.punto_de_la_nube is not None:
+            return "nube"
         if self.revision_id is not None:
             return "documento"
         return "proyecto"

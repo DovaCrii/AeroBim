@@ -165,8 +165,24 @@ def _markup(observacion, tema: str, con_foto: bool) -> str:
     if observacion.vence is not None:
         ET.SubElement(topic, "DueDate").text = f"{observacion.vence.isoformat()}T00:00:00Z"
     ET.SubElement(topic, "AssignedTo").text = _quien(observacion.responsable)
-    if observacion.descripcion:
-        ET.SubElement(topic, "Description").text = observacion.descripcion
+    # **El punto del levantamiento va en el texto, porque el BCF no sabe decirlo.** `F12.14`.
+    #
+    # Un `Viewpoint` sabe decir una camara, una foto y unos GUID seleccionados; **no tiene forma de
+    # decir «este punto de esta nube»**, porque no hay elemento al que apuntar. Si la coordenada se
+    # quedara solo en nuestras tres columnas, una observacion sobre lo construido llegaria a Solibri
+    # como «hay un desplome aqui» sin el aqui.
+    #
+    # Asi que va en el `Description`, que es texto libre y lo lee cualquiera. No se toca lo que
+    # escribio la persona: se añade una linea al final, y solo cuando hay punto.
+    descripcion = observacion.descripcion
+    punto = observacion.punto_de_la_nube
+    if punto is not None:
+        from apps.documents.punto import como_texto
+
+        coordenada = f"Punto del levantamiento: {como_texto(punto)}"
+        descripcion = f"{descripcion}\n\n{coordenada}" if descripcion else coordenada
+    if descripcion:
+        ET.SubElement(topic, "Description").text = descripcion
 
     # **Los comentarios van con su historial.** Es la mitad del valor de una observacion: la
     # respuesta del proyectista y el cierre del revisor son lo que explica por que esta cerrada.

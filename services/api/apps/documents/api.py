@@ -203,6 +203,7 @@ class ObservacionesDeRevisionAPI(APIView):
         from apps.documents.camara import leer as leer_camara
         from apps.documents.marcado import leer as leer_marcado
         from apps.documents.notify import avisar_asignacion
+        from apps.documents.punto import leer as leer_punto
         from apps.documents.visibilidad import leer as leer_visibilidad
 
         revision = revisiones_visibles(request.user).filter(pk=kwargs["pk"]).first()
@@ -219,6 +220,16 @@ class ObservacionesDeRevisionAPI(APIView):
         if guid and not (len(guid) == 22 and all(c.isalnum() or c in "_$" for c in guid)):
             return Response({"error": _("That is not a valid IFC GUID.")}, status=400)
 
+        # **El punto del levantamiento, para las notas que no tienen elemento.** `F12.14`. En obra
+        # la nube llega antes que el modelo, así que hasta hoy una nota sobre lo construido no tenía
+        # de dónde colgar: sin GUID, la cámara y la visibilidad se descartaban —ver las guardas de
+        # más abajo— y la observación quedaba sobre la revisión sin decir dónde.
+        punto = leer_punto(request.data.get("punto"))
+        # **Lo que decide si esta nota tiene sitio en la escena.** Da igual cuál de los dos: una
+        # nota con GUID y una nota con punto son las dos notas *sobre algo que se está mirando*, y
+        # la cámara, la visibilidad y las cotas que la acompañan valen para las dos.
+        en_la_escena = bool(guid) or punto is not None
+
         prioridad = request.data.get("prioridad")
         if prioridad not in dict(Observacion.PRIORIDADES):
             prioridad = Observacion.MEDIA
@@ -234,17 +245,21 @@ class ObservacionesDeRevisionAPI(APIView):
             autor=request.user,
             responsable=self._responsable(request, entregable),
             ifc_guid=guid,
+            # Las tres coordenadas van juntas o no van: media coordenada no señala nada.
+            ancla_nube_x=punto[0] if punto is not None else None,
+            ancla_nube_y=punto[1] if punto is not None else None,
+            ancla_nube_z=punto[2] if punto is not None else None,
             # La cámara llega ya en el sistema del IFC —la convierte el visor— y se valida igual
             # que en el formulario. Una cámara mala se descarta y la nota se guarda sin ella.
-            punto_de_vista=leer_camara(request.data.get("camara")) if guid else {},
+            punto_de_vista=leer_camara(request.data.get("camara")) if en_la_escena else {},
             # **Y qué se estaba viendo**, no solo desde dónde — `F4.7`. Sin esto, una observación
             # encontrada aislando una planta salía en el BCF con el modelo entero a la vista, o sea
             # con el problema tapado por lo que precisamente se había apagado.
-            visibilidad=leer_visibilidad(request.data.get("visibilidad")) if guid else {},
+            visibilidad=leer_visibilidad(request.data.get("visibilidad")) if en_la_escena else {},
             # **Y qué señalaba** — `F4.5`. Las cotas que estaban a la vista, como segmentos en el
             # sistema del IFC. Sin esto el título decía «choca con el ducto» y la cota de 4 cm que
             # lo demostraba se quedaba en el navegador de quien anotó.
-            marcado=leer_marcado(request.data.get("marcado")) if guid else [],
+            marcado=leer_marcado(request.data.get("marcado")) if en_la_escena else [],
         )
         observacion.save()
         # **La foto se guarda después de la observación y su fallo no la arrastra.** Lo que hay que
