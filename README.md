@@ -148,7 +148,7 @@ pwsh services/api/scripts/verify.ps1  # el gate: check, pytest, ruff, bandit, pi
 npm test                              # el visor y el dominio
 ```
 
-**978 pruebas** en `services/api` y **516** en `packages/*` y `apps/web`. La regla que las ordena
+**1.022 pruebas** en `services/api` y **523** en `packages/*` y `apps/web`. La regla que las ordena
 está en [AGENTS.md](AGENTS.md): cada capacidad se comprueba contra **un oráculo independiente** —
 Bonsai para el IFC, Solibri o BIMcollab para el BCF, CloudCompare y `pdal` para la nube, el CAD de
 la oficina para el DXF — y **cada número se mide, no se estima**.
