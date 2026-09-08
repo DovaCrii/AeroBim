@@ -8,9 +8,8 @@
 
 [![Licencia: MIT](https://img.shields.io/badge/licencia-MIT-9B5DE5.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/typescript-5.x-1B2A4A.svg)](https://www.typescriptlang.org/)
-[![Three.js](https://img.shields.io/badge/three.js-r170+-1B2A4A.svg)](https://threejs.org/)
-[![Versión](https://img.shields.io/badge/versión-0.1.0%20sin%20publicar-1B2A4A.svg)](#dónde-vamos-la-meta-y-la-versión)
-[![Estado](https://img.shields.io/badge/estado-fase%2012%20·%20la%20interfaz-9B5DE5.svg)](#en-qué-punto-estamos-hoy)
+[![Django](https://img.shields.io/badge/django-6.0-1B2A4A.svg)](https://www.djangoproject.com/)
+[![Estado](https://img.shields.io/badge/estado-0.1.0%20sin%20publicar-9B5DE5.svg)](#estado-actual)
 
 Aplicaciones hermanas: **[AeroControl](https://github.com/DovaCrii/AeroControl)** (flota y cumplimiento) · **[AeroPlanner](https://github.com/DovaCrii/AeroPlanner)** (planificación de misiones) · **[AeroLink](https://github.com/DovaCrii/AeroLink)** (telemetría y evidencia) — funcionan por separado, se comunican cuando conviene
 
@@ -66,17 +65,15 @@ La zona gris son las nubes de puntos, y se reparte por propósito: la nube como
 nube como **as-built contra modelo** (verificación de avance, coordinación) vive
 aquí.
 
-## Dónde vamos: la meta y la versión
+## Estado actual
 
-**Versión `0.1.0`, sin publicar.** Es el número que llevan los cuatro paquetes
-(`package.json`, `services/api/pyproject.toml`) y **no hay ninguna etiqueta de git**: no se ha
-liberado nada todavía, y decir otra cosa sería inventarlo. La primera versión con número propio
-sale cuando el piloto del CC 741 cierre su Etapa 1.
+**`0.1.0`, sin publicar** — el número que llevan los cuatro paquetes, y **no hay ninguna etiqueta
+de git**: no se ha liberado nada todavía, y decir otra cosa sería inventarlo. La primera versión con
+número propio sale cuando el piloto del CC 741 cierre su Etapa 1.
 
-**La meta de la `0.1.0`** es la frase de alcance de [`docs/MVP.md`](docs/MVP.md): abrir un IFC en el
-navegador, recorrerlo, consultar sus propiedades, compararlo con el levantamiento, y dejar la
-observación de coordinación en un formato que el resto de la industria entienda. Todo lo que no
-sirve a esa frase queda fuera — en particular **no** se está construyendo un modelador.
+**El motor está entero y la interfaz también.** Diez de las doce fases con trabajo están cerradas, y
+la Fase 12 —que la interfaz esté a la altura del motor— va por **catorce de sus quince tareas**.
+**1.033 pruebas** en `services/api` y **523** en `packages/*` y `apps/web`, con Ruff y pip-audit.
 
 | Hito                      | Qué significa que esté hecho                                               | Estado |
 | ------------------------- | -------------------------------------------------------------------------- | ------ |
@@ -85,74 +82,54 @@ sirve a esa frase queda fuera — en particular **no** se está construyendo un 
 | **El piloto** (CC 741)    | Un ciclo de trabajo real hecho por personas de la obra                     | ⬜     |
 | **`0.1.0` publicada**     | Etapa 1 del piloto cerrada, con su etiqueta de git                         | ⬜     |
 
-### En qué punto estamos hoy
+**La meta es la frase de alcance de [`docs/MVP.md`](docs/MVP.md)**: abrir un IFC en el navegador,
+recorrerlo, consultar sus propiedades, compararlo con el levantamiento, y dejar la observación de
+coordinación en un formato que el resto de la industria entienda. Lo que no sirve a esa frase queda
+fuera — en particular **no** se está construyendo un modelador.
 
-Actualizado el **2026-09-08**. La fuente de verdad de lo pendiente sigue siendo
-[MASTER_PLAN.md](MASTER_PLAN.md); esto es el resumen de una línea.
+Por fases, al **2026-09-08** (el detalle y el oráculo de cada tarea, en
+[MASTER_PLAN.md](MASTER_PLAN.md)):
 
-**Diez de las doce fases con trabajo están cerradas, y la Fase 12 va por catorce de sus quince
-tareas.** Lo que queda **no es código**: la Fase 2 y la última de la Fase 12 esperan archivos de
-obra que el usuario todavía no tiene, y la Fase 6 está pospuesta a propósito.
+| Fase                                                                     | Estado                                                                          |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
+| 0 · Cimientos · 3 · Backend · 5 · Interferencias · 7 · Planos y salida   | ✅                                                                              |
+| 8 · Registro documental · 10 · Etiquetas y tablas · 11 · El portal plano | ✅                                                                              |
+| 9 · Diseño                                                               | ✅ entera — `F9.6` cerró el 2026-09-07                                          |
+| 1 · Visor                                                                | ✅ salvo `F1.13`, tres nombres que decides tú                                   |
+| 4 · Coordinación                                                         | ✅ salvo `F4.5`, condicionado a mirar un BCF exportado                          |
+| **2 · Nubes de puntos**                                                  | 🔶 abre, se maneja, calza y entra al expediente. `F2.4` espera **el IFC**       |
+| **12 · La interfaz**                                                     | 🔶 **catorce de quince.** `F12.2` espera modelo y levantamiento del mismo sitio |
+| 6 · Geo + BIM                                                            | ⬜ pospuesta el 2026-09-02, para poner la coordinación delante                  |
 
-| Fase                       | Estado                                                                                |
-| -------------------------- | ------------------------------------------------------------------------------------- |
-| 0 · Cimientos              | ✅                                                                                    |
-| 1 · Visor                  | ✅ salvo `F1.13`, tres nombres que decide el usuario                                  |
-| 3 · Backend                | ✅                                                                                    |
-| 4 · Coordinación           | ✅ salvo `F4.5`, condicionado a que el usuario mire un BCF exportado                  |
-| 5 · Interferencias         | ✅                                                                                    |
-| 7 · Planos y salida        | ✅                                                                                    |
-| 8 · Registro documental    | ✅                                                                                    |
-| 9 · Diseño                 | ✅ entera — `F9.6` cerró el 2026-09-07                                                |
-| 10 · Etiquetas y tablas    | ✅                                                                                    |
-| 11 · El portal se ve plano | ✅                                                                                    |
-| **2 · Nubes de puntos**    | 🔶 abre, se maneja, calza y entra al expediente. `F2.4` espera **el IFC**             |
-| **12 · La interfaz**       | 🔶 **catorce de quince.** `F12.2` espera un modelo y un levantamiento del mismo sitio |
-| 6 · Geo + BIM              | ⬜ pospuesta el 2026-09-02, para poner la coordinación delante                        |
+**No es 1.0, y lo que falta no es código.** Son cuatro cosas, y las cuatro dependen de la obra:
 
-**La Fase 12, en detalle**, porque es donde está el trabajo:
+1. **El IFC de la pasarela**, que está en construcción — sin él `F2.4` no se puede cerrar.
+2. **Un modelo y un levantamiento del mismo sitio**, para ejercer el calce a mano de punta a punta
+   (`F12.2`). Es lo que habrá en el piloto y no hay en el repositorio.
+3. **Que alguien mire un BCF exportado** en Solibri o Navisworks (`F4.5`).
+4. **Correr el piloto** con las personas de la obra ([`docs/PILOTO.md`](docs/PILOTO.md)).
 
-| Bloque                    | Qué es                                                                                                                                        | Estado      |
-| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
-| 1 · Desbloquear el piloto | Repartir hallazgos, `preparar_piloto`, timer del resumen, respaldo, COPC en el expediente, `docs/PILOTO.md`, métricas                         | ✅          |
-| 2 · El portal             | Gate de `app.css`, catálogo, barra lateral, cabecera, «Mi trabajo», bandeja, observaciones, la puerta, docs                                   | ✅          |
-| 3 · El visor              | `UX.md` ✅, tokens ✅, movimiento ✅, cota con su número ✅, puerta de entrada ✅, cinta ✅, navegador ✅, rail ✅, tema claro ✅, costura ✅ | ✅ los diez |
+Escribir 1.0 con esos huecos sería llamar terminado a algo que no lo está.
 
-**El levantamiento del CC 741 se abre desde el expediente**, medido: 130.795.022 bytes de COPC
-servidos por tramos, 62 peticiones y **26,9 %** del archivo para el primer encuadre, con la ficha
-diciendo 97,4 × 143,5 × 17,0 m y UTM 19S declarado dentro.
+El trabajo pendiente vive en dos documentos y no en este README:
 
-**Y lo que dejó el bloque del visor**, también medido y no estimado:
+- **[MASTER_PLAN.md](MASTER_PLAN.md)** — la fuente de verdad, por fases, con estado y oráculo por
+  tarea. Ahí está el detalle de las quince de la Fase 12 y de las que siguen abiertas.
+- **[HANDOFF.md](HANDOFF.md)** — el punto exacto de retome: qué se cerró, qué sigue abierto y por
+  qué.
 
-| Lo que cambió                                                       | Medido                                                              |
-| ------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| La cota lleva su número y sus tres magnitudes encima del modelo     | **14,22:1** a 11 px, desde 4,13 que no pasaba                       |
-| La cinta reparte grande y pequeño, y **no crece**                   | 137,1 → 136,8 px; pequeño 88 × 26,4                                 |
-| El navegador se pliega a rail y le devuelve el sitio al modelo      | 346 → 49,4 px de panel, **+301 px** de lienzo                       |
-| El tema claro, barrido pantalla por pantalla en los dos temas       | 16 pasadas, **cero** textos bajo el suelo                           |
-| El botón primario dejó de ser negro sobre violeta con el tema claro | 1,92:1 → **8,26:1**, y eran doce botones                            |
-| **Se trabaja con el levantamiento solo**, sin esperar al IFC        | de 0 herramientas vivas a 10, y `Directa 26,403 m` con dos clics    |
-| Y se le deja una nota anclada a su coordenada                       | `E 345.071,16 · N 6.298.028,87 · Z 561,41`                          |
-| **Un comentario del hilo lleva su captura**, PNG o JPEG hasta 8 MB  | La firma manda sobre la extensión, y la sirve una vista con permiso |
-
-**Lo que falta para la `0.1.0`** son tres cosas y ninguna es de código:
-
-1. **El IFC de la pasarela**, que está en construcción — sin él, `F2.4` no se puede cerrar.
-2. **Que el usuario mire un BCF exportado** en Solibri o Navisworks (`F4.5`).
-3. **Correr el piloto** con las personas de la obra ([`docs/PILOTO.md`](docs/PILOTO.md)).
-
-### Cómo se comprueba que esto funciona
+La puerta de calidad es **`pwsh services/api/scripts/verify.ps1` más `npm test`, y corre en la
+máquina de quien desarrolla**:
 
 ```powershell
 pwsh services/api/scripts/setup.ps1   # dependencias, migraciones y roles
-pwsh services/api/scripts/verify.ps1  # el gate: check, pytest, ruff, bandit, pip-audit
+pwsh services/api/scripts/verify.ps1  # check, pytest, ruff, bandit, pip-audit
 npm test                              # el visor y el dominio
 ```
 
-**1.033 pruebas** en `services/api` y **523** en `packages/*` y `apps/web`. La regla que las ordena
-está en [AGENTS.md](AGENTS.md): cada capacidad se comprueba contra **un oráculo independiente** —
-Bonsai para el IFC, Solibri o BIMcollab para el BCF, CloudCompare y `pdal` para la nube, el CAD de
-la oficina para el DXF — y **cada número se mide, no se estima**.
+La regla que ordena esas pruebas está en [AGENTS.md](AGENTS.md): cada capacidad se comprueba contra
+**un oráculo independiente** —Bonsai para el IFC, Solibri o BIMcollab para el BCF, CloudCompare y
+`pdal` para la nube, el CAD de la oficina para el DXF— y **cada número se mide, no se estima**.
 
 ---
 
@@ -180,7 +157,22 @@ archivo del cliente nunca llega al disco.
 
 **La coordinación y la nube**, después: interferencias contra los dos modelos reales de la
 organización (20 s, sin duplicar al repetir), BCF 2.1 que va y vuelve, DWG y DGN convertidos al
-entrar, y el levantamiento del CC 741 abierto por tramos desde su expediente.
+entrar, y **el levantamiento del CC 741 abierto por tramos desde su expediente** — 130.795.022 bytes
+de COPC, 62 peticiones y **26,9 %** del archivo para el primer encuadre, con la ficha diciendo
+97,4 × 143,5 × 17,0 m y UTM 19S declarado dentro.
+
+**Y la interfaz, que es la Fase 12**, medida en el navegador y no estimada:
+
+| Lo que cambió                                                      | Medido                                                              |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------- |
+| La cota lleva su número y sus tres magnitudes encima del modelo    | **14,22:1** a 11 px, desde 4,13 que no pasaba                       |
+| La cinta reparte grande y pequeño, y **no crece**                  | 137,1 → 136,8 px; el pequeño 88 × 26,4                              |
+| El navegador se pliega a rail y le devuelve el sitio al modelo     | 346 → 49,4 px de panel, **+301 px** de lienzo                       |
+| El tema claro, barrido pantalla por pantalla en los dos temas      | 16 pasadas, **cero** textos bajo el suelo                           |
+| El botón primario dejó de ser negro sobre violeta en el tema claro | 1,92:1 → **8,26:1**, y eran doce botones                            |
+| **Se trabaja con el levantamiento solo**, sin esperar al IFC       | de 0 herramientas vivas a 10, y `Directa 26,403 m` con dos clics    |
+| Y se le deja una nota anclada a su coordenada                      | `E 345.071,16 · N 6.298.028,87 · Z 561,41`                          |
+| **Un comentario del hilo lleva su captura**, PNG o JPEG hasta 8 MB | La firma manda sobre la extensión, y la sirve una vista con permiso |
 
 La fidelidad del plano se comprueba sin necesitar un archivo de cliente:
 `/diag.html?modo=plano&dxf=/samples/fidelidad-2d.dxf`. Y [docs/UX.md](docs/UX.md) explica cómo está
