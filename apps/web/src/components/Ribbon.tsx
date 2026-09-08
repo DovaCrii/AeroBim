@@ -281,12 +281,17 @@ export function Ribbon({
           <PanelToggle
             label="Propiedades"
             side="izquierda"
+            modo="ocultar"
             open={panelIzquierdo}
             onClick={() => onTogglePanel("izquierda")}
           />
           <PanelToggle
             label="Navegador"
             side="derecha"
+            // **El navegador se pliega, no se oculta**, y el rótulo del interruptor tiene que
+            // decirlo: plegado sigue ahí en 44 px de iconos. Decir «ocultar» prometería una
+            // pantalla entera de lienzo que no se va a ver.
+            modo="plegar"
             open={panelDerecho}
             onClick={() => onTogglePanel("derecha")}
           />
@@ -943,19 +948,35 @@ function PanelToggle({
   label,
   side,
   open,
+  modo,
   onClick,
 }: {
   readonly label: string;
   readonly side: "izquierda" | "derecha";
   readonly open: boolean;
+  /**
+   * Qué pasa al apagarlo: `"ocultar"` lo quita de la pantalla, `"plegar"` lo deja en rail.
+   *
+   * Son dos cosas distintas y el rótulo tiene que distinguirlas, porque prometen espacio distinto:
+   * Propiedades se va del todo —sin selección no enseña nada— y el navegador se queda en 44 px.
+   */
+  readonly modo: "ocultar" | "plegar";
   readonly onClick: () => void;
 }) {
+  const verbo = open
+    ? modo === "plegar"
+      ? "Plegar a iconos"
+      : "Ocultar"
+    : modo === "plegar"
+      ? "Desplegar"
+      : "Mostrar";
+
   return (
     <button
       type="button"
       onClick={onClick}
       aria-pressed={open}
-      title={`${open ? "Ocultar" : "Mostrar"} el panel de ${label.toLowerCase()} (${side})`}
+      title={`${verbo} el panel de ${label.toLowerCase()} (${side})`}
       className={[
         // Eran los más pequeños de la pantalla: 27 px de alto. Suben a 32, que es lo que cabe en
         // esta fila sin empujarla — y con `min-w-11` el ancho ya llega al objetivo.

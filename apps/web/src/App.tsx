@@ -114,6 +114,14 @@ const CLAVE_VISTAS = "aerobim.vistas.v1";
 /** Dónde se recuerda si la cinta quedó plegada. */
 const CLAVE_CINTA = "aerobim.cinta.plegada.v1";
 
+/**
+ * Dónde se recuerda si el navegador quedó plegado a rail.
+ *
+ * Se recuerda por lo mismo que la cinta: es una preferencia de trabajo —quien trabaja en una
+ * pantalla chica lo pliega una vez— y no un estado de la sesión.
+ */
+const CLAVE_NAVEGADOR = "aerobim.navegador.plegado.v1";
+
 /** Dónde se recuerdan los anchos de los paneles laterales. */
 /**
  * Dónde se recuerda el ancho de los paneles.
@@ -154,6 +162,15 @@ function leerAncho(lado: "izquierda" | "derecha", porDefecto: number): number {
 function leerCintaPlegada(): boolean {
   try {
     return localStorage.getItem(CLAVE_CINTA) === "1";
+  } catch {
+    return false;
+  }
+}
+
+/** Lee la preferencia del navegador. Sin almacenamiento, arranca desplegado. */
+function leerNavegadorPlegado(): boolean {
+  try {
+    return localStorage.getItem(CLAVE_NAVEGADOR) === "1";
   } catch {
     return false;
   }
@@ -477,7 +494,19 @@ export function App() {
   /** Las vistas guardadas. Se leen del navegador al arrancar y se escriben al cambiar. */
   const [views, setViews] = useState<readonly SavedView[]>(leerVistas);
   const [panelIzquierdo, setPanelIzquierdo] = useState(true);
-  const [panelDerecho, setPanelDerecho] = useState(true);
+  /**
+   * `true` con el navegador plegado a rail: 44 px de iconos en vez de 346 de panel.
+   *
+   * **No es «oculto», y esa es la decisión.** Propiedades se sigue escondiendo del todo —lo que
+   * enseña depende de que haya algo seleccionado, así que sin selección no hay nada que perder—,
+   * pero el navegador es *el contenido del proyecto*: esconderlo entero deja la pantalla sin decir
+   * qué hay abierto. Plegado devuelve **302 px de lienzo** y sigue diciéndolo.
+   *
+   * Y es un **estado del mismo navegador**, no una navegación aparte: los doce iconos son las doce
+   * secciones con el rótulo escondido, no doce destinos con uno visible a la vez. Es lo que decidió
+   * `F9.6` y lo que hace que esto no contradiga la regla de `docs/UX.md`.
+   */
+  const [navegadorPlegado, setNavegadorPlegado] = useState(leerNavegadorPlegado);
   /**
    * La sección del navegador que se acaba de pedir desde otro sitio de la pantalla.
    *
@@ -497,7 +526,7 @@ export function App() {
    * «Del registro» en la puerta de entrada con el navegador cerrado — nada visible ocurría.
    */
   const irASeccion = useCallback((clave: string) => {
-    setPanelDerecho(true);
+    setNavegadorPlegado(false);
     setSeccionPedida((actual) => ({ clave, sello: (actual?.sello ?? 0) + 1 }));
   }, []);
   /**
@@ -534,6 +563,14 @@ export function App() {
       // Igual que arriba: sin almacenamiento, los anchos duran lo que la pestaña.
     }
   }, [anchoIzquierdo, anchoDerecho]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(CLAVE_NAVEGADOR, navegadorPlegado ? "1" : "0");
+    } catch {
+      // Ídem.
+    }
+  }, [navegadorPlegado]);
 
   useEffect(() => {
     const host = canvasHost.current;
@@ -2132,10 +2169,10 @@ export function App() {
         onShowAll={onShowAll}
         onTogglePanel={(lado) => {
           if (lado === "izquierda") setPanelIzquierdo((actual) => !actual);
-          else setPanelDerecho((actual) => !actual);
+          else setNavegadorPlegado((actual) => !actual);
         }}
         panelIzquierdo={panelIzquierdo}
-        panelDerecho={panelDerecho}
+        panelDerecho={!navegadorPlegado}
       />
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
@@ -2277,7 +2314,9 @@ export function App() {
             )}
         </div>
 
-        {panelDerecho && (
+        {/* Plegado no hay ancho que arrastrar: el rail mide lo que mide un icono con su área de
+            toque, y estirarlo no enseñaría nada más. */}
+        {!navegadorPlegado && (
           <Resizer
             orientacion="vertical"
             ayuda="Arrastra para cambiar el ancho del navegador"
@@ -2291,240 +2330,245 @@ export function App() {
           />
         )}
 
-        {panelDerecho && (
-          <aside
-            style={{ width: anchoDerecho }}
-            className="min-w-0 shrink border-l border-borde bg-surface"
-          >
-            <ProjectBrowser
-              pedida={seccionPedida}
-              registro={
-                <Selector
-                  onAbrir={(revisionId) => void abrirRevision(revisionId)}
-                  // Abrir dos modelos a la vez los cruza en el mismo worker: mientras carga uno,
-                  // el resto de la lista no acepta clics.
-                  deshabilitado={status.kind === "loading"}
+        {/* **El navegador está siempre**, plegado a rail o desplegado. La diferencia con el panel
+            de la izquierda es el motivo: ahí lo que se enseña depende de que haya algo
+            seleccionado, así que esconderlo no pierde nada; acá es el contenido del proyecto, y sin
+            él la pantalla deja de decir qué hay abierto. */}
+        <aside
+          style={navegadorPlegado ? undefined : { width: anchoDerecho }}
+          className={[
+            "min-w-0 border-l border-borde bg-surface",
+            navegadorPlegado ? "shrink-0" : "shrink",
+          ].join(" ")}
+        >
+          <ProjectBrowser
+            plegado={navegadorPlegado}
+            onDesplegarEn={irASeccion}
+            pedida={seccionPedida}
+            registro={
+              <Selector
+                onAbrir={(revisionId) => void abrirRevision(revisionId)}
+                // Abrir dos modelos a la vez los cruza en el mismo worker: mientras carga uno,
+                // el resto de la lista no acepta clics.
+                deshabilitado={status.kind === "loading"}
+              />
+            }
+            coordinacion={
+              <Coordinacion
+                proyectoId={origen?.proyectoId ?? null}
+                onAbrir={onAbrirObservacion}
+                recargar={notasGuardadas}
+                sePuedeAnotar={sePuedeAnotar}
+                // Solo lo que hace falta para señalar en un plano: el GUID y el título. Pasar la
+                // observación entera acoplaría el generador de planos a la forma de la API.
+                onCargadas={(lista) =>
+                  setHallazgosDelModelo(
+                    lista.map((una) => ({ guid: una.guid, titulo: una.titulo })),
+                  )
+                }
+              />
+            }
+            modelCount={models.length}
+            hayNube={nube !== null}
+            planCount={plans.length}
+            drawingCount={drawings.length}
+            generados={
+              <DrawingsPanel
+                drawings={drawings}
+                hidden={hiddenDrawings}
+                onLaminaPdf={(id) => void onLaminaPdf(id)}
+                onAddTable={onPonerCuadroEnPlano}
+                cuadroCargado={cuadro?.category ?? null}
+                onAddDimensions={onAcotarPlano}
+                // **Se cuenta de `drawn` y no se le pregunta al visor**: `drawn` es el estado de
+                // React, así que el botón aparece y desaparece al medir sin depender de que algo
+                // fuerce un redibujado. Solo las de distancia encendidas, que son las que se
+                // pueden llevar a un plano.
+                cotasDisponibles={
+                  drawn.filter((una) => una.visible && una.kind === "distance").length
+                }
+                anotado={anotado}
+                onAddCallouts={(id) => void onSenalarHallazgos(id)}
+                hallazgosDisponibles={hallazgosDelModelo.length}
+                llamadasPuestas={llamadasPuestas}
+                generating={generating}
+                onGenerate={(vista) => void onGenerateDrawing(vista)}
+                onCancel={() => setGenerating(null)}
+                onToggle={(id, visible) => {
+                  setHiddenDrawings((actual) => {
+                    const siguiente = new Set(actual);
+                    if (visible) siguiente.delete(id);
+                    else siguiente.add(id);
+                    return siguiente;
+                  });
+                  void viewer.current?.setDrawingVisible(id, visible);
+                }}
+                onToggleHidden={(id, visible) =>
+                  void viewer.current?.setDrawingHiddenVisible(id, visible)
+                }
+                onExport={onExportDrawing}
+                onClose={(id) => {
+                  setDrawings((actuales) => actuales.filter((uno) => uno.id !== id));
+                  void viewer.current?.removeDrawing(id);
+                }}
+              />
+            }
+            cotas={drawn}
+            vistas={views}
+            vistasDelProyecto={
+              <VistasCompartidas
+                proyectoId={origen?.proyectoId ?? null}
+                onCapturar={async (nombre) =>
+                  (await viewer.current?.captureVistaCompartida(nombre)) ?? null
+                }
+                onAplicar={async (vista) => {
+                  await viewer.current?.applyVistaCompartida(vista);
+                  // Una vista compartida puede traer medio modelo apagado, y la barra de estado
+                  // tiene que ofrecer la vuelta: es el mismo estado que anota `F4.7` al abrir una
+                  // observación.
+                  setVisibilidadDeObservacion(vista.visibilidad !== null);
+                  setHasSections(vista.cortes.length > 0);
+                }}
+              />
+            }
+            puedeGuardarVista={models.length > 0}
+            onToggleMeasurement={onToggleMeasurement}
+            onDeleteMeasurement={onDeleteMeasurement}
+            onSaveView={onSaveView}
+            onApplyView={onApplyView}
+            onDeleteView={onDeleteView}
+            estructura={
+              orderedTrees.length === 0 ? (
+                // **El estado vacío dice cómo llenarse.** `F9.5`: decir solo «no hay nada» deja a
+                // alguien buscando la puerta, y esto es lo primero que se ve al abrir el visor.
+                <p className="p-3 text-xs leading-snug text-fg-3">
+                  Todavía no hay ningún modelo abierto.{" "}
+                  <span className="text-fg-2">
+                    Arrastra un IFC aquí, usa <strong>Abrir</strong> arriba, o saca uno de{" "}
+                    <strong>Del registro</strong>.
+                  </span>
+                </p>
+              ) : (
+                <SpatialTree
+                  trees={orderedTrees}
+                  hidden={hidden}
+                  onIsolate={onIsolateNode}
+                  onToggleVisible={onToggleVisible}
                 />
-              }
-              coordinacion={
-                <Coordinacion
-                  proyectoId={origen?.proyectoId ?? null}
-                  onAbrir={onAbrirObservacion}
-                  recargar={notasGuardadas}
-                  sePuedeAnotar={sePuedeAnotar}
-                  // Solo lo que hace falta para señalar en un plano: el GUID y el título. Pasar la
-                  // observación entera acoplaría el generador de planos a la forma de la API.
-                  onCargadas={(lista) =>
-                    setHallazgosDelModelo(
-                      lista.map((una) => ({ guid: una.guid, titulo: una.titulo })),
-                    )
-                  }
-                />
-              }
-              modelCount={models.length}
-              hayNube={nube !== null}
-              planCount={plans.length}
-              drawingCount={drawings.length}
-              generados={
-                <DrawingsPanel
-                  drawings={drawings}
-                  hidden={hiddenDrawings}
-                  onLaminaPdf={(id) => void onLaminaPdf(id)}
-                  onAddTable={onPonerCuadroEnPlano}
-                  cuadroCargado={cuadro?.category ?? null}
-                  onAddDimensions={onAcotarPlano}
-                  // **Se cuenta de `drawn` y no se le pregunta al visor**: `drawn` es el estado de
-                  // React, así que el botón aparece y desaparece al medir sin depender de que algo
-                  // fuerce un redibujado. Solo las de distancia encendidas, que son las que se
-                  // pueden llevar a un plano.
-                  cotasDisponibles={
-                    drawn.filter((una) => una.visible && una.kind === "distance").length
-                  }
-                  anotado={anotado}
-                  onAddCallouts={(id) => void onSenalarHallazgos(id)}
-                  hallazgosDisponibles={hallazgosDelModelo.length}
-                  llamadasPuestas={llamadasPuestas}
-                  generating={generating}
-                  onGenerate={(vista) => void onGenerateDrawing(vista)}
-                  onCancel={() => setGenerating(null)}
-                  onToggle={(id, visible) => {
-                    setHiddenDrawings((actual) => {
-                      const siguiente = new Set(actual);
-                      if (visible) siguiente.delete(id);
-                      else siguiente.add(id);
-                      return siguiente;
-                    });
-                    void viewer.current?.setDrawingVisible(id, visible);
-                  }}
-                  onToggleHidden={(id, visible) =>
-                    void viewer.current?.setDrawingHiddenVisible(id, visible)
-                  }
-                  onExport={onExportDrawing}
-                  onClose={(id) => {
-                    setDrawings((actuales) => actuales.filter((uno) => uno.id !== id));
-                    void viewer.current?.removeDrawing(id);
-                  }}
-                />
-              }
-              cotas={drawn}
-              vistas={views}
-              vistasDelProyecto={
-                <VistasCompartidas
-                  proyectoId={origen?.proyectoId ?? null}
-                  onCapturar={async (nombre) =>
-                    (await viewer.current?.captureVistaCompartida(nombre)) ?? null
-                  }
-                  onAplicar={async (vista) => {
-                    await viewer.current?.applyVistaCompartida(vista);
-                    // Una vista compartida puede traer medio modelo apagado, y la barra de estado
-                    // tiene que ofrecer la vuelta: es el mismo estado que anota `F4.7` al abrir una
-                    // observación.
-                    setVisibilidadDeObservacion(vista.visibilidad !== null);
-                    setHasSections(vista.cortes.length > 0);
-                  }}
-                />
-              }
-              puedeGuardarVista={models.length > 0}
-              onToggleMeasurement={onToggleMeasurement}
-              onDeleteMeasurement={onDeleteMeasurement}
-              onSaveView={onSaveView}
-              onApplyView={onApplyView}
-              onDeleteView={onDeleteView}
-              estructura={
-                orderedTrees.length === 0 ? (
-                  // **El estado vacío dice cómo llenarse.** `F9.5`: decir solo «no hay nada» deja a
-                  // alguien buscando la puerta, y esto es lo primero que se ve al abrir el visor.
-                  <p className="p-3 text-xs leading-snug text-fg-3">
-                    Todavía no hay ningún modelo abierto.{" "}
-                    <span className="text-fg-2">
-                      Arrastra un IFC aquí, usa <strong>Abrir</strong> arriba, o saca uno de{" "}
-                      <strong>Del registro</strong>.
-                    </span>
-                  </p>
-                ) : (
-                  <SpatialTree
-                    trees={orderedTrees}
-                    hidden={hidden}
-                    onIsolate={onIsolateNode}
-                    onToggleVisible={onToggleVisible}
-                  />
-                )
-              }
-              calce={
-                <CalcePanel
-                  hayNube={nube !== null}
-                  hayModelo={models.length > 0}
-                  elementoSeleccionado={
-                    selected?.guid != null
-                      ? (selected.name ?? selected.category ?? "el elemento")
-                      : null
-                  }
-                  calce={calce}
-                  medicion={medicion}
-                  pares={pares.length}
-                  paso={pasoDelCalce}
-                  residuo={
-                    calceDePares === null
-                      ? null
-                      : {
-                          medio: calceDePares.residuo.medio,
-                          maximo: calceDePares.residuo.maximo,
-                          peor: calceDePares.residuo.peor,
-                        }
-                  }
-                  giroIndeterminado={calceDePares?.giroIndeterminado ?? false}
-                  onSenalar={() => setPasoDelCalce("modelo")}
-                  onParar={() => setPasoDelCalce("apagado")}
-                  onQuitarPar={quitarUltimoPar}
-                  onAplicarPares={aplicarCalceDePares}
-                  onCalzarAuto={() => void calzarAutomaticamente()}
-                  onMedir={(t: number) => void medirDesviacionDelElemento(t)}
-                  onObservar={() => setNotaAbierta(true)}
-                />
-              }
-              nubes={
-                <NubesPanel
-                  ficha={nube}
-                  informe={nubeInforme}
-                  puntos={nubePuntos}
-                  color={nubeColor}
-                  tamanoDePunto={nubeTamano}
-                  recortada={nubeRecortada}
-                  onAbrir={() => entradaDeArchivo.current?.click()}
-                  onColor={colorearNube}
-                  onTamano={tamanoDeNube}
-                  onDensidad={densidadDeNube}
-                  onRecorte={recortarNubeAlModelo}
-                  onEncuadrar={encuadrarNube}
-                  onCerrar={cerrarNube}
-                />
-              }
-              cuadros={
-                <CuadrosPanel
+              )
+            }
+            calce={
+              <CalcePanel
+                hayNube={nube !== null}
+                hayModelo={models.length > 0}
+                elementoSeleccionado={
+                  selected?.guid != null
+                    ? (selected.name ?? selected.category ?? "el elemento")
+                    : null
+                }
+                calce={calce}
+                medicion={medicion}
+                pares={pares.length}
+                paso={pasoDelCalce}
+                residuo={
+                  calceDePares === null
+                    ? null
+                    : {
+                        medio: calceDePares.residuo.medio,
+                        maximo: calceDePares.residuo.maximo,
+                        peor: calceDePares.residuo.peor,
+                      }
+                }
+                giroIndeterminado={calceDePares?.giroIndeterminado ?? false}
+                onSenalar={() => setPasoDelCalce("modelo")}
+                onParar={() => setPasoDelCalce("apagado")}
+                onQuitarPar={quitarUltimoPar}
+                onAplicarPares={aplicarCalceDePares}
+                onCalzarAuto={() => void calzarAutomaticamente()}
+                onMedir={(t: number) => void medirDesviacionDelElemento(t)}
+                onObservar={() => setNotaAbierta(true)}
+              />
+            }
+            nubes={
+              <NubesPanel
+                ficha={nube}
+                informe={nubeInforme}
+                puntos={nubePuntos}
+                color={nubeColor}
+                tamanoDePunto={nubeTamano}
+                recortada={nubeRecortada}
+                onAbrir={() => entradaDeArchivo.current?.click()}
+                onColor={colorearNube}
+                onTamano={tamanoDeNube}
+                onDensidad={densidadDeNube}
+                onRecorte={recortarNubeAlModelo}
+                onEncuadrar={encuadrarNube}
+                onCerrar={cerrarNube}
+              />
+            }
+            cuadros={
+              <CuadrosPanel
+                models={models}
+                cargarCategorias={onCategorias}
+                cargarCuadro={onCuadro}
+                onVerTabla={setCuadro}
+                onDescargar={onDescargarCuadro}
+              />
+            }
+            planos={
+              <PlansPanel
+                plans={plans}
+                hiddenPlans={hiddenPlans}
+                hiddenLayers={hiddenPlanLayers}
+                aligningPlanId={aligning?.planId ?? null}
+                onLabelHeight={(id, metros) => void viewer.current?.setPlanLabelHeight(id, metros)}
+                onSectionAtPlan={(_id, alturaM) => {
+                  setHasSections(true);
+                  void viewer.current?.sectionAtHeight(alturaM);
+                }}
+                onAlign={(id, ajustarEscala) => {
+                  const plan = plans.find((uno) => uno.id === id);
+                  if (plan === undefined) return;
+                  // Calzar y medir a la vez no tiene sentido y se pisarían los clics.
+                  onMeasureMode(null);
+                  setAligning({
+                    planId: id,
+                    planName: plan.name,
+                    points: [],
+                    adjustScale: ajustarEscala,
+                  });
+                }}
+                onTogglePlan={onTogglePlan}
+                onToggleLayer={onTogglePlanLayer}
+                onTransform={onPlanTransform}
+                onFrame={(id) => {
+                  setStandardView("top");
+                  viewer.current?.framePlan(id, "top");
+                }}
+                onClose={onClosePlan}
+              />
+            }
+            modelos={
+              models.length === 0 ? (
+                <p className="p-3 text-xs leading-snug text-fg-3">
+                  Ninguno.{" "}
+                  <span className="text-fg-2">
+                    Con dos modelos abiertos, esta lista es donde se apaga uno para mirar el otro —
+                    que es en lo que consiste coordinar.
+                  </span>
+                </p>
+              ) : (
+                <ModelsPanel
                   models={models}
-                  cargarCategorias={onCategorias}
-                  cargarCuadro={onCuadro}
-                  onVerTabla={setCuadro}
-                  onDescargar={onDescargarCuadro}
+                  hidden={hiddenModels}
+                  onToggleVisible={onToggleModel}
+                  onMove={onMoveModel}
+                  onClose={onCloseModel}
                 />
-              }
-              planos={
-                <PlansPanel
-                  plans={plans}
-                  hiddenPlans={hiddenPlans}
-                  hiddenLayers={hiddenPlanLayers}
-                  aligningPlanId={aligning?.planId ?? null}
-                  onLabelHeight={(id, metros) =>
-                    void viewer.current?.setPlanLabelHeight(id, metros)
-                  }
-                  onSectionAtPlan={(_id, alturaM) => {
-                    setHasSections(true);
-                    void viewer.current?.sectionAtHeight(alturaM);
-                  }}
-                  onAlign={(id, ajustarEscala) => {
-                    const plan = plans.find((uno) => uno.id === id);
-                    if (plan === undefined) return;
-                    // Calzar y medir a la vez no tiene sentido y se pisarían los clics.
-                    onMeasureMode(null);
-                    setAligning({
-                      planId: id,
-                      planName: plan.name,
-                      points: [],
-                      adjustScale: ajustarEscala,
-                    });
-                  }}
-                  onTogglePlan={onTogglePlan}
-                  onToggleLayer={onTogglePlanLayer}
-                  onTransform={onPlanTransform}
-                  onFrame={(id) => {
-                    setStandardView("top");
-                    viewer.current?.framePlan(id, "top");
-                  }}
-                  onClose={onClosePlan}
-                />
-              }
-              modelos={
-                models.length === 0 ? (
-                  <p className="p-3 text-xs leading-snug text-fg-3">
-                    Ninguno.{" "}
-                    <span className="text-fg-2">
-                      Con dos modelos abiertos, esta lista es donde se apaga uno para mirar el otro
-                      — que es en lo que consiste coordinar.
-                    </span>
-                  </p>
-                ) : (
-                  <ModelsPanel
-                    models={models}
-                    hidden={hiddenModels}
-                    onToggleVisible={onToggleModel}
-                    onMove={onMoveModel}
-                    onClose={onCloseModel}
-                  />
-                )
-              }
-            />
-          </aside>
-        )}
+              )
+            }
+          />
+        </aside>
       </div>
 
       <StatusBar

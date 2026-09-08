@@ -103,6 +103,8 @@ export function ProjectBrowser({
   onApplyView,
   onDeleteView,
   pedida = null,
+  plegado = false,
+  onDesplegarEn,
 }: {
   /** Lo que el registro documental ofrece abrir, agrupado por obra. */
   readonly registro: React.ReactNode;
@@ -158,6 +160,16 @@ export function ProjectBrowser({
    * llegar a ella, no reorganizarle el panel a nadie.
    */
   readonly pedida?: { readonly clave: string; readonly sello: number } | null;
+  /**
+   * `true` para dibujar el rail: los doce iconos en 44 px, sin rótulos ni listas.
+   *
+   * **Es el mismo navegador con los rótulos escondidos**, no un menú aparte, y por eso lo pinta
+   * este componente y no otro: sale del mismo `SECCIONES`, así que una capacidad nueva aparece en
+   * los dos sitios por añadir una fila. Si fueran dos listas, la segunda se quedaría atrás.
+   */
+  readonly plegado?: boolean;
+  /** Despliega el navegador con esa sección abierta. Es lo que hace un clic en el rail. */
+  readonly onDesplegarEn?: (clave: string) => void;
 }) {
   /**
    * Qué secciones están desplegadas. **Todas arrancan plegadas.**
@@ -405,6 +417,59 @@ export function ProjectBrowser({
     // efecto correría en todos los renders y volvería a abrir lo que alguien acaba de plegar.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [huella]);
+
+  if (plegado)
+    return (
+      <nav
+        aria-label="Secciones del proyecto"
+        className="flex h-full flex-col overflow-y-auto py-1"
+      >
+        {GRUPOS.map((grupo, indice) => (
+          <Fragment key={grupo}>
+            {/* Una raya en vez del rótulo: plegado no hay sitio para la palabra, y el grupo sigue
+                siendo información — dice que lo de arriba y lo de abajo son cosas distintas. */}
+            {indice > 0 && <hr className="mx-2 my-1 border-borde" />}
+            {SECCIONES.filter((una) => una.grupo === grupo).map((una) => (
+              <button
+                key={una.clave}
+                type="button"
+                onClick={() => onDesplegarEn?.(una.clave)}
+                // **El nombre va en `aria-label` y en `title`, nunca solo en `title`.** Un `title`
+                // no existe para el teclado ni en táctil, y un rail de doce iconos sin nombre es
+                // el problema que la cinta con rótulos vino a resolver.
+                aria-label={
+                  una.cuantos === null
+                    ? una.titulo
+                    : una.cuantos === 0
+                      ? `${una.titulo} — vacío`
+                      : `${una.titulo} — ${una.cuantos}`
+                }
+                title={`${una.titulo} — clic para desplegar el navegador aquí`}
+                className={[
+                  "relative mx-auto flex min-h-11 w-11 items-center justify-center rounded-sm",
+                  "transition-colors duration-[--duracion-corta] ease-[--ease-ab]",
+                  "[&>svg]:h-4 [&>svg]:w-4",
+                  una.cuantos === 0
+                    ? "text-apagado-fg hover:bg-surface-3 hover:text-fg-2"
+                    : "text-fg-2 hover:bg-surface-3 hover:text-fg",
+                ].join(" ")}
+              >
+                {una.icono}
+                {/* **El punto es la cifra que aquí no cabe.** Sin él, el rail no distingue una
+                    sección con tres modelos de una vacía, y entonces plegar cuesta información en
+                    vez de solo sitio. Va con el color de acento, que sí se lee sobre el panel. */}
+                {una.cuantos !== null && una.cuantos > 0 && (
+                  <span
+                    aria-hidden="true"
+                    className="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-accent"
+                  />
+                )}
+              </button>
+            ))}
+          </Fragment>
+        ))}
+      </nav>
+    );
 
   return (
     /*
