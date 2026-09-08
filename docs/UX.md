@@ -131,15 +131,40 @@ El criterio, para que no se decida botón por botón:
 segura.** Como mucho **tres por pestaña** — con cinco, «grande» deja de significar algo. Y las que
 duplican al cubo de vistas son siempre pequeñas: el cubo ya está ahí y es más rápido.
 
-| Pestaña  | Grandes                 |
-| -------- | ----------------------- |
-| Vista    | Todo · Modo 2D · Órbita |
-| Medición | Seleccionar · Distancia |
-| Modelo   | Horizontal · Ver todo   |
+| Pestaña     | Grandes                  |
+| ----------- | ------------------------ |
+| **Empezar** | Del registro · Del disco |
+| Vista       | Todo · Modo 2D · Órbita  |
+| Medición    | Seleccionar · Distancia  |
+| Modelo      | Horizontal · Ver todo    |
 
 **La altura de la cinta no cambia.** Lo pequeño va con icono de 16 y su nombre a la derecha, **dos
 por columna**, no tres: tres apilados bajan de los 44 px de área mínima, que es una regla del
 sistema y no una preferencia.
+
+### La cinta con la escena vacía
+
+**Es el único caso en que la cinta no es la cinta**, y se decidió el 2026-09-08 al hacer `F12.4`.
+Con la escena vacía —ni modelo, ni plano, ni levantamiento— hay un solo grupo, **«Empezar»**, con
+los dos gestos que sí se pueden hacer. Es lo que hace Revit sin documento abierto.
+
+Tres reglas que van juntas y no se pueden separar:
+
+1. **Las pestañas y el botón de plegar se apagan.** Dejarlos vivos sería un control que responde y
+   no cambia nada visible: se pulsa «Medición» y sigue el mismo grupo delante. Se **ven** —dicen qué
+   trabajo hay dentro del programa— y vuelven en cuanto haya algo que mirar.
+2. **La escena vacía gana al pliegue recordado.** El pliegue existe para dejarle el lienzo al
+   modelo; sin modelo no protege nada, y respetarlo dejaba la cinta en una fila de tres pestañas
+   apagadas y nada más. Se recupera intacto en cuanto se abre algo.
+3. **La cinta y el lienzo dicen lo mismo, con la misma condición.** La puerta de entrada del lienzo
+   ofrece los dos mismos gestos, y las dos mitades se pintan con «la escena está vacía» y no con
+   «las herramientas de cámara no tienen dónde aplicarse», que **no** son lo mismo: un levantamiento
+   solo cumple la segunda. Si discreparan, se vería la cinta ofreciendo «Empezar» con un modelo
+   delante.
+
+Y lo que **no** era el problema: el color. `--color-apagado-fg` está a 3,6:1 a propósito —WCAG exime
+lo inactivo y el gate lo fija para que nadie lo suba—, así que aclararlo habría hecho _más legible_
+una pantalla donde ninguna de las treinta y seis herramientas se podía usar.
 
 #### Y una idea que se midió y se descartó
 

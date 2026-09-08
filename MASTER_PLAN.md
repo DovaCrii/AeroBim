@@ -4318,7 +4318,7 @@ nadie puede alcanzar.
 | `F12.1` | **La nube de puntos tiene puerta**: abrirla, verla en el navegador, y sus controles           | ✅     |
 | `F12.2` | **El calce y la desviación son pantalla, no registro**: señalar puntos, ver el residuo, medir | 🔶     |
 | `F12.3` | **Las herramientas se ven**: contraste, tamaño e importancia relativa en la cinta             | ⬜     |
-| `F12.4` | **El lienzo vacío es una puerta de entrada**, no un vacío con una frase                       | ⬜     |
+| `F12.4` | **El lienzo vacío es una puerta de entrada**, no un vacío con una frase                       | ✅     |
 | `F12.5` | **El navegador tiene jerarquía**: nueve secciones iguales no dicen por dónde empezar          | ⬜     |
 | `F12.6` | **La entrada al portal**: es la primera pantalla del producto y hoy es un formulario          | ✅     |
 | `F12.7` | **«Portal» deja de titular la portada**, y los módulos se presentan por lo que resuelven      | ✅     |
@@ -4345,11 +4345,11 @@ en las dos mitades.
 El plan del 2026-09-07 la reparte en tres, en este orden: **primero lo que bloquea el piloto,
 después el portal, después el visor**.
 
-| Bloque                        | Pasos                                                                                                         | Estado       |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------- | ------------ |
-| **1 · Desbloquear el piloto** | `F12.10` · `preparar_piloto` · timer y respaldo · `F12.13` · `PILOTO.md` · `F12.12`                           | ✅ los seis  |
-| **2 · El portal**             | tokens y gate · catálogo · rail · cabecera · «Mi trabajo» · bandeja · observaciones · la puerta · docs        | ✅ los nueve |
-| **3 · El visor**              | `UX.md` ✅ · gate ✅ · movimiento ✅ · `F12.9` ✅ · `F12.4` · `F12.3` · `F12.5` · rail · tema claro · `F12.8` | 🔶 4 de 10   |
+| Bloque                        | Pasos                                                                                                            | Estado       |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------- | ------------ |
+| **1 · Desbloquear el piloto** | `F12.10` · `preparar_piloto` · timer y respaldo · `F12.13` · `PILOTO.md` · `F12.12`                              | ✅ los seis  |
+| **2 · El portal**             | tokens y gate · catálogo · rail · cabecera · «Mi trabajo» · bandeja · observaciones · la puerta · docs           | ✅ los nueve |
+| **3 · El visor**              | `UX.md` ✅ · gate ✅ · movimiento ✅ · `F12.9` ✅ · `F12.4` ✅ · `F12.3` · `F12.5` · rail · tema claro · `F12.8` | 🔶 5 de 10   |
 
 **El bloque 2 cerró el 2026-09-07**, en la rama `codex/portal-asana`. Lo que dejó, además de las
 nueve tareas:
@@ -4475,11 +4475,32 @@ todas lo mismo**. «Órbita» y «Todo» ocupan lo que «Sólido» y «Fantasma�
 tiene por dónde empezar. Lo que hacen los CAD de referencia es dar tamaño a lo que se usa: en Revit y
 AutoCAD el botón grande manda y los pequeños acompañan.
 
-### `F12.4` — El lienzo vacío es una puerta
+### `F12.4` — El lienzo vacío es una puerta ✅
 
-Novecientos por setecientos píxeles con una frase en medio. Los paneles del navegador **ya lo hacen
-bien** —«Arrastra un IFC aquí, usa Abrir arriba, o saca uno de Del registro»— y el lienzo, que es la
-mayor superficie de la pantalla, dice menos que ellos.
+**Hecha el 2026-09-08.** Eran novecientos por setecientos píxeles con una frase en medio. Los paneles
+del navegador **ya lo hacían bien** —«Arrastra un IFC aquí, usa Abrir arriba, o saca uno de Del
+registro»— y el lienzo, que es la mayor superficie de la pantalla, decía menos que ellos: nombraba
+dos gestos y no ofrecía ninguno, porque el arrastre no se puede pulsar y «Abrir» era un rótulo
+apuntando a otro sitio.
+
+Ahora los gestos **son** los controles, y en los dos sitios que tienen que decir lo mismo:
+`components/PuertaDeEntrada.tsx` en el lienzo —título a 24 px, **Del registro** primario y **Abrir
+del disco**, con el arrastre como texto porque es un gesto y no un botón— y en la cinta un solo
+grupo **«Empezar»** con los dos mismos en grande, que es la primera mitad de `F12.3`.
+
+**Lo que solo apareció al probarlo**, y es la parte que valió la tarea:
+
+| Lo que no funcionaba                                           | Por qué                                                                                                       |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| La cinta plegada **escondía «Empezar» entero** (46 px, alto 0) | El pliegue se recuerda en el navegador. Existe para dejarle el lienzo al modelo, y sin modelo no protege nada |
+| Soltar un archivo **sobre los botones** no cargaba nada        | Los botones son `pointer-events-auto` y están fuera del `canvasHost`: el objetivo era `BUTTON`                |
+| «Del registro» abría la sección **dentro de un panel plegado** | Son dos cosas: destapar el panel y desplegar la sección                                                       |
+| Pedir la sección **dos veces** solo funcionaba la primera      | La propiedad no cambiaba de valor. Lleva un `sello` que sube en cada petición                                 |
+
+Y una que no era de esta tarea y salió midiendo su botón: **los doce botones primarios del visor
+llevaban `text-fg`**, que cambia con el tema, sobre un relleno que no cambia. Con el tema claro
+puesto, **1,92:1** — el botón «Abrir» incluido. Ver `--color-sobre-accion` en
+[DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md); medido después, 8,26:1 en claro y 6,12:1 en oscuro.
 
 ### `F12.5` — El navegador tiene jerarquía
 

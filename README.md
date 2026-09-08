@@ -111,11 +111,11 @@ usuario todavía no tiene, la Fase 12 —la interfaz— en marcha, y la Fase 6 p
 
 **La Fase 12, en detalle**, porque es donde está el trabajo:
 
-| Bloque                    | Qué es                                                                                                                      | Estado     |
-| ------------------------- | --------------------------------------------------------------------------------------------------------------------------- | ---------- |
-| 1 · Desbloquear el piloto | Repartir hallazgos, `preparar_piloto`, timer del resumen, respaldo, COPC en el expediente, `docs/PILOTO.md`, métricas       | ✅         |
-| 2 · El portal             | Gate de `app.css`, catálogo, barra lateral, cabecera, «Mi trabajo», bandeja, observaciones, la puerta, docs                 | ✅         |
-| 3 · El visor              | `UX.md` ✅, tokens ✅, movimiento ✅, cota con su número ✅, puerta de entrada, cinta, navegador, rail, tema claro, costura | 🔶 4 de 10 |
+| Bloque                    | Qué es                                                                                                                         | Estado     |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ---------- |
+| 1 · Desbloquear el piloto | Repartir hallazgos, `preparar_piloto`, timer del resumen, respaldo, COPC en el expediente, `docs/PILOTO.md`, métricas          | ✅         |
+| 2 · El portal             | Gate de `app.css`, catálogo, barra lateral, cabecera, «Mi trabajo», bandeja, observaciones, la puerta, docs                    | ✅         |
+| 3 · El visor              | `UX.md` ✅, tokens ✅, movimiento ✅, cota con su número ✅, puerta de entrada ✅, cinta, navegador, rail, tema claro, costura | 🔶 5 de 10 |
 
 **El levantamiento del CC 741 se abre desde el expediente**, medido: 130.795.022 bytes de COPC
 servidos por tramos, 62 peticiones y **26,9 %** del archivo para el primer encuadre, con la ficha
