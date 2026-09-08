@@ -6,6 +6,7 @@ on:
   pull_request:
 
 jobs:
+  # La mitad de TypeScript: el visor y el dominio.
   verify:
     runs-on: ubuntu-latest
     steps:
@@ -23,3 +24,69 @@ jobs:
       - run: npm run lint
       - run: npm run build
       - run: npm test
+
+  # La mitad de Python, y **es nueva**: hasta el 2026-09-08 el gate de `services/api` corría solo
+  # en la máquina de quien desarrolla. Eso funcionaba porque nadie subía sin correrlo, pero
+  # dependía de que se acordara — y con dos mitades y un `README` que dice «cada número se mide»,
+  # media revisión automática es la que se salta el día que hay prisa.
+  #
+  # **Son los mismos pasos y en el mismo orden que `services/api/scripts/verify.ps1`**, a
+  # propósito: dos gates que comprueban cosas distintas dan la peor respuesta posible, «pasa aquí
+  # y falla allá». Si se añade un paso allí, se añade aquí.
+  #
+  # Va como trabajo aparte y no como pasos del de arriba para que corran en paralelo y para que el
+  # fallo diga de qué mitad es sin abrir el registro.
+  api:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/api
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: services/api/uv.lock
+
+      # `compilemessages` llama a `msgfmt`, que no viene en el corredor. Sin esto el paso falla
+      # con «Can't find msgfmt», que no dice que falta un paquete del sistema.
+      - name: gettext, para compilar el catálogo
+        run: sudo apt-get update && sudo apt-get install -y gettext
+
+      # `--locked` en vez de `--frozen`: **falla si `uv.lock` no cuadra con `pyproject.toml`**, que
+      # es justo el descuadre que nadie ve hasta que otra persona instala.
+      - run: uv sync --locked
+
+      - run: uv run python manage.py check
+
+      # Delata una configuración insegura antes del despliegue. La clave es de mentira y solo vive
+      # en este paso: `base.py` la exige del entorno, así que sin ella `prod` no carga.
+      - name: check --deploy
+        env:
+          DJANGO_SETTINGS_MODULE: config.settings.prod
+          SECRET_KEY: solo-para-el-gate-nunca-en-produccion-xxxxxxxxxxxx
+        run: uv run python manage.py check --deploy
+
+      # Delata un modelo cambiado sin su migración, que es el error que se descubre cuando el
+      # servidor de producción no arranca.
+      - run: uv run python manage.py makemigrations --check --dry-run
+
+      # **Se borra el `.mo` antes de compilar, y no es limpieza.** `compilemessages` no recompila si
+      # el binario es más nuevo que el catálogo, así que un `.po` que `msgfmt` rechaza pasa
+      # desapercibido hasta el día que alguien lo toca. Ya ocurrió una vez.
+      - name: compilemessages
+        run: |
+          find locale -name '*.mo' -delete
+          uv run python manage.py compilemessages -i .venv -i staticfiles
+
+      - run: uv run pytest --cov
+
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+
+      # Las pruebas quedan fuera: `assert` es su herramienta y `B101` lo marca en cada línea, o sea
+      # decenas de avisos de nada que enseñan a ignorar la salida entera.
+      - run: uv run bandit -q -r apps config -x "*/tests/*"
+
+      - run: uv run pip-audit
