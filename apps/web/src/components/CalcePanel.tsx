@@ -86,7 +86,7 @@ export function CalcePanel({
           type="button"
           onClick={onCalzarAuto}
           disabled={!hayModelo}
-          className="min-h-9 rounded-sm bg-action px-3 text-xs font-medium text-fg hover:bg-action-hover disabled:bg-surface-2 disabled:text-apagado-fg"
+          className="min-h-9 rounded-sm bg-action px-3 text-xs font-medium text-sobre-accion hover:bg-action-hover disabled:bg-surface-2 disabled:text-apagado-fg"
         >
           Calzar automáticamente
         </button>
@@ -173,7 +173,7 @@ export function CalcePanel({
             <button
               type="button"
               onClick={onAplicarPares}
-              className="min-h-9 rounded-sm bg-action px-3 text-xs font-medium text-fg hover:bg-action-hover"
+              className="min-h-9 rounded-sm bg-action px-3 text-xs font-medium text-sobre-accion hover:bg-action-hover"
             >
               Calzar con estos pares
             </button>

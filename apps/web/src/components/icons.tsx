@@ -617,3 +617,38 @@ export function IconCursor(props: IconProps) {
     </Svg>
   );
 }
+
+/**
+ * El registro: dos hojas archivadas, la de delante con su código de revisión.
+ *
+ * Tiene que distinguirse de `IconNota` —que es *dejar* un hallazgo sobre una pieza— y de
+ * `IconAbrirDelDisco`. Lo que la separa es **el archivador**: son varias hojas guardadas con un
+ * orden, que es exactamente lo que es un expediente ISO 19650 y no un archivo suelto.
+ */
+export function IconRegistro(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M8 3h6.5L18.5 7v10a1.5 1.5 0 0 1-1.5 1.5H8A1.5 1.5 0 0 1 6.5 17V4.5A1.5 1.5 0 0 1 8 3Z" />
+      <path d="M14.5 3v4h4" />
+      <path d="M9.5 11h6M9.5 14h4" />
+      {/* La hoja de detrás, asomando: es lo que dice «hay más de una revisión». */}
+      <path d="M4 6.5v13A1.5 1.5 0 0 0 5.5 21h9" />
+    </Svg>
+  );
+}
+
+/**
+ * Abrir del disco: la bandeja con la flecha entrando.
+ *
+ * La flecha apunta **hacia abajo y dentro**, no hacia arriba: desde el visor esto no es «subir un
+ * archivo a un servidor» —AeroBim es local-first y el IFC no sale del equipo— sino traerlo a la
+ * escena. Es la misma dirección que dibuja el gesto de arrastrar y soltar.
+ */
+export function IconAbrirDelDisco(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M12 3.5v9M8.5 9 12 12.5 15.5 9" />
+      <path d="M4.5 15v3.5A2 2 0 0 0 6.5 20.5h11a2 2 0 0 0 2-2V15" />
+    </Svg>
+  );
+}

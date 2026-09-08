@@ -249,7 +249,7 @@ export function PropertiesPanel({
             <button
               type="button"
               onClick={observar}
-              className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-sm bg-action px-2 py-1.5 text-xs font-semibold text-fg hover:bg-action-hover"
+              className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-sm bg-action px-2 py-1.5 text-xs font-semibold text-sobre-accion hover:bg-action-hover"
               title="Deja una nota anclada al GUID de este elemento, sin salir del modelo"
             >
               <IconNota className="h-3.5 w-3.5" />

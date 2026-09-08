@@ -63,6 +63,27 @@
   --color-action: #7a3fce; /* relleno del botón primario — blanco encima, 6,1:1 */
   --color-action-hover: #8b52dd; /* blanco encima, 4,8:1 */
   --color-action-press: #6b34bd;
+  /*
+   * **El texto que va encima de la acción, y es el único color que NO cambia con el tema.**
+   *
+   * Los tres comentarios de arriba dicen «blanco encima» y el del tema claro también —«blanco
+   * encima, 8,3:1»—, y aun así los doce botones primarios del visor llevaban `text-fg`, que sí
+   * cambia: en claro pasa a `#172238`. Medido en el navegador el día que se implementó la puerta de
+   * entrada: **1,92:1**, o sea negro sobre violeta oscuro. Los doce, incluido «Abrir» de la barra.
+   *
+   * No da error, no lo cazaba ningún gate —el gate medía los textos contra las *superficies*, y la
+   * acción es un relleno, no una superficie— y en oscuro se ve perfecto, que es donde se mira.
+   *
+   * El relleno es oscuro en los dos temas porque **es la marca y la marca no se aclara**, así que
+   * su texto tampoco puede aclararse ni oscurecerse: es el mismo. 6,1:1 en oscuro y 8,3:1 en claro.
+   *
+   * **Y es blanco puro, no el `#eef2f8` de `--color-fg`.** Ese fue el primer valor y el gate lo
+   * tumbó: da **4,30:1 sobre `--color-action-hover`**, o sea que el botón dejaba de pasar AA justo
+   * mientras el ratón está encima. El blanco da 4,8 ahí y es lo que los tres comentarios de arriba
+   * decían desde el principio. Es el único blanco puro del sistema, y se gasta aquí porque el
+   * relleno de al lado no admite nada más flojo.
+   */
+  --color-sobre-accion: #ffffff;
   --color-accent: #c3a6f0; /* 7,8:1 — enlaces, iconos activos, y el anillo de foco */
   --color-accent-hover: #d5c2f6;
 

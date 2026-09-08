@@ -489,7 +489,7 @@ export function Coordinacion({
                   <button
                     type="submit"
                     disabled={descartando.motivo.trim() === ""}
-                    className="shrink-0 rounded-sm bg-action px-2 py-1 text-nota font-medium text-fg hover:bg-action-hover disabled:bg-apagado disabled:text-apagado-fg"
+                    className="shrink-0 rounded-sm bg-action px-2 py-1 text-nota font-medium text-sobre-accion hover:bg-action-hover disabled:bg-apagado disabled:text-apagado-fg"
                   >
                     Descartar
                   </button>

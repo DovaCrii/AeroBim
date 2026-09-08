@@ -222,6 +222,12 @@ describe("el tema claro", () => {
     expect(SOLO_CLARO["brand"]).toBeUndefined();
   });
 
+  it("ni el texto que va encima de la acción, por el mismo motivo", () => {
+    // El relleno de la acción es la marca, y la marca no se aclara: es oscura en los dos temas. Un
+    // texto que sí cambiara con el tema es exactamente el defecto que hubo — 1,92:1 en claro.
+    expect(SOLO_CLARO["sobre-accion"]).toBeUndefined();
+  });
+
   it("los tres niveles de texto pasan AA sobre las tres superficies claras", () => {
     const flojos: string[] = [];
     for (const texto of TEXTOS) {
@@ -311,6 +317,37 @@ describe("contraste del texto", () => {
         AA_TEXTO,
       );
     }
+  });
+
+  it("y el color que el código escribe encima **es** ese, en los dos temas", () => {
+    // **La prueba de arriba medía un blanco hipotético y pasaba, mientras la pantalla ponía otro
+    // color.** Los doce botones primarios del visor llevaban `text-fg`, que sí cambia con el tema:
+    // en claro es `#172238` sobre el violeta oscuro de la acción. Medido en el navegador: **1,92:1**.
+    //
+    // Invisible para el gate anterior por una razón que conviene recordar: el bloque de contraste
+    // mide los textos contra las **superficies**, y la acción es un relleno. Nada los cruzaba.
+    for (const tema of [
+      { nombre: "oscuro", tokens: T },
+      { nombre: "claro", tokens: CLARO },
+    ]) {
+      const encima = tema.tokens["sobre-accion"];
+      expect(encima, `falta --color-sobre-accion en ${tema.nombre}`).toBeDefined();
+      for (const relleno of ["action", "action-hover", "action-press"] as const) {
+        const ratio = contrastRatio(encima as string, tema.tokens[relleno] as string);
+        expect(
+          ratio,
+          `sobre-accion sobre ${relleno} en ${tema.nombre} da ${ratio.toFixed(2)}`,
+        ).toBeGreaterThanOrEqual(AA_TEXTO);
+      }
+    }
+  });
+
+  it("y `bg-action` nunca lleva `text-fg`, que es la forma que tenía el defecto", () => {
+    // La regla, escrita para que no vuelva: un relleno de acción **no es una superficie**, así que
+    // el texto de encima no puede ser el texto de las superficies. `bg-action/NN` sí lo lleva —una
+    // tinta al 30 % sobre un panel sigue siendo el panel— y por eso el patrón exige el espacio.
+    const malos = CODIGO.match(/bg-action\s+text-fg\b|text-fg\s+hover:bg-action\b/g) ?? [];
+    expect(malos).toEqual([]);
   });
 });
 

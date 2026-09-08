@@ -1,5 +1,5 @@
 import type { DrawnMeasurement, SavedView } from "@aerobim/viewer";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Resizer } from "./Resizer.js";
 import {
   IconAngle,
@@ -45,6 +45,7 @@ export function ProjectBrowser({
   onSaveView,
   onApplyView,
   onDeleteView,
+  pedida = null,
 }: {
   /** Lo que el registro documental ofrece abrir, agrupado por obra. */
   readonly registro: React.ReactNode;
@@ -77,6 +78,18 @@ export function ProjectBrowser({
   readonly onSaveView: (name: string) => void;
   readonly onApplyView: (view: SavedView) => void;
   readonly onDeleteView: (id: string) => void;
+  /**
+   * Una sección que alguien pide desde fuera, para que se despliegue sola.
+   *
+   * **Lleva un `sello` y no solo la clave**, y es lo que hace que funcione la segunda vez: pedir
+   * «registro», plegarla a mano y volver a pedir «registro» tiene que abrirla otra vez, y con solo
+   * la clave el valor de la propiedad no habría cambiado y no pasaría nada. El sello es un número
+   * que sube en cada petición.
+   *
+   * Solo **abre**: nunca pliega lo que ya estaba abierto, porque quien pide una sección quiere
+   * llegar a ella, no reorganizarle el panel a nadie.
+   */
+  readonly pedida?: { readonly clave: string; readonly sello: number } | null;
 }) {
   /**
    * Qué secciones están desplegadas. **Todas arrancan plegadas.**
@@ -98,6 +111,15 @@ export function ProjectBrowser({
    * se queda en dos líneas — y al revés diez minutos después.
    */
   const [altos, setAltos] = useState<Readonly<Record<string, number>>>({});
+
+  // La sección que se pide desde fuera —hoy «Del registro» desde la puerta de entrada— se despliega
+  // sola. Depende del sello y no de la clave: ver la propiedad `pedida`.
+  const sello = pedida?.sello ?? null;
+  const clavePedida = pedida?.clave ?? null;
+  useEffect(() => {
+    if (sello === null || clavePedida === null) return;
+    setAbiertas((actual) => (actual.has(clavePedida) ? actual : new Set(actual).add(clavePedida)));
+  }, [sello, clavePedida]);
 
   const alternar = (clave: string) =>
     setAbiertas((actual) => {
@@ -336,7 +358,7 @@ function Vistas({
         <button
           type="submit"
           disabled={!puedeGuardar || nombre.trim() === ""}
-          className="shrink-0 rounded-sm bg-action px-2 py-1 text-xs font-medium text-fg hover:bg-action-hover disabled:bg-apagado disabled:text-apagado-fg"
+          className="shrink-0 rounded-sm bg-action px-2 py-1 text-xs font-medium text-sobre-accion hover:bg-action-hover disabled:bg-apagado disabled:text-apagado-fg"
           title={
             puedeGuardar
               ? "Guarda la cámara, lo que está apagado y los cortes puestos"

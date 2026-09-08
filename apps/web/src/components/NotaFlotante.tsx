@@ -254,7 +254,7 @@ export function NotaFlotante({
             <button
               type="button"
               onClick={onCerrar}
-              className="rounded-sm bg-action px-2 py-1 font-medium hover:bg-action-hover"
+              className="rounded-sm bg-action px-2 py-1 font-medium text-sobre-accion hover:bg-action-hover"
             >
               Seguir revisando
             </button>
@@ -306,7 +306,7 @@ export function NotaFlotante({
                 className={[
                   "rounded-sm px-2 py-0.5",
                   prioridad === opcion.valor
-                    ? "bg-action font-medium"
+                    ? "bg-action font-medium text-sobre-accion"
                     : "bg-surface-2 hover:bg-surface-3",
                 ].join(" ")}
               >
@@ -322,7 +322,7 @@ export function NotaFlotante({
               type="button"
               onClick={() => void guardar()}
               disabled={envio.kind === "enviando" || titulo.trim() === ""}
-              className="rounded-sm bg-action px-3 py-1 font-medium hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded-sm bg-action px-3 py-1 font-medium text-sobre-accion hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-40"
             >
               {envio.kind === "enviando" ? "Guardando…" : "Guardar nota"}
             </button>

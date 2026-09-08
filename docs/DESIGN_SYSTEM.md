@@ -111,9 +111,26 @@ razonamiento que ya llevó el marcador de ajuste al amarillo (UX.md, 2026-08-26)
 | `--ab-action-press` | `#6b34bd`                | `#3a2466`                |                                                                                                                     |
 | `--ab-accent`       | `#c3a6f0` (7,8:1)        | `#5b3a9e` (8,3:1)        | Enlaces, iconos activos, **el anillo de foco**                                                                      |
 | `--ab-accent-hover` | `#d5c2f6`                | `#472d7d`                |                                                                                                                     |
+| `--ab-sobre-accion` | `#ffffff`                | `#ffffff` (el mismo)     | **El texto que va encima de los tres rellenos de arriba**, y el único color que no cambia con el tema               |
 
 `--ab-accent` en oscuro no es un color nuevo: es el `--ab-primary` que `app.css` ya define
 para su tema oscuro.
+
+**Por qué el texto de la acción es un token y no `--ab-fg`.** Las tres filas de acción decían
+«blanco 6,1:1» y «blanco 8,3:1» desde el 2026-09-01, y aun así los doce botones primarios del visor
+escribían `text-fg` — que **sí** cambia con el tema. Medido en el navegador el 2026-09-08, con el
+tema claro puesto: **1,92:1**, negro sobre violeta oscuro, incluido el botón «Abrir» de la barra. El
+relleno es la marca y la marca no se aclara, así que su texto tampoco puede cambiar.
+
+Y es **blanco puro**, no el `#eef2f8` de `--ab-fg`: ese fue el primer valor y da **4,30:1 sobre
+`--ab-action-hover`**, o sea que el botón salía de AA justo mientras el ratón está encima. Es el
+único blanco puro del sistema.
+
+El gate lo vigila de dos formas, porque el defecto era invisible para la que había: mide
+`sobre-accion` contra los tres rellenos **en los dos temas** —el bloque de contraste medía los
+textos contra las _superficies_, y un relleno no es una superficie, así que nada los cruzaba— y
+prohíbe la forma exacta que tenía el defecto, `bg-action text-fg`. `bg-action/NN` sí lleva `text-fg`:
+una tinta al 30 % sobre un panel sigue siendo el panel.
 
 ### Estado, con forma además de color
 

@@ -313,7 +313,7 @@ function PlanoEnLista({
                 "w-full rounded-sm px-2 py-1 text-nota font-medium",
                 alineando
                   ? "bg-action/25 text-accent"
-                  : "bg-action text-fg hover:bg-action-hover disabled:opacity-40",
+                  : "bg-action text-sobre-accion hover:bg-action-hover disabled:opacity-40",
               ].join(" ")}
             >
               {alineando ? "Señalando puntos… (Esc para salir)" : "Calzar con 2 puntos"}

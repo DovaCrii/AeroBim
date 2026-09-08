@@ -79,7 +79,7 @@ export function DrawingsPanel({
             type="button"
             onClick={() => onGenerate(vista)}
             disabled={generating !== null}
-            className="flex-1 rounded-sm bg-action px-2 py-1 text-nota font-medium text-fg hover:bg-action-hover disabled:bg-apagado disabled:text-apagado-fg"
+            className="flex-1 rounded-sm bg-action px-2 py-1 text-nota font-medium text-sobre-accion hover:bg-action-hover disabled:bg-apagado disabled:text-apagado-fg"
             title={`Proyecta lo que está a la vista y arma el plano de ${nombre.toLowerCase()}`}
           >
             {nombre}

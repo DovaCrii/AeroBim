@@ -47,6 +47,7 @@ import { NotaFlotante } from "./components/NotaFlotante.js";
 import { Origen } from "./components/Origen.js";
 import { PlansPanel } from "./components/PlansPanel.js";
 import { ProjectBrowser } from "./components/ProjectBrowser.js";
+import { PuertaDeEntrada } from "./components/PuertaDeEntrada.js";
 import { Resizer } from "./components/Resizer.js";
 import { Selector } from "./components/Selector.js";
 import { CalcePanel } from "./components/CalcePanel.js";
@@ -477,6 +478,28 @@ export function App() {
   const [views, setViews] = useState<readonly SavedView[]>(leerVistas);
   const [panelIzquierdo, setPanelIzquierdo] = useState(true);
   const [panelDerecho, setPanelDerecho] = useState(true);
+  /**
+   * La sección del navegador que se acaba de pedir desde otro sitio de la pantalla.
+   *
+   * El sello es lo que hace que pedir dos veces la misma sección funcione las dos veces; el motivo
+   * largo está en la propiedad `pedida` de `ProjectBrowser`.
+   */
+  const [seccionPedida, setSeccionPedida] = useState<{
+    readonly clave: string;
+    readonly sello: number;
+  } | null>(null);
+
+  /**
+   * Lleva a una sección del navegador: lo destapa si está plegado y despliega la sección.
+   *
+   * Son **dos cosas** porque el panel se puede haber plegado hace media hora: desplegar una sección
+   * dentro de un panel escondido no lleva a ninguna parte, y es exactamente lo que pasaba al pulsar
+   * «Del registro» en la puerta de entrada con el navegador cerrado — nada visible ocurría.
+   */
+  const irASeccion = useCallback((clave: string) => {
+    setPanelDerecho(true);
+    setSeccionPedida((actual) => ({ clave, sello: (actual?.sello ?? 0) + 1 }));
+  }, []);
   /**
    * `true` con la cinta plegada.
    *
@@ -2023,7 +2046,7 @@ export function App() {
             {/* **Abrir es uno solo para todo lo que la aplicación sabe leer.** Antes decía
                 "Abrir IFC" y un plano no tenía por dónde entrar; ahora el mismo botón —y el mismo
                 arrastrar y soltar— toma el modelo y el plano, y es la extensión la que decide. */}
-            <label className="cursor-pointer rounded-md bg-action px-3 py-1 text-xs font-medium text-fg hover:bg-action-hover">
+            <label className="cursor-pointer rounded-md bg-action px-3 py-1 text-xs font-medium text-sobre-accion hover:bg-action-hover">
               Abrir
               <input
                 ref={entradaDeArchivo}
@@ -2048,6 +2071,12 @@ export function App() {
         // un DXF solo, el cubo de vistas movía la cámara —`frameAll` cuenta los planos— y los
         // botones de encuadre, vista, proyección y navegación de al lado estaban grises.
         enabled={models.length > 0 || plans.length > 0}
+        // **La misma condición que la puerta de entrada del lienzo, y tiene que serlo**: son las
+        // dos mitades de la misma pantalla vacía. Si discreparan, se vería la cinta ofreciendo
+        // «Empezar» con un modelo delante, o treinta y seis botones grises sobre el lienzo vacío.
+        vacio={models.length === 0 && plans.length === 0 && nube === null}
+        onDelRegistro={() => irASeccion("registro")}
+        onAbrirDelDisco={() => entradaDeArchivo.current?.click()}
         hasModels={models.length > 0}
         projection={projection}
         navigation={navigation}
@@ -2148,8 +2177,25 @@ export function App() {
           />
         )}
 
-        {/* El lienzo nunca baja de 240 px: es lo que impide que los paneles lo dejen en cero. */}
-        <div className="relative flex min-h-0 min-w-[240px] flex-1 shrink-0">
+        {/* El lienzo nunca baja de 240 px: es lo que impide que los paneles lo dejen en cero.
+
+            **El arrastrar y soltar vive acá y no en el lienzo de dentro.** La puerta de entrada
+            ocupa el centro, y aunque su contenedor es `pointer-events-none` —así que la mayor parte
+            de ella deja pasar la suelta al lienzo de detrás— **sus dos botones no**: son
+            `pointer-events-auto` para poder pulsarlos, y soltar un archivo justo encima de «Del
+            registro» caía en el botón, que está fuera del `canvasHost`. Medido: el objetivo de la
+            suelta era `BUTTON` y `closest("canvas")` daba `null`. Y ahí es donde uno suelta, porque
+            es lo único que se ve. Colgado del contenedor, cualquier sitio del centro sirve —
+            también el cubo de vistas y las tarjetas flotantes, que tienen sus propios eventos. */}
+        <div
+          className="relative flex min-h-0 min-w-[240px] flex-1 shrink-0"
+          onDragOver={(event) => {
+            event.preventDefault();
+            setDragging(true);
+          }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={onDrop}
+        >
           <div
             ref={canvasHost}
             // El cursor dice qué va a hacer el próximo clic: la cruz de precisión mientras se mide
@@ -2170,12 +2216,6 @@ export function App() {
             }}
             onClick={(event) => void onCanvasClick(event)}
             onDoubleClick={onCanvasDoubleClick}
-            onDragOver={(event) => {
-              event.preventDefault();
-              setDragging(true);
-            }}
-            onDragLeave={() => setDragging(false)}
-            onDrop={onDrop}
           />
 
           {/* **La tarjeta de nota, encima del modelo.** Va acá —dentro del contenedor del lienzo—
@@ -2229,14 +2269,11 @@ export function App() {
             plans.length === 0 &&
             nube === null &&
             status.kind !== "loading" && (
-              <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                <p className="text-sm text-fg-3">
-                  Arrastra un <span className="text-fg-2">IFC</span>, un{" "}
-                  <span className="text-fg-2">DXF</span> o un{" "}
-                  <span className="text-fg-2">levantamiento</span> aquí, o usa{" "}
-                  <span className="text-fg-2">Abrir</span>
-                </p>
-              </div>
+              <PuertaDeEntrada
+                onDelRegistro={() => irASeccion("registro")}
+                onAbrirDelDisco={() => entradaDeArchivo.current?.click()}
+                deshabilitado={status.kind !== "ready"}
+              />
             )}
         </div>
 
@@ -2260,6 +2297,7 @@ export function App() {
             className="min-w-0 shrink border-l border-borde bg-surface"
           >
             <ProjectBrowser
+              pedida={seccionPedida}
               registro={
                 <Selector
                   onAbrir={(revisionId) => void abrirRevision(revisionId)}
