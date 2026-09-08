@@ -3777,7 +3777,24 @@ export class BimViewer {
       const enganche = this.snapOnPlan(clientX, clientY);
       if (enganche !== null) return new THREE.Vector3(...enganche.point);
     }
-    return await this.snapAt(clientX, clientY);
+    const enGeometria = await this.snapAt(clientX, clientY);
+    if (enGeometria !== null) return enGeometria;
+
+    // **Y si no hay geometría ahí, la nube.**
+    //
+    // `snapAt` va contra `fragments`, o sea contra el IFC y nada más, así que **medir sobre el
+    // levantamiento no daba nada** aunque la nube estuviera delante. El rayo que hace falta ya
+    // existía —`pickPointCloud`, escrito para señalar los pares de un calce— y no lo llamaba nadie
+    // desde aquí: la pieza estaba hecha y sin conectar.
+    //
+    // Importa porque **el levantamiento llega antes que el modelo**: en una obra en marcha se vuela
+    // y se mide lo construido semanas antes de que el IFC de esa etapa exista. Sin esto había que
+    // esperar al modelo para poder tomar una cota de lo que ya está en el suelo.
+    //
+    // Va **de último** y no de primero a propósito: con las dos cosas en la escena, un clic sobre un
+    // muro modelado tiene que dar el muro. La nube no compite con la geometría, la respalda.
+    const enNube = this.pickPointCloud(clientX, clientY);
+    return enNube === null ? null : new THREE.Vector3(...enNube.escena);
   }
 
   /**
@@ -5365,6 +5382,12 @@ export class BimViewer {
     // conjunto equivocado.
     const cajaPlanos = this.plans.boxAll();
     if (cajaPlanos !== null) union.union(cajaPlanos);
+
+    // **Y la nube, que era el mismo defecto una vez más.** Con solo un levantamiento abierto el
+    // cubo de vistas estaba encendido —su condición sí cuenta la nube— y no movía la cámara, porque
+    // esta unión miraba a los modelos y a los planos y no a lo único que había en la escena.
+    const cajaNube = this.nube?.cajaDeLoCargado() ?? null;
+    if (cajaNube !== null) union.union(cajaNube);
 
     if (union.isEmpty()) return;
 

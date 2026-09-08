@@ -2107,7 +2107,13 @@ export function App() {
         // **Lo que habilita la cámara es que haya algo en la escena, no que haya un modelo.** Con
         // un DXF solo, el cubo de vistas movía la cámara —`frameAll` cuenta los planos— y los
         // botones de encuadre, vista, proyección y navegación de al lado estaban grises.
-        enabled={models.length > 0 || plans.length > 0}
+        // **Y la nube también cuenta, que es la tercera vez que este mismo hueco aparece.** Con
+        // solo un levantamiento abierto, medido: **los quince botones de la pestaña Vista
+        // apagados y ninguno vivo**. La nube es una fuente de la escena como el modelo y el plano,
+        // y en obra **llega antes que el IFC** — se vuela y se mide lo construido semanas antes de
+        // que exista el modelo de esa etapa. Con la puerta cerrada así, el levantamiento se abría
+        // para mirarlo y nada más.
+        enabled={models.length > 0 || plans.length > 0 || nube !== null}
         // **La misma condición que la puerta de entrada del lienzo, y tiene que serlo**: son las
         // dos mitades de la misma pantalla vacía. Si discreparan, se vería la cinta ofreciendo
         // «Empezar» con un modelo delante, o treinta y seis botones grises sobre el lienzo vacío.
