@@ -5,6 +5,50 @@
 
 ## Cómo seguir (leer esto primero)
 
+> ## Estado al 2026-09-08: la Fase 12 cerrada salvo una, y **todo en `main`**
+>
+> **`main` ya es el producto entero.** Hasta hoy se quedó en la Fase 0 —«todavía no hay código de
+> aplicación»— mientras el trabajo vivía en ramas: 167 commits de diferencia. Fusionado por
+> [PR #2](https://github.com/DovaCrii/AeroBim/pull/2) tras revisar que **no hay un solo archivo de
+> obra versionado** (el IFC de la organización, el DXF y el COPC de 124 MB están ignorados; la única
+> nube del repositorio es la sintética de 164 KB, que es una fixture) y que no entra ningún `.env`,
+> clave, `dist/` ni base de datos.
+>
+> **El gate ya no depende de una máquina.** [PR #3](https://github.com/DovaCrii/AeroBim/pull/3)
+> añadió a la CI un trabajo `api` con los mismos nueve pasos que `verify.ps1`. Los dos en verde:
+> TypeScript en 57 s, Python en 5m59s. Y el paso de `bandit`, que llevaba en rojo desde que existe
+> el conversor de CAD, **no era una decisión de seguridad pendiente**: la línea ya tenía la
+> supresión de Ruff con su motivo y le faltaba la de bandit. `verify.ps1` pasa completo por primera
+> vez.
+>
+> **El plan del 2026-09-07 cerró sus tres bloques.** Lo que dejó cada uno:
+>
+> - **1 · Desbloquear el piloto:** reparto de hallazgos, `preparar_piloto`, timer del resumen,
+>   respaldo escrito, el COPC entrando al expediente y `docs/PILOTO.md`.
+> - **2 · El portal:** «Mi trabajo» en la portada, barra lateral persistente, bandeja con vista de
+>   lista y de tablero, y **un gate que lee `app.css`** — que no existía: ninguna prueba leía ese
+>   archivo, y encontró cuatro cosas en su primera corrida.
+> - **3 · El visor:** puerta de entrada, cinta con pesos, navegador con jerarquía y rail, tema
+>   claro, y la costura del expediente al modelo.
+>
+> Y **dos tareas que salieron de preguntas tuyas**, no del plan:
+>
+> - **`F12.14`** — «el IFC siempre es un paso más adelante»: con la nube sola ahora se encuadra, se
+>   mide y **se deja una nota anclada a una coordenada** que viaja en el texto del BCF. Antes, con un
+>   levantamiento solo, los quince botones de la pestaña Vista estaban apagados.
+> - **`F12.11`** — una captura adjunta al comentario, PNG o JPEG, con la firma mandando sobre la
+>   extensión.
+>
+> **Los comandos del piloto se corrieron de verdad**, que no es lo mismo que tener pruebas:
+> `preparar_piloto` tres veces seguidas (la idempotencia que promete es real), `enviar_resumen`
+> generando un correo por persona **y avisando de que no está enviando**, y `metricas_piloto`
+> entero — que salió con un defecto: no contaba el ancla de la nube que `F12.14` acababa de añadir,
+> así que esas observaciones desaparecían del informe sin que ninguna cifra se viera mal.
+>
+> **Por dónde seguir:** ya no hay nada de código pendiente en el plan. Lo que queda está abajo, en
+> «Decisiones y archivos que hacen falta», y **todo depende de la obra o de ti**. Si el piloto va a
+> empezar, el orden es el checklist de [`docs/PILOTO.md`](docs/PILOTO.md).
+
 > ## Estado al 2026-08-28: la cinta auditada y la VM con sus tres huecos cerrados
 >
 > El trabajo vive en **`codex/visor-y-registro`**, `main` sin tocar. Lo de hoy, en orden:
@@ -603,18 +647,30 @@ Misma regla que AeroPlanner, con dos límites en vez de uno:
 Regla corta: **la aplicación abre lo que otro produjo, y anota lo que hay que
 corregir.**
 
-## Estado al 2026-08-19
+## Estado al 2026-09-08
+
+- **Rama:** todo en **`main`**, que es lo que GitHub enseña y lo que se despliega. Las ramas
+  `codex/*` quedan como historia.
+- **Pruebas:** **1.037** en `services/api` (cobertura con suelo del 80 %) y **523** en
+  `packages/*` y `apps/web`. **Las dos mitades corren en CI** desde hoy, no solo en local.
+- **Gate:** `verify.ps1` completo en verde — check, check --deploy, makemigrations --check,
+  compilemessages, pytest, ruff check, ruff format, bandit y pip-audit — más `npm test` y
+  `npm run build` con el limpiador comprobando las referencias del build.
+- **Código:** monorepo — `packages/bim-core` (dominio puro), `packages/viewer` (envoltura de That
+  Open), `apps/web` (React 19 + Vite 8 + Tailwind 4) y `services/api` (Django 6 + DRF).
+- **Documentación:** el plan por fases, el MVP, la arquitectura, las referencias con licencias
+  verificadas, el contrato con AeroPlanner, **el sistema de diseño**, **la UX de las dos mitades**,
+  **el despliegue** y **el guion del piloto**.
+- **Licencia:** MIT.
+
+### Estado al 2026-08-19 _(cuando esto era andamiaje, para no perder el punto de partida)_
 
 - **Build:** `npm install && npm run build` verde en los tres paquetes (Node 26).
 - **Pruebas:** **100** en `packages/bim-core` — los vectores de GUID reales de BricsCAD, la
   geometría de las mediciones contra casos elementales, la lectura de unidades del IFC y el
   conteo de clases que delata la geometría que no se carga.
-- **Código:** monorepo armado — `packages/bim-core` (dominio puro), `packages/viewer`
-  (envoltura de That Open, con `components` + `components-front` + `fragments`) y
-  `apps/web` (React 19 + Vite 8 + Tailwind 4).
 - **Documentación:** plan por fases, MVP, arquitectura, referencias con licencias
   verificadas y contrato con AeroPlanner.
-- **Licencia:** MIT.
 - **Marca:** `assets/aerobim-mark.svg` — el dron de la familia con un cubo
   isométrico, en violeta `#9B5DE5`.
 - **Repositorios hermanos:** [AeroControl](https://github.com/DovaCrii/AeroControl),
@@ -709,10 +765,43 @@ una ventaja: lo que se aprenda de un lado sirve del otro.
     clic en el medio de un muro no devuelve punto y medir se vuelve un juego de puntería. El
     orden `POINT, LINE, FACE` da preferencia al vértice sin rechazar la cara.
 
-## Decisiones pendientes que solo el usuario puede tomar
+## Decisiones y archivos que hacen falta
 
-- **Nombre de despliegue y dominio** (`bim.<dominio>`), y si comparte VM con las
-  otras aplicaciones.
-- **Modelos de prueba adicionales.** `Piso 5.ifc` es de arquitectura y mediano. Para
-  saber si el visor aguanta lo que viene, conviene un modelo grande (>50 MB) y uno de
-  estructura o instalaciones.
+**Al 2026-09-08 no queda código pendiente en el plan.** Todo lo que sigue abierto espera un archivo
+de obra, una mirada tuya o una decisión — y por eso está aquí y no en `MASTER_PLAN.md` como una
+tarea más. Sin esto, lo que queda no se puede cerrar por mucho que se programe.
+
+### Archivos de obra que hacen falta
+
+| Qué                                                               | Qué desbloquea                                                                                                                                                              |
+| ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **El IFC de la pasarela** (en construcción)                       | `F2.4`, la desviación contra su oráculo. Pedirlo **IFC4 con `IfcMapConversion` y EPSG:32719** — sin emplazamiento la nube no se calza sola                                  |
+| **Un modelo y un levantamiento del mismo sitio**                  | `F12.2`. Es lo único que falta de la Fase 12, y no es de código: en el repositorio no hay un par que coincida, así que el calce a mano no se puede ejercer de punta a punta |
+| Un modelo **grande** (>50 MB) y uno de estructura o instalaciones | Saber si el visor aguanta lo que viene. `Piso 5.ifc` es de arquitectura y mediano                                                                                           |
+
+### Cosas que solo se cierran mirándolas
+
+| Qué                                                           | Por qué no lo puede cerrar el código                                                                                |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| **Mirar un BCF exportado** en Solibri, Navisworks o BIMcollab | `F4.5`. Que abra con su cámara, su foto y su elemento seleccionado es el oráculo, y el oráculo no puede ser AeroBim |
+| **Los tres nombres de `F1.13`**                               | Decisión de producto: cómo se llaman tres herramientas de la cinta                                                  |
+| **El oráculo de la Fase 12**                                  | Está escrito así a propósito: abres las dos mitades y **no dices «está plano»**. No hay número que lo sustituya     |
+
+### Decisiones de operación
+
+| Qué                                                                                  | Estado                                                                                                                                                                                                                                                                                                                |
+| ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Dominio y VM** (`bim.<dominio>`), y si comparte máquina con las otras aplicaciones | Sin decidir. Es el primer punto del checklist de [`docs/PILOTO.md`](docs/PILOTO.md)                                                                                                                                                                                                                                   |
+| **ODA File Converter** en el servidor                                                | Sin instalar: `/health/` lo dice como `conversor_cad: ausente`. **No lo instala el agente** — se descarga y acepta su licencia una persona. Sin él, DWG y DGN se archivan pero no se abren                                                                                                                            |
+| **SMTP real**                                                                        | Hoy el correo va a consola, y `enviar_resumen` **lo avisa** nombrando las cinco variables que faltan. Con el de consola la aplicación no miente, pero nadie recibe nada                                                                                                                                               |
+| **PostgreSQL, para poder probar `respaldo.sh`**                                      | `respaldo.sh` está escrito y **nunca se ha corrido**: necesita `pg_dump`, `pg_restore` y `createdb`. Es la razón de que **no** lleve timer — un respaldo automático que nadie vio funcionar es peor que ninguno, porque se confía en él                                                                               |
+| **Quitarle a Vercel el acceso a este repositorio**                                   | El 2026-09-08 mandó un correo ofreciendo importar `apps/web` y `services/api`. El repositorio lleva un `vercel.json` que **impide el despliegue**, pero el aviso lo genera la app de GitHub desde tu cuenta y solo se apaga ahí. El motivo por el que esto no va a un PaaS está en [`docs/DEPLOY.md`](docs/DEPLOY.md) |
+
+### Y lo que se sabe que falta en las herramientas
+
+- **La CI cubre las dos mitades desde hoy**, pero `pip-audit` depende de la red del corredor: un
+  aviso nuevo puede poner el gate en rojo sin que nada del código haya cambiado. Es correcto que
+  falle —una dependencia vulnerable es un problema— pero conviene saber por qué.
+- **`F12.11` no viaja en el BCF.** Un BCF lleva la imagen del _tema_ y no las del hilo, y la
+  pantalla lo dice debajo del campo. Si una imagen tiene que llegar al mandante, va como instantánea
+  de la observación o como entregable con su código.

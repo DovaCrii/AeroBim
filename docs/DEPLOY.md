@@ -17,6 +17,36 @@
    sobreescriba la cabecera `Content-Security-Policy` con una propia deja la página en
    blanco.
 
+## Esto no va a un PaaS, y hay un `vercel.json` para impedirlo
+
+**El 2026-09-08, al aparecer el código en `main`, Vercel mandó un correo ofreciendo importar dos
+proyectos**: `apps/web` como Vite y `services/api` como Django. No era un fallo —nada se estaba
+construyendo— era una invitación, y es la invitación la que hay que rechazar por escrito.
+
+**Importar cualquiera de los dos rompe la premisa del producto.** AeroBim es local-first: corre en
+un equipo o servidor de la organización, y los datos de obra están bajo su control. Tres razones
+concretas, no una de principio:
+
+1. **`DOCUMENTS_DIR` necesita un disco que siga ahí mañana.** Ahí viven los IFC, los DXF, el COPC de
+   130 MB y las capturas de los comentarios. Un entorno sin estado los pierde entre peticiones, y
+   una revisión de obra que desaparece no es un registro documental.
+2. **Subirlo sería sacar los datos de la organización a un tercero.** Un expediente ISO 19650, con
+   los transmittals y los hallazgos, en la infraestructura de otra empresa. Eso es exactamente lo
+   que la primera línea del `README` dice que este producto no hace.
+3. **El visor solo tampoco sirve.** `apps/web` sin la API es una pantalla que no puede abrir nada
+   del registro, y desplegarla publicaría además la carpeta `samples`.
+
+Por eso el repositorio lleva un **`vercel.json` con `git.deploymentEnabled: false`**: si alguien
+importa el proyecto por descuido, Vercel no construye nada. Es una barrera, no una configuración —
+no hay ningún despliegue de Vercel que ajustar.
+
+> **Lo que ese archivo NO hace, dicho para no confiar en él de más:** el correo de «projects
+> available to import» **lo genera la app de GitHub de Vercel al mirar los repositorios a los que
+> tiene acceso**, y eso vive en la cuenta y no en el código. Para que deje de llegar hay que quitarle
+> a Vercel el acceso a este repositorio (GitHub → Settings → Applications → Vercel → Repository
+> access) o desactivar ese aviso desde el enlace del propio correo. Un archivo en el repositorio no
+> puede apagar una notificación de la cuenta.
+
 ## Lo que hace falta en la máquina
 
 | Qué                  | Para qué                                                                             |
