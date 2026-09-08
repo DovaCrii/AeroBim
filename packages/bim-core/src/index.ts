@@ -163,6 +163,8 @@ export {
   seSostieneEnFloat32,
 } from "./nubes/precision.js";
 
+export { coordenadaComoTexto, DECIMALES, numeroDeReplanteo } from "./nubes/coordenada.js";
+
 export {
   alineacionDeMapa,
   alineacionDeNorteVerdadero,

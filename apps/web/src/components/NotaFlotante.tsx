@@ -1,5 +1,6 @@
 import {
   camaraBcfDesdeEscena,
+  coordenadaComoTexto,
   type LineaIfc,
   type SceneCameraState,
   type VisibilidadBcf,
@@ -56,11 +57,29 @@ export function NotaFlotante({
   onCerrar,
   onGuardada,
   descripcionInicial = null,
+  punto = null,
 }: {
   /** Un borrador para el detalle. Lo llena la medición de desviación (`F12.2`). */
   readonly descripcionInicial?: string | null;
-  /** El elemento sobre el que se anota. Su GUID es el ancla. */
-  readonly item: PickedItem;
+  /**
+   * El elemento sobre el que se anota. Su GUID es el ancla.
+   *
+   * `null` cuando la nota va sobre un punto del levantamiento y no sobre un elemento: entonces el
+   * ancla es {@link punto}. Uno de los dos tiene que llegar.
+   */
+  readonly item: PickedItem | null;
+  /**
+   * El punto del levantamiento sobre el que se anota, en coordenadas **del archivo**. `F12.14`.
+   *
+   * Es el ancla de las notas que no tienen elemento, y existe porque **en obra el levantamiento
+   * llega antes que el modelo**: hasta que hay IFC de esa etapa no hay ningún GUID del que colgar
+   * un hallazgo de lo construido.
+   *
+   * Puede llegar **junto** al elemento: una observación de desviación nace sobre una pieza del
+   * modelo y tiene además el punto donde se midió. El servidor guarda los dos y el GUID es el que
+   * la identifica.
+   */
+  readonly punto?: readonly [number, number, number] | null;
   readonly revisionId: string;
   /** La cámara de este instante. Se lee al abrir la tarjeta, no al seleccionar. */
   readonly camaraDeAhora: () => SceneCameraState | null;
@@ -89,8 +108,12 @@ export function NotaFlotante({
   readonly onCerrar: () => void;
   readonly onGuardada: (nota: NotaGuardada) => void;
 }) {
+  // **Sobre un elemento se propone su nombre; sobre un punto de la nube, nada.** Un punto no tiene
+  // categoría ni nombre que proponer, y rellenar el campo con la coordenada sería peor: el título
+  // de una observación dice **qué pasa** —«el talud del km 1,2 está desplomado»— y el dónde ya va
+  // en el ancla. El campo entra enfocado, así que no cuesta un clic más.
   const [titulo, setTitulo] = useState(
-    [item.category, item.name].filter(Boolean).join(" · ").slice(0, 250),
+    item === null ? "" : [item.category, item.name].filter(Boolean).join(" · ").slice(0, 250),
   );
   /**
    * El detalle, que puede llegar **ya escrito**.
@@ -171,7 +194,11 @@ export function NotaFlotante({
           titulo: titulo.trim(),
           descripcion: descripcion.trim(),
           prioridad,
-          guid: item.guid ?? "",
+          guid: item?.guid ?? "",
+          // El punto va en coordenadas **del archivo**, que son las que el servidor guarda: la
+          // escena del visor es un detalle de implementación y las del archivo son el dato del
+          // topógrafo. Ver `apps/documents/punto.py`.
+          punto: punto === null ? null : JSON.stringify(punto),
           camara: camara === null ? null : JSON.stringify(camara),
           visibilidad: visibilidad === null ? null : JSON.stringify(visibilidad),
           instantanea: foto,
@@ -219,8 +246,13 @@ export function NotaFlotante({
         }}
         className="flex cursor-move items-center gap-2 border-b border-borde px-3 py-2"
       >
+        {/* El título de la tarjeta dice **sobre qué** se está anotando, y son dos cosas distintas:
+            un elemento del modelo o un punto del levantamiento. Dejarlo en «el elemento» sobre una
+            nube sería el programa hablando de algo que no hay delante. */}
         <span className="min-w-0 flex-1 truncate text-xs font-semibold">
-          Nota sobre el elemento
+          {item === null && punto !== null
+            ? "Nota sobre el levantamiento"
+            : "Nota sobre el elemento"}
         </span>
         <button
           type="button"
@@ -263,16 +295,26 @@ export function NotaFlotante({
       ) : (
         <div className="space-y-2 p-3 text-xs">
           {/* El ancla, dicha en la propia tarjeta: es lo que hace que la nota sirva fuera de acá,
-              y lo que Solibri selecciona al abrir el BCF. */}
-          <p className="truncate text-nota text-fg-3" title={item.guid ?? undefined}>
-            {item.guid === null ? (
-              <span className="text-warn">
-                Este elemento no trae GUID: la nota queda sobre la revisión, sin señalarlo.
-              </span>
-            ) : (
-              <>Anclada a {item.guid}</>
-            )}
-          </p>
+              y lo que Solibri selecciona al abrir el BCF.
+
+              **Tres casos y no dos desde `F12.14`**: un elemento con GUID, un punto del
+              levantamiento, y el elemento sin GUID —que sigue siendo un aviso, porque ahí la nota
+              se queda sobre la revisión sin señalar nada. */}
+          {item === null && punto !== null ? (
+            <p className="truncate text-nota text-fg-3" title={coordenadaComoTexto(punto)}>
+              Anclada al punto {coordenadaComoTexto(punto)}
+            </p>
+          ) : (
+            <p className="truncate text-nota text-fg-3" title={item?.guid ?? undefined}>
+              {item?.guid == null ? (
+                <span className="text-warn">
+                  Este elemento no trae GUID: la nota queda sobre la revisión, sin señalarlo.
+                </span>
+              ) : (
+                <>Anclada a {item.guid}</>
+              )}
+            </p>
+          )}
 
           <label className="block">
             <span className="text-fg-2">Qué pasa</span>

@@ -20,6 +20,7 @@ import {
   type PlanHit,
   type PlanTransform,
   type Projection,
+  type PuntoSenalado,
   type RenderStyle,
   type SavedView,
   type Schedule,
@@ -52,7 +53,7 @@ import { Resizer } from "./components/Resizer.js";
 import { Selector } from "./components/Selector.js";
 import { CalcePanel } from "./components/CalcePanel.js";
 import { NubesPanel } from "./components/NubesPanel.js";
-import { Plan2DCard, PropertiesPanel } from "./components/PropertiesPanel.js";
+import { Plan2DCard, PropertiesPanel, PuntoDeNubeCard } from "./components/PropertiesPanel.js";
 import { Ribbon, type RibbonTab } from "./components/Ribbon.js";
 import { SpatialTree } from "./components/SpatialTree.js";
 import { StatusBar } from "./components/StatusBar.js";
@@ -432,6 +433,17 @@ export function App() {
    * obligaría a inventar campos vacíos en cada una.
    */
   const [selectedPlan, setSelectedPlan] = useState<PlanHit | null>(null);
+  /**
+   * El punto del levantamiento que se acaba de señalar, o `null`. `F12.14`.
+   *
+   * Es la tercera clase de selección, y va aparte por el mismo motivo que el trazo del plano: **no
+   * tiene los mismos datos**. Un punto de una nube no tiene GUID, ni psets, ni capa — tiene una
+   * coordenada, y con eso basta para colgar una observación de lo construido.
+   *
+   * Y es lo que hace que la coordinación **no espere al modelo**: en obra el levantamiento llega
+   * antes que el IFC de su etapa.
+   */
+  const [puntoDeNube, setPuntoDeNube] = useState<PuntoSenalado | null>(null);
   /**
    * `true` si medir se engancha a los trazos del plano.
    *
@@ -1209,7 +1221,23 @@ export function App() {
         // tendido bajo la losa no roba la selección del elemento que está encima, y a la vez se
         // puede clicar una línea del plano —que es lo que hace falta para revisarlo.
         const enPlano = instance.pickPlan(event.clientX, event.clientY);
-        setSelectedPlan(enPlano);
+        if (enPlano !== null) {
+          setSelectedPlan(enPlano);
+          setSelected(null);
+          setPuntoDeNube(null);
+          await instance.clearSelection();
+          return;
+        }
+
+        // **Y la nube recoge lo último, que es lo que abre la coordinación sobre el levantamiento.**
+        // `F12.14`. Seleccionar un elemento da su ficha; seleccionar un punto de la nube da su
+        // coordenada, y desde ahí se puede dejar la nota. Es la misma simetría que ya tenía el
+        // plano 2D con `Plan2DCard`: otra clase de selección, otra ficha.
+        //
+        // El orden —modelo, plano, nube— es el mismo que el de la medición y por lo mismo: con las
+        // dos cosas delante, un clic sobre un muro modelado tiene que dar el muro.
+        setPuntoDeNube(instance.pickPointCloud(event.clientX, event.clientY));
+        setSelectedPlan(null);
         setSelected(null);
         await instance.clearSelection();
       } catch (error: unknown) {
@@ -1889,6 +1917,26 @@ export function App() {
           : "Este elemento no trae un GUID de IFC, así que no hay a qué anclar la nota: una " +
             "observación se encuentra otra vez por el GUID, y sin él no se podría volver a abrir.";
 
+  /**
+   * `true` si se puede anotar **el punto del levantamiento** que está señalado. `F12.14`.
+   *
+   * Le falta a propósito la condición del GUID: es justo la que no se puede cumplir sobre una nube,
+   * y exigirla era lo que dejaba la coordinación esperando al modelo. Lo demás es lo mismo — hace
+   * falta una obra donde archivar la nota y un rol que pueda abrirlas.
+   */
+  const sePuedeAnotarLaNube =
+    origen !== null && origen.puedeObservar && puntoDeNube !== null && selected === null;
+
+  /** Por qué no se puede anotar este punto, con su salida. Mismo criterio que el del elemento. */
+  const motivoSinAnotarLaNube: string | null =
+    puntoDeNube === null || sePuedeAnotarLaNube
+      ? null
+      : origen === null
+        ? "Este levantamiento se abrió desde el disco, así que no hay obra donde archivar la " +
+          "nota. Ábrelo desde su expediente —en la pantalla de la obra, «Modelos y planos que " +
+          "puedes abrir»— y este punto tendrá su botón para anotar."
+        : "Tu rol puede ver este levantamiento pero no abrir observaciones sobre él.";
+
   /** `true` mientras la tarjeta de nota está abierta encima del modelo. */
   const [notaAbierta, setNotaAbierta] = useState(false);
 
@@ -1900,9 +1948,9 @@ export function App() {
    */
   const [notasGuardadas, setNotasGuardadas] = useState(0);
 
-  // Cambiar de elemento cierra la tarjeta: estaba anclada al anterior, y dejarla abierta haría que
-  // la nota se guardara sobre un GUID distinto del que se está mirando.
-  useEffect(() => setNotaAbierta(false), [selected]);
+  // Cambiar de elemento **o de punto** cierra la tarjeta: estaba anclada al anterior, y dejarla
+  // abierta haría que la nota se guardara sobre un ancla distinta de la que se está mirando.
+  useEffect(() => setNotaAbierta(false), [selected, puntoDeNube]);
 
   /**
    * Abre una observación del panel de coordinación: **lleva la cámara y selecciona el elemento**.
@@ -2190,8 +2238,17 @@ export function App() {
             style={{ width: anchoIzquierdo }}
             className="min-w-0 shrink border-r border-borde bg-surface"
           >
+            {/* Tres fichas para tres clases de selección, y el orden es el del clic: el modelo
+                manda, el plano recoge lo que caiga fuera y la nube lo último. */}
             {selectedPlan !== null && selected === null ? (
               <Plan2DCard hit={selectedPlan} onClose={() => setSelectedPlan(null)} />
+            ) : puntoDeNube !== null && selected === null ? (
+              <PuntoDeNubeCard
+                punto={puntoDeNube}
+                onClose={() => setPuntoDeNube(null)}
+                observar={sePuedeAnotarLaNube ? () => setNotaAbierta(true) : null}
+                motivoSinObservar={motivoSinAnotarLaNube}
+              />
             ) : (
               <PropertiesPanel
                 item={selected}
@@ -2264,9 +2321,13 @@ export function App() {
           {/* **La tarjeta de nota, encima del modelo.** Va acá —dentro del contenedor del lienzo—
               y no en un panel, porque el punto entero es no dejar de ver lo que se está
               describiendo. Se arrastra por su cabecera para destapar justo lo que hace falta. */}
-          {notaAbierta && selected !== null && origen !== null && (
+          {/* **Un ancla o la otra, y la misma tarjeta.** Dejar una nota es el mismo gesto sobre un
+              elemento del modelo y sobre un punto del levantamiento; lo único que cambia es de qué
+              cuelga, así que no hay dos tarjetas. */}
+          {notaAbierta && (selected !== null || puntoDeNube !== null) && origen !== null && (
             <NotaFlotante
               item={selected}
+              punto={selected === null ? (puntoDeNube?.archivo ?? null) : null}
               descripcionInicial={borradorDeDesviacion}
               revisionId={origen.revisionId}
               camaraDeAhora={() => viewer.current?.cameraState ?? null}

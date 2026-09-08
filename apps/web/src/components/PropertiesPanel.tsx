@@ -1,5 +1,95 @@
-import type { PickedItem, PlanHit, PropertyValue } from "@aerobim/viewer";
+import { coordenadaComoTexto } from "@aerobim/bim-core";
+import type { PickedItem, PlanHit, PropertyValue, PuntoSenalado } from "@aerobim/viewer";
 import { IconEye, IconEyeOff, IconIsolate, IconNota } from "./icons.js";
+
+/**
+ * La ficha de un punto del levantamiento. `F12.14`.
+ *
+ * **La tercera clase de selección, y va aparte por lo mismo que el trazo del plano**: no tiene los
+ * mismos datos. Un punto de una nube no tiene GUID, ni psets, ni capa — tiene una coordenada. Y con
+ * eso basta para colgar una observación de lo construido, que es lo que abre la coordinación
+ * **sin esperar al modelo**: en obra el levantamiento llega antes que el IFC de su etapa.
+ *
+ * La coordenada que se enseña es **la del archivo**, no la de la escena: es el dato del topógrafo,
+ * el que se puede volver a replantear en el suelo, y el que se guarda en la observación.
+ */
+export function PuntoDeNubeCard({
+  punto,
+  onClose,
+  observar = null,
+  motivoSinObservar = null,
+}: {
+  readonly punto: PuntoSenalado;
+  readonly onClose: () => void;
+  /** Cómo se abre una observación sobre este punto, o `null` si no hay dónde anotarla. */
+  readonly observar?: (() => void) | null;
+  /** Por qué no se puede anotar, cuando `observar` es `null`. Ver `PropertiesPanel`. */
+  readonly motivoSinObservar?: string | null;
+}) {
+  const [este, norte, altura] = punto.archivo;
+
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      <header className="flex items-start gap-2 border-b border-borde p-3">
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-xs font-semibold tracking-wide text-accent uppercase">
+            Punto del levantamiento
+          </p>
+          <p className="truncate font-mono text-sm" title={coordenadaComoTexto(punto.archivo)}>
+            {coordenadaComoTexto(punto.archivo)}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-sm px-1.5 text-fg-2 hover:bg-surface-3 hover:text-fg"
+          aria-label="Quitar la selección"
+          title="Quitar la selección"
+        >
+          ×
+        </button>
+      </header>
+
+      <div className="min-h-0 flex-1 space-y-3 overflow-x-clip overflow-y-auto p-3 text-xs">
+        <section>
+          <h3 className="mb-1 font-semibold text-fg-2">Coordenada del archivo</h3>
+          {/* **Las tres por separado además del texto de arriba**, porque un replanteo se copia
+              número a número: quien va a marcar el punto en el suelo lee un valor y lo teclea. */}
+          <dl className="space-y-1">
+            <Row label="Este" value={`${este.toFixed(3)} m`} mono />
+            <Row label="Norte" value={`${norte.toFixed(3)} m`} mono />
+            <Row label="Altura" value={`${altura.toFixed(3)} m`} mono />
+          </dl>
+
+          {/* Misma pareja de botón y motivo que la ficha del modelo, y a propósito: dejar una nota
+              es el mismo gesto, y lo único que cambia es de qué cuelga. */}
+          {observar !== null && (
+            <button
+              type="button"
+              onClick={observar}
+              className="mt-2 inline-flex w-full items-center justify-center gap-1.5 rounded-sm bg-action px-2 py-1.5 text-xs font-semibold text-sobre-accion hover:bg-action-hover"
+              title="Deja una nota anclada a esta coordenada del levantamiento, sin salir del modelo"
+            >
+              <IconNota className="h-3.5 w-3.5" />
+              Dejar una nota aquí
+            </button>
+          )}
+          {observar === null && motivoSinObservar !== null && (
+            <p className="mt-2 rounded-sm border border-borde bg-surface-2 px-2 py-1.5 text-nota leading-snug text-fg-3">
+              {motivoSinObservar}
+            </p>
+          )}
+        </section>
+
+        <p className="border-t border-borde pt-2 text-nota leading-snug text-fg-3">
+          Es la coordenada del propio levantamiento, en el sistema que declara su archivo — no la de
+          la escena del visor. Es la que se puede replantear en el suelo, y la que se guarda en la
+          observación.
+        </p>
+      </div>
+    </div>
+  );
+}
 
 /**
  * La ficha de un elemento 2D del plano.
