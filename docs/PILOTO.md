@@ -137,6 +137,20 @@ se construye para el piloto** y se reabre solo si el triage la pide dos semanas 
 
 ## 6. El checklist antes de empezar
 
+> **Qué de esto está corrido de verdad y qué no** (2026-09-08). Los tres comandos que el checklist
+> nombra tenían pruebas y **no se habían ejecutado nunca**, que son dos cosas distintas: una prueba
+> comprueba lo que alguien imaginó que podía fallar, y una corrida comprueba el resto.
+>
+> | Comando           | Corrido | Lo que enseñó                                                                                                                                                                                                                                             |
+> | ----------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+> | `preparar_piloto` | ✅      | Crea la organización, la membresía, la obra y sus 10 etiquetas. **Corrido tres veces seguidas**: la segunda y la tercera dicen «ya existía» y añaden 0 etiquetas — la idempotencia que promete es real                                                    |
+> | `enviar_resumen`  | ✅      | Genera un correo por persona con sus pendientes. **Y avisa de que no está enviando**: «CORREO NO ENVIADO: EMAIL_HOST no esta configurado», nombrando las cinco variables que faltan. No finge                                                             |
+> | `metricas_piloto` | ✅      | Salió entero **y con un defecto**: no contaba el ancla de la nube que `F12.14` acababa de añadir, así que esas observaciones desaparecían del bloque de contexto. Arreglado el mismo día                                                                  |
+> | `respaldo.sh`     | ❌      | **Sigue sin correrse.** Necesita PostgreSQL —`pg_dump`, `pg_restore`, `createdb`— y aquí la base es SQLite. Es la razón de que no se instale un timer para él: un respaldo automático que nadie vio funcionar es peor que ninguno, porque se confía en él |
+>
+> Todo esto fue contra la base de **desarrollo** y con el correo a consola. Lo que hace falta en la
+> VM sigue en el checklist de abajo.
+
 - [ ] Decidida **la rama a desplegar** y la VM.
 - [ ] `/health/` responde `ok`. Sin COOP/COEP, `client_max_body_size 200M`, `conversor_cad` según se
       haya decidido sobre ODA ([`DEPLOY.md`](DEPLOY.md)).
@@ -165,8 +179,13 @@ sudo -u aerobim .venv/bin/python manage.py metricas_piloto --desde 2026-09-08 --
 
 Da: hallazgos abiertos, cerrados y **descartados aparte** —descartar no cuenta como arreglar—;
 tiempo de ciclo con mediana, media y máximo; **con qué contexto se abrieron** (punto de vista, foto,
-anclados al modelo o al documento); por pantalla y por tipo; cuántos tienen respuesta; y lo abierto
-hoy por prioridad, con las vencidas.
+anclados **al modelo, a la nube o al documento** — las tres anclas reparten el total, no se
+solapan); por pantalla y por tipo; cuántos tienen respuesta y **cuántos la tienen con imagen**; y lo
+abierto hoy por prioridad, con las vencidas.
+
+Esa última cifra mide lo que `F12.11` vino a resolver: hasta el 2026-09-08 una queja del portal se
+contaba con palabras. **Si nadie adjunta nada, la función no hizo falta** — y saberlo vale tanto
+como lo contrario.
 
 **La otra mitad se anota a mano en la bitácora**, porque la base no la sabe:
 
@@ -223,6 +242,17 @@ correo que no salió se ven igual** sin ese aviso.
 
 **«Abrí la nube y no se ve nada.»** El visor abre **COPC**, no un LAZ cualquiera: un `.laz` suelto se
 archiva pero no se ofrece abrir. Se convierte con `apps/web/scripts/a-copc.py`.
+
+**«No llegó todavía el IFC de esta etapa y ya tengo el levantamiento.»** No hace falta esperar
+(`F12.14`): con la nube sola se encuadra, se mide y **se deja una nota anclada a una coordenada**.
+Se pulsa un punto de la nube y su ficha sale a la izquierda con la coordenada del archivo, y desde
+ahí «Dejar una nota aquí». La coordenada va también en el texto del BCF, porque el formato no sabe
+señalar un punto de una nube.
+
+**«Adjunté una captura al comentario y el mandante no la ve en Solibri.»** Es correcto y está dicho
+debajo del campo: un BCF lleva la imagen **del tema**, no las del hilo. El adjunto se queda en
+AeroBim. Si la imagen tiene que viajar, va como instantánea de la observación —la que toma el
+visor— o como un entregable con su código.
 
 ## 10. Bitácora semanal
 
