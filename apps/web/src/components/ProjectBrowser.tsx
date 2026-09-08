@@ -1,17 +1,72 @@
 import type { DrawnMeasurement, SavedView } from "@aerobim/viewer";
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { Resizer } from "./Resizer.js";
 import {
   IconAngle,
   IconArea,
+  IconCalce,
   IconChevronDown,
   IconChevronRight,
   IconDistance,
   IconEye,
   IconEyeOff,
+  IconLayers,
+  IconMeasure,
+  IconNota,
+  IconNube,
+  IconPlan2D,
+  IconPlanoSalida,
+  IconRegistro,
+  IconTable,
+  IconTree,
   IconViewIso,
+  IconViews,
+  IconVistaCompartida,
   IconX,
 } from "./icons.js";
+
+/**
+ * Los cuatro grupos del navegador, en orden. `F12.5`.
+ *
+ * **Doce secciones seguidas con la misma cabecera son un muro**, y eso está medido: hasta el
+ * 2026-09-08 las doce eran `h2` en mayúsculas, del mismo tamaño, color y peso, todas plegadas. Una
+ * lista de doce cosas iguales no es una lista.
+ *
+ * El grupo **no es un destino**: las cuatro listas están a la vez en la misma columna, porque la
+ * razón de que las secciones estén juntas —comparar el plano con el modelo encendiendo y apagando
+ * de los dos— se rompería al repartirlas en cuatro sitios. Es un rótulo que separa. La decisión
+ * está en `docs/UX.md`, «Derecha: el contenido del proyecto, todo junto».
+ */
+const GRUPOS = ["Empezar", "Lo abierto", "El modelo", "Lo guardado"] as const;
+
+type Grupo = (typeof GRUPOS)[number];
+
+/** Una sección del navegador, tal como se describe una sola vez y se pinta en dos sitios. */
+type Descriptor = {
+  readonly clave: string;
+  readonly titulo: string;
+  readonly grupo: Grupo;
+  readonly icono: React.ReactNode;
+  /**
+   * Cuántas cosas hay dentro, o `null` cuando esta columna **no puede saberlo**.
+   *
+   * `null` no es cero y la diferencia importa: el selector del registro, la coordinación, los
+   * cuadros y las vistas del proyecto piden sus datos al servidor por su cuenta, así que aquí no hay
+   * cifra que enseñar. Se pinta en tono neutro, sin cifra y sin decir «vacío» — inventar un cero
+   * sería peor que no decir nada.
+   */
+  readonly cuantos: number | null;
+  /**
+   * `true` si esta sección se despliega sola al pasar de vacía a llena.
+   *
+   * **No la llevan todas las que tienen cifra**, y por eso es una bandera y no una consecuencia: al
+   * cargar un modelo se llenan «Modelos abiertos» y «Estructura del modelo» a la vez, y abrir las
+   * dos deja la columna con dos listas apretadas a su alto mínimo. Se abre **la que se va a mirar**
+   * —la estructura— y la otra se queda con su cifra, que ya contesta lo que tenía que contestar.
+   */
+  readonly abreAlLlenarse: boolean;
+  readonly contenido: React.ReactNode;
+};
 
 /**
  * El navegador del proyecto: qué hay abierto y qué se ha medido.
@@ -30,7 +85,9 @@ export function ProjectBrowser({
   estructura,
   cuadros,
   modelos,
+  modelCount,
   nubes,
+  hayNube,
   calce,
   planos,
   planCount,
@@ -55,8 +112,12 @@ export function ProjectBrowser({
   /** Los cuadros por categoría: qué hay en el modelo y cuántas hay. */
   readonly cuadros: React.ReactNode;
   readonly modelos: React.ReactNode;
+  /** Cuántos modelos IFC hay abiertos. Alimenta la cifra de «Modelos abiertos» y de «Estructura». */
+  readonly modelCount: number;
   /** La nube de puntos: su ficha y sus mandos (`F12.1`). */
   readonly nubes: React.ReactNode;
+  /** `true` con un levantamiento cargado. Es una o ninguna, así que no lleva cifra sino presencia. */
+  readonly hayNube: boolean;
   /** Calzar la nube con el modelo y medir lo que se aparta (`F12.2`). */
   readonly calce: React.ReactNode;
   /** Los planos 2D cargados, con sus capas y su ajuste. */
@@ -65,7 +126,14 @@ export function ProjectBrowser({
   /** Los planos generados desde el modelo, con su exportación. */
   readonly generados: React.ReactNode;
   readonly drawingCount: number;
-  /** Las cotas dibujadas. La sección aparece sola cuando hay alguna. */
+  /**
+   * Las cotas dibujadas.
+   *
+   * **La sección ya no aparece y desaparece con ellas**, que es lo que hacía antes: ahora está
+   * siempre, dice «vacío» cuando no hay ninguna y **se abre sola** en cuanto se toma la primera.
+   * Una sección que va y viene obliga a buscarla dos veces; una que se abre al llenarse la pone
+   * delante justo cuando hace falta.
+   */
   readonly cotas: readonly DrawnMeasurement[];
   /** Las vistas guardadas **en este navegador**, en el orden en que se guardaron. */
   readonly vistas: readonly SavedView[];
@@ -136,127 +204,125 @@ export function ProjectBrowser({
       [clave]: Math.max(ALTO_MINIMO, (actuales[clave] ?? actualEnPantalla) + delta),
     }));
 
-  return (
-    <div className="flex h-full min-h-0 flex-col">
-      {/* **Del registro, y va primero porque es de donde se parte.** Hasta hoy la única forma de
-          abrir una revisión era entrar desde su expediente: la API del selector existía desde
-          `F8.8` y no la consumía nadie. Arranca plegada para no empujar al árbol del modelo, que
-          es lo que se mira mientras se revisa. */}
-      <Seccion
-        titulo="Del registro"
-        abierta={abiertas.has("registro")}
-        onAlternar={() => alternar("registro")}
-        alto={altos["registro"] ?? null}
-        onRedimensionar={(delta, actual) => redimensionar("registro", delta, actual)}
-      >
-        {registro}
-      </Seccion>
-
-      {/* **La coordinación va arriba, junto al registro y antes del árbol.** Es de donde se parte
-          cuando se abre el modelo para revisar: primero qué hay que mirar, después el modelo. */}
-      <Seccion
-        titulo="Coordinación"
-        abierta={abiertas.has("coordinacion")}
-        onAlternar={() => alternar("coordinacion")}
-        alto={altos["coordinacion"] ?? null}
-        onRedimensionar={(delta, actual) => redimensionar("coordinacion", delta, actual)}
-      >
-        {coordinacion}
-      </Seccion>
-
-      <Seccion
-        titulo="Estructura del modelo"
-        abierta={abiertas.has("estructura")}
-        onAlternar={() => alternar("estructura")}
-        alto={altos["estructura"] ?? null}
-        onRedimensionar={(delta, actual) => redimensionar("estructura", delta, actual)}
-      >
-        {estructura}
-      </Seccion>
-
-      {/* **Los cuadros van junto a la estructura, no con los planos.** El árbol dice **dónde** está
-          cada cosa y el cuadro dice **qué es y cuántas hay**: son las dos preguntas que uno se hace
-          mirando el modelo, y se contestan una detrás de la otra. Exportar es lo que se hace
-          después, no lo que las emparenta. */}
-      <Seccion
-        titulo="Cuadros del modelo"
-        abierta={abiertas.has("cuadros")}
-        onAlternar={() => alternar("cuadros")}
-        alto={altos["cuadros"] ?? null}
-        onRedimensionar={(delta, actual) => redimensionar("cuadros", delta, actual)}
-      >
-        {cuadros}
-      </Seccion>
-
-      <Seccion
-        titulo="Modelos abiertos"
-        abierta={abiertas.has("modelos")}
-        onAlternar={() => alternar("modelos")}
-        alto={altos["modelos"] ?? null}
-        onRedimensionar={(delta, actual) => redimensionar("modelos", delta, actual)}
-      >
-        {modelos}
-      </Seccion>
-
-      {/* **La nube va junto a los modelos abiertos y no al final**, porque es lo mismo: otra fuente
-          del proyecto que está abierta ahora. La regla de crecimiento de `docs/UX.md` es que una
-          capacidad nueva es una sección del navegador, y esta es la primera que la estrena. */}
-      <Seccion
-        titulo="Nube de puntos"
-        abierta={abiertas.has("nubes")}
-        onAlternar={() => alternar("nubes")}
-        alto={altos["nubes"] ?? null}
-        onRedimensionar={(delta, actual) => redimensionar("nubes", delta, actual)}
-      >
-        {nubes}
-      </Seccion>
-
-      {/* **El calce va justo debajo de la nube y no en Coordinación**, aunque acabe en una
-          observación: es lo que se hace *con* la nube y antes de poder medir nada. Separarlos
-          obligaría a saltar entre dos secciones para un solo trabajo. */}
-      <Seccion
-        titulo="Calce y desviación"
-        abierta={abiertas.has("calce")}
-        onAlternar={() => alternar("calce")}
-        alto={altos["calce"] ?? null}
-        onRedimensionar={(delta, actual) => redimensionar("calce", delta, actual)}
-      >
-        {calce}
-      </Seccion>
-
-      {/* **Los planos 2D van junto a los modelos, no en otra pestaña.** Son otra fuente del mismo
-          proyecto —lo que hay abierto— y la comparación entre el plano y el modelo se hace
-          encendiendo y apagando de los dos, que es un solo gesto si están a la misma altura. Las
-          nubes de puntos entrarán aquí mismo cuando llegue su fase. */}
-      <Seccion
-        titulo={`Planos 2D (${planCount})`}
-        abierta={abiertas.has("planos")}
-        onAlternar={() => alternar("planos")}
-        alto={altos["planos"] ?? null}
-        onRedimensionar={(delta, actual) => redimensionar("planos", delta, actual)}
-      >
-        {planos}
-      </Seccion>
-
-      {/* Los planos que **salen** del modelo, justo debajo de los que **entran**: son las dos
-          direcciones del mismo trabajo y se consultan en la misma columna. */}
-      <Seccion
-        titulo={`Planos generados (${drawingCount})`}
-        abierta={abiertas.has("generados")}
-        onAlternar={() => alternar("generados")}
-        alto={altos["generados"] ?? null}
-        onRedimensionar={(delta, actual) => redimensionar("generados", delta, actual)}
-      >
-        {generados}
-      </Seccion>
-
-      <Seccion
-        titulo={`Vistas guardadas (${vistas.length})`}
-        abierta={abiertas.has("vistas")}
-        onAlternar={() => alternar("vistas")}
-        alto={altos["vistas"] ?? null}
-        onRedimensionar={(delta, actual) => redimensionar("vistas", delta, actual)}
-      >
+  /**
+   * Las doce secciones, descritas **una sola vez**.
+   *
+   * Era doce bloques `<Seccion>` escritos a mano con la misma llamada repetida, y el precio no era
+   * la repetición: era que **añadir una capacidad significaba escribir el mismo bloque otra vez** y
+   * que no había forma de pintar la misma lista en dos sitios. Con el descriptor, añadir una
+   * capacidad sigue siendo lo que `docs/UX.md` promete —añadir una fila— y el rail plegado puede
+   * leer exactamente lo mismo que el acordeón.
+   *
+   * El orden dentro de cada grupo es el de trabajo, y los comentarios de por qué cada una está
+   * donde está siguen aquí porque son decisiones, no adorno.
+   */
+  const SECCIONES: readonly Descriptor[] = [
+    // **Del registro va primero porque es de donde se parte.** Hasta `F12.1` la única forma de
+    // abrir una revisión era entrar desde su expediente: la API del selector existía desde `F8.8` y
+    // no la consumía nadie.
+    {
+      clave: "registro",
+      titulo: "Del registro",
+      grupo: "Empezar",
+      icono: <IconRegistro />,
+      cuantos: null,
+      abreAlLlenarse: false,
+      contenido: registro,
+    },
+    // **La coordinación va junto al registro y antes del árbol.** Es de donde se parte cuando se
+    // abre el modelo para revisar: primero qué hay que mirar, después el modelo.
+    {
+      clave: "coordinacion",
+      titulo: "Coordinación",
+      grupo: "Empezar",
+      icono: <IconNota />,
+      cuantos: null,
+      abreAlLlenarse: false,
+      contenido: coordinacion,
+    },
+    {
+      clave: "modelos",
+      titulo: "Modelos abiertos",
+      grupo: "Lo abierto",
+      icono: <IconLayers />,
+      cuantos: modelCount,
+      abreAlLlenarse: false,
+      contenido: modelos,
+    },
+    // **Los planos 2D van junto a los modelos, no en otra pestaña.** Son otra fuente del mismo
+    // proyecto, y la comparación entre el plano y el modelo se hace encendiendo y apagando de los
+    // dos: un solo gesto si están a la misma altura.
+    {
+      clave: "planos",
+      titulo: "Planos 2D",
+      grupo: "Lo abierto",
+      icono: <IconPlan2D />,
+      cuantos: planCount,
+      abreAlLlenarse: true,
+      contenido: planos,
+    },
+    // **La nube va junto a los modelos abiertos y no al final**, porque es lo mismo: otra fuente del
+    // proyecto que está abierta ahora. Es la primera capacidad que estrenó la regla de crecimiento.
+    {
+      clave: "nubes",
+      titulo: "Nube de puntos",
+      grupo: "Lo abierto",
+      icono: <IconNube />,
+      cuantos: hayNube ? 1 : 0,
+      abreAlLlenarse: true,
+      contenido: nubes,
+    },
+    // **El calce va justo debajo de la nube y no en Coordinación**, aunque acabe en una observación:
+    // es lo que se hace *con* la nube y antes de poder medir nada.
+    {
+      clave: "calce",
+      titulo: "Calce y desviación",
+      grupo: "Lo abierto",
+      icono: <IconCalce />,
+      cuantos: null,
+      abreAlLlenarse: false,
+      contenido: calce,
+    },
+    {
+      clave: "estructura",
+      titulo: "Estructura del modelo",
+      grupo: "El modelo",
+      icono: <IconTree />,
+      cuantos: modelCount,
+      abreAlLlenarse: true,
+      contenido: estructura,
+    },
+    // **Los cuadros van junto a la estructura, no con los planos.** El árbol dice **dónde** está
+    // cada cosa y el cuadro dice **qué es y cuántas hay**: son las dos preguntas que uno se hace
+    // mirando el modelo. Exportar es lo que se hace después, no lo que las emparenta.
+    {
+      clave: "cuadros",
+      titulo: "Cuadros del modelo",
+      grupo: "El modelo",
+      icono: <IconTable />,
+      cuantos: null,
+      abreAlLlenarse: false,
+      contenido: cuadros,
+    },
+    // Los planos que **salen** del modelo, en el grupo del modelo y no con los que **entran**: es
+    // la única pareja del navegador que se separó al agrupar, y se separó por eso.
+    {
+      clave: "generados",
+      titulo: "Planos generados",
+      grupo: "El modelo",
+      icono: <IconPlanoSalida />,
+      cuantos: drawingCount,
+      abreAlLlenarse: true,
+      contenido: generados,
+    },
+    {
+      clave: "vistas",
+      titulo: "Vistas guardadas",
+      grupo: "Lo guardado",
+      icono: <IconViews />,
+      cuantos: vistas.length,
+      abreAlLlenarse: false,
+      contenido: (
         <Vistas
           vistas={vistas}
           puedeGuardar={puedeGuardarVista}
@@ -264,43 +330,121 @@ export function ProjectBrowser({
           onAplicar={onApplyView}
           onBorrar={onDeleteView}
         />
-      </Seccion>
+      ),
+    },
+    // **Las del proyecto van justo debajo de las locales**, y las dos existen a propósito: una
+    // vista local es de trabajo y no cuesta nada —ni viaje al servidor ni permiso—; una compartida
+    // es un acto explícito. Puestas juntas, la diferencia se lee sin explicarla.
+    {
+      clave: "vistas-proyecto",
+      titulo: "Vistas del proyecto",
+      grupo: "Lo guardado",
+      icono: <IconVistaCompartida />,
+      cuantos: null,
+      abreAlLlenarse: false,
+      contenido: vistasDelProyecto,
+    },
+    // "Cotas dibujadas" era jerga y decía menos de lo que la lista hace: acá están las mediciones
+    // tomadas, con su valor, y se apagan o se borran una por una.
+    {
+      clave: "cotas",
+      titulo: "Mediciones tomadas",
+      grupo: "Lo guardado",
+      icono: <IconMeasure />,
+      cuantos: cotas.length,
+      abreAlLlenarse: true,
+      contenido: (
+        <ul className="p-1">
+          {cotas.map((cota) => (
+            <CotaEnLista
+              key={cota.id}
+              cota={cota}
+              onToggle={onToggleMeasurement}
+              onDelete={onDeleteMeasurement}
+            />
+          ))}
+        </ul>
+      ),
+    },
+  ];
 
-      {/* **Las del proyecto van justo debajo de las locales**, y las dos existen a propósito: una
-          vista local es de trabajo y no cuesta nada —ni viaje al servidor ni permiso—; una
-          compartida es un acto explícito. Puestas juntas, la diferencia se lee sin explicarla. */}
-      <Seccion
-        titulo="Vistas del proyecto"
-        abierta={abiertas.has("vistas-proyecto")}
-        onAlternar={() => alternar("vistas-proyecto")}
-        alto={altos["vistas-proyecto"] ?? null}
-        onRedimensionar={(delta, actual) => redimensionar("vistas-proyecto", delta, actual)}
-      >
-        {vistasDelProyecto}
-      </Seccion>
+  /**
+   * **Se abre sola la sección que acaba de llenarse.**
+   *
+   * Sustituye a «todas plegadas» sin traicionar su motivo. El motivo era no llenar la columna de
+   * listas vacías que empujan hacia abajo la que se está usando; abrir la que **deja** de estar
+   * vacía no hace eso — llega un modelo y se abre Estructura, llega un levantamiento y se abre Nube.
+   * Es lo que se iba a hacer a mano un segundo después.
+   *
+   * Solo en el salto de cero a algo, y por eso hace falta guardar la cuenta anterior. Al montar no
+   * abre nada: se siembra con lo que hay, así que abrir el visor con un modelo ya cargado —volver
+   * de otra pestaña— no reorganiza la columna.
+   */
+  const cuentaAnterior = useRef<Record<string, number> | null>(null);
+  const cuentas = Object.fromEntries(
+    SECCIONES.filter((una) => una.cuantos !== null && una.abreAlLlenarse).map((una) => [
+      una.clave,
+      una.cuantos as number,
+    ]),
+  );
+  const huella = JSON.stringify(cuentas);
+  useEffect(() => {
+    const antes = cuentaAnterior.current;
+    cuentaAnterior.current = cuentas;
+    if (antes === null) return;
+    const recienLlenas = Object.keys(cuentas).filter(
+      (clave) => (antes[clave] ?? 0) === 0 && (cuentas[clave] ?? 0) > 0,
+    );
+    if (recienLlenas.length === 0) return;
+    setAbiertas((actual) => {
+      const siguiente = new Set(actual);
+      for (const clave of recienLlenas) siguiente.add(clave);
+      return siguiente;
+    });
+    // `cuentas` es un objeto nuevo en cada render, así que la dependencia es su huella: sin eso el
+    // efecto correría en todos los renders y volvería a abrir lo que alguien acaba de plegar.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [huella]);
 
-      {cotas.length > 0 && (
-        <Seccion
-          // "Cotas dibujadas" era jerga y además decía menos de lo que la lista hace: acá están las
-          // mediciones tomadas, con su valor, y se pueden apagar o borrar una por una.
-          titulo={`Mediciones tomadas (${cotas.length})`}
-          abierta={abiertas.has("cotas")}
-          onAlternar={() => alternar("cotas")}
-          alto={altos["cotas"] ?? null}
-          onRedimensionar={(delta, actual) => redimensionar("cotas", delta, actual)}
-        >
-          <ul className="p-1">
-            {cotas.map((cota) => (
-              <CotaEnLista
-                key={cota.id}
-                cota={cota}
-                onToggle={onToggleMeasurement}
-                onDelete={onDeleteMeasurement}
-              />
-            ))}
-          </ul>
-        </Seccion>
-      )}
+  return (
+    /*
+     * **`overflow-y-auto` es nuevo y hace falta.** Doce cabeceras plegadas más los cuatro rótulos
+     * de grupo no caben en una pantalla baja, y sin desplazamiento la última sección quedaba
+     * cortada sin aviso: el contenedor no tenía `overflow`, así que simplemente se salía.
+     *
+     * Convive con el reparto del alto porque las plegadas son `shrink-0` —no pueden encogerse, así
+     * que desbordan y aparece la barra— mientras la abierta sigue tomando lo que sobra.
+     */
+    <div className="flex h-full min-h-0 flex-col overflow-y-auto">
+      {GRUPOS.map((grupo) => (
+        <Fragment key={grupo}>
+          {/*
+           * El rótulo del grupo, y **no es un botón**: no se pliega, no lleva `aria-expanded` y no
+           * es un destino. Solo separa. Que sea un `h2` y las secciones `h3` es lo que hace que un
+           * lector de pantalla anuncie la jerarquía que el ojo ve — antes las doce eran `h2`
+           * hermanas, o sea una lista plana de doce.
+           */}
+          {/* `leading-none` con poco relleno: el rótulo cuesta 20 px, y cuatro de ellos son 80 px
+              de una columna que también tiene que enseñar listas. */}
+          <h2 className="shrink-0 bg-shell px-2 pt-1.5 pb-1 text-micro leading-none font-semibold tracking-wider text-fg-3 uppercase">
+            {grupo}
+          </h2>
+          {SECCIONES.filter((una) => una.grupo === grupo).map((una) => (
+            <Seccion
+              key={una.clave}
+              titulo={una.titulo}
+              icono={una.icono}
+              cuantos={una.cuantos}
+              abierta={abiertas.has(una.clave)}
+              onAlternar={() => alternar(una.clave)}
+              alto={altos[una.clave] ?? null}
+              onRedimensionar={(delta, actual) => redimensionar(una.clave, delta, actual)}
+            >
+              {una.contenido}
+            </Seccion>
+          ))}
+        </Fragment>
+      ))}
     </div>
   );
 }
@@ -427,6 +571,8 @@ const ALTO_MINIMO = 56;
  */
 function Seccion({
   titulo,
+  icono,
+  cuantos = null,
   abierta,
   onAlternar,
   alto,
@@ -434,6 +580,17 @@ function Seccion({
   children,
 }: {
   readonly titulo: string;
+  /** El icono de 16 px a la izquierda del nombre. */
+  readonly icono?: React.ReactNode;
+  /**
+   * Cuántas cosas hay dentro, o `null` cuando no se puede saber desde aquí.
+   *
+   * **Es lo que da la jerarquía, y la da el estado real y no una lista fija de importancia.** Con
+   * contenido, la sección se pinta en el tono del texto principal; vacía, en el apagado y con la
+   * palabra «vacío» al lado. Así lo que destaca en la columna es lo que hay abierto ahora, que
+   * cambia cada diez minutos, y no lo que alguien decidió que era importante en general.
+   */
+  readonly cuantos?: number | null;
   readonly abierta: boolean;
   readonly onAlternar: () => void;
   /** Alto fijado a mano, o `null` para repartirse lo que sobra con las demás. */
@@ -443,6 +600,15 @@ function Seccion({
   readonly children: React.ReactNode;
 }) {
   const propia = useRef<HTMLElement | null>(null);
+  const vacia = cuantos === 0;
+  /**
+   * Tres tonos y no dos, porque hay tres estados y el tercero no se puede fingir.
+   *
+   * Con contenido, el texto principal: es lo que hay abierto ahora y lo que tiene que destacar.
+   * Vacía, el apagado. Y **sin cifra** —`null`, o sea que esta columna no puede saber cuántas
+   * hay— el tono intermedio: pintarla como una llena diría «aquí hay algo» sin haberlo comprobado.
+   */
+  const tono = cuantos === null ? "text-fg-2" : vacia ? "text-fg-3" : "text-fg";
 
   return (
     <section
@@ -452,23 +618,66 @@ function Seccion({
       style={abierta && alto != null ? { height: alto, flex: "none" } : undefined}
       className={[
         "flex min-h-0 flex-col border-b border-borde",
-        abierta && alto == null ? "flex-1" : "shrink-0",
+        // **El `min-h` de la abierta es un arreglo, no un adorno.** Con `flex-1` y `min-h-0` una
+        // sección abierta se puede encoger hasta cero, y con doce cabeceras y cuatro rótulos de
+        // grupo pidiendo más alto del que hay, eso es exactamente lo que pasaba: la sección se
+        // quedaba en 25,8 px —menos que su propia cabecera de 32— y el nombre se dibujaba **encima**
+        // de la lista de al lado. Se vio en pantalla, no en una prueba.
+        abierta && alto == null ? "min-h-14 flex-1" : "shrink-0",
       ].join(" ")}
     >
+      {/*
+       * **La cabecera, en caja de frase y con su icono y su cifra.**
+       *
+       * Antes eran doce `h2` en mayúsculas, del mismo tamaño, color y peso: un muro. Las mayúsculas
+       * no eran adorno, hacían daño — se leen más despacio y quitan la única señal de forma que
+       * tiene una palabra, su altura. Ahora el nombre va como se escribe, el icono da el
+       * reconocimiento sin leer, y la cifra a la derecha contesta «¿hay algo aquí?» sin abrirla.
+       *
+       * `min-h-8` son 32 px, que es lo que doce cabeceras pueden costar en una columna que también
+       * tiene que enseñar listas.
+       */}
       <button
         type="button"
         onClick={onAlternar}
         aria-expanded={abierta}
-        className="flex shrink-0 items-center gap-1.5 px-2 py-1.5 text-left hover:bg-surface-2"
+        className="flex min-h-8 shrink-0 items-center gap-1.5 px-2 py-1 text-left hover:bg-surface-2"
       >
-        <span className="text-fg-3">
+        <span className="shrink-0 text-fg-3">
           {abierta ? (
             <IconChevronDown className="h-3.5 w-3.5" />
           ) : (
             <IconChevronRight className="h-3.5 w-3.5" />
           )}
         </span>
-        <h2 className="text-nota font-semibold tracking-wide text-fg-2 uppercase">{titulo}</h2>
+        {icono !== undefined && (
+          <span
+            className={[
+              // `h-4` son **17,6 px y no 16**, porque `--spacing` de este proyecto vale 0,275rem
+              // en vez de 0,25 —lo dejó `F9.2` al quitar el `font-size: 110%` de la raíz sin
+              // apretar la escala—. Se deja en la unidad de la escala: escribir `h-[16px]` para
+              // que cuadre con un documento sería salirse de la escala por un decimal.
+              "shrink-0 [&>svg]:h-4 [&>svg]:w-4",
+              vacia ? "text-apagado-fg" : "text-fg-3",
+            ].join(" ")}
+          >
+            {icono}
+          </span>
+        )}
+        <h3 className={["min-w-0 flex-1 truncate text-xs font-medium", tono].join(" ")}>
+          {titulo}
+        </h3>
+        {/* La cifra a la derecha, o la palabra cuando no hay nada. `null` no dibuja ninguna de las
+            dos: es «no se puede saber desde aquí», que no es lo mismo que cero. */}
+        {cuantos !== null && (
+          <span
+            className={["shrink-0 text-nota tabular-nums", vacia ? "text-fg-3" : "text-fg-2"].join(
+              " ",
+            )}
+          >
+            {vacia ? "vacío" : cuantos}
+          </span>
+        )}
       </button>
 
       {abierta && <div className="min-h-0 flex-1 overflow-x-clip overflow-y-auto">{children}</div>}

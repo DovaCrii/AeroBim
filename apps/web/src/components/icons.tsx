@@ -619,6 +619,86 @@ export function IconCursor(props: IconProps) {
 }
 
 /**
+ * La nube de puntos: puntos sueltos con la silueta de un terreno.
+ *
+ * **No es una nube de meteorología ni una de servidor**, que es lo que traen las librerías con ese
+ * nombre: aquí una nube es un levantamiento, o sea millones de puntos medidos. Lo que lo dice son
+ * los puntos, y el relleno **es** la información — un contorno de trazo se leería como una malla.
+ */
+export function IconNube(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <g fill="currentColor" stroke="none">
+        <circle cx="5" cy="16" r="1.1" />
+        <circle cx="8.5" cy="13" r="1.1" />
+        <circle cx="12" cy="10.5" r="1.1" />
+        <circle cx="15.5" cy="12" r="1.1" />
+        <circle cx="19" cy="15" r="1.1" />
+        <circle cx="7" cy="19.5" r="1.1" />
+        <circle cx="11" cy="17" r="1.1" />
+        <circle cx="14.5" cy="19.5" r="1.1" />
+        <circle cx="18" cy="19" r="1.1" />
+      </g>
+      {/* El vuelo del que salió: es lo que separa este levantamiento de una nube cualquiera. */}
+      <path d="M9 6 12 3.5 15 6" />
+      <path d="M12 3.5v3.5" />
+    </Svg>
+  );
+}
+
+/**
+ * Calce y desviación: dos siluetas que no coinciden, y la diferencia entre las dos.
+ *
+ * Es el trabajo entero en un dibujo: lo modelado y lo construido puestos uno sobre otro, y lo que
+ * se aparta. La flecha doble es la desviación, que es lo que acaba en una observación.
+ */
+export function IconCalce(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <rect x="3" y="5" width="11" height="11" rx="1" />
+      <rect x="10" y="9" width="11" height="11" rx="1" strokeDasharray="2.4 2" />
+      <path d="M14 5.8 17.5 2.5" />
+      <path d="M6.5 19.5 3.2 22.8" />
+    </Svg>
+  );
+}
+
+/**
+ * Un plano que **sale** del modelo: la hoja con la flecha hacia fuera.
+ *
+ * Tiene que distinguirse de `IconPlan2D`, que es el plano CAD que **entra** para ponerse debajo del
+ * modelo. Son las dos direcciones del mismo trabajo y viven en secciones vecinas del navegador, así
+ * que dos dibujos parecidos obligarían a leer los rótulos — que es lo que un icono viene a evitar.
+ */
+export function IconPlanoSalida(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M13 3.5H6A1.5 1.5 0 0 0 4.5 5v14A1.5 1.5 0 0 0 6 20.5h12A1.5 1.5 0 0 0 19.5 19v-6" />
+      <path d="M14.5 8.5 21 2.5" />
+      <path d="M16 2.5h5v5" />
+    </Svg>
+  );
+}
+
+/**
+ * Una vista que se le puede pasar a alguien: el encuadre con dos personas.
+ *
+ * Lo que la separa de `IconViews` —las vistas guardadas— es justo eso: las locales viven en este
+ * navegador y no cuestan nada; una compartida es un acto explícito que va al servidor.
+ */
+export function IconVistaCompartida(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <rect x="3" y="4.5" width="18" height="10" rx="1.5" />
+      <path d="M7 19.5a2.5 2.5 0 0 1 5 0" />
+      <circle cx="9.5" cy="16.8" r="1.4" />
+      <path d="M14 19.5a2.2 2.2 0 0 1 4.4 0" />
+      <circle cx="16.2" cy="17" r="1.2" />
+    </Svg>
+  );
+}
+
+/**
  * El registro: dos hojas archivadas, la de delante con su código de revisión.
  *
  * Tiene que distinguirse de `IconNota` —que es *dejar* un hallazgo sobre una pieza— y de

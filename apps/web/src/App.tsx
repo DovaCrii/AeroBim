@@ -2321,6 +2321,8 @@ export function App() {
                   }
                 />
               }
+              modelCount={models.length}
+              hayNube={nube !== null}
               planCount={plans.length}
               drawingCount={drawings.length}
               generados={
