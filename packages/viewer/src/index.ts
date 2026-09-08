@@ -956,7 +956,50 @@ export type DistanceMode = "points" | "edge";
  * elemento. Se repintan acá porque una cota azul sobre una línea violeta parece de otra
  * herramienta, y porque el tamaño por defecto tapa el modelo.
  */
+/** El identificador de la hoja que dibuja el texto de las cotas. Se inyecta una sola vez. */
+const HOJA_DE_COTAS = "aerobim-cotas";
+
+/**
+ * Deja puesta la regla que pinta el texto de una cota **desde un atributo**.
+ *
+ * ## Por qué un pseudoelemento y no `textContent`
+ *
+ * Porque **la librería reescribe `textContent` después de cada intento**, y eso está medido: se
+ * probó escribirlo dentro de `onItemAdded` —el estilo queda, el texto no—, aplazado un fotograma
+ * —que además no llega en una página sin bucle de render— y aplazado con `setTimeout`. Las tres
+ * veces la librería volvió a poner su `3.000 m`.
+ *
+ * Un atributo `data-cota` y un `::after` que lo lee **no entran en esa pelea**: `textContent` no
+ * toca los atributos ni los pseudoelementos. La librería puede reescribir su texto tantas veces
+ * como quiera; se dibuja con tamaño cero y encima va el nuestro.
+ *
+ * ## Por qué el suyo no se borra
+ *
+ * Porque **es el respaldo**. Si algún día `data-cota` no se pone —una cota de ángulo, un área, un
+ * camino nuevo que no pase por `registrarCota`— la etiqueta sigue diciendo su número en vez de
+ * quedarse en blanco. `font-size: 0` lo esconde solo cuando hay algo que poner en su lugar.
+ */
+function asegurarHojaDeCotas(): void {
+  if (document.getElementById(HOJA_DE_COTAS) !== null) return;
+  const hoja = document.createElement("style");
+  hoja.id = HOJA_DE_COTAS;
+  hoja.textContent = [
+    // El texto de la librería, a cero: sigue en el DOM —es el respaldo— y no ocupa.
+    "[data-cota] { font-size: 0 !important; }",
+    // Y el nuestro encima. `white-space: pre` es lo que hace que los saltos de línea del atributo
+    // se vean como tres líneas: sin él, la forma larga saldría todo seguido.
+    "[data-cota]::after {",
+    "  content: attr(data-cota);",
+    "  font-size: 11px;",
+    "  white-space: pre;",
+    "  display: block;",
+    "}",
+  ].join("\n");
+  document.head.append(hoja);
+}
+
 function estilarEtiqueta(mark: OBF.Mark): void {
+  asegurarHojaDeCotas();
   const estilo = mark.three.element.style;
   /*
    * **El fondo deja de ser el violeta de selección, y es por contraste medido.**
@@ -2295,12 +2338,12 @@ export class BimViewer {
      * render tirando cuadros. Un `setTimeout(0)` es una macrotarea: corre en cuanto la tarea actual
      * acaba, haya render o no.
      *
-     * Se llama además **una vez de forma sincrónica**, para que la cota tenga su número aunque el
-     * temporizador no llegue nunca —una pestaña que se cierra a mitad—: si la librería la
-     * sobreescribe, la macrotarea lo arregla; si no, ya está bien desde el principio.
+     * **Y con el atributo ya no hace falta aplazar nada**, que es la mitad buena de haberlo
+     * cambiado: `setAttribute` no compite con `textContent`, así que una sola llamada sincrónica
+     * basta y el resultado no depende de cuándo escriba la librería. Lo de arriba queda escrito
+     * porque son tres intentos que no hay que repetir.
      */
     this.reescribirEtiquetas();
-    setTimeout(() => this.reescribirEtiquetas(), 0);
   }
 
   /**
@@ -2337,7 +2380,9 @@ export class BimViewer {
           label?: { three?: { element?: HTMLElement } };
         };
         const elemento = posible.three?.element ?? posible.label?.three?.element;
-        if (elemento !== undefined) elemento.textContent = texto;
+        // **Un atributo y no `textContent`**: ver `asegurarHojaDeCotas`. La librería reescribe su
+        // texto después de cada intento, y un atributo no está en esa pelea.
+        if (elemento !== undefined) elemento.setAttribute("data-cota", texto);
       }
     }
   }

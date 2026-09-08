@@ -1645,10 +1645,23 @@ export async function medidas(container: HTMLElement, ifcUrl: string, log: Log):
     };
     for (const cota of internas.drawn ?? []) {
       const formas = cota.visuals.map((v) => {
-        const o = v as { constructor?: { name?: string }; three?: unknown; label?: unknown };
-        return `${o.constructor?.name ?? "?"}${o.three !== undefined ? "+three" : ""}${
-          o.label !== undefined ? "+label" : ""
-        }`;
+        const o = v as {
+          constructor?: { name?: string };
+          three?: { element?: unknown };
+          label?: { three?: { element?: unknown } };
+        };
+        // Se baja dos niveles a propósito: saber que hay `.label` no basta —lo que hace falta es si
+        // se llega al elemento HTML—, y ahí es donde se rompía el primer intento.
+        return [
+          o.constructor?.name ?? "?",
+          o.three !== undefined ? "three" : "",
+          o.three?.element !== undefined ? "three.element" : "",
+          o.label !== undefined ? "label" : "",
+          o.label?.three !== undefined ? "label.three" : "",
+          o.label?.three?.element !== undefined ? "label.three.element" : "",
+        ]
+          .filter((s) => s !== "")
+          .join("+");
       });
       log(
         `  cota #${cota.ordinal}: ${cota.visuals.length} visuales — ${formas.join(", ") || "(ninguna)"}`,
@@ -1662,12 +1675,14 @@ export async function medidas(container: HTMLElement, ifcUrl: string, log: Log):
     await new Promise((listo) => setTimeout(listo, 80));
 
     // **Lo que se lee en la escena**, que es lo que este caso existe para enseñar.
-    const etiquetas = [...document.querySelectorAll("*")]
-      .filter((e) => e.children.length === 0 && /^#\d+ ·/.test(e.textContent?.trim() ?? ""))
-      .map((e) => e as HTMLElement);
+    //
+    // Se busca por el atributo y no por el texto: el texto del elemento sigue siendo el de la
+    // librería —es el respaldo, y se dibuja a tamaño cero— y lo que se ve viene de `data-cota`
+    // por un `::after`. Ver `asegurarHojaDeCotas` en el visor.
+    const etiquetas = [...document.querySelectorAll<HTMLElement>("[data-cota]")];
     log(`\n  etiquetas en la escena: ${etiquetas.length}`);
     for (const etiqueta of etiquetas) {
-      log(`  ${JSON.stringify(etiqueta.textContent)}`);
+      log(`  ${JSON.stringify(etiqueta.getAttribute("data-cota"))}`);
     }
 
     // Y el contraste de la etiqueta, que era el defecto de partida: blanco sobre el violeta de
@@ -1675,13 +1690,18 @@ export async function medidas(container: HTMLElement, ifcUrl: string, log: Log):
     const primera = etiquetas[0];
     if (primera !== undefined) {
       const estilo = getComputedStyle(primera);
+      // **El tamaño se lee del `::after` y no del elemento**, y esto costó una lectura confusa: el
+      // elemento va a `font-size: 0` a propósito —esconde el texto de respaldo de la librería— así
+      // que preguntárselo a él decía «0px» sobre una etiqueta perfectamente legible.
+      const dibujado = getComputedStyle(primera, "::after");
       log(
         `\n  fondo=${estilo.backgroundColor} texto=${estilo.color} ` +
-          `borde=${estilo.borderTopColor} tamano=${estilo.fontSize}`,
+          `borde=${estilo.borderTopColor} tamano=${dibujado.fontSize} ` +
+          `(el elemento va a ${estilo.fontSize}: es el respaldo escondido)`,
       );
       log(`  contraste texto/fondo: ${razonDeContraste(estilo.color, estilo.backgroundColor)}`);
     } else {
-      log("  MAL: no hay ninguna etiqueta con el formato `#n · x,xxx m`");
+      log("  MAL: no hay ninguna etiqueta con `data-cota`");
     }
   }
 
