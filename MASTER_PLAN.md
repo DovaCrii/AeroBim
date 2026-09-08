@@ -4334,6 +4334,7 @@ producto, no de estilo, y **bloquean que personas reales usen esto**.
 | `F12.11` | **Una captura adjunta al comentario**: hoy una queja del portal no lleva imagen       | ⬜     |
 | `F12.12` | **Métricas del piloto**: comando de solo lectura sobre lo que ya guarda la base       | ✅     |
 | `F12.13` | **El levantamiento entra al expediente**: la nube como revisión, y servida por tramos | ✅     |
+| `F12.14` | **Coordinar sobre la nube sin esperar al modelo**: medir, encuadrar y anotar un punto | ✅     |
 
 **Oráculo de la fase:** el usuario abre las dos mitades y **no dice «está plano»**. No hay medida que
 sustituya eso, y decir lo contrario sería inventarse un número. Lo que sí se mide y entra en el gate:
@@ -4675,6 +4676,50 @@ de página en el bloque 2 y el visor su puerta de entrada y sus cifras por secci
 mitades usan el mismo violeta de acción con el mismo texto encima desde `--color-sobre-accion`.
 
 ---
+
+### `F12.14` — Coordinar sobre la nube sin esperar al modelo ✅
+
+**La trajo el usuario el 2026-09-08**, y el argumento es el que decide la tarea: «la nube de puntos
+nos servirá o se podrá realizar el tema de coordinación, dejar notas y hacer todo el flujo, también
+la nube de puntos, **debido que el IFC o el avance siempre es un paso más adelante**».
+
+O sea: **en obra el levantamiento llega antes que el modelo.** Se vuela y se mide lo construido
+semanas antes de que exista el IFC de esa etapa. Un visor que exige un modelo para hacer algo deja
+la nube en «abrirla para mirarla», y eso es lo que había — medido con la nube sola en la escena:
+**los quince botones de la pestaña Vista apagados, cero vivos.**
+
+Cuatro huecos, y los tres primeros eran el mismo: «hay algo en la escena» estaba escrito como «hay
+un modelo o un plano», que es la tercera vez que ese hueco aparece —ya había pasado con el DXF—.
+
+| Lo que no se podía       | Por qué                                                                        | Medido después                                              |
+| ------------------------ | ------------------------------------------------------------------------------ | ----------------------------------------------------------- |
+| Usar ninguna herramienta | `enabled` no contaba la nube                                                   | 10 vivos y 5 apagados, los cinco que sí necesitan otra cosa |
+| Encuadrar                | `frameAll` unía modelos y planos, no la nube                                   | El cubo estaba encendido y ahora además mueve               |
+| Medir                    | `snapAt` va contra `fragments`; `pickPointCloud` existía y no lo llamaba nadie | `Directa 26,403 m` con dos clics, sin modelo                |
+| Anotar                   | `sePuedeAnotar` exigía `selected.guid`                                         | Ficha del punto y nota anclada a la coordenada              |
+
+**El ancla la decidió el usuario: la cámara, la foto y la coordenada, las tres.** Se guarda en tres
+columnas propias —`ancla_nube_x/y/z`— y no en las del PDF más una: aquellas son la posición dentro
+de una hoja y éstas son metros del sistema del archivo. Y son las **del archivo** y no las de la
+escena, que es el dato del topógrafo y el que se puede volver a replantear.
+
+`ancla` gana el valor `"nube"`, y el GUID le gana al punto: una observación de desviación nace sobre
+un elemento _y_ tiene un punto medido, y lo que la identifica es el elemento.
+
+**Dos cosas que valieron la tarea:**
+
+1. **El tope que casi descartó cada punto real.** `punto.py` no reusa `camara.LEJOS_M` —mil
+   kilómetros— porque el eje norte de UTM en Chile ronda los 6,3 millones de metros: reusarlo habría
+   descartado en silencio cada punto de cada levantamiento, con la nota guardándose «bien» y sin
+   decir dónde. Hay una prueba que lo fija.
+2. **El punto viaja en el BCF aunque el BCF no sepa decirlo.** Un `Viewpoint` dice una cámara, una
+   foto y unos GUID seleccionados; para un punto de una nube no hay elemento al que apuntar. Así que
+   la coordenada se escribe también en el `Description` —`E 345.678,90 · N 6.298.123,45 · Z 412,30`,
+   detrás del texto de la persona y sin tocarlo— y entonces llega a Solibri, a Navisworks y a un PDF.
+
+**Lo que queda para el piloto:** el ciclo completo contra el servidor real. Aquí están comprobados
+los dos lados por separado —el visor manda lo correcto, el registro lo acepta— y los dos con
+pruebas, pero el POST se interceptó para leerlo porque no hay Django delante.
 
 ### `F12.13` — El levantamiento entra al expediente ✅
 

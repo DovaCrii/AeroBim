@@ -124,13 +124,15 @@ diciendo 97,4 × 143,5 × 17,0 m y UTM 19S declarado dentro.
 
 **Y lo que dejó el bloque del visor**, también medido y no estimado:
 
-| Lo que cambió                                                       | Medido                                        |
-| ------------------------------------------------------------------- | --------------------------------------------- |
-| La cota lleva su número y sus tres magnitudes encima del modelo     | **14,22:1** a 11 px, desde 4,13 que no pasaba |
-| La cinta reparte grande y pequeño, y **no crece**                   | 137,1 → 136,8 px; pequeño 88 × 26,4           |
-| El navegador se pliega a rail y le devuelve el sitio al modelo      | 346 → 49,4 px de panel, **+301 px** de lienzo |
-| El tema claro, barrido pantalla por pantalla en los dos temas       | 16 pasadas, **cero** textos bajo el suelo     |
-| El botón primario dejó de ser negro sobre violeta con el tema claro | 1,92:1 → **8,26:1**, y eran doce botones      |
+| Lo que cambió                                                       | Medido                                                           |
+| ------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| La cota lleva su número y sus tres magnitudes encima del modelo     | **14,22:1** a 11 px, desde 4,13 que no pasaba                    |
+| La cinta reparte grande y pequeño, y **no crece**                   | 137,1 → 136,8 px; pequeño 88 × 26,4                              |
+| El navegador se pliega a rail y le devuelve el sitio al modelo      | 346 → 49,4 px de panel, **+301 px** de lienzo                    |
+| El tema claro, barrido pantalla por pantalla en los dos temas       | 16 pasadas, **cero** textos bajo el suelo                        |
+| El botón primario dejó de ser negro sobre violeta con el tema claro | 1,92:1 → **8,26:1**, y eran doce botones                         |
+| **Se trabaja con el levantamiento solo**, sin esperar al IFC        | de 0 herramientas vivas a 10, y `Directa 26,403 m` con dos clics |
+| Y se le deja una nota anclada a su coordenada                       | `E 345.071,16 · N 6.298.028,87 · Z 561,41`                       |
 
 **Lo que falta para la `0.1.0`** son tres cosas y ninguna es de código:
 
