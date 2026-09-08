@@ -169,11 +169,16 @@ class Command(BaseCommand):
     # --- Con que contexto se abren --------------------------------------------------
 
     def _contexto(self, consulta, inicio, fin) -> None:
-        """Con camara, con foto, ancladas al modelo o al documento.
+        """Con camara, con foto, y a que estan ancladas.
 
         **Es la cifra que dice si el visor sirve para lo que se hizo.** Un hallazgo sin camara no se
         puede volver a mirar: hay que buscar el elemento a mano, y quien lo recibe no ve lo mismo
         que quien lo abrio. Si sube, el gesto de anotar desde la escena esta funcionando.
+
+        **Las anclas tienen que sumar el total, y por eso son cuatro y no dos.** `F12.14` añadio el
+        ancla en la nube y esta cuenta no la miraba: una observacion sobre el levantamiento salia
+        del bloque sin aparecer en ninguna fila, o sea que el informe decia menos de lo que hay sin
+        que ninguna cifra se viera mal. Se vio corriendo el comando, no leyendolo.
         """
         en_rango = consulta.filter(created_at__range=(inicio, fin))
         total = en_rango.count()
@@ -184,7 +189,15 @@ class Command(BaseCommand):
             con_camara=Count("pk", filter=~Q(punto_de_vista={})),
             con_foto=Count("pk", filter=~Q(instantanea="")),
             en_modelo=Count("pk", filter=~Q(ifc_guid="")),
-            en_documento=Count("pk", filter=Q(pagina__isnull=False)),
+            # **En la nube, y solo si no hay GUID**: es el mismo orden con el que decide
+            # `Observacion.ancla`, porque una observacion de desviacion tiene las dos cosas y lo
+            # que la identifica es el elemento. Sin el `Q(ifc_guid="")` las filas sumarian mas que
+            # el total y no habria forma de saber cual sobra.
+            en_la_nube=Count("pk", filter=Q(ifc_guid="") & Q(ancla_nube_x__isnull=False)),
+            en_documento=Count(
+                "pk",
+                filter=Q(ifc_guid="") & Q(ancla_nube_x__isnull=True) & Q(pagina__isnull=False),
+            ),
             con_marcado=Count("pk", filter=~Q(marcado=[])),
             de_interferencia=Count("pk", filter=~Q(interferencia_con="")),
         )
@@ -195,6 +208,7 @@ class Command(BaseCommand):
             ("con punto de vista", "con_camara"),
             ("con instantanea", "con_foto"),
             ("anclados al modelo", "en_modelo"),
+            ("anclados a la nube", "en_la_nube"),
             ("anclados a documento", "en_documento"),
             ("con marcado dibujado", "con_marcado"),
             ("de interferencia", "de_interferencia"),
@@ -237,24 +251,29 @@ class Command(BaseCommand):
     # --- Si se conversa o solo se apunta --------------------------------------------
 
     def _conversacion(self, consulta, inicio, fin) -> None:
-        """Cuantos hallazgos tienen respuesta.
+        """Cuantos hallazgos tienen respuesta, y cuantos la tienen **con imagen**.
 
         **Un hilo vacio es un hallazgo que nadie contesto**, y eso no se ve en el estado: sigue
         «abierta» igual que uno en discusion.
+
+        Y la segunda cifra mide lo que `F12.11` vino a resolver: hasta el 2026-09-08 una queja del
+        portal se contaba con palabras. **Si nadie adjunta nada, la funcion no hizo falta**, y eso
+        es tan util de saber como lo contrario — es el criterio del triage semanal, no un adorno.
         """
         en_rango = consulta.filter(created_at__range=(inicio, fin))
         total = en_rango.count()
         if not total:
             return
-        con_hilo = (
-            Comentario.objects.filter(observacion__in=en_rango)
-            .values("observacion")
-            .distinct()
-            .count()
-        )
+        del_rango = Comentario.objects.filter(observacion__in=en_rango)
+        con_hilo = del_rango.values("observacion").distinct().count()
+        con_imagen = del_rango.exclude(imagen="").values("observacion").distinct().count()
         self.stdout.write("")
         self.stdout.write(
             f"CON AL MENOS UNA RESPUESTA  {con_hilo} de {total} ({100 * con_hilo / total:.0f} %)"
+        )
+        self.stdout.write(
+            f"  y con imagen en el hilo   {con_imagen} de {total} "
+            f"({100 * con_imagen / total:.0f} %)"
         )
 
     # --- Lo que esta abierto ahora --------------------------------------------------

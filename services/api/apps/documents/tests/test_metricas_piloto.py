@@ -310,3 +310,99 @@ def test_sin_datos_no_falla(db):
 
     assert "abiertos en el rango     0" in salida
     assert "ninguna cerrada en el rango" in salida
+
+
+# --- Las anclas, que tienen que sumar el total ------------------------------------------
+
+
+def cifra(salida: str, etiqueta: str) -> int:
+    """La cifra de una fila del informe, leída por su rótulo.
+
+    **Contar los espacios del relleno en el aserto era peor**: la primera versión de estas pruebas
+    lo hacía y fallaba por un espacio, que es un fallo que no dice nada del comportamiento. El
+    ancho de la columna es una decisión de formato y puede cambiar; la cifra no.
+    """
+    import re
+
+    encontrado = re.search(rf"^\s*{re.escape(etiqueta)}\s+(\d+)", salida, re.MULTILINE)
+    assert encontrado is not None, f"no hay fila «{etiqueta}» en:\n{salida}"
+    return int(encontrado.group(1))
+
+
+@pytest.mark.django_db
+def test_las_cuatro_anclas_suman_el_total(proyecto, gente):
+    """**Es el defecto que se vio corriendo el comando, no leyéndolo.**
+
+    `F12.14` añadió el ancla en la nube y esta cuenta miraba solo al modelo y al documento: una
+    observación sobre el levantamiento salía del bloque **sin aparecer en ninguna fila**, así que el
+    informe decía menos de lo que hay y ninguna cifra se veía mal.
+    """
+    hallazgo(proyecto, gente, ifc_guid="2x9ibDgrvAu8y4Yd$Ug4Qu")
+    hallazgo(proyecto, gente, ancla_nube_x=345678.9, ancla_nube_y=6298123.45, ancla_nube_z=412.3)
+    hallazgo(proyecto, gente, pagina=3)
+
+    salida = correr()
+
+    assert "CONTEXTO DE LOS 3 ABIERTOS" in salida
+    anclas = [
+        cifra(salida, e)
+        for e in ("anclados al modelo", "anclados a la nube", "anclados a documento")
+    ]
+
+    assert anclas == [1, 1, 1]
+    # Lo que la fila promete: las anclas reparten el total, no lo solapan.
+    assert sum(anclas) == 3
+
+
+@pytest.mark.django_db
+def test_el_guid_gana_al_punto_tambien_en_la_cuenta(proyecto, gente):
+    """Mismo orden que `Observacion.ancla`, y por el mismo motivo.
+
+    Una observación de desviación nace sobre un elemento **y** tiene el punto donde se midió. Sin
+    esta prioridad las filas sumarían más que el total y no habría forma de saber cuál sobra.
+    """
+    hallazgo(
+        proyecto,
+        gente,
+        ifc_guid="2x9ibDgrvAu8y4Yd$Ug4Qu",
+        ancla_nube_x=345678.9,
+        ancla_nube_y=6298123.45,
+        ancla_nube_z=412.3,
+    )
+
+    salida = correr()
+
+    assert cifra(salida, "anclados al modelo") == 1
+    assert cifra(salida, "anclados a la nube") == 0
+
+
+# --- Si las capturas del hilo se usan ---------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_cuenta_los_hilos_que_llevan_imagen(proyecto, gente):
+    """Lo que `F12.11` vino a resolver, medido.
+
+    **Si nadie adjunta nada, la función no hizo falta**, y eso es tan útil de saber como lo
+    contrario: es el criterio del triage semanal, no un adorno.
+    """
+    autor, _otro = gente
+    con = hallazgo(proyecto, gente, titulo="Con captura")
+    sin = hallazgo(proyecto, gente, titulo="Sin captura")
+    Comentario.objects.create(observacion=con, autor=autor, texto="Mira", imagen="p/e/abc.png")
+    Comentario.objects.create(observacion=sin, autor=autor, texto="Solo texto")
+
+    salida = correr()
+
+    assert "CON AL MENOS UNA RESPUESTA  2 de 2 (100 %)" in salida
+    assert "y con imagen en el hilo   1 de 2 (50 %)" in salida
+
+
+@pytest.mark.django_db
+def test_un_hilo_sin_imagenes_lo_dice_con_un_cero(proyecto, gente):
+    """Un cero es una respuesta: dice que la captura adjunta no se está usando."""
+    autor, _otro = gente
+    obs = hallazgo(proyecto, gente)
+    Comentario.objects.create(observacion=obs, autor=autor, texto="Solo texto")
+
+    assert "y con imagen en el hilo   0 de 1 (0 %)" in correr()
