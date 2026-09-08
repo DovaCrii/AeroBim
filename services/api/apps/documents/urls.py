@@ -82,6 +82,14 @@ urlpatterns = [
         views.ComentarObservacionView.as_view(),
         name="comentar-observacion",
     ),
+    # La imagen adjunta a un comentario (`F12.11`). Va por el id **del comentario** y no por la
+    # clave de almacenamiento: una clave en una URL invita a probar otras, y el permiso se comprueba
+    # sobre la observación de la que cuelga.
+    path(
+        "comentarios/<uuid:pk>/imagen/",
+        views.ImagenDeComentarioView.as_view(),
+        name="imagen-de-comentario",
+    ),
     path(
         "observaciones/<uuid:pk>/repartir/",
         views.RepartirObservacionView.as_view(),

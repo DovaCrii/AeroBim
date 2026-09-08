@@ -28,7 +28,7 @@ from apps.core.views import (
     ModelViewPermissionRequiredMixin,
     OrganizacionScopedQuerysetMixin,
 )
-from apps.documents import conversion, storage
+from apps.documents import adjunto, conversion, storage
 from apps.documents.abribles import RUTA_POR_VISOR, visor_de
 from apps.documents.bcf import exportar as exportar_bcf
 from apps.documents.forms import (
@@ -1093,10 +1093,25 @@ class ComentarObservacionView(ModelPermissionRequiredMixin, View):
 
     def post(self, request, *args, **kwargs):
         observacion = get_object_or_404(Observacion, pk=kwargs["pk"])
-        form = ComentarioForm(request.POST)
+        # `request.FILES` hace falta desde `F12.11`: sin él el adjunto no llega y el formulario
+        # valida igual, o sea que la imagen se perdería en silencio.
+        form = ComentarioForm(request.POST, request.FILES)
         if form.is_valid():
+            # **La imagen se guarda antes que el comentario, al contrario que la instantánea del
+            # visor**, y la diferencia es quién eligió el archivo. Ahí lo genera el programa, así
+            # que si falla se guarda el hallazgo sin foto; aquí lo eligió una persona a mano, y
+            # guardar su comentario sin la imagen que adjuntó sería decirle que salió bien.
+            try:
+                clave = self._guardar_imagen(request, observacion, form.cleaned_data.get("imagen"))
+            except adjunto.AdjuntoRechazado as rechazo:
+                messages.error(request, rechazo.mensaje)
+                return redirect("documents:observacion", pk=observacion.pk)
+
             comentario = Comentario.objects.create(
-                observacion=observacion, autor=request.user, texto=form.cleaned_data["texto"]
+                observacion=observacion,
+                autor=request.user,
+                texto=form.cleaned_data["texto"],
+                imagen=clave,
             )
             # Responder deja la observación **respondida**, no cerrada: cerrar es del que
             # la abrió.
@@ -1107,6 +1122,82 @@ class ComentarObservacionView(ModelPermissionRequiredMixin, View):
         else:
             messages.error(request, _("The comment cannot be empty."))
         return redirect("documents:observacion", pk=observacion.pk)
+
+    @staticmethod
+    def _guardar_imagen(request, observacion, archivo) -> str:
+        """Escribe el adjunto y devuelve su clave, o `""` si no se adjuntó ninguno.
+
+        **Va al mismo almacén que los documentos**, con la clave construida a partir del proyecto,
+        del código del entregable y del sha256 — nunca con un nombre que venga de fuera. El sha256
+        hace además que la misma captura pegada dos veces no duplique el archivo.
+        """
+        if archivo is None:
+            return ""
+
+        contenido, extension, sha = adjunto.leer(archivo)
+        # Una observación puede no tener revisión —las hay sobre el proyecto—, así que el código del
+        # entregable puede faltar. La clave se construye igual: lo que la hace única es el sha.
+        entregable = getattr(getattr(observacion, "revision", None), "entregable", None)
+        try:
+            clave = storage.clave_para(
+                proyecto_codigo=observacion.proyecto.codigo,
+                entregable_codigo=getattr(entregable, "codigo", "") or "comentarios",
+                sha256=sha,
+                extension=extension,
+            )
+            storage.guardar(clave, contenido)
+        except (storage.CargaRechazada, OSError) as error:
+            raise adjunto.AdjuntoRechazado(
+                _("The image could not be saved. Try again."), "no-se-pudo-guardar"
+            ) from error
+        return clave
+
+
+class ImagenDeComentarioView(ModelViewPermissionRequiredMixin, View):
+    """Sirve la imagen adjunta a un comentario. `F12.11`.
+
+    **Existe porque la imagen no se puede servir como estática.** Vive en el almacén de documentos,
+    que está fuera del repositorio y fuera de lo que sirve el servidor web a cualquiera — y tiene
+    que seguir estando fuera: es dato de obra. Así que pasa por una vista, y la vista comprueba.
+
+    **Lo que comprueba es el acceso a la observación, no a la imagen.** Una clave de almacenamiento
+    es adivinable si alguien conoce un sha256; lo que no es adivinable es el permiso. Se acota por
+    organización a través de la observación, que es quien la lleva — el mismo camino que la descarga
+    de una revisión.
+
+    **Y el permiso es `view_observacion`, no `view_comentario`**, aunque lo que se sirve cuelgue de
+    un comentario. El motivo lo enseñó una prueba: la ficha del hallazgo dibuja el hilo entero a
+    quien puede ver la observación, sin pedir `view_comentario` por separado. Con el permiso más
+    estricto aquí, esa misma persona vería el hilo con **las imágenes roras** — una vista más
+    severa que la pantalla que la usa no protege nada, solo rompe la pantalla.
+    """
+
+    model = Observacion
+
+    def get(self, request, *args, **kwargs):
+        comentario = get_object_or_404(
+            Comentario.objects.select_related("observacion"), pk=kwargs["pk"]
+        )
+        if not comentario.imagen:
+            raise Http404
+        # El acotado por organización va por la observación, que es quien la lleva. `Observacion`
+        # pasa por `scope_queryset_to_organizacion`, así que un id de otra organización no existe.
+        if not Observacion.objects.filter(pk=comentario.observacion_id).exists():
+            raise Http404
+
+        try:
+            contenido = storage.leer(comentario.imagen)
+        except (OSError, storage.CargaRechazada) as error:
+            raise Http404 from error
+
+        # **En línea y no como descarga**: el punto de la imagen es verla en el hilo. Y con su tipo
+        # declarado por la extensión de la clave, que la construimos nosotros — no por nada que
+        # viniera en la petición.
+        extension = storage.extension_de(comentario.imagen)
+        return FileResponse(
+            BytesIO(contenido),
+            content_type="image/png" if extension == "png" else "image/jpeg",
+        )
 
 
 class EtiquetarObservacionView(ModelPermissionRequiredMixin, View):

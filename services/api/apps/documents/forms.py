@@ -222,7 +222,26 @@ class CierreForm(forms.Form):
 
 
 class ComentarioForm(forms.Form):
+    """Una respuesta en el hilo, con una imagen opcional. `F12.11`.
+
+    **El texto sigue siendo obligatorio y la imagen no**, y ese reparto es la decision: un
+    comentario es un mensaje, y la imagen es la prueba de lo que dice. Una captura sola en el hilo
+    obliga a quien la lea a adivinar que se le queria enseñar.
+
+    **Y es `FileField`, no `ImageField`.** `ImageField` pide Pillow y valida abriendo la imagen;
+    aqui la validacion es la firma del archivo —`apps/documents/adjunto.py`, que reutiliza la de
+    `storage`— que es la regla de la casa y ademas la que caza un ejecutable renombrado. Una
+    dependencia mas para una comprobacion mas debil no se paga.
+    """
+
     texto = forms.CharField(label=_("Comment"), widget=forms.Textarea(attrs={"rows": 3}))
+    imagen = forms.FileField(
+        label=_("Attach an image (optional)"),
+        required=False,
+        # `accept` es una ayuda del navegador al elegir, **no una validacion**: filtra el dialogo y
+        # se puede saltar. Lo que decide es la firma, en el servidor.
+        widget=forms.ClearableFileInput(attrs={"accept": "image/png,image/jpeg"}),
+    )
 
 
 class EtiquetasForm(forms.Form):

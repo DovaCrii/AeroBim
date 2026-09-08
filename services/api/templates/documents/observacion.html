@@ -99,6 +99,22 @@
               </span>
             </div>
             <div class="mensaje-texto">{{ comentario.texto|linebreaksbr }}</div>
+            {% if comentario.imagen %}
+              {% comment %}
+                **La imagen adjunta, dentro del mensaje** (`F12.11`). Va enlazada además de
+                mostrada: en el hilo se ve del tamaño del mensaje, y una captura de pantalla a ese
+                tamaño no se lee — el enlace la abre entera.
+
+                `loading="lazy"` porque un hilo largo son varias imágenes del almacén, y no hace
+                falta pedirlas todas para leer el primer mensaje.
+              {% endcomment %}
+              <a class="mensaje-imagen"
+                 href="{% url 'documents:imagen-de-comentario' comentario.pk %}"
+                 target="_blank" rel="noopener">
+                <img src="{% url 'documents:imagen-de-comentario' comentario.pk %}"
+                     alt="{% translate 'Image attached to this message' %}" loading="lazy" />
+              </a>
+            {% endif %}
           </li>
         {% empty %}
           <li class="vacio">
@@ -118,13 +134,26 @@
           funcionando y aterriza arriba — o sea que se rompe sin dar error, y por eso hay una prueba
           que comprueba que el ancla existe.
         {% endcomment %}
-        <form id="responder" class="bloque-campo" method="post"
+        {% comment %}
+          **`enctype` es obligatorio desde `F12.11`** y su ausencia no da error: sin él el navegador
+          manda el formulario como texto, el archivo no viaja, el comentario se guarda sin imagen y
+          nadie se entera. Es la clase de defecto que solo se ve echando en falta la captura.
+        {% endcomment %}
+        <form id="responder" class="bloque-campo" method="post" enctype="multipart/form-data"
               action="{% url 'documents:comentar-observacion' observacion.pk %}">
           {% csrf_token %}
           <label for="{{ form_comentario.texto.id_for_label }}">
             {% translate "Answer this finding" %}
           </label>
           {{ form_comentario.texto }}
+          <label class="adjuntar" for="{{ form_comentario.imagen.id_for_label }}">
+            {% translate "Attach an image (optional)" %}
+          </label>
+          {{ form_comentario.imagen }}
+          <p class="detalle">
+            {% blocktranslate %}A screenshot or a site photo, PNG or JPEG, up to 8 MB. It stays in
+            AeroBim: a BCF carries the topic's image, not the thread's.{% endblocktranslate %}
+          </p>
           <div class="bloque-pie">
             <button type="submit">{% translate "Post to the thread" %}</button>
             <span class="detalle">

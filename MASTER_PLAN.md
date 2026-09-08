@@ -4475,6 +4475,19 @@ los puntos que se están marcando son de verdad el mismo sitio.
 > hay que forzarle el tamaño a mano antes de poder pinchar nada. Es la misma trampa que ya está
 > escrita para las áreas de toque y para `diag.html`. **Esto lo cierra el usuario mirándolo**, y es
 > honesto decirlo en vez de dar por bueno lo que no se pudo ver.
+>
+> **El 2026-09-08 el hueco se estrechó, y conviene decir hasta dónde.** Con `F12.14` quedó
+> comprobado que **el clic sobre la nube sí funciona en la aplicación real**: dos clics seguidos
+> dieron una cota —`Directa 26,403 m`— y un clic dio la ficha del punto con su coordenada UTM. O sea
+> que la duda de esta nota —«el panel se queda esperando el punto del levantamiento»— **no es del
+> rayo contra la nube**, que responde.
+>
+> Lo que sigue sin ejercerse es **la pareja seguida**, y el obstáculo resultó ser el otro lado: en
+> `muro-en-utm.ifc` el muro ocupa una traza de pocos píxeles a cualquier encuadre que incluya el
+> levantamiento, y dieciocho clics en una rejilla sobre él no dieron ni uno en el modelo — todos
+> cayeron en la nube o al vacío. Con un IFC grande al lado la unión de cajas se va a kilómetros y no
+> se ve nada. **Sigue siendo del usuario**, y ahora se sabe qué le hace falta: un modelo y un
+> levantamiento del mismo sitio, que es justo lo que tendrá en el piloto y no hay en el repositorio.
 
 Lo que falta:
 

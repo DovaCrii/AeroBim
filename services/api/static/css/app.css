@@ -2731,6 +2731,45 @@ input[type="file"]::file-selector-button:hover {
   font-size: 0.9rem;
 }
 
+/*
+ * **La imagen adjunta a un mensaje del hilo.** `F12.11`.
+ *
+ * Con tope de alto y no solo de ancho: una captura de pantalla de un monitor apaisado cabe en el
+ * ancho del mensaje y mide seiscientos pixeles de alto, y entonces empuja el resto del hilo fuera
+ * de la pantalla. A 220 px se ve **que hay una imagen y de que va**, y el clic la abre entera —que
+ * es para lo que esta enlazada.
+ *
+ * `object-fit: cover` con `width: 100%` recortaria justo lo que se quiere enseñar. Va `contain`.
+ */
+.mensaje-imagen {
+  display: block;
+  margin-top: 8px;
+  border: 1px solid var(--ab-border);
+  border-radius: var(--ab-radio-sm);
+  overflow: hidden;
+  /* Es un enlace y su contenido es una imagen: sin esto hereda el subrayado y el color del enlace,
+     y se dibuja una raya violeta debajo de la foto. */
+  text-decoration: none;
+}
+
+.mensaje-imagen img {
+  display: block;
+  max-width: 100%;
+  max-height: 220px;
+  object-fit: contain;
+  /* Mientras carga, el hueco es del color de una superficie y no del papel: asi no parpadea en
+     blanco sobre el tema oscuro. */
+  background: var(--ab-surface-alt);
+}
+
+/* El rotulo del adjunto, mas discreto que el del texto: es opcional y no debe pesar igual. */
+.adjuntar {
+  margin-top: 10px;
+  color: var(--ab-text-muted);
+  font-weight: 600;
+  font-size: 0.84rem;
+}
+
 /* --- Un campo con su rótulo encima ------------------------------------------------ */
 
 /*

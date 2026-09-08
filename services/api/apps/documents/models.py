@@ -637,6 +637,16 @@ class Comentario(BaseModel):
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="comentarios"
     )
     texto = models.TextField()
+    # **La imagen adjunta, como clave de almacenamiento — nunca los bytes.** `F12.11`.
+    #
+    # Mismo campo y mismo motivo que `Observacion.instantanea`: una imagen dentro de una fila la
+    # vuelve imposible de listar y duplica el archivo en cada copia de seguridad de la base. Vive
+    # donde viven los documentos, o sea fuera del repositorio y bajo el control del operador.
+    #
+    # **Y es opcional a proposito**: la mayoria de los comentarios son texto. Lo que faltaba era
+    # poder acompañar uno con lo que se esta viendo — «esto es lo que sale en mi pantalla» — que sin
+    # imagen se cuenta con palabras y se entiende a medias.
+    imagen = models.CharField(max_length=300, blank=True)
 
     class Meta:
         verbose_name = _("comment")
