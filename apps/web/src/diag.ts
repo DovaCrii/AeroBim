@@ -1575,6 +1575,116 @@ export async function medidas(container: HTMLElement, ifcUrl: string, log: Log):
     informar("distancia", entraron, 2, viewer.measurementCount - antes);
   }
 
+  /**
+   * El ratio de contraste entre dos colores **tal como los devuelve `getComputedStyle`**.
+   *
+   * Existe aquí y no se importa de `bim-core` por lo que recibe: `contrastRatio` toma `#rrggbb` y
+   * el navegador devuelve `rgb(27, 42, 74)`. Convertir en el sitio donde se mide es una línea;
+   * meter un parser de CSS en un paquete de dominio, no.
+   *
+   * La fórmula es la de WCAG 2.1, la misma que `packages/bim-core/src/color/contraste.ts`. Se
+   * escribe otra vez a propósito: este archivo es un diagnóstico y su valor está en no depender de
+   * lo que diagnostica.
+   */
+  function razonDeContraste(uno: string, otro: string): string {
+    const canal = (v: number) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+    const luminancia = (css: string) => {
+      const partes = (css.match(/\d+(\.\d+)?/g) ?? []).slice(0, 3).map((n) => Number(n) / 255);
+      if (partes.length < 3) return Number.NaN;
+      const [r, g, b] = partes as [number, number, number];
+      return 0.2126 * canal(r) + 0.7152 * canal(g) + 0.0722 * canal(b);
+    };
+    const [alta, baja] = [luminancia(uno), luminancia(otro)].sort((a, b) => b - a) as [
+      number,
+      number,
+    ];
+    const razon = (alta + 0.05) / (baja + 0.05);
+    return `${razon.toFixed(2)}:1 ${razon >= 4.5 ? "(pasa AA)" : "(NO pasa AA)"}`;
+  }
+
+  if (cual === "cotas") {
+    /*
+     * **La cota con su número encima. `F12.9`.**
+     *
+     * Por coordenadas del mundo y no por clics, y ese es el punto: apuntar a la geometría de un
+     * modelo desde un script es tantear —lo intenté y perdí media hora dando en el patio interior
+     * del `Piso 5.ifc`— y lo que hay que comprobar aquí no es el rayo, que ya tiene su propio caso.
+     * Es **qué dice la etiqueta**.
+     *
+     * Dos cotas a propósito: la segunda tiene que salir expandida y **la primera tiene que
+     * volverse corta**. Con una sola no se ve el fallo de dejar dos expandidas, que es el que
+     * llenaría la escena de tres líneas por cota.
+     */
+    log("\nla cota con su numero encima (F12.9):");
+    viewer.setMeasureMode("distance");
+
+    // Una horizontal pura y una con desnivel: la primera no tiene que escribir el desnivel.
+    viewer.addMeasurePointAt([0, 0, 0]);
+    viewer.addMeasurePointAt([3, 0, 0]);
+    viewer.addMeasurePointAt([0, 0, 0]);
+    viewer.addMeasurePointAt([3, 2, 0]);
+
+    const tomadas = viewer.listMeasurements();
+    log(`  cotas registradas: ${tomadas.length}`);
+    for (const cota of tomadas) {
+      log(
+        `  #${cota.ordinal} ${cota.label}` +
+          (cota.partes === undefined
+            ? "  (sin partes: no es una distancia entre dos puntos)"
+            : `  directa=${cota.partes.directM.toFixed(3)} ` +
+              `H=${cota.partes.horizontalM.toFixed(3)} ` +
+              `Δ=${cota.partes.verticalM.toFixed(3)}`),
+      );
+    }
+
+    // **Qué hay colgado de cada cota**, que es lo que hace falta cuando la etiqueta no cambia:
+    // `visuals` no guarda siempre la misma clase de objeto, y saber cuál llega es la diferencia
+    // entre arreglarlo y adivinar. Se deja puesto: la próxima vez que esto falle, lo dirá.
+    const internas = viewer as unknown as {
+      drawn?: { ordinal: number; visuals: unknown[] }[];
+    };
+    for (const cota of internas.drawn ?? []) {
+      const formas = cota.visuals.map((v) => {
+        const o = v as { constructor?: { name?: string }; three?: unknown; label?: unknown };
+        return `${o.constructor?.name ?? "?"}${o.three !== undefined ? "+three" : ""}${
+          o.label !== undefined ? "+label" : ""
+        }`;
+      });
+      log(
+        `  cota #${cota.ordinal}: ${cota.visuals.length} visuales — ${formas.join(", ") || "(ninguna)"}`,
+      );
+    }
+
+    // **Un temporizador y no un fotograma**, y ese fue el fallo del intento anterior: esta página
+    // no tiene un bucle de render tirando cuadros, así que `requestAnimationFrame` no se dispara y
+    // el diagnóstico se quedaba colgado aquí sin decir nada. La reescritura de la etiqueta se
+    // aplaza con `setTimeout(0)` por el mismo motivo.
+    await new Promise((listo) => setTimeout(listo, 80));
+
+    // **Lo que se lee en la escena**, que es lo que este caso existe para enseñar.
+    const etiquetas = [...document.querySelectorAll("*")]
+      .filter((e) => e.children.length === 0 && /^#\d+ ·/.test(e.textContent?.trim() ?? ""))
+      .map((e) => e as HTMLElement);
+    log(`\n  etiquetas en la escena: ${etiquetas.length}`);
+    for (const etiqueta of etiquetas) {
+      log(`  ${JSON.stringify(etiqueta.textContent)}`);
+    }
+
+    // Y el contraste de la etiqueta, que era el defecto de partida: blanco sobre el violeta de
+    // seleccion daba 4,13:1 a 11 px, por debajo de AA.
+    const primera = etiquetas[0];
+    if (primera !== undefined) {
+      const estilo = getComputedStyle(primera);
+      log(
+        `\n  fondo=${estilo.backgroundColor} texto=${estilo.color} ` +
+          `borde=${estilo.borderTopColor} tamano=${estilo.fontSize}`,
+      );
+      log(`  contraste texto/fondo: ${razonDeContraste(estilo.color, estilo.backgroundColor)}`);
+    } else {
+      log("  MAL: no hay ninguna etiqueta con el formato `#n · x,xxx m`");
+    }
+  }
+
   if (cual === "angulo") {
     log("\nangulo (3 puntos, un triangulo rectangulo: tiene que dar 90 grados):");
     viewer.setMeasureMode("angle");

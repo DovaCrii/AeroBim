@@ -63,11 +63,17 @@ import {
   type Converter,
 } from "./converter.js";
 import type { TablaDeCuadro } from "./cuadro-en-plano.js";
+import { type PartesDeCota, siguienteOrdinal, textoDeCota } from "./cotas.js";
 import { categoriasDe, cuadroDe, encabezadoDeColumna, type Schedule } from "./cuadros.js";
 import { DrawingMaker, type DrawingView, type GeneratedDrawing } from "./drawings.js";
 import { GridOverlay } from "./grid.js";
 
 export type { DrawingLayerInfo, DrawingView, GeneratedDrawing } from "./drawings.js";
+/* `PartesDeCota` sale en `DrawnMeasurement`, que es público: sin reexportarla, quien consuma la
+   librería no puede nombrar el tipo de un campo que recibe. Y `textoDeCota` sale para que el panel
+   de mediciones pinte la misma cadena que la escena — dos formatos para el mismo número serían dos
+   respuestas a la misma pregunta. */
+export { type PartesDeCota, siguienteOrdinal, textoDeCota } from "./cotas.js";
 export { CAPAS } from "./drawings.js";
 export type { Schedule, ScheduleColumn, ScheduleRow } from "./cuadros.js";
 export { csvDe, encabezadoDeColumna, MAXIMO_COLUMNAS, MAXIMO_FILAS } from "./cuadros.js";
@@ -906,6 +912,22 @@ export interface DrawnMeasurement {
   /** El valor ya formateado, con su unidad: `2.050 m`, `88.4°`, `0.76 m²`. */
   readonly label: string;
   readonly visible: boolean;
+  /**
+   * Su número, empezando en 1 — `F12.9`.
+   *
+   * **No se reusan los huecos**: si se borra la 2, la siguiente es la 4. Es la numeración de un
+   * CAD, y el motivo es que una cota cuyo número cambia deja de servir para señalarla — alguien
+   * pudo anotarla en una libreta o citarla en una observación. Ver `siguienteOrdinal` en
+   * `cotas.ts`.
+   */
+  readonly ordinal: number;
+  /**
+   * Las tres magnitudes, **solo en una distancia**.
+   *
+   * `undefined` en un ángulo o un área, que no las tienen: un ángulo no tiene proyección
+   * horizontal. Es `undefined` y no ceros porque un cero se lee como un dato medido.
+   */
+  readonly partes?: PartesDeCota;
 }
 
 /**
@@ -936,16 +958,38 @@ export type DistanceMode = "points" | "edge";
  */
 function estilarEtiqueta(mark: OBF.Mark): void {
   const estilo = mark.three.element.style;
-  estilo.backgroundColor = SELECTION_CSS;
+  /*
+   * **El fondo deja de ser el violeta de selección, y es por contraste medido.**
+   *
+   * Blanco sobre `#9b5de5` da **4,13:1**, y a 11 px eso no pasa AA —el mínimo es 4,5— así que la
+   * cifra de una cota, que es el dato por el que alguien abrió la herramienta, era lo peor leído de
+   * la pantalla.
+   *
+   * Va sobre `--color-ink` (`#1b2a4a`), que da **14,2:1**, con el borde en el violeta de marca: el
+   * color sigue diciendo «esto es una cota» sin tener que llevar el texto encima. Es el mismo
+   * razonamiento que separó la marca del color de acción en `F9.1`, y el mismo que llevó el
+   * marcador de ajuste al amarillo.
+   */
+  estilo.backgroundColor = "#1b2a4a";
   estilo.color = "#ffffff";
+  estilo.border = `1px solid ${SELECTION_CSS}`;
   estilo.padding = "2px 6px";
   estilo.borderRadius = "4px";
   estilo.fontSize = "11px";
   estilo.fontFamily = "inherit";
   estilo.fontVariantNumeric = "tabular-nums";
+  // En la forma larga son tres líneas, así que el texto va alineado a la izquierda: centrado, «H
+  // 2,500 m» y «Δ 2,000 m» quedan desalineados entre sí y cuesta compararlos.
+  estilo.textAlign = "left";
+  estilo.lineHeight = "1.35";
+  estilo.whiteSpace = "pre";
   estilo.boxShadow = "0 1px 4px rgba(0, 0, 0, 0.5)";
   // La etiqueta no debe robar el clic: se mide clicando sobre el modelo, y una cota ya puesta
   // en medio del camino dejaba el siguiente punto sin registrar.
+  //
+  // **Y esto es lo que descarta el hover para expandirla.** Un elemento con `pointer-events: none`
+  // no recibe `mouseenter`, así que «se expande al pasar por encima» no es una opción aquí — la
+  // expandida es la última tomada, o la que se señala en «Mediciones tomadas».
   estilo.pointerEvents = "none";
 }
 
@@ -1611,6 +1655,10 @@ export class BimViewer {
     id: string;
     kind: MeasureMode;
     object: MeasureObject;
+    /** Su número en la escena. Ver {@link DrawnMeasurement.ordinal}: no se reusan los huecos. */
+    ordinal: number;
+    /** Las tres magnitudes, solo si es una distancia. */
+    partes?: PartesDeCota;
     /**
      * Los puntos que se clicaron, en coordenadas de la escena. `F4.5`.
      *
@@ -1642,6 +1690,14 @@ export class BimViewer {
   private visualesPendientes: Ocultable[] = [];
   /** Dibujos propios que esperan a que su medición quede registrada. Ver {@link registrarCota}. */
   private propiosPendientes: THREE.Object3D[] = [];
+  /**
+   * Los ordinales que **ya se dieron**, incluidos los de cotas borradas. `F12.9`.
+   *
+   * Es una lista de números y no un contador porque lo que hace falta es «el mayor dado», y un
+   * contador se reiniciaría al vaciar la escena. Ver `siguienteOrdinal` en `cotas.ts`: reusar un
+   * hueco renumeraría una cota que alguien ya anotó.
+   */
+  private readonly ordinalesDados: number[] = [];
   /**
    * Los puntos de la medición que se está registrando, en coordenadas de la escena.
    *
@@ -2082,11 +2138,13 @@ export class BimViewer {
    * Incluye las apagadas: una cota apagada sigue existiendo, y tiene que poder volver.
    */
   listMeasurements(): readonly DrawnMeasurement[] {
-    return this.drawn.map(({ id, kind, object, visible }) => ({
+    return this.drawn.map(({ id, kind, object, visible, ordinal, partes }) => ({
       id,
       kind,
       label: this.etiquetaDe(kind, object),
       visible,
+      ordinal,
+      ...(partes !== undefined ? { partes } : {}),
     }));
   }
 
@@ -2191,7 +2249,97 @@ export class BimViewer {
       return;
     }
 
-    this.drawn.push({ id: object.id, kind, object, puntos, visuals, owned, visible: true });
+    /*
+     * **El ordinal y las tres magnitudes. `F12.9`.**
+     *
+     * Las magnitudes solo tienen sentido en una distancia entre dos puntos: un ángulo no tiene
+     * proyección horizontal, y un área tampoco. De ahí la comprobación de `kind` y de que haya
+     * exactamente dos puntos — una distancia de tipo `edge` los tiene igual, porque el largo de una
+     * arista son sus dos extremos.
+     *
+     * Y el ordinal sale del mayor dado, **no de cuántas hay**: ver `siguienteOrdinal`.
+     */
+    const ordinal = siguienteOrdinal(this.ordinalesDados);
+    this.ordinalesDados.push(ordinal);
+    const partes =
+      kind === "distance" && puntos.length === 2
+        ? distancePartsM(puntos[0] as Point3, puntos[1] as Point3)
+        : undefined;
+
+    this.drawn.push({
+      id: object.id,
+      kind,
+      object,
+      ordinal,
+      ...(partes !== undefined ? { partes } : {}),
+      puntos,
+      visuals,
+      owned,
+      visible: true,
+    });
+
+    /*
+     * **Un fotograma después, y no ahora.**
+     *
+     * Esto lo enseñó el diagnóstico (`diag.html?modo=medidas&medida=cotas`): escrito aquí, el
+     * estilo de la etiqueta sí quedaba —fondo `#1b2a4a`, borde violeta, medido— y **el texto no**:
+     * seguía siendo el `3.000 m` de la librería.
+     *
+     * El motivo es el orden. `onItemAdded` se dispara al **crear** el objeto, que es cuando esta
+     * función corre; la librería calcula el valor y escribe su propio `textContent` después. O sea
+     * que escribir aquí es escribir antes, y lo de después gana.
+     *
+     * **Y se aplaza con `setTimeout` y no con un fotograma**, que fue el segundo intento y también
+     * falló: con `requestAnimationFrame` la reescritura **no corría nunca** en el diagnóstico —el
+     * propio `diag.html` se quedaba colgado esperando el fotograma— porque ahí no hay un bucle de
+     * render tirando cuadros. Un `setTimeout(0)` es una macrotarea: corre en cuanto la tarea actual
+     * acaba, haya render o no.
+     *
+     * Se llama además **una vez de forma sincrónica**, para que la cota tenga su número aunque el
+     * temporizador no llegue nunca —una pestaña que se cierra a mitad—: si la librería la
+     * sobreescribe, la macrotarea lo arregla; si no, ya está bien desde el principio.
+     */
+    this.reescribirEtiquetas();
+    setTimeout(() => this.reescribirEtiquetas(), 0);
+  }
+
+  /**
+   * Reescribe el texto de todas las etiquetas: la última tomada en su forma larga, el resto corta.
+   *
+   * **Se reescriben todas y no solo la nueva**, porque la que era la última deja de serlo: sin esto
+   * quedarían dos expandidas y la escena acumularía tres líneas por cota hasta taparse.
+   *
+   * `mark.three.element` es un elemento HTML de verdad —la librería usa `CSS2DRenderer`— así que el
+   * texto se escribe con `textContent` y el salto de línea lo respeta el `white-space: pre` que pone
+   * {@link estilarEtiqueta}. Con `innerHTML` habría que escapar, y aquí no hay nada que escapar: son
+   * cifras.
+   */
+  private reescribirEtiquetas(): void {
+    const ultima = this.drawn.at(-1);
+    for (const cota of this.drawn) {
+      if (cota.partes === undefined) continue;
+      const texto = textoDeCota(cota.ordinal, cota.partes, cota === ultima).join("\n");
+      for (const visual of cota.visuals) {
+        /*
+         * **Dos formas, y esto lo enseñó verlo en pantalla.**
+         *
+         * `visuals` no guarda siempre lo mismo: para una etiqueta suelta guarda la `Mark` —y ahí el
+         * elemento es `mark.three.element`— pero **para una distancia guarda la línea**, y la
+         * etiqueta cuelga de `line.label`. Ver dónde se llama a {@link estilarEtiqueta}: recibe
+         * `mark` en un caso y `line.label` en el otro.
+         *
+         * Mirando solo la primera forma, el texto no se escribía en ninguna cota de distancia — o
+         * sea en la única clase de cota que tiene tres magnitudes. Y no fallaba: las etiquetas
+         * seguían con el número de la librería, que también es un número correcto.
+         */
+        const posible = visual as unknown as {
+          three?: { element?: HTMLElement };
+          label?: { three?: { element?: HTMLElement } };
+        };
+        const elemento = posible.three?.element ?? posible.label?.three?.element;
+        if (elemento !== undefined) elemento.textContent = texto;
+      }
+    }
   }
 
   /** Avisa a quien escuche que hay una medición nueva, o que se borraron todas. */
