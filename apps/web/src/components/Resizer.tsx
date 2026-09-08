@@ -55,7 +55,7 @@ export function Resizer({
       className={[
         // La zona sensible es más ancha que la línea que se ve: tres píxeles de línea no se
         // agarran con el ratón, y al que le cuesta agarrarla concluye que no se puede mover.
-        "shrink-0 bg-surface-2 transition-colors hover:bg-action/50 active:bg-action-press",
+        "shrink-0 bg-surface-2 transition-colors duration-[--duracion-corta] ease-[--ease-ab] hover:bg-action/50 active:bg-action-press",
         orientacion === "vertical" ? "w-1 cursor-col-resize" : "h-1 cursor-row-resize",
       ].join(" ")}
     />

@@ -36,6 +36,7 @@ import {
   type RegistryOrigin,
 } from "@aerobim/bim-core";
 import { cabecerasDeEscritura, motivoDe403 } from "./csrf.js";
+import { cambiarTema, type Tema, temaGuardado } from "./tema.js";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DrawingsPanel } from "./components/DrawingsPanel.js";
 import { ModelsPanel } from "./components/ModelsPanel.js";
@@ -330,6 +331,14 @@ export function App() {
   const [nubeColor, setNubeColor] = useState<ModoDeColor>("rgb");
   const [nubeTamano, setNubeTamano] = useState(2);
   const [nubeTecho, setNubeTecho] = useState(4_000_000);
+  /**
+   * El tema, leído de donde ya lo aplicó el script de `index.html`.
+   *
+   * **No se aplica aquí, solo se lee**: el atributo lo puso ese script antes del primer pintado, y
+   * volver a aplicarlo desde React no arreglaría nada — para cuando React monta, el destello ya
+   * habría pasado. Este estado existe solo para que el botón sepa qué símbolo dibujar.
+   */
+  const [tema, setTema] = useState<Tema>(() => temaGuardado());
   const [nubeRecortada, setNubeRecortada] = useState(false);
   /** La URL del `blob:` de la nube abierta. Se revoca **al cerrarla**, no al acabar de cargar. */
   const urlDeLaNube = useRef<string | null>(null);
@@ -1994,6 +2003,23 @@ export function App() {
         actions={
           <>
             <StatusBadge status={status} />
+            {/* **El interruptor de tema, junto a Abrir.** Es donde está en el portal —la barra de
+                arriba, a la derecha— así que quien cruza de una mitad a la otra lo busca en el
+                mismo sitio.
+
+                Lleva su nombre en `aria-label` y no un texto visible: es un botón de icono, y por
+                eso hereda el área de toque de 44 px de la regla `button[aria-label]` de
+                `index.css`. El símbolo cambia para decir **a qué se va**, no en qué se está — un
+                interruptor que muestra el estado actual se lee al revés la mitad de las veces. */}
+            <button
+              type="button"
+              aria-label={tema === "oscuro" ? "Cambiar al tema claro" : "Cambiar al tema oscuro"}
+              title={tema === "oscuro" ? "Tema claro" : "Tema oscuro"}
+              onClick={() => setTema(cambiarTema(tema === "oscuro" ? "claro" : "oscuro"))}
+              className="rounded-md px-2 py-1 text-xs text-fg-2 transition-colors duration-[--duracion-corta] ease-[--ease-ab] hover:bg-surface-3 hover:text-fg"
+            >
+              {tema === "oscuro" ? "☀" : "☾"}
+            </button>
             {/* **Abrir es uno solo para todo lo que la aplicación sabe leer.** Antes decía
                 "Abrir IFC" y un plano no tenía por dónde entrar; ahora el mismo botón —y el mismo
                 arrastrar y soltar— toma el modelo y el plano, y es la extensión la que decide. */}

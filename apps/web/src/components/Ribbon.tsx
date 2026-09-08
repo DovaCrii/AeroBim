@@ -235,7 +235,7 @@ export function Ribbon({
             className={[
               // Las pestañas medían 33 px de alto. A 36 sin tocar el texto: la fila la marca el
               // botón de plegar, que ya está en 32, así que esto no empuja nada.
-              "flex min-h-9 items-center border-b-2 px-3 text-xs transition-colors",
+              "flex min-h-9 items-center border-b-2 px-3 text-xs transition-colors duration-[--duracion-corta] ease-[--ease-ab]",
               tab === cual && !collapsed
                 ? "border-accent text-fg"
                 : "border-transparent text-fg-2 hover:text-fg",
@@ -768,7 +768,7 @@ function Boton({
         // botones salían a 62 × 42: los quince a dos píxeles del objetivo de área de toque. Es la
         // mejora más barata que había, y son las herramientas principales — las que más se pulsan.
         "flex min-h-11 w-14 flex-col items-center justify-center gap-px rounded-sm px-0.5 py-1",
-        "transition-colors",
+        "transition-colors duration-[--duracion-corta] ease-[--ease-ab]",
         disabled
           ? "text-apagado-fg"
           : encendido
@@ -811,7 +811,7 @@ function PanelToggle({
         // Eran los más pequeños de la pantalla: 27 px de alto. Suben a 32, que es lo que cabe en
         // esta fila sin empujarla — y con `min-w-11` el ancho ya llega al objetivo.
         "flex min-h-8 min-w-11 items-center justify-center rounded-sm px-2 text-nota",
-        "transition-colors",
+        "transition-colors duration-[--duracion-corta] ease-[--ease-ab]",
         open ? "bg-surface-2 text-fg" : "text-fg-3 hover:bg-surface-3 hover:text-fg-2",
       ].join(" ")}
     >

@@ -168,6 +168,63 @@
   --shadow-sm: 0 1px 2px rgb(0 0 0 / 30%); /* apenas despegado */
   --shadow-md: 0 8px 24px -6px rgb(0 0 0 / 45%); /* popover, menú */
   --shadow-xl: 0 20px 48px -12px rgb(0 0 0 / 60%); /* la tarjeta que flota sobre el modelo */
+
+  /*
+   * **El tamaño que faltaba: 24 px.**
+   *
+   * `DESIGN_SYSTEM.md` lo tenía en su tabla como `--fs-2xl` y **el código no lo tenía**, así que el
+   * único título grande del producto —el de la puerta de entrada del visor— no tenía token y habría
+   * que escribirlo a mano. Un tamaño escrito a mano es el primer paso para tener siete.
+   */
+  --text-lg: 1.5rem; /* 24 px — el título de la puerta, y nada más por ahora */
+
+  /*
+   * **El movimiento, que hasta hoy no estaba declarado en ninguna parte.**
+   *
+   * Había siete `transition-colors` sueltos —`Ribbon.tsx:238,771,814`, `Resizer.tsx:58`,
+   * `Coordinacion.tsx:331,352,384`— cada uno con la duración y la curva **de fábrica de Tailwind**.
+   * O sea que el producto tenía un movimiento, y no lo había elegido nadie.
+   *
+   * Tres duraciones, y la regla de cuál usar es lo que hace que no crezcan a siete:
+   *
+   * - **120 ms** para un cambio de color o de opacidad, que es la mayoría. Por debajo de 100 no se
+   *   percibe como transición y por encima de 150 se siente lento en algo que se pulsa treinta
+   *   veces.
+   * - **200 ms** para algo que se mueve o cambia de tamaño: un panel que se pliega, un acordeón.
+   * - **320 ms** solo para lo que entra o sale de la pantalla — una tarjeta que aparece.
+   *
+   * La curva es una sola a propósito: `cubic-bezier(0.2, 0, 0, 1)` arranca rápido y frena al final,
+   * que es lo que se lee como «responde». Tener dos curvas obliga a elegir en cada sitio, y esa
+   * elección no aporta nada aquí.
+   */
+  --ease-ab: cubic-bezier(0.2, 0, 0, 1);
+  --duracion-corta: 120ms; /* color, opacidad, borde */
+  --duracion-media: 200ms; /* mover, plegar, cambiar de tamaño */
+  --duracion-larga: 320ms; /* entrar o salir de la pantalla */
+}
+
+/*
+ * **Y quien pide menos movimiento no lo recibe.**
+ *
+ * `prefers-reduced-motion` no es una preferencia estética: la declara quien se marea con el
+ * movimiento en pantalla, y en un visor 3D —donde la cámara ya se mueve— eso importa más que en una
+ * página normal.
+ *
+ * Se apaga a `0.01ms` y no a `0`: con `0` algunos navegadores **no disparan el evento
+ * `transitionend`**, así que un código que espere el final de la transición se queda esperando para
+ * siempre. Es el truco de siempre y tiene su motivo.
+ *
+ * `!important` porque tiene que ganarle a cualquier utilidad de Tailwind escrita después.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /*
@@ -249,4 +306,108 @@ body {
 /* Las cifras en columna, donde toque. */
 .tabular {
   font-variant-numeric: tabular-nums;
+}
+
+/*
+ * ══ El tema claro ═══════════════════════════════════════════════════════════════
+ *
+ * `F12`, bloque 3. Es la columna «Claro» de `docs/DESIGN_SYSTEM.md`, que llevaba escrita desde el
+ * 2026-09-01 y **no estaba implementada en ninguna parte**: el visor solo tenía el oscuro.
+ *
+ * **Oscuro sigue siendo el de partida** —el lienzo es oscuro, y una interfaz clara alrededor de un
+ * modelo oscuro obliga a la pupila a adaptarse en cada mirada— y el claro está disponible porque
+ * hay oficinas con ventanal al sur. La decisión está en `docs/UX.md`, sección «Tema».
+ *
+ * ## Por qué va FUERA de `@theme` y no como un segundo bloque dentro
+ *
+ * Porque `@theme` es de Tailwind y **sus tokens se compilan a utilidades**: dos bloques `@theme` no
+ * son dos temas, son uno con el último valor de cada token. Fuera, `[data-theme="light"]` redefine
+ * la misma variable CSS que la utilidad ya generada consulta, así que `bg-surface` cambia de color
+ * sin recompilar nada.
+ *
+ * **Y eso hay que comprobarlo mirándolo, no darlo por hecho**: el modificador de opacidad
+ * —`bg-action/30`, que usa el botón encendido de la cinta— resuelve con `color-mix()` sobre el valor
+ * del token, y si Tailwind horneara el hexadecimal en la utilidad, el tema claro no lo tocaría. Se
+ * verifica en el navegador con `getComputedStyle`.
+ *
+ * ## La clave es la misma que el portal, y el atributo es el contrario
+ *
+ * `localStorage["aerobim:tema"]`, con los valores `"claro"` y `"oscuro"` — los del portal, en
+ * español, porque el portal llegó primero. Con dos claves distintas, cruzar del expediente al
+ * modelo cambiaría de tema a mitad de un gesto.
+ *
+ * **Aquí se marca `data-theme="light"` y en el portal `dark`**, y es coherente aunque parezca lo
+ * contrario: cada uno marca su excepción. El visor parte de oscuro, el portal de claro, y los dos
+ * leen la misma clave.
+ */
+[data-theme="light"] {
+  /* Superficies. Entre un plano y el siguiente hay 1,1:1, igual que en oscuro: los planos se
+     separan con borde y sombra, no con luminancia — no compiten por atención, solo se ordenan. */
+  --color-shell: #f4f7fb;
+  --color-surface: #ffffff;
+  --color-surface-2: #f8fafc;
+  --color-surface-3: #eef2f7;
+  --color-borde: #dbe3ee;
+  /*
+   * **`DESIGN_SYSTEM.md` decía `#b3bfd0` con «3,1:1 mínimo» y eso es falso: da 1,86:1** sobre
+   * blanco y 1,66 sobre el fondo de un campo. Medido con el mismo oráculo que el resto de la tabla,
+   * el día que se implementó el tema claro — o sea que el valor llevaba seis días normado y sin
+   * comprobar, porque el gate no medía el claro.
+   *
+   * Se usa el que el portal ya tiene medido desde el paso 1 del bloque 2: **3,45:1 sobre la
+   * superficie y 3,07 sobre el fondo del propio campo**, que es el par más exigente de los dos. Y
+   * que sea el mismo hexadecimal en las dos mitades no es casualidad: es la costura.
+   */
+  --color-borde-campo: #7f8b9e;
+  --color-track: #e6ecf4;
+
+  /* Texto: los tres pasan AA, y el más apagado da 5,1:1. */
+  --color-fg: #172238;
+  --color-fg-2: #4f5b72;
+  --color-fg-3: #626f85;
+
+  /* **La marca no cambia con el tema**, y por eso no está en esta lista: es la misma en las dos
+     mitades del producto y en los dos temas. Si se aclarara para «mejorar el contraste», deja de
+     ser la marca — y sigue sin poder llevar texto, aquí y allá. */
+  --color-action: #5b3a9e; /* blanco encima, 8,3:1 */
+  --color-action-hover: #472d7d;
+  --color-action-press: #3a2466;
+
+  /* **En claro, acento y acción son el mismo violeta**, y no es un descuido. En oscuro el acento es
+     claro para leerse sobre un panel oscuro; aquí hace falta lo contrario. Un enlace y un botón
+     primario del mismo tono en tema claro es lo normal: el botón se distingue por su relleno. */
+  --color-accent: #5b3a9e;
+  --color-accent-hover: #472d7d;
+
+  /* Estado. Los cuatro pasan AA sobre blanco, y siguen yendo con su palabra al lado. */
+  --color-ok: #0f7a5f;
+  --color-warn: #8a5a12;
+  --color-danger: #c53b4d;
+
+  --color-apagado: #eef2f7;
+  /*
+   * **3,64:1, y la primera versión daba 2,99.**
+   *
+   * WCAG exime lo deshabilitado, así que ninguno de los dos «falla» — pero el token oscuro da 3,6
+   * a propósito, con la regla escrita de que **lo apagado no pasa AA y sí se lee**, y 2,99 en claro
+   * no era la misma decisión: era el valor de la tabla sin comprobar.
+   *
+   * Se vio midiendo la pantalla con el tema claro puesto: los treinta y seis botones de la cinta
+   * salían a 2,99:1 —están deshabilitados con la escena vacía— y eran lo peor de la pantalla por
+   * mucho. Todo lo demás daba 5,08:1 o mejor.
+   *
+   * 3,64 sobre la superficie y 3,23 sobre el fondo del propio control deshabilitado.
+   */
+  --color-apagado-fg: #7c8798;
+
+  /*
+   * **Y las sombras cambian de color, que es lo que se olvida.**
+   *
+   * Las de `@theme` son negro al 30–60 %, calculadas para fondo oscuro. Sobre blanco, negro al 45 %
+   * es una mancha: una sombra de fondo claro es negro al 8–18 %. Es el mismo error que `--ab-shadow`
+   * tenía en el portal y que `F9.5` arregló allí.
+   */
+  --shadow-sm: 0 1px 2px rgb(18 34 59 / 8%);
+  --shadow-md: 0 8px 24px -6px rgb(18 34 59 / 12%);
+  --shadow-xl: 0 20px 48px -12px rgb(18 34 59 / 18%);
 }

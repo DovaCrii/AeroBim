@@ -328,7 +328,7 @@ export function Coordinacion({
                 // 12 px y no 11: es la navegación del panel y lleva una cifra dentro. El micro
                 // queda para las etiquetas de una palabra —la prioridad, el «choque»—, que se
                 // reconocen por su forma antes de leerse.
-                "rounded-sm px-1.5 py-0.5 text-nota transition-colors",
+                "rounded-sm px-1.5 py-0.5 text-nota transition-colors duration-[--duracion-corta] ease-[--ease-ab]",
                 filtro === cual
                   ? "bg-action/30 text-fg"
                   : total === 0 && cual !== "todas"
@@ -349,7 +349,7 @@ export function Coordinacion({
             type="button"
             onClick={() => void marcarVisto()}
             title="Deja de marcar como nuevas las que están en la lista ahora"
-            className="ml-auto rounded-sm px-1.5 py-0.5 text-micro text-fg-3 underline transition-colors hover:bg-surface-3 hover:text-fg-2"
+            className="ml-auto rounded-sm px-1.5 py-0.5 text-micro text-fg-3 underline transition-colors duration-[--duracion-corta] ease-[--ease-ab] hover:bg-surface-3 hover:text-fg-2"
           >
             ya lo vi
           </button>
@@ -381,7 +381,7 @@ export function Coordinacion({
                  palabra en la segunda línea no se ve en ese barrido—, y la palabra es lo que
                  sobrevive a que uno de cada doce hombres no distinga el color. */
               className={[
-                "mb-1.5 rounded-sm bg-surface-2 transition-colors hover:bg-surface-3",
+                "mb-1.5 rounded-sm bg-surface-2 transition-colors duration-[--duracion-corta] ease-[--ease-ab] hover:bg-surface-3",
                 observacion.esNueva ? "border-l-2 border-accent" : "",
               ].join(" ")}
             >

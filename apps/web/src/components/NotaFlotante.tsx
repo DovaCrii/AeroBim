@@ -208,7 +208,7 @@ export function NotaFlotante({
       role="dialog"
       aria-label="Dejar una nota sobre este elemento"
       style={{ left: posicion.x, top: posicion.y }}
-      className="absolute z-20 w-80 rounded-lg border border-borde bg-surface/95 shadow-xl backdrop-blur-sm"
+      className="absolute z-20 w-80 rounded-lg border border-borde bg-surface/95 shadow-[var(--shadow-xl)] backdrop-blur-sm"
     >
       <header
         onPointerDown={(evento) => {

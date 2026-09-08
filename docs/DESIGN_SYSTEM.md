@@ -74,15 +74,15 @@ Opacas y con nombre, en vez de blanco translúcido. Entre un plano y el siguient
 que es deliberado: **los planos se separan con borde y sombra, no con luminancia**, porque
 no compiten por atención — solo se ordenan.
 
-| Token                 | Oscuro    | Claro     | Para qué                                              |
-| --------------------- | --------- | --------- | ----------------------------------------------------- |
-| `--ab-shell`          | `#101725` | `#f4f7fb` | El hueco alrededor del lienzo / la página             |
-| `--ab-surface`        | `#18202f` | `#ffffff` | Paneles, barras, tarjetas                             |
-| `--ab-surface-2`      | `#202939` | `#f8fafc` | Elevado: popover, fila activa, cabecera               |
-| `--ab-surface-3`      | `#2a3446` | `#eef2f7` | Hover y campos de texto                               |
-| `--ab-border`         | `#2e3a4e` | `#dbe3ee` | Separa bloques del mismo plano                        |
-| `--ab-border-control` | `#71809c` | `#b3bfd0` | Contorno de campo — 3,1:1 mínimo, lo pide WCAG 1.4.11 |
-| `--ab-track`          | `#2a3446` | `#e6ecf4` | El fondo de una barra de avance                       |
+| Token                 | Oscuro    | Claro     | Para qué                                                                                                                                   |
+| --------------------- | --------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `--ab-shell`          | `#101725` | `#f4f7fb` | El hueco alrededor del lienzo / la página                                                                                                  |
+| `--ab-surface`        | `#18202f` | `#ffffff` | Paneles, barras, tarjetas                                                                                                                  |
+| `--ab-surface-2`      | `#202939` | `#f8fafc` | Elevado: popover, fila activa, cabecera                                                                                                    |
+| `--ab-surface-3`      | `#2a3446` | `#eef2f7` | Hover y campos de texto                                                                                                                    |
+| `--ab-border`         | `#2e3a4e` | `#dbe3ee` | Separa bloques del mismo plano                                                                                                             |
+| `--ab-border-control` | `#71809c` | `#7f8b9e` | Contorno de campo — 3:1 mínimo, lo pide WCAG 1.4.11 · **el claro decía `#b3bfd0` y daba 1,86:1; corregido el 2026-09-07 al implementarlo** |
+| `--ab-track`          | `#2a3446` | `#e6ecf4` | El fondo de una barra de avance                                                                                                            |
 
 ### Texto
 

@@ -78,7 +78,7 @@ export function CuadroFlotante({
     );
 
   return (
-    <div className="pointer-events-auto absolute inset-x-4 top-4 bottom-4 z-20 flex max-h-[70vh] flex-col overflow-hidden rounded-lg border border-borde bg-surface shadow-xl">
+    <div className="pointer-events-auto absolute inset-x-4 top-4 bottom-4 z-20 flex max-h-[70vh] flex-col overflow-hidden rounded-lg border border-borde bg-surface shadow-[var(--shadow-xl)]">
       <div className="flex shrink-0 items-center gap-3 border-b border-borde px-3 py-2">
         <span className="text-sm font-semibold text-fg">{cuadro.category}</span>
         <span className="text-nota text-fg-3">
