@@ -141,6 +141,26 @@ duplican al cubo de vistas son siempre pequeñas: el cubo ya está ahí y es má
 por columna**, no tres: tres apilados bajan de los 44 px de área mínima, que es una regla del
 sistema y no una preferencia.
 
+#### Y una idea que se midió y se descartó
+
+**«Plegada, que la cinta deje el grupo esencial de la pestaña en una fila de iconos.»** Suena bien
+—daría la economía de un rail sin cambiar de paradigma— y **no se paga**. Medido el 2026-09-07 sobre
+la cinta real, escribiéndolo y quitándolo:
+
+| Estado                                           | Alto de la cinta | Devuelve  |
+| ------------------------------------------------ | ---------------- | --------- |
+| Desplegada                                       | 115 px           | —         |
+| Plegada como está hoy (solo pestañas)            | 34 px            | **81 px** |
+| Plegada con la fila de iconos del grupo esencial | 99 px            | 16 px     |
+
+**El suelo es el área de toque.** El botón mide 48 px de alto por `F9.4`, así que una fila de
+iconos usable no baja de ahí más el relleno del contenedor: quitar los rótulos ahorra 16 px y cuesta
+los otros 65. O sea que la fila compacta **convierte plegar en un gesto que ya no sirve para nada**,
+que era justo lo que venía a arreglar.
+
+Así que plegada sigue mostrando solo las pestañas. Quien necesita una herramienta la despliega —un
+clic, y la preferencia se recuerda—, y quien quiere el modelo entero lo tiene entero.
+
 ### Tema
 
 **Oscuro por defecto en el visor**, porque el lienzo es oscuro y una interfaz clara alrededor de un
