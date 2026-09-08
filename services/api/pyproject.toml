@@ -1,0 +1,117 @@
+[project]
+name = "aerobim-api"
+version = "0.1.0"
+description = "API y portal de AeroBim: credenciales, modulos por etapa y control documental"
+requires-python = ">=3.12"
+# No es un paquete instalable: es una aplicacion Django que se corre desde su
+# directorio, igual que AeroControl. Ver `package = false` mas abajo.
+dependencies = [
+    "django>=6.0,<6.1",
+    "djangorestframework>=3.16",
+    "django-axes>=8.0",
+    "python-decouple>=3.8",
+    "whitenoise>=6.8",
+    "ifcopenshell==0.8.5",
+    "ifctester==0.8.5",
+    "ifcclash==0.8.5",
+    # **Declarada a proposito aunque ya venga de arrastre.** `ifcopenshell` la trae, y con eso
+    # bastaba mientras nadie parseara XML de fuera. `F4.6` importa BCF: un ZIP con XML que llega
+    # por correo desde otra oficina, o sea billion laughs y entidades externas. Una dependencia de
+    # la que depende una comprobacion de seguridad **no puede vivir de que otra la arrastre**,
+    # porque el dia que `ifcopenshell` la suelte el import sigue funcionando y la defensa no.
+    "defusedxml>=0.7",
+    # **El informe imprimible de `F10.3`, y la eleccion esta medida.** El usuario pidio que saliera
+    # **del servidor** —«asi buscamos que sea interno»— y abrio la puerta a cualquier herramienta
+    # libre, LibreOffice incluido. Lo comparado, el 2026-09-02:
+    #
+    # | Opcion              | Paquetes | Licencia | Corre donde corre el gate | Medido                  |
+    # | ------------------- | -------- | -------- | ------------------------- | ----------------------- |
+    # | **reportlab**       | **2**    | BSD-3    | si                        | 8 pags A4 en **171 ms** |
+    # | fpdf2               | 3        | LGPL-3   | si                        | tablas mas pobres       |
+    # | xhtml2pdf           | **29**   | Apache   | si                        | trae cryptography, aiohttp, lxml, pyhanko |
+    # | WeasyPrint          | + GTK    | BSD      | **no importa en Windows** | el informe no se probaria aqui |
+    # | LibreOffice headless| ~500 MB  | MPL-2    | no instalado              | proceso externo que serializa |
+    #
+    # Gana por tres cosas y no por una: **dos paquetes**, licencia sin ninguna condicion, y es el
+    # unico que corre en la maquina donde corre el gate — con GTK o con LibreOffice el informe se
+    # generaria solo en la VM, o sea sin oraculo. Y ademas es el que hara falta para dibujar la
+    # lamina de `F10.4` y el PDF de `F7.5`: una libreria y no dos.
+    #
+    # Lo que LibreOffice daria de verdad —un informe **editable**— se cubre con la salida CSV, que
+    # abre en Calc y en Excel sin dependencia ninguna.
+    "reportlab>=4.2",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-django>=4.9",
+    "pytest-cov>=6.0",
+    "ruff>=0.15",
+    "bandit>=1.8",
+    "pip-audit>=2.9",
+    # **El oraculo del informe, y va en `dev` porque solo lo usan las pruebas.** `pypdf` lee la
+    # estructura del PDF y extrae su texto, o sea que es **otra implementacion**: comprobar un PDF
+    # de reportlab con reportlab solo diria que es consistente consigo mismo. Es la misma regla con
+    # la que `bcf-client` comprueba el BCF que escribimos a mano.
+    "pypdf>=6.0",
+]
+# **Lo que solo hace falta en la VM**, y va aparte por eso: `gunicorn` no instala en
+# Windows —depende de `fcntl`— y `psycopg[binary]` arrastra una rueda con la libreria
+# de PostgreSQL dentro. Ninguna de las dos tiene por que estar en el equipo de quien
+# desarrolla con SQLite y `runserver`.
+#
+# En la VM: `uv sync --no-default-groups --group deploy`.
+deploy = [
+    # Django 6 habla con PostgreSQL por psycopg 3. Sin esto, `DB_ENGINE=postgresql`
+    # revienta al arrancar, y el mensaje de Django nombra `psycopg2` —el paquete
+    # anterior—, que manda a instalar justamente el que no es.
+    "psycopg[binary]>=3.2",
+    "gunicorn>=23.0",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+extend-exclude = ["*/migrations/*"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "DJ"]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.dev"
+python_files = ["test_*.py", "*_test.py"]
+addopts = "-q"
+# **No se filtra el aviso de `ifcopenshell`, y es una decision.** Su `file.__del__` levanta un
+# `KeyError` que Python ya ignora, y pytest lo eleva a `PytestUnraisableExceptionWarning`. Silenciarlo
+# por mensaje no se puede: el filtro de pytest separa sus campos por dos puntos y el mensaje lleva
+# uno. Lo unico que quedaria es un patron ancho --"Exception ignored in"-- y **eso taparia tambien
+# una excepcion no elevada de nuestro propio codigo**, que es justo lo que hay que ver.
+#
+# Asi que se queda a la vista, nombrado en `apps/documents/tests/test_validacion_ids.py`. Un aviso
+# explicado molesta menos que un filtro que esconde lo que importa.
+
+[tool.coverage.run]
+source = ["apps", "config"]
+omit = [
+    "*/migrations/*",
+    "*/tests/*",
+    "*/test_*.py",
+    # Puntos de entrada del despliegue y ajustes de produccion: ninguna prueba los
+    # importa, y contarlos solo diluye el numero sin decir nada de la cobertura real.
+    # Lo que si se prueba de produccion son sus dos decisiones -- la CSP con WASM y el
+    # correo -- y eso vive en `apps/core`, donde si se mide.
+    "config/wsgi.py",
+    "config/asgi.py",
+    "config/settings/prod.py",
+]
+
+[tool.coverage.report]
+# Un piso, no un objetivo. AeroControl lo tiene en 83 con 1440 pruebas; aqui
+# arranca mas bajo a proposito y sube con cada bloque, en vez de fijar un numero
+# que obligue a escribir pruebas de relleno para alcanzarlo.
+fail_under = 80
+show_missing = true

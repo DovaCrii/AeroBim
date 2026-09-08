@@ -1,0 +1,237 @@
+/**
+ * `@aerobim/bim-core` — dominio puro de AeroBim.
+ *
+ * Sin React, sin Three.js, sin DOM: todo lo que vive aquí se prueba en Node. Si un
+ * cálculo necesita el navegador para probarse, está en el paquete equivocado.
+ */
+
+export {
+  compressUuidToIfcGuid,
+  expandIfcGuidToUuid,
+  isIfcGuid,
+  parseIfcGuid,
+  type CanonicalUuid,
+  type IfcGuid,
+} from "./identity/ifcGuid.js";
+
+export {
+  AA_NO_TEXTO,
+  AA_TEXTO,
+  contrastRatio,
+  parseHex,
+  pasaAA,
+  relativeLuminance,
+  type Hex,
+  type Rgb,
+} from "./color/contraste.js";
+
+export {
+  angleAtDeg,
+  distanceM,
+  distancePartsM,
+  closedPerimeterM,
+  perimeterM,
+  perpendicularToPlane,
+  polygonAreaM2,
+  segmentIntersection,
+  type DistanceParts,
+  type PerpendicularFoot,
+  type Point3,
+} from "./measure/geometry.js";
+
+export {
+  fromMeters,
+  metersPerUnit,
+  METRE,
+  MILLIMETRE,
+  parseLengthUnit,
+  toMeters,
+  type ConversionLengthUnit,
+  type LengthUnit,
+  type SiPrefix,
+} from "./units/length.js";
+
+export { NO_IFC_UNITS, parseIfcUnits, type IfcUnitKind, type IfcUnits } from "./units/ifcUnits.js";
+
+export { NO_GRIDS, parseIfcGrids, type IfcGridAxis, type IfcGrids } from "./inspect/ifcGrid.js";
+
+export {
+  countIfcEntities,
+  emptyElementClasses,
+  isElementClass,
+  missingElementClasses,
+  type MissingClass,
+} from "./inspect/ifcClasses.js";
+
+export {
+  aciColor,
+  aciColorHex,
+  parseDxf,
+  suggestMetresPerUnit,
+  type DxfBounds,
+  type DxfColor,
+  type DxfDeclaredUnits,
+  type DxfDrawing,
+  type DxfHatch,
+  type DxfLayer,
+  type DxfPolyline,
+  type DxfText,
+} from "./plans/dxf.js";
+
+export { hatchAngles, hatchLines, type PlanLoop, type PlanPoint } from "./plans/hatch.js";
+
+export {
+  nombreDeLoAbierto,
+  rutasDeVuelta,
+  tituloPropuesto,
+  urlDeNuevaObservacion,
+  type ObservableElement,
+  type RegistryOrigin,
+  type Vuelta,
+} from "./registro/observar.js";
+
+export {
+  camaraBcfDesdeEscena,
+  escenaAIfc,
+  ifcAEscena,
+  type BcfCamera,
+  type BcfCameraKind,
+  type SceneCameraState,
+} from "./registro/viewpoint.js";
+
+export { MUESTRAS, pareceEnBlanco, RANGO_MINIMO } from "./registro/instantanea.js";
+
+export {
+  esLaMismaInterferencia,
+  identidadDeInterferencia,
+  tituloDeInterferencia,
+  type ElementoEnConflicto,
+  type ParDeElementos,
+} from "./registro/interferencia.js";
+
+export {
+  lineasDesdeMediciones,
+  MAXIMO_LINEAS,
+  type ClaseDeMedida,
+  type LineaIfc,
+  type MedicionDibujada,
+} from "./registro/marcado.js";
+
+export {
+  ladoDeVisibilidad,
+  MAXIMO_EXCEPCIONES,
+  seVe,
+  visibilidadBcf,
+  type LadoDeVisibilidad,
+  type VisibilidadBcf,
+} from "./registro/visibilidad.js";
+
+export {
+  parseSavedViews,
+  readSavedView,
+  type SavedCamera,
+  type SavedSection,
+  type SavedView,
+  type ViewNavigation,
+  type ViewProjection,
+} from "./views/savedView.js";
+
+export {
+  corteAEscena,
+  corteAIfc,
+  leerVistaCompartida,
+  MAXIMO_CORTES,
+  NOMBRE_MAXIMO,
+  type CorteIfc,
+  type VistaCompartida,
+} from "./views/vistaCompartida.js";
+
+export {
+  BYTES_DE_ATRIBUTO,
+  bytesPorPunto,
+  presupuesto,
+  puntosQueCaben,
+  saltoParaCaber,
+  type Atributo,
+  type Presupuesto,
+} from "./nubes/presupuesto.js";
+
+export {
+  desplazamientoLocal,
+  errorEnFloat32,
+  escalonDeFloat32,
+  seSostieneEnFloat32,
+} from "./nubes/precision.js";
+
+export { coordenadaComoTexto, DECIMALES, numeroDeReplanteo } from "./nubes/coordenada.js";
+
+export {
+  alineacionDeMapa,
+  alineacionDeNorteVerdadero,
+  localAMapa,
+  mapaALocal,
+  type Alineacion,
+  type ConversionDeMapa,
+  type Punto3 as PuntoDeNube,
+  type ViaDeGiro,
+} from "./nubes/georreferencia.js";
+
+export {
+  colorDeDesviacion,
+  distanciaAlModelo,
+  distanciaAlTriangulo,
+  resumirDesviaciones,
+  SIN_MEDIR,
+  type Distancia,
+  type Punto as PuntoDeMedida,
+  type ResumenDeDesviacion,
+  type Triangulo,
+} from "./nubes/desviacion.js";
+
+export {
+  aplicar,
+  archivoAEscena,
+  cajaAArchivo,
+  escenaAArchivo,
+  matrizDeCalce,
+  planoAArchivo,
+  trasladoAlModelo,
+  type Matriz4,
+} from "./nubes/matriz.js";
+
+export {
+  cajaDeNodo,
+  contenida,
+  dentroDeLosPlanos,
+  nodosVisibles,
+  pixelesDeNodo,
+  seTocan,
+  type Caja,
+  type ClaveDeNodo,
+  type CriterioDeSeleccion,
+  type Cubo,
+  type NodoDelArbol,
+  type Plano,
+  type Seleccion,
+} from "./nubes/octree.js";
+
+export {
+  calzarConPuntos,
+  residuoDe,
+  type Calce,
+  type OpcionesDeCalce,
+  type ParDePuntos,
+  type Residuo,
+} from "./nubes/calce.js";
+
+export {
+  isDimensionlessIfcType,
+  isTextIfcType,
+  looksNumeric,
+  quantityKindFromIfcType,
+  quantityKindFromName,
+  resolveUnitSymbol,
+  unitSymbolFor,
+  type QuantityKind,
+  type ResolvedUnit,
+} from "./units/quantity.js";

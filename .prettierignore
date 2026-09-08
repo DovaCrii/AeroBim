@@ -1,0 +1,13 @@
+node_modules/
+dist/
+build/
+*.min.js
+package-lock.json
+
+# Las plantillas de Django no son HTML que prettier entienda: su analizador reordena
+# los `{% %}` y `{{ }}` y deja plantillas que no compilan. `services/api` tiene su
+# propio formateador -- ruff -- y su propio gate.
+services/api/templates/
+services/api/.venv/
+services/api/staticfiles/
+uv.lock

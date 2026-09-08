@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block titulo %}{% translate "Transmittals" %} · AeroBim{% endblock %}
+
+{% block titulo_pagina %}<h1>{% translate "Transmittals" %}</h1>{% endblock %}
+
+{% block subtitulo %}
+<p class="subtitulo">
+  {% blocktranslate %}What was issued, to whom and when. It is what turns «I emailed it» into a
+  record.{% endblocktranslate %}
+</p>
+{% endblock %}
+
+{% block contenido %}
+  {% if puede_crear %}
+    <p><a href="{% url 'documents:nuevo-transmittal' %}">{% translate "New transmittal" %}</a></p>
+  {% endif %}
+
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">{% translate "Reference" %}</th>
+        <th scope="col">{% translate "Subject" %}</th>
+        <th scope="col">{% translate "Issued by" %}</th>
+        <th scope="col">{% translate "Recipients" %}</th>
+        <th scope="col">{% translate "Revisions" %}</th>
+        <th scope="col">{% translate "State" %}</th>
+        <th scope="col">{% translate "Issued" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for transmittal in transmittals %}
+        <tr>
+          <td>
+            <a href="{% url 'documents:transmittal' transmittal.pk %}">{{ transmittal.folio }}</a>
+          </td>
+          <td>{{ transmittal.asunto }}</td>
+          <td>{{ transmittal.emisor }}</td>
+          <td>
+            {% for destinatario in transmittal.destinatarios.all %}
+              {{ destinatario }}{% if not forloop.last %}, {% endif %}
+            {% empty %}
+              —
+            {% endfor %}
+          </td>
+          <td>
+            {% for revision in transmittal.revisiones.all %}
+              {{ revision.entregable.codigo }} rev. {{ revision.correlativo }}<br />
+            {% empty %}
+              —
+            {% endfor %}
+          </td>
+          <td>{{ transmittal.get_status_display }}</td>
+          <td>{{ transmittal.emitido_en|date:"Y-m-d H:i"|default:"—" }}</td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="7">{% translate "Nothing issued yet." %}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% include "generic/_paginacion.html" %}
+{% endblock %}

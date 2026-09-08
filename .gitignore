@@ -50,12 +50,54 @@ pointclouds/
 *.sqlite3
 *.db
 
+# Salidas del servicio Django: las genera el despliegue, no el repositorio.
+services/api/staticfiles/
+services/api/logs/
+services/api/documents/
+services/api/.coverage
+# El `.mo` **si** se confirma, y a proposito: es binario y pequeno, y su ausencia deja la
+# interfaz en ingles **sin que nada falle**. Un clon recien hecho tiene que salir en espanol.
+# Que no se separe del `.po` lo comprueba `apps/core/tests/test_traducciones.py`.
+# `uv.lock` **si** se confirma: es lo que hace reproducible la instalacion.
+
+# Notas de trabajo con capturas del modelo real: no se versionan, igual que los IFC.
+obsidian/
+
 # Editores y sistema operativo
 .vscode/
 .idea/
 .DS_Store
 Thumbs.db
+# Configuracion local de agentes: la ruta del servidor de desarrollo es propia de cada equipo.
+.claude/
 
 # Registros
 *.log
 npm-debug.log*
+
+# WASM copiado de node_modules por apps/web/scripts/copy-wasm.mjs
+apps/web/public/wasm/
+
+# Excepcion: los fixtures sinteticos si se versionan. Estan escritos a mano y no
+# contienen dato alguno de un proyecto real. Cualquier otro .ifc o .dxf queda fuera.
+#
+# **Y versionarlos no es publicarlos**: lo que sale al build lo decide la lista blanca
+# de `apps/web/scripts/limpiar-dist.mjs`, que deja `samples/` fuera. Son fixtures para
+# `diag.html`, que tampoco se publica.
+!apps/web/public/samples/muro-minimo.ifc
+!apps/web/public/samples/muro-con-psets.ifc
+!apps/web/public/samples/elemento-sin-geometria.ifc
+!apps/web/public/samples/fidelidad-2d.dxf
+# Tres paginas con texto, para comprobar que el PDF se lee y se busca (`F8.6`).
+!apps/web/public/samples/planta-prueba.pdf
+# La nube COPC de prueba (`F2.1`): 7 KB, **generada por un script** y sin dato alguno de un
+# levantamiento real. Lleva geometria conocida —un plano y un muro de 3 m, en UTM 19S— que es lo
+# que permite comprobar los numeros y no solo que la imagen aparezca. El script que la hace esta
+# en `apps/web/scripts/nube-sintetica.py`, asi que se puede regenerar y se sabe que contiene.
+# Cualquier otro .laz o .copc.laz sigue fuera, que es lo que protege los del usuario.
+!apps/web/public/samples/levantamiento-sintetico.copc.laz
+
+# El fixture del muro en coordenadas UTM (F2.4): sintetico, escrito a mano, sin dato alguno de un
+# proyecto real. Existe para comprobar que un IFC con el emplazamiento en las coordenadas no pierde
+# precision, y que el calce automatico contra la nube funciona.
+!apps/web/public/samples/muro-en-utm.ifc

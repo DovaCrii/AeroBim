@@ -1,0 +1,54 @@
+# El resumen diario de lo pendiente, a cada responsable.
+#
+# Instalar en /etc/systemd/system/ junto con `aerobim-resumen.timer`:
+#
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now aerobim-resumen.timer
+#
+# **`Type=oneshot`**: corre, termina, y `systemctl status` dice como acabo. No es un
+# servicio que se queda vivo, asi que `Restart=` no va — un resumen que falla se manda
+# manana, no se reintenta en bucle contra un SMTP caido.
+#
+# **Y no lleva `Restart=on-failure` a proposito.** Con el, un fallo de SMTP mandaria el
+# resumen tantas veces como reintentos: la gente recibiria el mismo correo cuatro veces.
+#
+# El comando deja su fila en `JobRun` pase lo que pase (`record_job_run`), asi que la
+# pantalla de trabajos —`/cuentas/trabajos/`— dice si corrio y con que resultado. Si el
+# correo no sale de la maquina, el resumen de la fila lleva el prefijo que lo dice: una
+# corrida que fue bien y un correo que no salio se ven **igual** si nadie lo marca.
+
+[Unit]
+Description=Resumen de pendientes de AeroBim, por correo
+# `aerobim.service` no hace falta —esto no pasa por HTTP—, pero la base si.
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=aerobim
+Group=aerobim
+WorkingDirectory=/opt/aerobim/services/api
+
+EnvironmentFile=/opt/aerobim/services/api/.env
+Environment=DJANGO_SETTINGS_MODULE=config.settings.prod
+Environment=PYTHONUNBUFFERED=1
+
+# **El python del entorno, no `uv run`**, por la misma razon que en `aerobim.service`:
+# `uv run` sincroniza el entorno antes de ejecutar, y aqui el disco esta de solo lectura.
+ExecStart=/opt/aerobim/services/api/.venv/bin/python manage.py enviar_resumen
+
+# Un resumen que tarda mas de cinco minutos es un problema, no una espera: se corta y
+# queda la fila en `JobRun` diciendo que se corto.
+TimeoutStartSec=300
+
+# ── Lo mismo que el servicio, y por las mismas razones ──────────────────────────
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+# Escribe en los logs, y lee los documentos que cita en el correo.
+ReadWritePaths=/var/lib/aerobim /var/log/aerobim

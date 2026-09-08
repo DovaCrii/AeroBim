@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block titulo %}{% translate "How AeroBim is used" %} · AeroBim{% endblock %}
+
+{% block titulo_pagina %}<h1>{% translate "How AeroBim is used" %}</h1>{% endblock %}
+
+{% block subtitulo %}
+<p class="subtitulo">
+  {% blocktranslate %}Nine steps, in the order the work actually happens. Each one says what it is
+  for, what to do, and takes you to the screen where it happens.{% endblocktranslate %}
+</p>
+{% endblock %}
+
+{% block contenido %}
+  {% comment %}
+    **El recorrido de cómo se usa el producto.** `F11.7`. El usuario lo pidió así: «una sección de
+    ayuda como usar el software con un recorrido o como usarlo».
+
+    Va **en el orden en que se trabaja** y no por módulos, y ese orden es la mitad del valor: un
+    índice alfabético de doce pantallas no dice por dónde se empieza, que es justo lo que no sabe
+    quien abre esto la primera vez.
+
+    Y **enseña los nueve pasos aunque tres no te toquen**, marcados. Es la diferencia con el portal,
+    que esconde lo que tu rol no puede abrir: ahí esconderlo es correcto —un botón que termina en 403
+    enseña a probar puertas— y aquí sería mentir por omisión, porque quien lee esto no entendería de
+    dónde le llegan las observaciones que tiene que contestar. El portal es una puerta; esto es una
+    explicación.
+
+    El contenido sale de `apps/accounts/ayuda.py`, no de esta plantilla: ahí está escrito por qué se
+    genera en vez de dibujarse con globos sobre la interfaz.
+  {% endcomment %}
+
+  {% if ajenos %}
+    <div class="aviso">
+      {% blocktranslate count total=ajenos %}One of these steps is not yours to do: it is shown
+      anyway, marked, because a walkthrough missing a step does not explain where your work comes
+      from.{% plural %}{{ total }} of these steps are not yours to do: they are shown anyway,
+      marked, because a walkthrough missing steps does not explain where your work comes
+      from.{% endblocktranslate %}
+    </div>
+  {% endif %}
+
+  <ol class="recorrido">
+    {% for uno in pasos %}
+      <li class="paso-ayuda {% if not uno.puedes %}paso-ajeno{% endif %}">
+        <h2>
+          {{ uno.paso.titulo }}
+          {% if not uno.puedes %}
+            {% comment %}
+              Se dice **de quién es** y no solo que no es tuyo: eso es lo que se puede accionar.
+
+              Y va como literal en español, sin `blocktranslate`, igual que el resto del texto del
+              recorrido: `de_quien` ya viene en español desde `ayuda.py`, así que marcarlo dejaría
+              una entrada de catálogo traducida a sí misma — que es justo lo que caza
+              `test_ninguna_traduccion_repite_el_original`.
+            {% endcomment %}
+            <span class="ficha">lo hace {{ uno.paso.de_quien }}</span>
+          {% endif %}
+        </h2>
+        <p class="para-que">{{ uno.paso.para_que }}</p>
+        <p class="que-hacer">{{ uno.paso.que_hacer }}</p>
+        {% if uno.url and uno.puedes %}
+          <a class="boton secundario" href="{{ uno.url }}">{% translate "Go there" %}</a>
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ol>
+
+  <p class="grupo">{% translate "Two things worth knowing" %}</p>
+  <div class="tarjetas">
+    {% comment %}
+      Las dos reglas del producto que explican **por qué** se comporta como se comporta, y que sin
+      decirlas se leen como fallos: por qué el visor no deja anotar un IFC del disco, y por qué una
+      observación se encuentra siempre aunque el modelo cambie.
+    {% endcomment %}
+    <div class="tarjeta">
+      <div class="titulo">{% translate "A finding is anchored to the element, not to a place" %}</div>
+      <div class="detalle">
+        {% blocktranslate %}It is pinned to the IFC element's GUID, which survives a new revision of
+        the model. That is why a finding opened in March is still found in the June model, and why a
+        model opened from your disk cannot take notes: it has no register to file them
+        in.{% endblocktranslate %}
+      </div>
+    </div>
+    <div class="tarjeta">
+      <div class="titulo">{% translate "What you can open depends on your role" %}</div>
+      <div class="detalle">
+        {% blocktranslate %}The portal only lists what your role can open, and a client sees only
+        what has been published — not what is still being drafted. If a screen you need is missing,
+        it is a role to ask for, not a button that broke.{% endblocktranslate %}
+      </div>
+    </div>
+  </div>
+{% endblock %}

@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block titulo %}{{ transmittal.folio }} · AeroBim{% endblock %}
+
+{% block titulo_pagina %}<h1>{{ transmittal.folio }}</h1>{% endblock %}
+
+{% block subtitulo %}
+<p class="subtitulo">
+  {{ transmittal.asunto }} · {{ transmittal.proyecto }} ·
+  {% translate "issued by" %} {{ transmittal.emisor }}
+</p>
+{% endblock %}
+
+{% block contenido %}
+  {% comment %}
+    El paso a paso se **deriva del modelo** (`status_steps`), nunca se teclea aqui: una lista
+    de estados escrita en la plantilla se separa de los reales en el primer cambio, y entonces
+    la pantalla afirma un avance que la base de datos no tiene.
+  {% endcomment %}
+  <p class="grupo">{% translate "State" %}</p>
+  <table>
+    <tbody>
+      <tr>
+        {% for paso in transmittal.status_steps %}
+          <td>
+            {% if paso.state == "done" %}✓{% elif paso.state == "current" %}▶{% elif paso.state == "blocked" %}✕{% else %}·{% endif %}
+            {{ paso.label }}
+          </td>
+        {% endfor %}
+      </tr>
+    </tbody>
+  </table>
+  <p class="subtitulo">
+    {% if transmittal.emitido_en %}
+      {% translate "Issued" %} {{ transmittal.emitido_en|date:"Y-m-d H:i" }}{% if transmittal.acusado_en %} · {% translate "acknowledged" %} {{ transmittal.acusado_en|date:"Y-m-d H:i" }}{% endif %}
+    {% else %}
+      {% translate "Not issued yet." %}
+    {% endif %}
+  </p>
+
+  <p class="grupo">{% translate "Recipients" %}</p>
+  <table>
+    <tbody>
+      {% for destinatario in transmittal.destinatarios.all %}
+        <tr>
+          <td>{{ destinatario }}</td>
+          {% comment %}
+            El correo se muestra **o se dice que falta**. Un destinatario sin correo es un
+            destinatario al que no le va a llegar nada, y eso hay que saberlo antes de emitir,
+            no despues de la reunion.
+          {% endcomment %}
+          <td>{{ destinatario.email|default:_("no email address") }}</td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="2">{% translate "Nobody yet." %}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <p class="grupo">{% translate "Documents" %}</p>
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">{% translate "Code" %}</th>
+        <th scope="col">{% translate "Title" %}</th>
+        <th scope="col">{% translate "Revision" %}</th>
+        <th scope="col">{% translate "Suitability" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for revision in transmittal.revisiones.all %}
+        <tr>
+          <td>
+            <a href="{% url 'documents:expediente' revision.entregable.pk %}">
+              {{ revision.entregable.codigo }}
+            </a>
+          </td>
+          <td>{{ revision.entregable.titulo }}</td>
+          <td>{{ revision.correlativo }}</td>
+          <td>{{ revision.idoneidad }}</td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="4">{% translate "Nothing attached yet." %}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% comment %}
+    **Lo que falta va nombrado**, igual que en el expediente: no "no se puede emitir" sino
+    que le falta. Y los botones solo si el usuario puede ejecutarlos: ofrecer uno que termina
+    en 403 es peor que no ofrecerlo, porque ensena a probar puertas.
+  {% endcomment %}
+  {% if falta_para_emitir %}
+    <p class="grupo">{% translate "What is missing to issue it" %}</p>
+    <table>
+      <tbody>
+        {% for falta in falta_para_emitir %}
+          <tr><td>{{ falta }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+
+  {% if puede_emitir %}
+    <p class="grupo">{% translate "Issue" %}</p>
+    <p class="subtitulo">
+      {% blocktranslate %}Every recipient gets an email with the list of documents and the
+      link.{% endblocktranslate %}
+    </p>
+    <form method="post" action="{% url 'documents:emitir-transmittal' transmittal.pk %}">
+      {% csrf_token %}
+      <button type="submit">{% translate "Issue and notify" %}</button>
+    </form>
+  {% endif %}
+
+  {% if puede_acusar %}
+    <p class="grupo">{% translate "Acknowledge receipt" %}</p>
+    <form method="post" action="{% url 'documents:acusar-transmittal' transmittal.pk %}">
+      {% csrf_token %}
+      <button type="submit">{% translate "Acknowledge receipt" %}</button>
+    </form>
+  {% endif %}
+
+  <p><a href="{% url 'documents:transmittals' %}">{% translate "Back" %}</a></p>
+{% endblock %}

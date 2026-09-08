@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/aerobim-mark.svg" />
+    <title>AeroBim</title>
+    <!--
+      **El tema, antes de pintar.** Va aquí y no en React por una razón que se ve: React monta
+      después del primer fotograma, así que aplicando el tema desde un componente hay un destello
+      del tema equivocado en cada carga — y en un visor que arranca WASM, ese "después" son cientos
+      de milisegundos, no uno.
+
+      Es la misma clave que el portal (`aerobim:tema`) y el mismo `try`/`catch`: un navegador con
+      el almacenamiento bloqueado lanza al *leer*, y sin la guarda la página no llega a pintarse.
+
+      Inline y no en un archivo aparte porque un `<script src>` es otra petición antes del primer
+      pintado, que es justo lo que este script existe para evitar. El visor no sirve bajo CSP con
+      `script-src 'self'` estricto: Django lo sirve como estático desde `/static/visor/` con su
+      propia cabecera, y `docs/DEPLOY.md` lo dice.
+    -->
+    <script>
+      try {
+        if (localStorage.getItem("aerobim:tema") === "claro")
+          document.documentElement.setAttribute("data-theme", "light");
+      } catch (e) {
+        /* sin almacenamiento se queda el oscuro, que es el de partida */
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

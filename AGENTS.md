@@ -42,6 +42,21 @@ peor que no tener visor — alguien tomará una decisión de obra con ese dato.
 8. **Los repositorios hermanos son de solo lectura desde aquí.** AeroPlanner está
    en su MVP y AeroControl en pausa de estabilización. Cualquier cambio allá entra
    por el `MASTER_PLAN.md` de ese repositorio.
+9. **El despliegue no sirve `Cross-Origin-Opener-Policy` ni
+   `Cross-Origin-Embedder-Policy`.** No es una preferencia: con aislamiento de origen,
+   `web-ifc` elige su WASM multihilo, que no funciona empaquetado, y la conversión se
+   queda esperando **sin emitir ningún error**. El visor falla al arrancar con un mensaje
+   explícito si detecta `crossOriginIsolated`, y esa comprobación no se quita. Si algún
+   día el multihilo se arregla upstream, se revisa entonces; hasta ahí, el monohilo abre
+   un IFC de 1,5 MB en medio segundo.
+10. **Ninguna librería descarga su WASM de un CDN.** AeroBim es local-first —hay que abrir
+    un modelo y un documento en una faena sin internet— y además las páginas viven detrás
+    del login con una CSP que no deja pedir nada a otro origen. Al añadir una librería con
+    WASM hay que **buscar su valor por defecto**: `web-ifc` y PDFium traen los dos una URL
+    de `cdn.jsdelivr.net`, y dejarla no produce un aviso, produce una página en blanco.
+    Cuando el empaquetador pueda resolverlo —`import "…/x.wasm?url"`— se hace así, que es
+    lo que evita también el otro fallo: una ruta escrita a mano que no acierta con el
+    prefijo `/static/visor/` recibe el `index.html` de Django y falla por dentro.
 
 ## Precedencia documental
 
@@ -94,6 +109,42 @@ reconcilia a favor de lo vigente en el repo y se deja constancia en el PR o en
   Correcto: `"Model tree"`, `"Clash groups"`. Incorrecto: `"Model Tree"`.
 - Modelos IFC, nubes de puntos, ortofotos y datos de proyectos reales viven **fuera
   del repositorio**. Nunca confirmar un IFC de cliente ni un dato de obra.
+- **Y lo que se pone en `apps/web/public/` se publica.** No confirmar no es lo mismo que
+  no publicar: al servir `apps/web/dist` como estático desde Django, los archivos de
+  prueba de la organización quedaron descargables **sin autenticar** —comprobado, 200 y
+  34 MB—. Lo que va al build lo decide la **lista blanca** de
+  `apps/web/scripts/limpiar-dist.mjs`, no una lista de lo prohibido: lo nuevo se queda
+  fuera por defecto y hay que pedirlo.
+
+## Contrato de permisos y lectura (obligatorio en toda vista de `services/api`)
+
+Copiado casi literal de `AeroControl/AGENTS.md`, y es lo que de verdad hizo robusto
+ese sistema. No es una recomendación:
+
+- Una vista que **muta** pide su permiso de modelo: `add_*`, `change_*` o `delete_*`.
+- **Toda superficie de lectura** —lista, detalle, exportación, API— pide un `view_*`
+  explícito. `LoginRequiredMixin` **solo no alcanza**: deja que cualquier usuario
+  autenticado lea todo lo que no se le negó a mano.
+- Un modelo acotado por organización **acota el queryset**, no solo comprueba el
+  permiso. `view_entregable` dice "puede ver entregables", no "puede ver **estos**":
+  sin acotar, pedir a mano `/entregables/<id-de-otra>/` responde con el objeto.
+- **Cada vista nueva trae su prueba de 403** para un usuario autenticado sin el
+  permiso, y su prueba de aislamiento entre organizaciones cuando aplique. En
+  `apps/accounts/tests/test_permisos.py` están como una tabla: añadir una vista es
+  añadir una fila.
+- Un rol de lectura se declara con una **lista blanca** de permisos, nunca con un
+  patrón. "Todo lo que empiece por `view_`" le entrega los tokens de API, la lista de
+  usuarios, las sesiones y la auditoría — le pasó a AeroControl.
+- Nunca `fields = "__all__"` en un formulario de escritura ni en una exportación.
+- Se redirige al login a quien es **anónimo**, y se devuelve **403 duro** a quien está
+  autenticado y no autorizado. Mandar al login a quien ya entró es un bucle en el que
+  nadie llega a saber que lo que le falta es un permiso.
+
+**Dos cosas del despliegue que romperían el visor sin dejar rastro**, y que están
+escritas en `services/api/config/settings/prod.py`: nunca servir `COOP` ni `COEP`
+—activan el WASM multihilo de `web-ifc`, que no funciona empaquetado, y el visor se
+cuelga **sin error**— y la CSP necesita `'wasm-unsafe-eval'` en `script-src` y
+`worker-src 'self' blob:`, porque el visor compila WebAssembly y arranca un worker.
 
 ## Licencias: verificar antes de portar
 
@@ -101,15 +152,15 @@ Este proyecto es MIT y debe seguir siéndolo. Antes de copiar o adaptar código 
 proyecto de referencia, confirmar su licencia en `docs/REFERENCES.md` y registrar el
 origen en el archivo destino.
 
-| Origen                                          | Licencia   | Se puede                                                                                       |
-| ----------------------------------------------- | ---------- | ---------------------------------------------------------------------------------------------- |
-| That Open (`components`, `fragments`), Three.js | MIT        | Portar e integrar, manteniendo el aviso de copyright                                           |
-| `web-ifc`                                       | MPL-2.0    | Usar como dependencia. Si se **modifica** un archivo suyo, ese archivo queda bajo MPL           |
-| Potree, PDAL                                    | BSD        | Portar e integrar, manteniendo el aviso                                                         |
-| CesiumJS, `3d-tiles-tools`, TerriaJS            | Apache-2.0 | Portar e integrar, conservando avisos y el archivo `NOTICE` si existe                           |
-| IfcOpenShell, `ifcclash`, `bcf-client`          | LGPL-3.0   | **Usar como librería o proceso aparte, sin copiar su código.** Enlazar sí; portar líneas no      |
-| xeokit-sdk, BIMserver                           | AGPL-3.0   | **Solo leer como referencia conceptual.** No copiar código ni enlazarlo                        |
-| xbim                                            | CDDL       | Referencia conceptual. Stack .NET, fuera de nuestra arquitectura                               |
+| Origen                                          | Licencia   | Se puede                                                                                    |
+| ----------------------------------------------- | ---------- | ------------------------------------------------------------------------------------------- |
+| That Open (`components`, `fragments`), Three.js | MIT        | Portar e integrar, manteniendo el aviso de copyright                                        |
+| `web-ifc`                                       | MPL-2.0    | Usar como dependencia. Si se **modifica** un archivo suyo, ese archivo queda bajo MPL       |
+| Potree, PDAL                                    | BSD        | Portar e integrar, manteniendo el aviso                                                     |
+| CesiumJS, `3d-tiles-tools`, TerriaJS            | Apache-2.0 | Portar e integrar, conservando avisos y el archivo `NOTICE` si existe                       |
+| IfcOpenShell, `ifcclash`, `bcf-client`          | LGPL-3.0   | **Usar como librería o proceso aparte, sin copiar su código.** Enlazar sí; portar líneas no |
+| xeokit-sdk, BIMserver                           | AGPL-3.0   | **Solo leer como referencia conceptual.** No copiar código ni enlazarlo                     |
+| xbim                                            | CDDL       | Referencia conceptual. Stack .NET, fuera de nuestra arquitectura                            |
 
 Una línea copiada de un proyecto AGPL contamina todo el repositorio. Ante la duda,
 se reimplementa desde la documentación, no desde el código.
@@ -123,15 +174,15 @@ código fuente al nuestro, sí. La distinción importa.
 Los tests que solo comparan el código consigo mismo no prueban que el modelo se
 esté leyendo bien. Antes de marcar ✅:
 
-| Qué se construye                | Contra qué se verifica                                                              |
-| ------------------------------- | ----------------------------------------------------------------------------------- |
-| Árbol espacial, propiedades, psets | El mismo IFC abierto en **Bonsai/BlenderBIM** o cualquier visor de escritorio      |
-| Mediciones                      | Cotas conocidas del modelo, y el mismo par de puntos en un visor de escritorio       |
-| Alineación nube ↔ modelo        | **CloudCompare** con el mismo par de archivos                                        |
-| Export BCF                      | El archivo **abre en Navisworks o Solibri** con el viewpoint intacto, y a la inversa |
-| Interferencias                  | Conjunto de prueba con conflictos colocados a propósito: cuántos encuentra y cuántos pierde |
-| Georreferenciación (Fase 6)     | Un punto de coordenada conocida, comprobado en **QGIS**                              |
-| Rendimiento                     | Un IFC de obra **real**, no el modelo de demostración de la documentación            |
+| Qué se construye                   | Contra qué se verifica                                                                      |
+| ---------------------------------- | ------------------------------------------------------------------------------------------- |
+| Árbol espacial, propiedades, psets | El mismo IFC abierto en **Bonsai/BlenderBIM** o cualquier visor de escritorio               |
+| Mediciones                         | Cotas conocidas del modelo, y el mismo par de puntos en un visor de escritorio              |
+| Alineación nube ↔ modelo           | **CloudCompare** con el mismo par de archivos                                               |
+| Export BCF                         | El archivo **abre en Navisworks o Solibri** con el viewpoint intacto, y a la inversa        |
+| Interferencias                     | Conjunto de prueba con conflictos colocados a propósito: cuántos encuentra y cuántos pierde |
+| Georreferenciación (Fase 6)        | Un punto de coordenada conocida, comprobado en **QGIS**                                     |
+| Rendimiento                        | Un IFC de obra **real**, no el modelo de demostración de la documentación                   |
 
 Antes de entregar: build, lint y formato en verde, y **verificación en el navegador**
 de lo que se ve. Un lector de IFC correcto con la escena mal dibujada sigue siendo un
@@ -141,6 +192,7 @@ entregable roto.
 
 - Plan de trabajo por fases: `MASTER_PLAN.md` (fuente de verdad de qué sigue).
 - Punto de retome: `HANDOFF.md`.
+- Puesta en la VM, con las dos trampas del despliegue al principio: `docs/DEPLOY.md`.
 - Arquitectura y límites entre paquetes: `docs/ARCHITECTURE.md`.
 - Alcance del MVP y lo explícitamente excluido: `docs/MVP.md`.
 - Proyectos de referencia, licencias y qué se toma de cada uno: `docs/REFERENCES.md`.

@@ -9,14 +9,14 @@ destino.
 
 AeroBim es MIT y debe seguir siéndolo.
 
-| Licencia del origen        | Qué se puede hacer                                                                                     |
-| -------------------------- | ------------------------------------------------------------------------------------------------------ |
-| **MIT / BSD / Apache-2.0** | Portar y adaptar código, manteniendo el aviso de copyright del original                                 |
-| **MPL-2.0**                | Usar como dependencia sin condiciones. Si se **modifica un archivo suyo**, ese archivo queda bajo MPL    |
-| **LGPL**                   | **Enlazar como librería o invocar como proceso, sí. Copiar su código al nuestro, no**                    |
-| **GPL**                    | **Solo leer como referencia conceptual.** No copiar código                                              |
-| **AGPL**                   | **Solo consumir como servicio separado**, en su propio contenedor y por su API. No enlazar su código     |
-| **CDDL**                   | Referencia conceptual. Copia archivo por archivo con obligaciones; no vale la pena                       |
+| Licencia del origen        | Qué se puede hacer                                                                                    |
+| -------------------------- | ----------------------------------------------------------------------------------------------------- |
+| **MIT / BSD / Apache-2.0** | Portar y adaptar código, manteniendo el aviso de copyright del original                               |
+| **MPL-2.0**                | Usar como dependencia sin condiciones. Si se **modifica un archivo suyo**, ese archivo queda bajo MPL |
+| **LGPL**                   | **Enlazar como librería o invocar como proceso, sí. Copiar su código al nuestro, no**                 |
+| **GPL**                    | **Solo leer como referencia conceptual.** No copiar código                                            |
+| **AGPL**                   | **Solo consumir como servicio separado**, en su propio contenedor y por su API. No enlazar su código  |
+| **CDDL**                   | Referencia conceptual. Copia archivo por archivo con obligaciones; no vale la pena                    |
 
 Una línea copiada de un proyecto GPL o AGPL contamina el repositorio completo. Ante
 la duda, se reimplementa desde la documentación, no desde el código.
@@ -32,11 +32,11 @@ sí. La distinción es la que hace viable la Fase 3.
 
 ### That Open Company (ex IFC.js) — ELEGIDO
 
-| Repositorio / paquete                                        | Licencia    | Estrellas | Actividad                             |
-| ------------------------------------------------------------ | ----------- | --------- | ------------------------------------- |
-| `ThatOpen/engine_components` → npm `@thatopen/components`     | **MIT**     | ~693      | v3.4.0 abr-2026; npm 3.4.8; jul-2026  |
-| `ThatOpen/engine_web-ifc` → npm `web-ifc`                     | **MPL-2.0** | ~1.010    | npm 0.0.77; push ago-2026             |
-| `ThatOpen/engine_fragment` → npm `@thatopen/fragments`        | **MIT**     | ~201      | npm 3.4.7; push jul-2026              |
+| Repositorio / paquete                                     | Licencia    | Estrellas | Actividad                            |
+| --------------------------------------------------------- | ----------- | --------- | ------------------------------------ |
+| `ThatOpen/engine_components` → npm `@thatopen/components` | **MIT**     | ~693      | v3.4.0 abr-2026; npm 3.4.8; jul-2026 |
+| `ThatOpen/engine_web-ifc` → npm `web-ifc`                 | **MPL-2.0** | ~1.010    | npm 0.0.77; push ago-2026            |
+| `ThatOpen/engine_fragment` → npm `@thatopen/fragments`    | **MIT**     | ~201      | npm 3.4.7; push jul-2026             |
 
 <https://github.com/ThatOpen/engine_components>
 
@@ -112,14 +112,14 @@ Java, AGPL. Envejecido; no es base para un proyecto nuevo.
 
 ## Nubes de puntos
 
-| Proyecto / paquete                          | Licencia         | Estrellas | Estado                                        |
-| ------------------------------------------- | ---------------- | --------- | --------------------------------------------- |
-| `potree/potree`                             | **BSD-2-Clause** | ~5.577    | Push ene-2026. Estándar de facto, avance lento |
-| `potree/PotreeConverter`                    | BSD-2-Clause     | ~815      | Push jun-2026                                  |
-| npm `potree-core` (tentone)                 | **MIT**          | —         | 2.0.15 (~abr-2026), activo                     |
-| `CesiumGS/cesium` → npm `cesium`            | **Apache-2.0**   | ~15.577   | Push diario                                    |
-| `py3dtiles` (pip, OSGeo)                    | OSS              | —         | v12.1.1 mar-2026, muy activo                   |
-| PDAL (pip/conda `pdal`)                     | **BSD**          | —         | Maduro                                          |
+| Proyecto / paquete               | Licencia         | Estrellas | Estado                                         |
+| -------------------------------- | ---------------- | --------- | ---------------------------------------------- |
+| `potree/potree`                  | **BSD-2-Clause** | ~5.577    | Push ene-2026. Estándar de facto, avance lento |
+| `potree/PotreeConverter`         | BSD-2-Clause     | ~815      | Push jun-2026                                  |
+| npm `potree-core` (tentone)      | **MIT**          | —         | 2.0.15 (~abr-2026), activo                     |
+| `CesiumGS/cesium` → npm `cesium` | **Apache-2.0**   | ~15.577   | Push diario                                    |
+| `py3dtiles` (pip, OSGeo)         | OSS              | —         | v12.1.1 mar-2026, muy activo                   |
+| PDAL (pip/conda `pdal`)          | **BSD**          | —         | Maduro                                         |
 
 **La vía elegida para la Fase 2:** `potree-core` montado en la misma escena Three.js
 del visor That Open. Ambos son Three.js, así que la integración es posible — pero es
@@ -145,14 +145,14 @@ pip: `ifcopenshell` (0.8.x).
 
 Qué se usa de él, todo como librería o proceso — nunca copiando código:
 
-| Pieza                          | Para qué en AeroBim                                                |
-| ------------------------------ | ------------------------------------------------------------------ |
-| `ifcopenshell.util.element`    | Propiedades y psets en el backend (`F3.3`)                          |
-| Georreferenciación             | `IfcSite` y mapa de conversión, para el puente a la vista geo (`F6.3`) |
-| **IfcConvert** (CLI)           | IFC → GLB para la ruta de 3D Tiles; también OBJ y SVG (planos)      |
-| `ifctester`                    | Validación **IDS** (`F3.5`)                                         |
-| `ifcpatch`                     | Transformaciones sobre el modelo                                    |
-| `ifccsv`                       | Exportación tabular. Fuera del MVP, deja la puerta abierta a 5D     |
+| Pieza                       | Para qué en AeroBim                                                    |
+| --------------------------- | ---------------------------------------------------------------------- |
+| `ifcopenshell.util.element` | Propiedades y psets en el backend (`F3.3`)                             |
+| Georreferenciación          | `IfcSite` y mapa de conversión, para el puente a la vista geo (`F6.3`) |
+| **IfcConvert** (CLI)        | IFC → GLB para la ruta de 3D Tiles; también OBJ y SVG (planos)         |
+| `ifctester`                 | Validación **IDS** (`F3.5`)                                            |
+| `ifcpatch`                  | Transformaciones sobre el modelo                                       |
+| `ifccsv`                    | Exportación tabular. Fuera del MVP, deja la puerta abierta a 5D        |
 
 Nota: la conversión **IFC → Fragments** no la hace IfcOpenShell, sino el serializador
 JavaScript de That Open corriendo en Node.
@@ -190,7 +190,7 @@ Ruta abierta de IFC a 3D Tiles: `IfcConvert --use-element-guids` a GLB, y de ah�
 `3d-tiles-tools` (npm, Apache-2.0) para armar el tileset.
 
 > **Cesium ion queda fuera.** Es el servicio comercial: su plan gratuito es solo para
-> uso community, y su *Design Tiler* (desde mar-2025 tesela IFC preservando psets) es
+> uso community, y su _Design Tiler_ (desde mar-2025 tesela IFC preservando psets) es
 > de pago. **Riesgo registrado:** la ruta abierta pierde parte de esa metadata, así
 > que la vista de modelo sigue siendo la fuente de propiedades, no la geoespacial.
 
@@ -246,11 +246,11 @@ formatos en que conviene recibir los productos del vuelo.
 
 No se integran; se usan para comprobar que lo nuestro dice la verdad.
 
-| Herramienta                | Licencia | Para verificar                                             |
-| -------------------------- | -------- | ---------------------------------------------------------- |
-| **Bonsai** (ex BlenderBIM) | GPL      | Árbol espacial, propiedades, psets y mediciones             |
-| **CloudCompare**           | GPL      | Alineación y desviaciones nube ↔ modelo                     |
-| **QGIS**                   | GPL      | Georreferenciación contra un punto de coordenada conocida   |
-| **Navisworks / Solibri**   | Comercial | Que el BCF exportado abra con su viewpoint intacto         |
+| Herramienta                | Licencia  | Para verificar                                            |
+| -------------------------- | --------- | --------------------------------------------------------- |
+| **Bonsai** (ex BlenderBIM) | GPL       | Árbol espacial, propiedades, psets y mediciones           |
+| **CloudCompare**           | GPL       | Alineación y desviaciones nube ↔ modelo                   |
+| **QGIS**                   | GPL       | Georreferenciación contra un punto de coordenada conocida |
+| **Navisworks / Solibri**   | Comercial | Que el BCF exportado abra con su viewpoint intacto        |
 
 Todas son GPL o comerciales: **se usan como aplicaciones, jamás se copia su código.**

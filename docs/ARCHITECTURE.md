@@ -1,8 +1,10 @@
 # Arquitectura — AeroBim
 
-> Estado: **diseño**. Nada de esto está construido todavía; `F0.3` monta el
-> andamiaje y `F0.6` confirma o corrige la decisión sobre dónde corre la conversión.
-> Última revisión: 2026-08-18.
+> Estado: **construido de la Fase 0 a la Fase 1, la mitad de entrada de la Fase 7, y el portal de
+> `services/api`**. Los paquetes `bim-core`, `viewer` y `apps/web` existen; `F0.6` está cerrada (la
+> conversión corre en un worker); y `services/api` existe con su portal de ingreso, sus roles y su
+> gate propio (`F3.6`–`F3.9`). Lo que sigue siendo diseño es el resto de la Fase 3 —los modelos de
+> proyecto, `ifcopenshell`, los jobs— y de ahí en adelante. Última revisión: 2026-08-26.
 
 ## El principio que ordena todo
 
@@ -23,9 +25,9 @@ aerobim/
 ├── packages/
 │   ├── bim-core/         Dominio puro. Sin React, sin Three.js, sin DOM.
 │   └── viewer/           Envoltura del visor: escena, cámara, selección, cortes.
-└── services/             (Fase 3 en adelante)
-    ├── api/              Django + DRF: proyectos, modelos, versiones, temas.
-    └── worker/           Celery: ifcopenshell, ifctester, ifcclash.
+└── services/
+    ├── api/              Django 6 + DRF: portal, credenciales, roles, auditoría.
+    └── worker/           (pendiente) ifcopenshell, ifctester, ifcclash.
 ```
 
 ### `packages/bim-core` — el dominio
@@ -35,7 +37,7 @@ Lo que entra aquí:
 - **Identidad de elementos**: el GUID de IFC como clave, y las conversiones desde
   los identificadores efímeros de cada motor.
 - **Modelo de temas de coordinación**: tema, viewpoint, comentario, estado, ciclo de
-  vida. Independiente de BCF como formato — BCF es un *adapter*, igual que WPML lo
+  vida. Independiente de BCF como formato — BCF es un _adapter_, igual que WPML lo
   es en AeroPlanner.
 - **Filtros y agrupación**: "todos los muros de la planta 3", "estructura vs
   instalaciones". Reglas, no consultas a una escena.
@@ -57,15 +59,45 @@ React 19, igual que AeroPlanner, para que la experiencia de mantener ambos sea l
 misma. Aquí viven los paneles, el árbol, las tablas de propiedades y el estado de
 interfaz.
 
-### `services/` — desde la Fase 3
+**Son dos páginas del mismo build** (`F8.6`, 2026-08-26): `index.html` es el visor de modelos y
+planos, y `documento.html` el del PDF con las observaciones dibujadas encima. La separación no es
+organizativa, es de coste: un PDF en el visor 3D cargaría Three.js y el WASM de `web-ifc` —seis
+megas y medio de JavaScript— para nada, y no sabría abrirlo; la página del documento pesa 348 kB.
+Comparten build, assets, `base` y el paso de limpieza, que es justo lo que no había que duplicar,
+y Django las sirve las dos detrás del login con la misma vista.
 
-Django + DRF por coherencia con AeroControl: el mismo lenguaje, el mismo estilo de
+**Qué visor abre qué lo decide un solo sitio**, `apps/documents/abribles.py`, por la extensión del
+archivo. Y son **dos** preguntas: si hay algún visor que lo abra —para ofrecer el enlace— y si lo
+abre **este** visor —para llenar su selector—. Con una sola función, los PDFs entraban en la lista
+del visor de modelos.
+
+### `services/api` — el portal y las credenciales
+
+Django 6 + DRF por coherencia con AeroControl: el mismo lenguaje, el mismo estilo de
 despliegue, un equipo que ya sabe mantenerlo. `ifcopenshell` es Python, así que la
 extracción de metadatos, la validación IDS y las interferencias caen naturalmente
 del mismo lado.
 
-**No existe hasta la Fase 3, y eso es deliberado.** Las fases 0 a 2 abren un archivo
-local en el navegador y no necesitan servidor.
+**Se portó la forma de AeroControl, no su dominio** (`F3.6`–`F3.9`, 2026-08-26): el
+modelo base, la auditoría de solo agregar, el middleware de CSP y log, el aviso de
+correo no entregado, el vigilante de trabajos programados, la exportación CSV con
+neutralización de fórmulas, el acotado por organización y —lo más valioso— el
+**contrato de permisos**, que ahora vive en `AGENTS.md`. Esa aplicación lleva 1440
+pruebas en producción; lo que se copió son las decisiones que ya costaron encontrarse.
+
+**La base de datos es propia.** Es la regla de la familia: ninguna aplicación comparte
+base con otra, y la integración es por archivo y por API.
+
+> **Dos cosas del despliegue que romperían el visor sin dejar rastro**, y por eso están
+> escritas en `config/settings/prod.py` en vez de en la cabeza de alguien: nunca servir
+> `COOP` ni `COEP` —activan el WASM multihilo de `web-ifc`, que no funciona empaquetado,
+> y el visor se cuelga **sin error**— y la CSP necesita `'wasm-unsafe-eval'` y
+> `worker-src 'self' blob:`, porque el visor compila WebAssembly y arranca un worker. La
+> CSP de AeroControl es un `script-src 'self'` pelado y lo bloquearía.
+
+`services/worker` todavía no existe: es donde caerán los jobs pesados de `ifcopenshell`.
+Las fases 0 a 2 del visor siguen abriendo un archivo local sin necesitar servidor, y eso
+no cambia — el portal es la puerta, no un requisito para mirar un modelo.
 
 ## El flujo de un modelo
 
@@ -100,10 +132,10 @@ Fragments; el IFC de origen es la fuente de verdad.**
 
 ## Las dos vistas, y por qué son dos
 
-| Vista                   | Motor                  | Para qué                                        |
-| ----------------------- | ---------------------- | ----------------------------------------------- |
-| **Modelo** (Fases 1–5)  | Three.js + That Open   | Coordinar: árbol, psets, cortes, BCF, clashes    |
-| **Geoespacial** (Fase 6)| CesiumJS               | Situar: ortofoto, terreno, contexto de la obra   |
+| Vista                    | Motor                | Para qué                                       |
+| ------------------------ | -------------------- | ---------------------------------------------- |
+| **Modelo** (Fases 1–5)   | Three.js + That Open | Coordinar: árbol, psets, cortes, BCF, clashes  |
+| **Geoespacial** (Fase 6) | CesiumJS             | Situar: ortofoto, terreno, contexto de la obra |
 
 Podrían haber sido una sola, y sería peor. La vista de modelo trabaja en
 coordenadas locales de proyecto con precisión de milímetros; la geoespacial trabaja

@@ -1,0 +1,44 @@
+{% load i18n personas %}
+{% comment %}
+  Una tarea, en una línea: `[estado] título · obra · dueño · vence · prioridad`.
+
+  **Sustituye a las tablas de tres columnas** que tenían la portada y la bandeja. Una tabla obliga a
+  que todas las filas tengan las mismas celdas, y aquí no las tienen: una actividad no lleva
+  prioridad. Con la tabla, esa columna quedaba vacía en la mitad de las filas — y una celda vacía se
+  lee como un dato que falta, no como uno que no existe.
+
+  **El círculo de estado es `role="img"`, no un checkbox**, y esa es la decisión que separa esto de
+  Asana: en Asana se marca hecho desde la lista, y aquí **no existe ese POST** para una observación
+  —se cierra con su resolución, que es un formulario con motivo—. Un checkbox que no guarda nada es
+  peor que ningún checkbox.
+
+  Toma un `Tarea` de `apps/documents/tareas.py`, así que no sabe si viene de un hallazgo o de una
+  actividad: eso es lo que ese módulo existe para tapar.
+{% endcomment %}
+<li class="tarea">
+  <span class="tarea-estado tarea-{{ tarea.columna }}"
+        role="img"
+        aria-label="{% if tarea.es_observacion %}{% blocktranslate with estado=tarea.estado %}Finding, {{ estado }}{% endblocktranslate %}{% else %}{% blocktranslate with estado=tarea.estado %}Activity, {{ estado }}{% endblocktranslate %}{% endif %}"></span>
+
+  <a class="tarea-titulo" href="{{ tarea.url }}">{{ tarea.titulo }}</a>
+
+  <span class="tarea-datos">
+    {% if tarea.proyecto %}<span class="ficha">{{ tarea.proyecto }}</span>{% endif %}
+    {% persona tarea.responsable %}
+    {% comment %}
+      **Sin fecha se dice, no se deja en blanco.** Un hueco donde va una fecha se lee como que no
+      cargó; «sin fecha» es un dato, y además el que hay que arreglar: sin fecha, esta tarea no está
+      en la bandeja de nadie (`pendientes_por_tramo` filtra por `vence`).
+    {% endcomment %}
+    {% if tarea.vence %}
+      <span class="tarea-vence{% if tarea.vencida %} tarea-vencida{% endif %}">
+        {{ tarea.vence|date:"j M" }}
+      </span>
+    {% else %}
+      <span class="tarea-vence tarea-sin-fecha">{% translate "no date" %}</span>
+    {% endif %}
+    {% if tarea.prioridad %}
+      <span class="pildora pildora-prioridad {{ tarea.prioridad }}">{{ tarea.prioridad_texto }}</span>
+    {% endif %}
+  </span>
+</li>

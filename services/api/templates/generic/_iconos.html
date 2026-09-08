@@ -1,0 +1,136 @@
+{% comment %}
+  Los iconos del portal, como **un sprite SVG en la propia página**.
+
+  **Ni una librería y ni una petición más.** La regla de `AGENTS.md` es que nada descarga su
+  contenido de un CDN, y un paquete de iconos aquí serían dos mil símbolos para usar diez. Estos son
+  `<symbol>` dentro de un `<svg>` oculto: se declaran una vez y se usan con `<use>` tantas veces
+  como haga falta, sin una sola petición al servidor.
+
+  **Heredan el color con `currentColor`**, así que un icono en una tarjeta de proyecto sale del
+  violeta de la marca y el mismo icono en un aviso sale rojo, sin duplicar el dibujo. Y son de trazo
+  y no de relleno: a 20 px un relleno se convierte en una mancha.
+
+  Esto último **estuvo escrito aquí y no era cierto** hasta el 2026-09-02: `.icono` en `app.css`
+  tenía el `stroke` clavado en el violeta de la marca, así que el acento de cada grupo del portal no
+  llegaba nunca al dibujo. Doce iconos violetas con cinco colores declarados. Si se vuelve a tocar
+  esa regla: **lo que pinta un icono de trazo es `stroke`, no `color`**.
+
+  Son los mismos gestos que los del visor —dibujados a mano en `icons.tsx` por el mismo motivo— para
+  que las dos mitades del producto no tengan dos lenguajes de iconos distintos.
+{% endcomment %}
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none" aria-hidden="true">
+  <defs>
+    <g id="trazo-comun"></g>
+  </defs>
+
+  {# Proyecto: una obra. Los tres volúmenes de un conjunto edificado. #}
+  <symbol id="i-proyecto" viewBox="0 0 24 24">
+    <path d="M3 20h18M5 20V9l5-3v14M14 20V4l5 3v13M8 12h.01M8 15h.01M17 11h.01M17 14h.01" />
+  </symbol>
+
+  {% comment %}
+    Organización: de quién cuelgan las obras. Un nodo con dos hijos, que es lo que es.
+
+    **Era el mismo cubo que el visor** —dos hexágonos idénticos a 18 px— y por eso «Organizaciones»
+    y «Visor BIM» se confundían. Un icono que no distingue no cumple su único trabajo.
+  {% endcomment %}
+  <symbol id="i-organizacion" viewBox="0 0 24 24">
+    <path d="M9 3.5h6v4H9zM3.5 16.5h5v4h-5zM15.5 16.5h5v4h-5z" />
+    <path d="M12 7.5v4M6 16.5v-2.5h12v2.5M12 11.5v2.5" />
+  </symbol>
+
+  {# Visor: el cubo del modelo, que es el gesto que ya usa el propio visor. #}
+  <symbol id="i-modelo" viewBox="0 0 24 24">
+    <path d="M12 2.5l8.5 4.8v9.4L12 21.5 3.5 16.7V7.3z" />
+    <path d="M3.5 7.3L12 12.1l8.5-4.8M12 12.1v9.4" />
+  </symbol>
+
+  {# Lo mío: una bandeja con lo que le toca a uno. #}
+  <symbol id="i-bandeja" viewBox="0 0 24 24">
+    <path d="M4 13l2.5-7h11L20 13v6H4z" />
+    <path d="M4 13h4l1 2h6l1-2h4" />
+  </symbol>
+
+  {# Entregables: el documento del registro. #}
+  <symbol id="i-entregable" viewBox="0 0 24 24">
+    <path d="M6 3.5h8L18.5 8v12.5H6z" />
+    <path d="M14 3.5V8h4.5M9 12h6M9 15.5h4" />
+  </symbol>
+
+  {# Transmittal: lo que sale hacia fuera. #}
+  <symbol id="i-transmittal" viewBox="0 0 24 24">
+    <path d="M3.5 6.5h17v11h-17z" />
+    <path d="M3.5 7l8.5 6 8.5-6" />
+  </symbol>
+
+  {% comment %}
+    Requisito de información: lo que se exige que el modelo traiga. Un pliego con su pinza.
+
+    No es una hoja más: es lo que **alguien de fuera exige**, y por eso lleva la pinza del
+    portapapeles en vez de la esquina doblada de un documento del registro.
+  {% endcomment %}
+  <symbol id="i-requisito" viewBox="0 0 24 24">
+    <path d="M5.5 5.5h13v15h-13z" />
+    <path d="M9 3.5h6v3H9z" />
+    <path d="M9 12.5l2 2 4-4" />
+  </symbol>
+
+  {% comment %}
+    Observación: algo que hay que resolver y que se habla. Un globo con su aviso.
+
+    **Eran tres hojas casi iguales** —entregable, requisito y observación— y a 18 px las tres eran
+    la misma mancha. Una observación no es un documento: es una conversación abierta sobre algo.
+  {% endcomment %}
+  <symbol id="i-observacion" viewBox="0 0 24 24">
+    <path d="M3.5 5.5h17v11h-11l-4.5 4z" />
+    <path d="M12 8v3.5M12 13.8h.01" />
+  </symbol>
+
+  {# Actividad: trabajo planificado, con su fecha. #}
+  <symbol id="i-actividad" viewBox="0 0 24 24">
+    <path d="M4 5.5h16v15H4z" />
+    <path d="M4 10h16M8 3.5v4M16 3.5v4" />
+    <path d="M8 14.5l2 2 4-4" />
+  </symbol>
+
+  {# Usuarios y roles. #}
+  <symbol id="i-usuarios" viewBox="0 0 24 24">
+    <circle cx="9" cy="8.5" r="3.5" />
+    <path d="M2.5 20c0-3.6 2.9-6.5 6.5-6.5s6.5 2.9 6.5 6.5" />
+    <path d="M16.5 5.5a3.5 3.5 0 0 1 0 6M18 13.8c2 .9 3.5 2.9 3.5 5.2" />
+  </symbol>
+
+  {# Auditoría: de solo agregar. Una pila con su reloj. #}
+  <symbol id="i-auditoria" viewBox="0 0 24 24">
+    <path d="M4 6.5c0-1.4 3.6-2.5 8-2.5s8 1.1 8 2.5-3.6 2.5-8 2.5-8-1.1-8-2.5z" />
+    <path d="M4 6.5v11c0 1.4 3.6 2.5 8 2.5s8-1.1 8-2.5v-11" />
+    <path d="M4 12c0 1.4 3.6 2.5 8 2.5s8-1.1 8-2.5" />
+  </symbol>
+
+  {# Trabajos programados: si la noche corrió de verdad. #}
+  <symbol id="i-trabajos" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="8.5" />
+    <path d="M12 7v5l3.5 2" />
+  </symbol>
+
+  {% comment %}
+    Mi trabajo: la portada del rail.
+
+    **No reusa `i-bandeja`, aunque las dos pantallas hablen de lo pendiente**, y es justo por eso:
+    con el mismo dibujo, «Mi trabajo» arriba y «Lo mío» en coordinación serían dos filas idénticas
+    a 64 px, que es cuando el icono es lo único que queda. La bandeja es una bandeja de entrada; esto
+    son tres cosas hechas y una por hacer, que es lo que la pantalla enseña.
+  {% endcomment %}
+  <symbol id="i-mi-trabajo" viewBox="0 0 24 24">
+    <path d="M3.5 6.5l2 2 3-3.5M3.5 12.5l2 2 3-3.5" />
+    <path d="M12 6.5h8.5M12 12.5h8.5" />
+    <path d="M3.5 18.5h5M12 18.5h8.5" />
+  </symbol>
+
+  {# Cómo se usa: el recorrido de `F11.7`, al pie del rail. #}
+  <symbol id="i-ayuda" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="8.5" />
+    <path d="M9.5 9.5a2.5 2.5 0 1 1 3.4 2.3c-.6.3-.9.8-.9 1.4v.6" />
+    <path d="M12 17h.01" />
+  </symbol>
+</svg>

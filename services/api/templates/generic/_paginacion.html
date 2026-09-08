@@ -1,0 +1,37 @@
+{% load i18n %}
+{% comment %}
+  Los controles de paginacion, compartidos por los cuatro listados.
+
+  **Existen porque faltaban y eso truncaba en silencio.** Las vistas declaraban
+  `paginate_by = 50` y ninguna plantilla dibujaba los enlaces, asi que a partir de la fila
+  cincuenta el resto del registro era inalcanzable sin escribir `?page=2` a mano. Un
+  registro documental que no puede llegar a sus propias filas no es un registro.
+
+  Conserva los filtros al cambiar de pagina: sin eso, pasar de pagina desde "solo mias"
+  devuelve la lista entera y parece que el filtro no funciona.
+{% endcomment %}
+{% if is_paginated %}
+  <nav class="paginacion" aria-label="{% translate 'Pages' %}">
+    {% if page_obj.has_previous %}
+      <a href="?{% if filtros %}{{ filtros }}&amp;{% endif %}page={{ page_obj.previous_page_number }}">
+        ‹ {% translate "Previous" %}
+      </a>
+    {% else %}
+      <span class="inactivo">‹ {% translate "Previous" %}</span>
+    {% endif %}
+
+    <span>
+      {% blocktranslate with actual=page_obj.number total=page_obj.paginator.num_pages n=page_obj.paginator.count %}
+        Page {{ actual }} of {{ total }} · {{ n }} rows
+      {% endblocktranslate %}
+    </span>
+
+    {% if page_obj.has_next %}
+      <a href="?{% if filtros %}{{ filtros }}&amp;{% endif %}page={{ page_obj.next_page_number }}">
+        {% translate "Next" %} ›
+      </a>
+    {% else %}
+      <span class="inactivo">{% translate "Next" %} ›</span>
+    {% endif %}
+  </nav>
+{% endif %}

@@ -1,0 +1,62 @@
+ISO-10303-21;
+HEADER;
+FILE_DESCRIPTION(('ViewDefinition [CoordinationView]'),'2;1');
+FILE_NAME('muro-en-utm.ifc','2026-09-03T00:00:00',('AeroBim'),('AeroBim'),'AeroBim fixture','AeroBim','');
+FILE_SCHEMA(('IFC2X3'));
+ENDSEC;
+DATA;
+/* El mismo muro que `muro-minimo.ifc`, pero SITUADO EN COORDENADAS UTM ABSOLUTAS.
+
+   Existe para contestar una pregunta que hay que tener contestada ANTES de que llegue el
+   modelo de una obra: si un IFC viene con el emplazamiento metido en las coordenadas —en vez
+   de en local con un `IfcMapConversion`, que es lo correcto— ¿pierde precision el visor?
+
+   La nube del proyecto ya demostro que un `Float32Array` pierde 115 mm en la coordenada norte
+   de un UTM chileno. La geometria del modelo va por otro camino —Fragments— y la respuesta
+   podria ser distinta, asi que se mide en vez de suponerla.
+
+   El emplazamiento es el del levantamiento del CC 741 - Camino Agricola, en milimetros
+   porque las unidades del archivo son MILLI:
+     E 349.723.696 mm = 349.723,696 m
+     N 6.292.883.878 mm = 6.292.883,878 m
+     H 561.466 mm = 561,466 m
+
+   Muchos exportadores hacen justo esto, y por eso no es un caso rebuscado. */
+#1= IFCPERSON($,'AeroBim',$,$,$,$,$,$);
+#2= IFCORGANIZATION($,'AeroBim',$,$,$);
+#3= IFCPERSONANDORGANIZATION(#1,#2,$);
+#4= IFCAPPLICATION(#2,'0.1.0','AeroBim','AEROBIM');
+#5= IFCOWNERHISTORY(#3,#4,$,.ADDED.,$,$,$,0);
+#10= IFCCARTESIANPOINT((0.,0.,0.));
+#11= IFCDIRECTION((0.,0.,1.));
+#12= IFCDIRECTION((1.,0.,0.));
+#13= IFCAXIS2PLACEMENT3D(#10,#11,#12);
+#20= IFCSIUNIT(*,.LENGTHUNIT.,.MILLI.,.METRE.);
+#21= IFCSIUNIT(*,.AREAUNIT.,$,.SQUARE_METRE.);
+#22= IFCSIUNIT(*,.VOLUMEUNIT.,$,.CUBIC_METRE.);
+#23= IFCUNITASSIGNMENT((#20,#21,#22));
+#30= IFCGEOMETRICREPRESENTATIONCONTEXT($,'Model',3,1.E-05,#13,$);
+#40= IFCPROJECT('0PROJUTM00000000000000',#5,'Muro en UTM',$,$,$,$,(#30),#23);
+#50= IFCLOCALPLACEMENT($,#13);
+#41= IFCSITE('0SITEUTM00000000000000',#5,'Camino Agricola',$,$,#50,$,$,.ELEMENT.,$,$,$,$,$);
+#51= IFCLOCALPLACEMENT(#50,#13);
+#42= IFCBUILDING('0BLDGUTM00000000000000',#5,'Pasarela',$,$,#51,$,$,.ELEMENT.,$,$,$);
+#52= IFCLOCALPLACEMENT(#51,#13);
+#43= IFCBUILDINGSTOREY('0STRYUTM00000000000000',#5,'Nivel 0',$,$,#52,$,$,.ELEMENT.,0.);
+/* Aqui esta lo que este fixture prueba: el muro se coloca en coordenadas UTM absolutas. */
+#54= IFCCARTESIANPOINT((349723696.,6292883878.,561466.));
+#55= IFCAXIS2PLACEMENT3D(#54,#11,#12);
+#53= IFCLOCALPLACEMENT(#52,#55);
+#60= IFCCARTESIANPOINT((0.,0.));
+#61= IFCAXIS2PLACEMENT2D(#60,$);
+#62= IFCRECTANGLEPROFILEDEF(.AREA.,'Muro',#61,4000.,200.);
+#63= IFCEXTRUDEDAREASOLID(#62,#13,#11,3000.);
+#64= IFCSHAPEREPRESENTATION(#30,'Body','SweptSolid',(#63));
+#65= IFCPRODUCTDEFINITIONSHAPE($,$,(#64));
+#70= IFCWALLSTANDARDCASE('0WALLUTM00000000000000',#5,'Muro en UTM',$,$,#53,#65,$);
+#80= IFCRELAGGREGATES('0AGGUTM100000000000000',#5,$,$,#40,(#41));
+#81= IFCRELAGGREGATES('0AGGUTM200000000000000',#5,$,$,#41,(#42));
+#82= IFCRELAGGREGATES('0AGGUTM300000000000000',#5,$,$,#42,(#43));
+#83= IFCRELCONTAINEDINSPATIALSTRUCTURE('0CONTUTM00000000000000',#5,$,$,(#70),#43);
+ENDSEC;
+END-ISO-10303-21;

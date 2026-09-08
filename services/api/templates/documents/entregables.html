@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block titulo %}{% translate "Deliverables" %} · AeroBim{% endblock %}
+
+{% block titulo_pagina %}<h1>{% translate "Deliverables" %}</h1>{% endblock %}
+
+{% block subtitulo %}
+<p class="subtitulo">
+  {% blocktranslate %}The register: what has to be delivered, who owns it and how far along it
+  is.{% endblocktranslate %}
+  <a href="?mios=1">{% translate "Only mine" %}</a> ·
+  <a href="{% url 'documents:entregables' %}">{% translate "All" %}</a>
+  {% if perms.documents.add_entregable %}
+    · <a href="{% url 'documents:nuevo-entregable' %}">{% translate "New deliverable" %}</a>
+  {% endif %}
+</p>
+{% endblock %}
+
+{% block contenido %}
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">{% translate "Code" %}</th>
+        <th scope="col">{% translate "Title" %}</th>
+        <th scope="col">{% translate "Discipline" %}</th>
+        <th scope="col">{% translate "Owner" %}</th>
+        <th scope="col">{% translate "Current revision" %}</th>
+        <th scope="col">{% translate "Suitability" %}</th>
+        <th scope="col">{% translate "Progress" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for entregable in entregables %}
+        <tr>
+          <td><a href="{% url 'documents:expediente' entregable.pk %}">{{ entregable.codigo }}</a></td>
+          <td>{{ entregable.titulo }}</td>
+          <td>{{ entregable.disciplina.codigo }}</td>
+          <td>{{ entregable.responsable }}</td>
+          <td>{{ entregable.revision_vigente.correlativo|default:"—" }}</td>
+          <td>{{ entregable.revision_vigente.idoneidad|default:"—" }}</td>
+          {# El avance sale del codigo de idoneidad, no de un numero teclado. #}
+          <td>{{ entregable.avance|floatformat:"-2" }}</td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="7">{% translate "No deliverable registered yet." %}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% include "generic/_paginacion.html" %}
+{% endblock %}

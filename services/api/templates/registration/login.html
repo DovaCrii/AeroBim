@@ -1,0 +1,140 @@
+{% load static i18n %}
+<!doctype html>
+<html lang="{{ LANGUAGE_CODE|default:'es' }}">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% translate "Sign in" %} · AeroBim</title>
+    <link rel="icon" type="image/svg+xml" href="{% static 'img/aerobim-mark.svg' %}" />
+    {% comment %}
+      **Usa el CSS del producto, y desde el 2026-09-07.** Tenia un `<style>` propio con diez tokens
+      `--login-*` que eran los mismos hexadecimales que los `--ab-*`. El motivo escrito era que esta
+      pantalla «no tiene que depender de que el resto de la hoja de estilos cargue bien», y no se
+      sostiene: si `app.css` no carga, todas las demas pantallas estan rotas tambien.
+
+      Lo que si costaba, medido: **los campos seguian con un contorno de 1,24:1** —el arreglo de
+      WCAG 1.4.11 del paso 1 no llego a la primera pantalla que alguien ve— y **el tema elegido se
+      ignoraba**, porque seguia `prefers-color-scheme` y no leia `data-theme`. Lo que es de esta
+      pantalla vive en `app.css`, en la seccion «La puerta».
+
+      Y va con `{% templatetag openblock %} comment {% templatetag closeblock %}` y no con la marca
+      de una linea: esa **solo comenta una linea**, asi que un comentario de varias se imprime en la
+      pagina. Se vio al abrirla.
+    {% endcomment %}
+    <link rel="stylesheet" href="{% static 'css/app.css' %}" />
+    {% comment %}
+      El tema, antes de pintar: es la misma clave que el resto del portal
+      (`localStorage["aerobim:tema"]`), asi que quien elige el claro entra en claro. Puesto despues
+      del contenido se veria un destello del tema equivocado en cada carga.
+    {% endcomment %}
+    <script src="{% static 'js/tema.js' %}"></script>
+  </head>
+  <body class="puerta">
+    <div class="portada">
+      <form class="tarjeta" method="post">
+      {% csrf_token %}
+      {% comment %}
+        La marca en sus dos versiones y una escondida según el tema: **la del sistema no se puede
+        elegir desde CSS cambiando el `src`**, así que van las dos y sobra la que no toca. Son
+        cinco kilobytes entre las dos.
+
+        La oscura tiene los rellenos transparentes porque el `#1B2A4A` del dibujo es el mismo color
+        que las superficies oscuras del producto; la clara es la original, que sobre blanco se lee
+        entera.
+      {% endcomment %}
+      <img class="marca solo-claro" src="{% static 'img/aerobim-mark.svg' %}" alt="" />
+      <img class="marca solo-oscuro" src="{% static 'img/aerobim-mark-oscuro.svg' %}" alt="" />
+      {% comment %}
+        **Decia «AeroBim», debajo del dibujo de la marca.** Repetia el nombre que ya esta ahi
+        dibujado y no contestaba lo unico que hace falta saber en esta pantalla: que se hace aqui.
+      {% endcomment %}
+      <h1>{% translate "Sign in to your work" %}</h1>
+      <p class="sub">{% translate "Model, plans and document control." %}</p>
+
+      {% if form.errors %}
+        {% comment %}
+          **Un solo mensaje, y generico.** Distinguir "no existe ese usuario" de
+          "la contraseña no es esa" le regala la mitad del trabajo a quien prueba
+          credenciales: con el primer mensaje ya sabe que nombres existen.
+
+          Y va con `{% comment %}`: era un `{# #}` de varias líneas, así que este texto se imprimía
+          encima del mensaje de error — justo en la pantalla que ve alguien que falla al entrar.
+        {% endcomment %}
+        <div class="error">{% translate "Invalid username or password. Try again." %}</div>
+      {% endif %}
+
+      <label for="{{ form.username.id_for_label }}">{% translate "Username" %}</label>
+      <input
+        type="text"
+        name="{{ form.username.html_name }}"
+        id="{{ form.username.id_for_label }}"
+        autocomplete="username"
+        autofocus
+        required
+      />
+
+      <label for="{{ form.password.id_for_label }}">{% translate "Password" %}</label>
+      <input
+        type="password"
+        name="{{ form.password.html_name }}"
+        id="{{ form.password.id_for_label }}"
+        autocomplete="current-password"
+        required
+      />
+
+      <button type="submit">{% translate "Sign in" %}</button>
+      {% if next %}<input type="hidden" name="next" value="{{ next }}" />{% endif %}
+
+      <p class="pie">
+        {% translate "There is no self sign-up: an administrator creates the accounts." %}
+      </p>
+      </form>
+
+      {% comment %}
+        **La otra mitad de la portada: para qué sirve esto y quién lo usa.**
+
+        Tres cosas y no una lista de funciones, y cada una empieza por un verbo: lo que se recuerda
+        de una herramienta es lo que te deja hacer. Son las tres que el producto ya sabe hacer de
+        punta a punta —abrir el modelo, cruzarlo y sacarlo en papel—, así que ninguna promete nada
+        que no esté.
+      {% endcomment %}
+      <div class="presenta">
+        <h2>{% blocktranslate %}The model, the drawings and the site <em>on one screen</em>.{% endblocktranslate %}</h2>
+        <p>
+          {% blocktranslate %}Nothing to install, and the project does not go up to anybody's
+          cloud: the models open in the browser and the files stay in the house.{% endblocktranslate %}
+        </p>
+        <ul>
+          <li>
+            <span class="punto">1</span>
+            <span>
+              <b>{% translate "Open the model from its own record" %}</b>
+              <span>{% translate "The IFC and the DXF already in the register, one click and no hunting for the file." %}</span>
+            </span>
+          </li>
+          <li>
+            <span class="punto">2</span>
+            <span>
+              <b>{% translate "Cross the disciplines and hand out what clashes" %}</b>
+              <span>{% translate "Neighbouring conflicts arrive as one problem, not as thirty-five rows." %}</span>
+            </span>
+          </li>
+          <li>
+            <span class="punto">3</span>
+            <span>
+              <b>{% translate "Take it out on paper or as BCF" %}</b>
+              <span>{% translate "A report on the company letterhead, or the file the client's software opens." %}</span>
+            </span>
+          </li>
+        </ul>
+
+        <p class="animo">
+          {% blocktranslate %}<b>We built this for the team.</b> Every finding you write down saves
+          somebody a trip to site, and every model you upload saves half a morning for whoever comes
+          next. Thanks for using it — and if something gets in the way, say so: it gets
+          fixed.{% endblocktranslate %}
+        </p>
+      </div>
+    </div>
+  </body>
+</html>

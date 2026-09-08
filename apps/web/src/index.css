@@ -1,0 +1,434 @@
+@import "tailwindcss";
+
+/*
+ * **Los tokens del visor. `F9.1`.**
+ *
+ * La tabla normativa —qué color es cada papel, y con qué ratio de contraste— vive en
+ * `docs/DESIGN_SYSTEM.md`. Este archivo es su **implementación** para el visor, y de momento la
+ * única: el portal (`services/api/static/css/app.css`) sigue con sus propios `--ab-*` hasta que
+ * estos se prueben en pantalla. Mientras eso pase, los mismos hexadecimales viven en dos archivos,
+ * y es una duplicación con fecha de caducidad, no una decisión.
+ *
+ * **Van literales y no como `var(--ab-*)`.** El modificador de opacidad de Tailwind —`bg-brand/25`,
+ * que usa el botón encendido de la cinta— necesita un color resuelto dentro de `@theme`; con una
+ * indirección por `var()` queda a merced de `color-mix()`. Literal es aburrido y funciona.
+ *
+ * **Y los ratios no se copian a mano: se comprueban.** `packages/bim-core/src/color/contraste.ts`
+ * implementa la fórmula de WCAG 2.1 y su prueba **lee este archivo**, así que bajar un color por
+ * debajo del mínimo falla el gate en vez de descubrirse en una auditoría.
+ */
+@theme {
+  /*
+   * ── Superficies ────────────────────────────────────────────────────────────────
+   *
+   * Opacas y con nombre, en vez de blanco translúcido sobre lo que haya debajo. Entre un plano y
+   * el siguiente hay 1,1:1, y es deliberado: **los planos se separan con borde y sombra, no con
+   * luminancia**, porque no compiten por atención — solo se ordenan.
+   */
+  --color-shell: #101725; /* el hueco alrededor del lienzo */
+  --color-surface: #18202f; /* paneles, barras, tarjetas */
+  --color-surface-2: #202939; /* elevado: popover, fila activa, cabecera */
+  --color-surface-3: #2a3446; /* hover y campos de texto */
+  --color-borde: #2e3a4e; /* separa bloques del mismo plano */
+  --color-borde-campo: #71809c; /* contorno de campo — 4,1:1, lo pide WCAG 1.4.11 */
+  --color-track: #2a3446; /* el fondo de una barra de avance */
+
+  /*
+   * ── Texto ──────────────────────────────────────────────────────────────────────
+   *
+   * Tres niveles, y **el más apagado sigue pasando AA**. Sustituyen a los veinte pasos de
+   * `white/NN`, donde el jerárquico se conseguía bajando la opacidad hasta que el texto dejaba de
+   * leerse: `text-white/30` daba 2,67:1 sobre el fondo de un panel.
+   *
+   * Se llaman `fg` y no `text` porque la utilidad de Tailwind saldría `text-text-2`, que no se
+   * puede leer. Es un nombre de utilidad; en el sistema son `--ab-text`, `-2` y `-3`.
+   */
+  --color-fg: #eef2f8; /* 14,5:1 sobre --color-surface */
+  --color-fg-2: #b6c1d2; /* 9,0:1 */
+  --color-fg-3: #93a0b4; /* 6,2:1 — el más apagado que se admite */
+
+  /*
+   * ── La marca deja de ser el color de acción ────────────────────────────────────
+   *
+   * **El violeta de marca pinta; el violeta de acción se lee.** Es la regla que `app.css` ya tenía
+   * escrita y que el visor nunca aplicó, y acá hay una razón propia: `SELECTION_COLOR` en
+   * `packages/viewer/src/index.ts` es este mismo `0x9b5de5`, así que con el chrome en violeta el
+   * elemento seleccionado compite con los rótulos que lo rodean. Es el mismo razonamiento que ya
+   * llevó el marcador de ajuste al amarillo.
+   *
+   * `--color-brand` solo rellena: el logo, una barra de acento, un icono decorativo, la selección
+   * en la escena. **Nunca texto** — da 3,96:1, y eso no es una preferencia.
+   */
+  --color-brand: #9b5de5;
+  --color-action: #7a3fce; /* relleno del botón primario — blanco encima, 6,1:1 */
+  --color-action-hover: #8b52dd; /* blanco encima, 4,8:1 */
+  --color-action-press: #6b34bd;
+  /*
+   * **El texto que va encima de la acción, y es el único color que NO cambia con el tema.**
+   *
+   * Los tres comentarios de arriba dicen «blanco encima» y el del tema claro también —«blanco
+   * encima, 8,3:1»—, y aun así los doce botones primarios del visor llevaban `text-fg`, que sí
+   * cambia: en claro pasa a `#172238`. Medido en el navegador el día que se implementó la puerta de
+   * entrada: **1,92:1**, o sea negro sobre violeta oscuro. Los doce, incluido «Abrir» de la barra.
+   *
+   * No da error, no lo cazaba ningún gate —el gate medía los textos contra las *superficies*, y la
+   * acción es un relleno, no una superficie— y en oscuro se ve perfecto, que es donde se mira.
+   *
+   * El relleno es oscuro en los dos temas porque **es la marca y la marca no se aclara**, así que
+   * su texto tampoco puede aclararse ni oscurecerse: es el mismo. 6,1:1 en oscuro y 8,3:1 en claro.
+   *
+   * **Y es blanco puro, no el `#eef2f8` de `--color-fg`.** Ese fue el primer valor y el gate lo
+   * tumbó: da **4,30:1 sobre `--color-action-hover`**, o sea que el botón dejaba de pasar AA justo
+   * mientras el ratón está encima. El blanco da 4,8 ahí y es lo que los tres comentarios de arriba
+   * decían desde el principio. Es el único blanco puro del sistema, y se gasta aquí porque el
+   * relleno de al lado no admite nada más flojo.
+   */
+  --color-sobre-accion: #ffffff;
+  --color-accent: #c3a6f0; /* 7,8:1 — enlaces, iconos activos, y el anillo de foco */
+  --color-accent-hover: #d5c2f6;
+
+  /*
+   * ── Estado, y siempre con texto al lado ────────────────────────────────────────
+   *
+   * Cuatro, en vez de los `red-400`, `rose-300`, `amber-200/80`, `amber-300` y `emerald-300` de
+   * Tailwind que convivían sin criterio. **Nunca solos**: uno de cada doce hombres no distingue
+   * rojo de verde, que es el argumento que la píldora del portal ya tiene escrito.
+   */
+  --color-ok: #5fd3ae; /* 8,9:1 */
+  --color-warn: #f0b45e; /* 8,9:1 */
+  --color-danger: #f08a97; /* 6,8:1 */
+
+  /*
+   * ── Deshabilitado, y la tinta del lienzo ───────────────────────────────────────
+   */
+  --color-apagado: #232c3d; /* fondo de un control deshabilitado */
+  --color-apagado-fg: #6b7689; /* 3,6:1 — no pasa AA a propósito, pero se lee */
+
+  /*
+   * **`--color-ink` hacía dos trabajos y ahora hace uno.** Era el fondo de los paneles
+   * (`bg-ink/40`, `bg-ink/50`) **y** el azul de la familia; el sistema de diseño lo quiere como
+   * la tinta que se dibuja **sobre** el lienzo —la línea de una cota, la burbuja de un eje—, que
+   * no es chrome y por eso no vive en la escala oscura. Los paneles pasaron a `bg-surface`, que
+   * es lo que son.
+   */
+  --color-ink: #1b2a4a; /* 11,5:1 sobre el cielo del lienzo #dfe8f5 */
+
+  /*
+   * ── La escala tipográfica. `F9.2`. ─────────────────────────────────────────────
+   *
+   * **Había un `html { font-size: 110% }` y dos tokens por debajo de 11 px.** El zoom de la raíz
+   * compensaba una escala mal calibrada: `--text-micro` medía 9,9 px reales y `--text-nota` 10,9.
+   *
+   * Ahora la raíz vuelve a los 16 px de fábrica —o sea que respeta a quien haya cambiado el tamaño
+   * de letra de su navegador, que era la mitad buena de aquel 110%— y la escala se **mapea** en vez
+   * de borrarse, con los píxeles del sistema de diseño:
+   *
+   * | Token          | Antes (raíz 17,6) | Ahora (raíz 16)    |
+   * | -------------- | ----------------- | ------------------ |
+   * | `--text-micro` | 0,56rem = 9,9 px  | 0,6875rem = **11** |
+   * | `--text-nota`  | 0,62rem = 10,9    | 0,75rem = **12**   |
+   * | `--text-xs`    | 0,75rem = 13,2    | 0,8125rem = **13** |
+   * | `--text-sm`    | 0,875rem = 15,4   | 0,9375rem = **15** |
+   * | `--text-base`  | 1rem = 17,6       | 1,0625rem = **17** |
+   *
+   * **Ningún tamaño baja más de medio píxel** y los dos que estaban por debajo del suelo suben.
+   * Los nombres `nota` y `micro` se quedan: ya son semánticos y renombrarlos serían noventa y
+   * siete ediciones que no cambian un píxel.
+   */
+  --text-micro: 0.6875rem; /* 11 px — rótulo de grupo, en mayúsculas con tracking */
+  --text-nota: 0.75rem; /* 12 px — la nota al pie de un panel o de una sección */
+  --text-xs: 0.8125rem; /* 13 px — cuerpo de panel, filas de lista, tabla de psets */
+  --text-sm: 0.9375rem; /* 15 px — cualquier texto que se lea seguido */
+  --text-base: 1.0625rem; /* 17 px — título de tarjeta y de sección */
+
+  /*
+   * **Y la densidad no se paga por bajar la raíz.**
+   *
+   * Toda la escala de espaciado de Tailwind es un múltiplo de esta unidad, y está en `rem`: con la
+   * raíz en 110% medía 4,4 px, y volver a 16 la habría dejado en 4 — o sea la interfaz entera
+   * apretada un 10%, con la letra casi igual. Eso deshace la densidad que el usuario fijó midiendo
+   * en su pantalla: al tamaño de fábrica dijo que «pedía zoom para leerse», y al 120% que «se ve
+   * muy cerca».
+   *
+   * Subiendo la unidad un 10% sigue midiendo los mismos 4,4 px, así que padding, altos y huecos
+   * quedan **idénticos** a los de antes de esta pasada. Las dos cosas a la vez, no una a costa de
+   * la otra.
+   */
+  --spacing: 0.275rem;
+
+  /*
+   * ── Cifras y códigos ───────────────────────────────────────────────────────────
+   *
+   * Cotas, áreas, GUID y códigos ISO 19650 se leen en columna, así que van con cifras de ancho
+   * fijo. Sin `tabular-nums` un 1 ocupa menos que un 8 y la columna de una tabla de psets baila.
+   */
+  --font-mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+
+  /*
+   * ── Radio y elevación. `F9.5`. ─────────────────────────────────────────────────
+   *
+   * La escala del sistema de diseño, que es la del portal: `--ab-radius` ya valía 12 px allá y
+   * aquí no valía nada — el visor tenía cuatro radios de Tailwind sin criterio.
+   *
+   * **Los tres tamaños tienen su sitio**: 6 px para un control, 10 para una tarjeta o un popover,
+   * 12 para la tarjeta del portal. Los nombres son los de Tailwind para no traducir nada.
+   */
+  --radius-sm: 6px; /* controles: botón, campo, fila */
+  --radius-md: 10px; /* tarjetas y popovers */
+  --radius-lg: 12px; /* el radio del portal, para que la costura no se note */
+
+  /*
+   * **Las elevaciones son oscuras porque el visor lo es.** La sombra de fábrica de Tailwind está
+   * calculada para fondo claro —negro al 10%— y sobre un panel oscuro no se ve: la separación la
+   * hacía solo el borde.
+   *
+   * `--shadow-lg` **se deja como está** a propósito: lo usa la página del documento en
+   * `documento.tsx`, que es una hoja blanca sobre un fondo claro, y ahí una sombra oscura sería
+   * la equivocada.
+   */
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 30%); /* apenas despegado */
+  --shadow-md: 0 8px 24px -6px rgb(0 0 0 / 45%); /* popover, menú */
+  --shadow-xl: 0 20px 48px -12px rgb(0 0 0 / 60%); /* la tarjeta que flota sobre el modelo */
+
+  /*
+   * **El tamaño que faltaba: 24 px.**
+   *
+   * `DESIGN_SYSTEM.md` lo tenía en su tabla como `--fs-2xl` y **el código no lo tenía**, así que el
+   * único título grande del producto —el de la puerta de entrada del visor— no tenía token y habría
+   * que escribirlo a mano. Un tamaño escrito a mano es el primer paso para tener siete.
+   */
+  --text-lg: 1.5rem; /* 24 px — el título de la puerta, y nada más por ahora */
+
+  /*
+   * **El movimiento, que hasta hoy no estaba declarado en ninguna parte.**
+   *
+   * Había siete `transition-colors` sueltos —`Ribbon.tsx:238,771,814`, `Resizer.tsx:58`,
+   * `Coordinacion.tsx:331,352,384`— cada uno con la duración y la curva **de fábrica de Tailwind**.
+   * O sea que el producto tenía un movimiento, y no lo había elegido nadie.
+   *
+   * Tres duraciones, y la regla de cuál usar es lo que hace que no crezcan a siete:
+   *
+   * - **120 ms** para un cambio de color o de opacidad, que es la mayoría. Por debajo de 100 no se
+   *   percibe como transición y por encima de 150 se siente lento en algo que se pulsa treinta
+   *   veces.
+   * - **200 ms** para algo que se mueve o cambia de tamaño: un panel que se pliega, un acordeón.
+   * - **320 ms** solo para lo que entra o sale de la pantalla — una tarjeta que aparece.
+   *
+   * La curva es una sola a propósito: `cubic-bezier(0.2, 0, 0, 1)` arranca rápido y frena al final,
+   * que es lo que se lee como «responde». Tener dos curvas obliga a elegir en cada sitio, y esa
+   * elección no aporta nada aquí.
+   */
+  --ease-ab: cubic-bezier(0.2, 0, 0, 1);
+  --duracion-corta: 120ms; /* color, opacidad, borde */
+  --duracion-media: 200ms; /* mover, plegar, cambiar de tamaño */
+  --duracion-larga: 320ms; /* entrar o salir de la pantalla */
+}
+
+/*
+ * **Y quien pide menos movimiento no lo recibe.**
+ *
+ * `prefers-reduced-motion` no es una preferencia estética: la declara quien se marea con el
+ * movimiento en pantalla, y en un visor 3D —donde la cámara ya se mueve— eso importa más que en una
+ * página normal.
+ *
+ * Se apaga a `0.01ms` y no a `0`: con `0` algunos navegadores **no disparan el evento
+ * `transitionend`**, así que un código que espere el final de la transición se queda esperando para
+ * siempre. Es el truco de siempre y tiene su motivo.
+ *
+ * `!important` porque tiene que ganarle a cualquier utilidad de Tailwind escrita después.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/*
+ * **El área de toque mínima, y se paga con aire y no con densidad. `F9.4`.**
+ *
+ * Cuarenta y cuatro píxeles es lo que pide una revisión de accesibilidad para algo que se toca con
+ * el dedo, y aquí había veinte botones por debajo: los iconos de lista miden 14 px dentro de filas
+ * de 26. Agrandarlos habría hinchado la interfaz entera, que es justo lo que no se quiere.
+ *
+ * Así que el botón se queda del tamaño que se ve y **crece solo su zona sensible**, con un
+ * pseudoelemento centrado que no pinta nada. La densidad no cambia ni un píxel.
+ *
+ * **La regla se engancha a `aria-label` y eso es deliberado.** Un botón cuyo nombre accesible sale
+ * de un atributo en vez de un texto visible **es un botón de icono** — por eso necesita el
+ * atributo—, y un botón de icono es exactamente el que se queda pequeño. Así el que se escriba
+ * mañana lo hereda sin que nadie se acuerde, que es la única forma de que una regla así sobreviva.
+ */
+button[aria-label] {
+  position: relative;
+}
+
+button[aria-label]::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  width: 100%;
+  height: 100%;
+  min-width: 44px;
+  min-height: 44px;
+}
+
+/*
+ * **Y el precio del pseudoelemento, que se midió en el navegador antes de creerlo.**
+ *
+ * Un botón de 11 px pegado al borde derecho de un panel deja su zona sensible sobresaliendo unos
+ * píxeles, y eso **le daba barra de desplazamiento horizontal** a dos secciones del navegador: el
+ * árbol se pasaba 8 px y los modelos abiertos 3. Medido apagando el pseudoelemento y volviendo a
+ * medir: sin él, cero.
+ *
+ * Las listas que se desplazan llevan ahora `overflow-x-clip`. **El navegador lo computa como
+ * `hidden`**, y no es un error nuestro: la norma dice que `clip` junto a un eje que se desplaza se
+ * convierte en `hidden`. El efecto que se buscaba es el mismo — **ninguna barra horizontal
+ * aparece**, comprobado— y queda un residuo que conviene tener escrito: esos dos contenedores
+ * siguen admitiendo 8 y 3 px de desplazamiento **por código**, así que un gesto lateral muy
+ * decidido descubre unos píxeles de nada. No se ve, no se pierde contenido —el pseudoelemento no
+ * pinta— y perseguirlo costaría más complejidad de la que vale.
+ */
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background-color: var(--color-shell);
+  color: var(--color-fg);
+  font-family: system-ui, "Segoe UI", sans-serif;
+}
+
+/*
+ * **El anillo de foco, y es global. `F9.3`.**
+ *
+ * `apps/web/src` tenía **cero** coincidencias de `focus`: quien navega con el tabulador no sabía
+ * nunca dónde estaba. Es la misma regla que el portal ya tiene en `app.css`, con el color de
+ * acento —7,8:1 sobre la superficie de un panel— para que el anillo se vea sobre cualquier plano.
+ *
+ * Va en `:focus-visible` y no en `:focus` a propósito: así no aparece al hacer clic con el ratón,
+ * que es lo que hace que la gente lo quite.
+ */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Las cifras en columna, donde toque. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * ══ El tema claro ═══════════════════════════════════════════════════════════════
+ *
+ * `F12`, bloque 3. Es la columna «Claro» de `docs/DESIGN_SYSTEM.md`, que llevaba escrita desde el
+ * 2026-09-01 y **no estaba implementada en ninguna parte**: el visor solo tenía el oscuro.
+ *
+ * **Oscuro sigue siendo el de partida** —el lienzo es oscuro, y una interfaz clara alrededor de un
+ * modelo oscuro obliga a la pupila a adaptarse en cada mirada— y el claro está disponible porque
+ * hay oficinas con ventanal al sur. La decisión está en `docs/UX.md`, sección «Tema».
+ *
+ * ## Por qué va FUERA de `@theme` y no como un segundo bloque dentro
+ *
+ * Porque `@theme` es de Tailwind y **sus tokens se compilan a utilidades**: dos bloques `@theme` no
+ * son dos temas, son uno con el último valor de cada token. Fuera, `[data-theme="light"]` redefine
+ * la misma variable CSS que la utilidad ya generada consulta, así que `bg-surface` cambia de color
+ * sin recompilar nada.
+ *
+ * **Y eso hay que comprobarlo mirándolo, no darlo por hecho**: el modificador de opacidad
+ * —`bg-action/30`, que usa el botón encendido de la cinta— resuelve con `color-mix()` sobre el valor
+ * del token, y si Tailwind horneara el hexadecimal en la utilidad, el tema claro no lo tocaría. Se
+ * verifica en el navegador con `getComputedStyle`.
+ *
+ * ## La clave es la misma que el portal, y el atributo es el contrario
+ *
+ * `localStorage["aerobim:tema"]`, con los valores `"claro"` y `"oscuro"` — los del portal, en
+ * español, porque el portal llegó primero. Con dos claves distintas, cruzar del expediente al
+ * modelo cambiaría de tema a mitad de un gesto.
+ *
+ * **Aquí se marca `data-theme="light"` y en el portal `dark`**, y es coherente aunque parezca lo
+ * contrario: cada uno marca su excepción. El visor parte de oscuro, el portal de claro, y los dos
+ * leen la misma clave.
+ */
+[data-theme="light"] {
+  /* Superficies. Entre un plano y el siguiente hay 1,1:1, igual que en oscuro: los planos se
+     separan con borde y sombra, no con luminancia — no compiten por atención, solo se ordenan. */
+  --color-shell: #f4f7fb;
+  --color-surface: #ffffff;
+  --color-surface-2: #f8fafc;
+  --color-surface-3: #eef2f7;
+  --color-borde: #dbe3ee;
+  /*
+   * **`DESIGN_SYSTEM.md` decía `#b3bfd0` con «3,1:1 mínimo» y eso es falso: da 1,86:1** sobre
+   * blanco y 1,66 sobre el fondo de un campo. Medido con el mismo oráculo que el resto de la tabla,
+   * el día que se implementó el tema claro — o sea que el valor llevaba seis días normado y sin
+   * comprobar, porque el gate no medía el claro.
+   *
+   * Se usa el que el portal ya tiene medido desde el paso 1 del bloque 2: **3,45:1 sobre la
+   * superficie y 3,07 sobre el fondo del propio campo**, que es el par más exigente de los dos. Y
+   * que sea el mismo hexadecimal en las dos mitades no es casualidad: es la costura.
+   */
+  --color-borde-campo: #7f8b9e;
+  --color-track: #e6ecf4;
+
+  /* Texto: los tres pasan AA, y el más apagado da 5,1:1. */
+  --color-fg: #172238;
+  --color-fg-2: #4f5b72;
+  --color-fg-3: #626f85;
+
+  /* **La marca no cambia con el tema**, y por eso no está en esta lista: es la misma en las dos
+     mitades del producto y en los dos temas. Si se aclarara para «mejorar el contraste», deja de
+     ser la marca — y sigue sin poder llevar texto, aquí y allá. */
+  --color-action: #5b3a9e; /* blanco encima, 8,3:1 */
+  --color-action-hover: #472d7d;
+  --color-action-press: #3a2466;
+
+  /* **En claro, acento y acción son el mismo violeta**, y no es un descuido. En oscuro el acento es
+     claro para leerse sobre un panel oscuro; aquí hace falta lo contrario. Un enlace y un botón
+     primario del mismo tono en tema claro es lo normal: el botón se distingue por su relleno. */
+  --color-accent: #5b3a9e;
+  --color-accent-hover: #472d7d;
+
+  /* Estado. Los cuatro pasan AA sobre blanco, y siguen yendo con su palabra al lado. */
+  --color-ok: #0f7a5f;
+  --color-warn: #8a5a12;
+  --color-danger: #c53b4d;
+
+  --color-apagado: #eef2f7;
+  /*
+   * **3,64:1, y la primera versión daba 2,99.**
+   *
+   * WCAG exime lo deshabilitado, así que ninguno de los dos «falla» — pero el token oscuro da 3,6
+   * a propósito, con la regla escrita de que **lo apagado no pasa AA y sí se lee**, y 2,99 en claro
+   * no era la misma decisión: era el valor de la tabla sin comprobar.
+   *
+   * Se vio midiendo la pantalla con el tema claro puesto: los treinta y seis botones de la cinta
+   * salían a 2,99:1 —están deshabilitados con la escena vacía— y eran lo peor de la pantalla por
+   * mucho. Todo lo demás daba 5,08:1 o mejor.
+   *
+   * 3,64 sobre la superficie y 3,23 sobre el fondo del propio control deshabilitado.
+   */
+  --color-apagado-fg: #7c8798;
+
+  /*
+   * **Y las sombras cambian de color, que es lo que se olvida.**
+   *
+   * Las de `@theme` son negro al 30–60 %, calculadas para fondo oscuro. Sobre blanco, negro al 45 %
+   * es una mancha: una sombra de fondo claro es negro al 8–18 %. Es el mismo error que `--ab-shadow`
+   * tenía en el portal y que `F9.5` arregló allí.
+   */
+  --shadow-sm: 0 1px 2px rgb(18 34 59 / 8%);
+  --shadow-md: 0 8px 24px -6px rgb(18 34 59 / 12%);
+  --shadow-xl: 0 20px 48px -12px rgb(18 34 59 / 18%);
+}

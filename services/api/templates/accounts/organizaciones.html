@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block titulo %}{% translate "Organisations" %} · AeroBim{% endblock %}
+
+{% block titulo_pagina %}<h1>{% translate "Organisations" %}</h1>{% endblock %}
+
+{% block subtitulo %}
+<p class="subtitulo">
+  {% blocktranslate %}Who the project data belongs to. Every query is scoped by this.
+  {% endblocktranslate %}
+</p>
+{% endblock %}
+
+{% block contenido %}
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">{% translate "Name" %}</th>
+        <th scope="col">{% translate "Slug" %}</th>
+        <th scope="col">{% translate "Members" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for organizacion in organizaciones %}
+        <tr>
+          <td>{{ organizacion.nombre }}</td>
+          <td>{{ organizacion.slug }}</td>
+          <td>{{ organizacion.miembros.count }}</td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="3">{% translate "No organisation created yet." %}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

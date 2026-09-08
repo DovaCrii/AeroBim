@@ -1,0 +1,175 @@
+{% load static i18n %}
+<!doctype html>
+<html lang="{{ LANGUAGE_CODE|default:'es' }}">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block titulo %}AeroBim{% endblock %}</title>
+    {% comment %}
+      **El portal no tenía icono de pestaña**, y el visor sí desde el primer día: con cuatro
+      pestañas abiertas —el expediente, el tablero, una observación y el modelo— la única que se
+      reconocía era la del visor. Es el mismo archivo de marca, y una prueba comprueba que las dos
+      copias no se separen.
+    {% endcomment %}
+    <link rel="icon" type="image/svg+xml" href="{% static 'img/aerobim-mark.svg' %}" />
+    <link rel="stylesheet" href="{% static 'css/app.css' %}" />
+    {% comment %}
+      **El tema se aplica antes de pintar, y por eso está acá y no al final.** Puesto después del
+      contenido se ve un destello blanco en cada carga antes de que el oscuro entre: es el fallo
+      clásico y se nota en cada clic.
+
+      Va en `localStorage` y no en una cookie ni en el perfil: es una preferencia **de este
+      equipo** —la pantalla del taller y el portátil de casa no se miran igual— y guardarla en el
+      servidor la impondría en los dos.
+
+      Y en `try/catch` porque un navegador con el almacenamiento bloqueado lanza al *leer*, no al
+      escribir: sin la guarda, la página entera se queda sin pintar por una preferencia.
+    {% endcomment %}
+    <script src="{% static 'js/tema.js' %}"></script>
+    {% comment %}
+      **Los filtros que se aplican al cambiar el desplegable.** Va aquí y no en `observaciones.html`
+      porque la CSP prohíbe el JavaScript en línea y una plantilla no puede añadir un `<script>` a
+      la cabecera; y con `defer` no bloquea el pintado. Escucha en `document`, así que sirve para
+      cualquier pantalla que marque un control con `data-envia-al-cambiar` — y como es un solo
+      oyente, no cuesta nada en las que no lo usan.
+    {% endcomment %}
+    <script src="{% static 'js/filtros.js' %}" defer></script>
+  </head>
+  <body>
+    <a class="salto" href="#contenido">{% translate "Skip to content" %}</a>
+    <header class="barra">
+      {% comment %}
+        **La marca, que en el portal era solo la palabra.** El visor lleva el dibujo en su cinta
+        desde el primer día, así que quien cruzaba del expediente al modelo veía aparecer un logo
+        que en la pantalla anterior no estaba.
+
+        `alt=""` a propósito: el nombre va escrito al lado en texto, así que un lector de pantalla
+        que lea las dos cosas diría «AeroBim AeroBim». El dibujo es decoración de lo que ya se dice.
+      {% endcomment %}
+      <a class="marca" href="/">
+        {% comment %}
+          **La variante oscura, y sin placa.** La barra es navy en los dos temas, así que aquí va
+          siempre el dibujo de trazo claro: `aerobim-mark-oscuro.svg` deja los rellenos
+          transparentes —el `#1B2A4A` del original es el mismo color que esta barra— y lleva el
+          trazo en el acento, que da 6,79:1 en vez de 3,45:1.
+
+          La placa blanca que había antes se probó y se quitó: era un parche que no pertenecía a la
+          paleta, y se vio mirándolo en la pantalla.
+
+          Y va con `{% comment %}` y no con `{# #}`: **el de las llaves es de una sola línea**, y
+          uno de varias se imprime tal cual en la cabecera. Se vio en la pantalla.
+        {% endcomment %}
+        <img src="{% static 'img/aerobim-mark-oscuro.svg' %}" alt="" width="36" height="27" />
+        AeroBim
+      </a>
+      <span class="separador"></span>
+      {% comment %}
+        El interruptor de tema. **Los tokens oscuros existían en `app.css` desde el primer día y
+        eran inalcanzables**: nada ponía nunca `data-theme`, así que había un tema oscuro escrito
+        que no se podía ver. El texto del botón y su nombre accesible los pone `tema.js`, porque
+        dependen del estado y el servidor no lo sabe.
+      {% endcomment %}
+      <button
+        type="button"
+        class="tema"
+        data-a-oscuro="{% translate 'Switch to the dark theme' %}"
+        data-a-claro="{% translate 'Switch to the light theme' %}"
+      >
+        ☾
+      </button>
+      {% if user.is_authenticated %}
+        <span>{{ user.get_username }}</span>
+        {% comment %}
+          **La ayuda va en la barra y no solo en el portal.** `F11.7`: se busca desde la pantalla en
+          la que uno se ha atascado, no volviendo a la puerta — y en la barra está en todas.
+        {% endcomment %}
+        <a href="{% url 'accounts:ayuda' %}">{% translate "Help" %}</a>
+        <a href="{% url 'password_change' %}">{% translate "Change password" %}</a>
+        <form method="post" action="{% url 'logout' %}" style="display: inline">
+          {% csrf_token %}
+          <button type="submit">{% translate "Sign out" %}</button>
+        </form>
+      {% else %}
+        <a href="{% url 'login' %}">{% translate "Sign in" %}</a>
+      {% endif %}
+    </header>
+
+    {% comment %}
+      **El sprite de iconos sube del portal a la base.** Vivía en `portal.html`, que era el único
+      sitio que usaba iconos; ahora los usa el rail, que está en todas las páginas. Va antes del
+      marco porque `<use href="#...">` solo encuentra un símbolo que ya esté en el documento.
+    {% endcomment %}
+    {% include "generic/_iconos.html" %}
+
+    {% comment %}
+      **El marco: rail y contenido, en una rejilla de dos columnas.**
+
+      El rail solo existe con sesión: sin ella, `grupos_de_navegacion` viene vacío y una columna de
+      248 px de nada al lado del formulario de entrada sería peor que no tenerla. La clase del marco
+      cambia con ello para que el `grid-template-columns` no reserve el hueco.
+    {% endcomment %}
+    <div class="marco{% if not user.is_authenticated %} marco-sin-rail{% endif %}">
+      {% if user.is_authenticated %}{% include "generic/_rail.html" %}{% endif %}
+
+    <main id="contenido">
+      {% comment %}
+        **El nivel del mensaje se pinta**, y hasta hoy no: `.aviso` era rojo para todo, así que un
+        «Importado: 1 tema nuevo» se veía igual que un fallo. `mensaje.tags` trae `success`,
+        `warning` o `error` y el CSS los distingue.
+
+        Y `role` según el nivel: un error interrumpe al lector de pantalla —`alert`—, y un éxito se
+        anuncia sin interrumpir —`status`—. Anunciar los dos igual convierte cada confirmación en
+        una alarma.
+      {% endcomment %}
+      {% if messages %}
+        {% for mensaje in messages %}
+          <div class="aviso {{ mensaje.tags }}"
+               role="{% if mensaje.level >= 40 %}alert{% else %}status{% endif %}">
+            {{ mensaje }}
+          </div>
+        {% endfor %}
+      {% endif %}
+      {% comment %}
+        **La cabecera de la pantalla, como bloques con defecto vacío.**
+
+        Hasta hoy `base.html` exponía **un solo bloque** (`contenido`), así que las treinta y tantas
+        plantillas repetían su propio `<h1>` y su subtítulo, cada una con su margen. Aquí quedan
+        declarados para que la pasada mecánica siguiente los pueda ir llenando **una a una**, sin
+        que las que todavía no se han tocado cambien: con el defecto vacío, una plantilla que aún
+        lleva su `<h1>` dentro de `contenido` se pinta exactamente igual que antes.
+
+        El bloque se llama `titulo_pagina` y no `titulo` porque **`titulo` ya existe** y es el
+        `<title>` de la pestaña. Dos bloques con el mismo nombre serían un error silencioso: el
+        segundo gana y el primero desaparece.
+
+        Y `cabecera` envuelve a los cuatro para que las dos pantallas de título compuesto —la ficha
+        de una observación y la de una obra, que llevan código y nombre en la misma línea— puedan
+        sobreescribirla entera en vez de pelearse con las piezas.
+
+        **El `{% templatetag openblock %} spaceless {% templatetag closeblock %}` no es cosmético:
+        es lo que hace que el defecto vacío no se vea.** Sin él la cabecera sin llenar sale como
+        `<header>` con saltos de línea dentro, o sea que `:empty` de CSS no la reconoce como vacía y
+        quedaría una franja de margen en blanco encima de cada una de las treinta plantillas que
+        todavía no se han tocado. Con él, `.cabecera-pagina:empty` la esconde del todo.
+
+        **Y tiene una consecuencia que hay que saber al escribir aquí dentro:** `spaceless` quita el
+        blanco **entre etiquetas**, así que dos `<span>` seguidos quedan pegados aunque en la
+        plantilla haya un espacio entre ellos. Lo que separe piezas de una línea tiene que venir del
+        CSS —`gap`, márgenes—, no del blanco del HTML. La cifra del día de la portada se escribió
+        dos veces por esto.
+      {% endcomment %}
+      {% block cabecera %}
+        {% spaceless %}
+          <header class="cabecera-pagina">
+            {% block migas %}{% endblock %}
+            {% block titulo_pagina %}{% endblock %}
+            {% block subtitulo %}{% endblock %}
+            {% block acciones %}{% endblock %}
+          </header>
+        {% endspaceless %}
+      {% endblock %}
+      {% block contenido %}{% endblock %}
+    </main>
+    </div>
+  </body>
+</html>

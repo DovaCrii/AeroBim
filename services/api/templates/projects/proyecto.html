@@ -1,0 +1,514 @@
+{% extends "base.html" %}
+{% load i18n disciplinas tiempo %}
+
+{% block titulo %}{{ proyecto.codigo }} · AeroBim{% endblock %}
+
+{% block titulo_pagina %}<h1>{{ proyecto.codigo }} · {{ proyecto.nombre }}</h1>{% endblock %}
+
+{% block subtitulo %}
+<p class="subtitulo">
+  {{ proyecto.get_status_display }}
+  {% if proyecto.cliente %} · {{ proyecto.cliente }}{% endif %}
+  · {% blocktranslate with avance=proyecto.avance_fisico|floatformat:"-2" %}Progress
+  {{ avance }}{% endblocktranslate %}
+  {% if puede_exportar_bcf %}
+    · <a href="{% url 'documents:exportar-bcf' proyecto.pk %}">{% translate "Export to BCF 2.1" %}</a>
+  {% endif %}
+</p>
+{% endblock %}
+
+{% block contenido %}
+  {% comment %}
+    **Esta pantalla contesta «¿dónde sigo?», no «qué hay».** El orden de los bloques es la
+    respuesta: primero lo que exige una decisión hoy, después el trabajo de coordinación, y al
+    final lo que se consulta. Un listado alfabético de doscientos entregables no dice nada.
+
+    Y el tablero va arriba porque es lo que se mira en tres segundos antes de decidir dónde entrar.
+    **Ninguno de estos gráficos usa una librería**: la rejilla del mes la genera el módulo
+    `calendar` de Python y las barras se posicionan con porcentajes que calcula `tablero.py`.
+  {% endcomment %}
+
+  {# --- Lo que se mira en tres segundos --------------------------------------------- #}
+  <div class="datos">
+    <div class="dato">
+      <div class="cifra">{{ dato_avance }}%</div>
+      <div class="rotulo">{% translate "Physical progress" %}</div>
+    </div>
+    <div class="dato {% if dato_altas %}alerta{% endif %}">
+      <div class="cifra">{{ dato_abiertas }}</div>
+      <div class="rotulo">
+        {% blocktranslate with altas=dato_altas %}Open observations · {{ altas }} high{% endblocktranslate %}
+      </div>
+    </div>
+    <div class="dato {% if dato_vencidas %}alerta{% else %}bien{% endif %}">
+      <div class="cifra">{{ dato_vencidas }}</div>
+      <div class="rotulo">{% translate "Past their due date" %}</div>
+    </div>
+    <div class="dato {% if dato_sin_revision %}alerta{% else %}bien{% endif %}">
+      <div class="cifra">{{ dato_sin_revision }}</div>
+      <div class="rotulo">{% translate "Deliverables with nothing issued" %}</div>
+    </div>
+  </div>
+
+  {# --- La línea de tiempo ---------------------------------------------------------- #}
+  <p class="grupo">{% translate "Timeline" %}</p>
+  {% if ventana %}
+    <div class="linea-tiempo">
+      <div class="escala">
+        {% for etiqueta, posicion in ventana.marcas %}
+          <span style="left: {{ posicion }}%">{{ etiqueta }}</span>
+        {% endfor %}
+      </div>
+      {% for tramo in tramos %}
+        <div class="fila">
+          <div class="nombre" title="{{ tramo.detalle }}">
+            <span class="pastilla" style="background: {{ tramo.color }}"></span>
+            {% if tramo.url %}<a href="{{ tramo.url }}">{{ tramo.etiqueta }}</a>
+            {% else %}{{ tramo.etiqueta }}{% endif %}
+          </div>
+          <div class="pista">
+            {% comment %}
+              La barra dice **cuándo** —dónde está—, el relleno dice **cuánto lleva**, y el
+              contorno rojo dice **si va tarde**. El contorno y no el relleno: así no se pierde el
+              color de la disciplina, que es el otro dato que la barra lleva.
+            {% endcomment %}
+            <div
+              class="barra {% if tramo.atrasado %}atrasada{% endif %}"
+              style="left: {{ tramo.izquierda_pct }}%; width: {{ tramo.ancho_pct }}%"
+              title="{{ tramo.etiqueta }} · {{ tramo.avance_pct }}%"
+            >
+              <div class="cumplido" style="width: {{ tramo.avance_pct }}%"></div>
+            </div>
+            {% if hoy_pct is not None and forloop.first %}
+              <div class="hoy" style="left: {{ hoy_pct }}%" title="{% translate 'Today' %}"></div>
+            {% endif %}
+          </div>
+        </div>
+      {% empty %}
+        <div class="vacio" style="margin: 0 14px">
+          {% blocktranslate %}No deliverable has a planned date, so there is nothing to place on the
+          timeline.{% endblocktranslate %}
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="vacio">
+      {% blocktranslate %}The project has no dates and neither do its deliverables: there is no
+      interval to draw. Give the project a start and an end.{% endblocktranslate %}
+    </div>
+  {% endif %}
+
+  {# --- El calendario del mes ------------------------------------------------------- #}
+  <p class="grupo">{{ calendario_titulo|date:"F Y" }}</p>
+  <table class="calendario">
+    <thead>
+      <tr>
+        {% for dia in dias_semana %}<th scope="col">{{ dia }}</th>{% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for semana in calendario %}
+        <tr>
+          {% for dia in semana %}
+            <td class="{% if not dia.delMes %}fuera{% endif %} {% if dia.esHoy %}hoy{% endif %}">
+              {% if dia.delMes %}
+                <span class="numero">{{ dia.dia }}</span>
+                {% for cosa in dia.vencidos %}
+                  <span class="marca" title="{{ cosa }}">{{ cosa }}</span>
+                {% endfor %}
+              {% endif %}
+            </td>
+          {% endfor %}
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {# --- Avance por disciplina ------------------------------------------------------- #}
+  {% if barras_disciplina %}
+    <p class="grupo">{% translate "Progress by discipline" %}</p>
+    <div class="barras">
+      {% for barra in barras_disciplina %}
+        <div class="fila">
+          <div>
+            <span class="pastilla" style="background: {{ barra.color }}"></span>
+            {% if barra.codigo %}{{ barra.codigo }} · {{ barra.nombre }}
+            {% else %}<em>{% translate "No discipline" %}</em>{% endif %}
+          </div>
+          <div class="pista">
+            <div class="relleno" style="width: {{ barra.avance_pct }}%; background: {{ barra.color }}"></div>
+          </div>
+          <div class="cifra">{{ barra.avance_pct }}%</div>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {# --- Lo que falta, nombrado ------------------------------------------------------ #}
+  {% if sin_revision %}
+    <p class="grupo">{% translate "Nothing issued yet" %}</p>
+    <div class="aviso">
+      {% blocktranslate count total=sin_revision|length %}One deliverable has no revision: nothing
+      has been issued for it.{% plural %}{{ total }} deliverables have no revision: nothing has been
+      issued for them.{% endblocktranslate %}
+    </div>
+    <table>
+      <tbody>
+        {% for entregable in sin_revision %}
+          <tr>
+            <td style="width: 140px">
+              <a href="{% url 'documents:expediente' entregable.pk %}">{{ entregable.codigo }}</a>
+            </td>
+            <td>{{ entregable.titulo }}</td>
+            <td>{{ entregable.responsable }}</td>
+            <td style="width: 120px">{{ entregable.fecha_planificada|date:"Y-m-d"|default:"—" }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+
+  {# --- Coordinación: lo que hay que resolver -------------------------------------- #}
+  <p class="grupo">{% translate "Open observations" %}</p>
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">{% translate "Priority" %}</th>
+        <th scope="col">{% translate "Finding" %}</th>
+        <th scope="col">{% translate "On" %}</th>
+        <th scope="col">{% translate "Owner" %}</th>
+        <th scope="col">{% translate "Due" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for observacion in observaciones %}
+        {% comment %}
+          **La fila era texto plano y por eso no se podía triar.** `F11.6`. La prioridad —que es la
+          dimensión por la que se recorre una lista de nueve— iba como palabra gris del mismo peso
+          que todo lo demás; nueve títulos subrayados eran nueve subrayados compitiendo entre sí; y
+          «Vence» era una columna de rayas porque casi nada tiene fecha.
+
+          Cuatro cambios, y ninguno añade un dato que no estuviera:
+
+          1. **La prioridad como píldora**, con su color y su palabra. El componente ya existía en
+             `app.css` y solo lo usaba la pantalla de cobertura.
+          2. **El título sin subrayar**, y subrayado al pasar por encima. La fila entera es
+             pulsable, así que el subrayado permanente solo añadía ruido.
+          3. **De dónde viene**, con la palabra que ya calcula el modelo: choque, modelo o
+             documento. Un choque lo encontró una máquina y una nota la escribió alguien.
+          4. **La antigüedad cuando no hay fecha de vencimiento**, que es el caso normal: «hace 3
+             días» dice algo y una raya no. Y lo vencido va en rojo con su palabra.
+        {% endcomment %}
+        <tr class="fila-hallazgo">
+          <td style="width: 96px">
+            <span class="pildora pildora-prioridad {{ observacion.prioridad }}">
+              {{ observacion.get_prioridad_display }}
+            </span>
+          </td>
+          <td>
+            <a class="hallazgo-titulo" href="{% url 'documents:observacion' observacion.pk %}">
+              {{ observacion.titulo }}
+            </a>
+          </td>
+          <td style="width: 120px">
+            <span class="ficha">{{ observacion.ancla }}</span>
+          </td>
+          <td style="width: 170px">{{ observacion.responsable }}</td>
+          <td style="width: 150px">
+            {% if observacion.vence %}
+              {% if observacion.vencida %}
+                <span class="cifra cifra-arde">
+                  {% translate "overdue" context "tarjeta de obra" %}
+                  {{ observacion.vence|date:"d-m" }}
+                </span>
+              {% else %}
+                {{ observacion.vence|date:"d-m-Y" }}
+              {% endif %}
+            {% else %}
+              <span class="tenue">
+                {% blocktranslate with cuando=observacion.created_at|antiguedad %}opened {{ cuando }} ago{% endblocktranslate %}
+              </span>
+            {% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="5">{% translate "Nothing open." %}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% comment %}
+    **El rótulo va seguido de lo que nombra, y las herramientas después.** Estaban en medio:
+    para ver la lista de hallazgos había que pasar por encima de dos formularios —el del
+    informe y el de importar un BCF—, así que la sección empezaba con dos barras y los datos
+    aparecían terceros. Es lo que el usuario llamó «mal distribuido».
+
+    Y el orden entre ellas también dice algo: primero **sacar** lo que hay, después **meter**
+    lo que llega de fuera. Sacar es lo que se hace todas las semanas.
+
+    **Y van en dos paneles con su rótulo, uno al lado del otro.** Moverlas debajo de la tabla no
+    bastó: seguían siendo cinco filas pegadas —dos selectores, tres casillas, dos botones, una
+    explicación, un selector de archivo, otro botón y otra explicación— sin nada que dijera dónde
+    acaba una herramienta y empieza la otra. El usuario lo dijo así: «está mal distribuido, muy
+    junto y poco entendible el flujo, sobre todo en las observaciones abiertas y lo que está abajo».
+
+    Son **dos herramientas independientes**, así que se dibujan como dos: cada una en su caja, con
+    su nombre y su explicación dentro. Y una al lado de la otra, no una debajo de la otra, porque
+    apiladas la pantalla decía que la segunda venía después de la primera, y no es así.
+  {% endcomment %}
+  <div class="herramientas">
+  {% if puede_ver_observaciones %}
+    <section class="herramienta">
+      <h2>{% translate "Take the report out" %}</h2>
+    {% comment %}
+      **El informe, y es la primera salida en papel que tiene el producto.** `F10.3`. Hasta ahora lo
+      único que salía era el BCF, y un BCF no se lleva a una reunión de obra: se abre en otro
+      software.
+
+      Y va con sus opciones a la vista, no con un botón solo: el usuario pidió «poder ir ordenando
+      qué imprimir dentro del informe», y esconderlas detrás de una pantalla de configuración
+      convierte una descarga de dos segundos en un trámite.
+
+      `method="get"` porque **no cambia nada**: es una consulta con un papel encima. Así el informe
+      se puede marcar como favorito con sus opciones puestas, que es lo que hace quien lo saca todas
+      las semanas.
+    {% endcomment %}
+    <form class="accion" method="get"
+          action="{% url 'documents:informe-coordinacion' proyecto.pk %}">
+      <label class="junto">
+        {% translate "Print" %}
+        <select name="estado">
+          <option value="abiertas">{% translate "what is open" %}</option>
+          <option value="cerradas">{% translate "what is closed" %}</option>
+          <option value="todo">{% translate "everything" %}</option>
+        </select>
+      </label>
+      <label class="junto">
+        {% translate "ordered by" %}
+        <select name="orden">
+          <option value="prioridad">{% translate "priority" %}</option>
+          <option value="responsable">{% translate "owner" %}</option>
+          <option value="vencimiento">{% translate "due date" %}</option>
+          <option value="antiguedad">{% translate "age" %}</option>
+        </select>
+      </label>
+      {% if etiquetas %}
+        {% comment %}
+          **La consulta que no se podía escribir** — `F10.1`: «todo lo de instalaciones que sigue
+          abierto». Va como desplegable y no como texto porque el vocabulario lo define el
+          proyecto: un campo libre se fragmenta a la tercera semana y entonces filtrar no encuentra.
+
+          Y el selector **no aparece si la obra no tiene etiquetas**, en vez de salir vacío: un
+          desplegable con una sola opción que dice «todas» no enseña nada y ocupa una línea.
+        {% endcomment %}
+        <label class="junto">
+          {% translate "tagged" %}
+          <select name="etiqueta">
+            <option value="">{% translate "any tag" %}</option>
+            {% for etiqueta in etiquetas %}
+              <option value="{{ etiqueta.pk }}">{{ etiqueta.nombre }}</option>
+            {% endfor %}
+          </select>
+        </label>
+      {% endif %}
+      <label class="junto"><input type="checkbox" name="mias" value="1"> {% translate "only mine" %}</label>
+      <label class="junto"><input type="checkbox" name="comentarios" value="1"> {% translate "with the comment thread" %}</label>
+      <label class="junto"><input type="checkbox" name="miniaturas" value="1" checked> {% translate "with thumbnails" %}</label>
+      <button type="submit" name="formato" value="pdf">{% translate "Report in PDF" %}</button>
+      <button type="submit" name="formato" value="csv">{% translate "Table in CSV" %}</button>
+      <span class="detalle">
+        {% translate "The PDF is what you print and file. The CSV is the editable half: it opens in a spreadsheet, no need to ask for anything else." %}
+      </span>
+    </form>
+    </section>
+  {% endif %}
+  {% if puede_importar_bcf %}
+    <section class="herramienta">
+      <h2>{% translate "Bring an answer in" %}</h2>
+    {% comment %}
+      **La vuelta del ciclo, y va aquí porque es de aquí de lo que habla.** Exportar está arriba,
+      junto al estado del proyecto, porque es una descarga; importar deja observaciones, y estas
+      son las observaciones. Lo que entra aparece en la tabla de abajo.
+
+      Es `enctype="multipart/form-data"` y no se puede olvidar: sin él el navegador manda solo el
+      nombre del archivo, `request.FILES` llega vacío, y la pantalla dice «elige un archivo»
+      teniendo uno elegido.
+    {% endcomment %}
+    <form class="accion" method="post"
+          action="{% url 'documents:importar-bcf' proyecto.pk %}"
+          enctype="multipart/form-data">
+      {% csrf_token %}
+      <input type="file" name="archivo" accept=".bcf,.bcfzip,application/zip" required>
+      <button type="submit">{% translate "Import a BCF answer" %}</button>
+      <span class="detalle">
+        {% translate "What the client sends back: new topics come in as observations, and answers to ours are added to their thread without overwriting anything." %}
+      </span>
+    </form>
+    </section>
+  {% endif %}
+  </div>
+
+  {# --- El salto al visor ---------------------------------------------------------- #}
+  <p class="grupo">{% translate "Models and drawings you can open" %}</p>
+  {% if puede_revisar_interferencias and modelos_para_revisar > 1 %}
+    {% comment %}
+      **Revisar interferencias vive junto a los modelos**, que es de lo que habla, y no en una
+      pantalla aparte: lo que encuentra sale abajo, entre las observaciones abiertas.
+
+      El botón solo aparece con **dos modelos o más** —con uno no hay nada contra qué comparar— y
+      con permiso para abrir observaciones, que es lo que la corrida crea.
+
+      Y **se avisa de que tarda antes de pulsarlo**, no después: son veinte segundos medidos por
+      par de modelos, y un botón que deja la pantalla quieta sin explicación se pulsa dos veces.
+    {% endcomment %}
+    <form class="accion" method="post"
+          action="{% url 'documents:revisar-interferencias' proyecto.pk %}">
+      {% csrf_token %}
+      <button type="submit">{% translate "Check interferences" %}</button>
+      <span class="detalle">
+        {% blocktranslate with cuantos=modelos_para_revisar %}Crosses the {{ cuantos }} current
+        models against each other. Takes about 20 seconds per pair, so the page stays put until it
+        finishes.{% endblocktranslate %}
+      </span>
+    </form>
+  {% endif %}
+  {% if abribles %}
+    <div class="tarjetas">
+      {% for revision in abribles %}
+        {% comment %}
+          **El salto directo al visor**, que hasta hoy obligaba a pasar por el listado de
+          entregables y buscar a mano. Y abierto así el visor sabe de qué revisión viene, que es
+          lo que le permite ofrecer «Observar este elemento» sobre un GUID.
+        {% endcomment %}
+        {% comment %}
+          `visor_ruta` es un **nombre de ruta**, no una URL: hay que resolverlo con la etiqueta
+          `url`. Interpolarlo tal cual deja un `href="visor:visor?revision=…"` que no lleva a
+          ninguna parte, y nada falla — el enlace simplemente no va a ningún sitio.
+
+          Y este comentario es `{% comment %}` y no `{# #}` **porque el de llaves es de una sola
+          línea**: repartido en dos, Django parsea las etiquetas de la segunda.
+        {% endcomment %}
+        {% comment %}
+          **La tarjeta decía «A · AR» y nadie sabe qué es eso.** Eran el código de idoneidad y el de
+          la disciplina, los dos sueltos y sin decir de qué hablaban: el primero es una decisión
+          contractual —lo que la revisión autoriza a hacer— y el segundo la especialidad.
+
+          Ahora cada uno lleva su forma: la disciplina va en su distintivo de color y la idoneidad
+          en una píldora con **su significado escrito** (`get_idoneidad_display` da «A · Publicada y
+          autorizada»). El nombre del archivo baja a segunda línea, que es donde corresponde: dice
+          de qué formato es, no qué se puede hacer con él.
+        {% endcomment %}
+        <a class="tarjeta" href="{% url revision.visor_ruta %}?revision={{ revision.pk }}">
+          <div class="titulo">
+            {% distintivo revision.entregable.disciplina %}
+            <span>{{ revision.entregable.codigo }}</span>
+          </div>
+          <div class="fichas">
+            <span class="ficha ficha-fuerte">rev. {{ revision.correlativo }}</span>
+            <span class="ficha" title="{{ revision.get_idoneidad_display }}">
+              {{ revision.get_idoneidad_display }}
+            </span>
+          </div>
+          <div class="detalle">{{ revision.nombre_original }}</div>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="vacio">
+      {% blocktranslate %}No model or drawing published yet. An IFC or a DXF uploaded as a revision
+      opens here.{% endblocktranslate %}
+    </div>
+  {% endif %}
+
+  {# --- Lo que se consulta --------------------------------------------------------- #}
+  <p class="grupo">{% translate "Deliverables" %}</p>
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">{% translate "Code" %}</th>
+        <th scope="col">{% translate "Title" %}</th>
+        <th scope="col">{% translate "Discipline" %}</th>
+        <th scope="col">{% translate "Current revision" %}</th>
+        <th scope="col">{% translate "Open" %}</th>
+        <th scope="col">{% translate "Progress" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for entregable in entregables %}
+        <tr>
+          <td><a href="{% url 'documents:expediente' entregable.pk %}">{{ entregable.codigo }}</a></td>
+          <td>{{ entregable.titulo }}</td>
+          <td>{{ entregable.disciplina.codigo|default:"—" }}</td>
+          <td>
+            {{ entregable.revision_vigente.correlativo|default:"—" }}
+            {{ entregable.revision_vigente.idoneidad|default:"" }}
+          </td>
+          <td>{{ entregable.cuantas_abiertas }}</td>
+          <td>{{ entregable.avance|floatformat:"-2" }}</td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="6">
+            {% if puede_crear_entregable %}
+              <a href="{% url 'documents:nuevo-entregable' %}">{% translate "Register the first deliverable" %}</a>
+            {% else %}
+              {% translate "No deliverable registered yet." %}
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <p class="grupo">
+    {% translate "Disciplines" %}
+    {% if puede_crear_disciplina %}
+      · <a href="{% url 'projects:nueva-disciplina' proyecto.pk %}">{% translate "New discipline" %}</a>
+    {% endif %}
+  </p>
+  <table>
+    <tbody>
+      {% for disciplina in disciplinas %}
+        <tr>
+          {% comment %}
+            **El distintivo en vez del cuadrado y el hexadecimal en texto.** `#5b3a9e` escrito al
+            lado no le dice nada a nadie: es el valor de un campo, no información. El chip lleva el
+            código sobre su propio color y la letra la elige el servidor midiendo la luminancia
+            —ver `apps/projects/color.py`—, así que también se lee sobre un amarillo.
+          {% endcomment %}
+          <td style="width: 110px">{% distintivo disciplina %}</td>
+          <td>{{ disciplina.nombre }}</td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="2">
+            {% blocktranslate %}No discipline yet. A deliverable needs one to be
+            registered.{% endblocktranslate %}
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <p class="grupo">{% translate "Information requirements" %}</p>
+  <table>
+    <tbody>
+      {% for requisito in requisitos_ids %}
+        <tr>
+          <td>{{ requisito.titulo }}</td>
+          <td style="width: 160px">{{ requisito.created_at|date:"Y-m-d" }}</td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td>
+            {% blocktranslate %}No IDS loaded: nothing is being checked against the client's
+            requirement.{% endblocktranslate %}
+            <a href="{% url 'documents:requisitos-ids' %}">{% translate "Information requirements" %}</a>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

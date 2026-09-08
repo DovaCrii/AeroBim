@@ -34,11 +34,11 @@ esos productos sirven para situar y verificar el modelo BIM.
 
 Solo archivos, en formatos estándar y abiertos:
 
-| Producto              | Formato          | Lo genera   | Lo consume | Para qué en AeroBim                      |
-| --------------------- | ---------------- | ----------- | ---------- | ---------------------------------------- |
-| Ortofoto              | **COG** (GeoTIFF) | AeroPlanner | AeroBim    | Base de la vista geoespacial (`F6.2`)     |
-| Terreno               | **GeoTIFF** DEM/DSM | AeroPlanner | AeroBim  | Relieve bajo el modelo (`F6.2`)           |
-| Nube del levantamiento | **LAZ / COPC**   | AeroPlanner | AeroBim    | As-built contra modelo (Fase 2, `F6.4`)   |
+| Producto               | Formato             | Lo genera   | Lo consume | Para qué en AeroBim                     |
+| ---------------------- | ------------------- | ----------- | ---------- | --------------------------------------- |
+| Ortofoto               | **COG** (GeoTIFF)   | AeroPlanner | AeroBim    | Base de la vista geoespacial (`F6.2`)   |
+| Terreno                | **GeoTIFF** DEM/DSM | AeroPlanner | AeroBim    | Relieve bajo el modelo (`F6.2`)         |
+| Nube del levantamiento | **LAZ / COPC**      | AeroPlanner | AeroBim    | As-built contra modelo (Fase 2, `F6.4`) |
 
 Ninguno es un formato propio de la familia: todos son estándares que cualquier
 herramienta puede leer. Eso es deliberado — si mañana una de las dos aplicaciones
@@ -48,13 +48,13 @@ deja de existir, los archivos siguen sirviendo.
 
 Vale escribirlo, porque son justo las cosas que parecen buena idea:
 
-| Qué                                        | Por qué no                                                                                     |
-| ------------------------------------------ | ---------------------------------------------------------------------------------------------- |
-| **La base de datos**                       | Regla de la familia, sin excepciones                                                            |
-| **Los modelos IFC hacia AeroPlanner**      | El planificador no tiene nada que hacer con un IFC. Planificar un vuelo no necesita el modelo    |
-| **Los temas BCF hacia otra aplicación**    | La coordinación es dominio de AeroBim. AeroControl registra cumplimiento, no observaciones de obra |
-| **Usuarios y sesiones**                    | Cada aplicación autentica por su cuenta. Un SSO común sería un proyecto aparte, y hoy no se pide |
-| **Escrituras de AeroBim en las hermanas**  | AeroBim **nunca** escribe en AeroPlanner, AeroControl ni AeroLink                                |
+| Qué                                       | Por qué no                                                                                         |
+| ----------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| **La base de datos**                      | Regla de la familia, sin excepciones                                                               |
+| **Los modelos IFC hacia AeroPlanner**     | El planificador no tiene nada que hacer con un IFC. Planificar un vuelo no necesita el modelo      |
+| **Los temas BCF hacia otra aplicación**   | La coordinación es dominio de AeroBim. AeroControl registra cumplimiento, no observaciones de obra |
+| **Usuarios y sesiones**                   | Cada aplicación autentica por su cuenta. Un SSO común sería un proyecto aparte, y hoy no se pide   |
+| **Escrituras de AeroBim en las hermanas** | AeroBim **nunca** escribe en AeroPlanner, AeroControl ni AeroLink                                  |
 
 ## El problema técnico real: dos sistemas de coordenadas
 

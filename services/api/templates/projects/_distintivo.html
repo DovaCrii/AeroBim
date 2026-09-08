@@ -1,0 +1,17 @@
+{% comment %}
+  El distintivo de una disciplina: su código sobre su color.
+
+  **La letra la elige `apps/projects/color.py` midiendo**, no suponiendo blanco: el color lo escribe
+  una persona en un formulario, así que puede ser un violeta oscuro o un amarillo casi blanco, y
+  «AR» en blanco sobre amarillo no se lee.
+
+  Y el código va **escrito**, no solo el color: uno de cada doce hombres no distingue rojo de verde,
+  así que un cuadrado de color sin letra no identifica nada para él.
+{% endcomment %}
+{% if vacio %}
+  <span class="distintivo distintivo-vacio" title="Sin disciplina">—</span>
+{% else %}
+  <span class="distintivo" style="background: {{ fondo }}; color: {{ tinta }}"
+        title="{{ nombre }}">{{ codigo }}</span>
+  {% if con_nombre %}<span class="distintivo-nombre">{{ nombre }}</span>{% endif %}
+{% endif %}

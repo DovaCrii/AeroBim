@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block titulo %}{% translate "New discipline" %} · AeroBim{% endblock %}
+
+{% block titulo_pagina %}<h1>{% translate "New discipline" %}</h1>{% endblock %}
+
+{% block subtitulo %}
+<p class="subtitulo">
+  {{ proyecto.codigo }} · {{ proyecto.nombre }}
+  {% blocktranslate %}The colour is used by the board, the listing and the report, so it lives
+  here once instead of being copied into each of them.{% endblocktranslate %}
+</p>
+{% endblock %}
+
+{% block contenido %}
+  <form method="post" style="max-width: 560px">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">{% translate "Create" %}</button>
+  </form>
+  <p><a href="{% url 'projects:proyecto' proyecto.pk %}">{% translate "Back" %}</a></p>
+{% endblock %}

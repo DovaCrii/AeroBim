@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block titulo %}{% translate "My work" %} · AeroBim{% endblock %}
+
+{% comment %}
+  **La portada dejó de llamarse «Portal».** `F12.7`.
+
+  «Portal» es el nombre de la cosa, no de lo que hay dentro: nadie abre una aplicación buscando su
+  portal. La pregunta que uno tiene al abrirla por la mañana es **«¿qué me toca?»**, y ese es el
+  nombre que la pantalla lleva ahora. El nombre lo eligió el usuario entre tres candidatos.
+
+  Y con «Mi trabajo» arriba, la bandeja pasa a llamarse **«Todo lo pendiente»**: dos pantallas «mías»
+  con nombres parecidos son dos sitios donde buscar lo mismo.
+{% endcomment %}
+{% block titulo_pagina %}<h1>{% translate "My work" %}</h1>{% endblock %}
+
+{% comment %}
+  **El subtítulo era «Solo se lista lo que tu rol puede abrir» y eso no es lo que hace falta saber.**
+
+  Describía la regla de la pantalla —cierta, y en la que nadie piensa por la mañana— en el sitio más
+  visible. Ahora lleva **la cifra del día**: lo vencido, lo de esta semana y cuántas obras. Es lo
+  que decide si hay que entrar corriendo a algo o no.
+
+  Y la regla del rol no se pierde: sigue siendo verdad y sigue escrita en la ayuda, que es donde se
+  explica el producto.
+{% endcomment %}
+{% block subtitulo %}
+  <p class="subtitulo cifra-del-dia">
+    {% comment %}
+      **El hueco entre las piezas lo pone el CSS, no un espacio en el HTML**, y esto costó un rato
+      entender: la cabecera va dentro de un `{% templatetag openblock %} spaceless
+      {% templatetag closeblock %}` —que es lo que permite que una cabecera sin llenar se esconda—
+      y `spaceless` **quita el blanco entre etiquetas**. Escribiendo un espacio antes del separador
+      salía igual «esta semana·2 obras».
+
+      Así que `.cifra-del-dia` es un `flex` con `gap`. Vale para cualquier cosa que se ponga en la
+      cabecera: ahí dentro, el espaciado que dependa del blanco del HTML no existe.
+
+      Y lo vencido va en rojo y en negrita, solo lo vencido: es lo único de esta línea que pide
+      hacer algo hoy. El resto es contexto.
+    {% endcomment %}
+    {% for pieza in cifra_del_dia %}
+      {% if not forloop.first %}<span aria-hidden="true">·</span>{% endif %}
+      {% if forloop.first and mis_vencidas %}
+        <b class="cifra-arde">{{ pieza }}</b>
+      {% else %}<span>{{ pieza }}</span>{% endif %}
+    {% endfor %}
+  </p>
+{% endblock %}
+
+{% block contenido %}
+  {% comment %}
+    **Lo que te toca va primero, y ese orden es la idea.** Un menú de módulos dice a qué sitios
+    puedes entrar; esto dice en qué ibas.
+
+    Lo pendiente sale de `pendientes_por_tramo`, la misma función que alimenta el resumen por
+    correo: así la pantalla y el correo **no pueden discrepar** sobre qué está vencido.
+  {% endcomment %}
+  {% if mis_pendientes %}
+    <section class="bloque">
+      <h2 class="grupo">{% translate "What is on you" %}</h2>
+
+      {% comment %}
+        **Filas de tarea y no una tabla de tres columnas.** La tabla obligaba a que todas las filas
+        tuvieran las mismas celdas, y no las tienen: una actividad no lleva prioridad, así que esa
+        columna salía vacía en la mitad de las filas — y una celda vacía se lee como un dato que
+        falta, no como uno que no existe.
+
+        El parcial es el mismo que usa la bandeja: ver `generic/_fila_tarea.html`.
+      {% endcomment %}
+      {% for etiqueta, tareas, urgente in mis_tramos %}
+        {% if tareas %}
+          <h3 class="tramo{% if urgente %} tramo-arde{% endif %}">
+            {% if urgente %}<span aria-hidden="true">⚠</span> {% endif %}{{ etiqueta }}
+          </h3>
+          <ol class="tareas">
+            {% for tarea in tareas %}{% include "generic/_fila_tarea.html" %}{% endfor %}
+          </ol>
+        {% endif %}
+      {% endfor %}
+
+      {% if mis_mas_alla %}
+        <p class="subtitulo">
+          {% blocktranslate count total=mis_mas_alla %}And one more due within the
+          month.{% plural %}And {{ total }} more due within the month.{% endblocktranslate %}
+          <a href="{% url 'documents:bandeja' %}">{% translate "Everything pending" %}</a>
+        </p>
+      {% endif %}
+    </section>
+  {% else %}
+    <div class="vacio">
+      {% blocktranslate %}Nothing assigned to you with a due date. What is on the board without a
+      date does not show up here.{% endblocktranslate %}
+    </div>
+  {% endif %}
+
+  {% if mis_proyectos %}
+    <section class="bloque">
+      <h2 class="grupo">{% translate "Your works" %}</h2>
+      {% comment %}
+        **La tarjeta de obra decía «Edificio corporativo · Anteproyecto · avance 1» y eso no es un
+        dato**: es la etapa y un número sin unidad. Lo que se quiere saber al abrir la puerta por la
+        mañana es cuánto lleva la obra y **si hay algo que arde**, porque eso es lo que decide dónde
+        entrar.
+
+        Las cifras van **con su palabra al lado y no solo con su color**, y el cero no se dibuja:
+        «0 vencidas» es ruido en una puerta.
+      {% endcomment %}
+      <div class="tarjetas tarjetas-obra">
+        {% for proyecto in mis_proyectos %}
+          <a class="tarjeta obra" href="{% url 'projects:proyecto' proyecto.pk %}">
+            <div class="obra-cabeza">
+              <span class="obra-codigo">{{ proyecto.codigo }}</span>
+              <span class="ficha">{{ proyecto.get_status_display }}</span>
+            </div>
+            <div class="obra-nombre">{{ proyecto.nombre }}</div>
+
+            <div class="avance"
+                 role="img"
+                 aria-label="{% blocktranslate with pct=proyecto.avance_pct %}Progress {{ pct }} per cent{% endblocktranslate %}">
+              <span class="avance-relleno" style="width: {{ proyecto.avance_pct }}%"></span>
+            </div>
+            {% comment %}
+              **Las cuatro palabras van con contexto**, y no es ceremonia: «open», «overdue» y
+              «high priority» ya existían en el catálogo con otro sentido —«open» estaba traducido
+              como «abierta por»— así que reusar el mismo `msgid` habría puesto en la tarjeta la
+              traducción de otra pantalla. Con `context` cada una es su propia entrada.
+
+              **Y las tres cifras van con `count`**, que es lo que faltaba: con `translate` la
+              palabra es fija, así que una obra con una sola observación vencida decía **«1
+              vencidas»** y **«1 abiertas»**. Se vio en la pantalla el 2026-09-07.
+
+              El inglés no distingue —«overdue» y «open» valen para uno y para muchos— así que el
+              `msgid` y el `msgid_plural` son iguales. Eso es correcto y es lo que hace falta: el
+              plural lo pone cada idioma en su catálogo, y el español sí lo distingue.
+
+              «high priority» **es invariable también en español** —«1 de prioridad alta» ya se leía
+              bien—, y se pasa igual: la forma uniforme evita que la siguiente cifra que alguien
+              añada copie la que no lleva plural, y otro idioma sí puede declinarla.
+
+              `issued` se queda con `translate`: acompaña a un porcentaje, no a una cuenta, y «100 %
+              emitido» no tiene plural en ningún caso.
+
+              **Y las tres cifras se llevan su propio contexto, `cifra de obra`.** El `overdue` de
+              «tarjeta de obra» lo comparten otras tres plantillas
+              —`observacion.html`, `observaciones.html` y `projects/proyecto.html`— y ahí significa
+              **otra cosa**: es la etiqueta de **una** observación vencida, «vencida el 04-09», no
+              una cuenta. Con un solo `msgid` para los dos sentidos, el plural de uno decide la
+              palabra del otro. Para eso está `context`: son dos cadenas distintas que en inglés se
+              escriben igual.
+            {% endcomment %}
+            <div class="avance-cifra">
+              <b>{{ proyecto.avance_pct }}%</b>
+              {% translate "issued" context "tarjeta de obra" %}
+            </div>
+
+            {% if proyecto.abiertas %}
+              <div class="obra-cifras">
+                {% if proyecto.vencidas %}
+                  <span class="cifra cifra-arde">
+                    <b>{{ proyecto.vencidas }}</b>
+                    {% blocktranslate count total=proyecto.vencidas context "cifra de obra" %}overdue{% plural %}overdue{% endblocktranslate %}
+                  </span>
+                {% endif %}
+                {% if proyecto.altas %}
+                  <span class="cifra cifra-alta">
+                    <b>{{ proyecto.altas }}</b>
+                    {% blocktranslate count total=proyecto.altas context "cifra de obra" %}high priority{% plural %}high priority{% endblocktranslate %}
+                  </span>
+                {% endif %}
+                <span class="cifra">
+                  <b>{{ proyecto.abiertas }}</b>
+                  {% blocktranslate count total=proyecto.abiertas context "cifra de obra" %}open{% plural %}open{% endblocktranslate %}
+                </span>
+              </div>
+            {% endif %}
+          </a>
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+
+  {% comment %}
+    **Aquí estaban las doce tarjetas de módulo, y se van.** `F12.7`.
+
+    Con la barra lateral al lado, doce tarjetas que llevan a los mismos doce sitios son decir dos
+    veces lo mismo — y encima ocupaban toda la pantalla debajo de lo que sí importa, así que lo
+    pendiente quedaba arriba y el resto de la página era un menú repetido.
+
+    En su lugar van **los pasos del recorrido** (`apps/accounts/ayuda.py`), que es exactamente lo que
+    `F12.7` pedía: «los módulos se presentan por lo que resuelven». Un paso dice qué se consigue y a
+    dónde ir; una tarjeta de módulo decía el nombre de la pantalla.
+
+    Se enseñan los tres primeros que esta persona **puede** hacer, no los tres primeros: para el
+    mandante, los pasos de subir una revisión no son un camino, son una puerta cerrada.
+  {% endcomment %}
+  {% if pasos %}
+    <section class="bloque">
+      <h2 class="grupo">{% translate "Where to go next" %}</h2>
+      <ol class="pasos-cortos">
+        {% for paso in pasos %}
+          {% comment %}
+            `paso` es un `PasoResuelto`, que envuelve al `Paso` con su URL y con si le toca. De ahí
+            el `paso.paso`: la envoltura no copia los campos del original, y copiarlos sería tener
+            los mismos textos en dos sitios.
+          {% endcomment %}
+          <li>
+            {% if paso.url %}
+              <a href="{{ paso.url }}">{{ paso.paso.titulo }}</a>
+            {% else %}
+              <span>{{ paso.paso.titulo }}</span>
+            {% endif %}
+            <span class="detalle">{{ paso.paso.para_que }}</span>
+          </li>
+        {% endfor %}
+      </ol>
+      <p class="subtitulo">
+        <a href="{% url 'accounts:ayuda' %}">{% translate "See the whole walkthrough" %}</a>
+      </p>
+    </section>
+  {% endif %}
+{% endblock %}

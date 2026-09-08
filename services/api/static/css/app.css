@@ -1,0 +1,2927 @@
+/*
+ * Tokens de AeroBim.
+ *
+ * **La marca se separa del color de accion, y no por gusto.** El violeta de AeroBim
+ * (#9B5DE5) no llega a 4,5:1 sobre blanco, asi que usarlo para un enlace o un boton
+ * deja texto que no se lee. La marca pinta cabeceras y acentos; lo que hay que leer
+ * usa `--ab-primary`, que si pasa. Es la misma disciplina que lleva AeroControl, con
+ * los contrastes anotados al lado.
+ */
+:root {
+  /* **Los mismos tres tokens del visor**, no un violeta parecido. Están en
+     `apps/web/src/index.css` como `--color-brand`, `--color-ink` y `--color-shell`, y son lo que
+     hace que las dos mitades se lean como un producto: el portal y el visor comparten marca. */
+  --ab-navy: #1b2a4a; /* = --color-ink */
+  --ab-violet: #9b5de5; /* = --color-brand — decorativo, 2,9:1 sobre blanco: no para texto */
+
+  --ab-bg: #f4f7fb;
+  --ab-surface: #ffffff;
+  --ab-surface-alt: #f8fafc; /* filas alternas y cabeceras: separa sin dibujar una línea más */
+  --ab-border: #dbe3ee; /* 1,3:1 — separa bloques, **no vale como contorno de un control** */
+
+  /* **El contorno de un control, que hasta hoy no existía.**
+   *
+   * `--ab-border` da **1,24:1** contra el fondo del campo (`#dbe3ee` sobre `#f8fafc`), y WCAG
+   * 1.4.11 pide **3:1** para lo que transmite información sin ser texto — y el contorno de un campo
+   * lo es: es lo único que dice dónde se puede escribir. El comentario de más abajo ya decía que
+   * este token «no existe en este archivo»; ahora existe y está medido.
+   *
+   * 3,45:1 sobre la superficie y 3,30:1 sobre el fondo del propio campo, que es el par más
+   * exigente de los dos. */
+  --ab-border-control: #7f8b9e;
+
+  /* La pista de la barra de avance. **Se usaba sin declararla**, o sea que no se pintaba: una barra
+   * sin pista se lee como una barra al 0 %. Lo cazó el gate de `test_sistema_de_diseno.py` en su
+   * primera corrida.
+   *
+   * Lo que tiene que verse es **el relleno contra la pista**, y ahí hay 6,80:1. La pista contra la
+   * tarjeta se queda en 1,21:1 a propósito: es el hueco, no un dato. */
+  --ab-track: #e2eaf4;
+
+  --ab-text: #172238; /* 14,2:1 sobre --ab-surface */
+  --ab-text-secondary: #4f5b72; /* 7,4:1 */
+  --ab-text-muted: #626f85; /* 5,1:1 — el minimo que se acepta */
+
+  --ab-primary: #5b3a9e; /* 7,9:1 sobre blanco: el violeta llevado a texto */
+  --ab-primary-hover: #472d7d;
+  --ab-primary-soft: #efe7fb;
+  --ab-danger: #c53b4d; /* 4,8:1 */
+  --ab-ok: #0f7a5f; /* 4,9:1 */
+  --ab-warn: #8a5a00; /* 5,5:1 — el ámbar llevado a texto sobre fondo claro */
+
+  /* Dos escalones de elevación, y no uno suelto (`F9.5`).
+   *
+   * `--ab-shadow` es el reposo y `--ab-shadow-alto` el de la tarjeta levantada al pasar por encima.
+   * El segundo estaba escrito a mano en la regla del hover, así que en el tema oscuro **no
+   * cambiaba**: una sombra pensada para fondo claro sobre una superficie oscura no se ve. */
+  --ab-shadow: 0 10px 30px rgb(18 34 59 / 8%);
+  --ab-shadow-alto: 0 14px 34px rgb(18 34 59 / 14%);
+
+  /* La escala de radios, compartida con el visor (`F9.5`).
+   *
+   * **Antes había siete tamaños a mano** —2, 3, 4, 6, 7, 8 y 9 px en dieciséis sitios— junto al
+   * token de 12. Nadie eligió que una etiqueta tuviera 3 px y otra 4: son restos de escribirlos uno
+   * a uno. Cuatro escalones bastan, y son los mismos que `--radius-*` del visor, que es lo que hace
+   * que la costura entre el portal y el visor no se note.
+   *
+   * `50%` y `999px` se quedan como estaban y no entran en la escala: un círculo y una píldora no
+   * son un radio grande, son otra forma. */
+  --ab-radio-xs: 4px; /* etiquetas, píldoras pequeñas, marcas */
+  --ab-radio-sm: 6px; /* controles: botón, campo, fila */
+  --ab-radio-md: 10px; /* tarjetas y desplegables */
+  --ab-radius: 12px; /* el contenedor grande. Se conserva el nombre: lo usan 14 reglas */
+
+  /* La barra lateral, en sus dos anchos.
+   *
+   * 248 px es el ancho con rótulo: cabe «Requisitos de información» —el nombre más largo del
+   * catálogo— en una línea, y eso es lo que decide la cifra. 64 px es el plegado: el icono de 20 px
+   * centrado en un área de toque de 44, que es el mínimo de `F9.4`. */
+  --ab-sidebar-width: 248px;
+  --ab-rail-plegado: 64px;
+  /* El área de toque mínima, medida en `F9.4` sobre la cinta del visor. Aquí es lo que fija la
+   * altura de cada fila del rail: una lista de doce enlaces es justo donde se falla al pulsar. */
+  --ab-touch-min: 44px;
+}
+
+/* **Aquí había tres tokens que nadie usaba**: `--ab-control-height: 42px`, `--ab-sidebar-width:
+ * 248px` y `--ab-shell: #161f2d`. Un token declarado y sin un solo `var()` es una decisión que
+ * parece tomada y no lo está: quien lee el archivo cree que hay una altura de control acordada, y
+ * las nueve alturas de los controles siguen escritas a mano.
+ *
+ * El de la barra lateral vuelve cuando el rail lo use, y no antes. Y `--ab-shell` se va además por
+ * otra razón: **su comentario decía «= --color-shell» y era falso** —`#161f2d` aquí contra
+ * `#101725` en `apps/web/src/index.css`—, o sea que la costura que prometía estaba rota y nadie lo
+ * veía porque el token no pintaba nada. La prueba de la costura ahora mide los dos que sí se usan.
+ */
+
+/*
+ * **Estos tokens eran código muerto hasta hoy.** Estaban escritos y ninguna plantilla ponía nunca
+ * `data-theme`, así que el tema oscuro no se podía alcanzar de ninguna forma — parecía funcionar y
+ * no existía. Ahora `base.html` lo pone desde `localStorage` antes de pintar, y el interruptor de
+ * la barra lo cambia.
+ */
+[data-theme="dark"] {
+  --ab-bg: #131a26;
+  --ab-surface: #1b2432;
+  --ab-surface-alt: #202b3b;
+  --ab-border: #2b3648;
+  /* 3,51:1 sobre la superficie y 3,21:1 sobre el fondo del campo. En oscuro el problema era peor:
+     `--ab-border` daba **1,17:1**, o sea que el campo no tenía contorno visible en absoluto. */
+  --ab-border-control: #6b7890;
+  --ab-track: #313d51; /* el relleno `--ab-primary` encima da 5,23:1 */
+  --ab-text: #eef1f6;
+  --ab-text-secondary: #b6c0d1;
+  --ab-text-muted: #97a3b6;
+  --ab-primary: #c3a6f0; /* sobre superficie oscura, 7,1:1 */
+  --ab-primary-hover: #d5c2f6;
+  --ab-primary-soft: #2a2140;
+  --ab-danger: #f08a97; /* el #c53b4d no llega a 4,5:1 sobre superficie oscura */
+  --ab-ok: #5fd3ae;
+  /* **El mismo hexadecimal que `--color-warn` del visor**, y a proposito: es la costura que el
+     usuario cruza al abrir un modelo desde su expediente. 9,5:1 sobre el fondo. */
+  --ab-warn: #f0b45e;
+  --ab-shadow: 0 10px 30px rgb(0 0 0 / 35%);
+  /* Y la elevada, que antes no existía en oscuro: la del hover estaba escrita a mano con el azul
+     del tema claro, así que sobre esta superficie no se veía. */
+  --ab-shadow-alto: 0 14px 34px rgb(0 0 0 / 50%);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--ab-bg);
+  color: var(--ab-text);
+  font:
+    15px/1.55 system-ui,
+    "Segoe UI",
+    sans-serif;
+}
+
+a {
+  color: var(--ab-primary);
+}
+
+a:hover {
+  color: var(--ab-primary-hover);
+}
+
+/* El salto al contenido: primero en el orden de tabulacion y visible al enfocarlo. */
+.salto {
+  position: absolute;
+  left: -9999px;
+}
+
+.salto:focus {
+  left: 12px;
+  top: 12px;
+  z-index: 10;
+  padding: 8px 12px;
+  background: var(--ab-surface);
+  border-radius: var(--ab-radius);
+}
+
+.barra {
+  display: flex;
+  align-items: center;
+  /* **Envuelve, y hasta hoy no.** Medido a 390 px: los seis elementos —marca, tema, usuario,
+   * Ayuda, Cambiar la contraseña y Salir— piden **482 px** en una línea, así que el botón de salir
+   * se salía de la pantalla y arrastraba la página entera de lado. Con `nowrap` no había forma de
+   * llegar a él.
+   *
+   * Es un defecto anterior al rail; se arregla aquí porque es el mismo ancho que este paso dice
+   * haber comprobado. */
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  padding: 10px 20px;
+  background: var(--ab-navy);
+  color: #fff;
+}
+
+.barra a {
+  color: #fff;
+}
+
+.barra .marca {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+/*
+ * **La marca, sin placa.** Aquí va `aerobim-mark-oscuro.svg`, que es la variante de trazo claro y
+ * rellenos transparentes: el `#1B2A4A` del dibujo original es **el mismo hexadecimal** que esta
+ * barra, así que el cuerpo del dron y las caras del cubo daban 1,00:1 y desaparecían.
+ *
+ * **Antes hubo una placa blanca y se quitó.** Resolvía el contraste y creaba algo peor: un parche
+ * blanco que no pertenece a la paleta. La variante oscura resuelve las dos cosas — 6,79:1 el trazo
+ * sobre esta barra— y además se adapta a cualquier superficie, porque lo transparente no tiene
+ * color con el que chocar.
+ */
+.barra .marca img {
+  display: block;
+}
+
+.barra .separador {
+  flex: 1;
+}
+
+/* --- El marco: rail y contenido --------------------------------------------------- */
+
+/*
+ * **Hasta hoy el portal no tenía navegación.** La barra de arriba llevaba marca, tema, usuario,
+ * ayuda, clave y salir: **cero enlaces a módulos**. Para ir de una observación a un entregable
+ * había que volver a `/` y elegir otra tarjeta, o sea que la portada *era* el menú.
+ *
+ * Es una rejilla de dos columnas y no un `position: fixed` porque el contenido tiene que poder
+ * ocupar lo que sobra sin que nadie calcule un `margin-left` que se desincronice del ancho del
+ * rail. El rail se queda quieto con `position: sticky`, que hace lo mismo sin sacarlo del flujo.
+ */
+.marco {
+  display: grid;
+  grid-template-columns: var(--ab-sidebar-width) 1fr;
+  align-items: start;
+}
+
+/* Sin sesión no hay rail: **una columna de 248 px de nada** al lado del formulario de entrada
+   sería peor que no tenerla. La clase la pone `base.html`. */
+.marco-sin-rail {
+  grid-template-columns: 1fr;
+}
+
+.rail {
+  position: sticky;
+  /* La barra superior mide 10 px de relleno + 27 del dibujo + 10 = 47. Se redondea a 48: pegarlo
+     al píxel exacto obliga a tocar esto cada vez que la barra cambie de altura, y 1 px de holgura
+     no se ve. */
+  top: 0;
+  align-self: start;
+  max-height: 100vh;
+  overflow-y: auto;
+  padding: 16px 12px 24px;
+  border-right: 1px solid var(--ab-border);
+  background: var(--ab-surface);
+}
+
+.rail-grupo {
+  margin: 18px 0 6px;
+  padding-left: 10px;
+  border-left: 3px solid var(--acento);
+  /* 11 px es el mínimo del sistema, y aquí es el sitio donde tiene sentido: es un rótulo de
+     agrupamiento, no algo que haya que leer seguido. */
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ab-text-secondary);
+}
+
+.rail-lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rail-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  /* **El área de toque completa, no solo el texto.** `min-height` en vez de una altura fija:
+     «Requisitos de información» cabe en una línea a 248 px, y si algún día un nombre no cabe, la
+     fila crece en vez de recortar. */
+  min-height: var(--ab-touch-min);
+  padding: 0 10px;
+  border-radius: var(--ab-radio-sm);
+  color: var(--ab-text-secondary);
+  text-decoration: none;
+  font-size: 0.92rem;
+}
+
+.rail-item:hover {
+  background: var(--ab-surface-alt);
+  color: var(--ab-text);
+}
+
+/*
+ * El módulo activo: **fondo, borde y `aria-current`, los tres.**
+ *
+ * Solo con color, quien no distingue el violeta no sabe dónde está; solo con borde, se pierde entre
+ * los rótulos de grupo que también llevan uno. Y `aria-current="page"` es lo que hace que un lector
+ * de pantalla diga «página actual» en vez de leer doce enlaces iguales.
+ */
+.rail-activo,
+.rail-activo:hover {
+  background: var(--ab-primary-soft);
+  color: var(--ab-primary);
+  font-weight: 600;
+  box-shadow: inset 3px 0 0 var(--ab-primary);
+}
+
+.rail-icono {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  fill: none;
+  /* Lo que pinta un icono de trazo es `stroke`, no `color` — la lección de `_iconos.html`. */
+  stroke: currentcolor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* «Cómo se usa» al pie, separado: es el recorrido del producto, no un módulo de trabajo. */
+.rail-pie {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--ab-border);
+  border-radius: 0;
+}
+
+/*
+ * **Los tres anchos, sin una línea de JavaScript.** La CSP sirve `script-src 'self'` sin
+ * `'unsafe-inline'` (`apps/core/middleware.py`), así que un botón con `onclick` no corre en
+ * producción — ya pasó con los tres `onchange` de los filtros. Aquí son media queries.
+ */
+
+/* Entre 760 y 1100: solo iconos.
+ *
+ * **El rótulo sigue en el árbol de accesibilidad**: se saca de la vista con posición y `clip-path`,
+ * no con `display: none` ni `visibility: hidden`, que lo quitarían también del árbol y dejarían
+ * doce enlaces sin nombre. Es la técnica de siempre para texto que tiene que estar sin verse, y va
+ * escrita aquí en vez de en una clase suelta porque **depende del ancho**: el mismo rótulo se ve a
+ * 1200 px y no a 900. */
+@media (max-width: 1100px) {
+  .marco {
+    grid-template-columns: var(--ab-rail-plegado) 1fr;
+  }
+
+  .rail-rotulo,
+  .rail-grupo {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  /* **El área de toque se fija por el enlace, no por lo que sobra del rail.**
+   *
+   * Medido, y en dos pasos. Con el relleno original de 12 px a cada lado, un enlace quedaba en
+   * **39 × 44 px**: pasa WCAG 2.5.8 (24 px) y **no llega a la regla propia de `F9.4`**, que son 44
+   * medidos en la cinta del visor. Bajar el relleno a 10 —64 − 2 × 10 = 44— dio **43**: el rail
+   * lleva `overflow-y: auto` y con doce entradas la barra de desplazamiento se come el píxel que
+   * faltaba.
+   *
+   * Así que el relleno baja a 8 y el enlace declara su propio mínimo. Depender de la resta deja el
+   * área de toque a merced de si aparece una barra de desplazamiento, que cambia con el alto de la
+   * ventana y con el sistema operativo. */
+  .rail {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  .rail-item {
+    justify-content: center;
+    min-width: var(--ab-touch-min);
+    padding: 0;
+  }
+}
+
+/* Por debajo de 760: una tira horizontal arriba del contenido. Un rail de 64 px en un teléfono de
+   390 se come una sexta parte del ancho para no decir nada. */
+@media (max-width: 760px) {
+  .marco,
+  .marco-sin-rail {
+    grid-template-columns: 1fr;
+  }
+
+  .rail {
+    position: static;
+    display: flex;
+    gap: 4px;
+    max-height: none;
+    padding: 8px 12px;
+    overflow-x: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--ab-border);
+  }
+
+  .rail-lista {
+    display: flex;
+    gap: 4px;
+  }
+
+  .rail-item {
+    min-width: var(--ab-touch-min);
+  }
+
+  .rail-pie {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: 0;
+  }
+}
+
+main {
+  /* **Sube de 1100 a 1400 px.** Con 1100 en un monitor de 1900 quedaba media pantalla muerta, y
+     una línea de tiempo de un año necesita ancho para que las barras no se encimen. Sigue con
+     tope: una tabla de texto a 1900 px de ancho obliga a mover la cabeza para seguir una fila.
+
+     **`width: 100%` no es redundante: es lo que arregla el `margin: 0 auto`.** En un elemento de
+     rejilla, un margen automático **anula el estirado** y lo dimensiona por su contenido. Medido a
+     390 px: la columna del marco valía 390 y `main` salía a **699**, o sea que la tabla se escapaba
+     por la derecha del rail. Con `width: 100%` el elemento llena su columna y el margen automático
+     queda inofensivo — sigue centrando cuando la columna pasa de 1400.
+
+     Y `min-width: 0` para que el ancho mínimo de contenido de una tabla ancha no empuje la columna
+     y saque el rail de la pantalla. */
+  width: 100%;
+  max-width: 1400px;
+  min-width: 0;
+  margin: 0 auto;
+  padding: 24px 20px 60px;
+}
+
+/*
+ * **En el teléfono, lo ancho se desplaza dentro del contenido y no arrastra la página.**
+ *
+ * Las tablas del registro tienen seis columnas —prioridad, hallazgo, sobre, responsable, vence,
+ * estado— y su ancho mínimo son 659 px medidos. A 390 no caben, y sin esto la página entera se
+ * desplaza de lado: la barra de arriba y el rail se van con ella, así que se pierde la navegación
+ * al mirar la última columna.
+ *
+ * Va aquí y no envolviendo cada tabla porque envolverlas serían las treinta plantillas, y esto es
+ * una línea. Cuando la pasada de la cabecera toque cada una, la tabla podrá llevar su propio
+ * contenedor y esto sobra.
+ */
+@media (max-width: 760px) {
+  main {
+    overflow-x: auto;
+  }
+}
+
+/*
+ * La cabecera de cada pantalla, y **el motivo de que se esconda vacía**.
+ *
+ * Los bloques de `base.html` tienen defecto vacío para que la pasada por las treinta plantillas se
+ * pueda hacer de una en una. Mientras una no se ha tocado, su cabecera sale sin contenido, y
+ * `{% spaceless %}` la deja literalmente vacía para que `:empty` la reconozca. Sin esto habría una
+ * franja de margen en blanco encima de cada pantalla sin migrar.
+ */
+.cabecera-pagina {
+  margin-bottom: 20px;
+}
+
+.cabecera-pagina:empty {
+  display: none;
+}
+
+/*
+ * **El `<h1>` y el subtítulo pierden sus márgenes propios dentro de la cabecera.**
+ *
+ * Los tenían porque cada plantilla se los ponía por su cuenta: `h1 { margin: 0 0 4px }` y
+ * `.subtitulo { margin-top: 0 }` sumaban con el margen del bloque de arriba, y el hueco entre
+ * título y subtítulo era distinto según la pantalla. Ahora el espaciado lo pone **la cabecera**, en
+ * un sitio, con `gap`.
+ */
+.cabecera-pagina {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cabecera-pagina > h1,
+.cabecera-pagina > .subtitulo {
+  margin: 0;
+}
+
+/* **El bloque `acciones` existe en `base.html` y todavía no lo llena nadie**, así que aquí no hay
+ * regla para él. Escribir el CSS de algo que ninguna plantilla usa es la misma trampa que un token
+ * declarado sin un solo `var()`: parece una decisión tomada y no lo está — y encima no se puede
+ * comprobar mirándolo. Entra cuando la pantalla de observaciones lo use. */
+
+/* --- Las filas de tarea ----------------------------------------------------------- */
+
+/*
+ * **Sustituyen a las tablas de tres columnas** de la portada y la bandeja.
+ *
+ * La tabla obligaba a que todas las filas tuvieran las mismas celdas, y no las tienen: una actividad
+ * no lleva prioridad, así que esa columna salía vacía en la mitad de las filas — y una celda vacía
+ * se lee como un dato que falta, no como uno que no existe.
+ */
+.bloque {
+  margin-bottom: 32px;
+}
+
+.tareas {
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--ab-border);
+  border-radius: var(--ab-radio-md);
+  overflow: hidden;
+  background: var(--ab-surface);
+}
+
+.tarea {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  /* El área de toque de la fila entera, por la misma razón que en el rail: una lista de treinta
+     filas es donde se falla al pulsar. */
+  min-height: var(--ab-touch-min);
+  padding: 8px 12px;
+}
+
+.tarea + .tarea {
+  border-top: 1px solid var(--ab-border);
+}
+
+.tarea:hover {
+  background: var(--ab-surface-alt);
+}
+
+/*
+ * El círculo de estado. **Es `role="img"` y no un checkbox**, y esa es la decisión que separa esto
+ * de Asana: allí se marca hecho desde la lista, y aquí no existe ese POST para una observación — se
+ * cierra con su resolución, que es un formulario con motivo. Un checkbox que no guarda nada es peor
+ * que ningún checkbox.
+ *
+ * Las tres columnas se distinguen por **relleno y no solo por color**: vacío, medio y lleno. Con
+ * tres tonos del mismo violeta, quien no distingue matices ve tres círculos iguales.
+ */
+.tarea-estado {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--ab-text-muted);
+  border-radius: 50%;
+}
+
+.tarea-en_marcha {
+  border-color: var(--ab-primary);
+  /* Medio lleno: el gradiente es la mitad exacta, que se lee como «va por la mitad». */
+  background: linear-gradient(90deg, var(--ab-primary) 50%, transparent 50%);
+}
+
+.tarea-en_revision {
+  border-color: var(--ab-primary);
+  background: var(--ab-primary);
+}
+
+.tarea-titulo {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--ab-text);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.tarea-titulo:hover {
+  color: var(--ab-primary);
+  text-decoration: underline;
+}
+
+.tarea-datos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex: none;
+  font-size: 0.85rem;
+  color: var(--ab-text-secondary);
+}
+
+.tarea-vence {
+  white-space: nowrap;
+}
+
+/* Vencida en rojo **y** en negrita: el color solo no lo distingue quien no distingue rojos. */
+.tarea-vencida {
+  color: var(--ab-danger);
+  font-weight: 600;
+}
+
+.tarea-sin-fecha {
+  color: var(--ab-text-muted);
+  font-style: italic;
+}
+
+/* El rótulo de cada tramo dentro de un bloque: «Vencido», «Próximos 7 días». */
+.tramo {
+  margin: 14px 0 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ab-text-secondary);
+}
+
+.tramo-arde {
+  color: var(--ab-danger);
+}
+
+/* --- La inicial de una persona ---------------------------------------------------- */
+
+/*
+ * Para reconocer de quién es una fila **sin leerla**: en treinta hallazgos, el nombre repetido en
+ * gris es una columna de ruido.
+ *
+ * **El nombre sigue escrito al lado.** Una inicial no distingue a dos personas que empiezan igual,
+ * y el color no lo lee quien no distingue colores: la inicial es un ancla para la vista, no la
+ * información. El color sale de los cinco acentos ya medidos, elegido con `crc32` del nombre —no
+ * con `hash()`, que Python aleatoriza en cada proceso—.
+ */
+.persona {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.persona-inicial {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--acento);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* --- Los pasos del recorrido, en la puerta ---------------------------------------- */
+
+/*
+ * **Aquí estaban las doce tarjetas de módulo.** Con la barra lateral al lado eran decir dos veces
+ * lo mismo, y ocupaban toda la pantalla debajo de lo que sí importa.
+ *
+ * Un paso dice qué se consigue y a dónde ir; una tarjeta decía el nombre de la pantalla.
+ */
+.pasos-cortos {
+  margin: 0;
+  padding-left: 22px;
+  display: grid;
+  gap: 10px;
+}
+
+.pasos-cortos > li {
+  color: var(--ab-text-secondary);
+}
+
+.pasos-cortos .detalle {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.88rem;
+  color: var(--ab-text-muted);
+}
+
+/* --- La puerta: la pantalla de entrada -------------------------------------------- */
+
+/*
+ * `F12.6`. Vivía en un `<style>` dentro de `registration/login.html`, con **diez tokens
+ * `--login-*` propios** que eran los mismos hexadecimales que los `--ab-*`.
+ *
+ * El motivo escrito era que la pantalla de entrada «no tiene que depender de que el resto de la
+ * hoja de estilos cargue bien». Suena razonable y no se sostiene: si `app.css` no carga, todas las
+ * demás pantallas están rotas también, y que la puerta se vea bien es lo de menos. En producción,
+ * además, la sirve el mismo proceso con el hash en el nombre.
+ *
+ * Lo que sí costaba, medido:
+ *
+ * 1. **El arreglo de contraste del paso 1 no llegó aquí.** Los campos seguían con `--login-border`,
+ *    `#dbe3ee`, o sea **1,24:1** contra su fondo: WCAG 1.4.11 pide 3:1, y esta es la primera
+ *    pantalla que alguien ve. Ahora usan `--ab-border-control`.
+ * 2. **El tema elegido se ignoraba.** Seguía `prefers-color-scheme` y no leía `data-theme`, así que
+ *    quien elige el claro en el portal entraba en oscuro cada mañana.
+ * 3. **Diez hexadecimales duplicados a mano.** Es la misma trampa de `--ab-shell`, que decía «=
+ *    --color-shell» y valía otra cosa: la copia se separa y nadie lo ve.
+ */
+body.puerta {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+}
+
+.portada {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  gap: 56px;
+  align-items: center;
+  width: min(920px, calc(100vw - 48px));
+}
+
+/* **El formulario va primero en el HTML** para que en el móvil se entre sin bajar, y la rejilla lo
+   coloca a la derecha en el escritorio. Se apila por debajo de 860 px, que es donde la mitad de la
+   izquierda deja de tener sitio para respirar. */
+.portada .tarjeta {
+  order: 2;
+  width: min(380px, calc(100vw - 32px));
+  padding: 28px;
+  background: var(--ab-surface);
+  border: 1px solid var(--ab-border);
+  border-radius: var(--ab-radius);
+  box-shadow: var(--ab-shadow);
+}
+
+.presenta {
+  order: 1;
+}
+
+@media (max-width: 860px) {
+  .portada {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
+    width: min(420px, calc(100vw - 32px));
+  }
+
+  .portada .tarjeta {
+    order: 1;
+  }
+
+  .presenta {
+    order: 2;
+  }
+}
+
+/*
+ * La marca, en dos versiones según el tema. **No es un adorno**: el relleno del dibujo original es
+ * `#1B2A4A` y contra los fondos oscuros del producto da 1,00 / 1,10 / 1,15:1, o sea que el cuerpo
+ * del dron y las caras del cubo desaparecen y queda media marca. La variante oscura deja esos
+ * rellenos transparentes y lleva el trazo en el acento: 7,46:1 sobre esta tarjeta.
+ *
+ * Hubo una placa blanca en medio y se quitó: resolvía el contraste poniendo un parche que no
+ * pertenece a la paleta.
+ *
+ * **Y ahora va por `data-theme`, no por `prefers-color-scheme`.** Antes miraba la preferencia del
+ * sistema, así que quien elegía el claro en el portal veía aquí la marca oscura sobre una tarjeta
+ * blanca.
+ *
+ * Se hace con `[data-theme]` y **sin media query**, aunque la primera versión de esto llevaba una:
+ * el resto de `app.css` no consulta `prefers-color-scheme` en ninguna regla —el tema lo decide
+ * `tema.js` y solo él—, así que una media query aquí habría puesto la marca en oscuro mientras las
+ * superficies siguen claras. Un archivo con dos formas de decidir el tema tiene dos temas.
+ */
+.puerta .marca {
+  display: block;
+  width: 52px;
+  height: 39px;
+  margin-bottom: 14px;
+}
+
+/* **Los selectores llevan `.puerta` a propósito**, y eso lo enseñó medirlo: con `.solo-oscuro` a
+   secas, `.puerta .marca { display: block }` le gana por especificidad (0,2,0 contra 0,1,0) y en
+   tema claro salían **las dos marcas a la vez**. En el `<style>` original no pasaba porque `.marca`
+   y `.solo-oscuro` empataban y ganaba la última escrita. */
+.puerta .solo-oscuro {
+  display: none;
+}
+
+[data-theme="dark"] .puerta .solo-claro {
+  display: none;
+}
+
+[data-theme="dark"] .puerta .solo-oscuro {
+  display: block;
+}
+
+.puerta h1 {
+  margin: 0 0 4px;
+  font-size: 1.35rem;
+}
+
+.puerta p.sub {
+  margin: 0 0 22px;
+  color: var(--ab-text-secondary);
+  font-size: 0.92rem;
+}
+
+.puerta label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+/* La regla general de los campos ya usa `--ab-border-control`; aquí solo cambian la altura y el
+   ancho, que son de esta pantalla. */
+.puerta input[type="text"],
+.puerta input[type="password"] {
+  width: 100%;
+  height: 42px;
+  margin-bottom: 16px;
+  padding: 0 12px;
+  background: var(--ab-bg);
+}
+
+.puerta button[type="submit"] {
+  width: 100%;
+  height: 42px;
+  border: 0;
+  border-radius: var(--ab-radio-md);
+  background: var(--ab-primary);
+  color: #fff;
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.puerta button[type="submit"]:hover {
+  background: var(--ab-primary-hover);
+}
+
+.puerta .error {
+  margin-bottom: 16px;
+  padding: 10px 12px;
+  border: 1px solid var(--ab-danger);
+  border-radius: var(--ab-radio-md);
+  color: var(--ab-danger);
+  font-size: 0.9rem;
+}
+
+.puerta .pie {
+  margin: 20px 0 0;
+  color: var(--ab-text-secondary);
+  font-size: 0.82rem;
+}
+
+.presenta h2 {
+  margin: 0 0 10px;
+  font-size: clamp(1.6rem, 3.4vw, 2.3rem);
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+
+/* El verbo de la frase en el violeta de acción: es lo que la hace leerse como una idea y no como
+   un eslogan. */
+.presenta h2 em {
+  color: var(--ab-primary);
+  font-style: normal;
+}
+
+.presenta > p {
+  margin: 0 0 22px;
+  color: var(--ab-text-secondary);
+  max-width: 46ch;
+}
+
+/*
+ * **Las tres cosas que el equipo hace aquí**, y no una lista de funciones. Cada una empieza por un
+ * verbo porque lo que se recuerda de una herramienta es lo que te deja hacer.
+ *
+ * El punto de color no sustituye al texto: es un ancla para la vista al recorrerlas.
+ */
+.presenta ul {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.presenta li {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr);
+  align-items: start;
+  gap: 12px;
+  font-size: 0.94rem;
+}
+
+.presenta li b {
+  display: block;
+}
+
+.presenta li span {
+  color: var(--ab-text-secondary);
+  font-size: 0.88rem;
+}
+
+.presenta .punto {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--ab-radio-sm);
+  background: var(--ab-primary-soft);
+  color: var(--ab-primary);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+/* El guiño para el equipo. Va al final y en pequeño: acompaña, no grita. */
+.animo {
+  margin: 26px 0 0;
+  padding-top: 18px;
+  border-top: 1px solid var(--ab-border);
+  color: var(--ab-text-secondary);
+  font-size: 0.86rem;
+  max-width: 46ch;
+}
+
+.animo b {
+  color: var(--ab-text);
+}
+
+/* --- El control segmentado, y la acción visible de una fila ----------------------- */
+
+/*
+ * Los filtros rápidos de observaciones, como **una elección entre tres** y no tres enlaces.
+ *
+ * Iban dentro del subtítulo, separados por puntos: «…con responsable y fecha. Solo las mías · Solo
+ * abiertas · Todas». Ahí no se leen como controles — se leen como el final de la frase.
+ *
+ * Comparte la forma con `.vistas` de la bandeja porque **es el mismo gesto**, y no comparte la
+ * clase porque uno vive en la cabecera y el otro en el contenido: unirlos obligaría a que los dos
+ * tuvieran el mismo margen, y no lo tienen.
+ */
+.segmentado {
+  display: inline-flex;
+  border: 1px solid var(--ab-border-control);
+  border-radius: var(--ab-radio-sm);
+  overflow: hidden;
+}
+
+.segmento {
+  display: grid;
+  place-items: center;
+  min-height: var(--ab-touch-min);
+  padding: 0 14px;
+  color: var(--ab-text-secondary);
+  text-decoration: none;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.segmento + .segmento {
+  border-left: 1px solid var(--ab-border-control);
+}
+
+.segmento:hover {
+  background: var(--ab-surface-alt);
+  color: var(--ab-text);
+}
+
+.segmento-activo,
+.segmento-activo:hover {
+  background: var(--ab-primary);
+  color: #fff;
+  font-weight: 600;
+}
+
+/*
+ * La acción de una fila. **Visible siempre, nunca `opacity: 0`.**
+ *
+ * Es la regla del sistema y aquí es donde se decide no copiar a Asana: allí las acciones aparecen
+ * al pasar el ratón, y eso funciona con una lista por pantalla en un monitor ancho — no con un rol
+ * que no sabe que existen, y no en un táctil, donde nada pasa el ratón.
+ *
+ * La calma se consigue con el tono: apagada en reposo, del color de acción al pasar por encima. Lo
+ * que **no** hace es aparecer ni cambiar de tamaño, que es lo que obliga a apuntar dos veces.
+ */
+.accion-fila {
+  display: inline-block;
+  margin-left: 8px;
+  color: var(--ab-text-muted);
+  text-decoration: none;
+  font-size: 0.85rem;
+}
+
+.accion-fila:hover {
+  color: var(--ab-primary);
+  text-decoration: underline;
+}
+
+/*
+ * El rótulo de grupo dentro de la tabla, cuando se ordena por estado.
+ *
+ * Sin él, ordenar por estado deja treinta filas seguidas con la misma píldora repetida: la columna
+ * está ordenada y no se ve dónde acaba un grupo.
+ */
+.fila-grupo > th {
+  padding: 14px 10px 6px;
+  background: var(--ab-surface-alt);
+  text-align: left;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ab-text-secondary);
+}
+
+/* --- Lista o tablero: el conmutador y las columnas -------------------------------- */
+
+/*
+ * El conmutador de vista. **Son dos enlaces y no un desplegable**: sin JavaScript —la CSP prohíbe
+ * el inline— un `<select>` no cambia nada, y con enlaces la vista queda en la URL y se puede
+ * compartir.
+ *
+ * Como control segmentado y no como dos botones separados, porque son **una elección entre dos** y
+ * no dos acciones: la forma tiene que decir que solo una está activa.
+ */
+.vistas {
+  display: inline-flex;
+  margin-bottom: 16px;
+  border: 1px solid var(--ab-border-control);
+  border-radius: var(--ab-radio-sm);
+  overflow: hidden;
+}
+
+.vista {
+  display: grid;
+  place-items: center;
+  /* La misma área de toque que el rail y las filas: es un control que se pulsa. */
+  min-height: var(--ab-touch-min);
+  padding: 0 16px;
+  color: var(--ab-text-secondary);
+  text-decoration: none;
+  font-size: 0.92rem;
+}
+
+.vista + .vista {
+  border-left: 1px solid var(--ab-border-control);
+}
+
+.vista:hover {
+  background: var(--ab-surface-alt);
+  color: var(--ab-text);
+}
+
+/* La activa lleva fondo **y** negrita, además del `aria-current`: con solo el fondo, quien no
+   distingue el violeta del gris no sabe en cuál está. */
+.vista-activa,
+.vista-activa:hover {
+  background: var(--ab-primary);
+  color: #fff;
+  font-weight: 600;
+}
+
+/*
+ * El tablero: tres columnas.
+ *
+ * `minmax(0, 1fr)` y no `1fr`: con `1fr` el ancho mínimo de contenido de un título largo empuja la
+ * columna y el tablero se sale de la pantalla. Es el mismo cuidado que `min-width: 0` en `main`, y
+ * el mismo fallo que ya costó una vuelta ahí.
+ */
+.tablero {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+.columna {
+  padding: 12px;
+  background: var(--ab-surface-alt);
+  border: 1px solid var(--ab-border);
+  border-radius: var(--ab-radio-md);
+}
+
+.columna-cabeza {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ab-text-secondary);
+}
+
+/* La cifra dice si el trabajo está atascado en un punto sin contar las tarjetas a ojo.
+   `tabular-nums` para que 9 y 10 ocupen lo mismo y la cabecera no se mueva. */
+.columna-cifra {
+  min-width: 22px;
+  padding: 1px 6px;
+  border: 1px solid var(--ab-border);
+  border-radius: 999px;
+  background: var(--ab-surface);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Dentro de una columna las tareas van como tarjetas apiladas y no como una lista con marco: la
+   columna ya tiene el suyo, y dos marcos anidados se leen como una tabla dentro de una caja. */
+.tareas-columna {
+  border: 0;
+  border-radius: 0;
+  background: none;
+  overflow: visible;
+}
+
+.tareas-columna .tarea {
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+  background: var(--ab-surface);
+  border: 1px solid var(--ab-border);
+  border-radius: var(--ab-radio-sm);
+}
+
+/* En una columna estrecha los datos van debajo del título: en línea, cinco piezas a la derecha
+   dejan el título en dos caracteres. */
+.tareas-columna .tarea-datos {
+  justify-content: flex-start;
+  width: 100%;
+  padding-left: 24px;
+}
+
+.columna-vacia {
+  margin: 0;
+  padding: 8px 4px;
+  color: var(--ab-text-muted);
+  font-size: 0.88rem;
+}
+
+/* Por debajo de 900 px las tres columnas no caben: se apilan. Un tablero de tres columnas de
+   110 px son tres listas de una palabra por línea. */
+@media (max-width: 900px) {
+  .tablero {
+    grid-template-columns: 1fr;
+  }
+}
+
+/*
+ * La cifra del día, en el subtítulo de la portada.
+ *
+ * **`flex` con `gap` y no espacios en el HTML.** La cabecera va dentro de un `{% spaceless %}`
+ * —que es lo que permite esconder una cabecera sin llenar— y `spaceless` **quita el blanco entre
+ * etiquetas**: con un espacio escrito antes del separador salía «esta semana·2 obras». Se vio
+ * mirándolo, y vale para cualquier cosa que se ponga en la cabecera.
+ */
+.cifra-del-dia {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 8px;
+  font-size: 0.95rem;
+}
+
+@media (max-width: 700px) {
+  /* En el teléfono los datos bajan debajo del título: en una línea, cinco piezas a la derecha
+     dejan el título en dos caracteres. */
+  .tarea {
+    flex-wrap: wrap;
+  }
+
+  .tarea-datos {
+    justify-content: flex-start;
+    width: 100%;
+    padding-left: 24px;
+  }
+}
+
+h1 {
+  font-size: 1.5rem;
+  margin: 0 0 4px;
+}
+
+.subtitulo {
+  color: var(--ab-text-muted);
+  margin: 0 0 24px;
+}
+
+.grupo {
+  margin: 28px 0 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ab-text-muted);
+}
+
+.tarjetas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+/*
+ * La tarjeta de un módulo.
+ *
+ * **Era una caja con dos líneas de texto y doce iguales seguidas**, y el usuario lo dijo así: «le
+ * falta diseño a la página principal, que tenga los símbolos y que sea menos plano». Tres cosas la
+ * sacan de plana, y ninguna es decoración:
+ *
+ * 1. **Un icono junto al título**, que deja reconocer la fila sin leerla — lo que sirve cuando ya
+ *    te sabes la pantalla y solo quieres entrar.
+ * 2. **Una franja de marca que aparece al pasar por encima**, para que se vea que es pulsable. Doce
+ *    cajas idénticas sin señal de estado no se leen como doce botones.
+ * 3. **Y se levanta un poco.** Es el único gesto de movimiento de la pantalla y basta: en una
+ *    aplicación de trabajo, la animación que se nota es la que estorba.
+ */
+.tarjeta {
+  display: block;
+  position: relative;
+  overflow: hidden;
+  padding: 16px 18px;
+  background: var(--ab-surface);
+  border: 1px solid var(--ab-border);
+  border-radius: var(--ab-radius);
+  text-decoration: none;
+  color: inherit;
+  box-shadow: var(--ab-shadow);
+  transition:
+    transform 120ms ease,
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+/* La franja de la marca, a la izquierda. Escondida hasta que el cursor entra. */
+.tarjeta::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--ab-violet);
+  transform: scaleY(0);
+  transform-origin: top;
+  transition: transform 140ms ease;
+}
+
+/* `a.tarjeta` y no `.tarjeta`: una tarjeta sin enlace —el módulo que no se puede abrir— no debe
+   prometer nada al pasar por encima. */
+a.tarjeta:hover {
+  border-color: var(--ab-primary);
+  transform: translateY(-2px);
+  box-shadow: var(--ab-shadow-alto);
+}
+
+a.tarjeta:hover::before {
+  transform: scaleY(1);
+}
+
+/* **Y el foco de teclado se ve.** Sin esto, quien navega con tabulador no sabe dónde está: el
+   `transform` del hover no le llega nunca. */
+a.tarjeta:focus-visible {
+  outline: 2px solid var(--ab-primary);
+  outline-offset: 2px;
+}
+
+.tarjeta .titulo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 650;
+  margin-bottom: 4px;
+}
+
+/*
+ * **`.detalle` estaba definido solo dentro de `.tarjeta`**, así que el mismo texto fuera de una
+ * tarjeta salía al tamaño y color del cuerpo: competía con lo que explicaba en vez de acompañarlo.
+ * Pasa a ser general y la regla de la tarjeta deja de hacer falta.
+ */
+.detalle {
+  color: var(--ab-text-muted);
+  font-size: 0.9rem;
+}
+
+/*
+ * Un formulario que **es un botón con su explicación**: revisar interferencias, importar un BCF.
+ *
+ * Los controles en una fila y la explicación **debajo**, no al lado. Sin esto el texto se metía
+ * entre el campo y el botón y se partía alrededor de ellos, que es exactamente lo que hacía la
+ * importación de BCF antes de mirarla en la pantalla.
+ */
+form.accion {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+/*
+ * Una etiqueta que envuelve su control **en la misma línea**, para los formularios de acción.
+ *
+ * Sin esto, un `label` es de bloque y cada «imprimir [lo abierto]» se lleva un renglón entero: el
+ * formulario del informe pasaba de una fila a seis. Y el control va **dentro** del `label` a
+ * propósito —no al lado con un `for`—, que es lo que hace que el texto sea zona de clic sin
+ * escribir un `id` por cada campo.
+ */
+form.accion label.junto {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--ab-text-secondary);
+  font-size: 0.9rem;
+  font-weight: 400;
+}
+
+form.accion label.junto select {
+  height: 30px;
+  padding: 0 6px;
+}
+
+form.accion .detalle {
+  /*
+   * Ocupa la fila entera, así que la explicación cae a su propia línea.
+   *
+   * **`max-width` aquí no es una limitación de estilo, es un fallo**, y costó medirlo: el salto de
+   * línea de flexbox se decide con el tamaño *hipotético* del elemento, y `max-width` lo recorta
+   * **antes** de esa decisión. Con `max-width: 68ch` el detalle medía 527,8 px, cabía junto al
+   * campo y al botón, y no saltaba: la regla se anulaba a sí misma. Si algún día hay que acotar el
+   * ancho de lectura, va en un elemento de dentro y no en el que tiene que envolver.
+   */
+  flex-basis: 100%;
+}
+
+/*
+ * Los iconos del portal. Ver `templates/generic/_iconos.html`.
+ *
+ * **De trazo y no de relleno**, y heredando el color: a 20 px un relleno es una mancha, y con
+ * `currentColor` el mismo símbolo sirve en violeta dentro de una tarjeta y en rojo dentro de un
+ * aviso sin duplicar el dibujo.
+ */
+/*
+ * **`stroke: currentColor` y no un color fijo, y esto era un defecto de verdad.** El comentario de
+ * `generic/_iconos.html` decía desde el principio que los iconos «heredan el color con
+ * `currentColor`», y no era cierto: el trazo estaba clavado en el violeta de la marca. Como los
+ * dibujos son de trazo y no de relleno, **el color del grupo no llegaba nunca al icono**: la regla
+ * de la tarjeta ponía `color: var(--acento)` y solo pintaba la baldosa de detrás.
+ *
+ * Por eso los doce iconos del portal salían violetas aunque cada grupo tuviera su acento medido, y
+ * por eso el usuario seguía diciendo «todos morados» después de la pasada que repartió los colores.
+ * Y por eso también engaña al medirlo: `getComputedStyle(icono).color` devuelve el acento correcto
+ * mientras lo que se ve en pantalla es el `stroke`.
+ */
+.icono {
+  width: 1.15rem;
+  height: 1.15rem;
+  flex-shrink: 0;
+  fill: none;
+  color: var(--ab-violet);
+  stroke: currentcolor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* En la tarjeta, el icono se enciende con ella: es la misma señal de «esto se pulsa». */
+/* **Al pasar por encima el icono no cambia de color**, y antes se volvía violeta: eso borraba el
+   acento del grupo justo en el momento en que estás mirando esa tarjeta. El gesto ya lo dan el
+   borde y el levantamiento de `a.tarjeta:hover`. */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--ab-surface);
+  border: 1px solid var(--ab-border);
+  border-radius: var(--ab-radius);
+  overflow: hidden;
+}
+
+th,
+td {
+  padding: 9px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--ab-border);
+  font-size: 0.92rem;
+}
+
+th {
+  background: var(--ab-primary-soft);
+  color: var(--ab-text);
+  font-weight: 650;
+}
+
+tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+/*
+ * **Un mensaje se pinta según su nivel, y antes no.** `.aviso` era rojo para todo, así que
+ * «Importado: 1 tema nuevo» salía con el mismo borde y el mismo color que un fallo: una operación
+ * que funcionó parecía una que no. Lo encontró mirar la pantalla después de importar un BCF.
+ *
+ * El nivel lo trae Django en `mensaje.tags` y `base.html` lo pone como clase. La base es neutra
+ * —el violeta del sistema, que dice «esto es información»— y solo lo que de verdad es un problema
+ * se lleva el rojo. El color va **además** del texto y nunca en su lugar: uno de cada doce hombres
+ * no distingue rojo de verde.
+ */
+.aviso {
+  padding: 12px 14px;
+  border-radius: var(--ab-radius);
+  border: 1px solid var(--ab-primary);
+  color: var(--ab-text);
+  background: var(--ab-surface);
+  margin-bottom: 18px;
+}
+
+.aviso.success {
+  border-color: var(--ab-ok);
+}
+
+.aviso.warning {
+  border-color: var(--ab-warn);
+}
+
+.aviso.error {
+  border-color: var(--ab-danger);
+  color: var(--ab-danger);
+}
+
+.paginacion {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 14px;
+  font-size: 0.9rem;
+}
+
+.paginacion .inactivo {
+  color: var(--ab-text-muted);
+}
+
+.vacio {
+  color: var(--ab-text-muted);
+  padding: 18px;
+  background: var(--ab-surface);
+  border: 1px dashed var(--ab-border);
+  border-radius: var(--ab-radius);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════════
+ * El tablero del proyecto.
+ *
+ * **Sin una sola librería de gráficos**, y por eso todo esto es CSS: la rejilla del mes la genera
+ * el módulo `calendar` de Python, y las barras se posicionan con porcentajes que calcula
+ * `apps/projects/tablero.py`. Nada que vendorizar, ninguna licencia que revisar, y **imprime**.
+ * ═══════════════════════════════════════════════════════════════════════════════════ */
+
+/* --- Tarjetas de dato: lo que se mira en tres segundos ---------------------------- */
+
+.datos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.dato {
+  padding: 14px 16px;
+  background: var(--ab-surface);
+  border: 1px solid var(--ab-border);
+  border-left: 3px solid var(--ab-primary);
+  border-radius: var(--ab-radius);
+}
+
+/* El acento de la izquierda dice de qué habla el número sin gastar una palabra. */
+.dato.alerta {
+  border-left-color: var(--ab-danger);
+}
+
+.dato.bien {
+  border-left-color: var(--ab-ok);
+}
+
+.dato .cifra {
+  font-size: 1.7rem;
+  font-weight: 700;
+  line-height: 1.1;
+  /* Tabulares: en una fila de cuatro cifras, las proporcionales las descuadran. */
+  font-variant-numeric: tabular-nums;
+}
+
+.dato .rotulo {
+  color: var(--ab-text-muted);
+  font-size: 0.82rem;
+  margin-top: 2px;
+}
+
+/* --- La línea de tiempo ----------------------------------------------------------- */
+
+.linea-tiempo {
+  background: var(--ab-surface);
+  border: 1px solid var(--ab-border);
+  border-radius: var(--ab-radius);
+  padding: 8px 0 14px;
+  overflow-x: auto;
+}
+
+/* La escala de meses, arriba. Va pegada a la pista para que una barra se pueda leer contra ella. */
+.linea-tiempo .escala {
+  position: relative;
+  height: 22px;
+  margin: 0 14px 6px;
+  border-bottom: 1px solid var(--ab-border);
+}
+
+.linea-tiempo .escala span {
+  position: absolute;
+  transform: translateX(-50%);
+  font-size: 0.7rem;
+  color: var(--ab-text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.linea-tiempo .fila {
+  display: grid;
+  grid-template-columns: 190px 1fr;
+  align-items: center;
+  gap: 10px;
+  padding: 3px 14px;
+}
+
+.linea-tiempo .fila:hover {
+  background: var(--ab-surface-alt);
+}
+
+.linea-tiempo .nombre {
+  font-size: 0.8rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.linea-tiempo .pista {
+  position: relative;
+  height: 20px;
+  background: var(--ab-surface-alt);
+  border-radius: var(--ab-radio-xs);
+}
+
+.linea-tiempo .barra {
+  position: absolute;
+  top: 3px;
+  height: 14px;
+  min-width: 8px;
+  border-radius: var(--ab-radio-xs);
+  /* El color lo pone la plantilla desde `Disciplina.color`: es el estreno de ese campo. */
+  background: var(--ab-primary);
+}
+
+/* Lo cumplido, encima y más oscuro: la barra dice cuándo y el relleno dice cuánto. */
+.linea-tiempo .barra .cumplido {
+  position: absolute;
+  inset: 0;
+  width: 0;
+  border-radius: var(--ab-radio-xs);
+  background: rgb(0 0 0 / 35%);
+}
+
+/* Atrasado: contorno rojo en vez de relleno rojo, para no perder el color de la disciplina. */
+.linea-tiempo .barra.atrasada {
+  outline: 2px solid var(--ab-danger);
+  outline-offset: 1px;
+}
+
+/* Hoy, una línea vertical. Es la referencia que convierte «está a la mitad» en «va tarde». */
+.linea-tiempo .hoy {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--ab-danger);
+  opacity: 0.55;
+}
+
+/* --- El calendario del mes -------------------------------------------------------- */
+
+.calendario {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.calendario td {
+  height: 78px;
+  vertical-align: top;
+  border-right: 1px solid var(--ab-border);
+  font-size: 0.8rem;
+}
+
+.calendario td:last-child {
+  border-right: 0;
+}
+
+/* Los huecos del borde no son días: se apagan para que nadie lea un «0 de agosto». */
+.calendario td.fuera {
+  background: var(--ab-surface-alt);
+}
+
+.calendario td.hoy {
+  box-shadow: inset 0 0 0 2px var(--ab-primary);
+}
+
+.calendario .numero {
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  color: var(--ab-text-muted);
+}
+
+.calendario .marca {
+  display: block;
+  margin-top: 3px;
+  padding: 1px 5px;
+  border-radius: var(--ab-radio-xs);
+  background: var(--ab-primary-soft);
+  color: var(--ab-text);
+  font-size: 0.72rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-decoration: none;
+}
+
+.calendario .marca.vencida {
+  background: color-mix(in srgb, var(--ab-danger) 18%, transparent);
+}
+
+/* --- Avance por disciplina -------------------------------------------------------- */
+
+.barras {
+  background: var(--ab-surface);
+  border: 1px solid var(--ab-border);
+  border-radius: var(--ab-radius);
+  padding: 14px 16px;
+}
+
+.barras .fila {
+  display: grid;
+  grid-template-columns: 150px 1fr 58px;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0;
+  font-size: 0.85rem;
+}
+
+.barras .pista {
+  height: 12px;
+  background: var(--ab-surface-alt);
+  border-radius: var(--ab-radio-sm);
+  overflow: hidden;
+}
+
+.barras .relleno {
+  height: 100%;
+  border-radius: var(--ab-radio-sm);
+}
+
+.barras .cifra {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--ab-text-secondary);
+}
+
+/* La pastilla de color de una disciplina, donde haga falta nombrarla. */
+.pastilla {
+  display: inline-block;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: var(--ab-radio-xs);
+  vertical-align: -1px;
+  margin-right: 5px;
+}
+
+/* --- Tablas con jerarquía --------------------------------------------------------- */
+
+/* **La cabecera deja de ser lavanda.** Un fondo de color en la cabecera compite con el dato, que
+   es lo que hay que leer; el peso de la letra y una línea ya la separan. */
+thead th {
+  background: var(--ab-surface-alt);
+  color: var(--ab-text-secondary);
+  font-size: 0.78rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  border-bottom: 2px solid var(--ab-border);
+}
+
+tbody tr:hover {
+  background: var(--ab-surface-alt);
+}
+
+/* Los números se leen en columna, y las proporcionales descuadran una columna de cifras. */
+td.num,
+th.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Estados, con forma además de color ------------------------------------------ */
+
+/* **Nunca solo color.** Uno de cada doce hombres no distingue rojo de verde: la píldora lleva
+   texto siempre, y el color es refuerzo. */
+.pildora {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  border: 1px solid currentcolor;
+}
+
+/*
+ * --- La prioridad, con tres colores que se distinguen -----------------------------------
+ *
+ * **«Lo mismo aplica para la vista de prioridad: mejorar los colores de esa misma línea.»** Iba
+ * alta en rojo y **media y baja las dos en gris**, con la única diferencia de que una era un gris
+ * un poco más claro que el otro: en una lista de treinta filas eso no es una diferencia, es un
+ * matiz que hay que buscar leyendo la palabra.
+ *
+ * | Prioridad | Color | Qué dice                                    |
+ * | --------- | ----- | ------------------------------------------- |
+ * | Alta      | rojo  | esto ordena la lista: se ataca primero       |
+ * | Media     | ámbar | entra en la semana                           |
+ * | Baja      | gris  | está apuntada y no manda nada                |
+ *
+ * **Y baja se queda en gris a propósito**, con relleno pero sin color de alarma: si las tres
+ * gritaran, ninguna gritaría, y lo que se recorre buscando en esta columna es lo rojo.
+ *
+ * Las de prioridad llevan **esquina de 6 px y las de estado la mantienen redonda**, y no es
+ * capricho: en la misma fila hay dos píldoras, y si fueran idénticas de forma y de relleno habría
+ * que leer la cabecera de la columna para saber cuál es cuál. La prioridad es una etiqueta fija; el
+ * estado es una posición en un camino, y de ahí la forma de pastilla.
+ */
+.pildora-prioridad {
+  border-radius: var(--ab-radio-sm);
+  background: color-mix(in srgb, currentcolor 16%, transparent);
+  border-color: color-mix(in srgb, currentcolor 45%, transparent);
+}
+
+.pildora.alta {
+  color: var(--ab-danger);
+}
+
+.pildora.media {
+  color: var(--ab-warn);
+}
+
+.pildora.baja {
+  color: var(--ab-text-secondary);
+}
+
+.pildora.ok {
+  color: var(--ab-ok);
+}
+
+/*
+ * --- El estado de un hallazgo, con el color de su paso ---------------------------------
+ *
+ * **«El estado cerrado o abierta, cambiar color, que sea visible y trazable más claro.»** Iban las
+ * dos como la misma ficha gris, así que en una lista donde conviven abierto y cerrado había que
+ * leer la palabra de cada fila para saber qué queda por hacer.
+ *
+ * Los colores **no son nuevos ni elegidos aquí**: son los que ya usa el paso a paso de la ficha
+ * —`.paso.done` en verde, `.paso.current` en violeta— así que el color de la píldora en la lista y
+ * el del punto en la ficha dicen lo mismo. Eso es lo que hace que sea trazable: se sigue el mismo
+ * color de la lista a la ficha.
+ *
+ * | Estado     | Color   | Qué dice                                      |
+ * | ---------- | ------- | --------------------------------------------- |
+ * | Abierta    | ámbar   | espera algo de alguien                        |
+ * | Respondida | violeta | está en marcha, es el paso en curso           |
+ * | Cerrada    | verde   | terminada, y con su resolución escrita        |
+ * | Descartada | gris    | fuera del camino: no era un problema          |
+ *
+ * **Descartada en gris y no en rojo**: un falso positivo no es una alarma, es algo que alguien
+ * miró y decidió que no era un problema. Y las cuatro llevan **la palabra escrita**, que es la
+ * regla de siempre: el color refuerza, no informa.
+ *
+ * Y la de estado va con fondo mientras la de prioridad va solo con contorno: en la misma fila hay
+ * dos píldoras, y si fueran idénticas habría que leer la cabecera de la columna para saber cuál es
+ * cuál.
+ */
+.pildora-estado {
+  background: color-mix(in srgb, currentcolor 16%, transparent);
+  border-color: color-mix(in srgb, currentcolor 45%, transparent);
+}
+
+.pildora.abierta {
+  color: var(--ab-warn);
+}
+
+.pildora.respondida {
+  color: var(--ab-primary);
+}
+
+.pildora.cerrada {
+  color: var(--ab-ok);
+}
+
+.pildora.descartada {
+  color: var(--ab-text-muted);
+}
+
+/* --- El distintivo de una disciplina ---------------------------------------------- */
+
+/*
+ * **Cada especialidad se reconoce por su color antes de leerse**, que es lo que permite recorrer
+ * una tabla de cuarenta entregables buscando arquitectura en vez de leyendo cuarenta filas.
+ *
+ * El color sale de la base —una sola copia— y **la letra la elige el servidor midiendo** la
+ * luminancia del fondo: ver `apps/projects/color.py`. Aquí no se decide ningún color, solo la forma.
+ *
+ * Y lleva **el código escrito** y no solo el color: uno de cada doce hombres no distingue rojo de
+ * verde, así que un cuadrado suelto no identifica nada para él.
+ */
+.distintivo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: var(--ab-radio-sm);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  white-space: nowrap;
+  /* Un filo interior para que el chip no se disuelva cuando su color se parece a la superficie. */
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 12%);
+}
+
+.distintivo-vacio {
+  background: var(--ab-surface-alt);
+  color: var(--ab-text-muted);
+  box-shadow: inset 0 0 0 1px var(--ab-border);
+}
+
+/*
+ * **La marca de una etiqueta** — `F10.1`. Se distingue del distintivo de disciplina a propósito:
+ * más redonda y sin el ancho mínimo, porque lleva una palabra entera y no dos letras. Que no se
+ * parezcan es el punto: en la misma ficha aparecen las dos, y son dos cosas distintas — la
+ * disciplina dice de quién es y la etiqueta es lo transversal.
+ */
+.marca-etiqueta {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 12%);
+}
+
+/* Las etiquetas de un hallazgo, en una línea que envuelve. */
+.etiquetas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 14px;
+}
+
+/* Y dentro de una celda, detrás del título: no rompe la línea si cabe. */
+.etiquetas-en-linea {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-left: 7px;
+  vertical-align: middle;
+}
+
+.distintivo-nombre {
+  margin-left: 8px;
+  color: var(--ab-text-secondary);
+}
+
+/* --- Los cinco acentos del portal ------------------------------------------------- */
+
+/*
+ * **El violeta es la marca, no el uniforme.** Pintar también con violeta los cinco grupos del
+ * portal dejaba una página de un solo color, y un solo color es lo que se lee como plano: nueve
+ * tarjetas idénticas de icono, título y dos líneas grises, sin nada que separe «proyecto» de
+ * «documentos» salvo un rótulo pequeño.
+ *
+ * Así que cada grupo lleva el suyo, y **los cinco están medidos** sobre las dos superficies del
+ * sistema —blanco en claro, `#1b2432` en oscuro—:
+ *
+ * | Grupo          | Claro     | Ratio | Oscuro    | Ratio | Tono | Sat. |
+ * | -------------- | --------- | ----- | --------- | ----- | ---- | ---- |
+ * | las obras      | `#5b3a9e` | 8,26  | `#c3a6f0` | 7,46  | 264  | 71 % |
+ * | el modelo      | `#12628f` | 6,63  | `#6cc4f5` | 8,07  | 201  | 87 % |
+ * | documentos     | `#8a5a00` | 5,93  | `#f0b45e` | 8,47  | 35   | 83 % |
+ * | coordinación   | `#3f7a13` | 5,24  | `#8ada6f` | 9,17  | 105  | 59 % |
+ * | administración | `#5a626d` | 6,17  | `#aab1bb` | 7,22  | 215  | 11 % |
+ *
+ * **Y el tono se mide igual que el contraste**, porque tener cinco colores distintos no basta si
+ * dos de ellos se parecen: el cian del modelo (`#5fd3d8`) y el verde de coordinación (`#5fd3ae`)
+ * estaban a **21 grados** de tono, así que a 18 px eran el mismo color — es lo que el usuario dijo
+ * como «todo del mismo tono». El modelo pasa a azul y la coordinación a verde de verdad, y el par
+ * más cercano queda a **63 grados**.
+ *
+ * **Administración es gris a propósito** —11 % de saturación—: no es una etapa del trabajo, es
+ * donde se mira cómo va la máquina, y darle color propio la ponía a competir con las cuatro que sí
+ * lo son.
+ *
+ * El violeta se queda con las obras porque es donde la marca corresponde. Y **el color no
+ * sustituye al rótulo**: el nombre del grupo sigue escrito, porque un color no se lee en voz alta
+ * ni lo distingue quien no distingue verde de rojo.
+ */
+.acento-0 {
+  --acento: #5b3a9e;
+}
+.acento-1 {
+  --acento: #12628f;
+}
+.acento-2 {
+  --acento: #8a5a00;
+}
+.acento-3 {
+  --acento: #3f7a13;
+}
+.acento-4 {
+  --acento: #5a626d;
+}
+
+[data-theme="dark"] .acento-0 {
+  --acento: #c3a6f0;
+}
+[data-theme="dark"] .acento-1 {
+  --acento: #6cc4f5;
+}
+[data-theme="dark"] .acento-2 {
+  --acento: #f0b45e;
+}
+[data-theme="dark"] .acento-3 {
+  --acento: #8ada6f;
+}
+[data-theme="dark"] .acento-4 {
+  --acento: #aab1bb;
+}
+
+/* El rótulo del grupo con su marca de color: dos píxeles a la izquierda, no un fondo. Un fondo
+   convierte cada rótulo en un bloque y la página vuelve a pesar lo mismo en todas partes. */
+.grupo-acento {
+  padding-left: 10px;
+  border-left: 3px solid var(--acento);
+  color: var(--ab-text);
+}
+
+/*
+ * El icono de la tarjeta hereda el acento de su grupo, y va sobre su propia baldosa.
+ *
+ * **Es lo que hace que la tarjeta se reconozca sin leerla**, que es lo que sirve cuando ya te sabes
+ * la pantalla. El icono suelto al lado del título ya lo intentaba y no bastaba: a 20 px, un trazo
+ * del mismo color que el texto es una mancha más de la misma línea.
+ */
+.tarjetas .icono {
+  box-sizing: content-box;
+  width: 18px;
+  height: 18px;
+  padding: 6px;
+  border-radius: var(--ab-radio-md);
+  color: var(--acento);
+  /* **La baldosa subió de 14 % a 20 % y ganó un filo.** A 14 % sobre una superficie oscura la
+     baldosa casi no existía, así que del icono solo se veía el trazo: el color del grupo quedaba
+     colgando de dos píxeles de línea y por eso las doce tarjetas parecían iguales. */
+  background: color-mix(in srgb, var(--acento) 20%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--acento) 35%, transparent);
+  /* A 18 px un trazo de 1,6 se pinta a poco más de un píxel y el dibujo se lee como un boceto. Es
+     la misma corrección que necesitó la marca del visor a 27 px. */
+  stroke-width: 1.75;
+}
+
+/*
+ * **El gesto de pasar por encima ya existía y no se toca**: `a.tarjeta:hover` levanta la tarjeta y
+ * saca su franja, y está escrito con `a.` a propósito —una tarjeta sin enlace no debe prometer
+ * nada—. Lo único que se añade aquí es que el borde tome el acento **de su grupo** en vez del
+ * violeta para todos, que es de lo que trata esta pasada.
+ */
+a.tarjeta:hover {
+  border-color: color-mix(in srgb, var(--acento, var(--ab-primary)) 60%, var(--ab-border));
+}
+
+a.tarjeta:hover::before {
+  background: var(--acento, var(--ab-violet));
+}
+
+/* Y el acento asoma por el filo de arriba, que es lo que le da al conjunto su ritmo de color. */
+.tarjetas .tarjeta::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: var(--acento, var(--ab-primary));
+  opacity: 0.85;
+}
+
+/* --- La tarjeta de una obra: avance y lo que arde --------------------------------- */
+
+/*
+ * **Decía «Edificio corporativo · Anteproyecto · avance 1», que no es un dato**: es la etapa y un
+ * número sin unidad. Lo que se pregunta al abrir la puerta por la mañana es cuánto lleva la obra y
+ * si hay algo vencido, porque eso es lo que decide dónde entrar.
+ */
+.tarjetas-obra {
+  --acento: var(--ab-primary);
+}
+
+.obra-cabeza {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 2px;
+}
+
+.obra-codigo {
+  font-size: 1.06rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.obra-nombre {
+  color: var(--ab-text-secondary);
+  font-size: 0.92rem;
+  margin-bottom: 12px;
+}
+
+.avance {
+  height: 7px;
+  border-radius: 999px;
+  background: var(--ab-track);
+  overflow: hidden;
+}
+
+.avance-relleno {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--ab-primary);
+}
+
+.avance-cifra {
+  margin-top: 6px;
+  color: var(--ab-text-muted);
+  font-size: 0.8rem;
+}
+
+.avance-cifra b {
+  color: var(--ab-text);
+  font-size: 0.92rem;
+}
+
+.obra-cifras {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+/*
+ * Las cifras que importan, **con su palabra al lado y no solo con su color**. Y el cero no se
+ * dibuja en absoluto: «0 vencidas» es ruido en una puerta, y además hace que la tarjeta de una obra
+ * limpia parezca tener problemas.
+ */
+.cifra {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  padding: 3px 9px;
+  border: 1px solid var(--ab-border);
+  border-radius: 999px;
+  color: var(--ab-text-secondary);
+  font-size: 0.78rem;
+}
+
+.cifra b {
+  color: var(--ab-text);
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.cifra-arde {
+  border-color: color-mix(in srgb, var(--ab-danger) 55%, transparent);
+  color: var(--ab-danger);
+}
+
+.cifra-arde b {
+  color: var(--ab-danger);
+}
+
+.cifra-alta {
+  border-color: color-mix(in srgb, var(--ab-warn) 55%, transparent);
+  color: var(--ab-warn);
+}
+
+.cifra-alta b {
+  color: var(--ab-warn);
+}
+
+/* --- Botones y migas de pan ------------------------------------------------------- */
+
+/*
+ * **Los botones eran los del sistema operativo, y eso es media explicación de «se ve plano».**
+ * `button` sin estilo sale con el gris de Windows en una pantalla oscura: «Importar una respuesta
+ * BCF» y «Revisar interferencias» parecían pegados de otra aplicación.
+ *
+ * Uno primario por pantalla y el resto de contorno. El primario usa `--ab-primary`, que es el
+ * violeta llevado a texto y **no** el de marca: blanco sobre el de marca da 4,13:1 y no pasa AA,
+ * que es la lección que ya está escrita arriba en los tokens.
+ */
+button,
+.boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 6px 14px;
+  border: 1px solid transparent;
+  border-radius: var(--ab-radio-md);
+  background: var(--ab-primary);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  line-height: 1.2;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease;
+}
+
+button:hover,
+.boton:hover {
+  background: var(--ab-primary-hover);
+  color: #fff;
+}
+
+button:focus-visible,
+.boton:focus-visible {
+  outline: 2px solid var(--ab-primary);
+  outline-offset: 2px;
+}
+
+/* El secundario: la salida, el «dejarlo». Va de contorno porque **no es la acción de la
+   pantalla**, y dos botones del mismo peso obligan a leer los dos para elegir. */
+button.secundario,
+.boton.secundario {
+  background: transparent;
+  border-color: var(--ab-border);
+  color: var(--ab-text);
+}
+
+button.secundario:hover,
+.boton.secundario:hover {
+  background: var(--ab-surface-alt);
+  border-color: var(--ab-primary);
+  color: var(--ab-text);
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* El interruptor de tema de la barra se queda como estaba: vive sobre el navy y tiene su regla
+   propia más abajo, que gana por especificidad. */
+
+/*
+ * **Los campos también eran los del sistema**, y en tema oscuro eso son cajas blancas: la ficha de
+ * un hallazgo tenía dos rectángulos blancos encima de un fondo azul oscuro. Los tokens ya existían;
+ * lo que faltaba era usarlos.
+ *
+ * **Y el contorno era `--ab-border`, que no llega.** Medido: 1,24:1 en claro y **1,17:1** en oscuro
+ * contra el fondo del propio campo. WCAG 1.4.11 pide 3:1 para lo que transmite información sin ser
+ * texto, y el contorno de un campo es lo único que dice dónde se puede escribir: por debajo de eso
+ * el campo no parece un campo. Ahora va `--ab-border-control`, declarado arriba y medido en los dos
+ * temas (3,30:1 y 3,21:1 sobre el fondo del campo).
+ *
+ * `--ab-border` se queda para separar bloques, que es otra cosa: una línea entre dos filas de una
+ * tabla no tiene que gritar.
+ */
+input[type="text"],
+input[type="password"],
+input[type="date"],
+input[type="number"],
+input[type="email"],
+input[type="file"],
+select,
+textarea {
+  max-width: 100%;
+  padding: 7px 10px;
+  color: var(--ab-text);
+  background: var(--ab-surface-alt);
+  border: 1px solid var(--ab-border-control);
+  border-radius: var(--ab-radio-md);
+  font: inherit;
+}
+
+textarea {
+  min-height: 84px;
+  resize: vertical;
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--ab-primary);
+  outline-offset: 1px;
+  border-color: var(--ab-primary);
+}
+
+/*
+ * **El campo de archivo sí se puede estilar entero**, y aquí decía lo contrario. `::file-selector-`
+ * `button` es estándar desde 2021 y lo entienden los tres motores; sin él, el botón «Seleccionar
+ * archivo» salía con el gris del sistema —el mismo caso que ya se arregló con `button`— y era lo
+ * único blanco de la pantalla oscura, justo debajo de la tabla de hallazgos.
+ *
+ * Va como el botón secundario y no como el primario: **el que decide es «Importar una respuesta
+ * BCF»**, que está a continuación; elegir el archivo es el paso de antes.
+ */
+input[type="file"] {
+  padding: 5px 8px;
+}
+
+input[type="file"]::file-selector-button {
+  margin-right: 10px;
+  padding: 5px 12px;
+  color: var(--ab-text);
+  background: transparent;
+  border: 1px solid var(--ab-border);
+  border-radius: var(--ab-radio-sm);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+input[type="file"]::file-selector-button:hover {
+  background: var(--ab-surface);
+  border-color: var(--ab-primary);
+}
+
+/*
+ * **Las migas, que es lo que faltaba para no perder el hilo.** Se pinchaba un hallazgo en la lista
+ * de la obra y la única salida era el botón atrás del navegador: la ficha no decía de dónde venías.
+ */
+.migas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  color: var(--ab-text-muted);
+  font-size: 0.84rem;
+}
+
+.migas [aria-current="page"] {
+  color: var(--ab-text);
+  font-weight: 600;
+}
+
+/* --- La fila de un hallazgo -------------------------------------------------------- */
+
+/*
+ * **La lista de hallazgos era texto plano, y por eso no se podía triar.** `F11.6`. La prioridad
+ * —que es la dimensión por la que se recorre una lista de nueve— iba como palabra gris del mismo
+ * peso que todo lo demás, y nueve títulos subrayados eran nueve subrayados compitiendo entre sí.
+ *
+ * El título sin subrayar y subrayado al pasar por encima: **la fila entera se resalta**, así que el
+ * subrayado permanente solo añadía ruido. Y el color del enlace se queda para el hover: nueve
+ * líneas violetas seguidas tampoco dejan ver cuál es la importante.
+ */
+.fila-hallazgo:hover {
+  background: var(--ab-surface-alt);
+}
+
+.hallazgo-titulo {
+  color: var(--ab-text);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.fila-hallazgo:hover .hallazgo-titulo,
+.hallazgo-titulo:hover {
+  color: var(--ab-primary);
+  text-decoration: underline;
+}
+
+/* --- El recorrido de la ayuda ----------------------------------------------------- */
+
+/*
+ * **Nueve pasos numerados, no una lista de enlaces.** `F11.7`. El orden es la mitad del valor —lo
+ * que no sabe quien abre esto la primera vez es por dónde se empieza— así que el número va grande y
+ * a la izquierda, fuera del texto, como en un manual.
+ *
+ * El numerado lo pone el propio contenido del paso (`1 · Entra en la obra`) y no un contador de CSS,
+ * porque el número es parte de lo que se lee en voz alta: un `::before` generado no lo lee un lector
+ * de pantalla en todos los navegadores.
+ */
+.recorrido {
+  list-style: none;
+  margin: 0 0 24px;
+  padding: 0;
+  max-width: 78ch;
+}
+
+.paso-ayuda {
+  padding: 16px 18px;
+  margin-bottom: 12px;
+  background: var(--ab-surface);
+  border: 1px solid var(--ab-border);
+  border-left: 3px solid var(--ab-primary);
+  border-radius: var(--ab-radius);
+}
+
+.paso-ayuda h2 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 8px;
+  font-size: 1.02rem;
+}
+
+/*
+ * El paso que no te toca: **apagado, no escondido.** La franja pierde el color y el texto baja de
+ * tono, que es lo que dice «esto pasa, pero no lo haces tú» sin quitarlo de la explicación.
+ */
+.paso-ajeno {
+  border-left-color: var(--ab-border);
+}
+
+.paso-ajeno h2,
+.paso-ajeno .que-hacer {
+  color: var(--ab-text-secondary);
+}
+
+/* Para qué sirve va primero y con más peso: es lo que decide si este paso te interesa. */
+.para-que {
+  margin: 0 0 8px;
+}
+
+.que-hacer {
+  margin: 0 0 12px;
+  color: var(--ab-text-secondary);
+  font-size: 0.94rem;
+}
+
+/* --- Las herramientas de una sección, en cajas ------------------------------------ */
+
+/*
+ * **Dos herramientas independientes se dibujan como dos.** Debajo de la tabla de hallazgos hay dos
+ * —sacar el informe y meter un BCF que llega— y estaban como cinco filas de controles seguidas, sin
+ * nada que dijera dónde acaba una y empieza la otra: dos selectores, tres casillas, dos botones,
+ * una explicación, un selector de archivo, otro botón y otra explicación.
+ *
+ * El usuario lo dijo así: «está mal distribuido, muy junto y poco entendible el flujo, sobre todo
+ * en las observaciones abiertas y lo que está abajo».
+ *
+ * Van **una al lado de la otra** y no apiladas, porque apiladas la pantalla dice que la segunda
+ * viene después de la primera, y no es así: son dos cosas que se hacen en momentos distintos.
+ */
+.herramientas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 14px;
+  margin: 18px 0 8px;
+  align-items: start;
+}
+
+.herramienta {
+  padding: 14px 16px;
+  background: var(--ab-surface);
+  border: 1px solid var(--ab-border);
+  border-radius: var(--ab-radius);
+}
+
+.herramienta h2 {
+  margin: 0 0 12px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ab-text-muted);
+}
+
+/* Dentro de la caja el formulario ya no necesita su margen: lo pone la caja. */
+.herramienta form.accion {
+  margin-bottom: 0;
+}
+
+/* Y la explicación va al final, separada de los botones que explica. */
+.herramienta form.accion .detalle {
+  margin-top: 4px;
+}
+
+/* --- Una cabecera de columna que ordena ------------------------------------------- */
+
+/*
+ * Es un enlace, así que sin esto salía subrayado y en violeta: seis enlaces violetas en la fila de
+ * cabeceras competían con los títulos de los hallazgos, que es lo que hay que leer. Aquí el enlace
+ * **se comporta como la cabecera que ya era** y solo se delata al pasar por encima.
+ */
+.orden {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: inherit;
+  font: inherit;
+  text-decoration: none;
+}
+
+.orden:hover {
+  color: var(--ab-primary);
+  text-decoration: underline;
+}
+
+/* La que manda va marcada, no solo con su flecha: el color se ve antes que el símbolo. */
+.orden-activo {
+  color: var(--ab-primary);
+}
+
+/* La barra de filtros, sobre la tabla que filtra. */
+.barra-filtros {
+  margin-bottom: 10px;
+}
+
+/*
+ * **Lo resuelto se apaga.** En la lista general conviven lo abierto y lo cerrado, y con el mismo
+ * peso hay que leer la última columna de cada fila para saber qué queda por hacer. Se apaga y no se
+ * esconde: un hallazgo cerrado sigue siendo la respuesta a «¿esto ya se vio?».
+ */
+.fila-resuelta .hallazgo-titulo,
+.fila-resuelta td {
+  color: var(--ab-text-muted);
+}
+
+.fila-resuelta .pildora {
+  opacity: 0.6;
+}
+
+/* Lo que no es el dato principal de la fila: la antigüedad cuando no hay vencimiento. */
+.tenue {
+  color: var(--ab-text-muted);
+  font-size: 0.86rem;
+}
+
+/* --- La revisión de un BCF antes de importarlo ------------------------------------ */
+
+/*
+ * **Importar era a ciegas.** `F4.11`: se subía el archivo y se escribía. Para un ZIP que llega por
+ * correo desde otra oficina eso no es una decisión — no se sabe cuántos temas trae ni cuáles tocan
+ * algo que ya está. Esta lista lo enseña antes de escribir nada.
+ *
+ * Cada tema con su foto a la izquierda, porque es lo que permite reconocer un hallazgo sin leer su
+ * título: es lo mismo que hace todo visor del mercado en su lista de temas.
+ */
+.temas {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.tema-bcf {
+  display: grid;
+  grid-template-columns: 108px minmax(0, 1fr);
+  gap: 14px;
+  padding: 12px 14px;
+  background: var(--ab-surface);
+  border: 1px solid var(--ab-border);
+  border-radius: var(--ab-radius);
+}
+
+/* El que no va a entrar se atenúa, pero **no se esconde**: saber qué se queda fuera es la mitad
+   de para qué sirve esta pantalla. */
+.tema-bcf.tema-fuera {
+  opacity: 0.72;
+  border-style: dashed;
+}
+
+.tema-foto {
+  width: 108px;
+  height: 76px;
+  object-fit: cover;
+  border-radius: var(--ab-radio-md);
+  background: var(--ab-surface-alt);
+}
+
+.tema-sin-foto {
+  display: grid;
+  place-items: center;
+  color: var(--ab-text-muted);
+  border: 1px dashed var(--ab-border);
+}
+
+.tema-cabeza {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.tema-titulo {
+  font-size: 1rem;
+  font-weight: 650;
+}
+
+.tema-detalle {
+  margin: 4px 0 0;
+  color: var(--ab-text-secondary);
+  font-size: 0.88rem;
+}
+
+/* Lo que entra nuevo se marca en verde: es lo que se venía a ver. */
+.cifra-nueva {
+  border-color: color-mix(in srgb, var(--ab-ok) 55%, transparent);
+  color: var(--ab-ok);
+}
+
+/* --- Fichas: un dato con su nombre, no un código suelto --------------------------- */
+
+/*
+ * **Existen porque «A · AR» no le dice nada a nadie.** Eran el código de idoneidad y el de la
+ * disciplina escritos sueltos en una tarjeta, y los dos son decisiones con consecuencias: la
+ * idoneidad dice qué autoriza esa revisión y la disciplina de quién es.
+ *
+ * Una ficha lleva **el dato con su significado**, no la abreviatura sola. Y son de contorno y no de
+ * relleno a propósito: el relleno lo tiene el distintivo de disciplina, que es lo único que debe
+ * cantar en la tarjeta — si todo llama la atención, no la llama nada.
+ */
+.fichas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0 6px;
+}
+
+.ficha {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border: 1px solid var(--ab-border);
+  border-radius: 999px;
+  color: var(--ab-text-secondary);
+  font-size: 0.76rem;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+/* La revisión vigente es el dato que se busca al elegir qué abrir: va con más peso. */
+.ficha-fuerte {
+  border-color: color-mix(in srgb, var(--ab-primary) 45%, transparent);
+  background: var(--ab-primary-soft);
+  color: var(--ab-primary);
+  font-weight: 650;
+}
+
+/* --- El paso a paso de un registro ------------------------------------------------ */
+
+/*
+ * Lo dibuja `generic/_pasos.html` y lo alimenta `StatusFlowMixin.status_steps()`. **Tres modelos
+ * avanzan y ninguno lo dibujaba**: proyecto, revisión y actividad.
+ */
+.pasos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  list-style: none;
+  margin: 0 0 18px;
+  padding: 0;
+  font-size: 0.85rem;
+}
+
+.paso {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px 6px 10px;
+  color: var(--ab-text-muted);
+}
+
+/* La flecha entre pasos: dice que hay un orden, que es la mitad del mensaje. */
+.paso + .paso::before {
+  content: "→";
+  margin-right: 8px;
+  color: var(--ab-border);
+}
+
+.paso .marca {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 2px solid currentcolor;
+}
+
+.paso.done {
+  color: var(--ab-ok);
+}
+
+.paso.done .marca {
+  background: currentcolor;
+}
+
+.paso.current {
+  color: var(--ab-primary);
+  font-weight: 700;
+}
+
+.paso.current .marca {
+  background: currentcolor;
+  box-shadow: 0 0 0 4px var(--ab-primary-soft);
+}
+
+/* Detenido: no es un paso hacia ningún sitio, es donde el flujo se paró. */
+.paso.blocked {
+  color: var(--ab-danger);
+  font-weight: 700;
+}
+
+.paso.blocked .marca {
+  border-radius: var(--ab-radio-xs);
+  background: currentcolor;
+}
+
+/* El paso a paso en una columna estrecha: la flecha pasa a ir debajo del punto. */
+.pasos-columna {
+  display: block;
+  margin-bottom: 12px;
+}
+
+.pasos-columna .paso {
+  padding: 5px 0 5px 2px;
+}
+
+.pasos-columna .paso + .paso::before {
+  content: "";
+  position: absolute;
+  left: 6px;
+  width: 1px;
+  height: 12px;
+  margin: 0;
+  transform: translateY(-14px);
+  background: var(--ab-border);
+}
+
+.pasos-columna .paso + .paso {
+  position: relative;
+}
+
+/* --- La ficha de un hallazgo: la conversación a un lado, los datos al otro -------- */
+
+/*
+ * **Era una columna con cuatro secciones apiladas y el usuario se quejó dos veces.** La segunda,
+ * ya con las migas y el paso a paso puestos: «este flujo no es práctico ni comprensible y se ve mal
+ * distribuido». Cierto: hilo, responder, etiquetas y cerrar, los cuatro con el mismo peso, en una
+ * sola cola vertical y con mil píxeles vacíos a la derecha.
+ *
+ * Quien entra a un hallazgo hace una de dos cosas —**leer de qué va** o **hacer algo con él**— así
+ * que la pantalla se parte en esas dos: la conversación a la izquierda, la ficha a la derecha.
+ *
+ * El lateral son **320 px fijos** y no un porcentaje: lo que lleva son pares dato/valor y una lista
+ * de casillas, que tienen un ancho natural y no ganan nada por estirarse. Y la columna de lectura
+ * se queda con el resto, con su propio tope más abajo.
+ */
+.hallazgo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 26px;
+  align-items: start;
+}
+
+/* Por debajo de 980 px se apila, y **el cuerpo va primero**: de qué va antes que qué hacer. */
+@media (max-width: 980px) {
+  .hallazgo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.hallazgo-cabeza {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.hallazgo-cabeza h1 {
+  margin: 0;
+}
+
+/*
+ * **El texto del problema, con la medida de una columna de lectura.** A 1400 px de ancho una
+ * descripción de tres líneas sale como tres líneas larguísimas que obligan a mover la cabeza para
+ * volver al principio de la siguiente.
+ */
+.hallazgo-descripcion {
+  max-width: 68ch;
+  padding: 14px 16px;
+  margin-bottom: 22px;
+  background: var(--ab-surface);
+  border: 1px solid var(--ab-border);
+  border-left: 3px solid var(--ab-primary);
+  border-radius: var(--ab-radius);
+  font-size: 1.02rem;
+}
+
+/* --- El hilo, como conversación y no como tabla ----------------------------------- */
+
+/*
+ * **Eran dos celdas de una tabla** —autor a la izquierda, texto a la derecha— y una respuesta de
+ * dos líneas dejaba media fila vacía al lado. Y no se distinguía **quién** escribió cada cosa sin
+ * leer la primera celda: en un hilo de coordinación eso es la mitad del sentido.
+ */
+.hilo {
+  list-style: none;
+  margin: 0 0 24px;
+  padding: 0;
+  max-width: 68ch;
+}
+
+.mensaje {
+  padding: 10px 14px;
+  margin-bottom: 10px;
+  background: var(--ab-surface);
+  border: 1px solid var(--ab-border);
+  border-radius: var(--ab-radius);
+}
+
+/* Lo que escribió quien está mirando la pantalla, del otro lado y con su color. */
+.mensaje.mio {
+  margin-left: 40px;
+  border-color: color-mix(in srgb, var(--ab-primary) 40%, transparent);
+  background: var(--ab-primary-soft);
+}
+
+.mensaje-quien {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: baseline;
+  margin-bottom: 4px;
+  font-weight: 650;
+  font-size: 0.9rem;
+}
+
+/*
+ * **La imagen adjunta a un mensaje del hilo.** `F12.11`.
+ *
+ * Con tope de alto y no solo de ancho: una captura de pantalla de un monitor apaisado cabe en el
+ * ancho del mensaje y mide seiscientos pixeles de alto, y entonces empuja el resto del hilo fuera
+ * de la pantalla. A 220 px se ve **que hay una imagen y de que va**, y el clic la abre entera —que
+ * es para lo que esta enlazada.
+ *
+ * `object-fit: cover` con `width: 100%` recortaria justo lo que se quiere enseñar. Va `contain`.
+ */
+.mensaje-imagen {
+  display: block;
+  margin-top: 8px;
+  border: 1px solid var(--ab-border);
+  border-radius: var(--ab-radio-sm);
+  overflow: hidden;
+  /* Es un enlace y su contenido es una imagen: sin esto hereda el subrayado y el color del enlace,
+     y se dibuja una raya violeta debajo de la foto. */
+  text-decoration: none;
+}
+
+.mensaje-imagen img {
+  display: block;
+  max-width: 100%;
+  max-height: 220px;
+  object-fit: contain;
+  /* Mientras carga, el hueco es del color de una superficie y no del papel: asi no parpadea en
+     blanco sobre el tema oscuro. */
+  background: var(--ab-surface-alt);
+}
+
+/* El rotulo del adjunto, mas discreto que el del texto: es opcional y no debe pesar igual. */
+.adjuntar {
+  margin-top: 10px;
+  color: var(--ab-text-muted);
+  font-weight: 600;
+  font-size: 0.84rem;
+}
+
+/* --- Un campo con su rótulo encima ------------------------------------------------ */
+
+/*
+ * **`as_p` de Django pone el `<label>` y el `<textarea>` en la misma línea**, así que con una caja
+ * de tres filas el «Comentario:» quedaba flotando a media altura a su izquierda. Es de lo que el
+ * usuario llamó «mal distribuido», y no se arregla con estructura: se arregla pintando el campo.
+ */
+.bloque-campo {
+  max-width: 68ch;
+}
+
+.bloque-campo label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 650;
+  font-size: 0.9rem;
+}
+
+.bloque-campo textarea,
+.bloque-campo input[type="text"] {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.bloque-pie {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.bloque-pie .detalle {
+  margin: 0;
+  flex: 1 1 220px;
+}
+
+/* --- El lateral: datos y acciones, no lectura ------------------------------------- */
+
+.hallazgo-lado {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.lado-bloque {
+  padding: 14px 16px;
+  background: var(--ab-surface);
+  border: 1px solid var(--ab-border);
+  border-radius: var(--ab-radius);
+}
+
+.lado-bloque h2 {
+  margin: 0 0 10px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ab-text-muted);
+}
+
+.lado-bloque > :last-child {
+  margin-bottom: 0;
+}
+
+.lado-bloque .detalle {
+  margin: 10px 0 0;
+  font-size: 0.82rem;
+}
+
+.lado-bloque textarea {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 68px;
+}
+
+/* Cerrar es lo que se hace una vez, no todos los días: va al final y en tono menor. */
+.lado-cierre {
+  border-style: dashed;
+}
+
+/*
+ * Los pares dato/valor de la ficha. **En dos columnas y no una lista corrida**: «Responsable:
+ * coordinadora · abierta por coordinadora · vence…» era una línea de subtítulo donde había que
+ * buscar el dato leyendo, y aquí cada uno está siempre en el mismo sitio.
+ */
+.datos-lado {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 6px 12px;
+  margin: 0;
+}
+
+.datos-lado dt {
+  color: var(--ab-text-muted);
+  font-size: 0.82rem;
+}
+
+.datos-lado dd {
+  margin: 0;
+  font-size: 0.9rem;
+  min-width: 0;
+}
+
+/* El GUID entero no cabe en 190 px, y cortarlo a la mitad no identifica nada: se parte. */
+.guid {
+  display: inline-block;
+  font-size: 0.76rem;
+  overflow-wrap: anywhere;
+  color: var(--ab-text-secondary);
+}
+
+/* --- El interruptor de tema en la barra ------------------------------------------- */
+
+.barra button.tema {
+  background: rgb(255 255 255 / 12%);
+  color: #fff;
+  border: 0;
+  border-radius: var(--ab-radio-md);
+  padding: 4px 10px;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.barra button.tema:hover {
+  background: rgb(255 255 255 / 22%);
+}
+
+/* --- Al imprimir ------------------------------------------------------------------ */
+
+/*
+ * Una oficina técnica imprime el listado y lo lleva a la reunión. Sin esto, la barra de
+ * navegación gasta la primera pulgada de la hoja y los fondos se van en tinta.
+ */
+@media print {
+  .barra,
+  .paginacion,
+  .salto {
+    display: none;
+  }
+
+  main {
+    max-width: none;
+    padding: 0;
+  }
+
+  .dato,
+  .tarjeta,
+  .linea-tiempo,
+  .barras,
+  table {
+    box-shadow: none;
+  }
+}

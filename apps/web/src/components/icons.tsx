@@ -1,0 +1,734 @@
+/**
+ * Iconos de la barra de herramientas, dibujados a mano.
+ *
+ * **Por qué no una librería de iconos.** Ninguna trae lo que hace falta acá: un corte
+ * horizontal, un corte longitudinal y una vista fantasma no son iconos de interfaz genérica,
+ * son de software de modelado, y con los genéricos vuelve el problema original —herramientas
+ * que no se distinguen entre sí—. Estos son pocos, pesan nada y se pueden ajustar hasta que se
+ * reconozcan de un vistazo.
+ *
+ * Todos miden 24 unidades, heredan el color con `currentColor` y usan trazo en vez de relleno,
+ * salvo donde el relleno **es** la información: el cubo sólido frente al fantasma, o la cara
+ * que distingue una vista superior de un alzado.
+ */
+
+type IconProps = { readonly className?: string };
+
+/** Envoltura común: mismo lienzo, mismo grosor de trazo y mismos remates para todos. */
+function Svg({ className, children }: IconProps & { readonly children: React.ReactNode }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.6}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className ?? "h-5 w-5"}
+      aria-hidden="true"
+    >
+      {children}
+    </svg>
+  );
+}
+
+/** Encuadrar todo: las cuatro esquinas de un visor cerrándose sobre el modelo. */
+export function IconFrameAll(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M3 8V4h4M17 4h4v4M21 16v4h-4M7 20H3v-4" />
+      <rect x="8.5" y="8.5" width="7" height="7" rx="1" />
+    </Svg>
+  );
+}
+
+/**
+ * Una nota sobre un elemento: la hoja con su esquina doblada y dos renglones.
+ *
+ * Dibujada acá y no tomada de una librería por el mismo motivo que las demás: es el gesto propio de
+ * este producto —dejar un hallazgo sobre una pieza del modelo— y hace falta que se distinga del
+ * icono de documento del registro, que es otra cosa.
+ */
+export function IconNota(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M5 4.5h9.5L19 9v10.5H5z" />
+      <path d="M14.5 4.5V9H19" />
+      <path d="M8 12.5h7M8 15.5h5" />
+    </Svg>
+  );
+}
+
+/** Encuadrar la selección: una diana sobre un elemento. */
+export function IconFrameSelection(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <circle cx="12" cy="12" r="6" />
+      <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+      <circle cx="12" cy="12" r="1.8" fill="currentColor" stroke="none" />
+    </Svg>
+  );
+}
+
+/** Vistas normalizadas: un cubo visto de canto. */
+export function IconViews(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M12 3 20 7.5v9L12 21l-8-4.5v-9L12 3Z" />
+      <path d="M12 3v18M4 7.5l8 4.5 8-4.5" />
+    </Svg>
+  );
+}
+
+/** Vista isométrica: el cubo con dos caras a la vista. */
+export function IconViewIso(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M12 3 20 7.5v9L12 21l-8-4.5v-9L12 3Z" />
+      <path d="M12 12v9l8-4.5v-9L12 12Z" fill="currentColor" fillOpacity={0.35} stroke="none" />
+      <path d="M12 12 4 7.5M12 12l8-4.5M12 12v9" />
+    </Svg>
+  );
+}
+
+/** Vista superior: la cara de arriba resaltada. */
+export function IconViewTop(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M12 3 20 7.5v9L12 21l-8-4.5v-9L12 3Z" />
+      <path
+        d="M12 3 20 7.5 12 12 4 7.5 12 3Z"
+        fill="currentColor"
+        fillOpacity={0.5}
+        stroke="none"
+      />
+      <path d="M12 3 20 7.5 12 12 4 7.5 12 3Z" />
+    </Svg>
+  );
+}
+
+/** Alzado frontal: la cara de frente resaltada. */
+export function IconViewFront(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M12 3 20 7.5v9L12 21l-8-4.5v-9L12 3Z" />
+      <path d="M4 7.5 12 12v9l-8-4.5v-9Z" fill="currentColor" fillOpacity={0.5} stroke="none" />
+      <path d="M4 7.5 12 12v9l-8-4.5v-9Z" />
+    </Svg>
+  );
+}
+
+/** Alzado lateral: la cara del costado resaltada. */
+export function IconViewSide(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M12 3 20 7.5v9L12 21l-8-4.5v-9L12 3Z" />
+      <path d="M12 12l8-4.5v9L12 21v-9Z" fill="currentColor" fillOpacity={0.5} stroke="none" />
+      <path d="M12 12l8-4.5v9L12 21v-9Z" />
+    </Svg>
+  );
+}
+
+/** Proyección: dos líneas que convergen, que es de lo que trata la perspectiva. */
+export function IconProjection(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M3 5l18 4M3 19l18-4" />
+      <rect x="14" y="9.5" width="7" height="5" rx="0.8" />
+    </Svg>
+  );
+}
+
+/** Perspectiva: el rectángulo con fuga. */
+export function IconPerspective(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M4 4l16 4v8L4 20V4Z" />
+      <path d="M4 12h16" strokeDasharray="2 2" />
+    </Svg>
+  );
+}
+
+/** Ortográfica: sin fuga, los lados paralelos. */
+export function IconOrthographic(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <rect x="4" y="6" width="16" height="12" rx="1" />
+      <path d="M4 12h16M12 6v12" strokeDasharray="2 2" />
+    </Svg>
+  );
+}
+
+/** Navegación: la mano con la que se mueve la escena. */
+export function IconNavigate(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M12 21a6 6 0 0 0 6-6v-4a1.5 1.5 0 0 0-3 0V8a1.5 1.5 0 0 0-3 0V4.5a1.5 1.5 0 0 0-3 0V13l-1.6-2a1.5 1.5 0 0 0-2.4 1.8L8 18a6 6 0 0 0 4 3Z" />
+    </Svg>
+  );
+}
+
+/** Órbita: girar alrededor de un punto. */
+export function IconOrbit(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <circle cx="12" cy="12" r="2.5" fill="currentColor" stroke="none" />
+      <ellipse cx="12" cy="12" rx="9" ry="4" transform="rotate(-25 12 12)" />
+      <path d="M18.5 7.5 20 6l1 2.2" />
+    </Svg>
+  );
+}
+
+/** Desplazar: las cuatro direcciones sobre el plano. */
+export function IconPan(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M12 3v18M3 12h18" />
+      <path d="M12 3 9.5 5.8M12 3l2.5 2.8M12 21l-2.5-2.8M12 21l2.5-2.8M3 12l2.8-2.5M3 12l2.8 2.5M21 12l-2.8-2.5M21 12l-2.8 2.5" />
+    </Svg>
+  );
+}
+
+/** Primera persona: recorrer el interior a la altura de los ojos. */
+export function IconFirstPerson(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <circle cx="12" cy="4.5" r="2" />
+      <path d="M12 6.5v6M12 12.5l-3 8M12 12.5l3 8M8 9l8-1.5" />
+    </Svg>
+  );
+}
+
+/** Aspecto: medio cubo lleno, medio vacío. */
+export function IconAppearance(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 3.5a8.5 8.5 0 0 1 0 17V3.5Z" fill="currentColor" stroke="none" />
+    </Svg>
+  );
+}
+
+/** Sólido: el cubo opaco. */
+export function IconSolid(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path
+        d="M12 3 20 7.5v9L12 21l-8-4.5v-9L12 3Z"
+        fill="currentColor"
+        fillOpacity={0.45}
+        stroke="none"
+      />
+      <path d="M12 3 20 7.5v9L12 21l-8-4.5v-9L12 3Z" />
+      <path d="M12 12v9M4 7.5l8 4.5 8-4.5" />
+    </Svg>
+  );
+}
+
+/** Fantasma: el mismo cubo translúcido, con lo de detrás a la vista. */
+export function IconGhost(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M12 3 20 7.5v9L12 21l-8-4.5v-9L12 3Z" strokeDasharray="3 2" />
+      <circle cx="12" cy="13" r="2.5" fill="currentColor" stroke="none" />
+    </Svg>
+  );
+}
+
+/** Cortes: el plano que atraviesa el modelo. */
+export function IconSections(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M12 3 20 7.5v9L12 21l-8-4.5v-9L12 3Z" />
+      <path d="M2.5 14.5 21.5 9" strokeDasharray="3 2" />
+    </Svg>
+  );
+}
+
+/** Corte horizontal: mirar la planta sin la cubierta. */
+export function IconSectionHorizontal(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M5 15h14v4H5z" fill="currentColor" fillOpacity={0.35} stroke="none" />
+      <path d="M5 5h14v14H5z" />
+      <path d="M3 15h18" strokeDasharray="3 2" />
+      <path d="M12 12v-3M10.5 10.5 12 9l1.5 1.5" />
+    </Svg>
+  );
+}
+
+/** Corte vertical longitudinal: por el lado largo. */
+export function IconSectionLongitudinal(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M5 5h5v14H5z" fill="currentColor" fillOpacity={0.35} stroke="none" />
+      <path d="M5 5h14v14H5z" />
+      <path d="M10 3v18" strokeDasharray="3 2" />
+      <path d="M13 12h3M14.5 10.5 16 12l-1.5 1.5" />
+    </Svg>
+  );
+}
+
+/** Corte vertical transversal: cruzando el modelo. */
+export function IconSectionTransversal(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M4 8l7 3v9l-7-3z" fill="currentColor" fillOpacity={0.35} stroke="none" />
+      <path d="M11 4 20 8v9l-9 4-7-3V8l7-4Z" />
+      <path d="M14.5 2.5 7.5 21" strokeDasharray="3 2" />
+    </Svg>
+  );
+}
+
+/** Medir: la regla. */
+export function IconMeasure(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <rect x="1.5" y="8" width="21" height="8" rx="1.2" transform="rotate(-15 12 12)" />
+      <path d="M7 8.6v2.6M11 7.5v2.6M15 6.4v2.6M19 5.3v2.6" />
+    </Svg>
+  );
+}
+
+/** Distancia: la cota entre dos puntos. */
+export function IconDistance(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M4 17 20 7" />
+      <path d="M2.5 14.5 5.5 19.5M18.5 4.5 21.5 9.5" />
+      <circle cx="4" cy="17" r="1.6" fill="currentColor" stroke="none" />
+      <circle cx="20" cy="7" r="1.6" fill="currentColor" stroke="none" />
+    </Svg>
+  );
+}
+
+/**
+ * Cuadro: una tabla con su fila de cabecera. `F10.5`.
+ *
+ * La cabecera marcada y no una rejilla suelta: lo que distingue un cuadro de una rejilla cualquiera
+ * es que la primera fila nombra las columnas.
+ */
+export function IconTable(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M3.5 5.5h17v13h-17z" />
+      <path d="M3.5 9.5h17" />
+      <path d="M9.5 9.5v9M15 9.5v9M3.5 14h17" />
+    </Svg>
+  );
+}
+
+/** Ángulo: dos lados y el arco entre ellos. */
+export function IconAngle(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M4 19h16M4 19 16 5" />
+      <path d="M12 19a8 8 0 0 0-1.7-4.9" />
+      <circle cx="4" cy="19" r="1.6" fill="currentColor" stroke="none" />
+    </Svg>
+  );
+}
+
+/** Área: el contorno cerrado con su superficie. */
+export function IconArea(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M5 8 13 4l6 6-3 9-9-2L5 8Z" fill="currentColor" fillOpacity={0.3} stroke="none" />
+      <path d="M5 8 13 4l6 6-3 9-9-2L5 8Z" />
+      <circle cx="5" cy="8" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="13" cy="4" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="19" cy="10" r="1.4" fill="currentColor" stroke="none" />
+    </Svg>
+  );
+}
+
+/** Ajuste al vértice: la esquina con su punto marcado. */
+export function IconSnapVertex(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M4 20V8l8-4 8 4" />
+      <path d="M4 20h8" />
+      <circle cx="12" cy="4" r="2.6" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="4" r="5" strokeDasharray="2 2" />
+    </Svg>
+  );
+}
+
+/** Punto libre sobre la cara: sin esquina a la que saltar. */
+export function IconSnapFree(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M4 20V8l8-4 8 4" strokeDasharray="3 2" />
+      <circle cx="13" cy="12" r="2" fill="currentColor" stroke="none" />
+      <path d="M13 6.5v2M13 15.5v2M7.5 12h2M16.5 12h2" />
+    </Svg>
+  );
+}
+
+/** Una arista completa, extremo a extremo. */
+export function IconEdge(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M3 17 21 7" />
+      <circle cx="3" cy="17" r="2" fill="currentColor" stroke="none" />
+      <circle cx="21" cy="7" r="2" fill="currentColor" stroke="none" />
+      <path d="M6.5 9.5 14.5 20" strokeDasharray="2 2" />
+    </Svg>
+  );
+}
+
+/** Perpendicular: la distancia en ángulo recto a una cara. */
+export function IconPerpendicular(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M3 20h18" />
+      <path d="M12 20V6" />
+      <path d="M12 16.5h3.5V20" />
+      <circle cx="12" cy="6" r="2" fill="currentColor" stroke="none" />
+      <path d="M5 20 3 22M9 20 7 22M13 20l-2 2M17 20l-2 2M21 20l-2 2" strokeWidth={1} />
+    </Svg>
+  );
+}
+
+/** Cerrar el contorno de un área. */
+export function IconClose(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M4 12.5 9.5 18 20 6" />
+    </Svg>
+  );
+}
+
+/** Borrar. */
+export function IconTrash(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M4 7h16M9 7V4.5h6V7M6 7l1 13h10l1-13M10.5 10.5v6M13.5 10.5v6" />
+    </Svg>
+  );
+}
+
+/**
+ * Aislar: dejar solo un elemento a la vista.
+ *
+ * Un cuerpo lleno rodeado de cuerpos vacíos, que es exactamente lo que hace la operación.
+ */
+export function IconIsolate(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <rect x="9" y="9" width="6" height="6" rx="1" fill="currentColor" stroke="none" />
+      <rect x="9" y="9" width="6" height="6" rx="1" />
+      <rect x="2.5" y="2.5" width="5" height="5" rx="1" strokeDasharray="2 2" />
+      <rect x="16.5" y="2.5" width="5" height="5" rx="1" strokeDasharray="2 2" />
+      <rect x="2.5" y="16.5" width="5" height="5" rx="1" strokeDasharray="2 2" />
+      <rect x="16.5" y="16.5" width="5" height="5" rx="1" strokeDasharray="2 2" />
+    </Svg>
+  );
+}
+
+/**
+ * Salir del aislamiento: el mismo cuerpo, y el resto **volviendo**.
+ *
+ * Es el icono de aislar leído al revés: los cuerpos de alrededor ya no están de trazo cortado —han
+ * vuelto— y las flechas hacia adentro dicen de dónde. Con el mismo icono para entrar y salir, los
+ * dos botones de la cinta serían el mismo dibujo dos veces.
+ */
+export function IconUnisolate(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <rect x="9" y="9" width="6" height="6" rx="1" />
+      <rect x="2.5" y="2.5" width="5" height="5" rx="1" />
+      <rect x="16.5" y="2.5" width="5" height="5" rx="1" />
+      <rect x="2.5" y="16.5" width="5" height="5" rx="1" />
+      <rect x="16.5" y="16.5" width="5" height="5" rx="1" />
+      <path d="M12 3.5v3.2M12 20.5v-3.2M3.5 12h3.2M20.5 12h-3.2" />
+    </Svg>
+  );
+}
+
+/**
+ * Ajuste al plano 2D: la marca de enganche sobre un trazo tendido.
+ *
+ * Se distingue del ajuste a vértices del modelo en que el trazo va horizontal —como se ve un plano
+ * en planta— y la marca es el cuadrado de "punto de referencia" que usan los CAD.
+ */
+export function IconSnapPlan(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M3 16h18" />
+      <path d="M7 16v3M17 16v3" />
+      <rect x="9" y="5.5" width="6" height="6" rx="0.5" />
+      <path d="M12 11.5V16" strokeDasharray="2 2" />
+    </Svg>
+  );
+}
+
+/**
+ * Modo 2D: la hoja del plano vista de frente, con su cuadrícula.
+ *
+ * Se distingue de la vista en planta —que es el cubo mirado desde arriba— en que aquí no hay cubo:
+ * es el dibujo, sin modelo detrás, que es exactamente lo que hace el modo.
+ */
+export function IconPlan2D(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <rect x="3.5" y="4.5" width="17" height="15" rx="1" />
+      <path d="M3.5 9h17M9 4.5v15" />
+      <rect x="11.5" y="11.5" width="6" height="5" rx="0.5" fill="currentColor" fillOpacity={0.3} />
+    </Svg>
+  );
+}
+
+/**
+ * Ejes de replanteo: dos líneas de eje cruzándose, con su burbuja.
+ *
+ * Es el dibujo con el que aparecen en cualquier plano —la línea de trazos y el círculo con la
+ * letra—, así que se reconoce sin leer el nombre.
+ */
+export function IconGrid(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M8 3.5v17M3.5 15h17" strokeDasharray="3 2" />
+      <circle cx="8" cy="5" r="2.6" />
+      <circle cx="19" cy="15" r="2.6" />
+    </Svg>
+  );
+}
+
+/** Cerrar: la cruz. */
+export function IconX(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M6 6l12 12M18 6 6 18" />
+    </Svg>
+  );
+}
+
+/** Visible. */
+export function IconEye(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" />
+      <circle cx="12" cy="12" r="2.8" />
+    </Svg>
+  );
+}
+
+/** Oculto. */
+export function IconEyeOff(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M4 5l16 14" />
+      <path d="M9.5 6C10.3 5.7 11.1 5.5 12 5.5c6 0 9.5 6.5 9.5 6.5s-1 1.9-2.9 3.6" />
+      <path d="M16.4 17.4c-1.3.7-2.7 1.1-4.4 1.1-6 0-9.5-6.5-9.5-6.5s1.4-2.6 3.9-4.4" />
+      <path d="M10 10.2a2.8 2.8 0 0 0 3.9 3.9" />
+    </Svg>
+  );
+}
+
+/** Subir en la lista. */
+export function IconArrowUp(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M12 19V5M6.5 10.5 12 5l5.5 5.5" />
+    </Svg>
+  );
+}
+
+/** Bajar en la lista. */
+export function IconArrowDown(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M12 5v14M6.5 13.5 12 19l5.5-5.5" />
+    </Svg>
+  );
+}
+
+/** Desplegar un bloque. */
+export function IconChevronDown(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M6 9.5 12 15.5 18 9.5" />
+    </Svg>
+  );
+}
+
+/** Plegar la cinta hacia arriba. */
+export function IconChevronUp(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M6 14.5 12 8.5 18 14.5" />
+    </Svg>
+  );
+}
+
+/** Plegar un bloque, o ampliar la columna de herramientas. */
+export function IconChevronRight(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M9.5 6 15.5 12 9.5 18" />
+    </Svg>
+  );
+}
+
+/** Reducir la columna de herramientas. */
+export function IconChevronLeft(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M14.5 6 8.5 12 14.5 18" />
+    </Svg>
+  );
+}
+
+/** El árbol del modelo: la jerarquía espacial. */
+export function IconTree(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M5 4v13a2 2 0 0 0 2 2h2M5 10h4M5 16h4" />
+      <rect x="11" y="2.5" width="8" height="4" rx="1" />
+      <rect x="11" y="8" width="8" height="4" rx="1" />
+      <rect x="11" y="17" width="8" height="4" rx="1" />
+    </Svg>
+  );
+}
+
+/** Los modelos cargados, uno sobre otro. */
+export function IconLayers(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M12 3 21 7.5 12 12 3 7.5 12 3Z" />
+      <path d="M3 12.5 12 17l9-4.5" />
+      <path d="M3 17 12 21.5l9-4.5" />
+    </Svg>
+  );
+}
+
+/**
+ * Seleccionar: el puntero.
+ *
+ * Existe para que **el modo de selección tenga icono propio**. Sin él, salir de una herramienta de
+ * medición no tiene a dónde volver, y no se ve en ningún sitio si el clic va a seleccionar o a
+ * poner un punto de cota.
+ */
+export function IconCursor(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M5 3l6.5 17 2.4-6.6 6.6-2.4L5 3Z" fill="currentColor" fillOpacity={0.25} />
+    </Svg>
+  );
+}
+
+/**
+ * La nube de puntos: puntos sueltos con la silueta de un terreno.
+ *
+ * **No es una nube de meteorología ni una de servidor**, que es lo que traen las librerías con ese
+ * nombre: aquí una nube es un levantamiento, o sea millones de puntos medidos. Lo que lo dice son
+ * los puntos, y el relleno **es** la información — un contorno de trazo se leería como una malla.
+ */
+export function IconNube(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <g fill="currentColor" stroke="none">
+        <circle cx="5" cy="16" r="1.1" />
+        <circle cx="8.5" cy="13" r="1.1" />
+        <circle cx="12" cy="10.5" r="1.1" />
+        <circle cx="15.5" cy="12" r="1.1" />
+        <circle cx="19" cy="15" r="1.1" />
+        <circle cx="7" cy="19.5" r="1.1" />
+        <circle cx="11" cy="17" r="1.1" />
+        <circle cx="14.5" cy="19.5" r="1.1" />
+        <circle cx="18" cy="19" r="1.1" />
+      </g>
+      {/* El vuelo del que salió: es lo que separa este levantamiento de una nube cualquiera. */}
+      <path d="M9 6 12 3.5 15 6" />
+      <path d="M12 3.5v3.5" />
+    </Svg>
+  );
+}
+
+/**
+ * Calce y desviación: dos siluetas que no coinciden, y la diferencia entre las dos.
+ *
+ * Es el trabajo entero en un dibujo: lo modelado y lo construido puestos uno sobre otro, y lo que
+ * se aparta. La flecha doble es la desviación, que es lo que acaba en una observación.
+ */
+export function IconCalce(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <rect x="3" y="5" width="11" height="11" rx="1" />
+      <rect x="10" y="9" width="11" height="11" rx="1" strokeDasharray="2.4 2" />
+      <path d="M14 5.8 17.5 2.5" />
+      <path d="M6.5 19.5 3.2 22.8" />
+    </Svg>
+  );
+}
+
+/**
+ * Un plano que **sale** del modelo: la hoja con la flecha hacia fuera.
+ *
+ * Tiene que distinguirse de `IconPlan2D`, que es el plano CAD que **entra** para ponerse debajo del
+ * modelo. Son las dos direcciones del mismo trabajo y viven en secciones vecinas del navegador, así
+ * que dos dibujos parecidos obligarían a leer los rótulos — que es lo que un icono viene a evitar.
+ */
+export function IconPlanoSalida(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M13 3.5H6A1.5 1.5 0 0 0 4.5 5v14A1.5 1.5 0 0 0 6 20.5h12A1.5 1.5 0 0 0 19.5 19v-6" />
+      <path d="M14.5 8.5 21 2.5" />
+      <path d="M16 2.5h5v5" />
+    </Svg>
+  );
+}
+
+/**
+ * Una vista que se le puede pasar a alguien: el encuadre con dos personas.
+ *
+ * Lo que la separa de `IconViews` —las vistas guardadas— es justo eso: las locales viven en este
+ * navegador y no cuestan nada; una compartida es un acto explícito que va al servidor.
+ */
+export function IconVistaCompartida(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <rect x="3" y="4.5" width="18" height="10" rx="1.5" />
+      <path d="M7 19.5a2.5 2.5 0 0 1 5 0" />
+      <circle cx="9.5" cy="16.8" r="1.4" />
+      <path d="M14 19.5a2.2 2.2 0 0 1 4.4 0" />
+      <circle cx="16.2" cy="17" r="1.2" />
+    </Svg>
+  );
+}
+
+/**
+ * El registro: dos hojas archivadas, la de delante con su código de revisión.
+ *
+ * Tiene que distinguirse de `IconNota` —que es *dejar* un hallazgo sobre una pieza— y de
+ * `IconAbrirDelDisco`. Lo que la separa es **el archivador**: son varias hojas guardadas con un
+ * orden, que es exactamente lo que es un expediente ISO 19650 y no un archivo suelto.
+ */
+export function IconRegistro(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M8 3h6.5L18.5 7v10a1.5 1.5 0 0 1-1.5 1.5H8A1.5 1.5 0 0 1 6.5 17V4.5A1.5 1.5 0 0 1 8 3Z" />
+      <path d="M14.5 3v4h4" />
+      <path d="M9.5 11h6M9.5 14h4" />
+      {/* La hoja de detrás, asomando: es lo que dice «hay más de una revisión». */}
+      <path d="M4 6.5v13A1.5 1.5 0 0 0 5.5 21h9" />
+    </Svg>
+  );
+}
+
+/**
+ * Abrir del disco: la bandeja con la flecha entrando.
+ *
+ * La flecha apunta **hacia abajo y dentro**, no hacia arriba: desde el visor esto no es «subir un
+ * archivo a un servidor» —AeroBim es local-first y el IFC no sale del equipo— sino traerlo a la
+ * escena. Es la misma dirección que dibuja el gesto de arrastrar y soltar.
+ */
+export function IconAbrirDelDisco(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M12 3.5v9M8.5 9 12 12.5 15.5 9" />
+      <path d="M4.5 15v3.5A2 2 0 0 0 6.5 20.5h11a2 2 0 0 0 2-2V15" />
+    </Svg>
+  );
+}

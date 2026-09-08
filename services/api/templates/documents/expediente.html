@@ -1,0 +1,302 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block titulo %}{{ entregable.codigo }} · AeroBim{% endblock %}
+
+{% block titulo_pagina %}<h1>{{ entregable.codigo }}</h1>{% endblock %}
+
+{% block subtitulo %}
+<p class="subtitulo">
+  {{ entregable.titulo }} · {{ entregable.disciplina }} ·
+  {% translate "owner" %}: {{ entregable.responsable }}
+</p>
+{% endblock %}
+
+{% block contenido %}
+  {% comment %}
+    **Lo que falta va primero, y nombrado.** No un porcentaje: la fila concreta y el
+    atajo que la cierra -- y el atajo solo si el usuario puede ejecutarlo, porque
+    ofrecer un boton que termina en 403 es peor que no ofrecerlo.
+  {% endcomment %}
+  <p class="grupo">{% translate "What is missing" %}</p>
+  {% if faltantes %}
+    <table>
+      <tbody>
+        {% for falta in faltantes %}
+          <tr>
+            <td>{{ falta.que }}</td>
+            <td>
+              {% if falta.url %}<a href="{{ falta.url }}">{{ falta.accion }}</a>{% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="vacio">{% translate "Nothing missing: complete and documented." %}</div>
+  {% endif %}
+
+  <p class="grupo">{% translate "Revisions" %}</p>
+  {% if perms.documents.add_revision %}
+    <p><a href="{% url 'documents:subir-revision' entregable.pk %}">{% translate "Upload a revision" %}</a></p>
+  {% endif %}
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">{% translate "Revision" %}</th>
+        <th scope="col">{% translate "Suitability" %}</th>
+        <th scope="col">{% translate "Issued" %}</th>
+        <th scope="col">{% translate "By" %}</th>
+        <th scope="col">{% translate "File" %}</th>
+        <th scope="col">{% translate "Current" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for revision in revisiones %}
+        <tr>
+          <td>{{ revision.correlativo }}</td>
+          <td>
+            {{ revision.get_idoneidad_display }}
+            {% if perms.documents.change_revision %}
+              <form method="post" action="{% url 'documents:cambiar-idoneidad' revision.pk %}">
+                {% csrf_token %}
+                <select name="idoneidad" aria-label="{% translate 'Suitability' %}">
+                  {% for valor, etiqueta in idoneidades %}
+                    <option value="{{ valor }}" {% if valor == revision.idoneidad %}selected{% endif %}>
+                      {{ etiqueta }}
+                    </option>
+                  {% endfor %}
+                </select>
+                <button type="submit">{% translate "Change" %}</button>
+              </form>
+            {% endif %}
+          </td>
+          <td>{{ revision.emitida_en|date:"Y-m-d H:i" }}</td>
+          <td>{{ revision.subida_por }}</td>
+          <td>
+            {% if revision.clave_archivo %}
+              <a href="{% url 'documents:descargar-revision' revision.pk %}">
+                {{ revision.nombre_original|default:"—" }}
+              </a>
+              {% if revision.visor_ruta %}
+                {% comment %}
+                  **Esta es la costura.** El archivo que se subio es el que se abre, y en el
+                  mismo sitio: es lo que ningun gestor documental del mercado puede ofrecer,
+                  porque el visor y el registro son el mismo producto.
+
+                  Y **cual visor lo decide la vista**, no la plantilla: un IFC o un DXF van al
+                  de tres dimensiones, un PDF a su propia pantalla. Cargar Three.js y el WASM
+                  de web-ifc para leer un plano en PDF seria pagar por nada.
+                {% endcomment %}
+                <br />
+                <a href="{% url revision.visor_ruta %}?revision={{ revision.pk }}">
+                  {% translate "Open in the viewer" %} →
+                </a>
+                {% comment %}
+                  **Qué trae el modelo, antes de exigirle algo** (`F3.10`). Va junto a «abrir en el
+                  visor» porque son las dos cosas que se hacen con un IFC recién subido: mirarlo y
+                  ver qué datos trae.
+                {% endcomment %}
+                {% if revision.metadatos.esquema %}
+                  <br />
+                  <a href="{% url 'documents:cobertura' revision.pk %}">
+                    {% translate "What it carries" %} →
+                  </a>
+                {% endif %}
+              {% endif %}
+              <br /><small>sha256 {{ revision.sha256|slice:":12" }}…</small>
+
+              {% comment %}
+                **Lo que el propio archivo declara** (`F3.3`), leido al subirlo. Va aqui y no en una
+                pantalla aparte porque es una propiedad del archivo, como su tamaño o su sha.
+
+                Y **"sin georreferenciar" se dice**, no se omite: es la respuesta que hace falta
+                antes de prometer una vista sobre el terreno, y la mayoria de los IFC de obra no la
+                traen. Callarlo obligaria a descubrirlo con el modelo ya cargado en otro sitio.
+              {% endcomment %}
+              {% with meta=revision.metadatos %}
+                {% if meta.esquema %}
+                  <br /><small class="subtitulo">
+                    {{ meta.esquema }}
+                    {% if meta.unidades.longitud %}· {{ meta.unidades.longitud|lower }}{% endif %}
+                    {% comment %}
+                      **La unidad de masa también se muestra, y no es un adorno.** Un modelo real
+                      declara `GRAM` sin prefijo mientras escribe valores que son kilos, y la ficha
+                      del elemento acaba diciendo «85,3 g» para un perfil de acero. La lectura es
+                      fiel al archivo, así que no se corrige por encima: se deja a la vista para
+                      que quien lo recibe pueda pedirle la corrección a quien lo exportó.
+                    {% endcomment %}
+                    {% if meta.unidades.masa %}· {{ meta.unidades.masa|lower }}{% endif %}
+                    {% if meta.elementos %}· {{ meta.elementos }} {% translate "elements" %}{% endif %}
+                    ·
+                    {% comment %}
+                      **El sistema y el giro se dicen cuando el archivo los trae** (`F2.2`). Un
+                      "georreferenciado (IfcMapConversion)" a secas no deja decidir nada; con el
+                      sistema y los grados, quien recibe el modelo puede comprobar en obra que el
+                      edificio esta orientado como dice —"girado 30° respecto al norte" se mide con
+                      una brujula— y sabe si su levantamiento esta en el mismo sistema.
+
+                      Y "sin giro declarado" se dice tambien: es distinto de cero grados, y es lo
+                      que decide si la nube se puede calzar leyendo el archivo o hay que señalar
+                      puntos a mano.
+                    {% endcomment %}
+                    {% if meta.georreferencia.georreferenciado %}
+                      {% translate "georeferenced" %} ({{ meta.georreferencia.via }}{% with c=meta.georreferencia.conversiones.0 %}{% if c.sistema %}, {{ c.sistema }}{% endif %}{% if c.giroGrados is not None %}, {% blocktranslate with grados=c.giroGrados|floatformat:1 %}rotated {{ grados }}°{% endblocktranslate %}{% elif c %}, {% translate "no rotation declared" %}{% endif %}{% endwith %})
+                    {% else %}
+                      <strong>{% translate "not georeferenced" %}</strong>
+                    {% endif %}
+                  </small>
+                {% elif meta.error %}
+                  <br /><small class="subtitulo">
+                    {% translate "the file's own data could not be read" %}
+                  </small>
+                {% endif %}
+              {% endwith %}
+
+              {% comment %}
+                **La validacion IDS, y con los tres estados a la vista** (`F3.5`). "No aplica" no es
+                "cumple": una especificacion cuyo conjunto de elementos no existe en el modelo no
+                dice nada de el, ni bien ni mal, y contarla como cumplida seria afirmar que el
+                modelo satisface un requisito que nunca se comprobo.
+
+                Y cada fallo lleva su **GUID**, que es lo que permite abrir una observacion sobre
+                **ese** elemento en vez de sobre "el modelo".
+              {% endcomment %}
+              {% for validacion in revision.validaciones_ultimas %}
+                <br /><small>
+                  {% if validacion.cumple %}
+                    ✓ {{ validacion.requisito.titulo }}
+                  {% elif not validacion.se_comprobo %}
+                    — {{ validacion.requisito.titulo }}:
+                    <strong>{% translate "nothing was checked" %}</strong>
+                  {% else %}
+                    ✕ <strong>{{ validacion.requisito.titulo }}</strong>
+                    ({{ validacion.resumen.fallaron }} {% translate "of" %}
+                    {{ validacion.resumen.aplicaron }} {% translate "specifications fail" %})
+                  {% endif %}
+
+                  {% comment %}
+                    **Las que no aplicaron se dicen tambien**, y en los tres casos. No es un detalle:
+                    una especificacion que no aplico significa que el requisito cubre algo que este
+                    modelo no tiene, y eso puede ser correcto —el IDS es del proyecto entero— o puede
+                    ser que alguien escribio la clase equivocada. Callarlo deja las dos indistinguibles.
+                  {% endcomment %}
+                  {% if validacion.resumen.noAplicaron %}
+                    · {{ validacion.resumen.noAplicaron }}
+                    {% translate "did not apply to this model" %}
+                  {% endif %}
+                </small>
+
+                {% if not validacion.cumple and validacion.se_comprobo %}
+                  <ul>
+                    {% for especificacion in validacion.resumen.detalle %}
+                      {% if especificacion.estado == "falla" %}
+                        <li>
+                          <small>
+                            {{ especificacion.nombre }} —
+                            {{ especificacion.fallan }} {% translate "of" %}
+                            {{ especificacion.aplicables }}
+                          </small>
+                          {% for requisito in especificacion.requisitos %}
+                            {% if not requisito.cumple %}
+                              <ul>
+                                {% for fallo in requisito.fallos|slice:":5" %}
+                                  <li><small>
+                                    {{ fallo.clase }} {{ fallo.nombre }} — {{ fallo.motivo }}
+                                    {% if perms.documents.add_observacion %}
+                                      · <a href="{% url 'documents:nueva-observacion' entregable.pk %}?guid={{ fallo.guid }}&amp;titulo={{ requisito.etiqueta|urlencode }}">
+                                        {% translate "open an observation" %}
+                                      </a>
+                                    {% endif %}
+                                  </small></li>
+                                {% endfor %}
+                                {% if requisito.totalFallan > 5 %}
+                                  <li><small>
+                                    … {{ requisito.totalFallan }} {% translate "in total" %}
+                                  </small></li>
+                                {% endif %}
+                              </ul>
+                            {% endif %}
+                          {% endfor %}
+                        </li>
+                      {% endif %}
+                    {% endfor %}
+                  </ul>
+                {% endif %}
+              {% endfor %}
+
+              {% if puede_validar and revision.visor_ruta and hay_requisitos %}
+                <form method="post" action="{% url 'documents:validar-ids' revision.pk %}">
+                  {% csrf_token %}
+                  <button type="submit">{% translate "Validate against the IDS" %}</button>
+                </form>
+              {% endif %}
+            {% else %}
+              —
+            {% endif %}
+          </td>
+          <td>{% if revision.es_vigente %}{% translate "Yes" %}{% endif %}</td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="6">{% translate "Nothing issued yet." %}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <p class="grupo">{% translate "Observations" %}</p>
+  {% if perms.documents.add_observacion %}
+    <p><a href="{% url 'documents:nueva-observacion' entregable.pk %}">{% translate "Open an observation" %}</a></p>
+  {% endif %}
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">{% translate "Title" %}</th>
+        <th scope="col">{% translate "Owner" %}</th>
+        <th scope="col">{% translate "Due" %}</th>
+        <th scope="col">{% translate "State" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for observacion in observaciones %}
+        <tr>
+          <td><a href="{% url 'documents:observacion' observacion.pk %}">{{ observacion.titulo }}</a></td>
+          <td>{{ observacion.responsable }}</td>
+          <td>{{ observacion.vence|date:"Y-m-d"|default:"—" }}{% if observacion.vencida %} ⚠{% endif %}</td>
+          <td>{{ observacion.get_estado_display }}</td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="4">{% translate "No observation." %}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <p class="grupo">{% translate "Activities" %}</p>
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">{% translate "Title" %}</th>
+        <th scope="col">{% translate "Owner" %}</th>
+        <th scope="col">{% translate "Due" %}</th>
+        <th scope="col">{% translate "State" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for actividad in actividades %}
+        <tr>
+          <td>{{ actividad.titulo }}</td>
+          <td>{{ actividad.responsable }}</td>
+          <td>{{ actividad.vence|date:"Y-m-d"|default:"—" }}{% if actividad.vencida %} ⚠{% endif %}</td>
+          <td>{{ actividad.get_status_display }}</td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="4">{% translate "No activity." %}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}
