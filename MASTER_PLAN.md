@@ -4319,7 +4319,7 @@ nadie puede alcanzar.
 | `F12.2` | **El calce y la desviación son pantalla, no registro**: señalar puntos, ver el residuo, medir | 🔶     |
 | `F12.3` | **Las herramientas se ven**: contraste, tamaño e importancia relativa en la cinta             | ✅     |
 | `F12.4` | **El lienzo vacío es una puerta de entrada**, no un vacío con una frase                       | ✅     |
-| `F12.5` | **El navegador tiene jerarquía**: nueve secciones iguales no dicen por dónde empezar          | ⬜     |
+| `F12.5` | **El navegador tiene jerarquía**: nueve secciones iguales no dicen por dónde empezar          | ✅     |
 | `F12.6` | **La entrada al portal**: es la primera pantalla del producto y hoy es un formulario          | ✅     |
 | `F12.7` | **«Portal» deja de titular la portada**, y los módulos se presentan por lo que resuelven      | ✅     |
 | `F12.8` | **La costura**: el visor y el portal se leen como un producto, no como dos                    | ⬜     |
@@ -4345,11 +4345,11 @@ en las dos mitades.
 El plan del 2026-09-07 la reparte en tres, en este orden: **primero lo que bloquea el piloto,
 después el portal, después el visor**.
 
-| Bloque                        | Pasos                                                                                                               | Estado       |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------ |
-| **1 · Desbloquear el piloto** | `F12.10` · `preparar_piloto` · timer y respaldo · `F12.13` · `PILOTO.md` · `F12.12`                                 | ✅ los seis  |
-| **2 · El portal**             | tokens y gate · catálogo · rail · cabecera · «Mi trabajo» · bandeja · observaciones · la puerta · docs              | ✅ los nueve |
-| **3 · El visor**              | `UX.md` ✅ · gate ✅ · movimiento ✅ · `F12.9` ✅ · `F12.4` ✅ · `F12.3` ✅ · `F12.5` · rail · tema claro · `F12.8` | 🔶 6 de 10   |
+| Bloque                        | Pasos                                                                                                                     | Estado       |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| **1 · Desbloquear el piloto** | `F12.10` · `preparar_piloto` · timer y respaldo · `F12.13` · `PILOTO.md` · `F12.12`                                       | ✅ los seis  |
+| **2 · El portal**             | tokens y gate · catálogo · rail · cabecera · «Mi trabajo» · bandeja · observaciones · la puerta · docs                    | ✅ los nueve |
+| **3 · El visor**              | `UX.md` ✅ · gate ✅ · movimiento ✅ · `F12.9` ✅ · `F12.4` ✅ · `F12.3` ✅ · `F12.5` ✅ · rail ✅ · tema claro · `F12.8` | 🔶 8 de 10   |
 
 **El bloque 2 cerró el 2026-09-07**, en la rama `codex/portal-asana`. Lo que dejó, además de las
 nueve tareas:
@@ -4518,11 +4518,46 @@ llevaban `text-fg`**, que cambia con el tema, sobre un relleno que no cambia. Co
 puesto, **1,92:1** — el botón «Abrir» incluido. Ver `--color-sobre-accion` en
 [DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md); medido después, 8,26:1 en claro y 6,12:1 en oscuro.
 
-### `F12.5` — El navegador tiene jerarquía
+### `F12.5` — El navegador tiene jerarquía ✅
 
-Nueve secciones plegadas, del mismo tamaño, el mismo color y el mismo peso: DEL REGISTRO,
-COORDINACIÓN, ESTRUCTURA, CUADROS, MODELOS ABIERTOS, PLANOS 2D, PLANOS GENERADOS, VISTAS GUARDADAS,
-VISTAS DEL PROYECTO. **Una lista de nueve cosas iguales no es una lista, es un muro.**
+**Hecha el 2026-09-08**, y con ella el rail plegado que `F9.6` había aceptado.
+
+Eran doce secciones plegadas, del mismo tamaño, el mismo color y el mismo peso, todas `h2` en
+mayúsculas: DEL REGISTRO, COORDINACIÓN, ESTRUCTURA, CUADROS, MODELOS ABIERTOS, NUBE DE PUNTOS, CALCE,
+PLANOS 2D, PLANOS GENERADOS, VISTAS GUARDADAS, VISTAS DEL PROYECTO, MEDICIONES. **Una lista de doce
+cosas iguales no es una lista, es un muro** — y con un lector de pantalla eran doce hermanas, o sea
+una lista plana de doce.
+
+| Lo que hay ahora                                                                 | Medido                                                   |
+| -------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| Cuatro grupos —Empezar · Lo abierto · El modelo · Lo guardado—, un `h2` cada uno | 4 `h2` y 12 `h3`: la jerarquía que el ojo ve             |
+| Cabecera en caja de frase, con icono a la izquierda y cifra a la derecha         | 35,2 px de alto, las doce iguales                        |
+| **Tres tonos**: con contenido, vacía, y sin cifra que se pueda saber             | 14,53:1 · 6,16:1 con «vacío» · 8,98:1                    |
+| Rótulo de grupo                                                                  | 6,77:1                                                   |
+| **Se abre sola la que acaba de llenarse**                                        | Se suelta un IFC → se abre solo «Estructura»             |
+| **Rail plegado** con los doce iconos, su nombre en `aria-label` y su punto       | 49,4 px de ancho · toque 48 × 48 · **+301 px** de lienzo |
+
+**El grupo no es un destino**, que es lo que hace que esto no contradiga `docs/UX.md`: las cuatro
+listas siguen a la vez en la misma columna, porque la razón de que estén juntas —comparar el plano
+con el modelo encendiendo y apagando de los dos— se rompería al repartirlas.
+
+`SECCIONES` describe cada una **una sola vez**, y de ahí salen el acordeón y el rail. El precio de
+los doce bloques a mano no era la repetición: era que añadir una capacidad significaba escribirlo
+otra vez, y que no había forma de pintar la misma lista en dos sitios.
+
+**Tres cosas que solo aparecieron mirándolo:**
+
+1. Una sección abierta se encogía a **25,8 px** —menos que su propia cabecera— y su nombre se
+   dibujaba encima de la lista vecina.
+2. La columna necesita **474 px donde hay 353** y no tenía `overflow`: la última sección se salía
+   sin aviso. Que se quede corta es justamente lo que el rail resuelve.
+3. Abrir sola **la que se llena** abría dos a la vez con un modelo —«Modelos abiertos» y
+   «Estructura»—, y las dos apretadas a su mínimo. Se abre la que se va a mirar.
+
+Y dos números del plan que la pantalla corrigió, los dos por lo mismo: `--spacing` de este proyecto
+vale **0,275rem** desde que `F9.2` quitó el `font-size: 110%` de la raíz sin apretar la escala. Así
+que `h-4` son 17,6 px y no 16, y el rail mide 49,4 y no 44 — por encima del área de toque, que es lo
+que el número protegía. Se deja en la unidad de la escala en vez de escribir píxeles a mano.
 
 ### `F12.6` — La entrada al portal
 

@@ -108,10 +108,49 @@ que sobra. Así doce secciones conviven sin que ninguna empuje a las demás fuer
 **El grupo no es un destino.** Es un rótulo que separa, y las cuatro listas están a la vez en la
 misma columna: repartirlas en cuatro sitios rompería la razón de que estén juntas.
 
+Y **las cabeceras se leen en dos niveles** desde el 2026-09-08: el rótulo del grupo en micro y
+mayúsculas, y la sección en caja de frase con **su icono a la izquierda y su cifra a la derecha**.
+Las mayúsculas de antes no eran adorno, hacían daño — se leen más despacio y quitan la única señal
+de forma que tiene una palabra, su altura.
+
+La cifra da la jerarquía, y la da **el estado real y no una lista fija de importancia**: lo que
+destaca es lo que hay abierto ahora, que cambia cada diez minutos. Son **tres tonos y no dos**,
+porque hay tres estados: con contenido (14,53:1), vacía con la palabra «vacío» (6,16:1), y **sin
+cifra** (8,98:1) — el caso de las cuatro secciones que piden sus datos al servidor por su cuenta,
+donde inventar un cero sería peor que no decir nada.
+
+**Y se abre sola la sección que acaba de llenarse.** Sustituye a «todas plegadas» sin traicionar su
+motivo: el motivo era no llenar la columna de listas vacías que empujan hacia abajo la que se está
+usando, y abrir la que **deja** de estar vacía no hace eso. Llega un modelo y se abre Estructura;
+una nube y se abre Nube. No todas las que se llenan: cargar un modelo llena también «Modelos
+abiertos», y abrir las dos deja la columna con dos listas apretadas a su mínimo — se abre la que se
+va a mirar.
+
 #### El rail: el navegador plegado, no un menú aparte
 
-`F9.6`, decidido el 2026-09-07. El navegador se pliega a **44 px de iconos** y se despliega con un
-clic, con la sección de ese icono abierta. Recupera **302 px de lienzo** medidos.
+`F9.6`, decidido el 2026-09-07 y hecho el 2026-09-08. El navegador se pliega a un rail de iconos y
+se despliega con un clic, con la sección de ese icono abierta.
+
+Medido a 1440 × 900 con un modelo abierto: el panel pasa de **346 px a 49,4** y el lienzo de 739,2 a
+1 040,2, o sea **+301 px**. El área de toque de cada icono es **48 × 48**. Los 44 px que este
+documento decía eran el objetivo de toque, y 49,4 sale de que `--spacing` vale 0,275rem en este
+proyecto: `w-11` son 48,4 más el borde.
+
+Dos cosas que el rail no puede perder, y que son la diferencia entre plegar y esconder:
+
+- **El nombre**, en `aria-label` **y** en `title`, nunca solo en `title` — que no existe para el
+  teclado ni en táctil. Y con su estado dentro: «Modelos abiertos — 1», «Planos 2D — vacío».
+- **La cifra**, como un punto de acento sobre el icono. Sin él, el rail no distingue una sección con
+  tres modelos de una vacía, y entonces plegar costaría información y no solo sitio.
+
+Entre grupo y grupo va una raya: plegado no cabe la palabra, pero sigue importando que lo de arriba
+y lo de abajo sean cosas distintas.
+
+**Y «Navegador» pliega, no oculta**, al contrario que «Propiedades». El motivo no es simetría: lo
+que enseña Propiedades depende de que haya algo seleccionado, así que sin selección esconderlo no
+pierde nada; el navegador es _el contenido del proyecto_, y esconderlo entero deja la pantalla sin
+decir qué hay abierto. El interruptor dice «Plegar a iconos», porque prometer una pantalla entera de
+lienzo y dejar 49 px sería mentir.
 
 **Y es un estado, no una navegación**, que es la diferencia que hace que esto no contradiga la regla
 de arriba: el rail no reparte el contenido en doce destinos con uno visible a la vez —eso era la
