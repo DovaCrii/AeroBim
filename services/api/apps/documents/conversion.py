@@ -46,7 +46,11 @@ funcionó: lo que se comprueba es **que el DXF exista** en la carpeta de salida.
 from __future__ import annotations
 
 import shutil
-import subprocess
+
+# `nosec B404`: bandit avisa de que importar `subprocess` tiene implicaciones, y las tiene — el
+# unico uso esta mas abajo y lleva su propio motivo. Se marca aqui por lo mismo que en `bcf.py`:
+# un aviso que no se puede quitar se aprende a ignorar, y entonces tapa al siguiente.
+import subprocess  # nosec B404
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
@@ -148,7 +152,19 @@ def a_dxf(contenido: bytes, extension: str) -> bytes:
         origen.write_bytes(contenido)
 
         try:
-            subprocess.run(  # noqa: S603 — la ruta la fija el administrador, no una petición
+            # **La justificacion ya estaba y le faltaba la mitad.** La suprension de Ruff era la
+            # unica que habia, y bandit pide la suya aparte: por eso el gate llevaba dos avisos que
+            # nadie podia quitar. El motivo es el mismo para las dos herramientas: **la ruta del
+            # ejecutable la fija el administrador** en los ajustes (`estado.ruta`, comprobada al
+            # arrancar), y los dos argumentos que quedan son carpetas que construye este modulo en
+            # un directorio temporal. Nada viene de una peticion y no hay shell en medio.
+            #
+            # Los dos marcadores van en este orden, con el de Ruff al final: Ruff lee sus codigos
+            # hasta el fin de linea, asi que detras solo puede ir lo que sea un codigo.
+            #
+            # Y por eso este comentario no escribe la directiva de Ruff entera: **Ruff tambien la
+            # lee dentro de la prosa** e intenta parsear la frase como una lista de codigos.
+            subprocess.run(  # nosec B603 # noqa: S603
                 [
                     estado.ruta,
                     str(entrada),
