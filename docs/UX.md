@@ -140,7 +140,25 @@ duplican al cubo de vistas son siempre pequeñas: el cubo ya está ahí y es má
 
 **La altura de la cinta no cambia.** Lo pequeño va con icono de 16 y su nombre a la derecha, **dos
 por columna**, no tres: tres apilados bajan de los 44 px de área mínima, que es una regla del
-sistema y no una preferencia.
+sistema y no una preferencia. El grupo es una **rejilla de dos filas que fluyen en columnas**, y lo
+grande ocupa las dos filas de la suya.
+
+**Y lo pequeño mide 24 px de alto, no 22** (corregido el 2026-09-08, al implementarlo). El número
+razonado aquí era 22 × 88 = 1 936 px² = 44², y el área sale bien pero **22 px incumple el mínimo de
+24 × 24 de WCAG 2.5.8** — la excepción por separación no aplica, porque el botón de al lado está
+pegado. A 24 × 88 el área son 2 112 px² y el alto ya no depende de un razonamiento sobre áreas.
+
+Medido con un modelo abierto, comparando contra la versión de antes con `git stash` en vez de contra
+lo que decía este documento:
+
+| Cinta entera | Antes    | Ahora    |
+| ------------ | -------- | -------- |
+| a 830 px     | 137,1 px | 136,8 px |
+| a 1440 px    | 122,1 px | 121,8 px |
+
+Grande sale a 70,4 × 55 px con icono de 24; el pequeño más chico, 88 × 26,4 = **2 322 px²**. A
+1440 px los seis grupos de Vista caben en una fila; a 830 px hace falta desplazar en horizontal,
+igual que antes de repartir los tamaños.
 
 ### La cinta con la escena vacía
 

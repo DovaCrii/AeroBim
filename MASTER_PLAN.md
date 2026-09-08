@@ -4317,7 +4317,7 @@ nadie puede alcanzar.
 | ------- | --------------------------------------------------------------------------------------------- | ------ |
 | `F12.1` | **La nube de puntos tiene puerta**: abrirla, verla en el navegador, y sus controles           | ✅     |
 | `F12.2` | **El calce y la desviación son pantalla, no registro**: señalar puntos, ver el residuo, medir | 🔶     |
-| `F12.3` | **Las herramientas se ven**: contraste, tamaño e importancia relativa en la cinta             | ⬜     |
+| `F12.3` | **Las herramientas se ven**: contraste, tamaño e importancia relativa en la cinta             | ✅     |
 | `F12.4` | **El lienzo vacío es una puerta de entrada**, no un vacío con una frase                       | ✅     |
 | `F12.5` | **El navegador tiene jerarquía**: nueve secciones iguales no dicen por dónde empezar          | ⬜     |
 | `F12.6` | **La entrada al portal**: es la primera pantalla del producto y hoy es un formulario          | ✅     |
@@ -4345,11 +4345,11 @@ en las dos mitades.
 El plan del 2026-09-07 la reparte en tres, en este orden: **primero lo que bloquea el piloto,
 después el portal, después el visor**.
 
-| Bloque                        | Pasos                                                                                                            | Estado       |
-| ----------------------------- | ---------------------------------------------------------------------------------------------------------------- | ------------ |
-| **1 · Desbloquear el piloto** | `F12.10` · `preparar_piloto` · timer y respaldo · `F12.13` · `PILOTO.md` · `F12.12`                              | ✅ los seis  |
-| **2 · El portal**             | tokens y gate · catálogo · rail · cabecera · «Mi trabajo» · bandeja · observaciones · la puerta · docs           | ✅ los nueve |
-| **3 · El visor**              | `UX.md` ✅ · gate ✅ · movimiento ✅ · `F12.9` ✅ · `F12.4` ✅ · `F12.3` · `F12.5` · rail · tema claro · `F12.8` | 🔶 5 de 10   |
+| Bloque                        | Pasos                                                                                                               | Estado       |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------ |
+| **1 · Desbloquear el piloto** | `F12.10` · `preparar_piloto` · timer y respaldo · `F12.13` · `PILOTO.md` · `F12.12`                                 | ✅ los seis  |
+| **2 · El portal**             | tokens y gate · catálogo · rail · cabecera · «Mi trabajo» · bandeja · observaciones · la puerta · docs              | ✅ los nueve |
+| **3 · El visor**              | `UX.md` ✅ · gate ✅ · movimiento ✅ · `F12.9` ✅ · `F12.4` ✅ · `F12.3` ✅ · `F12.5` · rail · tema claro · `F12.8` | 🔶 6 de 10   |
 
 **El bloque 2 cerró el 2026-09-07**, en la rama `codex/portal-asana`. Lo que dejó, además de las
 nueve tareas:
@@ -4465,15 +4465,31 @@ Lo que falta:
    nube pintada. Con **la vuelta al ciclo del producto**: abrir una observación sobre ese elemento
    desde ahí, con su desviación dentro.
 
-### `F12.3` — Las herramientas se ven
+### `F12.3` — Las herramientas se ven ✅
 
-**El contraste está medido y no llega**: los nombres bajo los iconos están a 3,56:1 donde la norma
-pide 4,5:1. Eso solo ya explica «no se ven».
+**Hecha en dos mitades: la primera con `F12.4` el 2026-09-08 y la segunda el mismo día.**
 
-Y hay algo más, que es de forma y no de color: **las veintitantas herramientas de la cinta pesan
-todas lo mismo**. «Órbita» y «Todo» ocupan lo que «Sólido» y «Fantasma», y quien abre el programa no
-tiene por dónde empezar. Lo que hacen los CAD de referencia es dar tamaño a lo que se usa: en Revit y
-AutoCAD el botón grande manda y los pequeños acompañan.
+El diagnóstico eran dos cosas, y la primera resultó no ser lo que parecía. **El contraste medía
+3,56:1 donde la norma pide 4,5** — pero ese 3,56 era `--color-apagado-fg`, o sea el color de lo
+**deshabilitado**, y con la escena vacía los treinta y seis botones lo estaban. Aclararlo habría
+hecho más legible una pantalla en la que ninguna herramienta se podía usar; lo que hacía falta era
+que la cinta vacía dejara de ofrecer treinta y seis imposibles, que es lo que hizo `F12.4` con el
+grupo **«Empezar»**. Con un modelo abierto las etiquetas dan **8,98:1** medidos.
+
+La segunda sí era de forma: **las herramientas pesaban todas lo mismo**. «Órbita» y «Todo» ocupaban
+lo que «Sólido» y «Fantasma», y quien abría el programa no tenía por dónde empezar. Ahora hay dos
+tamaños, con el criterio de [UX.md](docs/UX.md) —es grande la que abre el modo de trabajo de su
+pestaña o es la vuelta segura, como mucho tres por pestaña— y **siete grandes**: Todo · Modo 2D ·
+Órbita · Seleccionar · Distancia · Horizontal · Ver todo. Las otras veintinueve son pequeñas **por
+defecto**, así que hacer una grande obliga a justificarla contra esa lista.
+
+**Y la altura de la cinta no cambia**, que era la condición: 137,1 → 136,8 px a 830 px de ancho, y
+122,1 → 121,8 a 1440. Comparado con `git stash` contra la versión de antes, no contra lo que decía
+el documento. El grupo pasó de una fila `flex` a una rejilla de dos filas que fluyen en columnas.
+
+Un número del plan se corrigió midiendo: el pequeño iba a ser de **22 px** de alto —razonado como
+22 × 88 = 1 936 = 44²— y **22 incumple el mínimo de 24 × 24 de WCAG 2.5.8**. A 24 × 88 son 2 322 px²
+medidos y el alto deja de depender de un razonamiento sobre áreas.
 
 ### `F12.4` — El lienzo vacío es una puerta ✅
 
