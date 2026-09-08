@@ -4322,7 +4322,7 @@ nadie puede alcanzar.
 | `F12.5` | **El navegador tiene jerarquía**: nueve secciones iguales no dicen por dónde empezar          | ✅     |
 | `F12.6` | **La entrada al portal**: es la primera pantalla del producto y hoy es un formulario          | ✅     |
 | `F12.7` | **«Portal» deja de titular la portada**, y los módulos se presentan por lo que resuelven      | ✅     |
-| `F12.8` | **La costura**: el visor y el portal se leen como un producto, no como dos                    | ⬜     |
+| `F12.8` | **La costura**: el visor y el portal se leen como un producto, no como dos                    | ✅     |
 | `F12.9` | **La cota lleva su número encima**, en la escena y no en la barra de abajo                    | ✅     |
 
 Y cuatro que salieron al planificar el piloto del CC 741 (plan del 2026-09-07): son huecos de
@@ -4345,11 +4345,11 @@ en las dos mitades.
 El plan del 2026-09-07 la reparte en tres, en este orden: **primero lo que bloquea el piloto,
 después el portal, después el visor**.
 
-| Bloque                        | Pasos                                                                                                                        | Estado       |
-| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ------------ |
-| **1 · Desbloquear el piloto** | `F12.10` · `preparar_piloto` · timer y respaldo · `F12.13` · `PILOTO.md` · `F12.12`                                          | ✅ los seis  |
-| **2 · El portal**             | tokens y gate · catálogo · rail · cabecera · «Mi trabajo» · bandeja · observaciones · la puerta · docs                       | ✅ los nueve |
-| **3 · El visor**              | `UX.md` ✅ · gate ✅ · movimiento ✅ · `F12.9` ✅ · `F12.4` ✅ · `F12.3` ✅ · `F12.5` ✅ · rail ✅ · tema claro ✅ · `F12.8` | 🔶 9 de 10   |
+| Bloque                        | Pasos                                                                                                                           | Estado       |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| **1 · Desbloquear el piloto** | `F12.10` · `preparar_piloto` · timer y respaldo · `F12.13` · `PILOTO.md` · `F12.12`                                             | ✅ los seis  |
+| **2 · El portal**             | tokens y gate · catálogo · rail · cabecera · «Mi trabajo» · bandeja · observaciones · la puerta · docs                          | ✅ los nueve |
+| **3 · El visor**              | `UX.md` ✅ · gate ✅ · movimiento ✅ · `F12.9` ✅ · `F12.4` ✅ · `F12.3` ✅ · `F12.5` ✅ · rail ✅ · tema claro ✅ · `F12.8` ✅ | ✅ los diez  |
 
 **El bloque 2 cerró el 2026-09-07**, en la rama `codex/portal-asana`. Lo que dejó, además de las
 nueve tareas:
@@ -4372,6 +4372,28 @@ Y una deuda que el bloque destapó y pagó: **la pasada de la cabecera reindent�
 `blocktranslate`**, y el `msgid` de un `blocktranslate` incluye los espacios literales. Veintiuna
 entradas dejaron de encontrarse y salían en inglés, sin que nada fallara. Lo cazó
 `test_traducciones.py` al correr `makemessages`.
+
+**El bloque 3 cerró el 2026-09-08**, en la rama `codex/visor-asana`, con los diez pasos. Lo que
+dejó, además de las cinco tareas (`F12.9`, `F12.4`, `F12.3`, `F12.5`, `F12.8`):
+
+- **Un descriptor de secciones** (`SECCIONES` en `ProjectBrowser.tsx`), que es lo que hace que el
+  acordeón y el rail no puedan discrepar: añadir una capacidad sigue siendo añadir una fila.
+- **`--color-sobre-accion`**, y con él el defecto que destapó: los **doce** botones primarios del
+  visor escribían `text-fg` sobre un relleno que no cambia con el tema, o sea **1,92:1 en claro**,
+  el botón «Abrir» incluido. Con el gate en verde, porque medía los textos contra las superficies y
+  un relleno no es una superficie.
+- **El tema claro mirado**, no solo medido por tokens: dieciséis pasadas de barrido en el navegador
+  —tres pestañas, el navegador desplegado, el rail, un cuadro flotante, midiendo, y la escena
+  vacía— con cero por debajo del suelo. Y con la trampa escrita: `bg-action/30` se resuelve en
+  `oklab` con alfa, así que el fondo efectivo lo tiene que componer el navegador y no una
+  expresión regular.
+- **Una pregunta abierta cerrada**: el lienzo **sí** sigue al tema, porque el renderizador va con
+  `alpha` y lo que se ve detrás es la superficie del tema.
+
+Y tres decisiones que se tomaron mirándolas y quedaron en `docs/UX.md`: la cinta con la escena vacía
+—pestañas y pliegue apagados, y el pliegue recordado cediendo ante «no hay nada abierto»—, el
+pequeño de la cinta a 24 px en vez de los 22 que el plan razonó como área, y el rail que **pliega**
+en vez de ocultar porque el navegador es el contenido del proyecto.
 
 ---
 
@@ -4618,13 +4640,39 @@ La forma pura está aparte en `packages/viewer/src/cotas.ts` con 14 pruebas
 `diag.html?modo=medidas&medida=cotas`, que coloca los puntos por coordenada de mundo en vez de por
 clic.
 
-### `F12.8` — La costura
+### `F12.8` — La costura ✅
 
-El portal es claro y el visor oscuro, y eso está decidido y bien. Lo que no puede pasar es que se
-lean como dos programas: `F9.1`–`F9.5` ya unificaron los tokens de color, la escala de radios y la de
-elevación. Falta lo que se ve sin medir — el mismo lenguaje de botones, de estados vacíos y de
-cabeceras a los dos lados de la costura, que es la que el usuario cruza cada vez que abre un modelo
-desde su expediente.
+**Hecha el 2026-09-08.** El portal es claro y el visor oscuro, y eso está decidido y bien; lo que no
+puede pasar es que se lean como dos programas. `F9.1`–`F9.5` ya habían unificado los tokens de
+color, la escala de radios y la de elevación. Faltaba lo que se ve sin medir.
+
+**Y la costura tiene un sitio concreto, que es lo que hizo la tarea corta:** `Origen`, la miga del
+visor, es **el único elemento que existe a los dos lados** — el resto del visor no tiene equivalente
+en el portal ni al revés. Ahí se leían como dos programas por cuatro detalles, y ninguno era una
+decisión: eran dos personas escribiendo lo mismo dos veces.
+
+| Hacía el visor                        | Hace el portal (`.migas`)               |
+| ------------------------------------- | --------------------------------------- |
+| Separador `/`                         | Separador `›`                           |
+| Enlaces en gris con subrayado gris    | Enlaces en el violeta de acción         |
+| La revisión, gris y sin papel         | La pantalla actual, `aria-current`, 600 |
+| `aria-label` «De dónde viene lo que…» | `aria-label` «Dónde estás»              |
+
+Manda el portal: llegó primero, y su versión es la convención — **una miga termina en dónde estás**,
+que es justo lo que le faltaba a ésta. La revisión estaba escrita como una nota al margen cuando es
+el nombre de lo que se está mirando.
+
+Y lo que **no** se copió: la primera miga. En el portal la lista empieza en «Portal»; en el visor la
+marca está pegada a la izquierda y ya lleva ahí, así que un «Portal» al lado serían dos enlaces al
+mismo sitio en la misma línea.
+
+Medido, `CC 741 › 716-LCD-ES-M-001 › rev. A1` a 13 px: enlace 7,80 en oscuro y 8,26 en claro,
+«rev. A1» 14,53 y 15,88, separador 6,16 y 5,08. Los tres pasan AA en los dos temas.
+
+**El resto del lenguaje ya había convergido**: los botones, los estados vacíos que enseñan el gesto
+y las cabeceras salieron iguales de los bloques 2 y 3 sin tocarse aquí — el portal ganó su cabecera
+de página en el bloque 2 y el visor su puerta de entrada y sus cifras por sección en el 3, y las dos
+mitades usan el mismo violeta de acción con el mismo texto encima desde `--color-sobre-accion`.
 
 ---
 
