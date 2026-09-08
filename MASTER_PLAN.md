@@ -4331,7 +4331,7 @@ producto, no de estilo, y **bloquean que personas reales usen esto**.
 | #        | Tarea                                                                                 | Estado |
 | -------- | ------------------------------------------------------------------------------------- | ------ |
 | `F12.10` | **Repartir un hallazgo**: dueño, fecha y prioridad desde la ficha, no solo al crearla | ✅     |
-| `F12.11` | **Una captura adjunta al comentario**: hoy una queja del portal no lleva imagen       | ⬜     |
+| `F12.11` | **Una captura adjunta al comentario**: hoy una queja del portal no lleva imagen       | ✅     |
 | `F12.12` | **Métricas del piloto**: comando de solo lectura sobre lo que ya guarda la base       | ✅     |
 | `F12.13` | **El levantamiento entra al expediente**: la nube como revisión, y servida por tramos | ✅     |
 | `F12.14` | **Coordinar sobre la nube sin esperar al modelo**: medir, encuadrar y anotar un punto | ✅     |
@@ -4689,6 +4689,41 @@ de página en el bloque 2 y el visor su puerta de entrada y sus cifras por secci
 mitades usan el mismo violeta de acción con el mismo texto encima desde `--color-sobre-accion`.
 
 ---
+
+### `F12.11` — Una captura adjunta al comentario ✅
+
+**Hecha el 2026-09-08.** El caso que la pide es el del piloto: alguien de la obra encuentra que una
+pantalla no hace lo que espera, abre una observación y tiene que **contarla con palabras**. Este
+plan dejaba escrito el sorteo mientras no existiera —un entregable `PILOTO-CAPTURAS` con los PNG
+sueltos y el correlativo citado a mano en el texto— y eso no es un hilo, son dos sitios.
+
+`Comentario.imagen` guarda **la clave del almacén y nunca los bytes**, igual que
+`Observacion.instantanea` y por el mismo motivo. Se acepta **PNG y JPEG** —una captura de pantalla
+es PNG y una foto de obra es JPEG— con tope propio de **8 MB**, y **la firma manda** sobre la
+extensión y sobre el tipo que declara el navegador, que los escribe quien manda.
+
+| Lo que se decidió                           | Por qué                                                                             |
+| ------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Ni PDF ni SVG                               | El SVG lleva scripts; un PDF es un **documento**, o sea un entregable con su código |
+| El texto sigue obligatorio y la imagen no   | Un comentario es un mensaje y la imagen su prueba                                   |
+| `FileField` y no `ImageField`               | `ImageField` pide Pillow y valida más flojo que la firma                            |
+| Un adjunto malo **sí se dice**              | Al contrario que la cámara: aquí el archivo lo eligió una persona                   |
+| La imagen se sirve por el id del comentario | Una clave de almacenamiento en una URL invita a probar otras                        |
+
+**Y el permiso de esa vista lo corrigió una prueba que falló.** Es `view_observacion` y no
+`view_comentario`, aunque lo que se sirve cuelgue de un comentario: la ficha del hallazgo dibuja el
+hilo entero a quien puede ver la observación, sin pedir `view_comentario` por separado, así que con
+el permiso más estricto esa misma persona vería el hilo con **las imágenes roras**. Una vista más
+severa que la pantalla que la usa no protege nada.
+
+Medido contra el servidor real, mandando el `multipart` de verdad: `POST 200`, la observación pasa
+de «Abierta» a «Respondida», la imagen sale dentro del mensaje a 478 × 165 de 520 × 180 naturales
+con tope de 220 px de alto, y el `GET` de la imagen devuelve `image/png` sin `Content-Disposition`.
+En los dos temas.
+
+**Lo que no hace, y lo dice la propia pantalla:** el adjunto **no viaja en el BCF**. Un BCF lleva la
+imagen del _tema_ y no las del hilo, así que la nota debajo del campo lo advierte en vez de que
+alguien lo descubra cuando el mandante no la encuentre.
 
 ### `F12.14` — Coordinar sobre la nube sin esperar al modelo ✅
 

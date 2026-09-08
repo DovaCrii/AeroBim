@@ -90,25 +90,25 @@ sirve a esa frase queda fuera — en particular **no** se está construyendo un 
 Actualizado el **2026-09-08**. La fuente de verdad de lo pendiente sigue siendo
 [MASTER_PLAN.md](MASTER_PLAN.md); esto es el resumen de una línea.
 
-**Diez de las doce fases con trabajo están cerradas, y la Fase 12 acaba de cerrar sus tres
-bloques.** Queda la Fase 2 a falta de un modelo que el usuario todavía no tiene, dos tareas de la
-Fase 12 que no son de estilo, y la Fase 6 pospuesta a propósito.
+**Diez de las doce fases con trabajo están cerradas, y la Fase 12 va por catorce de sus quince
+tareas.** Lo que queda **no es código**: la Fase 2 y la última de la Fase 12 esperan archivos de
+obra que el usuario todavía no tiene, y la Fase 6 está pospuesta a propósito.
 
-| Fase                       | Estado                                                                    |
-| -------------------------- | ------------------------------------------------------------------------- |
-| 0 · Cimientos              | ✅                                                                        |
-| 1 · Visor                  | ✅ salvo `F1.13`, tres nombres que decide el usuario                      |
-| 3 · Backend                | ✅                                                                        |
-| 4 · Coordinación           | ✅ salvo `F4.5`, condicionado a que el usuario mire un BCF exportado      |
-| 5 · Interferencias         | ✅                                                                        |
-| 7 · Planos y salida        | ✅                                                                        |
-| 8 · Registro documental    | ✅                                                                        |
-| 9 · Diseño                 | ✅ entera — `F9.6` cerró el 2026-09-07                                    |
-| 10 · Etiquetas y tablas    | ✅                                                                        |
-| 11 · El portal se ve plano | ✅                                                                        |
-| **2 · Nubes de puntos**    | 🔶 abre, se maneja, calza y entra al expediente. `F2.4` espera **el IFC** |
-| **12 · La interfaz**       | 🔶 **los tres bloques cerrados.** Quedan `F12.2` y `F12.11`, no de estilo |
-| 6 · Geo + BIM              | ⬜ pospuesta el 2026-09-02, para poner la coordinación delante            |
+| Fase                       | Estado                                                                                |
+| -------------------------- | ------------------------------------------------------------------------------------- |
+| 0 · Cimientos              | ✅                                                                                    |
+| 1 · Visor                  | ✅ salvo `F1.13`, tres nombres que decide el usuario                                  |
+| 3 · Backend                | ✅                                                                                    |
+| 4 · Coordinación           | ✅ salvo `F4.5`, condicionado a que el usuario mire un BCF exportado                  |
+| 5 · Interferencias         | ✅                                                                                    |
+| 7 · Planos y salida        | ✅                                                                                    |
+| 8 · Registro documental    | ✅                                                                                    |
+| 9 · Diseño                 | ✅ entera — `F9.6` cerró el 2026-09-07                                                |
+| 10 · Etiquetas y tablas    | ✅                                                                                    |
+| 11 · El portal se ve plano | ✅                                                                                    |
+| **2 · Nubes de puntos**    | 🔶 abre, se maneja, calza y entra al expediente. `F2.4` espera **el IFC**             |
+| **12 · La interfaz**       | 🔶 **catorce de quince.** `F12.2` espera un modelo y un levantamiento del mismo sitio |
+| 6 · Geo + BIM              | ⬜ pospuesta el 2026-09-02, para poner la coordinación delante                        |
 
 **La Fase 12, en detalle**, porque es donde está el trabajo:
 
@@ -124,15 +124,16 @@ diciendo 97,4 × 143,5 × 17,0 m y UTM 19S declarado dentro.
 
 **Y lo que dejó el bloque del visor**, también medido y no estimado:
 
-| Lo que cambió                                                       | Medido                                                           |
-| ------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| La cota lleva su número y sus tres magnitudes encima del modelo     | **14,22:1** a 11 px, desde 4,13 que no pasaba                    |
-| La cinta reparte grande y pequeño, y **no crece**                   | 137,1 → 136,8 px; pequeño 88 × 26,4                              |
-| El navegador se pliega a rail y le devuelve el sitio al modelo      | 346 → 49,4 px de panel, **+301 px** de lienzo                    |
-| El tema claro, barrido pantalla por pantalla en los dos temas       | 16 pasadas, **cero** textos bajo el suelo                        |
-| El botón primario dejó de ser negro sobre violeta con el tema claro | 1,92:1 → **8,26:1**, y eran doce botones                         |
-| **Se trabaja con el levantamiento solo**, sin esperar al IFC        | de 0 herramientas vivas a 10, y `Directa 26,403 m` con dos clics |
-| Y se le deja una nota anclada a su coordenada                       | `E 345.071,16 · N 6.298.028,87 · Z 561,41`                       |
+| Lo que cambió                                                       | Medido                                                              |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| La cota lleva su número y sus tres magnitudes encima del modelo     | **14,22:1** a 11 px, desde 4,13 que no pasaba                       |
+| La cinta reparte grande y pequeño, y **no crece**                   | 137,1 → 136,8 px; pequeño 88 × 26,4                                 |
+| El navegador se pliega a rail y le devuelve el sitio al modelo      | 346 → 49,4 px de panel, **+301 px** de lienzo                       |
+| El tema claro, barrido pantalla por pantalla en los dos temas       | 16 pasadas, **cero** textos bajo el suelo                           |
+| El botón primario dejó de ser negro sobre violeta con el tema claro | 1,92:1 → **8,26:1**, y eran doce botones                            |
+| **Se trabaja con el levantamiento solo**, sin esperar al IFC        | de 0 herramientas vivas a 10, y `Directa 26,403 m` con dos clics    |
+| Y se le deja una nota anclada a su coordenada                       | `E 345.071,16 · N 6.298.028,87 · Z 561,41`                          |
+| **Un comentario del hilo lleva su captura**, PNG o JPEG hasta 8 MB  | La firma manda sobre la extensión, y la sirve una vista con permiso |
 
 **Lo que falta para la `0.1.0`** son tres cosas y ninguna es de código:
 
@@ -148,7 +149,7 @@ pwsh services/api/scripts/verify.ps1  # el gate: check, pytest, ruff, bandit, pi
 npm test                              # el visor y el dominio
 ```
 
-**1.022 pruebas** en `services/api` y **523** en `packages/*` y `apps/web`. La regla que las ordena
+**1.033 pruebas** en `services/api` y **523** en `packages/*` y `apps/web`. La regla que las ordena
 está en [AGENTS.md](AGENTS.md): cada capacidad se comprueba contra **un oráculo independiente** —
 Bonsai para el IFC, Solibri o BIMcollab para el BCF, CloudCompare y `pdal` para la nube, el CAD de
 la oficina para el DXF — y **cada número se mide, no se estima**.
