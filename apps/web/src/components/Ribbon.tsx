@@ -364,6 +364,8 @@ export function Ribbon({
                     icon={<IconFrameAll />}
                     label="Todo"
                     hint="Vuelve a la vista general del modelo"
+                    // La vuelta segura de la pestaña Vista: se pierde la cámara y esto la recupera.
+                    tamano="grande"
                     disabled={!enabled}
                     onClick={onFrameAll}
                   />
@@ -392,6 +394,8 @@ export function Ribbon({
                         ? "Deja el plano solo, en planta y ortográfica. Vuelve a pulsarlo para recuperar el modelo"
                         : "No hay ningún plano 2D cargado"
                     }
+                    // Abre un modo de trabajo entero: el plano solo, sin modelo.
+                    tamano="grande"
                     active={modo2D}
                     disabled={!hasPlans}
                     onClick={() => onModo2D(!modo2D)}
@@ -467,6 +471,9 @@ export function Ribbon({
                     icon={<IconOrbit />}
                     label="Órbita"
                     hint="Girar alrededor del modelo"
+                    // La vuelta segura de la navegación: es el modo de partida, y de los otros dos
+                    // —desplazar, interior— se sale volviendo aquí.
+                    tamano="grande"
                     active={navigation === "Orbit"}
                     disabled={!enabled}
                     onClick={() => onNavigation("Orbit")}
@@ -522,6 +529,9 @@ export function Ribbon({
                     icon={<IconCursor />}
                     label="Seleccionar"
                     hint="El clic abre la ficha del elemento"
+                    // La vuelta segura de toda la pestaña: es el modo del que se sale a medir y al
+                    // que se vuelve para dejar de medir.
+                    tamano="grande"
                     active={measureMode === null}
                     disabled={!enabled}
                     onClick={() => onMeasureMode(null)}
@@ -530,6 +540,9 @@ export function Ribbon({
                     icon={<IconDistance />}
                     label="Distancia"
                     hint="Clic en dos puntos: directa, en planta y desnivel"
+                    // Es lo que se viene a hacer a esta pestaña. Ángulo y área existen; distancia
+                    // es la que se usa treinta veces en una revisión.
+                    tamano="grande"
                     active={measureMode === "distance"}
                     disabled={!enabled}
                     onClick={() => onMeasureMode("distance")}
@@ -682,6 +695,8 @@ export function Ribbon({
                         ? "La planta, sin la cubierta encima. El plano se arrastra después"
                         : "Abre un modelo primero"
                     }
+                    // De los tres cortes, el horizontal es el que se pide siempre: es la planta.
+                    tamano="grande"
                     disabled={!hasModels}
                     onClick={() => onSection("horizontal")}
                   />
@@ -755,6 +770,9 @@ export function Ribbon({
                     icon={<IconEye />}
                     label="Ver todo"
                     hint="Enciende todo el modelo, incluido lo que se apagó a mano"
+                    // La vuelta segura de la pestaña Modelo: apagar y aislar dejan el modelo en un
+                    // estado del que hay que poder salir de un clic.
+                    tamano="grande"
                     destacado={hasHidden}
                     disabled={!enabled}
                     onClick={onShowAll}
@@ -787,7 +805,21 @@ function Grupo({
       aria-label={label}
       className="flex shrink-0 flex-col border-r border-borde px-2 last:border-r-0"
     >
-      <div className="flex flex-1 items-start gap-0.5">{children}</div>
+      {/*
+       * **Dos filas que fluyen en columnas**, que es lo que permite que un grupo tenga herramientas
+       * de dos pesos sin crecer a lo alto: lo pequeño va de dos en dos en la misma columna y lo
+       * grande ocupa las dos filas de la suya (`row-span-2` en `Boton`).
+       *
+       * Era `flex` en una sola fila, y con `flex` no hay forma de apilar dos y que el de al lado
+       * abarque los dos sin altos escritos a mano. Y **dos filas y no tres**: tres apilados dejan
+       * cada botón por debajo del área de toque, que es una regla del sistema.
+       *
+       * Un grupo con un número impar de pequeños deja el último hueco vacío, y está bien: la
+       * columna sigue midiendo lo mismo y la cinta no cambia de alto.
+       */}
+      <div className="grid flex-1 grid-flow-col grid-rows-2 items-stretch gap-x-0.5 gap-y-0.5">
+        {children}
+      </div>
       <p className="text-center text-micro tracking-wide text-fg-3 uppercase">{label}</p>
     </section>
   );
@@ -813,7 +845,7 @@ function Boton({
   active,
   destacado = false,
   disabled = false,
-  tamano = "normal",
+  tamano = "pequeno",
 }: {
   readonly icon: React.ReactNode;
   readonly label: string;
@@ -832,15 +864,18 @@ function Boton({
   readonly destacado?: boolean;
   readonly disabled?: boolean;
   /**
-   * El peso de la herramienta en su grupo.
+   * El peso de la herramienta en su grupo. `F12.3`.
    *
-   * `"grande"` es la que abre el modo de trabajo de la pestaña o la vuelta segura; `"normal"` es lo
-   * que había hasta ahora y lo que llevan las treinta y seis de hoy. **El criterio de cuál es
-   * grande está en `docs/UX.md`, en «Qué pesa cada herramienta»**, y el reparto por pestaña se hace
-   * en `F12.3`: por ahora lo usa solo el grupo «Empezar», que es el único donde la elección no
-   * admite discusión — con la escena vacía hay exactamente dos cosas que se pueden hacer.
+   * **Hasta el 2026-09-08 los treinta y seis botones eran del mismo tamaño**, así que nada decía
+   * cuál se usa treinta veces al día y cuál una vez por proyecto. El criterio de cuál es grande
+   * está en `docs/UX.md`, en «Qué pesa cada herramienta», y se resume en una frase: es grande la
+   * que **abre el modo de trabajo de su pestaña** o es **la vuelta segura**. Como mucho tres por
+   * pestaña, porque con cinco «grande» deja de significar algo.
+   *
+   * El defecto va por defecto: lo normal es que una herramienta sea pequeña, y quien quiera hacer
+   * una grande tiene que poder justificarlo contra esa lista.
    */
-  readonly tamano?: "grande" | "normal";
+  readonly tamano?: "grande" | "pequeno";
 }) {
   const encendido = active === true || destacado;
   const grande = tamano === "grande";
@@ -853,16 +888,28 @@ function Boton({
       title={`${label} — ${hint}`}
       aria-pressed={active}
       className={[
-        // **Más estrecho y más bajo que antes.** La cinta ocupaba 110 px de alto en una pantalla
-        // donde lo que importa es el modelo; con el icono a 18 px y el nombre pegado debajo se
-        // queda en poco más de la mitad sin perder el nombre, que es lo que la hace legible.
+        // **Las dos formas, y las dos llegan al área de toque por caminos distintos.**
         //
-        // **Y `min-h-11` —44 px— por `F9.4`, que costaba dos píxeles.** Medidos en pantalla, estos
-        // botones salían a 62 × 42: los quince a dos píxeles del objetivo de área de toque. Es la
-        // mejora más barata que había, y son las herramientas principales — las que más se pulsan.
-        "flex min-h-11 flex-col items-center justify-center gap-px rounded-sm px-0.5 py-1",
-        grande ? "w-16" : "w-14",
+        // Grande: icono de 24 arriba y nombre debajo, 64 × 50 px, y ocupa **las dos filas** de su
+        // columna en la rejilla del grupo. Es la forma que tenían las treinta y seis, con el icono
+        // más grande.
+        //
+        // Pequeña: icono de 16 a la izquierda y nombre a la derecha, 24 px de alto y 88 de ancho
+        // mínimo. Los 24 de alto no son el número del plan —decía 22— y el cambio tiene motivo:
+        // **22 px incumple el mínimo de 24 × 24 de WCAG 2.5.8**, y aquí la excepción por
+        // separación no aplica porque el de al lado está pegado. A 24 × 88 el área son 2 112 px²,
+        // por encima de los 1 936 —44²— que pide `F9.4`, y la altura ya no depende de un
+        // razonamiento sobre áreas.
+        //
+        // `whitespace-nowrap` en vez de partir el nombre: «Cerrar contorno» a dos líneas rompería
+        // el alto de la fila, y el nombre no se puede acortar —lleva su propio comentario
+        // explicando por qué no es «Cerrar»—. Se ensancha la columna, que es lo que no cuesta:
+        // la cinta desplaza en horizontal.
+        "flex items-center rounded-sm",
         "transition-colors duration-[--duracion-corta] ease-[--ease-ab]",
+        grande
+          ? "row-span-2 min-h-11 w-16 flex-col justify-center gap-px px-0.5 py-1"
+          : "min-h-6 min-w-[88px] justify-start gap-1.5 px-1.5 py-0.5",
         disabled
           ? "text-apagado-fg"
           : encendido
@@ -872,13 +919,21 @@ function Boton({
     >
       <span
         className={[
-          grande ? "[&>svg]:h-6 [&>svg]:w-6" : "[&>svg]:h-[18px] [&>svg]:w-[18px]",
+          "shrink-0",
+          grande ? "[&>svg]:h-6 [&>svg]:w-6" : "[&>svg]:h-4 [&>svg]:w-4",
           encendido && !disabled ? "text-accent" : "",
         ].join(" ")}
       >
         {icon}
       </span>
-      <span className="w-full text-center text-micro leading-tight break-words">{label}</span>
+      <span
+        className={[
+          "text-micro leading-tight",
+          grande ? "w-full text-center break-words" : "whitespace-nowrap",
+        ].join(" ")}
+      >
+        {label}
+      </span>
     </button>
   );
 }
