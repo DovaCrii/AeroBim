@@ -305,6 +305,43 @@ token quede declarado sin usar.
 > seguía sin pintarse en claro, que es el tema de partida. Ahora la prueba mira el CSS **como lo ve
 > el tema claro**, quitando los bloques oscuros. Un gate que no se muta no se sabe si mide.
 
+### Cómo se comprueba el tema claro, y la trampa que tiene
+
+**El gate mide pares de tokens; una pantalla es una composición.** Puede pasar entero y aun así
+tener texto ilegible, porque el color que se ve en un sitio depende de qué hay debajo. Así que el
+tema claro se miró además **en el navegador, pantalla por pantalla**, el 2026-09-08.
+
+El barrido recorre cada elemento con texto propio y visible, resuelve **el fondo que de verdad tiene
+debajo** y compara contra 4,5:1 —o 3:1 si el texto es grande o el control está deshabilitado, que la
+norma exime—. Se salta el lienzo 3D, que lo pinta el visor y no el CSS.
+
+> **La trampa, y me costó un barrido falso.** `bg-action/30` no se resuelve a un color opaco: Chrome
+> lo devuelve como **`oklab(0.442007 0.0639623 -0.141039 / 0.3)`**, o sea otro espacio de color y con
+> alfa. Leerle los números con una expresión regular y tratarlos como RGB da basura: el primer
+> barrido acusó al botón activo de la cinta de estar a **1,32:1** en claro, y estaba a nueve y pico.
+>
+> La forma que funciona es **no convertir nada a mano**: apilar las capas semitransparentes hasta la
+> primera opaca y **dejar que el navegador las componga** en un `<canvas>` de 1 × 1 —`fillStyle` con
+> el color de debajo, `fillStyle` con el de encima, `getImageData`—. Sale un `rgb()` exacto, y con la
+> conversión de espacios de color hecha por quien la va a pintar. Medido así, `bg-action/30 text-fg`
+> en claro compone `rgb(205, 196, 226)` bajo un texto `#172238`, que se lee de sobra.
+
+Estados barridos, con el modelo abierto y en los dos temas: las tres pestañas de la cinta, el
+navegador con las doce secciones desplegadas, el rail plegado, un cuadro flotante abierto, una
+medición empezada y la escena vacía con la puerta de entrada. **Cero por debajo del suelo en los
+dieciséis pasos**, entre 39 y 122 elementos por pasada.
+
+**Lo que el barrido no alcanzó, dicho:** la nota flotante y los paneles de nube y calce con datos
+—las tres necesitan el registro de Django y el COPC de 130 MB servidos, y aquí no lo están— y los
+estados de error de la insignia de estado. Los colores de esos tres estados sí están medidos como
+tokens en los dos temas por el gate.
+
+**Y una cosa que resultó no ser un problema.** Quedaba la pregunta de si el lienzo se queda oscuro
+con el tema claro, que se veía así en una captura. No: el renderizador va con `alpha`, el `<canvas>`
+y su contenedor son transparentes —comprobado, `rgba(0, 0, 0, 0)` los dos— y lo que se ve detrás es
+la superficie del tema. **El lienzo sigue al tema sin que nadie se lo diga, y sin recargar.** La
+captura que decía lo contrario era del propio capturador emulando `prefers-color-scheme`.
+
 ## Referencia visual
 
 El lienzo de diseño con las trece pantallas —diagnóstico, tokens, componentes con sus

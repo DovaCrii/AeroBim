@@ -4345,11 +4345,11 @@ en las dos mitades.
 El plan del 2026-09-07 la reparte en tres, en este orden: **primero lo que bloquea el piloto,
 después el portal, después el visor**.
 
-| Bloque                        | Pasos                                                                                                                     | Estado       |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ------------ |
-| **1 · Desbloquear el piloto** | `F12.10` · `preparar_piloto` · timer y respaldo · `F12.13` · `PILOTO.md` · `F12.12`                                       | ✅ los seis  |
-| **2 · El portal**             | tokens y gate · catálogo · rail · cabecera · «Mi trabajo» · bandeja · observaciones · la puerta · docs                    | ✅ los nueve |
-| **3 · El visor**              | `UX.md` ✅ · gate ✅ · movimiento ✅ · `F12.9` ✅ · `F12.4` ✅ · `F12.3` ✅ · `F12.5` ✅ · rail ✅ · tema claro · `F12.8` | 🔶 8 de 10   |
+| Bloque                        | Pasos                                                                                                                        | Estado       |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| **1 · Desbloquear el piloto** | `F12.10` · `preparar_piloto` · timer y respaldo · `F12.13` · `PILOTO.md` · `F12.12`                                          | ✅ los seis  |
+| **2 · El portal**             | tokens y gate · catálogo · rail · cabecera · «Mi trabajo» · bandeja · observaciones · la puerta · docs                       | ✅ los nueve |
+| **3 · El visor**              | `UX.md` ✅ · gate ✅ · movimiento ✅ · `F12.9` ✅ · `F12.4` ✅ · `F12.3` ✅ · `F12.5` ✅ · rail ✅ · tema claro ✅ · `F12.8` | 🔶 9 de 10   |
 
 **El bloque 2 cerró el 2026-09-07**, en la rama `codex/portal-asana`. Lo que dejó, además de las
 nueve tareas:
