@@ -194,3 +194,146 @@ describe("medirDesviacion", () => {
     expect(m.toleranciaM).toBe(0.037);
   });
 });
+
+/**
+ * El muro de `muro-en-utm.ifc` contra su levantamiento, con un corrimiento conocido.
+ *
+ * **Esto reproduce en Node lo que se midio en la aplicacion el 2026-09-09** con
+ * `levantamiento-del-muro.copc.laz`, y existe para contestar una pregunta que quedo escrita como
+ * pregunta: tres de las seis cifras cayeron sobre el corrimiento sin margen -mediana 150 mm, que es
+ * `|ΔN|`; percentil 95 240 mm, que es `|ΔE|`; sesgo +72 mm, que es `≈ΔH`- **y la maxima dio 361 mm,
+ * que pasa de los 293 que mide la norma del corrimiento**. Un punto de la nube no puede estar mas
+ * lejos del muro que lo que se corrio la nube, asi que o faltaba entender algo o habia un defecto.
+ *
+ * Faltaba entender algo, y esta en `measureDeviation`: **la caja se agranda 30 cm a proposito**
+ * -«lo construido se sale de lo modelado, asi que cenirse a la caja del modelo dejaria fuera justo
+ * los puntos que delatan el problema»-. Con ese margen entran a la cuenta puntos **del suelo**, que
+ * no son del muro: uno a 30 cm de la esquina esta a `√(0,30² + 0,30²) = 424 mm` del triangulo mas
+ * cercano. Los 361 mm caen dentro de eso.
+ *
+ * **Reproducido aqui al milimetro**, midiendo los mismos puntos por separado:
+ *
+ * | Que se mide | Puntos | Mediana | Maxima      | Sesgo  |
+ * | ----------- | ------ | ------- | ----------- | ------ |
+ * | solo muro   | 10 287 | 150 mm  | **293 mm**  | +62 mm |
+ * | solo suelo  | 288    | 150 mm  | **361 mm**  | +116 mm |
+ * | los dos     | 10 575 | 150 mm  | **361 mm**  | +63 mm |
+ *
+ * `293` es exactamente la norma del corrimiento, y `361` es exactamente lo que dijo la aplicacion.
+ * O sea que la medida es correcta y **el numero invita a leerlo mal**: «maxima 361 mm» sobre un muro
+ * se entiende como «el muro esta 36 cm fuera de sitio» cuando son 288 puntos del suelo de al lado
+ * frente a diez mil del muro. Es la misma familia que la cifra del calce que se dejo de ensenar el
+ * mismo dia. Lo que fija esta prueba es la atribucion: **midiendo solo los puntos del muro, nada
+ * pasa del corrimiento**.
+ *
+ * **Y de paso corrige una lectura mia que era una casualidad.** Al medirlo en la aplicacion anote
+ * que el percentil 95 -240 mm- «era `|ΔE|`, las testas». No lo es: aqui, con otro muestreo de los
+ * mismos planos, el p95 sale **168 mm**. El p95 depende de **la mezcla de puntos** -cuantos de cada
+ * cara entran, y con la nube real eso lo decide el nivel de detalle cargado-, asi que no es una
+ * constante de la geometria. La mediana y la maxima si lo son, y son las que esta prueba fija.
+ */
+describe("el muro contra su levantamiento corrido", () => {
+  /** El corrimiento del fixture, en ejes de la escena: a lo largo, hacia arriba, y en el grueso. */
+  const A_LO_LARGO = 0.24;
+  const ARRIBA = 0.075;
+  const EN_EL_GRUESO = 0.15;
+  const LARGO = 4;
+  const ALTO = 3;
+  const GRUESO = 0.2;
+
+  /** El muro como se lo pasaria Fragments: doce triangulos, con su base en `y = 0`. */
+  function muro(): MallaDeFragments {
+    const geo = new THREE.BoxGeometry(LARGO, ALTO, GRUESO).translate(0, ALTO / 2, 0);
+    return {
+      positions: (geo.getAttribute("position") as THREE.BufferAttribute).array as Float32Array,
+      indices: geo.getIndex()?.array as Uint16Array,
+      transform: new THREE.Matrix4(),
+    };
+  }
+
+  function comoNube(posiciones: readonly number[]): THREE.Group {
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.Float32BufferAttribute([...posiciones], 3));
+    geo.computeBoundingBox();
+    geo.computeBoundingSphere();
+    const grupo = new THREE.Group();
+    grupo.add(new THREE.Points(geo, new THREE.PointsMaterial()));
+    grupo.updateMatrixWorld(true);
+    return grupo;
+  }
+
+  /** Las caras del muro muestreadas y **corridas**, que es lo que un escaner habria visto. */
+  function nubeDelMuro(): THREE.Group {
+    const p: number[] = [];
+    const paso = 0.05;
+    for (let x = -LARGO / 2; x <= LARGO / 2 + 1e-9; x += paso) {
+      for (let y = 0; y <= ALTO + 1e-9; y += paso) {
+        for (const z of [-GRUESO / 2, GRUESO / 2]) {
+          p.push(x + A_LO_LARGO, y + ARRIBA, z + EN_EL_GRUESO);
+        }
+      }
+      for (let z = -GRUESO / 2; z <= GRUESO / 2 + 1e-9; z += paso) {
+        p.push(x + A_LO_LARGO, ALTO + ARRIBA, z + EN_EL_GRUESO);
+      }
+    }
+    return comoNube(p);
+  }
+
+  /** El suelo alrededor, sin la huella del muro, y corrido igual. */
+  function nubeDelSuelo(): THREE.Group {
+    const p: number[] = [];
+    const paso = 0.1;
+    for (let x = -8; x <= 8 + 1e-9; x += paso) {
+      for (let z = -8; z <= 8 + 1e-9; z += paso) {
+        if (Math.abs(x) <= LARGO / 2 && Math.abs(z) <= GRUESO / 2) continue;
+        p.push(x + A_LO_LARGO, ARRIBA, z + EN_EL_GRUESO);
+      }
+    }
+    return comoNube(p);
+  }
+
+  /** La caja del muro con el margen que pone `measureDeviation`: 30 cm. */
+  const MARGEN = 0.3;
+  const cajaHolgada = new THREE.Box3(
+    new THREE.Vector3(-LARGO / 2, 0, -GRUESO / 2),
+    new THREE.Vector3(LARGO / 2, ALTO, GRUESO / 2),
+  ).expandByScalar(MARGEN);
+
+  it("son doce triangulos, como decia la aplicacion", () => {
+    expect(triangulosEnLaCaja([muro()], cajaHolgada).triangulos.length).toBe(12);
+  });
+
+  it("los puntos del muro no pasan del corrimiento, y su mediana ES el corrimiento", () => {
+    const m = medirDesviacion([muro()], nubeDelMuro(), cajaHolgada, { toleranciaM: 0.02 });
+    const norma = Math.hypot(A_LO_LARGO, ARRIBA, EN_EL_GRUESO);
+    expect(norma).toBeCloseTo(0.293, 3);
+    // **Esta es la afirmacion que faltaba**: sin el suelo de por medio, ningun punto del
+    // levantamiento esta mas lejos del muro que lo que se corrio la nube. Y no le sobra nada: la
+    // maxima **es** la norma, porque la esquina del muro se corrio justo en las tres direcciones.
+    expect(m.resumen.maxima).toBeCloseTo(norma, 3);
+    // Y la mediana es el grueso: las dos caras largas son la mayoria de los puntos, y su normal
+    // es justo el eje en que se corrio 150 mm.
+    expect(m.resumen.mediana).toBeCloseTo(EN_EL_GRUESO, 3);
+  });
+
+  it("con el suelo dentro, la maxima la pone el suelo — y ahi estan los 361 mm", () => {
+    const soloMuro = medirDesviacion([muro()], nubeDelMuro(), cajaHolgada, { toleranciaM: 0.02 });
+    const conSuelo = medirDesviacion([muro()], nubeDelSuelo(), cajaHolgada, { toleranciaM: 0.02 });
+
+    // El suelo aporta puntos mas lejanos que cualquiera del muro: es el margen de 30 cm haciendo
+    // su trabajo, no un error de la medida.
+    expect(conSuelo.resumen.maxima).toBeGreaterThan(soloMuro.resumen.maxima);
+    // Y el tope es geometrico: la esquina del margen, `√(0,30² + 0,30²)`.
+    expect(conSuelo.resumen.maxima).toBeLessThanOrEqual(Math.hypot(MARGEN, MARGEN) + 1e-6);
+    // **Y son los 361 mm de la aplicacion, al milimetro.** Eso es lo que cierra la pregunta: no
+    // era un defecto de la medida, era el margen de 30 cm trayendo el suelo a la cuenta.
+    expect(conSuelo.resumen.maxima).toBeCloseTo(0.361, 3);
+  });
+
+  it("y el sesgo sale positivo: lo construido por fuera de lo modelado", () => {
+    const m = medirDesviacion([muro()], nubeDelMuro(), cajaHolgada, { toleranciaM: 0.02 });
+    // El corrimiento saca la nube del solido, asi que el signo tiene que decir «por fuera». Si
+    // esto se pusiera negativo, el informe estaria acusando a la obra de lo contrario.
+    expect(m.resumen.sesgo).toBeGreaterThan(0);
+  });
+});

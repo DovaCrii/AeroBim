@@ -14,9 +14,15 @@
 > par, los dos caben en pantalla y el muro ocupa media escena — que es exactamente lo que faltaba.
 >
 > **Y el corrimiento conocido hizo comprobable la desviación**, que es lo que `F2.4` esperaba: la
-> mediana da **150 mm** = \|ΔN\|, el percentil 95 **240 mm** = \|ΔE\| y el sesgo **+72 mm** ≈ ΔH.
-> Tres de las seis cifras sobre el número exacto. La máxima, 361 mm, pasa de los 293 de la norma del
-> corrimiento y **queda anotada como pregunta, no como cierre**.
+> mediana da **150 mm** = \|ΔN\| y el sesgo **+72 mm** ≈ ΔH, los dos sobre el número exacto.
+>
+> La máxima daba **361 mm**, por encima de los 293 de la norma del corrimiento, y quedó anotada como
+> pregunta. **Contestada:** en `measureDeviation` la caja se agranda 30 cm a propósito —«lo
+> construido se sale de lo modelado»— y con ese margen entran puntos **del suelo**. Reproducido en
+> Node al milímetro: solo el muro da **293 mm**, que es exactamente la norma; solo el suelo, **361**.
+> La medida es correcta y el número invita a leerlo mal — 288 puntos del suelo frente a diez mil del
+> muro. Y de paso se corrigió una lectura mía que era casualidad: el percentil 95 **no** es \|ΔE\|,
+> depende de la mezcla de puntos.
 >
 > **Tres defectos por el camino**, los tres al usarlo y ninguno visible leyendo:
 >
