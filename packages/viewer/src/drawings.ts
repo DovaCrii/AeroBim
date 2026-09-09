@@ -70,34 +70,29 @@ export interface DrawingLayerInfo {
 }
 
 /**
- * Hacia dónde mira cada vista, y **qué es «arriba» en su papel**.
+ * Hacia dónde mira cada vista.
  *
- * La dirección la pide `EdgeProjector`. El «arriba» no lo pide nadie y hace falta igual: es lo que
- * decide si un alzado sale de pie o tumbado, y para una planta —donde la vertical del mundo es el
- * eje de proyección— hay que elegirlo, porque no hay uno natural. Ver {@link matrizAPapel}.
+ * **El mismo vector vale para dos cosas**, y conviene que sea literalmente el mismo: se lo pide
+ * `EdgeProjector` para proyectar y `TechnicalDrawing.orientTo()` para orientar el dibujo. Si los dos
+ * no coinciden, la geometría cae fuera del plano del dibujo. Ver {@link orientarYTraerAlPapel}.
+ *
+ * Qué es «arriba» en cada una no está aquí porque lo decide `orientTo`, que además garantiza que
+ * los números de las cotas no salgan en espejo.
  */
-const VISTAS: Record<
-  DrawingView,
-  {
-    readonly direccion: readonly [number, number, number];
-    readonly arriba: readonly [number, number, number];
-  }
-> = {
-  // En planta se mira hacia abajo, y el «arriba» del papel es −Z: es la convención de la librería
-  // para el papel, y es la que deja la planta tal cual sale de la proyección.
-  plan: { direccion: [0, -1, 0], arriba: [0, 0, -1] },
-  // En un alzado, arriba es arriba: la vertical del mundo.
-  front: { direccion: [0, 0, -1], arriba: [0, 1, 0] },
-  side: { direccion: [-1, 0, 0], arriba: [0, 1, 0] },
+const VISTAS: Record<DrawingView, { readonly direccion: readonly [number, number, number] }> = {
+  plan: { direccion: [0, -1, 0] },
+  front: { direccion: [0, 0, -1] },
+  side: { direccion: [-1, 0, 0] },
 };
 
 /**
- * La rotación que lleva lo proyectado **al plano del papel**, que es el XZ.
+ * Orienta el dibujo y devuelve la matriz que lleva lo proyectado **a sus coordenadas locales**,
+ * que es donde tiene que estar: el plano del dibujo es su XZ local.
  *
  * **Sin esto los dos alzados salen aplastados en una raya, y con todos sus trazos.** Medido el
  * 2026-09-09 sobre `Piso 5.ifc` con `diag.html?modo=planos`: el alzado frontal daba 2 349 trazos en
  * una caja de **217,5 × 0,0 mm** de papel, y el lateral 2 526 en **0,0 × 227,3**. La planta, 217,5 ×
- * 227,3, correcta.
+ * 227,3, correcta — y por eso no se veía.
  *
  * La causa está en la librería y es razonable en sí misma: `EdgeProjector` **gira las mallas** para
  * que la dirección de proyección quede en `(0, −1, 0)`, proyecta —el resultado queda plano en el
@@ -107,29 +102,20 @@ const VISTAS: Record<
  * se arma con X y Z; el exportador de DXF, que lee X y Z; `sizeM`; y la lámina del PDF, que arma su
  * caja con X y Z en el servidor— lee una de las dos coordenadas como constante y colapsa el dibujo.
  *
- * Se deshace ese último paso, y con el «arriba» puesto a mano en vez del que sale de la rotación
- * mínima entre dos vectores: la mínima deja el alzado lateral **tumbado 90°**, porque lleva la
- * vertical del mundo al eje X del papel.
+ * **Lo que faltaba era una llamada, no una matriz nuestra.** `TechnicalDrawing.orientTo()` gira el
+ * contenedor para los seis ejes estándar y garantiza **las dos** condiciones que documenta la
+ * librería: que el −Y local apunte a lo que se quiere capturar, y que el +X local caiga a la
+ * derecha de la pantalla — la segunda es la que evita que las cotas y sus números salgan **en
+ * espejo**, y es justo la que una rotación escrita a mano se salta sin avisar. Con el contenedor
+ * orientado, lo local pasa a ser el papel, y basta con traer la geometría del mundo a lo local.
  *
- * La construcción, para no tener que reconstruirla: se arma la base de la vista
- * `(derecha, arriba, adelante)` y la del papel `(X, −Z, −Y)`, y la rotación es `P · Bᵀ`. Las dos
- * bases son zurdas —el tercer vector entra en el papel, no sale— así que su producto es una
- * rotación de verdad y no un espejo. Para la planta sale la identidad, que es lo que había.
+ * **Y así el alzado también queda bien puesto en la escena 3D**: el dibujo se ve de pie en su plano,
+ * no tumbado sobre la planta, porque la rotación la lleva el contenedor y no los vértices.
  */
-export function matrizAPapel(view: DrawingView): THREE.Matrix4 {
-  const { direccion, arriba } = VISTAS[view];
-  const adelante = new THREE.Vector3(...direccion).normalize();
-  const arribaV = new THREE.Vector3(...arriba).normalize();
-  // `derecha` es la del observador: mirando hacia `adelante` con `arriba` por arriba.
-  const derecha = new THREE.Vector3().crossVectors(arribaV, adelante.clone().negate()).normalize();
-
-  const base = new THREE.Matrix4().makeBasis(derecha, arribaV, adelante);
-  const papel = new THREE.Matrix4().makeBasis(
-    new THREE.Vector3(1, 0, 0),
-    new THREE.Vector3(0, 0, -1),
-    new THREE.Vector3(0, -1, 0),
-  );
-  return papel.multiply(base.transpose());
+function orientarYTraerAlPapel(drawing: OBC.TechnicalDrawing, view: DrawingView): THREE.Matrix4 {
+  drawing.orientTo(new THREE.Vector3(...VISTAS[view].direccion));
+  drawing.three.updateMatrixWorld(true);
+  return drawing.three.matrixWorld.clone().invert();
 }
 
 /**
@@ -183,14 +169,6 @@ interface PlanoGenerado {
   readonly viewport: OBC.DrawingViewport;
   /** La caja que ocupa el dibujo, para poder colocar una tabla debajo. Ver {@link DrawingMaker.addTable}. */
   readonly caja: THREE.Box3;
-  /**
-   * La rotación con la que se llevó lo proyectado al papel. Ver {@link matrizAPapel}.
-   *
-   * **Se guarda porque acotar la necesita**: una cota se mide sobre el modelo, en coordenadas del
-   * mundo, y hay que llevarla al mismo papel que el dibujo. Sin ella una cota de un alzado se
-   * escribiría donde estaría si el alzado fuera una planta.
-   */
-  readonly aPapel: THREE.Matrix4;
   /**
    * De qué elemento es cada grupo de vértices de la proyección, o `null`.
    *
@@ -285,8 +263,8 @@ export class DrawingMaker {
     for (const medicion of mediciones) {
       if (medicion.puntos.length < 2) continue;
 
-      const a = aEspacioDelDibujo(medicion.puntos[0]!, plano.drawing, plano.aPapel);
-      const b = aEspacioDelDibujo(medicion.puntos[1]!, plano.drawing, plano.aPapel);
+      const a = aEspacioDelDibujo(medicion.puntos[0]!, plano.drawing);
+      const b = aEspacioDelDibujo(medicion.puntos[1]!, plano.drawing);
       // Dos puntos que se proyectan al mismo sitio no son una cota: en una planta, una medición
       // vertical se aplasta a un punto. Se salta en vez de dibujar una cota de longitud cero.
       if (a.distanceTo(b) < 1e-4) continue;
@@ -322,9 +300,9 @@ export class DrawingMaker {
       // es el del medio — es el punto que las dos rectas comparten.
       if (medicion.puntos.length < 3) continue;
 
-      const a = aEspacioDelDibujo(medicion.puntos[0]!, plano.drawing, plano.aPapel);
-      const vertice = aEspacioDelDibujo(medicion.puntos[1]!, plano.drawing, plano.aPapel);
-      const b = aEspacioDelDibujo(medicion.puntos[2]!, plano.drawing, plano.aPapel);
+      const a = aEspacioDelDibujo(medicion.puntos[0]!, plano.drawing);
+      const vertice = aEspacioDelDibujo(medicion.puntos[1]!, plano.drawing);
+      const b = aEspacioDelDibujo(medicion.puntos[2]!, plano.drawing);
       // Un ángulo cuyos tres puntos se proyectan a lo mismo no es un ángulo: pasa con un ángulo
       // medido en un plano vertical cuando la lámina es una planta.
       if (a.distanceTo(vertice) < 1e-4 || b.distanceTo(vertice) < 1e-4) continue;
@@ -380,8 +358,8 @@ export class DrawingMaker {
       const desde = bajaHaciaB ? medicion.puntos[0]! : medicion.puntos[1]!;
       const hasta = bajaHaciaB ? medicion.puntos[1]! : medicion.puntos[0]!;
 
-      const inicio = aEspacioDelDibujo(desde, plano.drawing, plano.aPapel);
-      const fin = aEspacioDelDibujo(hasta, plano.drawing, plano.aPapel);
+      const inicio = aEspacioDelDibujo(desde, plano.drawing);
+      const fin = aEspacioDelDibujo(hasta, plano.drawing);
       const direccion = fin.clone().sub(inicio);
       direccion.y = 0;
       if (direccion.lengthSq() < 1e-8) continue;
@@ -543,13 +521,8 @@ export class DrawingMaker {
         `dibujada, así que en una pestaña oculta o sin aceleración no avanza.`,
     );
 
-    // **Lo primero que se hace con lo proyectado es llevarlo al papel** — ver {@link matrizAPapel}.
-    // Va antes de cualquier lectura de coordenadas: la caja, el viewport, `sizeM`, las cotas y el
-    // DXF salen todos de estas dos geometrías, y en un alzado vienen giradas.
-    const aPapel = matrizAPapel(view);
-    proyeccion.visible.applyMatrix4(aPapel);
-    proyeccion.hidden.applyMatrix4(aPapel);
-
+    // **Se cuenta antes de crear el dibujo**: sin segmentos no hay plano, y crearlo para tirarlo
+    // dejaría un contenedor colgado en la escena.
     const visibles = contarSegmentos(proyeccion.visible);
     if (visibles === 0) return null;
 
@@ -560,6 +533,14 @@ export class DrawingMaker {
     // del modelo: encendido de entrada, lo que se ve es una maraña de líneas superpuestas a la
     // geometría y la escena parece rota. Se enciende desde su ficha, cuando se quiere mirar.
     drawing.three.visible = false;
+
+    // **Y lo siguiente es orientar el dibujo y traer lo proyectado a sus coordenadas** — ver
+    // {@link orientarYTraerAlPapel}. Va antes de cualquier lectura de coordenadas: la caja, el
+    // viewport, `sizeM`, las cotas, el DXF y la lámina salen todos de estas dos geometrías, y en un
+    // alzado vienen giradas respecto al plano del dibujo.
+    const aLocal = orientarYTraerAlPapel(drawing, view);
+    proyeccion.visible.applyMatrix4(aLocal);
+    proyeccion.hidden.applyMatrix4(aLocal);
 
     // **Las capas se crean antes de colgar nada** — `F7.2`. `addProjectionLines` avisa y cae a la
     // capa `0` si el nombre no existe, así que sin esto el DXF volvería a salir con todo junto.
@@ -631,7 +612,6 @@ export class DrawingMaker {
       drawing,
       viewport,
       caja,
-      aPapel,
       grupos: proyeccion.groups ?? null,
       posiciones: (proyeccion.visible.getAttribute("position") as THREE.BufferAttribute) ?? null,
       deGrupo: (proyeccion.visible.getAttribute("group") as THREE.BufferAttribute) ?? null,
@@ -856,21 +836,20 @@ export interface MedicionParaAcotar {
 /**
  * Un punto de la escena, en coordenadas del dibujo y aplastado sobre su plano.
  *
- * **Primero se gira al papel y después se aplasta**, y el orden es todo: girar es lo que pone la
- * vertical del mundo en la vertical del papel para un alzado. Aplastando antes —que es lo que se
- * hacía— una cota de un alzado se escribía donde caería si el alzado fuera una planta.
+ * **La Y se pone a cero, que es lo que hace de esto una proyección.** El dibujo es un plano en el
+ * espacio y su Y local es la normal: dejarla puesta colocaría la cota flotando delante o detrás del
+ * papel, y el exportador —que lee X y Z— la escribiría en el sitio equivocado.
  *
- * **La Y se pone a cero, que es lo que hace de esto una proyección.** Ya en el papel, la Y es la
- * normal de la hoja: dejarla puesta colocaría la cota flotando delante o detrás, y el exportador
- * —que lee X y Z— la escribiría en el sitio equivocado.
+ * **`worldToLocal` era correcto y aun así acotaba mal los alzados**, y merece decirse: lo era a
+ * condición de que el contenedor estuviera orientado, y nadie llamaba a `orientTo`. Con el
+ * contenedor sin girar, «local» era el mundo y la cota de un alzado caía donde caería si el alzado
+ * fuera una planta. La función no cambia; lo que cambió es que ahora la premisa se cumple.
  */
 function aEspacioDelDibujo(
   punto: readonly [number, number, number],
   drawing: OBC.TechnicalDrawing,
-  aPapel: THREE.Matrix4,
 ): THREE.Vector3 {
   const local = drawing.three.worldToLocal(new THREE.Vector3(punto[0], punto[1], punto[2]));
-  local.applyMatrix4(aPapel);
   local.y = 0;
   return local;
 }
