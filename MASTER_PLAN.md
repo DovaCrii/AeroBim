@@ -4466,8 +4466,37 @@ dejó, además de las cinco tareas (`F12.9`, `F12.4`, `F12.3`, `F12.5`, `F12.8`)
   vacía— con cero por debajo del suelo. Y con la trampa escrita: `bg-action/30` se resuelve en
   `oklab` con alfa, así que el fondo efectivo lo tiene que componer el navegador y no una
   expresión regular.
-- **Una pregunta abierta cerrada**: el lienzo **sí** sigue al tema, porque el renderizador va con
-  `alpha` y lo que se ve detrás es la superficie del tema.
+- ~~**Una pregunta abierta cerrada**: el lienzo **sí** sigue al tema, porque el renderizador va con
+  `alpha` y lo que se ve detrás es la superficie del tema.~~
+
+> **Esa última conclusión era falsa, y es la raíz de tres defectos. Corregida el 2026-09-09.**
+>
+> **El lienzo no sigue al tema.** El renderizador va con `alpha`, sí, y todas las capas de CSS
+> detrás del `<canvas>` están a `rgba(0, 0, 0, 0)` —comprobado en el navegador—, pero lo que se ve
+> **no** es la superficie del tema: es el fondo de la **escena**, que lo pone `SimpleScene` de la
+> librería en `#202932` y no consulta nada nuestro. Con `data-theme="light"` puesto, el lienzo sigue
+> siendo azul oscuro; está en las capturas de los dos temas.
+>
+> Y creer lo contrario tiene una consecuencia directa: **si el lienzo se aclarara con el tema,
+> escribir encima con `text-fg` sería correcto**. Por eso el barrido de las dieciséis pasadas —que
+> midió bien lo que midió— no miró esto: la pregunta ya estaba «cerrada». Los tres defectos que
+> salieron el 2026-09-09 al mirarlo con el tema claro puesto:
+>
+> | Qué                                                | Medido sobre el lienzo `#202932`                |
+> | -------------------------------------------------- | ----------------------------------------------- |
+> | La puerta de entrada, con `text-fg` / `-2` / `-3`  | **1,08 / 2,16 / 2,90:1**                        |
+> | Los tres rótulos del cubo de vistas, con `fill-fg` | **1,08:1** — invisibles                         |
+> | El recuadro de la suelta, con `border-accent/70`   | **1,79:1**, y menos al 70 % — no llega a 1.4.11 |
+>
+> En la captura la primera pantalla del producto se leía «Un modelo \_\_\_, el plano \_\_\_ del
+> proyecto, o el \_\_\_ de la obra»: **IFC**, **DXF** y **levantamiento** habían desaparecido.
+>
+> El arreglo es un token, `--color-sobre-lienzo` en tres niveles, que **no cambia con el tema** —
+> igual que `--color-sobre-accion`, que nació del mismo error un piso más arriba— y da
+> **13,1 / 8,1 / 5,6:1**. El recuadro de la suelta pasa a la marca, que tampoco cambia y da 3,57.
+> Y el gate gana el lienzo como **cuarta superficie**: los tres niveles pasan AA encima de él,
+> ninguno está redeclarado en el bloque claro, y los archivos que pintan sobre el lienzo no pueden
+> fijar color de texto sin fijar fondo. Comprobado que **falla al revertir** el `<h2>` de la puerta.
 
 Y tres decisiones que se tomaron mirándolas y quedaron en `docs/UX.md`: la cinta con la escena vacía
 —pestañas y pliegue apagados, y el pliegue recordado cediendo ante «no hay nada abierto»—, el

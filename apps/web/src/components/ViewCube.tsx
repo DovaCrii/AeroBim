@@ -35,8 +35,16 @@ export function ViewCube({
    * Ahora el estado manda y el `hover` **aclara sobre él**: la activa se pone más viva, las demás
    * pasan de casi invisibles a visibles. Un estado que desaparece al mirarlo no es un estado.
    */
+  /*
+   * **Y el color de las caras es de la escala del lienzo, no de la del shell.** El cubo flota sobre
+   * el lienzo, que es oscuro en los dos temas: con `fill-fg` las caras inactivas se tiñen de negro
+   * en tema claro —un velo oscuro sobre un fondo oscuro— en vez de la veladura clara que la forma
+   * necesita. Ver `--color-sobre-lienzo` en `index.css`.
+   */
   const relleno = (cual: StandardView) =>
-    view === cual ? "fill-brand/45 group-hover:fill-brand/70" : "fill-fg/8 group-hover:fill-fg/20";
+    view === cual
+      ? "fill-brand/45 group-hover:fill-brand/70"
+      : "fill-sobre-lienzo/8 group-hover:fill-sobre-lienzo/20";
 
   return (
     <div
@@ -92,8 +100,8 @@ export function ViewCube({
             cy={8}
             r={7}
             className={[
-              "stroke-fg-3/50",
-              view === "iso" ? "fill-brand" : "fill-surface/80 hover:fill-fg/15",
+              "stroke-sobre-lienzo-3/50",
+              view === "iso" ? "fill-brand" : "fill-sobre-lienzo/25 hover:fill-sobre-lienzo/40",
             ].join(" ")}
             strokeWidth={1}
             onClick={() => !disabled && onView("iso")}
@@ -131,7 +139,7 @@ function Cara({
         points={puntos}
         // **El resaltado del paso por encima va en el trazo, no en el relleno.** El relleno lleva
         // el estado —qué vista está puesta— y pisarlo lo borraba justo al apuntar.
-        className={`${clase} stroke-fg-3/50 group-hover:stroke-accent`}
+        className={`${clase} stroke-sobre-lienzo-3/50 group-hover:stroke-accent`}
         strokeWidth={1.2}
         strokeLinejoin="round"
       >
@@ -151,7 +159,7 @@ function Cara({
         // A 9 unidades del `viewBox` cabe con margen. Y va aquí y no en una clase porque esto es un
         // dibujo: la escala de texto de la interfaz manda en la interfaz, no dentro de un icono.
         fontSize={9}
-        className="pointer-events-none fill-fg tracking-wide uppercase"
+        className="pointer-events-none fill-sobre-lienzo tracking-wide uppercase"
       >
         {etiqueta}
       </text>

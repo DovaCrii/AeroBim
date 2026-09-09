@@ -110,8 +110,37 @@
    * la tinta que se dibuja **sobre** el lienzo —la línea de una cota, la burbuja de un eje—, que
    * no es chrome y por eso no vive en la escala oscura. Los paneles pasaron a `bg-surface`, que
    * es lo que son.
+   *
+   * > **El «11,5:1 sobre el cielo del lienzo #dfe8f5» que decía aquí era falso, corregido el
+   * > 2026-09-09.** `#dfe8f5` no es el fondo del lienzo: es el color de la **luz de hemisferio**
+   * > (`CIELO`, en `viewer/src/index.ts`), que ilumina el modelo y no se pinta detrás. El fondo del
+   * > lienzo es `#202932`, el que trae `SimpleScene` de la librería, y sobre ese este azul da
+   * > **1,04:1** — o sea invisible. Sigue valiendo para lo que existe, que es tinta **sobre el
+   * > modelo** —superficies claras—, no sobre el vacío. Ver `--color-sobre-lienzo`.
    */
-  --color-ink: #1b2a4a; /* 11,5:1 sobre el cielo del lienzo #dfe8f5 */
+  --color-ink: #1b2a4a; /* tinta sobre las superficies del modelo, no sobre el fondo */
+
+  /*
+   * ── Lo que se dibuja SOBRE EL LIENZO, y tampoco cambia con el tema ─────────────
+   *
+   * **El lienzo es oscuro en los dos temas a propósito** —`docs/UX.md`: «el modelo manda y el
+   * lienzo es oscuro»—, así que lo que se pinta encima **no puede usar la escala del shell**. Es la
+   * misma trampa que `--color-sobre-accion`, un piso más abajo: un par correcto sobre una tercera
+   * superficie que el gate no estaba mirando.
+   *
+   * **Medido el 2026-09-09 con el tema claro puesto, y es grave:** la puerta de entrada —la primera
+   * pantalla del producto— escribía su título y las tres palabras que importan con `text-fg`, que en
+   * claro es `#172238`. Sobre el fondo del lienzo, `#202932`, eso da **1,08:1**. En la captura la
+   * frase se leía «Un modelo ___, el plano ___ del proyecto, o el ___ de la obra»: **IFC**, **DXF** y
+   * **levantamiento** habían desaparecido. Y los tres rótulos del cubo de vistas, con `fill-fg`,
+   * igual.
+   *
+   * Los valores son la escala oscura, que es la correcta porque el lienzo es oscuro. Los ratios son
+   * sobre `#202932` y están medidos con el mismo oráculo que el resto de la tabla.
+   */
+  --color-sobre-lienzo: #eef2f8; /* 13,1:1 */
+  --color-sobre-lienzo-2: #b6c1d2; /* 8,1:1 */
+  --color-sobre-lienzo-3: #93a0b4; /* 5,6:1 — el más apagado que se admite encima del lienzo */
 
   /*
    * ── La escala tipográfica. `F9.2`. ─────────────────────────────────────────────
