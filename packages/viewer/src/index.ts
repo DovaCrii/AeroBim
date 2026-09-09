@@ -5088,6 +5088,20 @@ export class BimViewer {
   }
 
   /**
+   * A qué escala cabe un plano generado en una hoja, para poder **decirlo**.
+   *
+   * Un plano sin escala escrita no se puede usar: quien lo recibe no sabe si mide con el 1:100 o
+   * con el 1:200 del escalímetro. El DXF ya sale colocado a esta escala; esto es para nombrarla.
+   */
+  drawingPaperScale(
+    id: string,
+    paper: { widthMm: number; heightMm: number; margin: number },
+  ): number | null {
+    this.assertAlive();
+    return this.drawings.escalaParaPapel(id, paper);
+  }
+
+  /**
    * La lámina de un plano generado, lista para que el servidor la dibuje en PDF. `F7.5`.
    *
    * **El navegador proyecta y el servidor compone el papel**, y ese reparto no es casual: proyectar

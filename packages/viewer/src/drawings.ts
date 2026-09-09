@@ -69,12 +69,63 @@ export interface DrawingLayerInfo {
   readonly segments: number;
 }
 
-/** Hacia dónde proyecta cada vista. */
-const DIRECCIONES: Record<DrawingView, readonly [number, number, number]> = {
-  plan: [0, -1, 0],
-  front: [0, 0, -1],
-  side: [-1, 0, 0],
+/**
+ * Hacia dónde mira cada vista.
+ *
+ * **El mismo vector vale para dos cosas**, y conviene que sea literalmente el mismo: se lo pide
+ * `EdgeProjector` para proyectar y `TechnicalDrawing.orientTo()` para orientar el dibujo. Si los dos
+ * no coinciden, la geometría cae fuera del plano del dibujo. Ver {@link orientarYTraerAlPapel}.
+ *
+ * Qué es «arriba» en cada una no está aquí porque lo decide `orientTo`, que además garantiza que
+ * los números de las cotas no salgan en espejo.
+ */
+const VISTAS: Record<DrawingView, { readonly direccion: readonly [number, number, number] }> = {
+  plan: { direccion: [0, -1, 0] },
+  front: { direccion: [0, 0, -1] },
+  side: { direccion: [-1, 0, 0] },
 };
+
+/**
+ * Orienta el dibujo y devuelve la matriz que lleva lo proyectado **a sus coordenadas locales**,
+ * que es donde tiene que estar: el plano del dibujo es su XZ local.
+ *
+ * **Sin esto los dos alzados salen aplastados en una raya, y con todos sus trazos.** Medido el
+ * 2026-09-09 sobre `Piso 5.ifc` con `diag.html?modo=planos`: el alzado frontal daba 2 349 trazos en
+ * una caja de **217,5 × 0,0 mm** de papel, y el lateral 2 526 en **0,0 × 227,3**. La planta, 217,5 ×
+ * 227,3, correcta — y por eso no se veía.
+ *
+ * La causa está en la librería y es razonable en sí misma: `EdgeProjector` **gira las mallas** para
+ * que la dirección de proyección quede en `(0, −1, 0)`, proyecta —el resultado queda plano en el
+ * XZ— y al final **le aplica la rotación inversa** para devolverlo en coordenadas del mundo. Así
+ * que lo que vuelve está sobre el plano de proyección, pero en el mundo: en el XZ solo si se miraba
+ * desde arriba. Para un alzado frontal vuelve en el XY, y todo lo de aquí abajo —el viewport, que
+ * se arma con X y Z; el exportador de DXF, que lee X y Z; `sizeM`; y la lámina del PDF, que arma su
+ * caja con X y Z en el servidor— lee una de las dos coordenadas como constante y colapsa el dibujo.
+ *
+ * **Lo que faltaba era una llamada, no una matriz nuestra.** `TechnicalDrawing.orientTo()` gira el
+ * contenedor para los seis ejes estándar y garantiza **las dos** condiciones que documenta la
+ * librería: que el −Y local apunte a lo que se quiere capturar, y que el +X local caiga a la
+ * derecha de la pantalla — la segunda es la que evita que las cotas y sus números salgan **en
+ * espejo**, y es justo la que una rotación escrita a mano se salta sin avisar. Con el contenedor
+ * orientado, lo local pasa a ser el papel, y basta con traer la geometría del mundo a lo local.
+ *
+ * **Y así el alzado también queda bien puesto en la escena 3D**: el dibujo se ve de pie en su plano,
+ * no tumbado sobre la planta, porque la rotación la lleva el contenedor y no los vértices.
+ */
+function orientarYTraerAlPapel(drawing: OBC.TechnicalDrawing, view: DrawingView): THREE.Matrix4 {
+  drawing.orientTo(new THREE.Vector3(...VISTAS[view].direccion));
+  drawing.three.updateMatrixWorld(true);
+  return drawing.three.matrixWorld.clone().invert();
+}
+
+/**
+ * Las escalas entre las que se elige al llevar un plano al papel, de la mayor a la menor.
+ *
+ * **Son las del escalímetro**, y por eso no está cualquier número: un plano se lee midiendo encima
+ * con una regla graduada en estas escalas, y uno a 1:173 —la exacta que llenaría la hoja— no se
+ * puede medir ni comparar con el resto del proyecto. Ver {@link DrawingMaker.escalaParaPapel}.
+ */
+const ESCALAS = [20, 25, 50, 75, 100, 200, 250, 500, 1000, 2000, 5000] as const;
 
 /** Cómo se llama cada vista en el nombre del plano. */
 const NOMBRES: Record<DrawingView, string> = {
@@ -451,7 +502,7 @@ export class DrawingMaker {
     const empezado = performance.now();
 
     const projector = this.components.get(OBC.EdgeProjector);
-    projector.projectionDirection.set(...DIRECCIONES[view]);
+    projector.projectionDirection.set(...VISTAS[view].direccion);
 
     // **El aviso de avance es también el latido.** Cada vez que la proyección informa se anota la
     // hora; si pasan `SIN_AVANCE_MS` sin un solo aviso, se da por colgada. Ver {@link SIN_AVANCE_MS}.
@@ -470,6 +521,8 @@ export class DrawingMaker {
         `dibujada, así que en una pestaña oculta o sin aceleración no avanza.`,
     );
 
+    // **Se cuenta antes de crear el dibujo**: sin segmentos no hay plano, y crearlo para tirarlo
+    // dejaría un contenedor colgado en la escena.
     const visibles = contarSegmentos(proyeccion.visible);
     if (visibles === 0) return null;
 
@@ -480,6 +533,14 @@ export class DrawingMaker {
     // del modelo: encendido de entrada, lo que se ve es una maraña de líneas superpuestas a la
     // geometría y la escena parece rota. Se enciende desde su ficha, cuando se quiere mirar.
     drawing.three.visible = false;
+
+    // **Y lo siguiente es orientar el dibujo y traer lo proyectado a sus coordenadas** — ver
+    // {@link orientarYTraerAlPapel}. Va antes de cualquier lectura de coordenadas: la caja, el
+    // viewport, `sizeM`, las cotas, el DXF y la lámina salen todos de estas dos geometrías, y en un
+    // alzado vienen giradas respecto al plano del dibujo.
+    const aLocal = orientarYTraerAlPapel(drawing, view);
+    proyeccion.visible.applyMatrix4(aLocal);
+    proyeccion.hidden.applyMatrix4(aLocal);
 
     // **Las capas se crean antes de colgar nada** — `F7.2`. `addProjectionLines` avisa y cae a la
     // capa `0` si el nombre no existe, así que sin esto el DXF volvería a salir con todo junto.
@@ -619,6 +680,53 @@ export class DrawingMaker {
   }
 
   /**
+   * La escala normalizada con la que el dibujo **cabe** en la hoja, o `null` si no hay tal plano.
+   *
+   * **Medido el 2026-09-09, y es el defecto que justifica esta función.** La planta del IFC de
+   * 23,6 MB mide 36,2 × 69,0 m; el viewport nacía a 1:100, así que en el DXF ocupaba
+   * **362 × 690 mm** sobre un A3 de 420 × 297 — el doble de alto que el papel, con el recuadro
+   * dibujado alrededor como si cupiera. En un CAD eso se abre con el plano colgando fuera de la
+   * hoja, y al imprimir se pierde media planta. No se veía porque los modelos con los que se probó
+   * son pequeños: `Piso 5.ifc` a 1:100 ocupa 217 × 227 mm y cabe de sobra.
+   *
+   * **Se elige de una serie normalizada y no la exacta que llenaría el papel**, porque una escala
+   * como 1:173 no se puede escalar de cabeza ni comparar con otro plano: en obra se mide con
+   * escalímetro, y un escalímetro trae 1:100 y 1:200. Se toma la primera de la serie en la que el
+   * dibujo entra, o sea **la mayor que cabe**, que es lo que da el plano más legible.
+   *
+   * Si no cabe en ninguna devuelve la última: es el mejor esfuerzo, y quien lo pida verá un plano
+   * pequeño en vez de uno cortado.
+   *
+   * **La lámina del PDF decide lo contrario a propósito, y las dos decisiones son correctas.**
+   * `lamina.py` escala a la que quepa exacta y **la escribe en el papel**, con su motivo: redondear
+   * obligaría a dejar media hoja vacía, y una escala escrita se mide con un escalímetro digital. La
+   * diferencia es a dónde va cada cosa: el PDF es una hoja terminada que se lee tal cual, y el DXF
+   * entra a un CAD para insertarse junto a los planos de la oficina — y ahí un 1:173 no se puede
+   * combinar con nada.
+   */
+  escalaParaPapel(
+    id: string,
+    paper: { widthMm: number; heightMm: number; margin: number },
+  ): number | null {
+    const plano = this.planos.get(id);
+    if (plano === undefined) return null;
+
+    // Del viewport y no de `sizeM`: el viewport es lo que el exportador coloca, y lleva dentro el
+    // margen del dibujo y lo que haya crecido para meter una tabla.
+    const anchoM = plano.viewport.right - plano.viewport.left;
+    const altoM = plano.viewport.top - plano.viewport.bottom;
+    const anchoUtil = paper.widthMm - 2 * paper.margin;
+    const altoUtil = paper.heightMm - 2 * paper.margin;
+
+    for (const escala of ESCALAS) {
+      if ((anchoM * 1000) / escala <= anchoUtil && (altoM * 1000) / escala <= altoUtil) {
+        return escala;
+      }
+    }
+    return ESCALAS[ESCALAS.length - 1]!;
+  }
+
+  /**
    * Serializa un plano a DXF.
    *
    * **Con papel, el DXF sale en milímetros y con el dibujo colocado en la hoja**; sin papel, en
@@ -631,6 +739,14 @@ export class DrawingMaker {
   ): string | null {
     const plano = this.planos.get(id);
     if (plano === undefined) return null;
+
+    // **La escala se elige aquí, y antes no se elegía.** El viewport nace a 1:100 —el valor por
+    // defecto de la librería— y ese número no depende del papel, así que un edificio grande salía
+    // colgando fuera de la hoja. Ver {@link escalaParaPapel}.
+    if (paper !== undefined) {
+      const escala = this.escalaParaPapel(id, paper);
+      if (escala !== null) plano.viewport.drawingScale = escala;
+    }
 
     return this.components
       .get(OBC.DxfManager)
@@ -723,6 +839,11 @@ export interface MedicionParaAcotar {
  * **La Y se pone a cero, que es lo que hace de esto una proyección.** El dibujo es un plano en el
  * espacio y su Y local es la normal: dejarla puesta colocaría la cota flotando delante o detrás del
  * papel, y el exportador —que lee X y Z— la escribiría en el sitio equivocado.
+ *
+ * **`worldToLocal` era correcto y aun así acotaba mal los alzados**, y merece decirse: lo era a
+ * condición de que el contenedor estuviera orientado, y nadie llamaba a `orientTo`. Con el
+ * contenedor sin girar, «local» era el mundo y la cota de un alzado caía donde caería si el alzado
+ * fuera una planta. La función no cambia; lo que cambió es que ahora la premisa se cumple.
  */
 function aEspacioDelDibujo(
   punto: readonly [number, number, number],
