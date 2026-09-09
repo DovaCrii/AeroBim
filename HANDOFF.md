@@ -22,7 +22,9 @@
 >   **217,5 × 0,0 mm** de papel. La librería devuelve lo proyectado en coordenadas **del mundo**, no
 >   del papel, y aquí todo lee X y Z: un alzado vuelve en el XY y se colapsa. Ahora las tres vistas
 >   de `Piso 5.ifc` dan **21,75 / 22,73 / 2,98 m** — el contorno y la altura de piso, tres números
->   en seis casillas.
+>   en seis casillas. **Y lo que faltaba era una llamada**, `orientTo()`, no una matriz propia: el
+>   primer arreglo la escribió a mano, daba las medidas bien y era el camino equivocado, porque la
+>   librería además garantiza que las cotas no salgan en espejo.
 > - **El plano no cabía en la hoja que decía.** El viewport nacía a 1:100 y ese número no depende del
 >   papel: la planta del IFC de 23,6 MB ocupaba **362 × 690 mm sobre un A3 de 420 × 297**, con el
 >   recuadro alrededor como si cupiera. Ahora se elige la mayor escala del escalímetro en la que

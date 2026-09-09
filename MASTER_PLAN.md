@@ -3298,9 +3298,23 @@ cosas dice **dónde caen** los trazos.
 —el resultado queda plano en el XZ— y al final **le aplica la rotación inversa** para devolverlo en
 coordenadas del mundo. Lo que vuelve está sobre el plano de proyección, pero en el mundo: en el XZ
 solo si se miraba desde arriba. Un alzado frontal vuelve en el XY, y todo lo de aquí —el viewport,
-que se arma con X y Z; el exportador, que lee X y Z; `sizeM`; y las cotas— lee una coordenada como
-constante y colapsa el dibujo. Se deshace ese último paso, con el «arriba» de cada vista **escrito a
-mano**: la rotación mínima entre dos vectores deja el alzado lateral tumbado 90°.
+que se arma con X y Z; el exportador, que lee X y Z; `sizeM`; las cotas; y la lámina del PDF— lee una
+coordenada como constante y colapsa el dibujo.
+
+**Y lo que faltaba era una llamada, no una matriz nuestra.** El primer arreglo giró la geometría con
+una rotación escrita a mano: daba las medidas correctas y era el camino equivocado.
+`TechnicalDrawing.orientTo()` orienta el contenedor para los seis ejes estándar y garantiza **las
+dos** condiciones que la librería documenta —que el −Y local apunte a lo que se captura, y que el +X
+local caiga a la derecha de la pantalla—, y la segunda es la que evita que **las cotas y sus números
+salgan en espejo**: justo la que una rotación propia se salta sin avisar. Con el contenedor
+orientado, lo local es el papel, y de paso el alzado **queda de pie en la escena 3D** en vez de
+tumbado sobre la planta. Es la regla de esta fase otra vez: antes de construir, mirar si ya está
+hecho.
+
+Y hay un detalle que merece quedar escrito: `aEspacioDelDibujo` —lo que lleva una cota medida al
+papel— **ya era correcto** y aun así acotaba mal los alzados. Lo era **a condición de** que el
+contenedor estuviera orientado, y nadie llamaba a `orientTo`. No cambió la función; cambió que su
+premisa se cumple.
 
 **El segundo es de escala.** El viewport nacía a 1:100, el valor por defecto de la librería, y ese
 número no depende del papel. Ahora se elige **la mayor escala del escalímetro en la que el dibujo
@@ -3315,9 +3329,11 @@ Son cotas superiores y no una medida limpia: en este entorno el proyector solo a
 de fuera fuerza un pintado, y la tercera vista se cortó por eso mismo —veinte segundos sin
 fotogramas— no por el generador, que la había generado sobre el modelo pequeño.
 
-`packages/viewer/src/papel.test.ts` fija la matriz **sin navegador**: a dónde manda cada eje del
-mundo, y que las tres vistas giran **sin reflejar** — un plano en espejo se lee perfectamente y está
-mal, y el determinante es lo único que lo delata.
+`packages/viewer/src/papel.test.ts` lo fija **sin navegador**, y le pregunta **a la librería** y no a
+una matriz nuestra —porque lo que faltaba era la llamada, así que una prueba de aritmética propia
+habría seguido pasando sin ella—: a dónde manda cada eje del mundo, y que las tres vistas giran
+**sin reflejar**. Un plano en espejo se lee perfectamente y está mal, y el determinante es lo único
+que lo delata.
 
 > **Lo que sigue necesitando al usuario**, y es lo mismo que `F7.4`: que **AutoCAD** abra el DXF con
 > su escala. Nuestro lector es evidencia independiente y fuerte, pero no es AutoCAD.
