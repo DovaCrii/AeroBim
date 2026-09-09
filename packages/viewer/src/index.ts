@@ -67,6 +67,7 @@ import { type PartesDeCota, siguienteOrdinal, textoDeCota } from "./cotas.js";
 import { categoriasDe, cuadroDe, encabezadoDeColumna, type Schedule } from "./cuadros.js";
 import { DrawingMaker, type DrawingView, type GeneratedDrawing } from "./drawings.js";
 import { GridOverlay } from "./grid.js";
+import { masCercanoAlCursor } from "./senalar.js";
 
 export type { DrawingLayerInfo, DrawingView, GeneratedDrawing } from "./drawings.js";
 /* `PartesDeCota` sale en `DrawnMeasurement`, que es público: sin reexportarla, quien consuma la
@@ -4590,13 +4591,34 @@ export class BimViewer {
     const distancia = centro !== null ? this.camera.three.position.distanceTo(centro) : 10;
     const factor = factorDeProyeccionDe(this.camera.three, caja.height);
     const metrosPorPixel = factor !== undefined ? distancia / factor : distancia / 1000;
+    // **Se recogen de sobra a propósito y se eligen después.** Ver {@link masCercanoAlCursor}: el
+    // umbral de Three es un radio en **metros del mundo** y el mismo para todas las profundidades,
+    // así que no hay un valor que valga a la vez para lo que está a diez metros y a ciento
+    // cuarenta. Quedarse corto pierde el punto; pasarse solo trae candidatos, que es barato.
     rayo.params.Points = {
-      threshold: Math.max(0.01, metrosPorPixel * RADIO_DE_SENALADO),
+      threshold: Math.max(0.01, metrosPorPixel * RADIO_DE_SENALADO * 4),
     };
 
     const golpes = rayo.intersectObjects(this.nube.objeto.children, false);
-    const primero = golpes[0];
-    if (primero === undefined) return null;
+    if (golpes.length === 0) return null;
+
+    const cursor: [number, number] = [clientX - caja.left, clientY - caja.top];
+    const elegido = masCercanoAlCursor(
+      golpes.map((golpe) => {
+        const ndcDelPunto = golpe.point.clone().project(this.camera.three);
+        return {
+          pixel: [
+            ((ndcDelPunto.x + 1) / 2) * caja.width,
+            ((1 - ndcDelPunto.y) / 2) * caja.height,
+          ] as [number, number],
+          profundidad: golpe.distance,
+          golpe,
+        };
+      }),
+      cursor,
+    );
+    if (elegido === null) return null;
+    const primero = elegido.golpe;
 
     const enLaEscena: [number, number, number] = [
       primero.point.x,

@@ -895,6 +895,61 @@ function cajaDeTrazos(trazos: readonly { readonly points: readonly number[] }[])
 }
 
 /**
+ * Qué color se está dibujando de verdad en la nube: recorrido por canal y cuántos distintos.
+ *
+ * **Es la diferencia entre «el modo se aplicó» y «se ve algo».** `colorear()` devuelve el modo que
+ * consiguió, que solo dice si el dato está en el archivo. Esto lee el atributo de color que va a la
+ * tarjeta y cuenta lo que hay: si un modo deja los tres canales en un recorrido de dos valores, en
+ * pantalla es una masa de un color y da igual que el modo «funcione».
+ *
+ * Se muestrea uno de cada `salto` puntos: con quince millones, recorrerlos todos por cada modo
+ * cuesta segundos y no cambia la respuesta.
+ */
+function resumenDelColor(
+  nube: { readonly objeto: { children: readonly unknown[] } },
+  salto = 37,
+): string {
+  let minR = 255;
+  let maxR = 0;
+  let minG = 255;
+  let maxG = 0;
+  let minB = 255;
+  let maxB = 0;
+  const distintos = new Set<number>();
+  let mirados = 0;
+
+  for (const hijo of nube.objeto.children) {
+    const geo = (hijo as { geometry?: THREE.BufferGeometry }).geometry;
+    const color = geo?.getAttribute("color");
+    if (color === undefined) continue;
+    const datos = color.array as Uint8Array;
+    for (let i = 0; i + 2 < datos.length; i += 3 * salto) {
+      const r = datos[i] as number;
+      const g = datos[i + 1] as number;
+      const b = datos[i + 2] as number;
+      if (r < minR) minR = r;
+      if (r > maxR) maxR = r;
+      if (g < minG) minG = g;
+      if (g > maxG) maxG = g;
+      if (b < minB) minB = b;
+      if (b > maxB) maxB = b;
+      // Se cuentan hasta doscientos: con más, la respuesta ya es «muchos».
+      if (distintos.size < 200) distintos.add((r << 16) | (g << 8) | b);
+      mirados += 1;
+    }
+  }
+
+  if (mirados === 0) return "sin puntos que medir";
+  const recorrido = Math.max(maxR - minR, maxG - minG, maxB - minB);
+  const cuantos = distintos.size >= 200 ? "200+" : `${distintos.size}`;
+  return (
+    `R ${minR}–${maxR} · G ${minG}–${maxG} · B ${minB}–${maxB} · ` +
+    `${cuantos} colores en ${mirados.toLocaleString("es-CL")} muestras — ` +
+    `${recorrido < 24 ? "PLANO: en pantalla es una masa de un color" : "hay recorrido"}`
+  );
+}
+
+/**
  * Generar un plano desde el modelo y **leerlo de vuelta**, para `F7.1` y `F7.4`.
  *
  * Estas dos tareas llevaban meses montadas y **nunca confirmadas en pantalla**, con el motivo
@@ -2421,9 +2476,23 @@ export async function nube(container: HTMLElement, url: string, log: Log): Promi
     const t = performance.now();
     const real = nube.colorear(modo);
     log(
-      `  ${modo} → ${real}${real !== modo ? " (el archivo no lo trae; se cae a la altura)" : ""}` +
+      `  ${modo} → ${real}` +
+        // **«No lo trae» ya no es el unico motivo de caerse a la altura**, y decirlo asi mentiria:
+        // desde el 2026-09-09 tambien se cae cuando el dato **esta y no distingue nada** -este
+        // levantamiento trae `Classification` con el mismo valor en los quince millones de puntos-.
+        (real !== modo ? " (no lo trae, o lo trae y no distingue: se cae a la altura)" : "") +
         ` en ${(performance.now() - t).toFixed(0)} ms`,
     );
+    // **Que el modo se aplique no dice que se vea.** `colorear` devuelve el modo que consiguió, y
+    // eso solo contesta «¿está el dato en el archivo?». La pregunta de quien mira es otra: **¿sale
+    // un color que distinga algo?** Un levantamiento cuya intensidad ocupa 0..2047 de los 65535 que
+    // caben, mapeado a un byte, sale casi negro y plano; y una nube con todos los puntos en la
+    // misma clase sale de un solo gris. Las dos cosas se ven igual desde el código —el modo se
+    // aplicó— y muy distintas en pantalla, que es donde se juzga.
+    //
+    // Se mide sobre el atributo de color **que se dibuja**, y en las tres cifras que importan: el
+    // recorrido de cada canal, y cuántos colores distintos hay de verdad.
+    log(`     ${resumenDelColor(nube)}`);
   }
   nube.tamanoDePunto = 4;
   log(`  tamano de punto: ${nube.tamanoDePunto} px`);
@@ -2526,22 +2595,67 @@ export async function nube(container: HTMLElement, url: string, log: Log): Promi
     } else if (senalado === null) {
       log("  pickPointCloud no dio en nada — el umbral esta corto");
     } else {
-      // **Lo que hay que comprobar NO es que devuelva el punto al que se apunto**, y la primera
-      // version de esta prueba lo exigia. Al pinchar una nube se atrapa **el punto mas cercano a
-      // la camara** que caiga cerca del rayo, y eso es lo correcto: apuntando a una fachada del
-      // fondo, lo que se quiere marcar es la de delante. El punto elegido salio a 24 m del que se
-      // proyecto, y no era un defecto sino una pared por medio.
+      // **Este bloque medía lo que no era, y lo decía como si fuera correcto.** Escribía «a 18,10 m
+      // del punto al que se apuntó» con la nota «lo segundo es normal: se atrapa la superficie de
+      // delante, no la del fondo», y de ahí sacaba que el criterio bueno es «el más cercano a la
+      // cámara de entre los que caen cerca del rayo». Eso es medio correcto, y la otra mitad era el
+      // defecto que el usuario notó -«está fallando al pickear el punto al que quiero dejar» la
+      // nota-: un punto suelto dieciocho metros por delante y a medio metro de la línea de visión
+      // le ganaba al que estaba debajo del cursor.
       //
-      // Lo que si tiene que cumplirse son dos cosas: que el punto devuelto **este cerca del rayo**
-      // -si no, se atrapo cualquier cosa- y que su conversion al sistema del archivo sea la del
-      // punto devuelto, no la de otro.
-      const camara = viewer.camera.three.position.clone();
-      const direccion = objetivo.clone().sub(camara).normalize();
+      // El oráculo bueno no necesita saber a qué se apuntó: **de entre los puntos que caen debajo
+      // del cursor, ninguno puede estar más cerca de la cámara que el devuelto**, y el devuelto
+      // tiene que estar debajo del cursor. Eso se comprueba recorriendo lo cargado y proyectándolo,
+      // que es una cuenta independiente de la que hace el visor.
       const devuelto = new THREE.Vector3(...senalado.escena);
-      const alRayo = devuelto.clone().sub(camara).cross(direccion).length();
-      log(`  se pincho y devolvio un punto a ${(alRayo * 1000).toFixed(0)} mm del rayo`);
-      log(`  y a ${objetivo.distanceTo(devuelto).toFixed(2)} m del punto al que se apunto`);
-      log("  (lo segundo es normal: se atrapa la superficie de delante, no la del fondo)");
+      const camaraTres = viewer.camera.three;
+      const aPixeles = (p: THREE.Vector3): [number, number] => {
+        const v = p.clone().project(camaraTres);
+        return [((v.x + 1) / 2) * rect.width, ((1 - v.y) / 2) * rect.height];
+      };
+      const cursor: [number, number] = [px - rect.left, py - rect.top];
+      const aCursor = (p: THREE.Vector3): number => {
+        const [ex, ey] = aPixeles(p);
+        return Math.hypot(ex - cursor[0], ey - cursor[1]);
+      };
+
+      const RADIO = 6;
+      log(`  el punto devuelto cae a ${aCursor(devuelto).toFixed(1)} px del cursor`);
+
+      // Se muestrea uno de cada siete: con quince millones de puntos, proyectarlos todos cuesta
+      // segundos. El muestreo solo puede **perder** un candidato mejor, nunca inventar uno, asi
+      // que si esta comprobacion falla es porque el visor eligio mal de verdad.
+      const dPunto = new THREE.Vector3();
+      let masCerca: { px: number; profundidad: number } | null = null;
+      const profundidadDelDevuelto = camaraTres.position.distanceTo(devuelto);
+      for (const hijo of cargada.nube.objeto.children) {
+        const geo = (hijo as THREE.Points).geometry;
+        const pos = geo.getAttribute("position");
+        if (pos === undefined) continue;
+        (hijo as THREE.Points).updateMatrixWorld(true);
+        for (let i = 0; i < pos.count; i += 7) {
+          dPunto.fromBufferAttribute(pos as THREE.BufferAttribute, i);
+          dPunto.applyMatrix4((hijo as THREE.Points).matrixWorld);
+          const enPx = aCursor(dPunto);
+          if (enPx > RADIO) continue;
+          const profundidad = camaraTres.position.distanceTo(dPunto);
+          if (masCerca === null || profundidad < masCerca.profundidad) {
+            masCerca = { px: enPx, profundidad };
+          }
+        }
+      }
+
+      if (masCerca === null) {
+        log("  (no se encontro ningun punto muestreado bajo el cursor: nada que comparar)");
+      } else {
+        // Un centimetro de holgura: el muestreo puede quedarse con un vecino del elegido, y a esa
+        // escala son el mismo sitio.
+        const gana = profundidadDelDevuelto <= masCerca.profundidad + 0.01;
+        log(
+          `  el mas cercano a la camara bajo el cursor esta a ${masCerca.profundidad.toFixed(2)} m` +
+            ` y el devuelto a ${profundidadDelDevuelto.toFixed(2)} m — ${gana ? "si (bien)" : "NO (mal): se atrapo uno de detras o de otro sitio"}`,
+        );
+      }
       log(`  en coordenadas del archivo: ${senalado.archivo.map((v) => v.toFixed(3)).join(", ")}`);
 
       // La conversion tiene que ser la del punto DEVUELTO. Comparar contra el que se apunto seria

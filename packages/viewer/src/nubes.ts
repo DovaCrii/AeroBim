@@ -237,6 +237,16 @@ export interface OpcionesDeNube {
 export type ModoDeColor = "altura" | "rgb" | "clase" | "intensidad";
 
 /**
+ * Cuántos niveles de gris tiene que recorrer la intensidad para que se vea algo.
+ *
+ * Veinticuatro de doscientos cincuenta y seis. Por debajo, la nube entera cae en una franja de
+ * grises que el ojo lee como un color plano — y un modo que no distingue nada es indistinguible de
+ * una carga fallida. Es el mismo umbral que usa `resumenDelColor` en el diagnóstico, a propósito:
+ * dos números distintos para la misma pregunta acabarían discrepando.
+ */
+const RECORRIDO_MINIMO = 24;
+
+/**
  * Lee la cabecera de una nube: cuántos puntos, dónde está y en qué sistema.
  *
  * **Se llama antes de cargar y es lo que permite avisar en vez de colgar.** Cuesta una petición de
@@ -450,11 +460,97 @@ export class NubeEnEscena {
    * Si el archivo no trae lo que se pide —RGB en un levantamiento láser, por ejemplo— se cae a la
    * altura y el modo devuelto lo dice: pintarla de negro porque no hay color sería enseñar una nube
    * vacía y dejar a quien mira pensando que falla la carga.
+   *
+   * **Y «lo trae» dejó de significar «la dimensión existe», el 2026-09-09.** El usuario lo dijo
+   * así: «poder cargar bien la intensidad y el RGB de la nube de puntos». Medido sobre el
+   * levantamiento del Camino Agrícola —15,4 millones de puntos— con `diag.html?modo=nube`, los
+   * cuatro modos se aplicaban y **uno pintaba un solo color**:
+   *
+   * | Modo        | Lo que llegaba al atributo de color                       |
+   * | ----------- | --------------------------------------------------------- |
+   * | altura      | 200+ colores                                              |
+   * | clase       | **R 160–160 · G 160–160 · B 160–160 · un solo color**     |
+   * | intensidad  | 200+ colores                                              |
+   * | rgb         | 200+ colores                                              |
+   *
+   * O sea que la intensidad y el RGB **sí cargaban**: lo que estaba plano era la clasificación, y
+   * el selector estaba justo ahí. Este levantamiento trae la dimensión `Classification` con un solo
+   * valor en todos los puntos, así que `colorDeClase` devuelve su gris de «clase desconocida» para
+   * los quince millones — y la comprobación de antes daba el visto bueno, porque la dimensión
+   * **existía**.
+   *
+   * Un modo que no distingue nada es indistinguible de una carga fallida para quien mira, que es
+   * exactamente lo que este método existe para evitar. Así que ahora se pregunta si el dato
+   * **sirve**, no si está. Ver {@link distingueAlgo}.
    */
   colorear(modo: ModoDeColor): ModoDeColor {
-    this.modo = modo;
+    this.modo = this.distingueAlgo(modo) ? modo : "altura";
     for (const cargado of this.cargados.values()) this.pintar(cargado);
     return this.modo;
+  }
+
+  /**
+   * Si ese modo pintaría algo que se distingue, sobre lo que hay cargado ahora.
+   *
+   * **Se mira el dato de origen y no el color ya pintado**, que es lo que permite contestar antes de
+   * pintar. Y se muestrea uno de cada `SALTO`: con quince millones de puntos recorrerlos enteros
+   * cuesta décimas por cada cambio de modo, y la respuesta no cambia — lo que se busca es si hay
+   * dos valores distintos, no cuántos.
+   *
+   * La altura siempre sirve: la cota está en la posición y una nube plana de verdad es un dato
+   * legítimo, no un modo roto.
+   */
+  private distingueAlgo(modo: ModoDeColor): boolean {
+    if (modo === "altura") return true;
+
+    /** Uno de cada cuantos puntos se mira. Primo, para no caer siempre en la misma rejilla. */
+    const SALTO = 37;
+
+    if (modo === "clase") {
+      const vistos = new Set<number>();
+      for (const cargado of this.cargados.values()) {
+        const clase = cargado.clase;
+        if (clase === undefined) continue;
+        for (let i = 0; i < clase.length; i += SALTO) {
+          vistos.add(clase[i] as number);
+          if (vistos.size > 1) return true;
+        }
+      }
+      return false;
+    }
+
+    if (modo === "intensidad") {
+      let minimo = Infinity;
+      let maximo = -Infinity;
+      for (const cargado of this.cargados.values()) {
+        const intensidad = cargado.intensidad;
+        if (intensidad === undefined) continue;
+        for (let i = 0; i < intensidad.length; i += SALTO) {
+          const v = intensidad[i] as number;
+          if (v < minimo) minimo = v;
+          if (v > maximo) maximo = v;
+        }
+      }
+      // **El umbral es en bytes y no en crudo**, porque es lo que se ve: la intensidad se mapea
+      // dividiendo por 257, así que un recorrido de 6 000 en crudo son 23 niveles de gris y en
+      // pantalla es una masa. `RECORRIDO_MINIMO` es el mismo número que usa el diagnóstico.
+      return maximo > -Infinity && (maximo - minimo) / 257 >= RECORRIDO_MINIMO;
+    }
+
+    // RGB: basta con que haya dos colores. Un archivo con la terna a cero en todos los puntos
+    // —pasa, cuando el exportador rellena el campo sin tener color— pintaría la nube de negro.
+    const vistos = new Set<number>();
+    for (const cargado of this.cargados.values()) {
+      const rgb = cargado.rgb;
+      if (rgb === undefined) continue;
+      for (let i = 0; i + 2 < rgb.length; i += 3 * SALTO) {
+        vistos.add(
+          ((rgb[i] as number) << 16) | ((rgb[i + 1] as number) << 8) | (rgb[i + 2] as number),
+        );
+        if (vistos.size > 1) return true;
+      }
+    }
+    return false;
   }
 
   /**
@@ -714,13 +810,14 @@ export class NubeEnEscena {
     const destino = color.array as Uint8Array;
     const n = cargado.puntos;
 
-    // Se cae a la altura cuando el archivo no trae lo que se pide, y **se anota el modo real**:
-    // pintar de negro por falta de datos ensena una nube vacia y hace pensar que falla la carga.
+    // La decision de si el modo sirve **la toma `colorear` para la nube entera**, no este metodo
+    // por nodo: un nodo sin la dimension haria caer el modo de toda la nube al pintarlo, y con
+    // los nodos llegando de a poco eso deja el desplegable cambiando solo. Aqui queda el respaldo
+    // por nodo -un nodo al que le falte el arreglo se pinta por altura- sin tocar el modo anotado.
     let modo = this.modo;
     if (modo === "rgb" && cargado.rgb === undefined) modo = "altura";
     if (modo === "clase" && cargado.clase === undefined) modo = "altura";
     if (modo === "intensidad" && cargado.intensidad === undefined) modo = "altura";
-    this.modo = modo;
 
     if (modo === "rgb" && cargado.rgb !== undefined) {
       destino.set(cargado.rgb);
