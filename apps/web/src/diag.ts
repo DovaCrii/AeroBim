@@ -33,6 +33,7 @@ import {
   encabezadoDeColumna,
   fichaDeNube,
   MAXIMO_FILAS,
+  type Measurement,
   registrarExportador,
   trazarTabla,
 } from "@aerobim/viewer";
@@ -869,9 +870,12 @@ export async function dxf(container: HTMLElement, _url: string, log: Log): Promi
  * `DxfDrawing.bounds` mide **el archivo entero**, y en un plano generado eso incluye el recuadro
  * del viewport — que es del tamaño del papel. Para preguntar por una capa hace falta medirla aparte.
  */
-function cajaDeTrazos(
-  trazos: readonly { readonly points: readonly number[] }[],
-): { ancho: number; alto: number } | null {
+function cajaDeTrazos(trazos: readonly { readonly points: readonly number[] }[]): {
+  izquierda: number;
+  abajo: number;
+  ancho: number;
+  alto: number;
+} | null {
   let minX = Infinity;
   let maxX = -Infinity;
   let minY = Infinity;
@@ -887,7 +891,7 @@ function cajaDeTrazos(
     }
   }
   if (minX === Infinity) return null;
-  return { ancho: maxX - minX, alto: maxY - minY };
+  return { izquierda: minX, abajo: minY, ancho: maxX - minX, alto: maxY - minY };
 }
 
 /**
@@ -1014,6 +1018,158 @@ export async function planos(container: HTMLElement, ifcUrl: string, log: Log): 
   } else {
     log("veredicto: las tres vistas generan plano y su DXF lo lee nuestro propio lector.");
   }
+}
+
+/**
+ * **Acotar un plano generado**, que es el botón de `F7.3` que nunca se había pulsado.
+ *
+ * Lo que estaba comprobado de `F7.3` era el camino de datos hasta el DXF, con `?modo=dxf` y sobre un
+ * dibujo **armado a mano**. Lo que no: que se pueda medir sobre el modelo, generar la planta y que la
+ * cota aparezca dentro de ella. `MASTER_PLAN.md` lo decía así —«el botón está tipado, compilado y
+ * con lint y formato limpios, pero **no se ha pulsado**»— porque para pulsarlo hace falta que `F7.1`
+ * proyecte, y para eso hace falta un navegador que componga fotogramas.
+ *
+ * **El oráculo es que el número medido aparezca escrito en el DXF, y dentro del dibujo.** Las dos
+ * mitades importan: un texto en el archivo pero fuera de la caja del plano es una cota que en el CAD
+ * cae en otra hoja, y el conteo de `annotateDrawing` no lo distingue.
+ *
+ * Uso: `/diag.html?modo=acotar&ifc=/samples/Piso%205.ifc`
+ */
+export async function acotar(container: HTMLElement, ifcUrl: string, log: Log): Promise<void> {
+  const viewer = await BimViewer.create(container);
+  const bytes = new Uint8Array(await (await fetch(ifcUrl)).arrayBuffer());
+  await viewer.loadIfc(bytes, ifcUrl);
+  await viewer.frameAll();
+
+  // **Se mide de verdad, con el rayo y el ajuste**, porque es lo que hace la persona: la alternativa
+  // —inventar dos puntos— comprobaría `addDimensions` y no el camino.
+  viewer.setMeasureMode("distance");
+  const rect = container.getBoundingClientRect();
+  const clic = (fx: number, fy: number) =>
+    viewer.addMeasurePoint(rect.left + rect.width * fx, rect.top + rect.height * fy);
+
+  let medida: Measurement | null = null;
+  viewer.onMeasurement((resultado) => {
+    medida = resultado;
+  });
+
+  const primero = await clic(0.42, 0.45);
+  const segundo = await clic(0.58, 0.55);
+  log(`clics con geometria: ${primero ? 1 : 0} + ${segundo ? 1 : 0} de 2`);
+  if (medida === null) {
+    log(
+      "**sin medida: el rayo no encontro geometria.** En este panel el rayo se degrada con el uso;\n" +
+        "  recargar la pagina lo devuelve. Sin una cota medida no hay nada que acotar.",
+    );
+    return;
+  }
+  const cota = medida as Measurement;
+  if (cota.mode !== "distance") {
+    log(`**la medida salio en modo ${cota.mode}**`);
+    return;
+  }
+  log(
+    `medido: ${cota.distanceM.toFixed(3)} m directos · ${cota.horizontalM.toFixed(3)} en planta · ` +
+      `${cota.verticalM.toFixed(3)} de desnivel`,
+  );
+
+  const plano = await viewer.createDrawing("plan", (mensaje, avance) => {
+    if (avance === undefined || avance === 1) log(`  ${mensaje}`);
+  });
+  if (plano === null) {
+    log("**no se genero plano**");
+    return;
+  }
+  log(`plano: ${plano.segments} segmentos · ${plano.sizeM.map((m) => m.toFixed(2)).join(" x ")} m`);
+
+  // Esto **es** el botón: la interfaz no hace nada más que llamar a esto y contar lo que devuelve.
+  const puestas = await viewer.annotateDrawing(plano.id);
+  log(
+    `annotateDrawing: ${puestas.cotas} cotas, ${puestas.angulos} angulos, ` +
+      `${puestas.pendientes} pendientes`,
+  );
+  if (puestas.cotas === 0) {
+    // Es un resultado legitimo y hay que distinguirlo de un fallo: una medicion vertical se
+    // proyecta a un punto en planta, y un punto no es una cota.
+    log("  cero cotas. Si la medida fuera vertical seria lo correcto; aqui no lo es (mal)");
+  }
+
+  const papel = { widthMm: 420, heightMm: 297, margin: 10 };
+  const dxf = viewer.exportDrawingDxf(plano.id, papel);
+  if (dxf === null) {
+    log("**el exportador devolvio null**");
+    return;
+  }
+  const leido = parseDxf(dxf);
+  log(`DXF: ${Math.round(dxf.length / 1024)} KB · ${leido.texts.length} textos`);
+
+  if (leido.texts.length > 0) {
+    log(`  textos del DXF: ${leido.texts.map((uno) => uno.text).join(" · ")}`);
+  }
+
+  // **En una planta la cota es la proyeccion horizontal, no la distancia directa**, y por eso se
+  // busca `horizontalM`. La primera version de esta comprobacion buscaba los 6,990 m directos y dio
+  // «NO (mal)» sobre un plano correcto: el DXF decia 6,39 m, que es lo que mide en planta una medida
+  // con 2,83 m de desnivel. El error estaba aqui, no en el acotado — y es el mismo de siempre:
+  // comparar contra el numero equivocado.
+  const escrituras = [
+    cota.horizontalM.toFixed(3),
+    cota.horizontalM.toFixed(2),
+    cota.horizontalM.toFixed(1),
+  ];
+  const conElNumero = leido.texts.filter((uno) =>
+    escrituras.some((escritura) => uno.text.includes(escritura)),
+  );
+  log(
+    `  la cota escribe su medida en planta (${escrituras[1]}): ` +
+      `${conElNumero.length > 0 ? "si (bien)" : "NO (mal)"}`,
+  );
+
+  // **Y las tres cifras tienen que cerrar entre ellas**, que es un oraculo mejor que cualquiera de
+  // las tres por separado: la pendiente anotada es el desnivel sobre el recorrido, y el recorrido y
+  // el desnivel son los cateto de la distancia directa. Si el acotado tomara la cifra equivocada de
+  // la medicion, esto no cuadraria.
+  const pendiente = leido.texts.find((uno) => uno.text.includes("%"));
+  if (pendiente !== undefined) {
+    const razon = Number.parseFloat(pendiente.text.replace("%", "").trim()) / 100;
+    const desnivel = cota.horizontalM * razon;
+    const directa = Math.hypot(cota.horizontalM, desnivel);
+    log(
+      `  la pendiente cierra con la cota: ${pendiente.text.trim()} de ${escrituras[1]} m dan ` +
+        `${desnivel.toFixed(3)} de desnivel y ${directa.toFixed(3)} directos, medidos ` +
+        `${cota.verticalM.toFixed(3)} y ${cota.distanceM.toFixed(3)} — ` +
+        `${Math.abs(directa - cota.distanceM) < 0.01 ? "si (bien)" : "NO (mal)"}`,
+    );
+  }
+
+  // **Y dentro del dibujo.** Un texto en el archivo pero fuera de la caja del plano es una cota que
+  // en el CAD cae donde nadie la mira, y el conteo de arriba no lo distingue.
+  const delModelo = leido.polylines.filter((uno) => uno.layer === CAPAS.visibles);
+  const caja = cajaDeTrazos(delModelo);
+  const dentro = cajaDeTrazos(conElNumero.map((uno) => ({ points: [uno.x, uno.y] })));
+  if (caja === null || dentro === null) {
+    log("  no se puede situar la cota: falta la caja del dibujo o la del texto");
+  } else {
+    log(
+      `  y cae dentro del dibujo: el plano ocupa ${caja.ancho.toFixed(1)} x ` +
+        `${caja.alto.toFixed(1)} de papel, y la cota esta a ` +
+        `${dentro.izquierda.toFixed(1)}, ${dentro.abajo.toFixed(1)} — ` +
+        `${
+          dentro.izquierda >= caja.izquierda - caja.ancho * 0.5 &&
+          dentro.izquierda <= caja.izquierda + caja.ancho * 1.5 &&
+          dentro.abajo >= caja.abajo - caja.alto * 0.5 &&
+          dentro.abajo <= caja.abajo + caja.alto * 1.5
+            ? "si (bien)"
+            : "NO (mal)"
+        }`,
+    );
+  }
+
+  log(
+    "\nveredicto: esto es el boton «Acotar el plano» de punta a punta —medir sobre el modelo,\n" +
+      "  generar la planta, anotarla y leer el DXF de vuelta—, que es lo que quedaba sin pulsar\n" +
+      "  de `F7.3`. Lo que sigue sin comprobarse es que **AutoCAD** lo abra.",
+  );
 }
 
 /**

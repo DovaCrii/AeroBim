@@ -3210,6 +3210,22 @@ Tres cosas que se ven poco:
 > necesita un navegador que componga fotogramas — la misma limitación de siempre, la que hizo falta
 > el corte por falta de latido. Lo comprobado es el camino de datos completo hasta el DXF.
 
+> **Pulsado el 2026-09-09**, en cuanto `F7.1` dejó de ser el tapón, y de punta a punta:
+> `?modo=acotar` mide sobre el modelo con el rayo y el ajuste, genera la planta, llama a
+> `annotateDrawing` —que **es** el botón: la interfaz no hace nada más— y lee el DXF de vuelta.
+>
+> **El oráculo son tres cifras que cierran entre ellas**, y es mejor que cualquiera de las tres por
+> separado: se mide **6,990 m** directos con **2,830 de desnivel**, el DXF escribe la cota en
+> **6,39 m** —porque en una planta la cota es la proyección horizontal, no la distancia— y la
+> pendiente en **44,28 %**; y 44,28 % de 6,39 dan 2,830 de desnivel y 6,990 directos. Si el acotado
+> tomara la cifra equivocada de la medición, eso no cuadraría. La cota además **cae dentro del
+> dibujo**: a 123,6 / 144,1 de una hoja de 217,5 × 227,3, que es la otra mitad de la pregunta —un
+> texto en el archivo pero fuera de la caja es una cota que en el CAD nadie ve.
+>
+> **Y la primera versión de esa comprobación estaba mal, no el código:** buscaba los 6,990 m
+> directos y dio «NO (mal)» sobre un plano correcto. Es el error de siempre, comparar contra el
+> número equivocado, y por eso queda escrito en el propio modo.
+
 ### `F7.2` — ✅ Capas con nombre, y el viewport que se llevaba la mitad del plano
 
 **Dos cosas, y la segunda no se buscaba.**

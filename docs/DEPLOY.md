@@ -356,8 +356,23 @@ Los documentos **no se comprimen**: son IFC, LAZ y PDF, ya comprimidos —el COP
 124,7 MB de LAZ que no bajan de forma útil—. El `tar` está para conservar rutas y permisos.
 
 **Y para que corra solo**, el mismo patrón que el resumen: un `.service` de `Type=oneshot` que llame
-al guion y un `.timer` con `OnCalendar=*-*-* 02:00:00` y `Persistent=true`. No van en el repositorio
-todavía porque **el guion no se ha corrido nunca en una máquina de verdad** —se escribió y se
-comprobó en Windows: sintaxis con `bash -n` y la rotación con 20 juegos falsos, que deja los 14 más
-nuevos—; `pg_dump`, `pg_restore` y `createdb` no se han ejecutado. Programarlo antes de verlo
-funcionar a mano dejaría un respaldo que se cree hecho.
+al guion y un `.timer` con `OnCalendar=*-*-* 02:00:00` y `Persistent=true`. **Siguen sin ir en el
+repositorio**, y el motivo es más corto que antes pero sigue en pie: `pg_dump`, `pg_restore` y
+`createdb` **todavía no se han ejecutado nunca**, así que nadie ha visto una restauración de verdad.
+Programar el respaldo antes de eso dejaría un respaldo que se cree hecho.
+
+**Lo que sí se ejercitó, el 2026-09-09, y lo que encontró.** El guion se corrió entero por primera
+vez con los programas de PostgreSQL sustituidos por otros que anotan cómo se los llama
+(`apps/core/tests/test_respaldo.py`, que corre en la CI porque el guion es de Linux). Eso separa dos
+preguntas que juntas bloqueaban las dos: **si PostgreSQL vuelve de un volcado** —sigue sin
+comprobarse, y no se simula porque una respuesta simulada no vale— y **si el guion hace lo que
+dice**: el orden, las comillas, la rotación que borra, el `sha256sum` que compara, el `trap` que
+limpia.
+
+Y ahí había un defecto: el nombre de la base de prueba estaba en una variable `local` y **el
+`trap EXIT` que la borra no la veía** —bash deshace el alcance de la función antes de correr el trap
+de salida, por los dos caminos—, así que el `dropdb --if-exists ""` que salía de ahí no borraba nada
+y el `|| true` se tragaba la queja. Con la comprobación diaria que este guion propone, eso deja
+**una copia entera de la base por día, para siempre**, en el mismo disco que protege — y cada una
+con los correos y los hashes de contraseña que el guion se cuida de no dejar legibles. Es
+exactamente la clase de cosa que esconde un guion que nunca se ha ejecutado.
