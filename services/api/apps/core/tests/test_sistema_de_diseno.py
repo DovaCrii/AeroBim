@@ -238,9 +238,9 @@ def test_la_tinta_de_encima_del_primario_se_lee_en_los_dos_temas(tema, css, clar
     dos, que es blanco sobre `#c3a6f0`.
 
     Ahora se mide **la tinta que el CSS escribe de verdad** -`--ab-sobre-primary`- y en los dos
-    temas, que son las dos correcciones. Es la misma que necesito el visor con `--color-sobre-accion`
-    por el mismo motivo, y la de `--acento-fg` un rato antes: un par correcto sobre una superficie
-    que nadie contaba.
+    temas, que son las dos correcciones. Es la misma que necesito el visor con
+    `--color-sobre-accion` por el mismo motivo, y la de `--acento-fg` un rato antes: un par
+    correcto sobre una superficie que nadie contaba.
     """
     tokens = claro if tema == "claro" else {**claro, **oscuro}
 
