@@ -17,21 +17,21 @@
 **Diez de las doce fases con trabajo están cerradas**, y lo que queda se cuenta en una línea cada
 cosa. Actualizado el 2026-09-07.
 
-| Fase                           | Estado                                                                                       |
-| ------------------------------ | -------------------------------------------------------------------------------------------- |
-| **0 · Cimientos**              | ✅ entera — `F0.6` cerró el 2026-09-02 y esta línea llevaba desde entonces sin actualizar    |
-| **1 · Visor**                  | ✅ salvo `F1.13`, que son **tres nombres que decide el usuario**                             |
-| **3 · Backend**                | ✅ entera                                                                                    |
-| **4 · Coordinación**           | ✅ salvo `F4.5`, el trazo libre, **condicionado a que el usuario mire un BCF exportado**     |
-| **5 · Interferencias**         | ✅ entera                                                                                    |
-| **7 · Planos, salida**         | ✅ entera — capas, DXF, PDF con sello, y el plano acotado y con sus llamadas                 |
-| **8 · Registro documental**    | ✅ entera                                                                                    |
-| **9 · Diseño**                 | ✅ **entera** — `F9.6` cerró el 2026-09-07 al reescribir `docs/UX.md`                        |
-| **10 · Etiquetas y tablas**    | ✅ entera                                                                                    |
-| **11 · El portal se ve plano** | ✅ entera — incluida la ayuda con su recorrido                                               |
-| **2 · Nubes de puntos**        | 🔶 abre, se maneja, calza y **entra al expediente**. `F2.4` espera **el IFC de la pasarela** |
-| **12 · La interfaz**           | 🔶 **el piloto desbloqueado y el portal cerrado**; queda el visor — ver los bloques abajo    |
-| **6 · Geo + BIM**              | ⬜ pospuesta a propósito el 2026-09-02, para poner la coordinación delante                   |
+| Fase                           | Estado                                                                                                   |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------- |
+| **0 · Cimientos**              | ✅ entera — `F0.6` cerró el 2026-09-02 y esta línea llevaba desde entonces sin actualizar                |
+| **1 · Visor**                  | ✅ salvo `F1.13`, que son **tres nombres que decide el usuario**                                         |
+| **3 · Backend**                | ✅ entera                                                                                                |
+| **4 · Coordinación**           | ✅ salvo `F4.5`, el trazo libre, **condicionado a que el usuario mire un BCF exportado**                 |
+| **5 · Interferencias**         | ✅ entera                                                                                                |
+| **7 · Planos, salida**         | ✅ entera — capas, DXF, PDF con sello, y el plano acotado y con sus llamadas                             |
+| **8 · Registro documental**    | ✅ entera                                                                                                |
+| **9 · Diseño**                 | ✅ **entera** — `F9.6` cerró el 2026-09-07 al reescribir `docs/UX.md`                                    |
+| **10 · Etiquetas y tablas**    | ✅ entera                                                                                                |
+| **11 · El portal se ve plano** | ✅ entera — incluida la ayuda con su recorrido                                                           |
+| **2 · Nubes de puntos**        | 🔶 abre, se maneja, calza y **entra al expediente**. `F2.4` espera **el IFC de la pasarela**             |
+| **12 · La interfaz**           | 🔶 los tres bloques cerrados; queda `F12.2`, que **espera un modelo y un levantamiento del mismo sitio** |
+| **6 · Geo + BIM**              | ⬜ pospuesta a propósito el 2026-09-02, para poner la coordinación delante                               |
 
 **La Fase 2 va por tres cuartos**, y en un orden que no es el de su numeración. Desde el 2026-09-03
 se comprueba contra **el levantamiento real del CC 741 — Camino Agrícola**, no contra un fixture:
@@ -142,23 +142,23 @@ y systemd), las vistas que se pueden pasar a otra persona (`F3.12`), la visibili
 
 ## Lo que queda, por fase
 
-Las **veintinueve** filas abiertas, de una vez. `⬜` no empezada · `❓` medida y esperando algo ·
-`⛔` bloqueada por una decisión del usuario.
+**Quedan diez filas abiertas, y ninguna la cierra el código.** `⬜` no empezada · `🔶` `◐` medida a
+medias · `❓` medida y esperando algo.
 
-**Y en el orden de prioridad del 2026-09-02**, no en el de los números de fase.
+> **Esta tabla decía «veintinueve» y llevaba `F2.1`, `F2.2` y `F2.3` en `⬜` con el código escrito y
+> comprobado desde el 2026-09-03.** Es el mismo error que ya se anotó una vez más abajo —«el tablero
+> decía ⬜ sobre código que existe desde hace días»— y se repitió aquí. Corregido el 2026-09-09
+> contando las filas una por una contra el estado de cada fase, que es lo único que no se desactualiza.
 
-| Fase                                     | Filas abiertas                                                                                                                  |
-| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| **5 — Interferencias**                   | ✅ **la fase entera** — `F5.5` cierra con las dos mitades: silenciar y agrupar _(35 interferencias en 13 problemas)_            |
-| **4 — Coordinación** ⭐                  | `F4.5` ◐ falta el trazo libre; las cotas ya viajan _(`F4.6` cerrada: el ciclo va y vuelve)_                                     |
-| **3 — Backend**                          | `F3.4` ✅ decidida por el usuario el 2026-09-02: **la petición espera**, y por qué                                              |
-| **9 — Diseño** ⭐                        | ✅ **la fase entera** — `F9.6` se decidió y se escribió en `docs/UX.md` el 2026-09-07                                           |
-| **11 — El portal se ve plano** ⭐        | ✅ **la fase entera** — el portal, la ficha, la lista, los colores y la ayuda con su recorrido                                  |
-| **10 — Etiquetas, informes y tablas** ⭐ | ✅ **la fase entera** — el informe sale en papel, se pide por etiqueta, el modelo saca sus cuadros y la lámina los lleva dentro |
-| **1 — Visor**                            | `F1.13` ❓ — auditada; quedan tres nombres que decide el usuario                                                                |
-| **7 — Planos, salida**                   | ✅ **la fase entera** — capas, DXF, PDF con sello, y el plano acotado y con sus llamadas                                        |
-| **2 — Nubes de puntos**                  | `F2.5` ✅ el formato es **COPC**; `F2.1` `F2.2` `F2.3` `F2.4` `F2.6` ⬜ — cargar, alinear, visualizar, medir, y el splatting    |
-| **6 — Geo + BIM**                        | `F6.1` a `F6.5` ⬜ — Cesium, ortofoto y terreno propios, situar el IFC, 3D Tiles, y recibir de AeroPlanner                      |
+| Fase                         | Filas abiertas                                                                                          | Quién la cierra        |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------- | ---------------------- |
+| **1 — Visor**                | `F1.13` ❓ — auditada; quedan **tres nombres**                                                          | El usuario, decidiendo |
+| **4 — Coordinación**         | `F4.5` ◐ — falta el trazo libre, y depende de mirar un BCF exportado                                    | El usuario, mirando    |
+| **2 — Nubes de puntos**      | `F2.4` 🔶 — la medida funciona; falta **el IFC de la pasarela** y su oráculo en CloudCompare            | Un archivo de obra     |
+| **12 — La interfaz**         | `F12.2` 🔶 — el calce a mano de punta a punta necesita **un modelo y un levantamiento del mismo sitio** | Dos archivos de obra   |
+| **2 — Nubes de puntos**      | `F2.6` ⬜ — el gaussian splatting                                                                       | Pospuesta por decisión |
+| **6 — Geo + BIM**            | `F6.1` a `F6.5` ⬜ — Cesium, ortofoto y terreno, situar el IFC, 3D Tiles, y recibir de AeroPlanner      | Pospuesta por decisión |
+| **0, 3, 5, 7, 8, 9, 10, 11** | Ninguna: las ocho fases enteras                                                                         | —                      |
 
 ### Hasta dónde llega este bloque, revisado el 2026-09-03
 
@@ -3032,7 +3032,7 @@ longitud medida en los dos.
 
 | #      | Tarea                                                                                                | Estado       |
 | ------ | ---------------------------------------------------------------------------------------------------- | ------------ |
-| `F7.1` | Generar vistas 2D desde el modelo (planta, alzados) proyectando sus aristas                          | 🟡           |
+| `F7.1` | Generar vistas 2D desde el modelo (planta, alzados) proyectando sus aristas                          | ✅ ver abajo |
 | `F7.2` | Viewports y capas: qué se dibuja, con qué grosor y en qué capa (`DrawingViewports`, `DrawingLayers`) | ✅ ver abajo |
 | `F7.3` | Acotado y anotaciones sobre el plano: cotas lineales, ángulos, pendientes y llamadas                 | ✅ ver abajo |
 | `F7.4` | **Exportar a DXF** con `DxfExporter`, en A3 y milímetros, listo para el CAD                          | ✅ ver abajo |
@@ -3043,6 +3043,9 @@ intactas, y una distancia medida en el plano coincide con la del modelo. Un plan
 se entiende dentro de AeroBim no es un entregable.
 
 ### Lo armado el 2026-08-19, y qué falta confirmar
+
+> **Esta sección es del 2026-08-19 y se deja como estaba.** Las dos filas que da por sin confirmar
+> se cerraron después: `F7.4` el 2026-08-26 y `F7.1` el 2026-09-09, las dos más abajo.
 
 **`F7.1` y `F7.4` están montadas y sin confirmar en pantalla.** El panel "Planos generados" del
 navegador ofrece **planta, frontal y lateral**: proyecta las aristas de lo que está encendido —esa
@@ -3262,19 +3265,62 @@ El oráculo es doble y no hay que creerle a nadie:
 | Lo lee **nuestro propio lector** | 8 y 16 trazos, **nada sin dibujar** en ninguno de los dos casos |
 
 La segunda fila es la que importa: 10 m son 10 000 mm, así que un exportador que pusiera el dibujo
-tal cual **no cabría en la hoja**. Que la extensión sea exactamente la del A3 dice que el dibujo se
-escala al papel, que es lo que hace falta para imprimirlo.
+tal cual **no cabría en la hoja**.
+
+> **Y de esa segunda fila se sacó una conclusión que era falsa**, corregida el 2026-09-09: «que la
+> extensión sea exactamente la del A3 dice que el dibujo se escala al papel». No lo dice. La
+> extensión del DXF la marca **el recuadro del papel**, que el exportador dibuja siempre y mide
+> 420 × 297 haya lo que haya dentro. El rectángulo de 10 × 6 m cabía por su tamaño, no porque nada
+> lo escalara — y cuando llegó un edificio de 69 m, no cupo. Ver el cierre de `F7.1`.
 
 > **Lo que sigue sin confirmarse de `F7.4`**: que **AutoCAD** lo abra. Que nuestro lector lo lea es
 > evidencia independiente y fuerte —es otra implementación— pero no es la misma afirmación. Y lo que
 > se exporta aquí es un dibujo armado a mano, no uno **proyectado**: eso es `F7.1`.
 
-> **`F7.1` sigue en 🟡 a propósito.** Lo que está comprobado es el camino del fallo, no el del acierto.
-> **Falta confirmar en un navegador de verdad**: que la planta sale con las aristas del modelo,
-> cuánto tarda con el IFC de 23,6 MB, y que el DXF abre en AutoCAD con su escala. El modo `planos`
-> ya lleva el oráculo puesto para ese día: **exporta el DXF y lo vuelve a leer con nuestro propio
-> lector**, y compara los trazos que salen con los segmentos proyectados y la extensión con el A3
-> declarado. Ahí no hace falta creer a nadie.
+#### `F7.1` cerrada el 2026-09-09, corriéndola: dos defectos que su oráculo no podía ver
+
+**Llevaba meses en 🟡 con el motivo anotado y era cierto**: `EdgeProjector` lee la escena dibujada y
+el panel del entorno no compone fotogramas, así que la proyección no avanzaba ni un paso. Hoy se
+pudo correr **forzando el fotograma desde fuera** —una captura de pantalla obliga al navegador a
+pintar, y cada pintado da de comer al proyector—, y con eso el modo `?modo=planos` llegó al final.
+
+**Lo que salió no fue la confirmación esperada, sino dos defectos.** Los dos pasaban el oráculo que
+había, y por el mismo motivo: contaba trazos y medía la extensión del DXF, y ninguna de las dos
+cosas dice **dónde caen** los trazos.
+
+| Qué                                               | Medido sobre `Piso 5.ifc` y el IFC de 23,6 MB                                                                                                              |
+| ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Los dos alzados salían aplastados en una raya** | El frontal, **2 349 trazos en 217,5 × 0,0 mm** de papel; el lateral, 2 526 en **0,0 × 227,3**. La planta, correcta                                         |
+| **El plano no cabía en la hoja que decía**        | La planta del modelo grande, **362 × 690 mm sobre un A3 de 420 × 297** — el doble de alto que el papel, con el recuadro dibujado alrededor como si cupiera |
+
+**El primero es de sistema de referencia, y la causa está en la librería siendo razonable.**
+`EdgeProjector` gira las mallas para que la dirección de proyección quede en `(0, −1, 0)`, proyecta
+—el resultado queda plano en el XZ— y al final **le aplica la rotación inversa** para devolverlo en
+coordenadas del mundo. Lo que vuelve está sobre el plano de proyección, pero en el mundo: en el XZ
+solo si se miraba desde arriba. Un alzado frontal vuelve en el XY, y todo lo de aquí —el viewport,
+que se arma con X y Z; el exportador, que lee X y Z; `sizeM`; y las cotas— lee una coordenada como
+constante y colapsa el dibujo. Se deshace ese último paso, con el «arriba» de cada vista **escrito a
+mano**: la rotación mínima entre dos vectores deja el alzado lateral tumbado 90°.
+
+**El segundo es de escala.** El viewport nacía a 1:100, el valor por defecto de la librería, y ese
+número no depende del papel. Ahora se elige **la mayor escala del escalímetro en la que el dibujo
+entra** —1:500 para el modelo grande, 1:100 para su alzado— y **el nombre del archivo la dice**,
+porque un plano sin escala escrita no se puede medir con una regla.
+
+**Lo que queda comprobado, y es comprobable a mano:** las tres vistas de `Piso 5.ifc` dan
+**21,75 / 22,73 / 2,98 m** —las dos del contorno y la altura de piso— repartidas en seis casillas,
+o sea que los seis números se reducen a tres. Y **cuánto tarda con el IFC de 23,6 MB**: la planta
+**16,0 s** con 99 160 segmentos visibles y 40 114 ocultos, el alzado frontal **30,6 s** con 85 447.
+Son cotas superiores y no una medida limpia: en este entorno el proyector solo avanza cuando algo
+de fuera fuerza un pintado, y la tercera vista se cortó por eso mismo —veinte segundos sin
+fotogramas— no por el generador, que la había generado sobre el modelo pequeño.
+
+`packages/viewer/src/papel.test.ts` fija la matriz **sin navegador**: a dónde manda cada eje del
+mundo, y que las tres vistas giran **sin reflejar** — un plano en espejo se lee perfectamente y está
+mal, y el determinante es lo único que lo delata.
+
+> **Lo que sigue necesitando al usuario**, y es lo mismo que `F7.4`: que **AutoCAD** abra el DXF con
+> su escala. Nuestro lector es evidencia independiente y fuerte, pero no es AutoCAD.
 
 > **Por qué esta fase es sobre todo integración.** `TechnicalDrawings`, `DrawingViewports`,
 > `DrawingLayers`, `DxfExporter` y la familia de anotaciones —lineales, de ángulo, de

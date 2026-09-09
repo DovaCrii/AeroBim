@@ -5,6 +5,41 @@
 
 ## Cómo seguir (leer esto primero)
 
+> ## Estado al 2026-09-09: `F7.1` cerrada corriéndola, y dos defectos que nadie podía ver
+>
+> **Lo de hoy no salió del plan sino de una fila en amarillo desde julio.** `F7.1` —generar la
+> planta y los alzados proyectando las aristas del modelo— estaba montada y **nunca confirmada**,
+> con el motivo bien anotado: `EdgeProjector` lee la escena dibujada y el panel del entorno de
+> trabajo no compone fotogramas, así que la proyección no avanzaba ni un paso. Hoy se pudo correr
+> **forzando el pintado desde fuera**: cada captura de pantalla obliga al navegador a dibujar, y
+> cada dibujo le da de comer al proyector.
+>
+> **Y lo que salió no fue la confirmación, sino dos defectos**, los dos invisibles para el oráculo
+> que había —que contaba trazos y medía la extensión del DXF, y ninguna de las dos cosas dice dónde
+> caen los trazos:
+>
+> - **Los dos alzados salían aplastados en una raya.** El frontal, 2 349 trazos en una caja de
+>   **217,5 × 0,0 mm** de papel. La librería devuelve lo proyectado en coordenadas **del mundo**, no
+>   del papel, y aquí todo lee X y Z: un alzado vuelve en el XY y se colapsa. Ahora las tres vistas
+>   de `Piso 5.ifc` dan **21,75 / 22,73 / 2,98 m** — el contorno y la altura de piso, tres números
+>   en seis casillas.
+> - **El plano no cabía en la hoja que decía.** El viewport nacía a 1:100 y ese número no depende del
+>   papel: la planta del IFC de 23,6 MB ocupaba **362 × 690 mm sobre un A3 de 420 × 297**, con el
+>   recuadro alrededor como si cupiera. Ahora se elige la mayor escala del escalímetro en la que
+>   entra —1:500 ahí— y **el nombre del archivo la dice**.
+>
+> **Y de paso quedó la cifra que faltaba:** con el IFC de 23,6 MB, la planta tarda **16,0 s** (99 160
+> segmentos visibles) y el alzado frontal **30,6 s**. Son cotas superiores, porque en este entorno
+> el proyector solo avanza cuando algo de fuera fuerza un pintado.
+>
+> **Lo que sigue siendo tuyo:** que **AutoCAD** abra el DXF con su escala. Es la misma frase que
+> quedó abierta en `F7.4`, y nuestro lector de DXF no la sustituye.
+>
+> **Y una corrección del propio tablero.** `MASTER_PLAN.md` decía «veintinueve filas abiertas» y
+> tenía `F2.1`, `F2.2` y `F2.3` en ⬜ con el código escrito y comprobado desde el 2026-09-03. Son
+> **diez**, y ninguna la cierra el código. El documento ya se había equivocado así una vez y lo tenía
+> anotado; se volvió a equivocar, así que ahora la tabla dice **quién cierra cada fila**.
+
 > ## Estado al 2026-09-08: la Fase 12 cerrada salvo una, y **todo en `main`**
 >
 > **`main` ya es el producto entero.** Hasta hoy se quedó en la Fase 0 —«todavía no hay código de
