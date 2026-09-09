@@ -5,6 +5,34 @@
 
 ## Cómo seguir (leer esto primero)
 
+> ## Estado al 2026-09-09, más tarde: el par de `F12.2`, y el navegador que se pliega
+>
+> **`F12.2` esperaba «un modelo y un levantamiento del mismo sitio» y no hacía falta esperar a la
+> obra.** El muro de `muro-en-utm.ifc` está completamente determinado por el archivo, así que se
+> puede generar su levantamiento: `apps/web/scripts/nube-del-muro.py` escribe el suelo, las dos
+> caras, las testas y el coronamiento, **corridos 0,240 / −0,150 / +0,075 m a propósito**. Con el
+> par, los dos caben en pantalla y el muro ocupa media escena — que es exactamente lo que faltaba.
+>
+> **Y el corrimiento conocido hizo comprobable la desviación**, que es lo que `F2.4` esperaba: la
+> mediana da **150 mm** = \|ΔN\|, el percentil 95 **240 mm** = \|ΔE\| y el sesgo **+72 mm** ≈ ΔH.
+> Tres de las seis cifras sobre el número exacto. La máxima, 361 mm, pasa de los 293 de la norma del
+> corrimiento y **queda anotada como pregunta, no como cierre**.
+>
+> **Tres defectos por el camino**, los tres al usarlo y ninguno visible leyendo:
+>
+> - **Soltar el modelo y su levantamiento juntos cargaba solo el modelo**, en silencio: `onDrop`
+>   tomaba `files.item(0)`. Es el gesto que la propia puerta invita.
+> - **El calce automático enseñaba una cifra que se lee como una medida de obra y no lo es** —
+>   «movida −6,70, −3,47, 8,78 m» es la diferencia entre dos orígenes internos.
+> - **Plegar los cuatro grupos de una vez plegaba solo el último**, en el código nuevo: el
+>   actualizador partía del valor del render y no del anterior de React.
+>
+> **Y el navegador se pliega por grupos**, que lo pidió el usuario mirando la columna: de **308 px
+> de cabeceras a 104**, con la cuenta en el rótulo para que plegar no sea esconder.
+>
+> **Lo que queda de `F12.2` es puntería:** señalar tres pares con un ratón sobre una pantalla de
+> verdad. El par existe y la pantalla llega a pedir el primer punto.
+
 > ## Estado al 2026-09-09: `F7.1` cerrada corriéndola, y dos defectos que nadie podía ver
 >
 > **Lo de hoy no salió del plan sino de una fila en amarillo desde julio.** `F7.1` —generar la
@@ -810,11 +838,11 @@ tarea más. Sin esto, lo que queda no se puede cerrar por mucho que se programe.
 
 ### Archivos de obra que hacen falta
 
-| Qué                                                               | Qué desbloquea                                                                                                                                                              |
-| ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **El IFC de la pasarela** (en construcción)                       | `F2.4`, la desviación contra su oráculo. Pedirlo **IFC4 con `IfcMapConversion` y EPSG:32719** — sin emplazamiento la nube no se calza sola                                  |
-| **Un modelo y un levantamiento del mismo sitio**                  | `F12.2`. Es lo único que falta de la Fase 12, y no es de código: en el repositorio no hay un par que coincida, así que el calce a mano no se puede ejercer de punta a punta |
-| Un modelo **grande** (>50 MB) y uno de estructura o instalaciones | Saber si el visor aguanta lo que viene. `Piso 5.ifc` es de arquitectura y mediano                                                                                           |
+| Qué                                                               | Qué desbloquea                                                                                                                                                                                                                    |
+| ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **El IFC de la pasarela** (en construcción)                       | `F2.4`, la desviación contra su oráculo. Pedirlo **IFC4 con `IfcMapConversion` y EPSG:32719** — sin emplazamiento la nube no se calza sola                                                                                        |
+| ~~**Un modelo y un levantamiento del mismo sitio**~~              | `F12.2`. **Resuelto el 2026-09-09 sin esperar a la obra**: `nube-del-muro.py` genera el levantamiento del muro que ya está en el repositorio, corrido una cantidad conocida. Lo que queda es puntería con un ratón, no un archivo |
+| Un modelo **grande** (>50 MB) y uno de estructura o instalaciones | Saber si el visor aguanta lo que viene. `Piso 5.ifc` es de arquitectura y mediano                                                                                                                                                 |
 
 ### Cosas que solo se cierran mirándolas
 

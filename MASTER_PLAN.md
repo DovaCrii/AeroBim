@@ -17,21 +17,21 @@
 **Diez de las doce fases con trabajo están cerradas**, y lo que queda se cuenta en una línea cada
 cosa. Actualizado el 2026-09-07.
 
-| Fase                           | Estado                                                                                                   |
-| ------------------------------ | -------------------------------------------------------------------------------------------------------- |
-| **0 · Cimientos**              | ✅ entera — `F0.6` cerró el 2026-09-02 y esta línea llevaba desde entonces sin actualizar                |
-| **1 · Visor**                  | ✅ salvo `F1.13`, que son **tres nombres que decide el usuario**                                         |
-| **3 · Backend**                | ✅ entera                                                                                                |
-| **4 · Coordinación**           | ✅ salvo `F4.5`, el trazo libre, **condicionado a que el usuario mire un BCF exportado**                 |
-| **5 · Interferencias**         | ✅ entera                                                                                                |
-| **7 · Planos, salida**         | ✅ entera — capas, DXF, PDF con sello, y el plano acotado y con sus llamadas                             |
-| **8 · Registro documental**    | ✅ entera                                                                                                |
-| **9 · Diseño**                 | ✅ **entera** — `F9.6` cerró el 2026-09-07 al reescribir `docs/UX.md`                                    |
-| **10 · Etiquetas y tablas**    | ✅ entera                                                                                                |
-| **11 · El portal se ve plano** | ✅ entera — incluida la ayuda con su recorrido                                                           |
-| **2 · Nubes de puntos**        | 🔶 abre, se maneja, calza y **entra al expediente**. `F2.4` espera **el IFC de la pasarela**             |
-| **12 · La interfaz**           | 🔶 los tres bloques cerrados; queda `F12.2`, que **espera un modelo y un levantamiento del mismo sitio** |
-| **6 · Geo + BIM**              | ⬜ pospuesta a propósito el 2026-09-02, para poner la coordinación delante                               |
+| Fase                           | Estado                                                                                                                            |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
+| **0 · Cimientos**              | ✅ entera — `F0.6` cerró el 2026-09-02 y esta línea llevaba desde entonces sin actualizar                                         |
+| **1 · Visor**                  | ✅ salvo `F1.13`, que son **tres nombres que decide el usuario**                                                                  |
+| **3 · Backend**                | ✅ entera                                                                                                                         |
+| **4 · Coordinación**           | ✅ salvo `F4.5`, el trazo libre, **condicionado a que el usuario mire un BCF exportado**                                          |
+| **5 · Interferencias**         | ✅ entera                                                                                                                         |
+| **7 · Planos, salida**         | ✅ entera — capas, DXF, PDF con sello, y el plano acotado y con sus llamadas                                                      |
+| **8 · Registro documental**    | ✅ entera                                                                                                                         |
+| **9 · Diseño**                 | ✅ **entera** — `F9.6` cerró el 2026-09-07 al reescribir `docs/UX.md`                                                             |
+| **10 · Etiquetas y tablas**    | ✅ entera                                                                                                                         |
+| **11 · El portal se ve plano** | ✅ entera — incluida la ayuda con su recorrido                                                                                    |
+| **2 · Nubes de puntos**        | 🔶 abre, se maneja, calza y **entra al expediente**. `F2.4` espera **el IFC de la pasarela**                                      |
+| **12 · La interfaz**           | 🔶 los tres bloques cerrados; de `F12.2` queda **señalar tres pares con un ratón** — el par de archivos ya está en el repositorio |
+| **6 · Geo + BIM**              | ⬜ pospuesta a propósito el 2026-09-02, para poner la coordinación delante                                                        |
 
 **La Fase 2 va por tres cuartos**, y en un orden que no es el de su numeración. Desde el 2026-09-03
 se comprueba contra **el levantamiento real del CC 741 — Camino Agrícola**, no contra un fixture:
@@ -150,15 +150,15 @@ medias · `❓` medida y esperando algo.
 > decía ⬜ sobre código que existe desde hace días»— y se repitió aquí. Corregido el 2026-09-09
 > contando las filas una por una contra el estado de cada fase, que es lo único que no se desactualiza.
 
-| Fase                         | Filas abiertas                                                                                          | Quién la cierra        |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------- | ---------------------- |
-| **1 — Visor**                | `F1.13` ❓ — auditada; quedan **tres nombres**                                                          | El usuario, decidiendo |
-| **4 — Coordinación**         | `F4.5` ◐ — falta el trazo libre, y depende de mirar un BCF exportado                                    | El usuario, mirando    |
-| **2 — Nubes de puntos**      | `F2.4` 🔶 — la medida funciona; falta **el IFC de la pasarela** y su oráculo en CloudCompare            | Un archivo de obra     |
-| **12 — La interfaz**         | `F12.2` 🔶 — el calce a mano de punta a punta necesita **un modelo y un levantamiento del mismo sitio** | Dos archivos de obra   |
-| **2 — Nubes de puntos**      | `F2.6` ⬜ — el gaussian splatting                                                                       | Pospuesta por decisión |
-| **6 — Geo + BIM**            | `F6.1` a `F6.5` ⬜ — Cesium, ortofoto y terreno, situar el IFC, 3D Tiles, y recibir de AeroPlanner      | Pospuesta por decisión |
-| **0, 3, 5, 7, 8, 9, 10, 11** | Ninguna: las ocho fases enteras                                                                         | —                      |
+| Fase                         | Filas abiertas                                                                                       | Quién la cierra        |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------- | ---------------------- |
+| **1 — Visor**                | `F1.13` ❓ — auditada; quedan **tres nombres**                                                       | El usuario, decidiendo |
+| **4 — Coordinación**         | `F4.5` ◐ — falta el trazo libre, y depende de mirar un BCF exportado                                 | El usuario, mirando    |
+| **2 — Nubes de puntos**      | `F2.4` 🔶 — la medida funciona y **cuadra con un corrimiento conocido**; falta el IFC de la pasarela | Un archivo de obra     |
+| **12 — La interfaz**         | `F12.2` 🔶 — el par de archivos ya está en el repositorio; queda **señalar tres pares con un ratón** | El usuario, pinchando  |
+| **2 — Nubes de puntos**      | `F2.6` ⬜ — el gaussian splatting                                                                    | Pospuesta por decisión |
+| **6 — Geo + BIM**            | `F6.1` a `F6.5` ⬜ — Cesium, ortofoto y terreno, situar el IFC, 3D Tiles, y recibir de AeroPlanner   | Pospuesta por decisión |
+| **0, 3, 5, 7, 8, 9, 10, 11** | Ninguna: las ocho fases enteras                                                                      | —                      |
 
 ### Hasta dónde llega este bloque, revisado el 2026-09-03
 
@@ -4502,6 +4502,16 @@ navegador, con el calce automático y el informe de las seis cifras. Cargando `m
 levantamiento del Camino Agrícola por el botón «Abrir» y pulsando **Calzar automáticamente**:
 `Calzada: movida 1,30 · -3,47 · 0,78 m` — los mismos números que daba el diagnóstico.
 
+> **Y esa frase se retiró de la pantalla el 2026-09-09, porque se lee como lo que no es.** «Movida
+> 1,30 · −3,47 · 0,78 m» se entiende como «el levantamiento estaba a metro y medio del modelo», que
+> es una afirmación sobre la obra. No lo es: `alignPointCloudToModel` devuelve la diferencia entre
+> **dos orígenes internos** —el que la nube resta para no perder precisión en `float32` y el que
+> Fragments resta al recentrar el modelo—, así que su magnitud no dice nada de nadie. Se vio al
+> tener dos levantamientos del mismo muro: uno da `1,30 · −3,47 · 0,78` y el otro
+> `−6,70 · −3,47 · 8,78` —**el mismo −3,47 en los dos**, y las otras dos difiriendo en exactamente
+> 8,00 m, que es medio lado de la segunda nube—. Queda el aviso, que es lo que hacía falta: calzar
+> mal y medir encima da una desviación creíble y falsa.
+
 Y con **la vuelta al ciclo del producto**: el informe lleva un botón que abre una observación sobre
 ese elemento **con las cifras ya escritas en el detalle**. Medir y tener que copiar seis números a
 mano es donde se pierden los hallazgos, o donde se transcriben mal, que es peor.
@@ -4566,6 +4576,43 @@ los puntos que se están marcando son de verdad el mismo sitio.
 > cayeron en la nube o al vacío. Con un IFC grande al lado la unión de cajas se va a kilómetros y no
 > se ve nada. **Sigue siendo del usuario**, y ahora se sabe qué le hace falta: un modelo y un
 > levantamiento del mismo sitio, que es justo lo que tendrá en el piloto y no hay en el repositorio.
+>
+> #### El 2026-09-09: **el par ya está en el repositorio**, y lo que destapó
+>
+> «Un modelo y un levantamiento del mismo sitio» no tenía que esperar a la obra: el muro de
+> `muro-en-utm.ifc` está completamente determinado por el archivo —perfil de 4 000 × 200 mm,
+> extruido 3 000, en E 349 723,696 / N 6 292 883,878 / H 561,466—, así que se puede **generar su
+> levantamiento**. `apps/web/scripts/nube-del-muro.py` lo hace: el suelo, las dos caras, las testas
+> y el coronamiento, como los vería un escáner puesto al lado, y **corrido 0,240 / −0,150 / +0,075 m
+> a propósito**. Traslación pura y sin giro, las dos cosas decididas y escritas: corrido porque una
+> nube que ya calza no ejercita nada, y sin giro porque quien señala tres pares con un ratón
+> convertiría unos centímetros de puntería en grados.
+>
+> **Con el par, los dos caben en pantalla a la vez y el muro ocupa media escena** — que es
+> exactamente lo que faltaba. Comprobado en la aplicación: los dos abiertos, «Todo» encuadra los
+> dos, la ficha de la nube dice `16,0 × 16,0 × 3,0 m` y `declarado · UTM 19S`, y «Empezar a
+> señalar» llega a pedir «Pincha el punto en el MODELO».
+>
+> **Y el corrimiento conocido convirtió la desviación en algo comprobable a mano, que es lo que
+> `F2.4` esperaba.** Midiendo el muro contra su levantamiento, tres de las seis cifras caen sobre
+> el corrimiento sin margen:
+>
+> | Cifra        | Vale       | Por qué es esa                                                              |
+> | ------------ | ---------- | --------------------------------------------------------------------------- |
+> | Mediana      | **150 mm** | \|ΔN\|: la normal de las dos caras largas, que son la mayoría de los puntos |
+> | Percentil 95 | **240 mm** | \|ΔE\|: las testas                                                          |
+> | Sesgo        | **+72 mm** | ≈ ΔH = 75 mm, el coronamiento. Positivo: lo construido por fuera            |
+>
+> **La máxima, 361 mm, pasa de los 293 que mide la norma del corrimiento, y eso no está
+> explicado.** Se deja escrito como pregunta y no como defecto: 9 258 puntos contra 12 triángulos,
+> con puntos del suelo que el corrimiento mete dentro de la caja del muro, y no se ha instrumentado
+> de dónde sale ese máximo. Es la primera vez que se puede preguntar, porque hasta ahora no había
+> contra qué comparar — con el levantamiento real del Camino Agrícola el desajuste verdadero no se
+> conoce.
+>
+> **Lo que sigue siendo del usuario, y ahora es solo esto:** señalar los tres pares con un ratón. El
+> par existe, la pantalla llega a pedir el primer punto, y lo que falta es puntería sobre una
+> pantalla de verdad — no un archivo.
 
 Lo que falta:
 
@@ -4672,6 +4719,36 @@ Y dos números del plan que la pantalla corrigió, los dos por lo mismo: `--spac
 vale **0,275rem** desde que `F9.2` quitó el `font-size: 110%` de la raíz sin apretar la escala. Así
 que `h-4` son 17,6 px y no 16, y el rail mide 49,4 y no 44 — por encima del área de toque, que es lo
 que el número protegía. Se deja en la unidad de la escala en vez de escribir píxeles a mano.
+
+#### El 2026-09-09: **los cuatro grupos también se pliegan**
+
+Lo pidió el usuario mirando la columna llena: _«poder colapsar también la sección Empezar, Lo
+abierto, para disminuir y tener todo con mayor facilidad… o buscar una forma que ese panel lateral
+aproveche la mayor cantidad del espacio y no se vea tan lleno»_.
+
+Y tenía razón con un número detrás: el grupo era **un rótulo y no un botón** —el código lo decía
+así, «no se pliega, no lleva `aria-expanded` y no es un destino»—, con lo que las dieciséis filas
+del índice eran fijas. Medido en la aplicación con un modelo y un levantamiento abiertos: **308 px
+de cabeceras en una columna de 627**, o sea que casi la mitad del panel era índice. Con los cuatro
+plegados, **104 px**.
+
+| Decisión                                                       | Por qué                                                                                                            |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| El rótulo plegado **lleva la cuenta** — «LO ABIERTO 2»         | Es lo que hace que plegar no sea esconder: se sabe si merece la pena abrirlo sin abrirlo                           |
+| **Se recuerda** entre sesiones, al contrario que las secciones | Qué sección hace falta depende de lo que se esté haciendo ahora; plegar un grupo es decir «de esto no me ocupo»    |
+| Un grupo **con una sección abierta se dibuja desplegado**      | Sin eso, con «El modelo» plegado abrir un IFC no se vería y «se abre sola la que se llena» sería una promesa vacía |
+| Al plegar un grupo **se cierran sus secciones**                | Por la regla anterior, si no, pulsar el rótulo no haría nada visible y parecería roto                              |
+| `min-h-6`                                                      | Los 24 px que pide WCAG 2.5.8 para un área de toque; como rótulo costaba 20 y ahora se pulsa                       |
+
+**Comprobado en la aplicación, y no solo el alto:** con los cuatro plegados y recargando, el
+navegador arranca en cuatro filas y cero secciones; al soltar el modelo y su levantamiento se
+destapan **solo** «Lo abierto» y «El modelo», con sus siete secciones, y «Empezar» y «Lo guardado»
+siguen plegados.
+
+**Y un defecto que la medición cazó al momento**, del que una persona pulsando de uno en uno no se
+habría enterado: la primera versión calculaba el conjunto nuevo desde el valor del render en vez de
+desde el anterior de React, así que dos pulsaciones en el mismo turno partían del mismo conjunto y
+la segunda pisaba a la primera. Plegando los cuatro de una vez se plegó **solo el último**.
 
 ### `F12.6` — La entrada al portal
 

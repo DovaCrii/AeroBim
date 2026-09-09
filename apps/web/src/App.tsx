@@ -786,9 +786,21 @@ export function App() {
       );
       return;
     }
+    // **La cifra no se enseña, y quitarla es el arreglo.** Decía «movida -6,70, -3,47, 8,78 m», y
+    // eso se lee como «el levantamiento estaba a 8,78 m del modelo» — que es una frase sobre la
+    // obra, y grave. No lo es: `alignPointCloudToModel` devuelve la diferencia entre **dos orígenes
+    // internos** —el que la nube resta para no perder precisión en `float32` y el que Fragments
+    // resta al recentrar el modelo—, así que su magnitud no dice nada de nadie.
+    //
+    // Medido el 2026-09-09 con dos levantamientos distintos del mismo muro: uno dio
+    // `1,30 · -3,47 · 0,78` y otro `-6,70 · -3,47 · 8,78`. **El mismo -3,47 en los dos**, y las
+    // otras dos cifras difiriendo en exactamente 8,00 m, que es medio lado de la segunda nube. Son
+    // números del calce, no de la obra — el mismo aviso que ya lleva el signo de la desviación.
+    //
+    // Lo que sí hace falta decir es que se hizo y que hay que mirarlo, porque calzar mal y medir
+    // encima da una desviación creíble y falsa.
     setCalce(
-      `Calzada: movida ${traslado.map((v) => v.toFixed(2)).join(", ")} m. ` +
-        "Comprueba que la nube cae sobre el modelo antes de medir.",
+      "Calzada con el emplazamiento del modelo. Comprueba que la nube cae encima antes de medir.",
     );
     void refrescarNube();
   }, [refrescarNube]);
@@ -1011,6 +1023,28 @@ export function App() {
   );
 
   /**
+   * Abre **todo lo que se soltó**, y no solo el primero.
+   *
+   * **Antes se tomaba `files.item(0)` y los demás se perdían en silencio**, medido el 2026-09-09
+   * soltando `muro-en-utm.ifc` y su levantamiento juntos: entró el modelo y la sección «Nube de
+   * puntos» siguió diciendo «vacío», sin un aviso. Es el peor reparto posible —éxito parcial sin
+   * decirlo— y encima es justo el gesto que esta pantalla invita: la puerta dice «arrastra el
+   * archivo a cualquier parte del lienzo», y desde `F12.13` el levantamiento es un documento como
+   * el modelo. Quien tiene los dos, suelta los dos.
+   *
+   * **Van de uno en uno y esperando a cada uno**, no en paralelo: cada carga mueve la misma máquina
+   * de estados y el pipeline de Fragments no admite dos modelos a la vez —es el mismo motivo por el
+   * que el visor no se destruye para volver a crearse—. Uno detrás de otro es más lento y es lo que
+   * funciona.
+   */
+  const openFiles = useCallback(
+    async (files: FileList) => {
+      for (const file of Array.from(files)) await openFile(file);
+    },
+    [openFile],
+  );
+
+  /**
    * Abre una revisión del registro documental, por su identificador.
    *
    * **Es la costura entre las dos mitades del producto**: hasta ahora el visor abría archivos
@@ -1130,10 +1164,12 @@ export function App() {
     (event: React.DragEvent<HTMLDivElement>) => {
       event.preventDefault();
       setDragging(false);
-      const file = event.dataTransfer.files.item(0);
-      if (file) void openFile(file);
+      // **Los archivos hay que leerlos ya**: `dataTransfer` se vacía al terminar el manejador, así
+      // que guardar la lista para abrirla después dejaría cero archivos.
+      const files = event.dataTransfer.files;
+      if (files.length > 0) void openFiles(files);
     },
-    [openFile],
+    [openFiles],
   );
 
   const onCanvasClick = useCallback(
@@ -2142,11 +2178,14 @@ export function App() {
                 type="file"
                 // La nube entra por la misma puerta que el modelo y el plano: `F12.1`.
                 accept=".ifc,.dxf,.laz,.las"
+                // **Varios de una vez, igual que soltándolos**: el modelo y su levantamiento se
+                // eligen juntos, y las dos puertas tienen que hacer lo mismo o una miente.
+                multiple
                 className="hidden"
                 disabled={status.kind !== "ready"}
                 onChange={(event) => {
-                  const file = event.target.files?.item(0);
-                  if (file) void openFile(file);
+                  const files = event.target.files;
+                  if (files !== null && files.length > 0) void openFiles(files);
                   event.target.value = "";
                 }}
               />
