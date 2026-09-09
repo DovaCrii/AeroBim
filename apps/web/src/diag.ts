@@ -864,6 +864,33 @@ export async function dxf(container: HTMLElement, _url: string, log: Log): Promi
 }
 
 /**
+ * La caja de un puñado de trazos ya leídos, o `null` si no hay ni un punto.
+ *
+ * `DxfDrawing.bounds` mide **el archivo entero**, y en un plano generado eso incluye el recuadro
+ * del viewport — que es del tamaño del papel. Para preguntar por una capa hace falta medirla aparte.
+ */
+function cajaDeTrazos(
+  trazos: readonly { readonly points: readonly number[] }[],
+): { ancho: number; alto: number } | null {
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minY = Infinity;
+  let maxY = -Infinity;
+  for (const trazo of trazos) {
+    for (let i = 0; i + 1 < trazo.points.length; i += 2) {
+      const x = trazo.points[i]!;
+      const y = trazo.points[i + 1]!;
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+    }
+  }
+  if (minX === Infinity) return null;
+  return { ancho: maxX - minX, alto: maxY - minY };
+}
+
+/**
  * Generar un plano desde el modelo y **leerlo de vuelta**, para `F7.1` y `F7.4`.
  *
  * Estas dos tareas llevaban meses montadas y **nunca confirmadas en pantalla**, con el motivo
@@ -915,15 +942,15 @@ export async function planos(container: HTMLElement, ifcUrl: string, log: Log): 
 
     // **Y ahora la vuelta**: se exporta y se lee con el lector propio. Es lo que distingue "el
     // exportador devolvio un texto" de "el exportador devolvio un DXF".
-    const dxf = viewer.exportDrawingDxf(plano.id, {
-      widthMm: 420,
-      heightMm: 297,
-      margin: 10,
-    });
+    const papel = { widthMm: 420, heightMm: 297, margin: 10 };
+    const dxf = viewer.exportDrawingDxf(plano.id, papel);
     if (dxf === null) {
       log("  **el exportador devolvio null**");
       continue;
     }
+    // La escala no es fija: la elige el tamaño del edificio. Se imprime porque sin ella los
+    // milimetros de mas abajo no se pueden comprobar a mano.
+    log(`  escala en el A3: 1:${viewer.drawingPaperScale(plano.id, papel) ?? "?"}`);
 
     const leido = parseDxf(dxf);
     const omitidas = Object.entries(leido.skipped);
@@ -947,6 +974,30 @@ export async function planos(container: HTMLElement, ifcUrl: string, log: Log): 
       `    trazos frente a segmentos: ${leido.polylines.length} / ${plano.segments} — ` +
         `${leido.polylines.length > 0 ? "el DXF lleva geometria (bien)" : "EL DXF ESTA VACIO (mal)"}`,
     );
+
+    // **Contar trazos no dice donde caen.** La extension de arriba la marca el recuadro del
+    // viewport —sale 420 x 297 haya lo que haya dentro, y eso ya se anoto al cerrar `F7.4`—, asi
+    // que un alzado aplastado contra una franja pasaria las dos comprobaciones anteriores: los
+    // trazos estan, y caben. Lo que dice si un alzado es un alzado es la caja de **la capa del
+    // modelo**, y su proporcion.
+    const delModelo = leido.polylines.filter((uno) => uno.layer === CAPAS.visibles);
+    const caja = cajaDeTrazos(delModelo);
+    if (caja === null) {
+      log(`    **la capa ${CAPAS.visibles} no lleva un solo trazo**`);
+    } else {
+      log(
+        `    ${CAPAS.visibles}: ${delModelo.length} trazos en ` +
+          `${caja.ancho.toFixed(1)} x ${caja.alto.toFixed(1)} de papel`,
+      );
+      // Se mide la proporcion y no el alto a secas porque el numero absoluto depende de la escala
+      // que le toque a la hoja. Un alzado de un edificio es mas ancho que alto, pero no cien veces.
+      const proporcion = caja.ancho === 0 ? 0 : caja.alto / caja.ancho;
+      const franja = proporcion < 0.02;
+      log(
+        `    y no es una franja: ${franja ? "NO (mal)" : "si (bien)"} — ` +
+          `alto/ancho ${proporcion.toFixed(3)}`,
+      );
+    }
   }
 
   log("");

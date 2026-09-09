@@ -1575,20 +1575,24 @@ export function App() {
    *
    * En **A3 y en milímetros**: lo que se pide al exportar es un plano imprimible, y un DXF en
    * unidades de mundo obliga a escalarlo a mano en el CAD.
+   *
+   * **Y la escala va en el nombre del archivo.** El DXF sale ya colocado a la escala en la que cabe
+   * en el A3, que no es siempre la misma: depende del tamaño del edificio. Quien reciba «Planta
+   * 1-200.dxf» sabe con qué lado del escalímetro medirlo sin abrirlo.
    */
   const onExportDrawing = useCallback(
     (id: string) => {
-      const dxf = viewer.current?.exportDrawingDxf(id, {
-        widthMm: 420,
-        heightMm: 297,
-        margin: 10,
-      });
+      const papel = { widthMm: 420, heightMm: 297, margin: 10 };
+      const dxf = viewer.current?.exportDrawingDxf(id, papel);
       if (dxf === null || dxf === undefined) return;
 
       const plano = drawings.find((uno) => uno.id === id);
+      const escala = viewer.current?.drawingPaperScale(id, papel);
       const enlace = document.createElement("a");
       enlace.href = URL.createObjectURL(new Blob([dxf], { type: "application/dxf" }));
-      enlace.download = `${plano?.name ?? "plano"}.dxf`;
+      enlace.download = `${plano?.name ?? "plano"}${
+        escala === null || escala === undefined ? "" : ` 1-${escala}`
+      }.dxf`;
       enlace.click();
       URL.revokeObjectURL(enlace.href);
     },
