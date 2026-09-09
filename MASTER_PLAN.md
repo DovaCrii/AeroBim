@@ -4597,18 +4597,37 @@ los puntos que se están marcando son de verdad el mismo sitio.
 > `F2.4` esperaba.** Midiendo el muro contra su levantamiento, tres de las seis cifras caen sobre
 > el corrimiento sin margen:
 >
-> | Cifra        | Vale       | Por qué es esa                                                              |
-> | ------------ | ---------- | --------------------------------------------------------------------------- |
-> | Mediana      | **150 mm** | \|ΔN\|: la normal de las dos caras largas, que son la mayoría de los puntos |
-> | Percentil 95 | **240 mm** | \|ΔE\|: las testas                                                          |
-> | Sesgo        | **+72 mm** | ≈ ΔH = 75 mm, el coronamiento. Positivo: lo construido por fuera            |
+> | Cifra   | Vale       | Por qué es esa                                                              |
+> | ------- | ---------- | --------------------------------------------------------------------------- |
+> | Mediana | **150 mm** | \|ΔN\|: la normal de las dos caras largas, que son la mayoría de los puntos |
+> | Sesgo   | **+72 mm** | ≈ ΔH = 75 mm, el coronamiento. Positivo: lo construido por fuera            |
 >
-> **La máxima, 361 mm, pasa de los 293 que mide la norma del corrimiento, y eso no está
-> explicado.** Se deja escrito como pregunta y no como defecto: 9 258 puntos contra 12 triángulos,
-> con puntos del suelo que el corrimiento mete dentro de la caja del muro, y no se ha instrumentado
-> de dónde sale ese máximo. Es la primera vez que se puede preguntar, porque hasta ahora no había
-> contra qué comparar — con el levantamiento real del Camino Agrícola el desajuste verdadero no se
-> conoce.
+> **Y la máxima, 361 mm, pasaba de los 293 que mide la norma del corrimiento.** Quedó escrita como
+> pregunta y no como cierre —un punto del levantamiento no puede estar más lejos del muro que lo que
+> se corrió la nube, así que o faltaba entender algo o había un defecto—. **Contestada, y faltaba
+> entender algo:** en `measureDeviation` la caja se agranda **30 cm a propósito**, porque «lo
+> construido se sale de lo modelado», y con ese margen entran a la cuenta puntos **del suelo**, que
+> no son del muro. Uno a 30 cm de la esquina está a `√(0,30² + 0,30²) = 424 mm` del triángulo más
+> cercano.
+>
+> Reproducido en Node —`desviacion.test.ts`, midiendo los mismos puntos por separado— y al milímetro:
+>
+> | Qué se mide | Puntos | Mediana | Máxima     |
+> | ----------- | ------ | ------- | ---------- |
+> | solo muro   | 10 287 | 150 mm  | **293 mm** |
+> | solo suelo  | 288    | 150 mm  | **361 mm** |
+> | los dos     | 10 575 | 150 mm  | **361 mm** |
+>
+> `293` es exactamente la norma del corrimiento y `361` exactamente lo que dijo la aplicación. **La
+> medida es correcta y el número invita a leerlo mal**: «máxima 361 mm» sobre un muro se entiende
+> como «el muro está 36 cm fuera de sitio», cuando son 288 puntos del suelo de al lado frente a diez
+> mil del muro. Es la misma familia que la cifra del calce que se dejó de enseñar el mismo día.
+>
+> > **Y de paso se corrige una lectura de esta misma nota que era casualidad.** Decía que el
+> > percentil 95 —240 mm— «era `|ΔE|`, las testas». No lo es: con otro muestreo de los mismos planos
+> > el p95 sale **168 mm**. Depende de **la mezcla de puntos** —cuántos de cada cara entran, y con la
+> > nube real eso lo decide el nivel de detalle cargado—, así que no es una constante de la
+> > geometría. La mediana y la máxima sí, y son las que la prueba fija.
 >
 > **Lo que sigue siendo del usuario, y ahora es solo esto:** señalar los tres pares con un ratón. El
 > par existe, la pantalla llega a pedir el primer punto, y lo que falta es puntería sobre una
