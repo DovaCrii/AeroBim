@@ -104,8 +104,8 @@ const VISTAS: Record<
  * XZ— y al final **le aplica la rotación inversa** para devolverlo en coordenadas del mundo. Así
  * que lo que vuelve está sobre el plano de proyección, pero en el mundo: en el XZ solo si se miraba
  * desde arriba. Para un alzado frontal vuelve en el XY, y todo lo de aquí abajo —el viewport, que
- * se arma con X y Z; el exportador de DXF, que lee X y Z; `sizeM`— lee una de las dos coordenadas
- * como constante y colapsa el dibujo.
+ * se arma con X y Z; el exportador de DXF, que lee X y Z; `sizeM`; y la lámina del PDF, que arma su
+ * caja con X y Z en el servidor— lee una de las dos coordenadas como constante y colapsa el dibujo.
  *
  * Se deshace ese último paso, y con el «arriba» puesto a mano en vez del que sale de la rotación
  * mínima entre dos vectores: la mínima deja el alzado lateral **tumbado 90°**, porque lleva la
@@ -716,6 +716,13 @@ export class DrawingMaker {
    *
    * Si no cabe en ninguna devuelve la última: es el mejor esfuerzo, y quien lo pida verá un plano
    * pequeño en vez de uno cortado.
+   *
+   * **La lámina del PDF decide lo contrario a propósito, y las dos decisiones son correctas.**
+   * `lamina.py` escala a la que quepa exacta y **la escribe en el papel**, con su motivo: redondear
+   * obligaría a dejar media hoja vacía, y una escala escrita se mide con un escalímetro digital. La
+   * diferencia es a dónde va cada cosa: el PDF es una hoja terminada que se lee tal cual, y el DXF
+   * entra a un CAD para insertarse junto a los planos de la oficina — y ahí un 1:173 no se puede
+   * combinar con nada.
    */
   escalaParaPapel(
     id: string,
