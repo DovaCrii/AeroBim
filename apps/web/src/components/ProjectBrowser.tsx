@@ -41,6 +41,32 @@ const GRUPOS = ["Empezar", "Lo abierto", "El modelo", "Lo guardado"] as const;
 
 type Grupo = (typeof GRUPOS)[number];
 
+/**
+ * Qué grupos están plegados, guardado entre sesiones.
+ *
+ * **Y esto sí se recuerda, al contrario que las secciones**, que es una diferencia deliberada: qué
+ * sección hace falta depende de lo que se esté haciendo ahora mismo, pero plegar un grupo entero es
+ * decir «de esto no me ocupo», y eso dura. Quien deja el navegador a cuatro filas no quiere volver
+ * a plegarlo cada vez que recarga.
+ */
+const CLAVE_GRUPOS = "aerobim.navegador.grupos.v1";
+
+function gruposGuardados(): ReadonlySet<Grupo> {
+  try {
+    const crudo = globalThis.localStorage?.getItem(CLAVE_GRUPOS);
+    if (crudo === null || crudo === undefined) return new Set();
+    const leido: unknown = JSON.parse(crudo);
+    if (!Array.isArray(leido)) return new Set();
+    // Se filtra contra `GRUPOS` y no se confía en lo guardado: un nombre de grupo que ya no existe
+    // —porque se renombró— dejaría plegado un grupo fantasma y visible uno que se quiso ocultar.
+    return new Set(GRUPOS.filter((grupo) => leido.includes(grupo)));
+  } catch {
+    // Una ventana privada o el almacenamiento bloqueado: se arranca con todo desplegado, que es el
+    // estado que enseña todo. Nunca se cae por esto.
+    return new Set();
+  }
+}
+
 /** Una sección del navegador, tal como se describe una sola vez y se pinta en dos sitios. */
 type Descriptor = {
   readonly clave: string;
@@ -184,6 +210,16 @@ export function ProjectBrowser({
    */
   const [abiertas, setAbiertas] = useState<ReadonlySet<string>>(new Set());
   /**
+   * Los grupos plegados. Ver {@link CLAVE_GRUPOS}.
+   *
+   * **Es lo que pidió el usuario mirando la columna:** «poder colapsar también la sección Empezar,
+   * Lo abierto, para disminuir y tener todo con mayor facilidad… que ese panel aproveche el espacio
+   * y no se vea tan lleno». Con los cuatro plegados el navegador ocupa cuatro filas y sigue
+   * diciendo qué hay dentro de cada una, que es la parte que no se puede perder: el rótulo lleva la
+   * cuenta, así que plegar no es esconder.
+   */
+  const [gruposPlegados, setGruposPlegados] = useState<ReadonlySet<Grupo>>(gruposGuardados);
+  /**
    * El alto que se le fijó a mano a cada sección, en píxeles.
    *
    * Las que no están aquí se reparten lo que sobre, que es lo que hacían todas antes. Fijar una
@@ -208,6 +244,38 @@ export function ProjectBrowser({
       else siguiente.add(clave);
       return siguiente;
     });
+
+  /**
+   * Pliega o despliega un grupo entero.
+   *
+   * **Al plegarlo se cierran sus secciones**, y no es limpieza: es lo que hace que plegar un grupo
+   * se note. Un grupo con una sección abierta dentro se dibuja desplegado a propósito —ver la regla
+   * de `plegadoElGrupo`, que es la que deja que «se abre sola la que acaba de llenarse» siga
+   * funcionando con el grupo plegado—, así que sin cerrarlas, pulsar el rótulo no haría nada
+   * visible y parecería roto.
+   */
+  const alternarGrupo = (grupo: Grupo) => {
+    // **De dónde sale cada cosa importa.** `plegando` se decide con lo que la persona tenía
+    // delante al pulsar —el valor del render—, pero el conjunto nuevo se calcula sobre `actual`,
+    // el anterior de React. Calcularlo también desde el render fue el primer intento y estaba mal:
+    // dos pulsaciones en el mismo turno parten las dos del mismo conjunto y la segunda pisa a la
+    // primera. Medido plegando los cuatro grupos de una vez: se plegó **solo el último**.
+    const plegando = !gruposPlegados.has(grupo);
+    setGruposPlegados((actual) => {
+      const siguiente = new Set(actual);
+      if (plegando) siguiente.add(grupo);
+      else siguiente.delete(grupo);
+      try {
+        globalThis.localStorage?.setItem(CLAVE_GRUPOS, JSON.stringify([...siguiente]));
+      } catch {
+        // Guardar es una comodidad, no el estado: si no se puede, la sesión sigue igual.
+      }
+      return siguiente;
+    });
+    if (!plegando) return;
+    const suyas = SECCIONES.filter((una) => una.grupo === grupo).map((una) => una.clave);
+    setAbiertas((actual) => new Set([...actual].filter((clave) => !suyas.includes(clave))));
+  };
 
   /** Mueve el borde inferior de una sección. El alto de partida es el que tiene en pantalla. */
   const redimensionar = (clave: string, delta: number, actualEnPantalla: number) =>
@@ -481,35 +549,75 @@ export function ProjectBrowser({
      * que desbordan y aparece la barra— mientras la abierta sigue tomando lo que sobra.
      */
     <div className="flex h-full min-h-0 flex-col overflow-y-auto">
-      {GRUPOS.map((grupo) => (
-        <Fragment key={grupo}>
-          {/*
-           * El rótulo del grupo, y **no es un botón**: no se pliega, no lleva `aria-expanded` y no
-           * es un destino. Solo separa. Que sea un `h2` y las secciones `h3` es lo que hace que un
-           * lector de pantalla anuncie la jerarquía que el ojo ve — antes las doce eran `h2`
-           * hermanas, o sea una lista plana de doce.
-           */}
-          {/* `leading-none` con poco relleno: el rótulo cuesta 20 px, y cuatro de ellos son 80 px
-              de una columna que también tiene que enseñar listas. */}
-          <h2 className="shrink-0 bg-shell px-2 pt-1.5 pb-1 text-micro leading-none font-semibold tracking-wider text-fg-3 uppercase">
-            {grupo}
-          </h2>
-          {SECCIONES.filter((una) => una.grupo === grupo).map((una) => (
-            <Seccion
-              key={una.clave}
-              titulo={una.titulo}
-              icono={una.icono}
-              cuantos={una.cuantos}
-              abierta={abiertas.has(una.clave)}
-              onAlternar={() => alternar(una.clave)}
-              alto={altos[una.clave] ?? null}
-              onRedimensionar={(delta, actual) => redimensionar(una.clave, delta, actual)}
-            >
-              {una.contenido}
-            </Seccion>
-          ))}
-        </Fragment>
-      ))}
+      {GRUPOS.map((grupo) => {
+        const suyas = SECCIONES.filter((una) => una.grupo === grupo);
+        /**
+         * **Un grupo con una sección abierta se dibuja desplegado**, aunque esté marcado como
+         * plegado. Es la regla que deja convivir las dos cosas: plegar un grupo dura entre
+         * sesiones, y «se abre sola la sección que acaba de llenarse» tiene que seguir enseñando
+         * lo que acaba de llegar. Sin esto, con «El modelo» plegado, abrir un IFC no se vería.
+         */
+        const conAbierta = suyas.some((una) => abiertas.has(una.clave));
+        const plegadoElGrupo = gruposPlegados.has(grupo) && !conAbierta;
+        /**
+         * Lo que hay dentro, sumado. **Es lo que hace que plegar no sea esconder**: el rótulo
+         * plegado sigue diciendo «Lo abierto · 2», así que se sabe si hace falta abrirlo sin
+         * abrirlo. Las secciones que no cuentan nada —«Del registro», «Coordinación»— no suman:
+         * no tienen cuántos, tienen un botón.
+         */
+        const dentro = suyas.reduce((suma, una) => suma + (una.cuantos ?? 0), 0);
+        return (
+          <Fragment key={grupo}>
+            {/*
+             * **El rótulo del grupo es un botón desde el 2026-09-09**, y antes decía aquí que no
+             * lo era. Lo pidió el usuario mirando la columna llena: doce secciones más cuatro
+             * rótulos ocupan la altura entera de una pantalla baja, y lo que se está usando queda
+             * empujado. Con los cuatro plegados el navegador son cuatro filas.
+             *
+             * Sigue sin ser un destino: pliega su trozo de la misma columna, no lleva a otra
+             * pantalla. Y sigue siendo un `h2` con las secciones como `h3`, que es lo que hace que
+             * un lector de pantalla anuncie la jerarquía que el ojo ve.
+             */}
+            <h2 className="shrink-0">
+              {/* `min-h-6` son los 24 px que pide la norma para un área de toque (WCAG 2.5.8);
+                  como rótulo costaba 20 y ahora que se pulsa no puede quedarse ahí. */}
+              <button
+                type="button"
+                onClick={() => alternarGrupo(grupo)}
+                aria-expanded={!plegadoElGrupo}
+                className="flex min-h-6 w-full items-center gap-1 bg-shell px-2 text-micro font-semibold tracking-wider text-fg-3 uppercase hover:text-fg-2"
+              >
+                {/* Los dos iconos y no uno girado, que es lo que hacen ya las secciones: el
+                    navegador tiene que decir lo mismo con la misma forma en sus dos niveles. */}
+                {plegadoElGrupo ? (
+                  <IconChevronRight className="h-3 w-3 shrink-0" />
+                ) : (
+                  <IconChevronDown className="h-3 w-3 shrink-0" />
+                )}
+                <span className="flex-1 text-left">{grupo}</span>
+                {/* La cuenta solo cuando hay algo: un «· 0» en cada rótulo sería ruido en los
+                    cuatro, y lo que se quiere saber es si merece la pena abrirlo. */}
+                {dentro > 0 && <span className="tabular-nums">{dentro}</span>}
+              </button>
+            </h2>
+            {!plegadoElGrupo &&
+              suyas.map((una) => (
+                <Seccion
+                  key={una.clave}
+                  titulo={una.titulo}
+                  icono={una.icono}
+                  cuantos={una.cuantos}
+                  abierta={abiertas.has(una.clave)}
+                  onAlternar={() => alternar(una.clave)}
+                  alto={altos[una.clave] ?? null}
+                  onRedimensionar={(delta, actual) => redimensionar(una.clave, delta, actual)}
+                >
+                  {una.contenido}
+                </Seccion>
+              ))}
+          </Fragment>
+        );
+      })}
     </div>
   );
 }
