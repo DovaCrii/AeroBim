@@ -223,9 +223,44 @@ def test_el_violeta_de_marca_sigue_siendo_decorativo(claro):
     )
 
 
-def test_blanco_sobre_primary_se_lee(claro):
-    """El botón primario: fondo `--ab-primary` y texto blanco."""
-    assert contraste("#ffffff", claro["--ab-primary"]) >= AA
+@pytest.mark.parametrize("tema", ["claro", "oscuro"])
+def test_la_tinta_de_encima_del_primario_se_lee_en_los_dos_temas(tema, css, claro, oscuro):
+    """**Esta prueba medía solo el tema claro, y ahí estaba el hueco.**
+
+    Se llamaba `test_blanco_sobre_primary_se_lee` y comprobaba `blanco sobre --ab-primary` con la
+    tabla del tema **claro**: 8,3:1, verde. Pero `--ab-primary` es violeta oscuro en claro y
+    violeta **claro** en oscuro -tiene que leerse sobre el panel-, y cinco sitios del CSS ponían
+    `color: #fff` encima del relleno: el boton primario, el de la puerta, el segmento activo, la
+    vista activa y el hover del boton.
+
+    Medido el 2026-09-09 barriendo la pantalla de Observaciones con el tema oscuro puesto y
+    componiendo el fondo real de cada texto: «Salir» y el segmento «Todas» daban **2,09:1** los
+    dos, que es blanco sobre `#c3a6f0`.
+
+    Ahora se mide **la tinta que el CSS escribe de verdad** -`--ab-sobre-primary`- y en los dos
+    temas, que son las dos correcciones. Es la misma que necesito el visor con
+    `--color-sobre-accion` por el mismo motivo, y la de `--acento-fg` un rato antes: un par
+    correcto sobre una superficie que nadie contaba.
+    """
+    tokens = claro if tema == "claro" else {**claro, **oscuro}
+
+    tinta = tokens["--ab-sobre-primary"]
+    if tinta.startswith("var("):
+        tinta = tokens[tinta[4:-1].strip()]
+
+    flojos = [
+        f"{relleno}: {contraste(tinta, tokens[relleno]):.2f}"
+        for relleno in ("--ab-primary", "--ab-primary-hover")
+        if contraste(tinta, tokens[relleno]) < AA
+    ]
+    assert flojos == [], f"La tinta de encima del primario no se lee en tema {tema}: {flojos}"
+
+    # **Y que sea esa la que el CSS escribe**, no una hipotética: es la mitad que faltaba. Ningún
+    # `color: #fff` puede ir pegado a un relleno primario, que es exactamente lo que había.
+    pegados = re.findall(
+        r"background:\s*var\(--ab-primary(?:-hover)?\);\s*color:\s*#fff", css.replace("\n", " ")
+    )
+    assert pegados == [], f"{len(pegados)} sitios ponen blanco encima del relleno primario"
 
 
 @pytest.mark.parametrize("tema", ["claro", "oscuro"])
@@ -276,6 +311,58 @@ def test_los_cinco_acentos_se_leen_sobre_su_superficie(tema, css, claro, oscuro)
         if contraste(color, fondo) < AA
     ]
     assert flojos == [], f"Acentos por debajo de {AA}:1 en tema {tema}: {flojos}"
+
+
+def _tintas_del_acento(css: str, tema: str) -> list[tuple[str, str]]:
+    """Los cinco pares `(--acento, --acento-fg)`, en el tema que se pida.
+
+    Se leen los dos del CSS por el mismo motivo que arriba: son las dos mitades de una pregunta
+    -que hay debajo y que se escribe encima- y comprobar una copia escrita aqui seria comprobar la
+    copia.
+    """
+    patron = (
+        r'\[data-theme="dark"\]\s+\.acento-\d\s*\{\s*--acento:\s*(#[0-9a-f]{6});'
+        r"\s*--acento-fg:\s*([^;]+);"
+        if tema == "oscuro"
+        else r"(?<!\])\s\.acento-\d\s*\{\s*--acento:\s*(#[0-9a-f]{6});\s*--acento-fg:\s*([^;]+);"
+    )
+    return re.findall(patron, f" {css}")
+
+
+@pytest.mark.parametrize("tema", ["claro", "oscuro"])
+def test_la_inicial_de_una_persona_se_lee_encima_de_su_acento(tema, css, claro, oscuro):
+    """**El acento hace dos trabajos y solo uno estaba medido.**
+
+    Es texto -el rotulo de un grupo, el icono de una tarjeta- y es **relleno**, en el circulo de la
+    inicial de una persona. La prueba de arriba mide el primero, y su propio docstring decia que los
+    cinco «ademas pintaran la inicial de cada persona»... y no medía eso.
+
+    Medido el 2026-09-09: en claro los cinco acentos son oscuros y el blanco encima daba 5,24 a
+    8,26:1, asi que ahi cuadraba. En **oscuro** el tema los redefine claros -para que se lean sobre
+    un panel oscuro- y el blanco encima pasaba a **2,09 · 1,94 · 1,84 · 1,70 · 2,16:1**. La inicial
+    de cada persona era ilegible en la mitad de las sesiones.
+
+    Es el mismo error que el visor tuvo dos veces -el relleno de la accion y el lienzo-: un par
+    correcto sobre una superficie que nadie contaba. De ahi `--acento-fg`.
+    """
+    tabla = claro if tema == "claro" else {**claro, **oscuro}
+    pares = _tintas_del_acento(css, tema)
+    assert len(pares) == 5, f"Se esperaban cinco acentos con su tinta en {tema} y hay {len(pares)}"
+
+    flojos = []
+    for fondo, tinta_cruda in pares:
+        # La tinta puede venir como hexadecimal o como `var(--ab-navy)`: se resuelve contra la tabla
+        # del tema, que es lo que hace el navegador.
+        tinta = tinta_cruda.strip()
+        if tinta.startswith("var("):
+            tinta = tabla[tinta[4:-1].strip()]
+        if tinta == "#fff":
+            tinta = "#ffffff"
+        ratio = contraste(tinta, fondo)
+        if ratio < AA:
+            flojos.append(f"{tinta} sobre {fondo}: {ratio:.2f}")
+
+    assert flojos == [], f"La inicial no se lee encima de su acento en tema {tema}: {flojos}"
 
 
 def test_los_cinco_acentos_no_se_parecen_entre_si(css):

@@ -26,6 +26,7 @@ export function NubesPanel({
   informe,
   puntos,
   color,
+  avisoDeColor,
   tamanoDePunto,
   recortada,
   onAbrir,
@@ -43,6 +44,8 @@ export function NubesPanel({
   /** Cuántos puntos hay en la escena ahora. */
   readonly puntos: number;
   readonly color: ModoDeColor;
+  /** Por qué el modo de color pedido no se pudo dar, o `null` si se dio el que se pidió. */
+  readonly avisoDeColor: string | null;
   readonly tamanoDePunto: number;
   readonly recortada: boolean;
   readonly onAbrir: () => void;
@@ -127,6 +130,16 @@ export function NubesPanel({
           <option value="clase">Por clasificación</option>
         </select>
       </Campo>
+      {/*
+       * **Y cuando el modo pedido no sirve, se dice por qué.**
+       *
+       * El desplegable ya volvía solo a «Por altura» —el visor devuelve el modo que consiguió y
+       * aquí se anota ese, no el pedido— y eso era honesto pero mudo: quien pulsa «Por
+       * clasificación» sobre un levantamiento sin clases ve que el control rebota y no sabe si el
+       * archivo no las trae o si algo falla. El usuario lo describió como «no cargan bien la
+       * intensidad y el RGB», mirando una nube que estaba en clasificación.
+       */}
+      {avisoDeColor !== null && <p className="text-nota text-warn">{avisoDeColor}</p>}
 
       <Campo etiqueta={`Punto · ${tamanoDePunto} px`}>
         <input

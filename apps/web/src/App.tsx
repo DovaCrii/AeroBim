@@ -281,6 +281,24 @@ const ETAPAS: Record<LoadStage, string> = {
 const CLICK_TOLERANCE_PX = 8;
 
 /**
+ * Por qué un modo de color no se pudo dar, para decirlo en el panel.
+ *
+ * **Cada frase dice qué mirar en el archivo**, no «no disponible»: el destinatario de esto es quien
+ * pide el levantamiento a quien lo vuela, y lo que necesita es saber qué pedirle. La altura no está
+ * porque siempre se puede: la cota vive en la posición.
+ */
+const MOTIVO_DEL_COLOR: Record<ModoDeColor, string> = {
+  altura: "",
+  rgb: "Este levantamiento no trae color: se pinta por altura. El color hay que pedirlo al vuelo.",
+  intensidad:
+    "La intensidad de este levantamiento no recorre lo bastante para distinguir nada: " +
+    "se pinta por altura.",
+  clase:
+    "Este levantamiento viene sin clasificar —todos los puntos en la misma clase—, así que se " +
+    "pinta por altura. Clasificar suelo y vegetación se pide al procesar la nube.",
+};
+
+/**
  * `true` si la tecla se pulsó **escribiendo en un campo**.
  *
  * Los atajos del visor escuchan en la ventana entera, que es lo que hace que funcionen mirando el
@@ -359,6 +377,8 @@ export function App() {
    */
   const [tema, setTema] = useState<Tema>(() => temaGuardado());
   const [nubeRecortada, setNubeRecortada] = useState(false);
+  /** Por que el color pedido no se pudo dar. Ver MOTIVO_DEL_COLOR. */
+  const [nubeAvisoDeColor, setNubeAvisoDeColor] = useState<string | null>(null);
   /** La URL del `blob:` de la nube abierta. Se revoca **al cerrarla**, no al acabar de cargar. */
   const urlDeLaNube = useRef<string | null>(null);
   /** El `input` de archivo escondido tras «Abrir», para poder pulsarlo desde el panel de nubes. */
@@ -939,6 +959,8 @@ export function App() {
     setNubeInforme(null);
     setNubePuntos(0);
     setNubeRecortada(false);
+    // El aviso es de **esta** nube: dejarlo puesto diría de la siguiente algo que no se ha medido.
+    setNubeAvisoDeColor(null);
   }, []);
 
   /** Encuadra la nube: lo primero que se hace al abrir un levantamiento. */
@@ -953,7 +975,13 @@ export function App() {
    */
   const colorearNube = useCallback((modo: ModoDeColor) => {
     const real = viewer.current?.cloud?.colorear(modo);
-    if (real !== undefined) setNubeColor(real);
+    if (real === undefined) return;
+    setNubeColor(real);
+    // **Y el motivo, que es la mitad que faltaba.** Que el desplegable vuelva solo a «Por altura»
+    // es honesto y mudo: quien lo pulsa no sabe si el archivo no trae ese dato o si algo falla.
+    // Pasó de verdad — «no cargan bien la intensidad y el RGB», sobre una nube que estaba en
+    // clasificación y cuyos quince millones de puntos vienen todos con la misma clase.
+    setNubeAvisoDeColor(real === modo ? null : MOTIVO_DEL_COLOR[modo]);
   }, []);
 
   const tamanoDeNube = useCallback((px: number) => {
@@ -2616,6 +2644,7 @@ export function App() {
                 informe={nubeInforme}
                 puntos={nubePuntos}
                 color={nubeColor}
+                avisoDeColor={nubeAvisoDeColor}
                 tamanoDePunto={nubeTamano}
                 recortada={nubeRecortada}
                 onAbrir={() => entradaDeArchivo.current?.click()}

@@ -45,6 +45,25 @@
   --ab-primary: #5b3a9e; /* 7,9:1 sobre blanco: el violeta llevado a texto */
   --ab-primary-hover: #472d7d;
   --ab-primary-soft: #efe7fb;
+  /*
+   * **La tinta que va ENCIMA del relleno primario, y hacía falta.**
+   *
+   * `--ab-primary` hace dos trabajos: es color de **texto** —un enlace, el nombre de la sección
+   * activa— y es **relleno**, en el botón primario, en el segmento activo y en el botón de la
+   * puerta. Y los dos trabajos piden lo contrario, así que el tema no puede servir a los dos con
+   * un solo valor: en claro el violeta es oscuro para leerse sobre blanco, y en oscuro se aclara
+   * para leerse sobre el panel.
+   *
+   * **Cinco sitios ponían `color: #fff` encima y en tema oscuro eso daba 2,09:1** —blanco sobre
+   * `#c3a6f0`—, medido el 2026-09-09 barriendo la pantalla de Observaciones: «Salir» y el segmento
+   * «Todas» salieron los dos a 2,09. El gate no lo veía porque `test_blanco_sobre_primary_se_lee`
+   * solo corría con el tema **claro**, donde da 8,3:1 y todo cuadra.
+   *
+   * Es el mismo error que el visor tuvo tres veces —el relleno de la acción, el lienzo y el círculo
+   * de la inicial—: un par correcto sobre una superficie que nadie contaba. En claro, blanco; en
+   * oscuro, el navy de la familia.
+   */
+  --ab-sobre-primary: #fff;
   --ab-danger: #c53b4d; /* 4,8:1 */
   --ab-ok: #0f7a5f; /* 4,9:1 */
   --ab-warn: #8a5a00; /* 5,5:1 — el ámbar llevado a texto sobre fondo claro */
@@ -115,6 +134,9 @@
   --ab-primary: #c3a6f0; /* sobre superficie oscura, 7,1:1 */
   --ab-primary-hover: #d5c2f6;
   --ab-primary-soft: #2a2140;
+  /* Y aquí el violeta es claro, así que lo de encima se oscurece: el navy de la familia, 6,79:1
+     sobre el relleno y más sobre el del hover. Blanco daba 2,09. Ver `--ab-sobre-primary`. */
+  --ab-sobre-primary: var(--ab-navy);
   --ab-danger: #f08a97; /* el #c53b4d no llega a 4,5:1 sobre superficie oscura */
   --ab-ok: #5fd3ae;
   /* **El mismo hexadecimal que `--color-warn` del visor**, y a proposito: es la costura que el
@@ -623,6 +645,20 @@ main {
   white-space: nowrap;
 }
 
+/*
+ * **La letra va con `--acento-fg` y no con blanco, y ese es un defecto arreglado el 2026-09-09.**
+ *
+ * El círculo usa el acento como **relleno** y los cinco acentos están medidos como **texto sobre
+ * una superficie**: son dos preguntas distintas con los mismos cinco colores. En tema claro los
+ * cinco son oscuros y el blanco encima da 5,24 a 8,26:1, así que se diseñó y se midió ahí y todo
+ * cuadraba. En **oscuro** el tema los redefine claros —para que se lean sobre un panel oscuro— y
+ * el blanco encima pasa a **2,09 · 1,94 · 1,84 · 1,70 · 2,16:1**. O sea que la inicial de cada
+ * persona era ilegible en la mitad de las sesiones, y el gate no lo veía porque medía los acentos
+ * como texto.
+ *
+ * Es el mismo error que el visor tuvo dos veces —el relleno de la acción y el lienzo—: un par
+ * correcto sobre una superficie que nadie contaba.
+ */
 .persona-inicial {
   display: grid;
   place-items: center;
@@ -630,7 +666,7 @@ main {
   height: 22px;
   border-radius: 50%;
   background: var(--acento);
-  color: #fff;
+  color: var(--acento-fg);
   font-size: 11px;
   font-weight: 700;
 }
@@ -805,7 +841,7 @@ body.puerta {
   border: 0;
   border-radius: var(--ab-radio-md);
   background: var(--ab-primary);
-  color: #fff;
+  color: var(--ab-sobre-primary);
   font: inherit;
   font-weight: 650;
   cursor: pointer;
@@ -949,7 +985,7 @@ body.puerta {
 .segmento-activo,
 .segmento-activo:hover {
   background: var(--ab-primary);
-  color: #fff;
+  color: var(--ab-sobre-primary);
   font-weight: 600;
 }
 
@@ -1036,7 +1072,7 @@ body.puerta {
 .vista-activa,
 .vista-activa:hover {
   background: var(--ab-primary);
-  color: #fff;
+  color: var(--ab-sobre-primary);
   font-weight: 600;
 }
 
@@ -1895,36 +1931,57 @@ th.num {
  * sustituye al rótulo**: el nombre del grupo sigue escrito, porque un color no se lee en voz alta
  * ni lo distingue quien no distingue verde de rojo.
  */
+/*
+ * **`--acento-fg` es la tinta que se escribe ENCIMA del acento**, y hace falta porque el acento
+ * hace dos trabajos: es color de texto —el rótulo de un grupo, el icono de una tarjeta— y es
+ * relleno, en el círculo de la inicial de una persona. Las dos cosas piden lo contrario.
+ *
+ * En claro los cinco acentos son oscuros y encima va blanco: 5,24 a 8,26:1. En oscuro son claros
+ * —tienen que leerse sobre un panel oscuro— así que encima va el navy de la familia, y no un color
+ * nuevo: 6,58:1 en el peor de los cinco. Ver `.persona-inicial`.
+ */
 .acento-0 {
   --acento: #5b3a9e;
+  --acento-fg: #fff;
 }
 .acento-1 {
   --acento: #12628f;
+  --acento-fg: #fff;
 }
 .acento-2 {
   --acento: #8a5a00;
+  --acento-fg: #fff;
 }
 .acento-3 {
   --acento: #3f7a13;
+  --acento-fg: #fff;
 }
 .acento-4 {
   --acento: #5a626d;
+  --acento-fg: #fff;
 }
 
+/* Y en oscuro los cinco se aclaran para leerse sobre el panel, así que la tinta de encima se
+   oscurece: el navy de la familia, 6,58:1 en el peor de los cinco. Ver `--acento-fg`. */
 [data-theme="dark"] .acento-0 {
   --acento: #c3a6f0;
+  --acento-fg: var(--ab-navy);
 }
 [data-theme="dark"] .acento-1 {
   --acento: #6cc4f5;
+  --acento-fg: var(--ab-navy);
 }
 [data-theme="dark"] .acento-2 {
   --acento: #f0b45e;
+  --acento-fg: var(--ab-navy);
 }
 [data-theme="dark"] .acento-3 {
   --acento: #8ada6f;
+  --acento-fg: var(--ab-navy);
 }
 [data-theme="dark"] .acento-4 {
   --acento: #aab1bb;
+  --acento-fg: var(--ab-navy);
 }
 
 /* El rótulo del grupo con su marca de color: dos píxeles a la izquierda, no un fondo. Un fondo
@@ -2108,7 +2165,7 @@ button,
   border: 1px solid transparent;
   border-radius: var(--ab-radio-md);
   background: var(--ab-primary);
-  color: #fff;
+  color: var(--ab-sobre-primary);
   font: inherit;
   font-weight: 600;
   line-height: 1.2;
@@ -2122,7 +2179,7 @@ button,
 button:hover,
 .boton:hover {
   background: var(--ab-primary-hover);
-  color: #fff;
+  color: var(--ab-sobre-primary);
 }
 
 button:focus-visible,
