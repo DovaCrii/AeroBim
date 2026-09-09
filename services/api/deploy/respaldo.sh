@@ -94,23 +94,43 @@ respaldar() {
 }
 
 # ── La comprobacion, que es la mitad que importa ────────────────────────────────
+
+# **El nombre de la base de prueba vive fuera de la funcion, y eso no es estilo: es el arreglo.**
+#
+# Estaba como `local` dentro de `verificar`, y el `trap EXIT` que la borra **no la veia**. Medido el
+# 2026-09-09 con un guion minimo: bash deshace el alcance de la funcion antes de correr el trap de
+# salida, asi que la variable llega vacia **por los dos caminos** -al terminar bien y al fallar-.
+# El `dropdb --if-exists ""` que salia de ahi no borra nada y el `|| true` se tragaba la queja.
+#
+# La consecuencia era grave para un guion que existe para dar tranquilidad: cada comprobacion
+# dejaba una `aerobim_prueba_<epoch>` para siempre. Con la comprobacion diaria que este guion
+# propone, son trescientas sesenta y cinco copias enteras al año en el mismo disco que protege --y
+# cada una lleva los correos y los hashes de contraseña que el guion se cuida de no dejar legibles.
+PRUEBA=""
+
 verificar() {
     local ultimo
-    ultimo="$(ls -1d "$DESTINO"/*/ | tail -n 1)"
+    # Sin juegos guardados no hay nada que comprobar, y conviene decirlo asi en vez de dejar que
+    # `ls` falle: un guion que muere con «no such file» hace pensar que se rompio.
+    ultimo="$(ls -1d "$DESTINO"/*/ 2>/dev/null | tail -n 1 || true)"
+    if [ -z "$ultimo" ]; then
+        echo "no hay ningun respaldo en $DESTINO todavia: corre el guion sin --verificar" >&2
+        exit 1
+    fi
     echo "comprobando $ultimo"
 
     (cd "$ultimo" && sha256sum --check sha256sums.txt)
 
     # **Una base aparte, y con la fecha en el nombre.** Restaurar sobre la de produccion para
     # "comprobar" es la forma mas rapida de perder los datos que se querian proteger.
-    local prueba="aerobim_prueba_$(date +%s)"
-    echo "restaurando en $prueba"
-    createdb "$prueba"
+    PRUEBA="aerobim_prueba_$(date +%s)"
+    echo "restaurando en $PRUEBA"
+    createdb "$PRUEBA"
     # `trap` y no un `dropdb` al final: si `pg_restore` falla, la base de prueba se queda ahi y la
     # siguiente comprobacion crea otra. Con veinte de esas nadie sabe cual borrar.
-    trap 'dropdb --if-exists "$prueba" || true' EXIT
+    trap 'if [ -n "${PRUEBA:-}" ]; then dropdb --if-exists "$PRUEBA" || true; fi' EXIT
 
-    pg_restore --dbname="$prueba" --no-owner --no-privileges "$ultimo/base.dump"
+    pg_restore --dbname="$PRUEBA" --no-owner --no-privileges "$ultimo/base.dump"
 
     # El oraculo: Django habla con la base restaurada y **no falta ninguna migracion**.
     # `check --database` toca la conexion de verdad; `showmigrations` delata un volcado hecho a
@@ -120,7 +140,7 @@ verificar() {
     (
         cd /opt/aerobim/services/api
         export DJANGO_SETTINGS_MODULE=config.settings.prod
-        export DB_NAME="$prueba"
+        export DB_NAME="$PRUEBA"
         .venv/bin/python manage.py check --database default
         echo "migraciones aplicadas en la copia: $(
             .venv/bin/python manage.py showmigrations --plan | grep -c '^\[X\]'
