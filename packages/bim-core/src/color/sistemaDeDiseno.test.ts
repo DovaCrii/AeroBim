@@ -129,6 +129,37 @@ const SUPERFICIES = ["shell", "surface", "surface-2", "surface-3"] as const;
 /** Los tres niveles de texto. El más apagado también pasa AA: eso es el punto. */
 const TEXTOS = ["fg", "fg-2", "fg-3"] as const;
 
+/**
+ * **El fondo del lienzo, que es una cuarta superficie y no estaba en esta lista.**
+ *
+ * No es un token nuestro: lo pone `SimpleScene` de `@thatopen/components`
+ * —`this.three.background = new THREE.Color(2107698)`, que es `#202932`— y **no cambia con el
+ * tema**, a propósito: `docs/UX.md` dice «el modelo manda y el lienzo es oscuro».
+ *
+ * Se escribe aquí porque el gate media el texto contra `shell`, `surface`, `surface-2` y
+ * `surface-3`, y lo que se pinta encima del lienzo no está sobre ninguna de las cuatro. Es la
+ * misma clase de hueco que tuvo el relleno de la acción: **un par correcto sobre una tercera
+ * superficie**. Si algún día se hace configurable, este número sale de ahí y no de aquí.
+ */
+const LIENZO = "#202932";
+
+/** Los tres niveles de tinta que se admiten **encima del lienzo**. */
+const SOBRE_LIENZO = ["sobre-lienzo", "sobre-lienzo-2", "sobre-lienzo-3"] as const;
+
+/**
+ * Los archivos que dibujan **directamente sobre el lienzo**, sin superficie propia debajo.
+ *
+ * **Es una lista a mano y no puede no serlo**, al contrario que `todoElVisor()`: qué componente
+ * flota sobre el lienzo y cuál se apoya en un panel no lo dice ninguna expresión regular — una
+ * tarjeta flotante como `NotaFlotante` también está encima del lienzo, pero lleva `bg-surface`, así
+ * que su texto es un par de chrome sobre chrome y está bien con la escala del shell.
+ *
+ * Para que la lista no se podrida en silencio, la prueba comprueba las dos direcciones: que estos
+ * **no** usen la escala del shell, y que **sí** usen la del lienzo. Un archivo que deje de pintar
+ * encima del lienzo se cae de la segunda mitad y hay que quitarlo de aquí.
+ */
+const SOBRE_EL_LIENZO = ["PuertaDeEntrada.tsx", "ViewCube.tsx"] as const;
+
 describe("el movimiento está declarado", () => {
   // **Había siete `transition-colors` sueltos y ninguna duración escrita**, así que el producto
   // tenía un movimiento —el de fábrica de Tailwind— que no había elegido nadie.
@@ -226,6 +257,12 @@ describe("el tema claro", () => {
     // El relleno de la acción es la marca, y la marca no se aclara: es oscura en los dos temas. Un
     // texto que sí cambiara con el tema es exactamente el defecto que hubo — 1,92:1 en claro.
     expect(SOLO_CLARO["sobre-accion"]).toBeUndefined();
+  });
+
+  it("ni la tinta del lienzo, que es oscuro en los dos temas", () => {
+    // Mismo argumento un piso más abajo, y el mismo defecto: la puerta de entrada escribía su
+    // título con `text-fg` y en claro daba **1,08:1** sobre el fondo del lienzo.
+    for (const nivel of SOBRE_LIENZO) expect(SOLO_CLARO[nivel]).toBeUndefined();
   });
 
   it("los tres niveles de texto pasan AA sobre las tres superficies claras", () => {
@@ -340,6 +377,88 @@ describe("contraste del texto", () => {
         ).toBeGreaterThanOrEqual(AA_TEXTO);
       }
     }
+  });
+
+  /**
+   * Y lo mismo para **el lienzo**, que es la cuarta superficie. Ver {@link LIENZO}.
+   *
+   * **Este bloque nace de un defecto medido en pantalla el 2026-09-09**, no de una revisión: con el
+   * tema claro puesto, la puerta de entrada —la primera pantalla del producto— escribía su título y
+   * las tres palabras que importan con `text-fg`, y sobre el lienzo eso da **1,08:1**. En la captura
+   * la frase se leía «Un modelo ___, el plano ___ del proyecto, o el ___ de la obra»: **IFC**,
+   * **DXF** y **levantamiento** habían desaparecido, y los tres rótulos del cubo de vistas también.
+   *
+   * Nadie lo había visto porque el tema claro **se declaró y nunca se miró entero** — el propio plan
+   * lo decía: «el visor gana un tema entero que hay que mirar en todas las pantallas, porque el gate
+   * mide pares de color y no composiciones».
+   */
+  it("la tinta del lienzo pasa AA sobre el lienzo, y la del shell NO valdría", () => {
+    for (const nivel of SOBRE_LIENZO) {
+      const tinta = T[nivel];
+      expect(tinta, `falta --color-${nivel}`).toBeDefined();
+      const ratio = contrastRatio(tinta as string, LIENZO);
+      expect(ratio, `${nivel} sobre el lienzo da ${ratio.toFixed(2)}`).toBeGreaterThanOrEqual(
+        AA_TEXTO,
+      );
+    }
+
+    // **Y la otra mitad, que es la que da sentido al token:** la escala del shell en tema claro no
+    // llega ni a 3:1 encima del lienzo. Si algún día pasara, este token sobraría — y esta línea
+    // avisaría en vez de dejarlo sin decir.
+    const elMejorDelShell = Math.max(
+      ...TEXTOS.map((texto) => contrastRatio(CLARO[texto] as string, LIENZO)),
+    );
+    expect(
+      elMejorDelShell,
+      `el mejor del shell claro da ${elMejorDelShell.toFixed(2)}`,
+    ).toBeLessThan(AA_NO_TEXTO);
+  });
+
+  it("y la marca se distingue encima del lienzo, que es de lo que vive el recuadro de la suelta", () => {
+    // **Tercer caso del mismo patrón, y este no es texto.** El recuadro que aparece al arrastrar un
+    // archivo iba en `border-accent/70`, y el acento sí cambia con el tema: en claro da **1,79:1**
+    // sobre el lienzo. La marca no cambia y da 3,57, que es lo que WCAG 1.4.11 pide de algo que
+    // informa sin ser texto. Esta línea es la que mantiene válida esa elección.
+    const ratio = contrastRatio(T["brand"] as string, LIENZO);
+    expect(ratio, `la marca sobre el lienzo da ${ratio.toFixed(2)}`).toBeGreaterThanOrEqual(
+      AA_NO_TEXTO,
+    );
+    // Y que el acento claro **no** llegue, que es el motivo de no usarlo ahí.
+    expect(contrastRatio(CLARO["accent"] as string, LIENZO)).toBeLessThan(AA_NO_TEXTO);
+  });
+
+  /**
+   * **La regla se afinó al escribirla, y el criterio final es más útil que el primero.**
+   *
+   * La primera versión prohibía la escala del shell en estos archivos, sin más — y cazó
+   * `text-fg-2` en la puerta de entrada, que estaba **bien**: es el botón «Abrir del disco», que
+   * lleva `bg-surface-2`. Un botón encima del lienzo no pinta sobre el lienzo: pinta sobre sí
+   * mismo.
+   *
+   * El criterio que sí distingue las dos cosas: **una lista de clases que fija color de texto y no
+   * fija fondo está pintando sobre lo que haya detrás**. En estos archivos, eso es el lienzo. Y con
+   * eso, el defecto original —`<h2 className="… text-fg">`— salta, y el botón no.
+   */
+  it("y lo que se pinta encima del lienzo usa esa tinta y no la del shell", () => {
+    const DEL_SHELL = /\b(?:text|fill|stroke)-fg(?:-[23])?\b/;
+    const CON_FONDO = /\b(?:bg-|fill-(?:surface|shell|action|brand|apagado))/;
+
+    const mal: string[] = [];
+    for (const archivo of SOBRE_EL_LIENZO) {
+      const fuente = sinComentarios(readFileSync(join(VISOR, "components", archivo), "utf8"));
+      // Cada literal de cadena por separado: en este código una lista de clases es una cadena, y
+      // las variantes de un botón son cadenas distintas de un `array`.
+      for (const [, cadena] of fuente.matchAll(/["'`]([^"'`]*)["'`]/g)) {
+        const clases = cadena ?? "";
+        if (DEL_SHELL.test(clases) && !CON_FONDO.test(clases)) {
+          mal.push(`${archivo}: «${clases.trim()}» fija texto y no fija fondo`);
+        }
+      }
+      // Y al revés, para que la lista no se pudra: si un archivo deja de pintar encima del lienzo,
+      // deja de usar esta tinta y hay que sacarlo de `SOBRE_EL_LIENZO`.
+      if (!/sobre-lienzo/.test(fuente)) mal.push(`${archivo}: no usa la tinta del lienzo`);
+    }
+    expect(mal, `encima del lienzo con la escala del shell: ${mal.join(" · ")}`).toEqual([]);
   });
 
   it("y `bg-action` nunca lleva `text-fg`, que es la forma que tenía el defecto", () => {

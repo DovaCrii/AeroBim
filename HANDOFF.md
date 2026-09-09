@@ -5,6 +5,30 @@
 
 ## Cómo seguir (leer esto primero)
 
+> ## Estado al 2026-09-09, al final: el tema claro mirado, y la primera pantalla estaba en blanco
+>
+> **El plan decía que esto solo se cerraba mirándolo** —«el visor gana un tema entero que hay que
+> mirar en todas las pantallas, porque el gate mide pares de color y no composiciones»—, así que se
+> miró. Y la primera pantalla del producto, con el tema claro puesto, tenía huecos donde van las
+> palabras: se leía «Un modelo \_\_\_, el plano \_\_\_ del proyecto, o el \_\_\_ de la obra».
+> **IFC**, **DXF** y **levantamiento** estaban a **1,08:1**.
+>
+> **La causa raíz era una conclusión escrita en el plan y equivocada:** «el lienzo sí sigue al
+> tema». No lo sigue. El renderizador va con `alpha` y las capas de CSS detrás del `<canvas>` están
+> transparentes, pero lo que se ve es el fondo de la **escena**, que lo pone la librería en
+> `#202932` y no consulta nada nuestro. Y si uno cree que el lienzo se aclara, escribir encima con
+> `text-fg` **es** correcto — por eso el barrido anterior, que midió bien lo que midió, no miró
+> esto.
+>
+> Tres defectos de la misma familia, los tres solo en tema claro: la puerta de entrada, los tres
+> rótulos del cubo de vistas (invisibles) y el recuadro que aparece al arrastrar un archivo — la
+> única señal de que la suelta va a entrar, a 1,79:1.
+>
+> El arreglo es `--color-sobre-lienzo` en tres niveles, que **no cambia con el tema** igual que
+> `--color-sobre-accion`, y **el lienzo entra al gate como cuarta superficie**: pasa AA encima de
+> él, no puede redeclararse en el bloque claro, y los archivos que pintan sobre el lienzo no pueden
+> fijar color de texto sin fijar fondo. Comprobado que falla al revertir el defecto.
+
 > ## Estado al 2026-09-09, más tarde: el par de `F12.2`, y el navegador que se pliega
 >
 > **`F12.2` esperaba «un modelo y un levantamiento del mismo sitio» y no hacía falta esperar a la

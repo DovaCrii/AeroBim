@@ -2405,8 +2405,19 @@ export function App() {
             }}
           />
 
+          {/*
+           * **El recuadro de la suelta va en la marca y a opacidad entera**, y las dos cosas son
+           * medidas. Llevaba `border-accent/70`, y `--color-accent` **sí cambia con el tema**: en
+           * claro es `#5b3a9e`, que sobre el fondo del lienzo —`#202932`, y el lienzo es oscuro en
+           * los dos temas— da **1,79:1**. O sea que la única señal de que la suelta va a entrar
+           * era invisible justo mientras se arrastra el archivo.
+           *
+           * La marca no cambia con el tema y da **3,57:1**, que es lo que WCAG 1.4.11 pide de algo
+           * que informa sin ser texto. Y el `/70` sobra: al 70 % ese mismo violeta se queda por
+           * debajo de 3:1, así que la opacidad se comía el margen entero.
+           */}
           {dragging && (
-            <div className="pointer-events-none absolute inset-4 rounded-lg border-2 border-dashed border-accent/70" />
+            <div className="pointer-events-none absolute inset-4 rounded-lg border-2 border-dashed border-brand" />
           )}
 
           {/* **La nube cuenta como "hay algo abierto".** Sin ella en esta condición, el lienzo
