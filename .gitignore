@@ -101,3 +101,10 @@ apps/web/public/wasm/
 # proyecto real. Existe para comprobar que un IFC con el emplazamiento en las coordenadas no pierde
 # precision, y que el calce automatico contra la nube funciona.
 !apps/web/public/samples/muro-en-utm.ifc
+
+# **El levantamiento de ESE muro** (`F12.2`): 135 KB, generado por
+# `apps/web/scripts/nube-del-muro.py` y sin dato alguno de un levantamiento real. Es el par que
+# faltaba en el repositorio: la nube sintetica de arriba esta a cinco kilometros del muro, y al
+# encuadrar los dos el muro medía un pixel — por eso el calce a mano no se podia ejercer. Sale
+# **corrido 0,240 / -0,150 / +0,075 m a proposito**, que es lo que el calce tiene que recuperar.
+!apps/web/public/samples/levantamiento-del-muro.copc.laz
