@@ -213,24 +213,39 @@ class AyudaView(LoginRequiredMixin, TemplateView):
 
 
 class GlosarioView(LoginRequiredMixin, TemplateView):
-    """El vocabulario BIM, y qué hace AeroBim con cada palabra. `F11.11`.
+    """Un vocabulario del oficio, y qué hace AeroBim con cada palabra. `F11.11`, `F11.12`.
 
     **Sin permiso y solo con sesión**, por lo mismo que `AyudaView`: explica el oficio, no da acceso
     a nada, y el rol más acotado es justo el que más lo necesita.
 
-    El contenido y el porqué de que diga «no» siete veces están en `apps/accounts/glosario.py`.
+    Una clave desconocida da **404 y no una caída al primero**: la URL la escribe alguien o la pega
+    de un enlace, y devolver silenciosamente otro vocabulario es la clase de amabilidad que hace que
+    nadie se entere de que su enlace está roto. (La regla contraria vale para un parámetro de
+    *presentación* como `?vista=`, que sí cae al valor por defecto: ahí no hay nada que romper.)
+
+    El contenido y las dos reglas de escritura están en `apps/accounts/glosario.py`.
     """
 
     template_name = "accounts/glosario.html"
 
     def get_context_data(self, **kwargs):
-        from apps.accounts.glosario import cuantos_no_estan, terminos_por_grupo
+        from django.http import Http404
+
+        from apps.accounts.glosario import cuantos_no_estan, terminos_por_grupo, vocabularios
+
+        elegido = vocabularios().get(kwargs["cual"])
+        if elegido is None:
+            raise Http404(f"no hay un vocabulario «{kwargs['cual']}»")
 
         contexto = super().get_context_data(**kwargs)
-        contexto["grupos"] = terminos_por_grupo()
+        contexto["vocabulario"] = elegido
+        contexto["grupos"] = terminos_por_grupo(elegido)
         # Cuántos no están, para decirlo arriba en vez de que se descubra bajando — igual que la
         # ayuda hace con los pasos ajenos.
-        contexto["no_estan"] = cuantos_no_estan()
+        contexto["no_estan"] = cuantos_no_estan(elegido)
+        contexto["cuantos"] = len(elegido.terminos)
+        # Los otros vocabularios, para poder saltar de uno a otro sin volver a la ayuda.
+        contexto["otros"] = [uno for uno in vocabularios().values() if uno.clave != elegido.clave]
         return contexto
 
 

@@ -13,6 +13,18 @@
 > no necesita la vigesimoprimera. Lo que no puede encontrar en ninguno es **si la herramienta que
 > tiene delante hace esa cosa**, y eso es lo que añade cada ficha, con enlace cuando lo hay.
 >
+> **Y un rato después pidió el segundo, que es el que más falta hacía:** «glosario topográfico para
+> entender en general las diferentes especialidades… principalmente explicando el tema de nube de
+> puntos, DEM, ortofotos» (`F11.12`). Veinte términos, y **once no están en el producto**. Los tres
+> avisos que esa pantalla existe para dar, porque son los que cuestan una obra: **la cota elipsoidal
+> no es la cota de proyecto** —mezclarlas hace que AeroBim mida la desviación bien y dé un número
+> correcto sobre datos incomparables, con decenas de metros de sesgo—, **precisión no es exactitud**
+> —RTK repite milímetros y puede estar corrido un metro— y **la fotogrametría no ve el suelo bajo la
+> vegetación**, que es de dónde salen dos MDT distintos del mismo terreno.
+>
+> Al añadir el segundo la maquinaria se sacó a `glosario.py` y las pruebas quedaron parametrizadas:
+> **un tercer vocabulario entra sin escribir una prueba.**
+>
 > **Y dice que no la mitad justa de las veces: ocho de dieciséis.** LOD, BEP, el modelado
 > paramétrico, 4D, 5D, COBie, AIM y el gemelo digital, cada uno con qué hay en su lugar. Una prueba
 > fija esos ocho por nombre, para que pasar uno a «sí» sin construirlo rompa el gate.

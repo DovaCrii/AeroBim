@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-11 08:33-0300\n"
+"POT-Creation-Date: 2026-09-11 09:19-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1401,7 +1401,7 @@ msgstr[1] ""
 "porque un recorrido al que le faltan pasos no explica de dónde viene tu "
 "trabajo."
 
-#: .\templates\accounts\ayuda.html:66 .\templates\accounts\glosario.html:66
+#: .\templates\accounts\ayuda.html:66 .\templates\accounts\glosario.html:68
 msgid "Go there"
 msgstr "Ir ahí"
 
@@ -1442,8 +1442,7 @@ msgstr ""
 "publicado —no lo que está en curso—. Si te falta una pantalla que necesitas, "
 "es un rol que pedir y no un botón que se rompió."
 
-#: .\templates\accounts\ayuda.html:103 .\templates\accounts\glosario.html:4
-#: .\templates\accounts\glosario.html:6
+#: .\templates\accounts\ayuda.html:103
 msgid "BIM vocabulary"
 msgstr "Vocabulario BIM"
 
@@ -1458,35 +1457,60 @@ msgstr ""
 "interferencias, 4D, COBie— y, de cada una, si AeroBim lo hace y dónde. La "
 "mitad no las hace: esas dicen qué hay en su lugar."
 
-#: .\templates\accounts\glosario.html:10
-msgid ""
-"Sixteen words you will hear on any BIM project, and what AeroBim does with\n"
-"  each one."
-msgstr ""
-"Dieciséis palabras que vas a oír en cualquier proyecto BIM, y qué hace "
-"AeroBim con cada una."
+#: .\templates\accounts\ayuda.html:111
+msgid "Survey vocabulary"
+msgstr "Vocabulario del levantamiento"
 
-#: .\templates\accounts\glosario.html:36
+#: .\templates\accounts\ayuda.html:113
+msgid ""
+"Point cloud, LiDAR, COPC, DTM and DSM, orthophoto, reference system —\n"
+"        the words the flight crew, the surveyor and the modeller each "
+"understand differently. With\n"
+"        the three warnings that cost a job: ellipsoidal height is not "
+"project height, precision is\n"
+"        not accuracy, and photogrammetry does not see the ground under the\n"
+"        trees."
+msgstr ""
+"Nube de puntos, LiDAR, COPC, MDT y MDS, ortofoto, sistema de referencia: las "
+"palabras que quien vuela, quien topografía y quien modela entienden cada uno "
+"de otra manera. Con los tres avisos que cuestan una obra: la cota elipsoidal "
+"no es la cota de proyecto, precisión no es exactitud, y la fotogrametría no "
+"ve el suelo bajo los árboles."
+
+#: .\templates\accounts\glosario.html:10
 #, python-format
 msgid ""
-"One of these sixteen is not in the product: it is listed\n"
-"    anyway, marked, and says what there is instead. A glossary that promises "
-"everything is a\n"
-"    brochure."
+"%(total)s words you will hear on any project, and what\n"
+"  AeroBim does with each one."
+msgstr ""
+"%(total)s palabras que vas a oír en cualquier proyecto, y qué hace AeroBim "
+"con cada una."
+
+#: .\templates\accounts\glosario.html:38
+#, python-format
+msgid ""
+"One of these %(cuantas)s is not\n"
+"    in the product: it is listed anyway, marked, and says what there is "
+"instead. A glossary that\n"
+"    promises everything is a brochure."
 msgid_plural ""
-"%(total)s of these sixteen are not in the product: they are listed anyway,\n"
-"    marked, and each says what there is instead. A glossary that promises "
-"everything is a\n"
-"    brochure."
+"%(total)s of these %(cuantas)s are not in the\n"
+"    product: they are listed anyway, marked, and each says what there is "
+"instead. A glossary that\n"
+"    promises everything is a brochure."
 msgstr[0] ""
-"Una de estas dieciséis no está en el producto: se lista igual, marcada, y "
+"Una de estas %(cuantas)s no está en el producto: se lista igual, marcada, y "
 "dice qué hay en su lugar. Un glosario que lo promete todo es un folleto."
 msgstr[1] ""
-"%(total)s de estas dieciséis no están en el producto: se listan igual, "
+"%(total)s de estas %(cuantas)s no están en el producto: se listan igual, "
 "marcadas, y cada una dice qué hay en su lugar. Un glosario que lo promete "
 "todo es un folleto."
 
-#: .\templates\accounts\glosario.html:73
+#: .\templates\accounts\glosario.html:80
+msgid "The other vocabularies"
+msgstr "Los otros vocabularios"
+
+#: .\templates\accounts\glosario.html:89
 msgid "Back to how AeroBim is used"
 msgstr "Volver a cómo se usa AeroBim"
 

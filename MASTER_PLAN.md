@@ -3958,19 +3958,20 @@ que ya tenía: un sistema correcto y sin vida. Todo pasa AA, todo es legible, y 
 nueve tarjetas idénticas de icono, título y dos líneas grises. **El defecto no es de contraste, es
 de jerarquía**, y por eso no lo cazó el oráculo de la `FASE 9`.
 
-| #        | Tarea                                                                           | Estado       |
-| -------- | ------------------------------------------------------------------------------- | ------------ |
-| `F11.1`  | Distintivo de disciplina: su código sobre su color, y la letra elegida midiendo | ✅ ver abajo |
-| `F11.2`  | Fichas con nombre: «A» pasa a «A · Publicado y autorizado»                      | ✅ ver abajo |
-| `F11.3`  | La marca sin placa: variante de trazo claro para las superficies oscuras        | ✅ ver abajo |
-| `F11.4`  | La portada: dos mitades, para qué sirve esto, y un mensaje para el equipo       | ✅ ver abajo |
-| `F11.5`  | El portal reordenado, y la tarjeta de obra con datos y no con texto             | ✅ ver abajo |
-| `F11.6`  | «Observaciones abiertas»: prioridad, antigüedad y responsable de un vistazo     | ✅ ver abajo |
-| `F11.7`  | Una sección de ayuda con el recorrido de cómo se usa                            | ✅ ver abajo |
-| `F11.8`  | Botones, campos y migas: los controles dejaron de ser los del sistema           | ✅ ver abajo |
-| `F11.9`  | La ficha de un hallazgo en dos columnas: la conversación y la ficha             | ✅ ver abajo |
-| `F11.10` | El portal: nombres de sección, líneas de ayuda, iconos y los cinco acentos      | ✅ ver abajo |
-| `F11.11` | El vocabulario BIM, y qué hace AeroBim con cada una de las dieciséis palabras   | ✅ ver abajo |
+| #        | Tarea                                                                            | Estado       |
+| -------- | -------------------------------------------------------------------------------- | ------------ |
+| `F11.1`  | Distintivo de disciplina: su código sobre su color, y la letra elegida midiendo  | ✅ ver abajo |
+| `F11.2`  | Fichas con nombre: «A» pasa a «A · Publicado y autorizado»                       | ✅ ver abajo |
+| `F11.3`  | La marca sin placa: variante de trazo claro para las superficies oscuras         | ✅ ver abajo |
+| `F11.4`  | La portada: dos mitades, para qué sirve esto, y un mensaje para el equipo        | ✅ ver abajo |
+| `F11.5`  | El portal reordenado, y la tarjeta de obra con datos y no con texto              | ✅ ver abajo |
+| `F11.6`  | «Observaciones abiertas»: prioridad, antigüedad y responsable de un vistazo      | ✅ ver abajo |
+| `F11.7`  | Una sección de ayuda con el recorrido de cómo se usa                             | ✅ ver abajo |
+| `F11.8`  | Botones, campos y migas: los controles dejaron de ser los del sistema            | ✅ ver abajo |
+| `F11.9`  | La ficha de un hallazgo en dos columnas: la conversación y la ficha              | ✅ ver abajo |
+| `F11.10` | El portal: nombres de sección, líneas de ayuda, iconos y los cinco acentos       | ✅ ver abajo |
+| `F11.11` | El vocabulario BIM, y qué hace AeroBim con cada una de las dieciséis palabras    | ✅ ver abajo |
+| `F11.12` | El vocabulario del levantamiento: nube de puntos, MDT y MDS, ortofoto, el geoide | ✅ ver abajo |
 
 ### `F11.5` — El portal, que es la página que más pesa
 
@@ -4284,6 +4285,49 @@ el usuario:
 
 Se apila en una columna por debajo de 860 px, y **el formulario va primero en el HTML**: así en el
 móvil se entra sin bajar, y en el escritorio la rejilla lo coloca a la derecha.
+
+### `F11.12` — ✅ El vocabulario del levantamiento
+
+**Lo pidió el usuario el 2026-09-11**, el mismo día y justo después del de BIM: «glosario topográfico
+para entender en general las diferentes especialidades… principalmente explicando el tema de nube de
+puntos, DEM, ortofotos, esa es la línea».
+
+**El motivo le da la forma a la tarea:** aquí no se hablan dos idiomas sino tres —el de quien vuela,
+el de quien topografía y el de quien modela— y las palabras que más se usan son justo las que cada
+oficio entiende de otra manera. Un modelador oye «cota» y piensa en el nivel del proyecto; un
+topógrafo pregunta si es elipsoidal u ortométrica, y la diferencia son decenas de metros.
+
+**Veinte términos en tres grupos**, en el orden en que se encuentra uno con ellos: _cómo se captura_
+(nube de puntos, fotogrametría, LiDAR, densidad, GSD) · _dónde cae_ (sistema de referencia, cota
+elipsoidal y ortométrica, precisión y exactitud, RTK y PPK, puntos de apoyo y de chequeo, calce) ·
+_qué productos salen_ (LAS y LAZ, COPC, clasificación, intensidad, MDT y MDS, ortofoto, curvas y TIN,
+cubicación, desviación).
+
+**Los tres avisos que esta pantalla existe para dar**, cada uno en el término que le toca, y los tres
+de los que cuestan una obra:
+
+1. **Cota elipsoidal y cota ortométrica no son la misma cota.** Si el modelo está en cota de proyecto
+   y la nube llega en elipsoidal, AeroBim mide la desviación, la calcula bien y **da un número
+   correcto sobre datos incomparables**: decenas de metros de sesgo constante, que es justo la clase
+   de error que no parece un error.
+2. **Precisión no es exactitud.** Un vuelo RTK repite milímetros y puede estar corrido un metro si la
+   base estaba mal puesta. El punto de chequeo —el que se deja fuera del ajuste a propósito— es la
+   única medida honesta, y es la misma idea que el residuo del calce por tres pares.
+3. **La fotogrametría no ve el suelo bajo la vegetación** y el LiDAR sí, por los retornos múltiples.
+   De ahí que el mismo terreno dé dos MDT distintos según con qué se voló.
+
+**Once de los veinte no están en el producto**, y con eso la proporción de este vocabulario es más
+dura que la del BIM — que es lo honesto: AeroBim abre, calza y mide la nube, pero **no genera MDT ni
+MDS, no hace ortofotos, no clasifica, no saca curvas de nivel y no cubica**. La distinción que más
+vale de las que dice: la desviación contesta «¿está donde debía?» y la cubicación «¿cuánto material
+hay?», y la segunda pide dos superficies, no una nube y un modelo.
+
+**La maquinaria se sacó a `glosario.py`** al añadir el segundo: `Termino`, `Vocabulario`, la
+resolución de enlaces y las dos reglas de escritura. Los contenidos viven en `vocabulario_bim.py` y
+`vocabulario_levantamiento.py`, y las pruebas van parametrizadas sobre los dos — **un tercer
+vocabulario entra sin escribir una prueba**. La URL lleva la clave (`/ayuda/vocabulario/bim/`), y una
+clave desconocida da **404 y no cae al primero**: devolver otra pantalla en silencio hace que nadie
+se entere de que su enlace está roto.
 
 ### `F11.11` — ✅ El vocabulario BIM, y qué hace AeroBim con cada palabra
 
