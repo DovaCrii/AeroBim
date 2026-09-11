@@ -1,10 +1,12 @@
 """Los vocabularios: la maquinaria, y las dos reglas que valen para cualquiera de ellos.
 
-Hay dos, y los pidió el usuario con un día de diferencia:
+Hay tres, y los pidió el usuario el mismo día, uno detrás de otro:
 
 - **`vocabulario_bim.py`** (`F11.11`) — las dieciséis palabras de la lámina de conceptos BIM.
 - **`vocabulario_levantamiento.py`** (`F11.12`) — nube de puntos, MDT, ortofoto y el sistema de
   referencia: «glosario topográfico para entender en general las diferentes especialidades».
+- **`vocabulario_gestion.py`** (`F11.13`) — «se puede sumar al glosario el tema de CAPEX y OPEX y
+  los KPI».
 
 ## La regla que hace que esto no sea un glosario más
 
@@ -70,9 +72,11 @@ def vocabularios() -> dict[str, Vocabulario]:
     importar `Termino` de aquí sin ciclo.
     """
     from apps.accounts.vocabulario_bim import VOCABULARIO as BIM
+    from apps.accounts.vocabulario_gestion import VOCABULARIO as GESTION
     from apps.accounts.vocabulario_levantamiento import VOCABULARIO as LEVANTAMIENTO
 
-    return {BIM.clave: BIM, LEVANTAMIENTO.clave: LEVANTAMIENTO}
+    # El orden es el de la obra: qué es esto, con qué se mide, y cuánto cuesta.
+    return {uno.clave: uno for uno in (BIM, LEVANTAMIENTO, GESTION)}
 
 
 @dataclass(frozen=True)

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-11 09:19-0300\n"
+"POT-Creation-Date: 2026-09-11 09:41-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1476,6 +1476,22 @@ msgstr ""
 "de otra manera. Con los tres avisos que cuestan una obra: la cota elipsoidal "
 "no es la cota de proyecto, precisión no es exactitud, y la fotogrametría no "
 "ve el suelo bajo los árboles."
+
+#: .\templates\accounts\ayuda.html:121
+msgid "Cost and management vocabulary"
+msgstr "Vocabulario de gestión y costos"
+
+#: .\templates\accounts\ayuda.html:123
+msgid ""
+"CAPEX, OPEX, life cycle cost, earned value, KPIs. This is the one that\n"
+"        says no the most: AeroBim is not a cost tool, and it is cheaper to "
+"read that here than to\n"
+"        find out in the meeting where a cost report was promised."
+msgstr ""
+"CAPEX, OPEX, coste del ciclo de vida, valor ganado, KPI. Es el que más veces "
+"dice que no: AeroBim no es una herramienta de costos, y sale más barato "
+"leerlo aquí que descubrirlo en la reunión donde se prometió un informe de "
+"costos."
 
 #: .\templates\accounts\glosario.html:10
 #, python-format
