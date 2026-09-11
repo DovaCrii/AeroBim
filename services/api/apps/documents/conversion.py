@@ -25,7 +25,7 @@ falta una herramienta de conversión es un registro que pierde el archivo.
 ## Cómo se instala
 
 1. Descargar **ODA File Converter** de `openbase.opendesign.com` e instalarlo en el servidor.
-2. Apuntar `AEROBIM_ODA_CONVERTER` a su ejecutable. En Windows suele ser:
+2. Apuntar `ODA_CONVERTER` a su ejecutable. En Windows suele ser:
    `C:\\Program Files\\ODA\\ODAFileConverter <version>\\ODAFileConverter.exe`
 3. Reiniciar el servicio. `estado_del_conversor()` dice si lo encontró.
 
@@ -102,14 +102,14 @@ def estado_del_conversor() -> EstadoDelConversor:
             ruta="",
             motivo=(
                 "No hay conversor configurado. Instala ODA File Converter y apunta "
-                "AEROBIM_ODA_CONVERTER a su ejecutable."
+                "ODA_CONVERTER a su ejecutable."
             ),
         )
     if not Path(ruta).is_file():
         return EstadoDelConversor(
             disponible=False,
             ruta=ruta,
-            motivo=f"AEROBIM_ODA_CONVERTER apunta a {ruta}, y ahí no hay ningún archivo.",
+            motivo=f"ODA_CONVERTER apunta a {ruta}, y ahí no hay ningún archivo.",
         )
     return EstadoDelConversor(disponible=True, ruta=ruta, motivo="")
 
@@ -190,7 +190,14 @@ def a_dxf(contenido: bytes, extension: str) -> bytes:
 
         # **El código de salida no sirve: devuelve 0 aunque no convierta nada.** Lo que se
         # comprueba es que el DXF esté.
-        dxf = next(salida.glob("*.dxf"), None)
+        #
+        # **Y se busca sin mirar mayúsculas, que en Linux no es lo mismo.** Esto era
+        # `salida.glob("*.dxf")`: en Windows `glob` no distingue y en Linux sí, así que un
+        # conversor que escribiera `PLANO.DXF` —depende de la versión y de cómo venga el
+        # original— funcionaba en el equipo de desarrollo y en la VM devolvía `sin-salida`,
+        # cuyo texto dice «suele ser un archivo dañado». O sea: el motivo equivocado sobre un
+        # archivo correcto, que es la clase de pista que hace perder una tarde.
+        dxf = next((uno for uno in sorted(salida.iterdir()) if uno.suffix.lower() == ".dxf"), None)
         if dxf is None:
             raise ConversionImposible(
                 "El conversor terminó sin escribir ningún DXF. Suele ser un archivo dañado o "

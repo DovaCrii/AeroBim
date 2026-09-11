@@ -180,6 +180,36 @@ DOCUMENTS_DIR = Path(config("DOCUMENTS_DIR", default=str(BASE_DIR / "documents")
 # no configurar nada, pero cuesta media hora entender por que.
 ODA_CONVERTER = config("ODA_CONVERTER", default="")
 
+# ─────────────────────────────────────────────────────────────────────────────
+# **Cuanto cuerpo de peticion se acepta, y por que el valor de fabrica no daba.**
+#
+# Django corta el cuerpo de una peticion en **2,5 MB** por omision, y este ajuste no estaba escrito
+# en ningun sitio. Dos cosas del producto pasan de ahi o se quedan al borde:
+#
+# - **La lamina PDF.** `apps/documents/lamina.py` acepta hasta `MAXIMO_SEGMENTOS` trazos y los
+#   recorta si llegan mas. Con sesenta mil segmentos `[x1,y1,x2,y2]` el JSON ronda los 3 MB, asi que
+#   `HttpRequest.body` levantaba `RequestDataTooBig` **antes de que la vista corriera** y el recorte
+#   no llegaba a ejecutarse nunca: un `400` sin explicacion en cuanto la planta es densa.
+# - **La observacion desde el visor.** Lleva la instantanea en base64 —`instantanea.LARGO_MAXIMO`,
+#   1,8 MB— **mas** el marcado, la visibilidad, la camara y el texto. El comentario de
+#   `instantanea.py` dice que 1,8 MB esta «por debajo del limite de Django»; lo esta, pero el margen
+#   que queda para todo lo demas es de 0,7 MB y nadie lo habia sumado.
+#
+# **Ocho megas, y el numero sale de la suma y no del gusto**: el peor cuerpo legitimo es del orden
+# de 5 MB, y el doble deja sitio a que un plano crezca sin volver aqui. La prueba
+# `test_ajustes_de_produccion.py` comprueba esa coherencia contra las dos constantes, asi que subir
+# una de ellas sin subir esto pone el gate en rojo.
+#
+# **No afecta a los 200 MB del registro.** Los archivos de un `multipart` no cuentan para este tope
+# —Django los mide aparte—, asi que subir un IFC sigue funcionando igual.
+DATA_UPLOAD_MAX_MEMORY_SIZE = 8 * 1024 * 1024
+
+# **Se deja el valor de fabrica (2,5 MB) a proposito.** No es un tope sino el umbral a partir del
+# cual un archivo subido deja de vivir en memoria y pasa a un temporal en disco. Bajo es lo que se
+# quiere: con `workers = cpu*2+1` y archivos de obra de 200 MB, cuanto antes toque disco, mejor.
+FILE_UPLOAD_MAX_MEMORY_SIZE = 2621440
+# ─────────────────────────────────────────────────────────────────────────────
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 REST_FRAMEWORK = {
@@ -260,6 +290,17 @@ EMAIL_PORT = config("EMAIL_PORT", default=587, cast=int)
 EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="")
 EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
 EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=True, cast=bool)
+# **Diez segundos, porque el valor de fabrica es «ninguno».**
+#
+# Sin esto, el backend de Django pasa `timeout=None` a `smtplib` y el socket espera para siempre. Un
+# SMTP que acepta la conexion TCP y no contesta —un cortafuegos a medias, un servidor saturado, un
+# DNS que resuelve a una IP muerta— deja el worker **bloqueado hasta que gunicorn lo mata a los
+# 120 s**. Y los avisos se mandan dentro de la peticion: con nueve workers y un reparto de
+# hallazgos, el sitio entero se queda sin atender por un servidor de correo lento.
+#
+# Diez segundos son de sobra para un SMTP sano y poco para que se note: quien reparte un hallazgo
+# espera diez segundos en el peor caso, no dos minutos.
+EMAIL_TIMEOUT = config("EMAIL_TIMEOUT", default=10, cast=int)
 DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="aerobim@localhost")
 # Base absoluta de los enlaces que van dentro de un correo: ahi no hay peticion
 # de la que deducir el dominio.

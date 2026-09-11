@@ -1,0 +1,58 @@
+# El respaldo diario: el volcado de la base y el tar de los documentos.
+#
+# **Este archivo no existia, y su ausencia estaba razonada.** `docs/DEPLOY.md` lo describia en prosa
+# y explicaba por que no se versionaba: `pg_dump`, `pg_restore` y `createdb` no se habian ejecutado
+# nunca, y «programar el respaldo antes de eso dejaria un respaldo que se cree hecho». El motivo era
+# bueno y ahora esta cumplido: el guion se ensayo entero —incluido `--verificar`— sobre PostgreSQL
+# de verdad antes de escribir esto.
+#
+# **Sigue habiendo una puerta, y es de operacion, no de codigo:** esta unidad se instala **despues**
+# de que `respaldo.sh --verificar` haya pasado una vez en la maquina donde va a correr. Un timer que
+# guarda copias de las que nadie ha vuelto es peor que no tener timer, porque se deja de mirar.
+#
+# Instalar, una vez pasada esa puerta:
+#
+#   sudo cp aerobim-respaldo.service aerobim-respaldo.timer /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now aerobim-respaldo.timer
+#   sudo systemctl start aerobim-respaldo.service    # una corrida a mano, para verla
+#
+# **`Type=oneshot` y sin `Restart=`**, por lo mismo que el resumen: un respaldo que falla se mira,
+# no se reintenta en bucle contra un disco lleno.
+
+[Unit]
+Description=Respaldo de AeroBim: base de datos y documentos
+# La base tiene que estar arriba; el servicio web no hace falta, esto no pasa por HTTP.
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=aerobim
+Group=aerobim
+WorkingDirectory=/opt/aerobim/services/api
+
+EnvironmentFile=/opt/aerobim/services/api/.env
+Environment=DJANGO_SETTINGS_MODULE=config.settings.prod
+Environment=PYTHONUNBUFFERED=1
+
+ExecStart=/opt/aerobim/services/api/deploy/respaldo.sh
+
+# Un respaldo es `pg_dump` mas un `tar` de todos los documentos: con un COPC de 130 MB y varios IFC
+# dentro, media hora es holgura y no espera. Si algun dia lo alcanza, el problema es el tamaño y no
+# el tope.
+TimeoutStartSec=1800
+
+# ── Lo mismo que los otros, y por las mismas razones ────────────────────────────
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+# **`/var/backups/aerobim` es lo que distingue a esta unidad de las otras dos.** Sin esa ruta,
+# `ProtectSystem=strict` deja el destino de solo lectura y el guion falla con «read-only file
+# system» — a las 02:00 de mañana, no ahora, que es cuando menos se mira.
+ReadWritePaths=/var/lib/aerobim /var/log/aerobim /var/backups/aerobim

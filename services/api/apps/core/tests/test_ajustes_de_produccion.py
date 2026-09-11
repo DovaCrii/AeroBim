@@ -135,6 +135,44 @@ def test_una_carpeta_de_registro_imposible_no_tumba_el_arranque(tmp_path, monkey
             sys.modules.pop(nombre, None)
 
 
+def test_el_cuerpo_que_se_acepta_da_para_el_mayor_envio_legitimo(produccion):
+    """**Los dos topes del producto y el de Django estaban descoordinados, y nadie los sumo.**
+
+    Django corta el cuerpo en 2,5 MB por omision y `DATA_UPLOAD_MAX_MEMORY_SIZE` no estaba escrito
+    en ningun sitio. La lamina PDF acepta `MAXIMO_SEGMENTOS` trazos y los recorta si llegan mas —
+    pero `HttpRequest.body` levantaba `RequestDataTooBig` **antes de que corriera la vista**, asi
+    que el recorte no se ejecutaba nunca y salia un 400 sin explicacion.
+
+    Esta prueba no mide un numero bonito: **calcula el peor cuerpo legitimo a partir de las dos
+    constantes del producto** y exige que el ajuste lo cubra. Subir `MAXIMO_SEGMENTOS` o
+    `LARGO_MAXIMO` sin subir el ajuste pone esto en rojo, que es justo lo que no pasaba antes.
+    """
+    from apps.documents.instantanea import LARGO_MAXIMO
+    from apps.documents.lamina import MAXIMO_SEGMENTOS
+
+    # Un segmento en JSON es `[x,y,x,y],`. Con coordenadas de hasta diez caracteres y los
+    # separadores son unos 45 bytes; se toman 48 para no quedarse justo.
+    lamina = MAXIMO_SEGMENTOS * 48
+    # Y la observacion del visor: la instantanea en base64 mas el marcado, la camara y el texto.
+    observacion = LARGO_MAXIMO + 512 * 1024
+
+    assert produccion.DATA_UPLOAD_MAX_MEMORY_SIZE > lamina, (
+        f"la lamina mas grande que el producto acepta son ~{lamina // 1024} KB y el tope no da"
+    )
+    assert produccion.DATA_UPLOAD_MAX_MEMORY_SIZE > observacion
+
+
+def test_el_correo_no_puede_bloquear_un_worker_para_siempre(produccion):
+    """Sin `EMAIL_TIMEOUT`, Django pasa `timeout=None` a `smtplib` y el socket espera sin fin.
+
+    Los avisos se mandan **dentro de la peticion**: un SMTP que acepta la conexion y no contesta
+    deja el worker bloqueado hasta que gunicorn lo mata a los 120 s, y con varios workers eso es el
+    sitio entero sin atender por un servidor de correo lento.
+    """
+    assert produccion.EMAIL_TIMEOUT is not None
+    assert 0 < produccion.EMAIL_TIMEOUT <= 30
+
+
 def test_el_registro_en_archivo_no_rota_desde_varios_procesos(produccion):
     """**`TimedRotatingFileHandler` no es multiproceso**, y con `workers = cpu*2+1` hay varios.
 
