@@ -92,15 +92,25 @@
       </div>
     </div>
     {% comment %}
-      El vocabulario va aquí y no en el rail: es material de lectura, se busca una vez y desde
-      «cómo se usa». `F11.11`.
+      Los vocabularios van aquí y no en el rail: son material de lectura, se buscan una vez y desde
+      «cómo se usa». `F11.11` y `F11.12`.
     {% endcomment %}
-    <a class="tarjeta" href="{% url 'accounts:glosario' %}">
+    <a class="tarjeta" href="{% url 'accounts:glosario' 'bim' %}">
       <div class="titulo">{% translate "BIM vocabulary" %}</div>
       <div class="detalle">
         {% blocktranslate %}Sixteen words you will hear on any BIM project — CDE, LOD, IFC, clash
         detection, 4D, COBie — and, for each one, whether AeroBim does it and where. Half of them it
         does not: those say what there is instead.{% endblocktranslate %}
+      </div>
+    </a>
+    <a class="tarjeta" href="{% url 'accounts:glosario' 'levantamiento' %}">
+      <div class="titulo">{% translate "Survey vocabulary" %}</div>
+      <div class="detalle">
+        {% blocktranslate %}Point cloud, LiDAR, COPC, DTM and DSM, orthophoto, reference system —
+        the words the flight crew, the surveyor and the modeller each understand differently. With
+        the three warnings that cost a job: ellipsoidal height is not project height, precision is
+        not accuracy, and photogrammetry does not see the ground under the
+        trees.{% endblocktranslate %}
       </div>
     </a>
   </div>
