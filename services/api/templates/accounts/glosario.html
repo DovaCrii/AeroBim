@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block titulo %}{% translate "BIM vocabulary" %} · AeroBim{% endblock %}
+
+{% block titulo_pagina %}<h1>{% translate "BIM vocabulary" %}</h1>{% endblock %}
+
+{% block subtitulo %}
+<p class="subtitulo">
+  {% blocktranslate %}Sixteen words you will hear on any BIM project, and what AeroBim does with
+  each one.{% endblocktranslate %}
+</p>
+{% endblock %}
+
+{% block contenido %}
+  {% comment %}
+    **El vocabulario BIM.** `F11.11`. El usuario trajo una lámina de dieciséis conceptos el
+    2026-09-11: «incorporar la idea por lo menos como informativo, se ve interesante».
+
+    La lámina copiada no habría valido para nada: definiciones de estas hay en veinte sitios, y
+    quien abre esto no necesita la vigesimoprimera. Lo que no puede encontrar en ninguno es **si la
+    herramienta que tiene delante hace esa cosa**, y eso es lo que añade cada ficha, con enlace a la
+    pantalla cuando la hay.
+
+    Y dice que no la mitad de las veces —ocho de dieciséis—. Un glosario que promete las dieciséis
+    convierte la ayuda en un folleto, y quien lo lee lo descubre buscando un botón que no existe. La
+    ficha ausente se **apaga y no se esconde**, exactamente como el paso que no te toca en la ayuda;
+    la diferencia es que aquí el «en AeroBim» conserva su tono, porque es justo la frase que se vino
+    a leer.
+
+    El contenido sale de `apps/accounts/glosario.py`, no de esta plantilla.
+  {% endcomment %}
+
+  <div class="aviso">
+    {% blocktranslate count total=no_estan %}One of these sixteen is not in the product: it is listed
+    anyway, marked, and says what there is instead. A glossary that promises everything is a
+    brochure.{% plural %}{{ total }} of these sixteen are not in the product: they are listed anyway,
+    marked, and each says what there is instead. A glossary that promises everything is a
+    brochure.{% endblocktranslate %}
+  </div>
+
+  {% for grupo, terminos in grupos %}
+    <p class="grupo">{{ grupo }}</p>
+    <ul class="recorrido">
+      {% for uno in terminos %}
+        <li class="termino {% if not uno.termino.lo_hace %}termino-ausente{% endif %}">
+          <h2>
+            {{ uno.termino.sigla }}
+            {% if not uno.termino.lo_hace %}
+              {% comment %}
+                Va como literal en español, igual que el resto del texto del vocabulario: el
+                contenido ya viene en español desde `glosario.py`, y marcarlo dejaría una entrada
+                traducida a sí misma — lo que caza `test_ninguna_traduccion_repite_el_original`.
+              {% endcomment %}
+              <span class="ficha">no está en AeroBim</span>
+            {% endif %}
+          </h2>
+          {% if uno.termino.nombre %}
+            <p class="termino-nombre">{{ uno.termino.nombre }}</p>
+          {% endif %}
+          <p class="que-es">{{ uno.termino.que_es }}</p>
+          <p class="en-aerobim">{{ uno.termino.en_aerobim }}</p>
+          {% if uno.url %}
+            <a class="boton secundario" href="{{ uno.url }}">{% translate "Go there" %}</a>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% endfor %}
+
+  <p><a href="{% url 'accounts:ayuda' %}">{% translate "Back to how AeroBim is used" %}</a></p>
+{% endblock %}

@@ -3970,6 +3970,7 @@ de jerarquía**, y por eso no lo cazó el oráculo de la `FASE 9`.
 | `F11.8`  | Botones, campos y migas: los controles dejaron de ser los del sistema           | ✅ ver abajo |
 | `F11.9`  | La ficha de un hallazgo en dos columnas: la conversación y la ficha             | ✅ ver abajo |
 | `F11.10` | El portal: nombres de sección, líneas de ayuda, iconos y los cinco acentos      | ✅ ver abajo |
+| `F11.11` | El vocabulario BIM, y qué hace AeroBim con cada una de las dieciséis palabras   | ✅ ver abajo |
 
 ### `F11.5` — El portal, que es la página que más pesa
 
@@ -4283,6 +4284,50 @@ el usuario:
 
 Se apila en una columna por debajo de 860 px, y **el formulario va primero en el HTML**: así en el
 móvil se entra sin bajar, y en el escritorio la rejilla lo coloca a la derecha.
+
+### `F11.11` — ✅ El vocabulario BIM, y qué hace AeroBim con cada palabra
+
+**La trajo el usuario el 2026-09-11**, con una lámina de dieciséis conceptos BIM: «incorporar la idea
+por lo menos como informativo, se ve interesante». Las dieciséis están.
+
+**Lo que no se hizo fue copiar la lámina**, y eso es toda la tarea. Definiciones de CDE, LOD o
+clash detection hay en veinte sitios de internet y quien abre esto no necesita la vigesimoprimera. Lo
+que **no** puede encontrar en ninguno es si la herramienta que tiene delante hace esa cosa. Así que
+cada término lleva un campo más —`en_aerobim`— que contesta exactamente eso, con enlace a la pantalla
+cuando la hay.
+
+**Y dice que no la mitad justa de las veces: ocho de dieciséis.** LOD, BEP, el modelado paramétrico,
+4D, 5D, COBie, AIM y el gemelo digital no están, y cada uno explica **qué hay en su lugar** o qué
+haría falta:
+
+| No está                  | Qué hay en su lugar                                                                                                                                                                    |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **LOD**                  | El código de idoneidad de la revisión —S0 a S7, A, B—, que es otro eje: la idoneidad habla del documento y el LOD del elemento. Por elemento pediría un pset propio y un requisito IDS |
+| **BEP**                  | Es un documento, y se archiva como cualquier entregable. Lo que decide sí se aplica —correlativos, roles, qué se publica— pero se configura a mano                                     |
+| **Modelado paramétrico** | Nada, y no es carencia: AeroBim lee y coordina modelos, no los crea                                                                                                                    |
+| **4D**                   | Actividades con fecha y una línea de tiempo, **sin vincular a elementos**, que es lo que lo haría 4D                                                                                   |
+| **5D**                   | Los cuadros sacan las cantidades con sus unidades y salen en CSV. Falta el precio y la partida                                                                                         |
+| **COBie**                | Los psets se leen y su cobertura se mide, pero las hojas y columnas obligatorias de COBie no están escritas                                                                            |
+| **AIM**                  | Nada: empieza donde acaba la etapa de proyecto                                                                                                                                         |
+| **Gemelo digital**       | Nada: lo que lo distingue de un modelo es el dato en vivo, y aquí no entra ninguno                                                                                                     |
+
+`test_glosario.py` **fija esos ocho por nombre**. Pasar uno a «sí» sin construirlo rompe el gate, que
+es justo lo que se quiere: un glosario que promete las dieciséis cosas convierte la ayuda en un
+folleto, y quien lo lee lo descubre buscando un botón que no existe. Se comprueba además que ninguno
+de los ausentes lleve un «Ir ahí» —sería la contradicción más cara de la pantalla— y que cada destino
+esté en el catálogo del portal, el mismo guardián que sujeta a `F11.7`.
+
+**Dos cosas que salieron mirando la pantalla y no leyendo el código:**
+
+- **Las negritas salían con asteriscos.** La casa escribe en Markdown y aquí no hay Markdown: la
+  plantilla de Django imprime el texto tal cual. Con dieciséis fichas el error se cuela sin que nadie
+  lo relea, así que hay una prueba de que ningún texto lleva `**`.
+- **Las cadenas nuevas no estaban en el catálogo**, así que la pantalla salía a medias en inglés para
+  quien la lee en español. `makemessages`, las cinco entradas traducidas y `compilemessages`.
+
+La ficha ausente se **apaga y no se esconde**, con la misma forma que el paso que no te toca en la
+ayuda —comparten las reglas de CSS a propósito—, con una diferencia: aquí el «en AeroBim» conserva su
+tono, porque es justo la frase que se vino a leer.
 
 ### `F11.7` — ✅ La ayuda: un recorrido generado, no un recorrido pintado encima
 

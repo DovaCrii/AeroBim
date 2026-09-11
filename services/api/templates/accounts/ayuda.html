@@ -91,5 +91,17 @@
         it is a role to ask for, not a button that broke.{% endblocktranslate %}
       </div>
     </div>
+    {% comment %}
+      El vocabulario va aquí y no en el rail: es material de lectura, se busca una vez y desde
+      «cómo se usa». `F11.11`.
+    {% endcomment %}
+    <a class="tarjeta" href="{% url 'accounts:glosario' %}">
+      <div class="titulo">{% translate "BIM vocabulary" %}</div>
+      <div class="detalle">
+        {% blocktranslate %}Sixteen words you will hear on any BIM project — CDE, LOD, IFC, clash
+        detection, 4D, COBie — and, for each one, whether AeroBim does it and where. Half of them it
+        does not: those say what there is instead.{% endblocktranslate %}
+      </div>
+    </a>
   </div>
 {% endblock %}

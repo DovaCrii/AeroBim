@@ -212,6 +212,28 @@ class AyudaView(LoginRequiredMixin, TemplateView):
         return contexto
 
 
+class GlosarioView(LoginRequiredMixin, TemplateView):
+    """El vocabulario BIM, y qué hace AeroBim con cada palabra. `F11.11`.
+
+    **Sin permiso y solo con sesión**, por lo mismo que `AyudaView`: explica el oficio, no da acceso
+    a nada, y el rol más acotado es justo el que más lo necesita.
+
+    El contenido y el porqué de que diga «no» siete veces están en `apps/accounts/glosario.py`.
+    """
+
+    template_name = "accounts/glosario.html"
+
+    def get_context_data(self, **kwargs):
+        from apps.accounts.glosario import cuantos_no_estan, terminos_por_grupo
+
+        contexto = super().get_context_data(**kwargs)
+        contexto["grupos"] = terminos_por_grupo()
+        # Cuántos no están, para decirlo arriba en vez de que se descubra bajando — igual que la
+        # ayuda hace con los pasos ajenos.
+        contexto["no_estan"] = cuantos_no_estan()
+        return contexto
+
+
 class UsuariosRolesView(ModelViewPermissionRequiredMixin, CsvExportMixin, TemplateView):
     """Quien tiene que rol. **Solo lectura, y con lista blanca al exportar.**
 

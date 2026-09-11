@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-08 12:59-0300\n"
+"POT-Creation-Date: 2026-09-11 08:33-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1401,7 +1401,7 @@ msgstr[1] ""
 "porque un recorrido al que le faltan pasos no explica de dónde viene tu "
 "trabajo."
 
-#: .\templates\accounts\ayuda.html:66
+#: .\templates\accounts\ayuda.html:66 .\templates\accounts\glosario.html:66
 msgid "Go there"
 msgstr "Ir ahí"
 
@@ -1441,6 +1441,54 @@ msgstr ""
 "El portal solo lista lo que tu rol puede abrir, y un mandante ve solo lo "
 "publicado —no lo que está en curso—. Si te falta una pantalla que necesitas, "
 "es un rol que pedir y no un botón que se rompió."
+
+#: .\templates\accounts\ayuda.html:103 .\templates\accounts\glosario.html:4
+#: .\templates\accounts\glosario.html:6
+msgid "BIM vocabulary"
+msgstr "Vocabulario BIM"
+
+#: .\templates\accounts\ayuda.html:105
+msgid ""
+"Sixteen words you will hear on any BIM project — CDE, LOD, IFC, clash\n"
+"        detection, 4D, COBie — and, for each one, whether AeroBim does it "
+"and where. Half of them it\n"
+"        does not: those say what there is instead."
+msgstr ""
+"Dieciséis palabras que vas a oír en cualquier proyecto BIM —CDE, LOD, IFC, "
+"interferencias, 4D, COBie— y, de cada una, si AeroBim lo hace y dónde. La "
+"mitad no las hace: esas dicen qué hay en su lugar."
+
+#: .\templates\accounts\glosario.html:10
+msgid ""
+"Sixteen words you will hear on any BIM project, and what AeroBim does with\n"
+"  each one."
+msgstr ""
+"Dieciséis palabras que vas a oír en cualquier proyecto BIM, y qué hace "
+"AeroBim con cada una."
+
+#: .\templates\accounts\glosario.html:36
+#, python-format
+msgid ""
+"One of these sixteen is not in the product: it is listed\n"
+"    anyway, marked, and says what there is instead. A glossary that promises "
+"everything is a\n"
+"    brochure."
+msgid_plural ""
+"%(total)s of these sixteen are not in the product: they are listed anyway,\n"
+"    marked, and each says what there is instead. A glossary that promises "
+"everything is a\n"
+"    brochure."
+msgstr[0] ""
+"Una de estas dieciséis no está en el producto: se lista igual, marcada, y "
+"dice qué hay en su lugar. Un glosario que lo promete todo es un folleto."
+msgstr[1] ""
+"%(total)s de estas dieciséis no están en el producto: se listan igual, "
+"marcadas, y cada una dice qué hay en su lugar. Un glosario que lo promete "
+"todo es un folleto."
+
+#: .\templates\accounts\glosario.html:73
+msgid "Back to how AeroBim is used"
+msgstr "Volver a cómo se usa AeroBim"
 
 #: .\templates\accounts\organizaciones.html:10
 msgid ""
@@ -2253,7 +2301,8 @@ msgid ""
 "A screenshot or a site photo, PNG or JPEG, up to 8 MB. It stays in\n"
 "            AeroBim: a BCF carries the topic's image, not the thread's."
 msgstr ""
-"Una captura de pantalla o una foto de obra, PNG o JPEG, hasta 8 MB. Se queda\n"
+"Una captura de pantalla o una foto de obra, PNG o JPEG, hasta 8 MB. Se "
+"queda\n"
 "            en AeroBim: un BCF lleva la imagen del tema, no las del hilo."
 
 #: .\templates\documents\observacion.html:165
