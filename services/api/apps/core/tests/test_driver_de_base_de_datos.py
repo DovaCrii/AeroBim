@@ -13,17 +13,34 @@ el módulo de ajustes, y el de esta sesión ya está importado.
 import os
 import subprocess
 import sys
-from importlib.util import find_spec
 from pathlib import Path
-
-import pytest
 
 BASE_DIR = Path(__file__).resolve().parents[3]
 
-pytestmark = pytest.mark.skipif(
-    find_spec("psycopg") is not None,
-    reason="psycopg está instalado (grupo `deploy`): aquí no hay nada que delatar",
-)
+#: El prólogo que **esconde `psycopg` del subproceso**, esté instalado o no.
+#:
+#: Antes esto era un `skipif`: si `psycopg` estaba presente, la prueba se saltaba entera «porque
+#: aquí no hay nada que delatar». Funcionaba mientras la CI instalara solo el grupo `dev` — y dejó
+#: de funcionar el día que entró PostgreSQL al gate, porque entonces `psycopg` está siempre y esta
+#: prueba **se habría saltado siempre**, quedando el mensaje sin vigilar justo cuando más gente lo
+#: iba a leer.
+#:
+#: Con el buscador de módulos de abajo, el subproceso ve exactamente lo que ve una VM recién
+#: instalada, y la prueba corre en los dos casos. Es la diferencia entre comprobar algo y comprobar
+#: que hoy no se puede comprobar.
+SIN_PSYCOPG = """
+import sys
+
+class NoHayPsycopg:
+    def find_spec(self, nombre, ruta=None, destino=None):
+        if nombre == "psycopg" or nombre.startswith("psycopg."):
+            raise ModuleNotFoundError(f"No module named {nombre!r}", name=nombre)
+        return None
+
+sys.meta_path.insert(0, NoHayPsycopg())
+import django
+django.setup()
+"""
 
 
 def _cargar_ajustes(entorno: dict[str, str]) -> subprocess.CompletedProcess[str]:
@@ -33,7 +50,7 @@ def _cargar_ajustes(entorno: dict[str, str]) -> subprocess.CompletedProcess[str]
     # sea, la prueba pasaria a verde por el motivo equivocado.
     base = {llave: valor for llave, valor in os.environ.items() if llave != "DB_ENGINE"}
     return subprocess.run(
-        [sys.executable, "-c", "import django; django.setup()"],
+        [sys.executable, "-c", SIN_PSYCOPG],
         cwd=BASE_DIR,
         env={
             **base,
@@ -78,3 +95,30 @@ def test_el_alias_corto_del_motor_tambien_se_comprueba():
 def test_sqlite_no_pide_nada():
     """El camino de siempre no se toca: sin `DB_ENGINE`, la aplicación carga."""
     assert _cargar_ajustes({}).returncode == 0
+
+
+def test_el_prologo_esconde_psycopg_de_verdad():
+    """**La prueba de que estas pruebas no son ciegas.**
+
+    Todo lo de arriba se apoya en que el subproceso no pueda importar `psycopg`. Si ese prólogo
+    dejara de funcionar —un cambio en el mecanismo de importación, un error de escritura en el
+    nombre— los tres casos seguirían en verde **por el motivo equivocado**: con `psycopg` presente,
+    los ajustes cargarían y `returncode` sería 0… salvo que los dos primeros esperan lo contrario.
+
+    O sea que los dos primeros ya lo delatarían **si `psycopg` está instalado**. Esto lo delata
+    también cuando no lo está, que es el caso en el que el `skipif` de antes escondía todo.
+    """
+    resultado = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            SIN_PSYCOPG.replace("import django\ndjango.setup()", "import psycopg"),
+        ],
+        capture_output=True,
+        text=True,
+        timeout=60,
+        check=False,
+    )
+
+    assert resultado.returncode != 0
+    assert "psycopg" in resultado.stderr

@@ -41,6 +41,38 @@ jobs:
     defaults:
       run:
         working-directory: services/api
+
+    # **PostgreSQL entra al gate el 2026-09-11, y el motivo es un defecto que SQLite escondía.**
+    #
+    # La suite corría solo sobre SQLite —`pyproject.toml` fija `config.settings.dev`— y el
+    # despliegue usa PostgreSQL. Esa distancia dejó pasar dos cosas que ninguna prueba podía ver:
+    #
+    # 1. **El número de orden de la auditoría se repetía.** `AuditEvent.sequence` se calculaba
+    #    leyendo el máximo y sumando uno; con dieciséis hilos contra PostgreSQL, **192 escrituras y
+    #    27 números distintos**. En SQLite el caso no existe, porque las escrituras van de una en
+    #    una — así que el defecto era invisible por construcción.
+    # 2. **Los `NULL` de `vence` se ordenan al revés** en los dos motores, y tres consultas no
+    #    pasaban por `nulos_al_final`.
+    #
+    # La versión es **16**, la misma que trae Ubuntu 24.04, que es lo que corre en la VM. Poner otra
+    # aquí sería probar contra un motor que nadie despliega.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: aerobim
+          POSTGRES_PASSWORD: solo-para-el-gate
+          POSTGRES_DB: aerobim
+        ports:
+          - 5432:5432
+        # Sin esto el trabajo arranca antes de que la base acepte conexiones y falla el primer
+        # `pytest` con «connection refused», que se lee como un defecto y es una carrera.
+        options: >-
+          --health-cmd "pg_isready -U aerobim"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
     steps:
       - uses: actions/checkout@v5
 
@@ -56,7 +88,11 @@ jobs:
 
       # `--locked` en vez de `--frozen`: **falla si `uv.lock` no cuadra con `pyproject.toml`**, que
       # es justo el descuadre que nadie ve hasta que otra persona instala.
-      - run: uv sync --locked
+      #
+      # **Y con el grupo `deploy`, que trae `psycopg`.** Sin él la suite no puede hablar con el
+      # servicio de PostgreSQL de arriba, y `base.py` lo dice bien claro al cargar: levanta un
+      # `ImportError` con el comando exacto en vez de fallar en la primera consulta.
+      - run: uv sync --locked --group deploy
 
       - run: uv run python manage.py check
 
@@ -80,7 +116,26 @@ jobs:
           find locale -name '*.mo' -delete
           uv run python manage.py compilemessages -i .venv -i staticfiles
 
-      - run: uv run pytest --cov
+      # **La suite corre contra los dos motores, y no es simetría por gusto.**
+      #
+      # PostgreSQL es lo que se despliega, así que es el que lleva la cobertura y el que decide el
+      # gate. SQLite es lo que usa el equipo en su equipo —`.env.example` lo trae por omisión—, y
+      # una regresión que solo se viera allí llegaría a quien desarrolla en vez de a quien despliega.
+      #
+      # La carrera de `AuditEvent` **solo se reproduce en PostgreSQL**: su prueba se salta sola con
+      # SQLite y lo dice, en vez de aparentar que pasó.
+      - name: pytest contra PostgreSQL, que es lo que se despliega
+        env:
+          DB_ENGINE: postgres
+          DB_NAME: aerobim
+          DB_USER: aerobim
+          DB_PASSWORD: solo-para-el-gate
+          DB_HOST: 127.0.0.1
+          DB_PORT: "5432"
+        run: uv run pytest --cov
+
+      - name: pytest contra SQLite, que es lo que usa el equipo
+        run: uv run pytest -q
 
       - run: uv run ruff check .
       - run: uv run ruff format --check .
