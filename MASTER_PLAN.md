@@ -4972,6 +4972,43 @@ un elemento _y_ tiene un punto medido, y lo que la identifica es el elemento.
 los dos lados por separado —el visor manda lo correcto, el registro lo acepta— y los dos con
 pruebas, pero el POST se interceptó para leerlo porque no hay Django delante.
 
+#### El 2026-09-11: **el punto que se anclaba no era un punto de la nube**
+
+El usuario lo dijo el 2026-09-10 —«está fallando al pickear el punto al que quiero dejar» la nota— y
+se contestó a medias. Se arregló un defecto de criterio cierto (se tomaba el más cercano a la cámara
+de entre los que rozan la línea de visión, no el que está bajo el cursor) y se dejó escrito que la
+relación con el síntoma **no estaba reproducida**: revirtiendo el arreglo, el diagnóstico daba lo
+mismo, «0,0 px del cursor» con los dos criterios.
+
+**Esa coincidencia era el síntoma.** `THREE.Points.raycast` devuelve en `point` el pie de la
+perpendicular **sobre el rayo** —`_ray.closestPointToPoint(vertice, intersectPoint)` en `testPoint`—
+y el vértice solo se recupera por `golpe.index`. Dos consecuencias:
+
+1. **La coordenada que guardaba la nota no pertenecía al levantamiento**, corrida hacia la línea de
+   visión tanto como permitiera el umbral. Sobre el Camino Agrícola, **0,5915 m**. No se ve de
+   frente, porque por construcción cae bajo el cursor; se ve al orbitar y se ve en la coordenada.
+2. **El criterio de píxeles recibía datos degenerados.** En un ensayo de tres puntos a 20 m, los tres
+   candidatos proyectaban a `(800,0 · 450,0)` —el cursor exacto— mientras sus vértices caían a 800,
+   819,5 y 846,8 px. Con todo a cero, el filtro degeneraba en «el de delante». Por eso revertir no
+   cambiaba nada.
+
+Arreglado con `verticeDelGolpe`, usado para las dos cosas. Medido sobre los 15 366 674 puntos reales,
+con el arreglo y revirtiéndolo:
+
+|             | distancia al vértice más cercano | px del cursor |
+| ----------- | -------------------------------- | ------------- |
+| Como estaba | **0,5915 m — NO (mal)**          | 0,0           |
+| Arreglado   | **0,0000 m — sí**                | 5,9           |
+
+**Y las dos lecciones de oráculo, que son lo que se lleva a la próxima:**
+
+- El modo `nube` medía **píxeles del cursor**, y esa cifra no podía ver el defecto: un punto sobre la
+  línea de visión siempre da cero. La pregunta que sí lo ve es de metros y contra los datos —**¿lo
+  devuelto ES un punto de la nube?**—, y ya está en el modo.
+- La prueba de unidad del criterio usaba candidatos **escritos a mano**, así que un criterio correcto
+  alimentado con datos degenerados le pasaba por delante. El bloque nuevo de `senalar.test.ts` lanza
+  el rayo de verdad de Three sobre una nube de verdad.
+
 ### `F12.13` — El levantamiento entra al expediente ✅
 
 **Hecho el 2026-09-07.** Hasta hoy la nube solo se abría arrastrando un archivo al lienzo: el

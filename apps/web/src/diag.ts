@@ -2622,6 +2622,33 @@ export async function nube(container: HTMLElement, url: string, log: Log): Promi
       const RADIO = 6;
       log(`  el punto devuelto cae a ${aCursor(devuelto).toFixed(1)} px del cursor`);
 
+      // **El oráculo que faltaba, y es el que delata el defecto de verdad: lo devuelto tiene que
+      // SER un punto de la nube.** `Points.raycast` devuelve en `point` el pie de la perpendicular
+      // sobre el rayo, así que durante meses lo que salía de aquí era una coordenada que no
+      // pertenecía al levantamiento —corrida hasta `distanceToRay` metros— y aun así caía a 0,0 px
+      // del cursor, porque por construcción está sobre la línea de visión. Esa cifra de píxeles no
+      // podía ver nada: hacía falta medir **en metros y contra los vértices**.
+      let alVertice = Infinity;
+      for (const hijo of cargada.nube.objeto.children) {
+        const geo = (hijo as THREE.Points).geometry;
+        const pos = geo.getAttribute("position");
+        if (pos === undefined) continue;
+        (hijo as THREE.Points).updateMatrixWorld(true);
+        const v = new THREE.Vector3();
+        for (let i = 0; i < pos.count; i += 1) {
+          v.fromBufferAttribute(pos as THREE.BufferAttribute, i);
+          v.applyMatrix4((hijo as THREE.Points).matrixWorld);
+          const d = v.distanceTo(devuelto);
+          if (d < alVertice) alVertice = d;
+          if (alVertice === 0) break;
+        }
+        if (alVertice === 0) break;
+      }
+      log(
+        `  distancia al vertice mas cercano de la nube: ${alVertice.toFixed(4)} m` +
+          ` — ${alVertice < 1e-3 ? "si (bien): es un punto del levantamiento" : "NO (mal): la coordenada no pertenece a la nube"}`,
+      );
+
       // Se muestrea uno de cada siete: con quince millones de puntos, proyectarlos todos cuesta
       // segundos. El muestreo solo puede **perder** un candidato mejor, nunca inventar uno, asi
       // que si esta comprobacion falla es porque el visor eligio mal de verdad.

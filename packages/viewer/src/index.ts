@@ -67,7 +67,7 @@ import { type PartesDeCota, siguienteOrdinal, textoDeCota } from "./cotas.js";
 import { categoriasDe, cuadroDe, encabezadoDeColumna, type Schedule } from "./cuadros.js";
 import { DrawingMaker, type DrawingView, type GeneratedDrawing } from "./drawings.js";
 import { GridOverlay } from "./grid.js";
-import { masCercanoAlCursor } from "./senalar.js";
+import { masCercanoAlCursor, verticeDelGolpe } from "./senalar.js";
 
 export type { DrawingLayerInfo, DrawingView, GeneratedDrawing } from "./drawings.js";
 /* `PartesDeCota` sale en `DrawnMeasurement`, que es público: sin reexportarla, quien consuma la
@@ -4602,33 +4602,39 @@ export class BimViewer {
     const golpes = rayo.intersectObjects(this.nube.objeto.children, false);
     if (golpes.length === 0) return null;
 
+    // **Se proyecta el vértice, no `golpe.point`.** Ver {@link verticeDelGolpe}: lo que devuelve la
+    // librería es el pie de la perpendicular sobre el rayo, así que proyecta **al cursor exacto**
+    // para todos los candidatos y dejaría el criterio de píxeles sin nada que distinguir.
     const cursor: [number, number] = [clientX - caja.left, clientY - caja.top];
     const elegido = masCercanoAlCursor(
-      golpes.map((golpe) => {
-        const ndcDelPunto = golpe.point.clone().project(this.camera.three);
-        return {
-          pixel: [
-            ((ndcDelPunto.x + 1) / 2) * caja.width,
-            ((1 - ndcDelPunto.y) / 2) * caja.height,
-          ] as [number, number],
-          profundidad: golpe.distance,
-          golpe,
-        };
+      golpes.flatMap((golpe) => {
+        const vertice = verticeDelGolpe(golpe);
+        if (vertice === null) return [];
+        const ndcDelPunto = vertice.clone().project(this.camera.three);
+        return [
+          {
+            pixel: [
+              ((ndcDelPunto.x + 1) / 2) * caja.width,
+              ((1 - ndcDelPunto.y) / 2) * caja.height,
+            ] as [number, number],
+            profundidad: golpe.distance,
+            golpe: { golpe, vertice },
+          },
+        ];
       }),
       cursor,
     );
     if (elegido === null) return null;
-    const primero = elegido.golpe;
 
-    const enLaEscena: [number, number, number] = [
-      primero.point.x,
-      primero.point.y,
-      primero.point.z,
-    ];
+    // **La coordenada que sale de aquí es la del punto levantado**, no la del rayo. Es la que guarda
+    // la nota y la que se dibuja: con `golpe.point` la marca quedaba corrida hasta `distanceToRay`
+    // metros, invisible de frente y evidente al orbitar.
+    const vertice = elegido.golpe.vertice;
+    const enLaEscena: [number, number, number] = [vertice.x, vertice.y, vertice.z];
     return {
       escena: enLaEscena,
       archivo: escenaAArchivo(enLaEscena, this.nube.desplazamiento),
-      distancia: primero.distance,
+      distancia: this.camera.three.position.distanceTo(vertice),
     };
   }
 

@@ -5,6 +5,47 @@
 
 ## Cómo seguir (leer esto primero)
 
+> ## Estado al 2026-09-11: el punto que devolvía la nube **no era un punto de la nube**
+>
+> **El usuario dijo «está fallando al pickear el punto al que quiero dejar» la nota, y ayer se
+> contestó a medias.** Se encontró un defecto de criterio cierto —se elegía el más cercano a la
+> cámara de entre los que rozan la línea de visión, no el que está bajo el cursor— y se dejó escrito
+> que su relación con el síntoma **no estaba reproducida**: revirtiendo el arreglo, el diagnóstico
+> daba lo mismo, «0,0 px del cursor» con los dos criterios.
+>
+> **Esa coincidencia era el síntoma, no el consuelo.** `THREE.Points.raycast`, en `testPoint`, hace
+> `_ray.closestPointToPoint(vertice, intersectPoint)` y devuelve **eso** en `point`: el pie de la
+> perpendicular **sobre el rayo**. El vértice de verdad solo se recupera por `golpe.index`. De ahí
+> las dos consecuencias, las dos medidas y no leídas:
+>
+> 1. **La coordenada que guardaba la nota no pertenecía al levantamiento.** Estaba corrida hacia la
+>    línea de visión tanto como permitiera el umbral. Sobre el levantamiento real del Camino
+>    Agrícola: **0,5915 m**. En pantalla no se ve —por construcción cae bajo el cursor—; se ve al
+>    orbitar y se ve en la coordenada.
+> 2. **El criterio de píxeles del arreglo de ayer recibía datos degenerados.** Los tres candidatos de
+>    un ensayo controlado proyectaban a `(800,0 · 450,0)`, el cursor exacto, mientras sus vértices
+>    caían a 800, 819,5 y 846,8 px. Con todas las distancias en cero el filtro no distinguía nada y
+>    la elección degeneraba en «el de delante», que es el comportamiento viejo. **Por eso revertir no
+>    cambiaba la medida.**
+>
+> El arreglo es `verticeDelGolpe`, y se usa para las dos cosas: proyectar a pantalla y devolver la
+> coordenada. Comprobado sobre los 15 366 674 puntos reales, con el arreglo y revirtiéndolo:
+>
+> |             | distancia al vértice más cercano | px del cursor |
+> | ----------- | -------------------------------- | ------------- |
+> | Como estaba | **0,5915 m — NO (mal)**          | 0,0           |
+> | Arreglado   | **0,0000 m — sí**                | 5,9           |
+>
+> **Y la lección de oráculo, que es la que vale para lo próximo:** el modo `nube` medía «a cuántos
+> píxeles del cursor cae el devuelto» y esa cifra **no podía ver el defecto**, porque un punto sobre
+> la línea de visión siempre da cero. La pregunta que sí lo ve no es de píxeles sino de metros y
+> contra los datos: **¿lo devuelto ES un punto de la nube?** Está añadida al modo. Es el mismo
+> patrón que ya está anotado como «oráculos que cuentan y no miden».
+>
+> Y una segunda: el primer bloque de `senalar.test.ts` prueba el criterio con candidatos escritos a
+> mano, y por eso no vio nada — un criterio correcto alimentado con datos degenerados. El bloque
+> nuevo lanza **el rayo de verdad de Three sobre una nube de verdad**.
+
 > ## Estado al 2026-09-09, al final: el tema claro mirado, y la primera pantalla estaba en blanco
 >
 > **El plan decía que esto solo se cerraba mirándolo** —«el visor gana un tema entero que hay que
