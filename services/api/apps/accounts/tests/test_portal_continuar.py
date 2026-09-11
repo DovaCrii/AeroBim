@@ -135,6 +135,50 @@ def test_las_obras_solo_si_el_rol_puede_leerlas(client, proyectista, proyecto):
 
 
 @pytest.mark.django_db
+def test_con_una_sola_organizacion_la_tarjeta_no_la_nombra(client, proyectista, proyecto):
+    """**Un dato que sale siempre y solo sirve una vez de cada cien es ruido en la puerta.**
+
+    Es la misma regla que ya gobierna las cifras de la tarjeta —«0 vencidas» no se escribe— y por
+    eso la organizacion no aparece en el caso normal: una persona, una organizacion, el codigo ya
+    identifica.
+    """
+    client.force_login(dar(proyectista, "projects.view_proyecto"))
+
+    respuesta = client.get(reverse("portal"))
+
+    assert respuesta.context["varias_organizaciones"] is False
+    assert proyecto.organizacion.nombre not in respuesta.content.decode()
+
+
+@pytest.mark.django_db
+def test_con_dos_organizaciones_cada_tarjeta_dice_de_cual_es(client, proyecto):
+    """**Lo vio el usuario en su portada: dos tarjetas `PILOTO-AEROBIM` identicas.**
+
+    Mismo codigo, mismo nombre, misma etapa, y nada que dijera cual era cual. No era un defecto de
+    `preparar_piloto` —es idempotente **por organizacion**— sino dos obras reales de dos
+    organizaciones distintas. El codigo de obra deja de identificar en cuanto hay mas de una, y ahi
+    la tarjeta tiene que decirlo.
+
+    Se prueba con un superusuario porque es quien las ve todas: `apps/core/tenancy.py` le devuelve
+    el queryset entero, asi que es el caso en el que esto aparece de verdad.
+    """
+    otra = Organizacion.objects.create(nombre="La otra constructora", slug="otra")
+    Proyecto.objects.create(organizacion=otra, codigo=proyecto.codigo, nombre=proyecto.nombre)
+    mandamas = get_user_model().objects.create_superuser(
+        username="mandamas", password="una-clave-larga-99", email="mandamas@ejemplo.cl"
+    )
+    client.force_login(mandamas)
+
+    respuesta = client.get(reverse("portal"))
+    cuerpo = respuesta.content.decode()
+
+    assert respuesta.context["varias_organizaciones"] is True
+    # Las dos tarjetas llevan el mismo codigo, y lo que las separa son estos dos nombres.
+    assert proyecto.organizacion.nombre in cuerpo
+    assert "La otra constructora" in cuerpo
+
+
+@pytest.mark.django_db
 def test_no_se_ofrece_la_obra_de_otro_cliente(client, proyectista, proyecto):
     ajena = Organizacion.objects.create(nombre="Ajena", slug="ajena")
     Proyecto.objects.create(organizacion=ajena, codigo="OTRO", nombre="Obra de otro")

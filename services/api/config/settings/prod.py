@@ -56,9 +56,22 @@ STORAGES = {
 # encontrarlo, y la comprobacion de `crossOriginIsolated` que falla al arrancar se
 # queda puesta justamente para que no vuelva a costar otra.
 #
-# Django no las sirve por su cuenta; esto esta escrito para que nadie las añada
-# "por seguridad" sin saber que rompe. Si alguna vez hicieran falta, primero hay
-# que resolver el WASM.
+# **Correccion del 2026-09-11, medida contra el servidor.** Aqui ponia «Django no las
+# sirve por su cuenta», y es falso: desde la version 4.0,
+# `SECURE_CROSS_ORIGIN_OPENER_POLICY` vale `"same-origin"` por omision y
+# `SecurityMiddleware` la escribe en **cada respuesta**. Comprobado pidiendo `/visor/`:
+# `Cross-Origin-Opener-Policy: same-origin`.
+#
+# **No rompe nada, y por eso nadie lo vio: el aislamiento de origen pide las dos.**
+# `crossOriginIsolated` solo es cierto con COOP `same-origin` **y** COEP `require-corp`.
+# Sin la segunda, `web-ifc` sigue eligiendo su WASM de un hilo. COOP sola, ademas, es una
+# proteccion real contra fugas entre ventanas y no cuesta nada aqui, asi que se queda.
+#
+# Lo que era un defecto es que **la proteccion fuera un comentario y encima equivocado**.
+# Ahora hay una prueba que mira la respuesta de verdad y exige que **COEP no este nunca**:
+# `apps/core/tests/test_csp_y_correo.py`. El dia que alguien la añada "por seguridad"
+# —para usar `SharedArrayBuffer`, por ejemplo—, COOP ya esta puesta y el aislamiento se
+# enciende entero. Si alguna vez hiciera falta de verdad, primero hay que resolver el WASM.
 #
 # **Los permisos de la CSP que el WASM necesita estan en `base.py`**, no aqui: los
 # necesitan los dos entornos por igual, y tenerlos solo en produccion hacia que

@@ -679,9 +679,22 @@ main {
  *
  * Un paso dice qué se consigue y a dónde ir; una tarjeta decía el nombre de la pantalla.
  */
+/*
+ * **Los números se veían dos veces: «1. 1 · Entra en la obra».** Lo vio el usuario en la portada.
+ *
+ * El `<ol>` traía su marcador de lista y el título del paso **ya lleva su número** —viene así desde
+ * `apps/accounts/ayuda.py`, y hay una prueba que lo fija—, así que el navegador ponía el suyo al
+ * lado. Se quita el marcador y se deja el del dato.
+ *
+ * **Y quitarlo es además lo correcto, no solo lo que arregla el duplicado.** Aquí se enseñan los
+ * tres primeros pasos que esta persona **puede** hacer, no los tres primeros del recorrido: para un
+ * mandante pueden ser el 1, el 6 y el 8. El marcador del navegador los numeraría 1, 2, 3 y estaría
+ * mintiendo sobre dónde caen en el recorrido de nueve; el número del título dice el de verdad.
+ */
 .pasos-cortos {
   margin: 0;
-  padding-left: 22px;
+  padding-left: 0;
+  list-style: none;
   display: grid;
   gap: 10px;
 }
@@ -2069,6 +2082,17 @@ a.tarjeta:hover::before {
   color: var(--ab-text-secondary);
   font-size: 0.92rem;
   margin-bottom: 12px;
+}
+
+/*
+ * La organización de la obra, que **solo sale cuando hay más de una a la vista**: ahí el código
+ * deja de identificar, y sin esto quedaban dos tarjetas `PILOTO-AEROBIM` idénticas. Va más apagada
+ * y más pequeña que el nombre a propósito: desempata, no compite con él.
+ */
+.obra-organizacion {
+  margin: -8px 0 12px;
+  color: var(--ab-text-muted);
+  font-size: 0.82rem;
 }
 
 .avance {

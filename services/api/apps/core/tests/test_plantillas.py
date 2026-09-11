@@ -46,6 +46,20 @@ CIERRA = re.compile(r"#\}")
 FUERA_DE_LA_BASE = {"registration/login.html"}
 
 
+#: Las paginas del visor que **sirve Django**, no whitenoise.
+#:
+#: `apps/visor/views.py` las lee y las devuelve desde una vista con `LoginRequiredMixin` —tiene que
+#: ser una vista, porque un estatico no se puede poner detras del login—, asi que **pasan por el
+#: middleware de la CSP igual que cualquier plantilla del portal**. Este guardian no las miraba, y
+#: por eso `index.html` tuvo un `<script>` en linea durante meses: en desarrollo la politica es solo
+#: un informe y funcionaba, en produccion se aplica y lo bloqueaba en cada carga.
+#:
+#: `diag.html` no entra: la lista blanca de `limpiar-dist.mjs` lo deja fuera del build a proposito,
+#: asi que nunca lo sirve nadie.
+VISOR = RAIZ.parents[1] / "apps" / "web"
+PAGINAS_DEL_VISOR = ("index.html", "documento.html")
+
+
 def _extienden_la_base() -> list[Path]:
     return sorted(
         p
@@ -185,3 +199,49 @@ def test_ninguna_plantilla_lleva_un_manejador_en_linea(plantilla):
         f"{plantilla.name} lleva {manejadores}: la CSP los bloquea en producción. "
         "El comportamiento va en `static/js/`, como `tema.js`."
     )
+
+
+# --- Y el visor, que este guardián no miraba ----------------------------------------
+
+
+@pytest.mark.parametrize("nombre", PAGINAS_DEL_VISOR)
+def test_ninguna_pagina_del_visor_lleva_un_script_en_linea(nombre):
+    """**El defecto que este hueco dejó pasar, y duró meses.**
+
+    `apps/web/index.html` tenía un `<script>` en línea que aplicaba el tema guardado antes del
+    primer pintado, con un comentario que afirmaba que la CSP no le afectaba porque «Django lo sirve
+    como estático desde `/static/visor/` con su propia cabecera». **No lo sirve así**: lo sirve
+    `apps/visor/views.py`, una vista con `LoginRequiredMixin` —tiene que serlo, porque un estático
+    no se puede poner detrás del login— y por tanto pasa por el middleware de la CSP.
+
+    En desarrollo la política es solo un informe y el script corría; en producción se aplica con
+    `script-src 'self'` sin `'unsafe-inline'` y el navegador lo bloqueaba en cada carga. Quien
+    hubiera elegido el tema claro entraba siempre en oscuro, con una violación en la consola que
+    nadie miraba. El clásico «funciona en desarrollo», y **el guardián de al lado no podía verlo
+    porque solo miraba `services/api/templates/`**.
+
+    Un `<script src>` del mismo origen sí lo permite `'self'`; lo que no se puede es el código
+    dentro de la página.
+    """
+    pagina = VISOR / nombre
+    assert pagina.is_file(), f"no está {pagina}"
+
+    # Fuera los comentarios de HTML: citan `<script>` para explicar justo esto.
+    texto = re.sub(r"<!--.*?-->", "", pagina.read_text(encoding="utf-8"), flags=re.DOTALL)
+
+    en_linea = re.findall(r"<script(?![^>]*\ssrc=)[^>]*>", texto)
+
+    assert en_linea == [], (
+        f"{nombre} lleva {en_linea}: la CSP los bloquea en producción, y esta página la sirve una "
+        "vista de Django, no whitenoise. El código va en un archivo, como `public/tema.js`."
+    )
+
+
+@pytest.mark.parametrize("nombre", PAGINAS_DEL_VISOR)
+def test_ninguna_pagina_del_visor_lleva_un_manejador_en_linea(nombre):
+    """Lo mismo que en el portal, y por lo mismo: `script-src 'self'` no permite `onclick=`."""
+    texto = re.sub(r"<!--.*?-->", "", (VISOR / nombre).read_text(encoding="utf-8"), flags=re.DOTALL)
+
+    manejadores = re.findall(r"\son(?:click|change|submit|input|load|error|focus|blur)\s*=", texto)
+
+    assert manejadores == [], f"{nombre} lleva {manejadores}: la CSP los bloquea en producción."

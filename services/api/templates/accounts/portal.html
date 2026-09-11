@@ -115,6 +115,21 @@
               <span class="ficha">{{ proyecto.get_status_display }}</span>
             </div>
             <div class="obra-nombre">{{ proyecto.nombre }}</div>
+            {% comment %}
+              **La organización sale solo cuando hace falta distinguir**, y lo destapó el usuario:
+              en su portada había **dos tarjetas `PILOTO-AEROBIM` idénticas** —mismo código, mismo
+              nombre, misma etapa— sin nada que dijera cuál era cuál. No era un defecto del comando
+              `preparar_piloto`, que es idempotente **por organización**: eran dos obras reales de
+              dos organizaciones distintas, «JEJ Ingeniería» y «Ensayo del piloto».
+
+              Se enseña **solo si las obras visibles son de más de una organización**, que es
+              exactamente cuando el código deja de identificar. En el caso normal —una persona, una
+              organización— no aparece: un dato que sale siempre y solo sirve una vez de cada cien
+              es ruido en la puerta, que es la regla que ya gobierna las cifras de abajo.
+            {% endcomment %}
+            {% if varias_organizaciones %}
+              <div class="obra-organizacion">{{ proyecto.organizacion.nombre }}</div>
+            {% endif %}
 
             <div class="avance"
                  role="img"

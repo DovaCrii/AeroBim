@@ -50,6 +50,42 @@ def test_las_cabeceras_coop_y_coep_no_estan_en_la_politica():
     assert "Cross-Origin-Embedder-Policy" not in politica
 
 
+@pytest.mark.django_db
+def test_la_respuesta_de_verdad_nunca_lleva_coep(client):
+    """**Esta prueba mide la respuesta, y la de arriba solo medía una cadena.**
+
+    La de arriba comprueba que la CSP no *nombre* esas cabeceras, que es otra pregunta: la CSP nunca
+    las llevaría, porque no son directivas suyas. El aislamiento de origen se activa con **cabeceras
+    HTTP**, así que el sitio donde hay que mirarlo es la respuesta.
+
+    Y mirándola sale lo que el comentario de `prod.py` decía al revés. Decía «Django no las sirve
+    por su cuenta», y **sí lo hace**: desde la versión 4.0, `SECURE_CROSS_ORIGIN_OPENER_POLICY` vale
+    `"same-origin"` por omisión y `SecurityMiddleware` la escribe en cada respuesta. Comprobado
+    contra el servidor: `Cross-Origin-Opener-Policy: same-origin`.
+
+    **No es un defecto, y por eso nadie lo vio: el aislamiento de origen pide las dos.**
+    `crossOriginIsolated` solo es cierto con COOP `same-origin` **y** COEP `require-corp`. Sin la
+    segunda, `web-ifc` sigue eligiendo su WASM de un hilo y el visor funciona — que es justo lo que
+    se ha estado midiendo todo este tiempo.
+
+    Lo que sí era un defecto es que **la protección era un comentario y no una prueba**, y encima un
+    comentario equivocado. Esto lo convierte en algo que se rompe en rojo: el día que alguien añada
+    COEP «por seguridad» —para usar `SharedArrayBuffer`, por ejemplo—, COOP ya está puesta y el
+    aislamiento se enciende entero.
+    """
+    respuesta = client.get("/health/")
+
+    assert respuesta.headers.get("Cross-Origin-Embedder-Policy") is None, (
+        "con COEP y la COOP que Django pone por omisión, el origen queda aislado y la conversión "
+        "de un IFC se cuelga sin emitir ningún error"
+    )
+    # **Y la mitad que demuestra que esta prueba no es ciega.** Una comprobación que solo dice «esta
+    # cabecera no está» pasaría igual si estuviera leyendo el sitio equivocado. Esto fija lo que sí
+    # se midió —la COOP que Django pone por omisión— y deja el hallazgo escrito: si algún día deja
+    # de salir, es que alguien cambió esa decisión y conviene enterarse.
+    assert respuesta.headers.get("Cross-Origin-Opener-Policy") == "same-origin"
+
+
 @override_settings(EMAIL_BACKEND="django.core.mail.backends.console.EmailBackend", EMAIL_HOST="")
 def test_el_backend_de_consola_no_entrega_y_lo_dice_nombrando_la_variable():
     assert mail_is_delivered() is False
