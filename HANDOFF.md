@@ -5,6 +5,66 @@
 
 ## Cómo seguir (leer esto primero)
 
+> ## Estado al 2026-09-11, al final: el despliegue **ensayado antes de la VM**, y once defectos
+>
+> **`docs/DEPLOY.md` era un procedimiento redactado y nunca ejecutado.** Ni gunicorn, ni las unidades
+> de systemd, ni nginx, ni PostgreSQL, ni `respaldo.sh --verificar` habían corrido una sola vez. Se
+> montó el ensayo entero en un **WSL con Ubuntu 24.04 — la misma distribución que la VM `p340`** —
+> con PostgreSQL 16, systemd activo y el repositorio clonado dentro.
+>
+> ### Lo que el ensayo consiguió, y era lo que bloqueaba el piloto
+>
+> |                                            | Resultado                                                                                                         |
+> | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
+> | **La suite entera contra PostgreSQL**      | Verde. Nunca había corrido así: `pyproject.toml` fija `settings.dev` sobre SQLite                                 |
+> | **`respaldo.sh` y `--verificar`**          | `OK: de este respaldo se puede volver`, **50 = 50** migraciones, cero bases de prueba huérfanas, 348 KB por juego |
+> | **`collectstatic` con `prod.py`**          | 180 archivos, 516 post-procesados, `staticfiles.json` escrito. **También era la primera vez**                     |
+> | **gunicorn sobre el socket de UNIX**       | Arranca con `config.settings.prod` y sirve                                                                        |
+> | **`nginx -t`** sobre el archivo versionado | Correcto                                                                                                          |
+> | **Las seis unidades de systemd**           | `systemd-analyze verify` limpio                                                                                   |
+>
+> ### Los once defectos, y por qué ninguno se veía
+>
+> **El motivo es común:** la suite corre con `config.settings.dev`, sobre SQLite y en un solo
+> proceso, y `prod.py` estaba **excluido de cobertura con el motivo escrito** — «ninguna prueba los
+> importa». Un ajuste que nadie importa es un ajuste que nadie prueba.
+>
+> - **El que dejaba el sitio inservible.** `SECURE_PROXY_SSL_HEADER` no aparecía en ninguna línea del
+>   repositorio y `prod.py` pone `SECURE_SSL_REDIRECT=True`: `ERR_TOO_MANY_REDIRECTS` en todo,
+>   `/health/` incluido. Y aun sin el bucle, el `Origin` de CSRF compara `http://` contra `https://`
+>   y **cada POST responde 403**. Medido después del arreglo: con la cabecera **200**, sin ella
+>   **301**.
+> - **El que corrompía en silencio.** `AuditEvent.sequence` se calculaba leyendo el máximo y sumando
+>   uno. Con 16 hilos contra PostgreSQL: **192 escrituras, 27 números distintos, 165 duplicados**.
+>   Tras el arreglo, 192 y 0. Y el primer arreglo **tampoco bastaba** —bloquear la última fila no
+>   sirve, porque todos esperan por _la misma_ fila y despiertan sobre la vieja—: hizo falta un
+>   cerrojo con nombre.
+> - **El tema claro del visor no funcionaba en producción.** `index.html` tenía un `<script>` en
+>   línea con un comentario que afirmaba que la CSP no le afectaba. Sí le afecta: esa página la sirve
+>   una vista de Django, no whitenoise.
+> - Y siete más: el tope de cuerpo de petición sin escribir (la lámina PDF daba **400 sin
+>   explicación**), `EMAIL_TIMEOUT` ausente, `glob("*.dxf")` que en Linux no encuentra `PLANO.DXF`, el
+>   `mkdir` de los logs que mataba el arranque **antes** de que `/health/` pudiera explicarlo,
+>   `TimedRotatingFileHandler` con varios procesos, tres consultas ordenando por `vence` sin
+>   `nulos_al_final`, y `http2 on;` que es sintaxis de nginx 1.25 sobre un Ubuntu que trae 1.24.
+>
+> ### Tres afirmaciones de la documentación que eran falsas
+>
+> 1. **«Django no sirve COOP ni COEP por su cuenta»** (`prod.py`). Sí sirve COOP: desde 4.0,
+>    `SECURE_CROSS_ORIGIN_OPENER_POLICY` vale `"same-origin"` por omisión. No rompe nada —el
+>    aislamiento pide **las dos**— pero la protección era un comentario, y equivocado. Ahora hay una
+>    prueba sobre la respuesta real.
+> 2. **«El visor lo sirve Django como estático desde `/static/visor/`»** (`index.html`). Lo sirve una
+>    vista con `LoginRequiredMixin`, que pasa por la CSP.
+> 3. **`/cuentas/trabajos/`** (`DEPLOY.md`, dos veces) — la ruta real es `/administracion/trabajos/`.
+>
+> ### Lo que falta para la VM, y no es código
+>
+> Instalar en `p340` siguiendo el `DEPLOY.md` reescrito, con las tres cosas de la consola del tailnet
+> primero: **MagicDNS**, **HTTPS Certificates** y **desactivar la expiración de clave del nodo** —que
+> si no deja el servicio sano e inalcanzable a los 180 días—. Después SMTP real, las cuentas con su
+> membresía y la primera revisión en `A`.
+
 > ## Estado al 2026-09-11, más tarde: el vocabulario BIM, y el «Salir» que no era un defecto
 >
 > **El usuario trajo una lámina de dieciséis conceptos BIM** —«incorporar la idea por lo menos como
