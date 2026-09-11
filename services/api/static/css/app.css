@@ -2350,7 +2350,14 @@ input[type="file"]::file-selector-button:hover {
   max-width: 78ch;
 }
 
-.paso-ayuda {
+/*
+ * `.termino` comparte las reglas del paso **a propósito**: el vocabulario (`F11.11`) dice lo mismo
+ * en la misma forma —una ficha con su título, qué es, y qué hace AeroBim con ello— y la que está
+ * apagada significa lo mismo en los dos sitios: «esto existe y no es tuyo» allí, «esto existe y el
+ * producto no lo hace» aquí. Dos pantallas de lectura que se ven iguales porque se leen igual.
+ */
+.paso-ayuda,
+.termino {
   padding: 16px 18px;
   margin-bottom: 12px;
   background: var(--ab-surface);
@@ -2359,7 +2366,8 @@ input[type="file"]::file-selector-button:hover {
   border-radius: var(--ab-radius);
 }
 
-.paso-ayuda h2 {
+.paso-ayuda h2,
+.termino h2 {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -2372,24 +2380,44 @@ input[type="file"]::file-selector-button:hover {
  * El paso que no te toca: **apagado, no escondido.** La franja pierde el color y el texto baja de
  * tono, que es lo que dice «esto pasa, pero no lo haces tú» sin quitarlo de la explicación.
  */
-.paso-ajeno {
+/* Lo que la sigla abrevia: se dice una vez, en pequeño, y no compite con la sigla. */
+.termino-nombre {
+  margin: 0 0 8px;
+  color: var(--ab-text-muted);
+  font-size: 0.86rem;
+}
+
+.paso-ajeno,
+.termino-ausente {
   border-left-color: var(--ab-border);
 }
 
 .paso-ajeno h2,
-.paso-ajeno .que-hacer {
+.paso-ajeno .que-hacer,
+.termino-ausente h2 {
   color: var(--ab-text-secondary);
 }
 
 /* Para qué sirve va primero y con más peso: es lo que decide si este paso te interesa. */
-.para-que {
+.para-que,
+.que-es {
   margin: 0 0 8px;
 }
 
-.que-hacer {
+/*
+ * **El «en AeroBim» del vocabulario no se apaga aunque el término esté ausente**, al revés que el
+ * `que-hacer` del paso ajeno. Ahí lo apagado es lo que no vas a hacer; aquí es justo la frase que
+ * la persona vino a leer —qué hay en su lugar—, y bajarle el tono sería esconder la respuesta.
+ */
+.que-hacer,
+.en-aerobim {
   margin: 0 0 12px;
   color: var(--ab-text-secondary);
   font-size: 0.94rem;
+}
+
+.termino .en-aerobim {
+  color: var(--ab-text);
 }
 
 /* --- Las herramientas de una sección, en cajas ------------------------------------ */

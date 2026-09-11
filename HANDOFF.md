@@ -5,6 +5,49 @@
 
 ## Cómo seguir (leer esto primero)
 
+> ## Estado al 2026-09-11, más tarde: el vocabulario BIM, y el «Salir» que no era un defecto
+>
+> **El usuario trajo una lámina de dieciséis conceptos BIM** —«incorporar la idea por lo menos como
+> informativo, se ve interesante»—. Está, en «Cómo se usa → Vocabulario BIM» (`F11.11`), y **lo que
+> no se hizo fue copiar la lámina**: definiciones de CDE o LOD hay en veinte sitios y quien abre esto
+> no necesita la vigesimoprimera. Lo que no puede encontrar en ninguno es **si la herramienta que
+> tiene delante hace esa cosa**, y eso es lo que añade cada ficha, con enlace cuando lo hay.
+>
+> **Y dice que no la mitad justa de las veces: ocho de dieciséis.** LOD, BEP, el modelado
+> paramétrico, 4D, 5D, COBie, AIM y el gemelo digital, cada uno con qué hay en su lugar. Una prueba
+> fija esos ocho por nombre, para que pasar uno a «sí» sin construirlo rompa el gate.
+>
+> Dos defectos salieron **mirando la pantalla** y ninguno leyendo: las negritas de Markdown salían
+> con los asteriscos puestos (Django no es Markdown), y las cinco cadenas nuevas no estaban en el
+> catálogo, así que la pantalla salía a medias en inglés.
+>
+> ### Y la pregunta abierta del 2026-09-09, contestada: **no era un defecto, era mi medición**
+>
+> Quedó anotado que en tema **claro** el «Salir» del portal medía 2,09:1 con un fondo computado
+> `#c3a6f0` que no cuadraba con ningún token de la cadena, y que no era un artefacto de transición
+> «porque re-medí con 1 500 ms de asentamiento». **Era exactamente eso, y la espera era el remedio
+> equivocado.**
+>
+> La trampa está escrita en este mismo archivo desde hace semanas: sin fotogramas el reloj de
+> animación no avanza, así que una transición se queda `running` con `currentTime: 0` para siempre y
+> `getComputedStyle` devuelve **el valor de partida indefinidamente**. Esperar más no arregla nada:
+> el reloj no va lento, **está parado**. Y `button, .boton` transiciona `background`
+> (`app.css:2174`), así que al conmutar de oscuro a claro el valor de partida es `#c3a6f0` — que es
+> el `--ab-primary` del tema **oscuro**.
+>
+> Medido el 2026-09-11 con los dos gestos que hay que hacer, en el mismo instante:
+>
+> |                                | `background-color`     | ratio      |
+> | ------------------------------ | ---------------------- | ---------- |
+> | El vivo                        | `#c3a6f0`              | 2,09:1     |
+> | **Un gemelo recién insertado** | `#5b3a9e` sobre `#fff` | **8,26:1** |
+>
+> Y el delator, que es lo que hay que mirar antes de tocar nada:
+> `el.getAnimations()` → `[["background-color", "running", 0]]`.
+>
+> **El tema claro del portal está bien.** La lección —que la espera larga es el remedio equivocado y
+> lo correcto es leer un clon— queda en la memoria del proyecto junto a la trampa original.
+
 > ## Estado al 2026-09-11: el punto que devolvía la nube **no era un punto de la nube**
 >
 > **El usuario dijo «está fallando al pickear el punto al que quiero dejar» la nota, y ayer se
