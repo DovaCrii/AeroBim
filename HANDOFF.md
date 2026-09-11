@@ -23,7 +23,19 @@
 > vegetación**, que es de dónde salen dos MDT distintos del mismo terreno.
 >
 > Al añadir el segundo la maquinaria se sacó a `glosario.py` y las pruebas quedaron parametrizadas:
-> **un tercer vocabulario entra sin escribir una prueba.**
+> **un tercer vocabulario entra sin escribir una prueba.** Y entró ese mismo día: «se puede sumar al
+> glosario el tema de CAPEX y OPEX y los KPI» (`F11.13`), diecinueve términos de gestión y costos.
+>
+> **Ese es el que más tiene que decir que no: quince de diecinueve.** La proporción es el dato —
+> AeroBim no es una herramienta de costos, y no hay presupuesto, partidas, valor ganado ni un campo
+> de CAPEX en ninguna parte—. Las cuatro que sí están son las cantidades del modelo, el avance
+> documental, el tiempo de ciclo y los KPI de `metricas_piloto`.
+>
+> **Y de ahí salió un aviso que estaba en el código sin decirse:** el campo se llama `avance_fisico`
+> y **no mide avance físico**. Es una suma ponderada de entregables por el avance de su revisión
+> vigente, o sea avance **documental**. Que el 80 % de los planos esté emitido no dice nada del
+> hormigón vertido. Están los dos términos separados a propósito, para que nadie lea la barra de la
+> tarjeta de obra como avance de construcción.
 >
 > **Y dice que no la mitad justa de las veces: ocho de dieciséis.** LOD, BEP, el modelado
 > paramétrico, 4D, 5D, COBie, AIM y el gemelo digital, cada uno con qué hay en su lugar. Una prueba

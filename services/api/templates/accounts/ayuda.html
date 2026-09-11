@@ -113,5 +113,13 @@
         trees.{% endblocktranslate %}
       </div>
     </a>
+    <a class="tarjeta" href="{% url 'accounts:glosario' 'gestion' %}">
+      <div class="titulo">{% translate "Cost and management vocabulary" %}</div>
+      <div class="detalle">
+        {% blocktranslate %}CAPEX, OPEX, life cycle cost, earned value, KPIs. This is the one that
+        says no the most: AeroBim is not a cost tool, and it is cheaper to read that here than to
+        find out in the meeting where a cost report was promised.{% endblocktranslate %}
+      </div>
+    </a>
   </div>
 {% endblock %}

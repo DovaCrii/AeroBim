@@ -3972,6 +3972,7 @@ de jerarquía**, y por eso no lo cazó el oráculo de la `FASE 9`.
 | `F11.10` | El portal: nombres de sección, líneas de ayuda, iconos y los cinco acentos       | ✅ ver abajo |
 | `F11.11` | El vocabulario BIM, y qué hace AeroBim con cada una de las dieciséis palabras    | ✅ ver abajo |
 | `F11.12` | El vocabulario del levantamiento: nube de puntos, MDT y MDS, ortofoto, el geoide | ✅ ver abajo |
+| `F11.13` | El vocabulario de gestión y costos: CAPEX, OPEX, valor ganado y los KPI          | ✅ ver abajo |
 
 ### `F11.5` — El portal, que es la página que más pesa
 
@@ -4285,6 +4286,44 @@ el usuario:
 
 Se apila en una columna por debajo de 860 px, y **el formulario va primero en el HTML**: así en el
 móvil se entra sin bajar, y en el escritorio la rejilla lo coloca a la derecha.
+
+### `F11.13` — ✅ El vocabulario de gestión y costos
+
+**Lo pidió el usuario el 2026-09-11**, el tercero del mismo día: «se puede sumar al glosario el tema
+de CAPEX y OPEX y los KPI». Diecinueve términos en tres grupos: _el dinero de la obra_ · _cómo se
+mide el avance_ · _los indicadores_.
+
+**Y es el que más tiene que decir que no: quince de diecinueve.** Esa proporción es el dato, no un
+defecto de la pantalla — **AeroBim no es una herramienta de costos**. No hay presupuesto, no hay
+partidas, no hay valor ganado y no hay un campo de CAPEX en ninguna parte. Decirlo en la pantalla que
+alguien abre buscando la palabra sale más barato que descubrirlo en la reunión donde se prometió un
+informe de costos.
+
+**Las cuatro que sí están**, y que son las que alimentan a la herramienta que sí lleva el dinero:
+
+| Está                            | Qué es exactamente                                                                                                                                                 |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Cantidades del modelo (QTO)** | Los cuadros por categoría con sus cantidades, sus unidades y sus psets, en CSV. Es lo que la gente quiere decir cuando dice «5D»                                   |
+| **Avance documental**           | La barra de cada tarjeta de obra: suma ponderada de entregables por el avance de su revisión vigente, **sumada del registro y no tecleada**                        |
+| **Tiempo de ciclo**             | Días entre abrir y cerrar un hallazgo, de `metricas_piloto`, que además avisa aparte de las resueltas sin fecha de cierre en vez de dejarlas caer                  |
+| **KPI**                         | Los pocos y concretos que salen de lo que la base ya guarda: abiertos, cerrados y descartados por rango; contexto de los abiertos; reparto por pantalla y por tipo |
+
+**El aviso que da nombre a la pantalla, y sale del propio código:** el campo se llama `avance_fisico`
+y **no mide avance físico**. Es una suma ponderada de entregables por el avance de su revisión
+vigente, o sea avance **documental**. Que el 80 % de los planos esté emitido no dice nada del
+hormigón vertido, y confundir los dos es de los errores que se firman. Por eso hay dos términos
+separados —«avance físico y avance financiero», que no está, y «avance documental», que sí— en vez de
+uno solo que se leería como si el producto midiera obra.
+
+Y el resto del vocabulario no se queda en definiciones: cada ausente dice **qué rastro deja AeroBim
+que sirve para calcularlo fuera**. El de la orden de cambio —«un choque detectado y cerrado antes de
+construir es una orden de cambio que no se emitió»— y el del ROI del BIM —«la mitad que le falta no
+es técnica, son los precios; la otra mitad sí está y es la que nadie suele tener»— son los dos que
+contestan la pregunta de fondo.
+
+**Entró sin escribir una prueba**, que es lo que `F11.12` dejó preparado: las pruebas están
+parametrizadas sobre los vocabularios, y lo único escrito a mano es la lista de los quince ausentes
+—para que acortarla sin construir nada rompa el gate.
 
 ### `F11.12` — ✅ El vocabulario del levantamiento
 

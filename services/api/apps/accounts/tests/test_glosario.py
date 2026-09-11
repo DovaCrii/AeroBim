@@ -59,6 +59,26 @@ NO_ESTAN: dict[str, set[str]] = {
         "Curvas de nivel y TIN",
         "Cubicación",
     },
+    # **Quince de diecinueve, y esa proporción es el dato**: AeroBim no es una herramienta de
+    # costos. Si algún día esta lista se acorta mucho sin que el producto cambie, lo que pasó es
+    # que alguien escribió promesas.
+    "gestion": {
+        "CAPEX",
+        "OPEX",
+        "LCC y TOTEX",
+        "Partida y APU",
+        "Contingencia y reserva de gestión",
+        "Orden de cambio",
+        "Avance físico y avance financiero",
+        "Curva S",
+        "Valor ganado",
+        "CPI y SPI",
+        "Estado de pago",
+        "Línea base",
+        "Retrabajo",
+        "Costo de no calidad",
+        "ROI del BIM",
+    },
 }
 
 
@@ -128,11 +148,12 @@ def test_cada_destino_esta_en_el_catalogo_del_portal(clave):
 # --- La forma ------------------------------------------------------------------------
 
 
-def test_estan_los_dos_vocabularios_y_las_dieciseis_de_la_lamina():
+def test_estan_los_tres_vocabularios_y_las_dieciseis_de_la_lamina():
     """Las dieciséis del BIM son las de la lámina que trajo el usuario el 2026-09-11."""
-    assert set(CLAVES) == {"bim", "levantamiento"}
+    assert set(CLAVES) == {"bim", "levantamiento", "gestion"}
     assert len(por_clave("bim").terminos) == 16
-    assert len(por_clave("levantamiento").terminos) >= 16
+    for clave in CLAVES:
+        assert len(por_clave(clave).terminos) >= 16
 
 
 @pytest.mark.parametrize("clave", CLAVES)
