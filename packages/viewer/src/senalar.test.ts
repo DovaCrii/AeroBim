@@ -7,10 +7,22 @@
  * nota «lo segundo es normal». No era normal.
  *
  * El primer caso de esta prueba es exactamente esa situación, en pequeño.
+ *
+ * **Y el segundo bloque es el que faltaba.** El primero prueba el criterio con candidatos escritos a
+ * mano, y eso dejó pasar que en el producto los candidatos llegaban todos con la misma coordenada de
+ * pantalla —la del cursor—, porque `Points.raycast` devuelve un punto **del rayo**. Un criterio
+ * correcto alimentado con datos degenerados. Por eso el segundo bloque lanza el rayo de verdad de
+ * Three sobre una nube de verdad: es la única forma de que la prueba vea lo que el producto ve.
  */
 
+import * as THREE from "three";
 import { describe, expect, it } from "vitest";
-import { masCercanoAlCursor, RADIO_EN_PIXELES, type Candidato } from "./senalar.js";
+import {
+  masCercanoAlCursor,
+  RADIO_EN_PIXELES,
+  verticeDelGolpe,
+  type Candidato,
+} from "./senalar.js";
 
 /** Un candidato, escrito corto: dónde cae en pantalla, a qué profundidad, y cómo se llama. */
 const c = (px: number, py: number, profundidad: number, nombre: string): Candidato<string> => ({
@@ -75,5 +87,126 @@ describe("el punto que se señala", () => {
 
   it("sin candidatos, nada", () => {
     expect(masCercanoAlCursor([], [100, 100])).toBeNull();
+  });
+});
+
+/**
+ * **Aquí se reproduce el caso malo de punta a punta**, con el rayo de verdad de Three sobre una nube
+ * de verdad. Es lo que la primera versión de este arreglo dio por no reproducible: el diagnóstico
+ * daba «0,0 px del cursor» con el criterio viejo y con el nuevo, y eso se leyó como «el escenario no
+ * toca el caso malo». Lo que pasaba era peor y explica la coincidencia: **todos los candidatos
+ * proyectan al cursor exacto**, porque `golpe.point` está sobre el rayo.
+ */
+const ANCHO = 1600;
+const ALTO = 900;
+
+/** La cámara del escenario: en el origen, mirando a −Z, fov 60, 1600 × 900. */
+function camaraDePrueba(): THREE.PerspectiveCamera {
+  const camara = new THREE.PerspectiveCamera(60, ANCHO / ALTO, 0.1, 1000);
+  camara.position.set(0, 0, 0);
+  camara.lookAt(0, 0, -1);
+  camara.updateMatrixWorld(true);
+  return camara;
+}
+
+/** Dónde cae un punto del mundo en la pantalla, en píxeles. */
+function enPantalla(mundo: THREE.Vector3, camara: THREE.Camera): [number, number] {
+  const ndc = mundo.clone().project(camara);
+  return [((ndc.x + 1) / 2) * ANCHO, ((1 - ndc.y) / 2) * ALTO];
+}
+
+/** Una nube con los vértices dados, ya con su matriz al día. */
+function nubeCon(vertices: readonly (readonly [number, number, number])[]): THREE.Points {
+  const geometria = new THREE.BufferGeometry();
+  geometria.setAttribute(
+    "position",
+    new THREE.BufferAttribute(new Float32Array(vertices.flat()), 3),
+  );
+  geometria.computeBoundingSphere();
+  const nube = new THREE.Points(geometria, new THREE.PointsMaterial());
+  nube.updateMatrixWorld(true);
+  return nube;
+}
+
+describe("el rayo sobre una nube de verdad", () => {
+  const camara = camaraDePrueba();
+
+  // A treinta metros, un píxel mide 30/779,4 m; a doce, 12/779,4. El factor 779,4 es
+  // `alto / (2·tan(fov/2))` = 900 / (2·tan 30°), el mismo de `factorDeProyeccionDe`.
+  const PIXELES_POR_METRO_A_DOCE = 779.4 / 12;
+
+  /** El que se está mirando: justo bajo el cursor, al fondo. */
+  const MIRADO = [0, 0, -30] as const;
+  /** El punto suelto: **por delante** y a treinta píxeles del cursor. Vegetación, un poste. */
+  const SUELTO = [30 / PIXELES_POR_METRO_A_DOCE, 0, -12] as const;
+
+  function golpes(): THREE.Intersection[] {
+    const nube = nubeCon([MIRADO, SUELTO]);
+    const rayo = new THREE.Raycaster();
+    rayo.setFromCamera(new THREE.Vector2(0, 0), camara); // el cursor, en el centro exacto
+    rayo.params.Points = { threshold: 1.0 }; // de sobra: recoge los dos
+    return rayo.intersectObject(nube, false);
+  }
+
+  it("**`golpe.point` no es el punto de la nube: está sobre el rayo**", () => {
+    const golpe = golpes().find((uno) => uno.distance < 20);
+    expect(golpe).toBeDefined();
+    const vertice = verticeDelGolpe(golpe as THREE.Intersection);
+    expect(vertice).not.toBeNull();
+
+    // Medio metro largo de diferencia entre lo que devuelve la librería y el punto levantado.
+    const corrimiento = (vertice as THREE.Vector3).distanceTo((golpe as THREE.Intersection).point);
+    expect(corrimiento).toBeCloseTo(SUELTO[0], 3);
+    expect(corrimiento).toBeGreaterThan(0.4);
+  });
+
+  it("y por eso **todos los candidatos proyectan al cursor exacto**", () => {
+    for (const golpe of golpes()) {
+      const [px, py] = enPantalla(golpe.point, camara);
+      expect(px).toBeCloseTo(ANCHO / 2, 3);
+      expect(py).toBeCloseTo(ALTO / 2, 3);
+    }
+  });
+
+  it("con `golpe.point` el criterio no distingue nada y gana el de delante — el defecto", () => {
+    // Esta es la cadena de antes, escrita tal cual estaba. Sale el punto suelto: el fallo.
+    const elegido = masCercanoAlCursor(
+      golpes().map((golpe) => ({
+        pixel: enPantalla(golpe.point, camara),
+        profundidad: golpe.distance,
+        golpe,
+      })),
+      [ANCHO / 2, ALTO / 2],
+    );
+    expect(elegido?.golpe.distance).toBeCloseTo(12, 1);
+  });
+
+  it("con el vértice sale el que se estaba mirando", () => {
+    const elegido = masCercanoAlCursor(
+      golpes().flatMap((golpe) => {
+        const vertice = verticeDelGolpe(golpe);
+        if (vertice === null) return [];
+        return [{ pixel: enPantalla(vertice, camara), profundidad: golpe.distance, golpe }];
+      }),
+      [ANCHO / 2, ALTO / 2],
+    );
+    expect(elegido?.golpe.distance).toBeCloseTo(30, 1);
+
+    // Y el vértice del elegido es el punto levantado, no un punto del rayo.
+    const vertice = verticeDelGolpe(elegido?.golpe as THREE.Intersection);
+    expect([vertice?.x, vertice?.y, vertice?.z]).toEqual([MIRADO[0], MIRADO[1], MIRADO[2]]);
+  });
+
+  it("el vértice se lleva la matriz del objeto, que en una nube calzada no es la identidad", () => {
+    const nube = nubeCon([[1, 2, -20]]);
+    nube.position.set(10, 0, 0);
+    nube.updateMatrixWorld(true);
+    const rayo = new THREE.Raycaster();
+    rayo.setFromCamera(new THREE.Vector2(0, 0), camaraDePrueba());
+    rayo.params.Points = { threshold: 100 };
+    const golpe = rayo.intersectObject(nube, false)[0];
+    expect(golpe).toBeDefined();
+    const vertice = verticeDelGolpe(golpe as THREE.Intersection);
+    expect([vertice?.x, vertice?.y, vertice?.z]).toEqual([11, 2, -20]);
   });
 });

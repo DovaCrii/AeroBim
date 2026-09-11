@@ -24,22 +24,72 @@
  * punto elegido es uno que se está viendo debajo del ratón, y de los que hay ahí, el de delante —
  * que es el que la persona cree estar señalando.
  *
- * ## Lo que NO está demostrado, y conviene decirlo
+ * ## Y la mitad que faltaba: **el punto que devuelve la librería no es un punto de la nube**
  *
- * Que esto sea la causa del fallo que describió el usuario **no está reproducido de punta a punta**.
- * El modo `nube` del diagnóstico pincha sobre la proyección de un punto real de la nube, y en ese
- * escenario los dos criterios —el viejo y este— devuelven el mismo punto: comprobado revirtiendo el
- * cambio y volviendo a medir, los dos dan «0,0 px del cursor». O sea que el escenario del
- * diagnóstico no toca el caso malo, que necesita un punto suelto cerca de la línea de visión y
- * lejos del cursor — lo que pasa mirando en oblicuo sobre vegetación o un poste, no clicando encima
- * de un punto.
+ * Esto se escribió primero diciendo que la causa del fallo del usuario «no está reproducida de punta
+ * a punta», porque revirtiendo el criterio el diagnóstico daba lo mismo —«0,0 px del cursor» con los
+ * dos—. **Esa coincidencia era el síntoma, no el consuelo.** `Points.raycast` de Three, en
+ * `testPoint`, hace esto con cada vértice que entra en el umbral:
  *
- * Así que lo que hay es: un defecto **de algoritmo** cierto y arreglado, con su prueba de unidad
- * fijando el caso que falla —`senalar.test.ts`, primer caso—, y la confirmación de que sobre el
- * levantamiento real el punto devuelto cae a 0,0 px del cursor. Si el fallo del usuario persiste,
- * la causa es otra y hay que buscarla en otro sitio: dónde se dibuja la marca, o qué punto guarda
- * la nota frente al que devuelve esto.
+ * ```js
+ * _ray.closestPointToPoint( point, intersectPoint );   // ← el pie de la perpendicular, SOBRE EL RAYO
+ * intersects.push( { point: intersectPoint, distanceToRay: …, index: … } );
+ * ```
+ *
+ * O sea que `golpe.point` **está siempre sobre la línea de visión**, y el vértice de verdad se
+ * recupera por `golpe.index`. Dos consecuencias, las dos medidas con tres puntos a 20 m y el cursor
+ * en el centro (`senalar.test.ts`):
+ *
+ * 1. **La coordenada que se devolvía no era la del punto levantado.** Está corrida hacia el rayo
+ *    tanto como diga `distanceToRay` —medio metro, metro y pico, lo que permita el umbral—. En
+ *    pantalla no se nota, porque por construcción cae bajo el cursor; se nota **al orbitar**, con la
+ *    marca flotando al lado del punto. Y es lo que guarda la nota.
+ * 2. **El criterio de más arriba estaba recibiendo píxeles inútiles.** Los tres candidatos
+ *    proyectaban a `(800,0 · 450,0)`, el cursor exacto, mientras sus vértices caían a 800, 819,5 y
+ *    846,8 px. Con todas las distancias en cero, el filtro no distinguía nada y la elección
+ *    degeneraba en «el de delante» — el comportamiento viejo. **Por eso revertir no cambiaba la
+ *    medida.**
+ *
+ * Se arregla leyendo el vértice: {@link verticeDelGolpe}. Con él, el criterio de píxeles distingue de
+ * verdad y la coordenada que viaja a la nota es la del punto que se levantó en terreno.
+ *
+ * ## Y esta vez sí está reproducido de punta a punta
+ *
+ * Sobre el levantamiento real del Camino Agrícola —15 366 674 puntos—, con el oráculo nuevo del modo
+ * `nube` («¿lo devuelto **es** un punto de la nube?»), y revirtiendo el arreglo para comprobar que
+ * falla:
+ *
+ * | | distancia al vértice más cercano | px del cursor |
+ * | --- | --- | --- |
+ * | Como estaba | **0,5915 m — NO (mal)** | 0,0 |
+ * | Arreglado | **0,0000 m — sí** | 5,9 |
+ *
+ * Cincuenta y nueve centímetros de error en una nota de obra, y en pantalla no se veía: la marca cae
+ * bajo el cursor porque está sobre la línea de visión. Se ve al orbitar, y se ve en la coordenada.
  */
+
+import * as THREE from "three";
+
+/**
+ * **El vértice de la nube que produjo un golpe del rayo**, en coordenadas del mundo.
+ *
+ * `golpe.point` no sirve para esto: es el pie de la perpendicular sobre el rayo, no el punto. El
+ * vértice está en el atributo `position` del objeto, en la posición `golpe.index`, y hay que llevarlo
+ * al mundo con la matriz del objeto — que en una nube calzada **no es la identidad**.
+ *
+ * Devuelve `null` cuando el golpe no viene de un `Points` con índice (no debería pasar aquí, y si
+ * pasa lo honesto es que quien llama use `golpe.point` y lo sepa).
+ */
+export function verticeDelGolpe(golpe: THREE.Intersection): THREE.Vector3 | null {
+  if (golpe.index === undefined) return null;
+  const geometria = (golpe.object as Partial<THREE.Points>).geometry;
+  if (geometria === undefined) return null;
+  const posicion = geometria.getAttribute("position");
+  if (posicion === undefined || golpe.index >= posicion.count) return null;
+  return new THREE.Vector3()
+    .fromBufferAttribute(posicion as THREE.BufferAttribute, golpe.index)
+    .applyMatrix4(golpe.object.matrixWorld);
+}
 
 /** Un candidato ya proyectado a pantalla, con su profundidad. */
 export interface Candidato<T> {
