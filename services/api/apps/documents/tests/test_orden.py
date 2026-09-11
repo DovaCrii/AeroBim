@@ -230,3 +230,47 @@ def test_sin_fecha_de_vencimiento_va_al_final(client, proyecto, revisor, proyect
     respuesta = client.get(reverse("documents:observaciones"), {"orden": "vence"})
 
     assert [o.titulo for o in respuesta.context["observaciones"]] == ["Con fecha", "Sin fecha"]
+
+
+# --- El guardian, que es lo que habria cazado los tres que faltaban ------------------
+
+
+def test_ninguna_consulta_ordena_por_vence_a_mano():
+    """**`nulos_al_final` existia y tres consultas no pasaban por ella.**
+
+    SQLite pone los `NULL` primero en ascendente y PostgreSQL al final. Se desarrolla en SQLite y se
+    despliega en PostgreSQL, asi que un hallazgo sin fecha salia arriba en el equipo y abajo en la
+    VM **sin que nada fallara**: la clase de diferencia que solo se ve en el sitio donde no se puede
+    depurar.
+
+    Las tres que faltaban eran la pantalla de la obra, el informe de coordinacion —PDF y CSV— y la
+    lista que el visor pide por la API. Ninguna prueba de comportamiento las cubria, porque para
+    verlo hay que correr contra PostgreSQL. Este guardian si las ve, y en cualquier motor: **busca
+    el patron en el codigo** en vez de esperar a que la base lo delate.
+
+    Si algun dia hace falta ordenar por `vence` sin `nulos_al_final`, la forma de decirlo es anadir
+    el archivo a `PERMITIDOS` con el motivo, no borrar la prueba.
+    """
+    import re
+    from pathlib import Path
+
+    APPS = Path(__file__).resolve().parents[3]
+    #: Donde vive el arreglo: es el unico sitio que puede nombrar `vence` en un `order_by`.
+    PERMITIDOS = {"orden.py"}
+    #: `order_by(...)` con `vence` dentro, en la misma linea o en las dos siguientes.
+    ORDENA = re.compile(r"\.order_by\([^)]*\bvence\b", re.DOTALL)
+
+    culpables = []
+    for archivo in sorted(APPS.rglob("*.py")):
+        partes = archivo.parts
+        if "tests" in partes or "migrations" in partes or ".venv" in partes:
+            continue
+        if archivo.name in PERMITIDOS:
+            continue
+        if ORDENA.search(archivo.read_text(encoding="utf-8")):
+            culpables.append(str(archivo.relative_to(APPS)))
+
+    assert not culpables, (
+        "ordenan por `vence` sin pasar por `nulos_al_final`, y eso se ordena distinto en "
+        f"SQLite y en PostgreSQL: {culpables}"
+    )
