@@ -49,13 +49,29 @@ no hay ningún despliegue de Vercel que ajustar.
 
 ## Lo que hace falta en la máquina
 
-| Qué                  | Para qué                                                                             |
-| -------------------- | ------------------------------------------------------------------------------------ |
-| Python ≥ 3.12 y `uv` | La aplicación y su entorno                                                           |
-| PostgreSQL           | Opcional: con SQLite basta hasta que haya concurrencia real de escritura             |
-| nginx                | TLS y el socket de UNIX. Django no termina TLS                                       |
-| Node ≥ 22            | **Solo para construir el visor.** No hace falta en tiempo de ejecución               |
-| ODA File Converter   | **Opcional, y hay que instalarlo a mano.** Sin él no se abren DWG ni DGN — ver abajo |
+| Qué                  | Para qué                                                                                                                       |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Python ≥ 3.12 y `uv` | La aplicación y su entorno                                                                                                     |
+| **PostgreSQL**       | **No es opcional.** Ver abajo: `respaldo.sh` solo funciona con él, y el respaldo es la puerta                                  |
+| **`gettext`**        | `compilemessages` falla con «Can't find msgfmt» sin él, y el mensaje no dice que falte esto                                    |
+| nginx                | TLS y el socket de UNIX. Django no termina TLS                                                                                 |
+| **Node ≥ 22**        | Solo para construir el visor. **`apt install nodejs` en Ubuntu 24.04 da Node 18 y el build muere ahí** — hace falta NodeSource |
+| ODA File Converter   | **Opcional, y hay que instalarlo a mano.** Sin él no se abren DWG ni DGN — ver abajo                                           |
+
+```bash
+sudo apt install -y python3 postgresql postgresql-client gettext nginx
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash - && sudo apt install -y nodejs
+node -v   # v22.x o más: con v18 el build del visor no termina
+```
+
+> **PostgreSQL dejó de ser opcional el 2026-09-11, y el motivo es el respaldo.** `respaldo.sh` usa
+> `pg_dump` y `pg_restore`, así que **con SQLite no hay ningún camino de respaldo** — y el checklist
+> del piloto exige «copia hecha y restaurada una vez» como bloqueante. Además, la base SQLite caería
+> dentro de `/opt/aerobim`, que `ProtectSystem=strict` deja de solo lectura.
+>
+> La suite entera **se corrió contra PostgreSQL 16 por primera vez** ese día, en un Ubuntu 24.04
+> igual al de la VM, y pasó. De ahí salió un defecto que SQLite escondía: el número de orden de la
+> auditoría se repetía con varios workers (ver `apps/core/models.py`).
 
 Usuario y directorios, con la aplicación fuera de `/home`:
 
@@ -143,30 +159,67 @@ python3 -c "import secrets; print(secrets.token_urlsafe(64))"   # para SECRET_KE
 
 Lo que hay que cambiar sí o sí:
 
-| Variable               | Valor en la VM                                                              |
-| ---------------------- | --------------------------------------------------------------------------- |
-| `SECRET_KEY`           | La que salió del comando de arriba. Nunca la de ejemplo                     |
-| `DEBUG`                | `False`                                                                     |
-| `ALLOWED_HOSTS`        | `bim.<dominio>,127.0.0.1` — el `127.0.0.1` es para `/health/`               |
-| `CSRF_TRUSTED_ORIGINS` | `https://bim.<dominio>`                                                     |
-| `SITE_BASE_URL`        | `https://bim.<dominio>` — es la base de los enlaces del correo              |
-| `DOCUMENTS_DIR`        | `/var/lib/aerobim/documentos`                                               |
-| `LOGS_DIR`             | `/var/log/aerobim`                                                          |
-| `VISOR_DEV_URL`        | **Vacío.** Con valor, `/visor/` redirige al Vite que no existe              |
-| `EMAIL_BACKEND`        | El de SMTP. Con el de consola la aplicación diría "enviado" y lo imprimiría |
+| Variable                          | Valor en la VM                                                                                      |
+| --------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `SECRET_KEY`                      | La que salió del comando de arriba. Nunca la de ejemplo                                             |
+| `DEBUG`                           | `False`                                                                                             |
+| `ALLOWED_HOSTS`                   | `<host>.<tailnet>.ts.net,100.x.y.z,127.0.0.1` — el `127.0.0.1` es para `/health/`                   |
+| `CSRF_TRUSTED_ORIGINS`            | `https://<host>.<tailnet>.ts.net` — **con esquema**, o cada POST responde 403                       |
+| `SITE_BASE_URL`                   | Lo mismo. Es la base de los enlaces del correo, y si está mal no abren                              |
+| `DB_ENGINE`                       | `postgres`                                                                                          |
+| `DB_NAME` `DB_USER` `DB_PASSWORD` | La conexión. `DB_NAME` y `DB_USER` **no tienen valor por omisión**: sin ellos los ajustes no cargan |
+| `DOCUMENTS_DIR`                   | `/var/lib/aerobim/documentos` — **ruta absoluta**, ver abajo                                        |
+| `LOGS_DIR`                        | `/var/log/aerobim` — ídem                                                                           |
+| `VISOR_DEV_URL`                   | **Vacío.** Con valor, `/visor/` redirige al Vite que no existe                                      |
+| `EMAIL_BACKEND`                   | El de SMTP. Con el de consola la aplicación diría "enviado" y lo imprimiría                         |
+| `SECURE_HSTS_SECONDS`             | `3600` la primera semana. Ver «HSTS» más abajo                                                      |
+
+> **Las dos rutas van absolutas, y el ejemplo las trae relativas.** `.env.example` tiene
+> `DOCUMENTS_DIR=../../../aerobim-datos/documentos`, que se resuelve contra el `WorkingDirectory` de
+> la unidad y cae **fuera de `ReadWritePaths`**. Con `ProtectSystem=strict` eso deja el destino de
+> solo lectura. Quien copie el ejemplo y no toque esas dos líneas se lleva un servicio que arranca y
+> no puede guardar nada.
+
+> **Este archivo lo leen dos parsers distintos** —`python-decouple` desde Django y **systemd** desde
+> `EnvironmentFile=`— y no coinciden en comillas, `$` ni `#` a mitad de línea. **Regla: ningún valor
+> lleva comillas, espacios, `#` ni `$`.** La `SECRET_KEY` de `token_urlsafe` es segura por
+> construcción; una contraseña de SMTP puede no serlo.
 
 **4. La base de datos y los estáticos.**
 
 ```bash
+sudo -u postgres createuser --pwprompt aerobim
+sudo -u postgres psql -c 'ALTER ROLE aerobim CREATEDB;'   # lo necesita `respaldo.sh --verificar`
+sudo -u postgres createdb -O aerobim aerobim
+sudo install -d -o aerobim -g aerobim /var/lib/aerobim/documentos   # nadie más lo crea
+
 export DJANGO_SETTINGS_MODULE=config.settings.prod
 uv run python manage.py migrate
+uv run python manage.py showmigrations --plan | grep -c '^\[X\]'   # ANOTAR: lo pide --verificar
+uv run python manage.py bootstrap_roles
 uv run python manage.py collectstatic --noinput
-uv run python manage.py compilemessages
+uv run python manage.py compilemessages -i .venv -i staticfiles
+uv run python manage.py check --deploy
 uv run python manage.py createsuperuser
 ```
 
+Cuatro cosas de esa lista que faltaban en este documento y cuesta caro descubrir:
+
+- **`ALTER ROLE ... CREATEDB`.** `respaldo.sh --verificar` restaura sobre una base **aparte** y para
+  eso la crea. Sin el permiso, la comprobación del respaldo falla.
+- **`/var/lib/aerobim/documentos` no lo crea nadie.** `/health/` devuelve **503** recién instalado
+  hasta que alguien sube el primer archivo, y el mensaje dice `documentos: fallo`, que es el aviso
+  reservado para «el montaje no está» — o sea el fallo que destruye datos en silencio.
+- **`bootstrap_roles`.** Su propio docstring dice «se corre en cada despliegue» y no estaba aquí.
+  Sin él, un permiso nuevo tras un `git pull` **no llega a ningún rol**: alguien no puede hacer su
+  trabajo y no hay ningún error.
+- **`-i .venv -i staticfiles` en `compilemessages`**, que ya llevan `verify.ps1` y la CI. Sin ellos
+  recorre el árbol entero e intenta compilar los catálogos de Django dentro del entorno virtual.
+
 `createsuperuser` es el único usuario que se crea solo: **no hay auto-registro**, y el
-resto los da de alta un administrador desde la aplicación.
+resto los da de alta un administrador desde la aplicación. **Ojo con usarlo para comprobar los
+permisos**: `apps/core/tenancy.py` le devuelve el queryset entero a un superusuario, así que probar
+con esa cuenta **no prueba nada** sobre las membresías.
 
 **5. Las unidades de systemd.**
 
@@ -213,35 +266,94 @@ Tres cosas de esas unidades:
   ese salto de una hora dos veces al año no se relaciona con la zona:
   `timedatectl set-timezone America/Santiago`.
 - **`Persistent=true`.** Si la máquina estaba apagada a esa hora, sale al arrancar. Sin esto un
-  reinicio nocturno se lleva el resumen del día y en `/cuentas/trabajos/` se ve como «no corrió» sin
+  reinicio nocturno se lleva el resumen del día y en `/administracion/trabajos/` se ve como «no corrió» sin
   motivo.
 - **Sin `Restart=on-failure`.** Un SMTP caído reintentaría, y la gente recibiría el mismo correo
   cuatro veces.
 
-**Dónde se comprueba que salió:** `/cuentas/trabajos/`. Cada corrida deja su fila en `JobRun`, y si
+**Dónde se comprueba que salió:** `/administracion/trabajos/`. Cada corrida deja su fila en `JobRun`, y si
 el correo no sale de la máquina el resumen de la fila lo dice con un prefijo — **una corrida que fue
 bien y un correo que no salió se ven igual** si nadie lo marca.
 
-**6. nginx.** Lo mínimo, y **sin tocar la CSP ni añadir COOP/COEP**:
+**6. El certificado, por Tailscale y no por certbot.**
 
-```nginx
-location / {
-    proxy_pass http://unix:/run/aerobim.sock;
-    proxy_set_header Host $host;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-    client_max_body_size 200M;   # un IFC de obra pasa de 30 MB
-}
+La VM se alcanza **solo por el tailnet**: no hay dominio público ni puerto abierto a internet. Eso
+descarta el HTTP-01 de Let's Encrypt, y lo sustituye algo mejor — `tailscale cert` pide el mismo
+certificado real por DNS-01 a través de Tailscale, **sin abrir el 80 y sin registro DNS público**.
+
+```bash
+tailscale status --json | jq -r .Self.DNSName     # el nombre exacto; se usa seis veces
+sudo mkdir -p /etc/ssl/aerobim
+sudo tailscale cert --cert-file /etc/ssl/aerobim/aerobim.crt \
+                    --key-file  /etc/ssl/aerobim/aerobim.key  <host>.<tailnet>.ts.net
+sudo openssl x509 -in /etc/ssl/aerobim/aerobim.crt -noout -subject -issuer -dates
 ```
 
-`X-Forwarded-For` importa de verdad: es de donde axes saca quién intenta entrar.
-`gunicorn.conf.py` solo la acepta de `127.0.0.1`, para que no se pueda forjar desde
-fuera.
+Tres cosas que dependen de la consola del tailnet y no de la VM, y por eso van primero:
+
+1. **MagicDNS y «HTTPS Certificates» activados.** Sin lo segundo, `tailscale cert` falla diciendo
+   que HTTPS no está habilitado. Es lo único que puede pararlo todo por algo que no está aquí.
+2. **Desactivar la expiración de clave del nodo.** Por omisión caduca a los 180 días: el servicio
+   queda perfectamente sano e **inalcanzable**. Es la causa número uno de «dejó de funcionar meses
+   después y nadie supo por qué».
+3. **Comprobar que Funnel está apagado** en este nodo. Funnel expone a internet, y con él encendido
+   toda la premisa de «no hay nada público» es falsa.
+
+**La renovación es nuestra:** el certificado dura 90 días. Hace falta un `oneshot` diario que repita
+ese mismo comando y haga `systemctl reload nginx`. **Sin ese timer el servicio muere a los tres
+meses** con un error de certificado que nadie relaciona con Tailscale.
+
+> **Por qué no `tailscale serve`, que renovaría solo.** Proxea a TCP y no a un socket de UNIX, así
+> que obligaría a poner gunicorn en `127.0.0.1:8000` y **se perdería el candado `0660
+aerobim:www-data`** del socket — que es justamente lo que hace seguro que Django se fíe de
+> `X-Forwarded-Proto`. Y desaparecería el archivo donde viven `client_max_body_size` y la regla de
+> COOP/COEP.
+
+**7. nginx**, que ya no es un fragmento suelto:
+
+```bash
+sudo cp services/api/deploy/nginx-aerobim.conf /etc/nginx/sites-available/aerobim
+sudo sed -i "s/AEROBIM_FQDN/<host>.<tailnet>.ts.net/" /etc/nginx/sites-available/aerobim
+sudo ln -sf /etc/nginx/sites-available/aerobim /etc/nginx/sites-enabled/aerobim
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+Y el cortafuegos, que es lo que de verdad acota a quién escucha:
+
+```bash
+sudo ufw default deny incoming
+sudo ufw allow in on tailscale0
+sudo ufw enable && sudo ufw status verbose
+```
+
+Se acota por **interfaz** y no atando nginx a la IP `100.x`: si nginx arrancara antes que tailscaled,
+esa dirección no existe todavía y el servicio quedaría muerto tras un reinicio.
+
+Tres cosas de ese archivo que no son adorno:
+
+- **`X-Forwarded-Proto`.** Sin ella, `SECURE_SSL_REDIRECT=True` deja el sitio en
+  `ERR_TOO_MANY_REDIRECTS`, `/health/` incluido. Y aunque el bucle no se diera, el `Origin` de CSRF
+  compararía `http://` contra `https://` y **cada POST respondería 403**: la página carga y los
+  botones no hacen nada. La otra mitad del arreglo es `SECURE_PROXY_SSL_HEADER` en `prod.py`.
+- **`proxy_read_timeout 300s`**, y no los 60 de fábrica. Revisar interferencias con cuatro modelos
+  son seis pares × 20 s = **120 s exactos**: con el valor por omisión el usuario ve un `504` a los
+  60 s mientras gunicorn sigue trabajando otro minuto, y el hallazgo se guarda igual.
+- **`X-Forwarded-For`** es de donde axes saca quién intenta entrar, y `gunicorn.conf.py` solo la
+  acepta de `127.0.0.1` para que no se pueda forjar desde fuera.
+
+### HSTS: corto la primera semana
+
+`prod.py` fija `SECURE_HSTS_INCLUDE_SUBDOMAINS` y `SECURE_HSTS_PRELOAD` en `True` sin poder
+apagarlos, y un año sobre un nombre nuevo **no se deshace desde el servidor**. Se arranca con
+`SECURE_HSTS_SECONDS=3600` y se sube a `31536000` cuando el despliegue esté asentado.
+`check --deploy` avisará con `security.W004` mientras tanto; es un aviso, no un error, y no rompe el
+gate.
 
 ## Comprobar que quedó bien
 
 ```bash
-curl -s https://bim.<dominio>/health/ | python3 -m json.tool
+curl -s https://<host>.<tailnet>.ts.net/health/ | python3 -m json.tool
 ```
 
 ```json
@@ -278,11 +390,44 @@ mirando.
 journalctl -u aerobim -f
 ```
 
-Y el gate completo, que es lo mismo que corre en el equipo de desarrollo:
+### Las tres comprobaciones que protegen lo caro
 
 ```bash
-cd services/api && pwsh scripts/verify.ps1
+curl -sI https://<host>.<tailnet>.ts.net/ | grep -i 'cross-origin'
 ```
+
+**Tiene que salir vacío.** Si sale algo, el visor se cuelga sin error y nadie lo relaciona con nginx.
+
+```bash
+curl -sI https://<host>.<tailnet>.ts.net/accounts/login/ | grep -i content-security-policy
+```
+
+Exactamente una cabecera `Content-Security-Policy` —no `-Report-Only`—, y dentro
+`script-src 'self' 'wasm-unsafe-eval'` y `worker-src 'self' blob:`.
+
+```bash
+curl -s -o /dev/null -w '%{http_code}\n' -I \
+  https://<host>.<tailnet>.ts.net/static/visor/samples/716-LCD-ME-ISUP-D-TEST.ifc   # 404
+```
+
+**404, no 200.** Ya pasó una vez que archivos de obra quedaron descargables **sin autenticar**
+—200 y 34 MB—, y de ahí salió la lista blanca de `limpiar-dist.mjs`.
+
+Y la que ningún `curl` sustituye: **entrar desde un portátil, abrir un IFC real desde el expediente
+y verlo convertir.** Es la única comprobación de que COOP/COEP, la CSP, el WASM y
+`client_max_body_size` funcionan **a la vez**.
+
+### El gate
+
+`pwsh scripts/verify.ps1` es de Windows y `pwsh` no viene en Ubuntu. El equivalente en la VM:
+
+```bash
+cd services/api && uv run pytest -q
+```
+
+Lo demás del gate —`ruff`, `bandit`, `pip-audit`, `makemigrations --check`— vive en el grupo `dev`,
+que `--no-default-groups` deja fuera a propósito: son comprobaciones del repositorio, no del
+servidor, y ya corren en la CI.
 
 ## Actualizar
 
@@ -290,9 +435,10 @@ cd services/api && pwsh scripts/verify.ps1
 cd /opt/aerobim && sudo -u aerobim git pull
 npm ci && npm run build
 cd services/api && uv sync --no-default-groups --group deploy
-uv run python manage.py migrate && uv run python manage.py collectstatic --noinput
+uv run python manage.py migrate && uv run python manage.py bootstrap_roles
+uv run python manage.py collectstatic --noinput
 sudo systemctl restart aerobim
-curl -s https://bim.<dominio>/health/
+curl -s https://<host>.<tailnet>.ts.net/health/
 ```
 
 **El `curl` al final no es adorno**: `systemctl restart` vuelve sin error aunque los
@@ -317,8 +463,20 @@ de "reiniciado y sirviendo".
   32,7 MB: extraer metadatos 1,4 s, medir cobertura 1,5 s, validar un IDS 0,7 s. El `timeout`
   de 120 s es holgura, no un parche. Si algún día un trabajo llega a 30 s sobre un archivo
   real, ese es el momento de sacarlo de la petición.
-- **Qué dominio y si comparte VM** con AeroControl y AeroPlanner. Es una decisión del
-  usuario, y sigue abierta en `HANDOFF.md`.
+- **Un dominio público.** Hoy se entra **solo por el tailnet**, y eso tiene una consecuencia que no
+  es técnica: **quien no esté en Tailscale no entra**. Para un mandante externo hay que invitarlo al
+  tailnet o esperar al dominio. Y los enlaces del correo diario —que salen de `SITE_BASE_URL`— solo
+  resuelven en un dispositivo con Tailscale y MagicDNS: un teléfono sin la aplicación ve un enlace
+  muerto. Conviene decírselo por escrito a quien reciba el resumen.
+
+  El día que haya dominio cambian **tres valores del `.env`** —`ALLOWED_HOSTS`,
+  `CSRF_TRUSTED_ORIGINS`, `SITE_BASE_URL`—, el `server_name` de nginx y el origen del certificado.
+  Nada más: gunicorn, el socket, whitenoise, la CSP y las reglas de COOP/COEP no dependen del nombre.
+  Conviene **dejar el nombre `ts.net` una semana más** en `ALLOWED_HOSTS` para que los enlaces ya
+  enviados por correo no mueran de golpe.
+
+- **Si comparte VM** con AeroControl y AeroPlanner. Decide el reparto de núcleos —`GUNICORN_WORKERS`—
+  y los nombres de las unidades. Sigue abierta en `HANDOFF.md`.
 - **Llevar el respaldo fuera de la VM.** El guion de abajo copia a `/var/backups`, que protege de un
   borrado y **no** de que se muera el disco ni de que se pierda la máquina. Con qué se saca —`rclone`,
   un `scp` a otra máquina, el respaldo del hipervisor— es una decisión de infraestructura del
@@ -355,13 +513,42 @@ supone algo. Y hasta que `--verificar` pase una vez, el piloto no arranca (`docs
 Los documentos **no se comprimen**: son IFC, LAZ y PDF, ya comprimidos —el COPC del CC 741 son
 124,7 MB de LAZ que no bajan de forma útil—. El `tar` está para conservar rutas y permisos.
 
-**Y para que corra solo**, el mismo patrón que el resumen: un `.service` de `Type=oneshot` que llame
-al guion y un `.timer` con `OnCalendar=*-*-* 02:00:00` y `Persistent=true`. **Siguen sin ir en el
-repositorio**, y el motivo es más corto que antes pero sigue en pie: `pg_dump`, `pg_restore` y
-`createdb` **todavía no se han ejecutado nunca**, así que nadie ha visto una restauración de verdad.
-Programar el respaldo antes de eso dejaría un respaldo que se cree hecho.
+### `--verificar` pasó por primera vez el 2026-09-11
 
-**Lo que sí se ejercitó, el 2026-09-09, y lo que encontró.** El guion se corrió entero por primera
+**El motivo por el que el `.service` y el `.timer` del respaldo no iban en el repositorio está
+cumplido.** Decía que `pg_dump`, `pg_restore` y `createdb` no se habían ejecutado nunca y que
+programar el respaldo antes de eso dejaría «un respaldo que se cree hecho». Se ejecutaron: en un WSL
+con **Ubuntu 24.04, el mismo sistema que la VM**, contra **PostgreSQL 16** de verdad.
+
+Lo que salió, con sus cuatro oráculos:
+
+| Oráculo                                                   | Resultado                                                                                               |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| La frase final                                            | `OK: de este respaldo se puede volver`                                                                  |
+| Migraciones en la copia **=** migraciones en la base viva | **50 = 50**                                                                                             |
+| Bases de prueba huérfanas tras la comprobación            | **ninguna** — el `trap` funciona                                                                        |
+| Lo que ocupa un juego                                     | 348 KB con documentos de mentira; **hay que volver a medirlo con los de obra antes de fijar `CUANTOS`** |
+
+Eso hizo ensayable el guion, y para conseguirlo hubo que quitarle las rutas escritas a mano: llevaba
+`/opt/aerobim/services/api` y `.venv/bin/python` en cuatro sitios, así que **solo corría en la VM**.
+Ahora sale de `AEROBIM_HOME` y `AEROBIM_PYTHON`. Sin eso, el primer `--verificar` de la historia
+habría sido el de producción, que es justo lo que no se quiere de un guion de respaldo.
+
+**Así que las unidades ya están escritas** —`deploy/aerobim-respaldo.service` y `.timer`,
+`OnCalendar=*-*-* 02:00:00` y `Persistent=true`— y queda **una puerta, ahora de operación**: se
+instalan **después** de que `--verificar` pase una vez **en la máquina donde va a correr**.
+
+```bash
+sudo cp services/api/deploy/aerobim-respaldo.{service,timer} /etc/systemd/system/
+sudo systemctl daemon-reload && sudo systemctl enable --now aerobim-respaldo.timer
+sudo systemctl start aerobim-respaldo.service     # una corrida a mano, para verla
+```
+
+Llevan `/var/backups/aerobim` en `ReadWritePaths`, que es lo que las distingue de las otras dos: sin
+esa ruta, `ProtectSystem=strict` deja el destino de solo lectura y el fallo aparece a las 02:00 de
+mañana, no ahora.
+
+**Lo que sí se ejercitó antes, el 2026-09-09, y lo que encontró.** El guion se corrió entero por primera
 vez con los programas de PostgreSQL sustituidos por otros que anotan cómo se los llama
 (`apps/core/tests/test_respaldo.py`, que corre en la CI porque el guion es de Linux). Eso separa dos
 preguntas que juntas bloqueaban las dos: **si PostgreSQL vuelve de un volcado** —sigue sin

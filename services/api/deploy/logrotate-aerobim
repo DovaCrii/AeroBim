@@ -1,0 +1,32 @@
+# Rotacion del registro de AeroBim. Instalar como /etc/logrotate.d/aerobim:
+#
+#   sudo cp logrotate-aerobim /etc/logrotate.d/aerobim
+#   sudo logrotate --debug /etc/logrotate.d/aerobim     # que dice lo que haria, sin hacerlo
+#
+# **Por que la rotacion se hace desde fuera y no dentro de Django.**
+#
+# `LOGGING` usaba `TimedRotatingFileHandler`, que rota el archivo **desde el proceso**. Con
+# `workers = cpu*2+1` hay varios procesos escribiendo el mismo archivo, y a medianoche cada uno hace
+# su `os.rename`: uno renombra y los demas siguen escribiendo en un inodo ya desligado. Se pierden
+# lineas y se pisan los archivos del dia. `TimedRotatingFileHandler` **no es multiproceso**, y no hay
+# forma de configurarlo para que lo sea.
+#
+# La pareja correcta con varios procesos es la de siempre: **`WatchedFileHandler` dentro**, que mira
+# si el archivo cambio de inodo y lo reabre, y **`logrotate` fuera**, que es el unico que renombra.
+# Por eso aqui **no hace falta `copytruncate`**: con `copytruncate` se pierde lo que se escriba entre
+# la copia y el truncado, y su unico motivo es un proceso que no sabe reabrir. Este sabe.
+
+/var/log/aerobim/aerobim.log {
+    daily
+    # Treinta dias, el mismo horizonte que tenia el `backupCount` que se retiro.
+    rotate 30
+    # Comprimido, pero no el del dia anterior: si hay que mirar lo de ayer, se mira sin descomprimir.
+    compress
+    delaycompress
+    # Un despliegue recien hecho todavia no ha escrito nada: sin esto, logrotate lo llama error.
+    missingok
+    # Un archivo vacio no se rota. Evita treinta archivos vacios tras una semana de vacaciones.
+    notifempty
+    # 640 y del usuario de la aplicacion: el registro lleva rutas, correos y cabeceras de peticion.
+    create 0640 aerobim aerobim
+}

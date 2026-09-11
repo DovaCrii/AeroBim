@@ -34,14 +34,27 @@ set -euo pipefail
 DESTINO="${AEROBIM_RESPALDOS:-/var/backups/aerobim}"
 DOCUMENTOS="${DOCUMENTS_DIR:-/var/lib/aerobim/documentos}"
 
+# **Donde vive la aplicacion, y por que es una variable y no una ruta escrita a mano.**
+#
+# Estaba escrita tres veces —el `.env` que se lee, el `cd` de la comprobacion y el interprete del
+# entorno virtual—, y eso hacia que este guion **solo se pudiera correr en la VM**. Consecuencia:
+# `--verificar` no se podia ensayar en ningun sitio, y `docs/DEPLOY.md` dice que hasta que pase una
+# vez el piloto no arranca. O sea que el primer `--verificar` de la historia iba a ser el de
+# produccion, que es exactamente lo que no se quiere de un guion de respaldo.
+#
+# Con la variable, el mismo guion corre en un WSL con Ubuntu 24.04 —la misma distribucion que la
+# VM— y llega a produccion habiendo pasado ya.
+AEROBIM_HOME="${AEROBIM_HOME:-/opt/aerobim/services/api}"
+PYTHON="${AEROBIM_PYTHON:-$AEROBIM_HOME/.venv/bin/python}"
+
 # **Las mismas variables del `.env` y ninguna nueva.** `config/settings/base.py:101-112` lee
 # `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST` y `DB_PORT`; inventar aqui un `DATABASE_URL`
 # obligaria a mantener la misma conexion escrita de dos formas, y el dia que cambie una sola el
 # respaldo apuntaria a otra base sin decirlo. Se sacan del `.env` con `set -a`.
-if [ -z "${DB_NAME:-}" ] && [ -r /opt/aerobim/services/api/.env ]; then
+if [ -z "${DB_NAME:-}" ] && [ -r "$AEROBIM_HOME/.env" ]; then
     set -a
     # shellcheck disable=SC1091
-    . /opt/aerobim/services/api/.env
+    . "$AEROBIM_HOME/.env"
     set +a
 fi
 : "${DB_NAME:?falta DB_NAME (esta en el .env, y solo aplica con DB_ENGINE=postgres)}"
@@ -138,12 +151,12 @@ verificar() {
     # `DB_NAME` se pisa y el resto de la conexion sale del `.env`: es la misma base, otra
     # copia. Cambiar aqui la forma de conectarse seria comprobar algo distinto de lo que corre.
     (
-        cd /opt/aerobim/services/api
+        cd "$AEROBIM_HOME"
         export DJANGO_SETTINGS_MODULE=config.settings.prod
         export DB_NAME="$PRUEBA"
-        .venv/bin/python manage.py check --database default
+        "$PYTHON" manage.py check --database default
         echo "migraciones aplicadas en la copia: $(
-            .venv/bin/python manage.py showmigrations --plan | grep -c '^\[X\]'
+            "$PYTHON" manage.py showmigrations --plan | grep -c '^\[X\]'
         )"
     )
 

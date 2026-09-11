@@ -100,13 +100,17 @@ omit = [
     "*/migrations/*",
     "*/tests/*",
     "*/test_*.py",
-    # Puntos de entrada del despliegue y ajustes de produccion: ninguna prueba los
-    # importa, y contarlos solo diluye el numero sin decir nada de la cobertura real.
-    # Lo que si se prueba de produccion son sus dos decisiones -- la CSP con WASM y el
-    # correo -- y eso vive en `apps/core`, donde si se mide.
+    # Puntos de entrada del servidor: los importa gunicorn, no una prueba, y contarlos
+    # solo diluye el numero sin decir nada de la cobertura real.
     "config/wsgi.py",
     "config/asgi.py",
-    "config/settings/prod.py",
+    # **`config/settings/prod.py` salio de esta lista el 2026-09-11, y ese es el punto.**
+    # Estaba aqui con el motivo escrito -- "ninguna prueba los importa" -- y era cierto:
+    # por eso el defecto mas caro del despliegue vivio ahi sin que nada lo viera.
+    # `SECURE_SSL_REDIRECT = True` **sin `SECURE_PROXY_SSL_HEADER`** deja el sitio entero
+    # en `ERR_TOO_MANY_REDIRECTS`, incluido `/health/`, y `check --deploy` pasa en verde.
+    # Un ajuste que nadie importa es un ajuste que nadie prueba; ahora lo importa
+    # `apps/core/tests/test_ajustes_de_produccion.py`.
 ]
 
 [tool.coverage.report]

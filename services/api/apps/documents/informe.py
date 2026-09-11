@@ -208,11 +208,16 @@ def hallazgos(proyecto, opciones: Opciones):
         consulta = consulta.prefetch_related("comentarios__autor")
 
     # El peso de la prioridad, para poder ordenar por urgencia y no por letra. Ver `ORDENES`.
-    from apps.documents.orden import anotaciones
+    #
+    # **Y `nulos_al_final`, que faltaba aqui.** Dos de los tres ordenes de `ORDENES` llevan `vence`
+    # y los motores no coinciden: SQLite pone los `NULL` primero en ascendente, PostgreSQL al final.
+    # Un informe que se lee distinto segun donde corra es un informe que no se puede citar en una
+    # reunion, y es lo que pasaba entre el equipo de desarrollo y la VM.
+    from apps.documents.orden import anotaciones, nulos_al_final
 
     consulta = consulta.annotate(**anotaciones())
 
-    return list(consulta.order_by(*ORDENES[opciones.orden])[: MAXIMO_FILAS + 1])
+    return list(nulos_al_final(consulta, ORDENES[opciones.orden])[: MAXIMO_FILAS + 1])
 
 
 @dataclass

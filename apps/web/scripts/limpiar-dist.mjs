@@ -60,6 +60,10 @@ const PERMITIDO = new Set([
   "wasm",
   "aerobim-mark.svg",
   "aerobim-mark-oscuro.svg",
+  // **El tema, que estaba en línea y en producción no se ejecutaba.** La página la sirve una vista
+  // de Django con la CSP puesta, y `script-src 'self'` sin `'unsafe-inline'` lo bloqueaba en cada
+  // carga: quien eligiera el tema claro entraba siempre en oscuro. Ver `public/tema.js`.
+  "tema.js",
 ]);
 
 try {

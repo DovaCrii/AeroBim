@@ -12,6 +12,7 @@ Y la base de datos es propia -- la regla de la familia es que ninguna aplicacion
 comparte base con otra.
 """
 
+import os
 from datetime import timedelta
 from pathlib import Path
 
@@ -179,6 +180,36 @@ DOCUMENTS_DIR = Path(config("DOCUMENTS_DIR", default=str(BASE_DIR / "documents")
 # no configurar nada, pero cuesta media hora entender por que.
 ODA_CONVERTER = config("ODA_CONVERTER", default="")
 
+# ─────────────────────────────────────────────────────────────────────────────
+# **Cuanto cuerpo de peticion se acepta, y por que el valor de fabrica no daba.**
+#
+# Django corta el cuerpo de una peticion en **2,5 MB** por omision, y este ajuste no estaba escrito
+# en ningun sitio. Dos cosas del producto pasan de ahi o se quedan al borde:
+#
+# - **La lamina PDF.** `apps/documents/lamina.py` acepta hasta `MAXIMO_SEGMENTOS` trazos y los
+#   recorta si llegan mas. Con sesenta mil segmentos `[x1,y1,x2,y2]` el JSON ronda los 3 MB, asi que
+#   `HttpRequest.body` levantaba `RequestDataTooBig` **antes de que la vista corriera** y el recorte
+#   no llegaba a ejecutarse nunca: un `400` sin explicacion en cuanto la planta es densa.
+# - **La observacion desde el visor.** Lleva la instantanea en base64 —`instantanea.LARGO_MAXIMO`,
+#   1,8 MB— **mas** el marcado, la visibilidad, la camara y el texto. El comentario de
+#   `instantanea.py` dice que 1,8 MB esta «por debajo del limite de Django»; lo esta, pero el margen
+#   que queda para todo lo demas es de 0,7 MB y nadie lo habia sumado.
+#
+# **Ocho megas, y el numero sale de la suma y no del gusto**: el peor cuerpo legitimo es del orden
+# de 5 MB, y el doble deja sitio a que un plano crezca sin volver aqui. La prueba
+# `test_ajustes_de_produccion.py` comprueba esa coherencia contra las dos constantes, asi que subir
+# una de ellas sin subir esto pone el gate en rojo.
+#
+# **No afecta a los 200 MB del registro.** Los archivos de un `multipart` no cuentan para este tope
+# —Django los mide aparte—, asi que subir un IFC sigue funcionando igual.
+DATA_UPLOAD_MAX_MEMORY_SIZE = 8 * 1024 * 1024
+
+# **Se deja el valor de fabrica (2,5 MB) a proposito.** No es un tope sino el umbral a partir del
+# cual un archivo subido deja de vivir en memoria y pasa a un temporal en disco. Bajo es lo que se
+# quiere: con `workers = cpu*2+1` y archivos de obra de 200 MB, cuanto antes toque disco, mejor.
+FILE_UPLOAD_MAX_MEMORY_SIZE = 2621440
+# ─────────────────────────────────────────────────────────────────────────────
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 REST_FRAMEWORK = {
@@ -259,6 +290,17 @@ EMAIL_PORT = config("EMAIL_PORT", default=587, cast=int)
 EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="")
 EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
 EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=True, cast=bool)
+# **Diez segundos, porque el valor de fabrica es «ninguno».**
+#
+# Sin esto, el backend de Django pasa `timeout=None` a `smtplib` y el socket espera para siempre. Un
+# SMTP que acepta la conexion TCP y no contesta —un cortafuegos a medias, un servidor saturado, un
+# DNS que resuelve a una IP muerta— deja el worker **bloqueado hasta que gunicorn lo mata a los
+# 120 s**. Y los avisos se mandan dentro de la peticion: con nueve workers y un reparto de
+# hallazgos, el sitio entero se queda sin atender por un servidor de correo lento.
+#
+# Diez segundos son de sobra para un SMTP sano y poco para que se note: quien reparte un hallazgo
+# espera diez segundos en el peor caso, no dos minutos.
+EMAIL_TIMEOUT = config("EMAIL_TIMEOUT", default=10, cast=int)
 DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="aerobim@localhost")
 # Base absoluta de los enlaces que van dentro de un correo: ahi no hay peticion
 # de la que deducir el dominio.
@@ -285,34 +327,79 @@ CSP_EXTRA_SCRIPT_SRC = ["'wasm-unsafe-eval'"]
 CSP_EXTRA_WORKER_SRC = ["'self'", "blob:"]
 
 LOG_DIR = Path(config("LOGS_DIR", default=str(BASE_DIR / "logs")))
-LOG_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def _motivo_para_no_escribir_en(carpeta: Path) -> str | None:
+    """`None` si se puede registrar ahi; si no, la frase que lo explica.
+
+    **Esto era un `mkdir()` pelado al importar los ajustes, y mataba el proceso.** Con
+    `ProtectSystem=strict` y un `LOGS_DIR` fuera de `ReadWritePaths` —que es lo que sale de copiar
+    `.env.example`, porque su ruta es relativa y se resuelve contra el `WorkingDirectory` de la
+    unidad— el `OSError` subia **al importar `settings`**: los workers morian antes de servir nada,
+    `manage.py` entero dejaba de funcionar —incluido el `check` que usa `respaldo.sh --verificar`
+    como oraculo— y el traceback hablaba de `pathlib`, sin nombrar `LOGS_DIR` ni `ReadWritePaths`.
+
+    Ahora no se levanta: se registra por consola, que en la VM va al journal, y **el motivo dice que
+    variable mirar**. Un servicio que atiende sin archivo de registro es mucho mejor que uno que no
+    arranca.
+
+    Se comprueba **escribiendo**, no solo con `mkdir`: una carpeta montada de solo lectura existe y
+    no admite nada, que es el caso que de verdad pasa. El testigo lleva el PID porque cada worker de
+    gunicorn importa los ajustes por su cuenta y dos nombres iguales se pisan — el mismo defecto que
+    `/health/` tiene con su propio testigo.
+    """
+    testigo = carpeta / f".aerobim-escritura-{os.getpid()}"
+    try:
+        carpeta.mkdir(parents=True, exist_ok=True)
+        testigo.write_bytes(b"")
+    except OSError as error:
+        return f"no se puede escribir en LOGS_DIR={carpeta}: {error}"
+    finally:
+        try:
+            testigo.unlink(missing_ok=True)
+        except OSError:  # pragma: no cover - si no se puede borrar, tampoco se pudo crear
+            pass
+    return None
+
+
+#: `None` cuando el registro en archivo esta disponible. Lo lee `/health/` y lo dice `apps.core`.
+LOG_DIR_MOTIVO = _motivo_para_no_escribir_en(LOG_DIR)
+
+#: **`WatchedFileHandler` y no `TimedRotatingFileHandler`.** El segundo rota el mismo archivo desde
+#: cada proceso, y con `workers = cpu*2+1` a medianoche varios hacen `os.rename` a la vez: uno
+#: renombra y los demas siguen escribiendo en un inodo ya desligado, asi que se pierden lineas y se
+#: pisan los archivos del dia. `TimedRotatingFileHandler` **no es multiproceso**, y esto lo es: mira
+#: si el archivo cambio de inodo y lo reabre. La rotacion la hace `logrotate` desde fuera —vive en
+#: `deploy/logrotate-aerobim`—, que es la unica forma correcta con varios procesos.
+_MANEJADORES = ["console"] if LOG_DIR_MOTIVO else ["file", "console"]
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "handlers": {
-        "file": {
-            "class": "logging.handlers.TimedRotatingFileHandler",
-            "filename": str(LOG_DIR / "aerobim.log"),
-            "level": "INFO",
-            "formatter": "json",
-            "when": "midnight",
-            "backupCount": 30,
-            "encoding": "utf-8",
-        },
         "console": {"class": "logging.StreamHandler", "level": "INFO"},
     },
     "formatters": {"json": {"()": "apps.core.middleware.JsonLogFormatter"}},
     "loggers": {
         "aerobim.request": {
-            "handlers": ["file", "console"],
+            "handlers": _MANEJADORES,
             "level": "INFO",
             "propagate": False,
         },
         "aerobim.jobs": {
-            "handlers": ["file", "console"],
+            "handlers": _MANEJADORES,
             "level": "INFO",
             "propagate": False,
         },
     },
-    "root": {"handlers": ["file", "console"], "level": "INFO"},
+    "root": {"handlers": _MANEJADORES, "level": "INFO"},
 }
+
+if LOG_DIR_MOTIVO is None:
+    LOGGING["handlers"]["file"] = {
+        "class": "logging.handlers.WatchedFileHandler",
+        "filename": str(LOG_DIR / "aerobim.log"),
+        "level": "INFO",
+        "formatter": "json",
+        "encoding": "utf-8",
+    }

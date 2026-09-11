@@ -428,12 +428,17 @@ class ObservacionesDelModeloAPI(APIView):
         # **Solo las que tienen GUID.** Una observación sobre un PDF no tiene elemento que
         # seleccionar, y mandarla acá pondría en la lista del visor filas que no llevan a ninguna
         # parte. Se ven en su pantalla, que es donde se resuelven.
-        observaciones = (
+        # **Por `nulos_al_final`**: SQLite pone los `NULL` primero en ascendente y PostgreSQL al
+        # final, así que un hallazgo sin fecha sale arriba de la lista del visor en desarrollo y
+        # abajo en producción, sin que nada falle.
+        from apps.documents.orden import nulos_al_final
+
+        observaciones = nulos_al_final(
             Observacion.objects.filter(proyecto=proyecto)
             .exclude(ifc_guid="")
             .exclude(estado__in=(Observacion.CERRADA, Observacion.DESCARTADA))
-            .select_related("responsable", "autor")
-            .order_by("prioridad", "vence", "created_at")
+            .select_related("responsable", "autor"),
+            ("prioridad", "vence", "created_at"),
         )
 
         # **Hasta cuándo ha mirado esta persona esta obra.** Se crea sola la primera vez y no se

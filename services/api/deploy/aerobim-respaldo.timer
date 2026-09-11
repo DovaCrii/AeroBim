@@ -1,0 +1,33 @@
+# Cuando se respalda: **una vez al dia, de madrugada y en hora local**.
+#
+#   sudo cp aerobim-respaldo.{service,timer} /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now aerobim-respaldo.timer
+#   systemctl list-timers aerobim-respaldo.timer     # cuando toca el siguiente
+#
+# **02:00 y no a las 07:30.** El respaldo hace un `tar` de todos los documentos: con un COPC de
+# 130 MB dentro, eso es disco y CPU durante un rato. A las 02:00 no hay nadie trabajando, y queda
+# cinco horas y media por delante del resumen —que es lo que se lee al empezar la jornada— para que
+# los dos no compitan por el mismo disco.
+#
+# **Hora local, igual que el resumen.** systemd usa la zona del sistema, asi que la VM tiene que
+# estar en `America/Santiago`. Con la VM en UTC esto corre a las 22:00 o a las 23:00 segun el horario
+# de verano, o sea **en plena jornada**, que es justo lo que se queria evitar.
+#
+# **`Persistent=true`**: si la maquina estaba apagada a las 02:00, el respaldo sale al arrancar. Sin
+# esto, un reinicio nocturno se lleva el respaldo del dia y nadie se entera hasta que hace falta.
+#
+# **`RandomizedDelaySec` no se pone**, por lo mismo que en el resumen: hay una maquina, y una hora
+# exacta hace que «no hay copia de anoche» se pueda comprobar mirando el reloj.
+
+[Unit]
+Description=Dispara el respaldo de AeroBim cada dia
+Requires=aerobim-respaldo.service
+
+[Timer]
+OnCalendar=*-*-* 02:00:00
+Persistent=true
+Unit=aerobim-respaldo.service
+
+[Install]
+WantedBy=timers.target

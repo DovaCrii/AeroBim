@@ -128,15 +128,19 @@ class ProyectoView(ModelViewPermissionRequiredMixin, OrganizacionScopedQuerysetM
         # anclada al GUID de una viga se resuelve en el visor, y una sobre un PDF en el documento.
         # **Por peso de prioridad y no por el campo**: los valores guardados son palabras, así que
         # `order_by("prioridad")` devuelve alta, **baja**, media. Ver `apps/documents/orden.py`.
-        from apps.documents.orden import anotaciones
+        # **Y por `nulos_al_final`, que no es adorno.** SQLite pone los `NULL` primero en ascendente
+        # y PostgreSQL los pone al final: un hallazgo sin fecha sale arriba en desarrollo y abajo en
+        # produccion, sin que nada falle. Se desarrolla en SQLite y se despliega en PostgreSQL, asi
+        # que la diferencia se ve en el sitio donde no se puede depurar.
+        from apps.documents.orden import anotaciones, nulos_al_final
 
-        abiertas = (
+        abiertas = nulos_al_final(
             Observacion.objects.filter(proyecto=proyecto)
             .exclude(estado__in=(Observacion.CERRADA, Observacion.DESCARTADA))
             .select_related("responsable", "autor", "revision__entregable")
             .prefetch_related("etiquetas")
-            .annotate(**anotaciones())
-            .order_by("orden_prioridad", "vence")
+            .annotate(**anotaciones()),
+            ("orden_prioridad", "vence"),
         )
         contexto["observaciones"] = abiertas
         contexto["observaciones_del_modelo"] = [o for o in abiertas if o.ifc_guid]

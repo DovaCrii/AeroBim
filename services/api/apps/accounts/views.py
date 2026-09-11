@@ -83,10 +83,17 @@ class PortalView(LoginRequiredMixin, TemplateView):
             # faltan y en realidad es el tope de las tarjetas.
             contexto["mis_obras_cuantas"] = visibles.count()
             proyectos = list(
-                visibles.prefetch_related("entregables__revisiones").order_by("codigo")[:6]
+                visibles.select_related("organizacion")
+                .prefetch_related("entregables__revisiones")
+                .order_by("codigo")[:6]
             )
             self._cifras_de_obra(proyectos, usuario)
             contexto["mis_proyectos"] = proyectos
+            # **Si las obras visibles son de más de una organización, el código deja de
+            # identificar.** El usuario tenía dos tarjetas `PILOTO-AEROBIM` idénticas en su portada,
+            # de dos organizaciones distintas, sin nada que las separase. Se cuenta sobre las que se
+            # van a dibujar y no sobre `visibles`: lo que hay que distinguir es lo que se ve.
+            contexto["varias_organizaciones"] = len({uno.organizacion_id for uno in proyectos}) > 1
 
         contexto["cifra_del_dia"] = self._cifra_del_dia(
             vencidas=contexto["mis_vencidas"],

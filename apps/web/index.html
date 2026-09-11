@@ -6,27 +6,15 @@
     <link rel="icon" type="image/svg+xml" href="/aerobim-mark.svg" />
     <title>AeroBim</title>
     <!--
-      **El tema, antes de pintar.** Va aquí y no en React por una razón que se ve: React monta
-      después del primer fotograma, así que aplicando el tema desde un componente hay un destello
-      del tema equivocado en cada carga — y en un visor que arranca WASM, ese "después" son cientos
-      de milisegundos, no uno.
+      **El tema, antes de pintar.** El porqué está en `public/tema.js`, junto al código.
 
-      Es la misma clave que el portal (`aerobim:tema`) y el mismo `try`/`catch`: un navegador con
-      el almacenamiento bloqueado lanza al *leer*, y sin la guarda la página no llega a pintarse.
-
-      Inline y no en un archivo aparte porque un `<script src>` es otra petición antes del primer
-      pintado, que es justo lo que este script existe para evitar. El visor no sirve bajo CSP con
-      `script-src 'self'` estricto: Django lo sirve como estático desde `/static/visor/` con su
-      propia cabecera, y `docs/DEPLOY.md` lo dice.
+      **Y va en un archivo y no en línea porque en línea no se ejecutaba en producción.** Esta
+      página no la sirve whitenoise sino una vista de Django con `LoginRequiredMixin`, así que
+      recibe la CSP, y en producción esa política lleva `script-src 'self'` sin `'unsafe-inline'`:
+      el navegador lo bloqueaba en cada carga. El comentario que estaba aquí afirmaba lo contrario.
+      Ningún `<script>` en línea funciona en esta página — hay una prueba que lo vigila.
     -->
-    <script>
-      try {
-        if (localStorage.getItem("aerobim:tema") === "claro")
-          document.documentElement.setAttribute("data-theme", "light");
-      } catch (e) {
-        /* sin almacenamiento se queda el oscuro, que es el de partida */
-      }
-    </script>
+    <script src="/tema.js"></script>
   </head>
   <body>
     <div id="root"></div>
