@@ -5,6 +5,27 @@ from .base import config
 
 DEBUG = False
 
+# ─────────────────────────────────────────────────────────────────────────────
+# **Sin esta linea, `SECURE_SSL_REDIRECT` deja el sitio entero inservible.**
+#
+# nginx termina TLS y proxea al socket de UNIX **en claro**. Django ve
+# `wsgi.url_scheme == "http"`, `request.is_secure()` devuelve `False`, y
+# `SecurityMiddleware` —que es el primero de la lista— contesta **301 a https**.
+# nginx vuelve a proxear, Django vuelve a redirigir: `ERR_TOO_MANY_REDIRECTS` en
+# todo, **incluido `/health/`**, que es justo lo que uno mira para saber que pasa.
+#
+# La cabecera se acepta **solo porque gunicorn no deja que se forje**:
+# `forwarded_allow_ips = 127.0.0.1` (`config/gunicorn.conf.py:54`) descarta la
+# `X-Forwarded-*` de cualquiera que no sea el proxy local. Si algun dia el proxy
+# dejara de ser local, esto hay que revisarlo el mismo dia.
+#
+# **Por que no se veia:** la suite corre con `config.settings.dev` sobre un solo
+# proceso y sin proxy (`pyproject.toml:85`), `check --deploy` no comprueba esto, y
+# `pyproject.toml:109` excluia este archivo de cobertura con el motivo escrito
+# —«ninguna prueba los importa»—. Ahora lo importa `test_ajustes_de_produccion.py`.
+# ─────────────────────────────────────────────────────────────────────────────
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
 SECURE_SSL_REDIRECT = config("SECURE_SSL_REDIRECT", default=True, cast=bool)
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True

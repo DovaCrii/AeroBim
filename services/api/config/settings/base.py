@@ -12,6 +12,7 @@ Y la base de datos es propia -- la regla de la familia es que ninguna aplicacion
 comparte base con otra.
 """
 
+import os
 from datetime import timedelta
 from pathlib import Path
 
@@ -285,34 +286,79 @@ CSP_EXTRA_SCRIPT_SRC = ["'wasm-unsafe-eval'"]
 CSP_EXTRA_WORKER_SRC = ["'self'", "blob:"]
 
 LOG_DIR = Path(config("LOGS_DIR", default=str(BASE_DIR / "logs")))
-LOG_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def _motivo_para_no_escribir_en(carpeta: Path) -> str | None:
+    """`None` si se puede registrar ahi; si no, la frase que lo explica.
+
+    **Esto era un `mkdir()` pelado al importar los ajustes, y mataba el proceso.** Con
+    `ProtectSystem=strict` y un `LOGS_DIR` fuera de `ReadWritePaths` —que es lo que sale de copiar
+    `.env.example`, porque su ruta es relativa y se resuelve contra el `WorkingDirectory` de la
+    unidad— el `OSError` subia **al importar `settings`**: los workers morian antes de servir nada,
+    `manage.py` entero dejaba de funcionar —incluido el `check` que usa `respaldo.sh --verificar`
+    como oraculo— y el traceback hablaba de `pathlib`, sin nombrar `LOGS_DIR` ni `ReadWritePaths`.
+
+    Ahora no se levanta: se registra por consola, que en la VM va al journal, y **el motivo dice que
+    variable mirar**. Un servicio que atiende sin archivo de registro es mucho mejor que uno que no
+    arranca.
+
+    Se comprueba **escribiendo**, no solo con `mkdir`: una carpeta montada de solo lectura existe y
+    no admite nada, que es el caso que de verdad pasa. El testigo lleva el PID porque cada worker de
+    gunicorn importa los ajustes por su cuenta y dos nombres iguales se pisan — el mismo defecto que
+    `/health/` tiene con su propio testigo.
+    """
+    testigo = carpeta / f".aerobim-escritura-{os.getpid()}"
+    try:
+        carpeta.mkdir(parents=True, exist_ok=True)
+        testigo.write_bytes(b"")
+    except OSError as error:
+        return f"no se puede escribir en LOGS_DIR={carpeta}: {error}"
+    finally:
+        try:
+            testigo.unlink(missing_ok=True)
+        except OSError:  # pragma: no cover - si no se puede borrar, tampoco se pudo crear
+            pass
+    return None
+
+
+#: `None` cuando el registro en archivo esta disponible. Lo lee `/health/` y lo dice `apps.core`.
+LOG_DIR_MOTIVO = _motivo_para_no_escribir_en(LOG_DIR)
+
+#: **`WatchedFileHandler` y no `TimedRotatingFileHandler`.** El segundo rota el mismo archivo desde
+#: cada proceso, y con `workers = cpu*2+1` a medianoche varios hacen `os.rename` a la vez: uno
+#: renombra y los demas siguen escribiendo en un inodo ya desligado, asi que se pierden lineas y se
+#: pisan los archivos del dia. `TimedRotatingFileHandler` **no es multiproceso**, y esto lo es: mira
+#: si el archivo cambio de inodo y lo reabre. La rotacion la hace `logrotate` desde fuera —vive en
+#: `deploy/logrotate-aerobim`—, que es la unica forma correcta con varios procesos.
+_MANEJADORES = ["console"] if LOG_DIR_MOTIVO else ["file", "console"]
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "handlers": {
-        "file": {
-            "class": "logging.handlers.TimedRotatingFileHandler",
-            "filename": str(LOG_DIR / "aerobim.log"),
-            "level": "INFO",
-            "formatter": "json",
-            "when": "midnight",
-            "backupCount": 30,
-            "encoding": "utf-8",
-        },
         "console": {"class": "logging.StreamHandler", "level": "INFO"},
     },
     "formatters": {"json": {"()": "apps.core.middleware.JsonLogFormatter"}},
     "loggers": {
         "aerobim.request": {
-            "handlers": ["file", "console"],
+            "handlers": _MANEJADORES,
             "level": "INFO",
             "propagate": False,
         },
         "aerobim.jobs": {
-            "handlers": ["file", "console"],
+            "handlers": _MANEJADORES,
             "level": "INFO",
             "propagate": False,
         },
     },
-    "root": {"handlers": ["file", "console"], "level": "INFO"},
+    "root": {"handlers": _MANEJADORES, "level": "INFO"},
 }
+
+if LOG_DIR_MOTIVO is None:
+    LOGGING["handlers"]["file"] = {
+        "class": "logging.handlers.WatchedFileHandler",
+        "filename": str(LOG_DIR / "aerobim.log"),
+        "level": "INFO",
+        "formatter": "json",
+        "encoding": "utf-8",
+    }
