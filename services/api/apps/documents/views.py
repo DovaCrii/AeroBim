@@ -248,7 +248,11 @@ class SubirRevisionView(ModelPermissionRequiredMixin, View):
             sha256=form.sha256,
             extension=form.extension,
         )
-        storage.guardar(clave, form.contenido)
+        # **Se copia del archivo subido al disco, sin pasar por una variable.** Esto era
+        # `storage.guardar(clave, form.contenido)` con los 200 MB en memoria; ahora va por tramos y
+        # de una sola pieza —temporal más `os.replace`—, porque la clave lleva el `sha256` y un
+        # archivo truncado con el nombre del completo no lo detecta nadie nunca.
+        storage.guardar_subida(clave, form.cleaned_data["archivo"])
 
         revision = form.save(commit=False)
         revision.entregable = entregable
@@ -256,7 +260,7 @@ class SubirRevisionView(ModelPermissionRequiredMixin, View):
         revision.clave_archivo = clave
         # El nombre que traía se guarda **en la base de datos**, no en el disco.
         revision.nombre_original = form.cleaned_data["archivo"].name[:250]
-        revision.tamano_bytes = len(form.contenido)
+        revision.tamano_bytes = form.tamano
         revision.sha256 = form.sha256
         # **Lo que el IFC declara se lee al subirlo** (`F3.3`), y solo si es un IFC. Medido: 1,1 s
         # para el modelo real de 23,6 MB, así que no hace falta un trabajo en segundo plano para el
@@ -273,7 +277,12 @@ class SubirRevisionView(ModelPermissionRequiredMixin, View):
         # una comodidad. Se guarda el motivo para poder decirselo a quien subio.
         extension = storage.extension_de(revision.nombre_original)
         if conversion.se_puede_convertir(extension):
-            dxf, motivo = conversion.dxf_para(form.contenido, extension)
+            # **Los bytes salen del archivo ya guardado y no del formulario.** El conversor los
+            # necesita enteros —le pasa el contenido a un ejecutable— así que aquí no hay nada que
+            # ahorrar; lo que sí se evita es tenerlos en memoria durante **toda** la subida cuando
+            # el archivo no es convertible, que es el caso normal. Y un DWG o un DGN son planos:
+            # órdenes de magnitud por debajo del IFC federado que motivó todo esto.
+            dxf, motivo = conversion.dxf_para(storage.leer(clave), extension)
             if dxf is None:
                 revision.motivo_sin_dxf = motivo[:300]
             else:
@@ -295,7 +304,7 @@ class SubirRevisionView(ModelPermissionRequiredMixin, View):
         messages.success(
             request,
             _("Revision %(rev)s uploaded (%(kb)s KB).")
-            % {"rev": revision.correlativo, "kb": len(form.contenido) // 1024},
+            % {"rev": revision.correlativo, "kb": form.tamano // 1024},
         )
         return redirect("documents:expediente", pk=entregable.pk)
 
