@@ -1777,9 +1777,15 @@ class RevisarInterferenciasView(ModelPermissionRequiredMixin, View):
     **Pide `add_observacion`** porque es exactamente lo que hace: abrir observaciones. No un permiso
     nuevo — un rol que puede abrir un hallazgo a mano puede mandar buscarlos.
 
-    **Y la petición espera.** Son 20 s medidos por par de modelos, decisión del usuario del
-    2026-09-02: caben de sobra en los 120 s del servidor, y una cola traería una forma nueva de
-    fallar en silencio que todavía no hace falta pagar. La corrida deja su fila en `JobRun`.
+    **Y la petición espera, pero solo si cabe.** Son 20 s medidos **por par**, y la corrida hace
+    todos los pares: con cuatro modelos son seis, o sea 120 s — justo el `timeout` de gunicorn. El
+    worker moría al borde, y lo que quedaba no era un error limpio: **las observaciones de los
+    primeros pares ya estaban escritas**, así que la pantalla daba un 502 y aun así aparecían
+    hallazgos nuevos.
+
+    Ahora se mide antes de empezar y, si no cabe, **no arranca**: se dice cuántos pares son y se
+    manda al comando de gestión, que corre fuera de la petición y no tiene tope. Negarse antes es
+    mejor que morir a mitad. Ver `apps/documents/revisar.py`.
     """
 
     model = Observacion
@@ -1788,7 +1794,13 @@ class RevisarInterferenciasView(ModelPermissionRequiredMixin, View):
     def post(self, request, *args, **kwargs):
         from apps.core.tenancy import scope_queryset_to_organizacion
         from apps.documents.interferencias import GrupoVacio
-        from apps.documents.revisar import revisar_proyecto
+        from apps.documents.revisar import (
+            cabe_en_una_peticion,
+            cuantos_pares,
+            modelos_vigentes,
+            revisar_proyecto,
+            segundos_estimados,
+        )
         from apps.projects.models import Proyecto
 
         proyecto = (
@@ -1798,6 +1810,26 @@ class RevisarInterferenciasView(ModelPermissionRequiredMixin, View):
         )
         if proyecto is None:
             raise Http404
+
+        # **Se mide antes de empezar.** Contar los modelos vigentes es una consulta; la alternativa
+        # era descubrirlo a los dos minutos con un `SIGKILL` y media corrida escrita.
+        pares = cuantos_pares(len(modelos_vigentes(proyecto)))
+        if not cabe_en_una_peticion(pares):
+            messages.warning(
+                request,
+                _(
+                    "This project has %(models)s current models: %(pairs)s comparisons, about "
+                    "%(minutes)s minutes. That does not fit in one request, so it was not started "
+                    "— a half-finished run leaves findings without saying so. Run it from the "
+                    "server with `manage.py detectar_interferencias`, which has no time limit."
+                )
+                % {
+                    "models": len(modelos_vigentes(proyecto)),
+                    "pairs": pares,
+                    "minutes": max(1, round(segundos_estimados(pares) / 60)),
+                },
+            )
+            return redirect("projects:proyecto", pk=proyecto.pk)
 
         try:
             resultado = revisar_proyecto(proyecto, request.user)

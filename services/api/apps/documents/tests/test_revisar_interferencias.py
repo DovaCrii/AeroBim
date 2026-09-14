@@ -363,6 +363,98 @@ def test_la_pantalla_deja_las_observaciones_donde_ya_vive_la_coordinacion(
     assert len(una.marcado) == 1
 
 
+# --- Lo que no cabe en una peticion ---------------------------------------------------
+#
+# **El codigo se contradecia consigo mismo a tres lineas de distancia.** `revisar.py` decia «con
+# cuatro modelos son seis pares, o sea unos dos minutos» y a continuacion justificaba la espera con
+# los «20 s» de **un** par: «caben de sobra en los 120 del servidor». Seis por veinte son 120
+# exactos, que es justo el `timeout` de gunicorn.
+#
+# Y lo que quedaba no era un error limpio: las observaciones de los primeros pares **ya estaban
+# escritas** cuando llegaba el `SIGKILL`, asi que la pantalla daba un 502 y aun asi aparecian
+# hallazgos nuevos. La peor combinacion: un error que miente sobre lo que paso.
+
+
+def test_los_pares_crecen_al_cuadrado_y_por_eso_sorprenden():
+    """**«He anadido un modelo mas» no se parece en nada al trabajo que anade.**
+
+    Dos modelos son un par; tres, tres; cuatro, **seis**. Es la cuenta que nadie hace de cabeza y la
+    que decide si la corrida cabe.
+    """
+    from apps.documents.revisar import cuantos_pares
+
+    assert [cuantos_pares(n) for n in range(1, 7)] == [0, 1, 3, 6, 10, 15]
+
+
+def test_el_presupuesto_sale_del_timeout_del_servidor_y_no_de_un_numero_suelto():
+    """Si los dos numeros vivieran aparte, se separarian el dia que alguien suba el del servidor —y
+    entonces esto volveria a dejar morir al worker, que es justo lo que se esta arreglando."""
+    import os
+
+    from apps.documents.revisar import PRESUPUESTO_S
+
+    assert PRESUPUESTO_S == int(os.environ.get("GUNICORN_TIMEOUT", "120")) // 2
+    # Y con margen de verdad: la corrida no es lo unico que pasa en la peticion.
+    assert PRESUPUESTO_S < int(os.environ.get("GUNICORN_TIMEOUT", "120"))
+
+
+def test_tres_modelos_caben_y_cuatro_no():
+    """**El borde exacto, que es donde estaba el defecto.** Tres modelos son 60 s y entran justos;
+    cuatro son 120, que es el `timeout` clavado."""
+    from apps.documents.revisar import cabe_en_una_peticion, cuantos_pares
+
+    assert cabe_en_una_peticion(cuantos_pares(3))
+    assert not cabe_en_una_peticion(cuantos_pares(4))
+
+
+@pytest.mark.django_db
+def test_con_cuatro_modelos_la_pantalla_no_arranca_la_corrida(
+    dos_modelos, proyectista, monkeypatch, client
+):
+    """**Negarse antes es mejor que morir a mitad.**
+
+    Se finge una obra con cuatro modelos vigentes y se exige que `revisar_proyecto` **no llegue a
+    llamarse**: si llegara, en produccion serian dos minutos contra un tope de dos minutos.
+    """
+    from apps.documents import revisar as modulo
+
+    proyecto = dos_modelos[0].entregable.proyecto
+    # La vista importa los dos de `apps.documents.revisar` dentro del método, así que basta con
+    # pisarlos en el módulo: es lo que ve cuando los busca.
+    monkeypatch.setattr(modulo, "modelos_vigentes", lambda _p: dos_modelos * 2)
+
+    def no_deberia_correr(*a, **k):
+        raise AssertionError("arrancó una corrida de seis pares: en producción muere a los 120 s")
+
+    monkeypatch.setattr(modulo, "revisar_proyecto", no_deberia_correr)
+    client.force_login(dar(proyectista, "documents.add_observacion", "projects.view_proyecto"))
+
+    respuesta = client.post(ruta_de(proyecto), follow=True)
+
+    assert respuesta.status_code == 200
+    texto = " ".join(str(m) for m in respuesta.context["messages"])
+    # Dice **cuántas** comparaciones y **por dónde** se hace, que es lo accionable.
+    assert "6" in texto
+    assert "detectar_interferencias" in texto
+    # Y no abrió nada: una corrida a medias deja hallazgos sin decirlo.
+    assert not Observacion.objects.filter(proyecto=proyecto).exists()
+
+
+@pytest.mark.django_db
+def test_con_dos_modelos_sigue_corriendo_como_siempre(dos_modelos, proyectista, client):
+    """La otra mitad: el arreglo no puede apagar el caso que sí funciona.
+
+    Sin esto, poner el presupuesto a cero pasaría la prueba de arriba y rompería el producto.
+    """
+    proyecto = dos_modelos[0].entregable.proyecto
+    client.force_login(dar(proyectista, "documents.add_observacion", "projects.view_proyecto"))
+
+    respuesta = client.post(ruta_de(proyecto), follow=True)
+
+    assert respuesta.status_code == 200
+    assert Observacion.objects.filter(proyecto=proyecto).exists()
+
+
 @pytest.mark.django_db
 def test_la_corrida_deja_su_fila_en_el_historial(dos_modelos, revisor):
     """Un trabajo que deja de correr **no da error**: la fila es la unica forma de notarlo."""

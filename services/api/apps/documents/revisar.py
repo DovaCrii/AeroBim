@@ -21,11 +21,26 @@ concreto de falso positivo:
 
 ## Que tarda, y por que se espera
 
-Medido: **20 s** cruzando los dos modelos reales de la organizacion. Con cuatro modelos son seis
-pares, o sea unos dos minutos. **La peticion espera**, y es una decision del usuario del
-2026-09-02: veinte segundos caben de sobra en los 120 del servidor, y una cola traeria una forma
-nueva de fallar callada —un trabajo encolado que nadie procesa no da error— que no hace falta pagar
-todavia. Si un par federado se pasa del minuto, ahi se monta con el numero en la mano.
+Medido: **20 s** cruzando los dos modelos reales de la organizacion. **La peticion espera**, y es
+decision del usuario del 2026-09-02: veinte segundos caben de sobra en los 120 del servidor, y una
+cola traeria una forma nueva de fallar callada —un trabajo encolado que nadie procesa no da error—
+que no hace falta pagar todavia.
+
+**Pero ese razonamiento vale por par, y la peticion hace todos.** Este mismo parrafo decia «con
+cuatro modelos son seis pares, o sea unos dos minutos» y a continuacion justificaba con los veinte
+segundos de **uno**. Las dos frases estaban a tres lineas de distancia y se contradicen: seis pares
+por veinte segundos son **120 s exactos**, que es justo el `timeout` de gunicorn
+(`config/gunicorn.conf.py`). El worker se lleva un `SIGKILL` **al borde**, y lo que queda no es un
+error limpio: las observaciones de los primeros pares **ya estan escritas**, asi que la pantalla da
+un 502 y aun asi aparecen hallazgos nuevos. Es la peor combinacion posible.
+
+Asi que la corrida ahora **se mide antes de empezar** —ver {@link cabe_en_una_peticion}— y si no
+cabe, no arranca: se dice cuantos pares son, cuanto se estima y que el camino es el comando de
+gestion, que no tiene `timeout` porque no es una peticion. Negarse antes es mejor que morir a mitad.
+
+**Y esto reabre `F3.4` con el numero en la mano.** `MASTER_PLAN.md` dejo escrito que el umbral para
+sacar el trabajo de la peticion son **30 s sobre un archivo real**; seis pares son 120. El dia que
+una obra tenga cuatro modelos vigentes de verdad, la respuesta ya no es subir el tope.
 
 Cada corrida deja su fila en `JobRun`: un trabajo que muere a mitad **no da error**, y la fila es la
 unica forma de notarlo.
@@ -33,6 +48,7 @@ unica forma de notarlo.
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, field
 from itertools import combinations
 
@@ -48,6 +64,49 @@ from apps.documents.models import Observacion, Revision
 #: Lo que entra en una comparacion. Ver el docstring del modulo: cada exclusion evita un falso
 #: positivo concreto, y las tres estan medidas sobre los modelos reales.
 SELECTOR_POR_DEFECTO = "IfcElement, ! IfcFurnishingElement, ! IfcOpeningElement, ! IfcAnnotation"
+
+#: Lo que tarda cruzar **un** par de modelos, medido sobre los dos reales de la organizacion.
+#:
+#: Es una estimacion y se usa como tal: un par de modelos federados grandes tardara mas y uno de dos
+#: plantas pequenas menos. Sirve para lo unico que hace falta —decidir si la corrida **cabe** en una
+#: peticion— y para eso un numero medido, aunque sea aproximado, es infinitamente mejor que el que
+#: habia, que era ninguno.
+SEGUNDOS_POR_PAR = 20
+
+#: Cuanto se deja correr dentro de una peticion, en segundos.
+#:
+#: **Sale del `timeout` de gunicorn y no de un numero suelto**, para que los dos no se separen: si
+#: alguien sube el tope del servidor, esto sube con el. Y se queda en **la mitad** a proposito,
+#: porque la corrida no es lo unico que pasa en la peticion —abrir los archivos, escribir las
+#: observaciones, componer la respuesta— y porque una estimacion de veinte segundos por par que se
+#: quede corta no puede convertirse en un `SIGKILL`.
+PRESUPUESTO_S = int(os.environ.get("GUNICORN_TIMEOUT", "120")) // 2
+
+
+def segundos_estimados(pares: int) -> int:
+    """Lo que se estima que tarda cruzar `pares` pares de modelos."""
+    return pares * SEGUNDOS_POR_PAR
+
+
+def cuantos_pares(cuantos_modelos: int) -> int:
+    """Cuantas comparaciones salen de `n` modelos: todas contra todas, o sea `n·(n-1)/2`.
+
+    Crece al cuadrado, y **ese es el problema**: dos modelos son un par, tres son tres, cuatro son
+    **seis**. La sensacion de «he anadido un modelo mas» no se parece en nada al trabajo que anade.
+    """
+    return cuantos_modelos * (cuantos_modelos - 1) // 2
+
+
+def cabe_en_una_peticion(pares: int) -> bool:
+    """Si una corrida de `pares` pares se puede hacer dentro de una peticion HTTP.
+
+    **Antes no se preguntaba, y por eso el worker moria al borde del `timeout`** dejando a medias
+    una corrida cuyas primeras observaciones ya estaban escritas. Ver el docstring del modulo.
+
+    Quien diga que no tiene una salida que si funciona y no tiene tope: el comando de gestion
+    `detectar_interferencias`, que corre fuera de la peticion.
+    """
+    return segundos_estimados(pares) <= PRESUPUESTO_S
 
 
 @dataclass
