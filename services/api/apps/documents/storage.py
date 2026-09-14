@@ -17,7 +17,9 @@ Las tres reglas, y por que cada una:
 """
 
 import hashlib
+import os
 import re
+import shutil
 from pathlib import Path
 
 from django.conf import settings
@@ -149,36 +151,99 @@ def validar_tamano(tamano: int) -> None:
         )
 
 
-def validar(nombre_original: str, contenido: bytes) -> tuple[str, str]:
-    """Comprueba el archivo y devuelve `(extension, sha256)`.
+#: Cuanto se lee de una vez al recorrer un archivo por tramos.
+#:
+#: Un mega: bastante grande para que el coste por llamada no se note sobre 200 MB, y bastante chico
+#: para que la memoria del proceso no dependa del tamano del archivo, que es todo el punto.
+TROZO = 1024 * 1024
 
-    Lanza `CargaRechazada` con un motivo que se le puede mostrar a quien sube.
-    """
-    if not contenido:
-        raise CargaRechazada(_("The file is empty."), "vacio")
-    validar_tamano(len(contenido))
+#: Cuanto se mira para decidir si un archivo es lo que dice ser.
+#:
+#: Las firmas viven en los primeros dieciseis bytes y el juicio de «esto es texto» quiere una
+#: muestra. Cuatro kibibytes cubren los dos y caben en cualquier parte.
+CABECERA = 4096
 
+
+def validar_extension(nombre_original: str) -> str:
+    """La extension, comprobada contra la lista de lo que se acepta."""
     extension = extension_de(nombre_original)
     if extension not in EXTENSIONES_ACEPTADAS:
         raise CargaRechazada(
             _("Files with extension «%(ext)s» are not accepted.") % {"ext": extension or "—"},
             "extension-no-aceptada",
         )
+    return extension
 
+
+def validar_cabecera(extension: str, cabecera: bytes) -> None:
+    """Que el contenido sea lo que la extension promete.
+
+    Vive aparte porque **lo usan los dos caminos** —el que tiene los bytes y el que recorre el
+    archivo por tramos— y tener la regla escrita dos veces es como se acaba aceptando por un lado lo
+    que se rechaza por el otro.
+    """
     if extension in FIRMAS:
-        cabecera = contenido[:16]
-        if not any(cabecera.startswith(firma) for firma in FIRMAS[extension]):
+        if not any(cabecera[:16].startswith(firma) for firma in FIRMAS[extension]):
             # **Aqui se cae `virus.exe` renombrado a `plano.pdf`.**
             raise CargaRechazada(
                 _("The content does not match a «%(ext)s» file.") % {"ext": extension},
                 "firma-no-coincide",
             )
-    elif not parece_texto(contenido[:4096]):
+    elif not parece_texto(cabecera[:CABECERA]):
         raise CargaRechazada(
             _("A «%(ext)s» file has to be text.") % {"ext": extension}, "no-es-texto"
         )
 
+
+def validar(nombre_original: str, contenido: bytes) -> tuple[str, str]:
+    """Comprueba el archivo y devuelve `(extension, sha256)`.
+
+    Lanza `CargaRechazada` con un motivo que se le puede mostrar a quien sube.
+
+    **Recibe los bytes, asi que el archivo ya esta en memoria.** Para una subida use
+    {@link validar_subida}, que hace las mismas comprobaciones recorriendo el archivo. Esta se queda
+    para los caminos que de verdad tienen el contenido en la mano: la API, el IDS —que es un XML
+    pequeño y hay que parsearlo igual— y las pruebas.
+    """
+    if not contenido:
+        raise CargaRechazada(_("The file is empty."), "vacio")
+    validar_tamano(len(contenido))
+    extension = validar_extension(nombre_original)
+    validar_cabecera(extension, contenido[:CABECERA])
     return extension, hashlib.sha256(contenido).hexdigest()
+
+
+def validar_subida(archivo) -> tuple[str, str]:
+    """Lo mismo que {@link validar}, **sin traer el archivo a memoria**.
+
+    ## Por que
+
+    El camino de subida hacia `contenido = subido.read()` y luego `validar(nombre, contenido)`: un
+    IFC de 200 MB —el tope del registro, y los archivos de obra lo alcanzan— quedaba entero en la
+    memoria del worker. Con `workers = cpu*2+1`, dos o tres subidas a la vez son el OOM killer.
+
+    Aqui el archivo se recorre por tramos de {@link TROZO}: el `sha256` se va acumulando y la
+    cabecera sale del primero. **La memoria que ocupa no depende del tamaño del archivo.**
+
+    El `seek(0)` del final no es cortesia: quien llame va a guardar el archivo justo despues, y un
+    descriptor dejado al final escribe un archivo vacio sin dar ningun error.
+    """
+    validar_tamano(archivo.size)
+    if not archivo.size:
+        raise CargaRechazada(_("The file is empty."), "vacio")
+    extension = validar_extension(archivo.name)
+
+    archivo.seek(0)
+    digest = hashlib.sha256()
+    cabecera = b""
+    for trozo in iter(lambda: archivo.read(TROZO), b""):
+        if not cabecera:
+            cabecera = trozo[:CABECERA]
+        digest.update(trozo)
+    archivo.seek(0)
+
+    validar_cabecera(extension, cabecera)
+    return extension, digest.hexdigest()
 
 
 def parece_texto(bloque: bytes) -> bool:
@@ -217,13 +282,51 @@ def clave_para(*, proyecto_codigo: str, entregable_codigo: str, sha256: str, ext
     return normalize_storage_key(f"{seguro}/{seguro_e}/{sha256}.{extension}")
 
 
-def guardar(clave: str, contenido: bytes) -> Path:
-    """Escribe el archivo bajo `DOCUMENTS_DIR`, que vive **fuera del repositorio**."""
-    destino = Path(settings.DOCUMENTS_DIR) / normalize_storage_key(clave)
+def _escribir_de_una_pieza(destino: Path, volcar) -> None:
+    """Escribe con `volcar(salida)` en un temporal y lo mueve encima **de una sola vez**.
+
+    **Un archivo a medias es peor que ninguno, y aqui es indetectable.** La clave lleva el `sha256`
+    del contenido, asi que si el proceso muere escribiendo —un reinicio, el OOM killer, un disco
+    lleno— queda un archivo incompleto **con el nombre del completo**. Y la comprobacion de mas
+    abajo es «¿existe?», asi que la siguiente subida del mismo archivo lo da por bueno y nadie
+    vuelve a escribirlo nunca: el expediente sirve un archivo truncado para siempre.
+
+    `os.replace` sobre el mismo sistema de archivos es atomico: o esta el de antes, o esta el nuevo
+    entero. El temporal va **en la misma carpeta** por eso mismo; en `/tmp` seria un movimiento
+    entre sistemas de archivos y dejaria de serlo.
+    """
     destino.parent.mkdir(parents=True, exist_ok=True)
+    temporal = destino.with_name(f".{destino.name}.{os.getpid()}.parcial")
+    try:
+        with temporal.open("wb") as salida:
+            volcar(salida)
+        os.replace(temporal, destino)
+    finally:
+        temporal.unlink(missing_ok=True)
+
+
+def guardar(clave: str, contenido: bytes) -> Path:
+    """Escribe el archivo bajo `DOCUMENTS_DIR`, que vive **fuera del repositorio**.
+
+    Para una subida esta {@link guardar_subida}, que no necesita el contenido en memoria.
+    """
+    destino = Path(settings.DOCUMENTS_DIR) / normalize_storage_key(clave)
     # Si ya existe con el mismo sha256, es el mismo archivo: no se reescribe.
     if not destino.exists():
-        destino.write_bytes(contenido)
+        _escribir_de_una_pieza(destino, lambda salida: salida.write(contenido))
+    return destino
+
+
+def guardar_subida(clave: str, archivo) -> Path:
+    """Copia el archivo subido al disco **sin pasar por una variable**.
+
+    Es la otra mitad de {@link validar_subida}: con las dos, subir un IFC de 200 MB no ocupa 200 MB
+    de memoria en ningun momento. `shutil.copyfileobj` va por tramos.
+    """
+    destino = Path(settings.DOCUMENTS_DIR) / normalize_storage_key(clave)
+    if not destino.exists():
+        archivo.seek(0)
+        _escribir_de_una_pieza(destino, lambda salida: shutil.copyfileobj(archivo, salida, TROZO))
     return destino
 
 

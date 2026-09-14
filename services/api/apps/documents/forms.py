@@ -24,7 +24,7 @@ from apps.documents.storage import (
     EXTENSIONES_ACEPTADAS,
     CargaRechazada,
     validar,
-    validar_tamano,
+    validar_subida,
 )
 
 
@@ -65,36 +65,28 @@ class RevisionForm(forms.ModelForm):
         fields = ("correlativo", "idoneidad")
 
     def clean_archivo(self):
+        """Valida **sin traer el archivo a memoria**.
+
+        Esto era `contenido = subido.read()` y despues `validar(nombre, contenido)`: un IFC de
+        200 MB —el tope del registro, y los archivos de obra lo alcanzan— quedaba entero en la
+        memoria del worker, y el tope ni siquiera se miraba hasta despues de cargarlo. Con
+        `workers = cpu*2+1`, dos o tres subidas a la vez son el OOM killer.
+
+        `validar_subida` hace las mismas cuatro comprobaciones —vacio, tamaño, extension y que el
+        contenido sea lo que la extension promete— recorriendo el archivo por tramos, y el `sha256`
+        se acumula por el camino. Lo que se guarda aqui es **el tamaño y el hash**, no los bytes: la
+        vista copia del archivo subido al disco con `storage.guardar_subida`.
+        """
         subido = self.cleaned_data["archivo"]
-
-        # **El tamano se pregunta ANTES de leer, y ese es todo el punto.**
-        #
-        # Esto era `contenido = subido.read()` y despues `validar`, o sea que para decir «no cabe»
-        # habia que traerlo entero a memoria primero. Con `workers = cpu*2+1`, quien subiera por
-        # error el LAS original de 3,37 GB en vez del COPC hacia que el servidor lo cargara
-        # **antes** de rechazarlo. Un archivo subido sabe lo que pesa sin leerse: esta en `.size`.
         try:
-            validar_tamano(subido.size)
-        except CargaRechazada as rechazo:
-            raise forms.ValidationError(str(rechazo)) from rechazo
-
-        # **Lo que cabe si se lee entero, y se dice.** El `sha256` y la firma piden el contenido, y
-        # guardarlo tambien: dentro del tope eso son hasta 200 MB por peticion. Servirlo ya no carga
-        # nada —`storage.abrir`— pero subirlo si, y arreglarlo pide calcular el hash por tramos y
-        # copiar del archivo subido al destino sin pasar por una variable. Es el camino mas delicado
-        # del producto —es el registro— y se hace en su propia pasada, no de refilon.
-        contenido = subido.read()
-        # Se rebobina: la vista lo vuelve a leer para guardarlo.
-        subido.seek(0)
-        try:
-            extension, sha = validar(subido.name, contenido)
+            extension, sha = validar_subida(subido)
         except CargaRechazada as rechazo:
             # El motivo se le muestra a quien sube: es lo que le dice que arreglar.
             raise forms.ValidationError(str(rechazo)) from rechazo
 
-        self.contenido = contenido
         self.extension = extension
         self.sha256 = sha
+        self.tamano = subido.size
         return subido
 
 
