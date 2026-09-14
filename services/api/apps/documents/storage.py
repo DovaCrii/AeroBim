@@ -218,4 +218,35 @@ def ruta_de(clave: str) -> Path:
 
 
 def leer(clave: str) -> bytes:
+    """Los bytes enteros, para quien de verdad los necesita todos a la vez.
+
+    Lo usan el calculo del `sha256` al verificar y la conversion a DXF, que trabajan sobre el
+    contenido completo. **Para servir una descarga esta `abrir`**, que no lo carga.
+    """
     return ruta_de(clave).read_bytes()
+
+
+def abrir(clave: str):
+    """El archivo abierto en binario, **para servirlo sin traerlo a memoria**.
+
+    ## Por que existe
+
+    La descarga hacia `FileResponse(BytesIO(storage.leer(clave)))`, o sea que **un IFC de 200 MB se
+    materializaba entero en RAM para servirlo**. Con `workers = cpu*2+1` —nueve en una VM de cuatro
+    nucleos— tres descargas grandes a la vez son uno o dos gigas de memoria residente, y el final de
+    esa historia es el OOM killer llevandose un worker a mitad de otra cosa.
+
+    `FileResponse` sobre un archivo abierto lo manda **por tramos**: la memoria que ocupa no depende
+    del tamano del archivo.
+
+    ## Y por que no un iterador, que fue el primer intento
+
+    Esta escrito en la vista y se conserva aqui porque es la trampa: `FileResponse` solo llama a
+    `set_headers` cuando el contenido tiene `read`, asi que con `iter([bytes])` se tragaba
+    `as_attachment` y `filename` **sin avisar** — el nombre no llegaba al navegador. Un archivo
+    abierto **si** tiene `read`, asi que cumple las dos cosas: nombre correcto y sin cargar nada.
+
+    Quien recibe el archivo es responsable de cerrarlo; `FileResponse` lo hace al terminar de
+    enviarlo.
+    """
+    return ruta_de(clave).open("rb")
