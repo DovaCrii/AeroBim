@@ -1,6 +1,6 @@
 from django.urls import path
 
-from apps.documents import views
+from apps.documents import views, vistas_compartir
 
 app_name = "documents"
 
@@ -28,6 +28,18 @@ urlpatterns = [
         "revisiones/<uuid:pk>/idoneidad/",
         views.CambiarIdoneidadView.as_view(),
         name="cambiar-idoneidad",
+    ),
+    # Compartir hacia fuera. Las de aquí piden sesión; la puerta pública que abren vive en
+    # `config/urls.py` bajo `/compartido/`, fuera de este prefijo, porque no es del registro.
+    path(
+        "revisiones/<uuid:pk>/enlaces/",
+        vistas_compartir.EnlacesDeRevisionView.as_view(),
+        name="enlaces",
+    ),
+    path(
+        "enlaces/<uuid:pk>/revocar/",
+        vistas_compartir.RevocarEnlaceView.as_view(),
+        name="revocar-enlace",
     ),
     # **Revisar interferencias cuelga de la obra y no de una revisión**: se cruzan todos los
     # modelos vigentes del proyecto, que es como se pregunta «¿choca algo?». Vive bajo

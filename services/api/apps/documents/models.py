@@ -883,3 +883,14 @@ class MarcaDeCoordinacion(BaseModel):
 
     def __str__(self):
         return f"{self.usuario} · {self.proyecto} · {self.visto_en:%Y-%m-%d %H:%M}"
+
+
+# **`EnlaceCompartido` vive en `compartir.py` y se importa aquí, que es lo que hace que Django lo
+# registre.** Django encuentra un modelo cuando su módulo se importa, y nada importaría ese archivo
+# al arrancar.
+#
+# Está allí y no aquí porque lo que hay que leer antes de tocarlo no cabe en un comentario de campo:
+# es la única puerta del producto que se abre **sin cuenta**, y el archivo entero explica qué deja
+# ver, qué no, y —sobre todo— qué **no puede** impedir. Partido entre los dos sitios, la mitad que
+# importa se lee después de haber cambiado el modelo.
+from apps.documents.compartir import EnlaceCompartido  # noqa: E402,F401

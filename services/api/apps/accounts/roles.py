@@ -103,6 +103,18 @@ PERMISOS_POR_ROL: dict[str, tuple[str, ...]] = {
         # «mira esto» en cuanto tiene cincuenta filas.
         "projects.add_vistadeproyecto",
         "projects.delete_vistadeproyecto",
+        # **Compartir un modelo hacia fuera, y cerrar el enlace.** Solo quien coordina.
+        #
+        # Es la única acción del producto que publica algo fuera de la organización, y por eso no
+        # va con el resto de los roles aunque todos puedan leer la revisión: **compartir no es
+        # leer**. Un proyectista que sube su modelo no decide quién de fuera lo ve, y el mandante
+        # —que solo lee— menos todavía.
+        #
+        # Y `change` va con `add` a propósito: quien puede abrir un enlace tiene que poder
+        # cerrarlo. Separarlos dejaría a alguien capaz de publicar y no de revocar, que es la
+        # mitad peligrosa sin la mitad que la corrige.
+        "documents.add_enlacecompartido",
+        "documents.change_enlacecompartido",
     ),
     # Sube revisiones y responde. **No cierra observaciones**: quien las abre las cierra,
     # o el registro se convierte en "yo mismo declaro que lo arregle".

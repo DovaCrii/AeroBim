@@ -130,8 +130,21 @@ export function ProjectBrowser({
   onDeleteView,
   pedida = null,
   plegado = false,
+  ocultas = [],
   onDesplegarEn,
 }: {
+  /**
+   * Secciones que **no existen** en esta sesión, por su clave.
+   *
+   * Lo usa el visor abierto desde un enlace compartido: quien entra así no tiene cuenta, así que
+   * «Del registro», «Coordinación» y las vistas guardadas de la obra no pueden traer nada — sus
+   * peticiones responderían 401.
+   *
+   * **Se ocultan y no se deshabilitan**, y es la diferencia que importa: una sección gris que no
+   * se abre le dice a alguien de fuera que hay algo ahí que no le dejan ver, y eso es contarle la
+   * forma del producto a quien solo vino a mirar un modelo. Una que no está, no cuenta nada.
+   */
+  readonly ocultas?: readonly string[];
   /** Lo que el registro documental ofrece abrir, agrupado por obra. */
   readonly registro: React.ReactNode;
   /** Las observaciones del modelo, con el clic que lleva al problema. */
@@ -296,7 +309,7 @@ export function ProjectBrowser({
    * El orden dentro de cada grupo es el de trabajo, y los comentarios de por qué cada una está
    * donde está siguen aquí porque son decisiones, no adorno.
    */
-  const SECCIONES: readonly Descriptor[] = [
+  const TODAS: readonly Descriptor[] = [
     // **Del registro va primero porque es de donde se parte.** Hasta `F12.1` la única forma de
     // abrir una revisión era entrar desde su expediente: la API del selector existía desde `F8.8` y
     // no la consumía nadie.
@@ -448,6 +461,11 @@ export function ProjectBrowser({
     },
   ];
 
+  // **El filtro va aparte y no encadenado al literal**, y no es estilo: encadenarlo le quita al
+  // array el tipo que lo anota, así que `grupo` pasa de ser una de las cuatro palabras a ser
+  // `string` y el build falla con un error que habla de otra cosa.
+  const SECCIONES: readonly Descriptor[] = TODAS.filter((una) => !ocultas.includes(una.clave));
+
   /**
    * **Se abre sola la sección que acaba de llenarse.**
    *
@@ -492,50 +510,55 @@ export function ProjectBrowser({
         aria-label="Secciones del proyecto"
         className="flex h-full flex-col overflow-y-auto py-1"
       >
-        {GRUPOS.map((grupo, indice) => (
-          <Fragment key={grupo}>
-            {/* Una raya en vez del rótulo: plegado no hay sitio para la palabra, y el grupo sigue
+        {/* **Se filtran los grupos vacíos antes de numerarlos**, y el orden importa: con el
+            `indice` del array completo, un grupo oculto dejaría su raya separadora colgando sin
+            nada a un lado. Pasa con un enlace compartido, donde «Empezar» se queda sin secciones. */}
+        {GRUPOS.filter((grupo) => SECCIONES.some((una) => una.grupo === grupo)).map(
+          (grupo, indice) => (
+            <Fragment key={grupo}>
+              {/* Una raya en vez del rótulo: plegado no hay sitio para la palabra, y el grupo sigue
                 siendo información — dice que lo de arriba y lo de abajo son cosas distintas. */}
-            {indice > 0 && <hr className="mx-2 my-1 border-borde" />}
-            {SECCIONES.filter((una) => una.grupo === grupo).map((una) => (
-              <button
-                key={una.clave}
-                type="button"
-                onClick={() => onDesplegarEn?.(una.clave)}
-                // **El nombre va en `aria-label` y en `title`, nunca solo en `title`.** Un `title`
-                // no existe para el teclado ni en táctil, y un rail de doce iconos sin nombre es
-                // el problema que la cinta con rótulos vino a resolver.
-                aria-label={
-                  una.cuantos === null
-                    ? una.titulo
-                    : una.cuantos === 0
-                      ? `${una.titulo} — vacío`
-                      : `${una.titulo} — ${una.cuantos}`
-                }
-                title={`${una.titulo} — clic para desplegar el navegador aquí`}
-                className={[
-                  "relative mx-auto flex min-h-11 w-11 items-center justify-center rounded-sm",
-                  "transition-colors duration-[--duracion-corta] ease-[--ease-ab]",
-                  "[&>svg]:h-4 [&>svg]:w-4",
-                  una.cuantos === 0
-                    ? "text-apagado-fg hover:bg-surface-3 hover:text-fg-2"
-                    : "text-fg-2 hover:bg-surface-3 hover:text-fg",
-                ].join(" ")}
-              >
-                {una.icono}
-                {/* **El punto es la cifra que aquí no cabe.** Sin él, el rail no distingue una
+              {indice > 0 && <hr className="mx-2 my-1 border-borde" />}
+              {SECCIONES.filter((una) => una.grupo === grupo).map((una) => (
+                <button
+                  key={una.clave}
+                  type="button"
+                  onClick={() => onDesplegarEn?.(una.clave)}
+                  // **El nombre va en `aria-label` y en `title`, nunca solo en `title`.** Un `title`
+                  // no existe para el teclado ni en táctil, y un rail de doce iconos sin nombre es
+                  // el problema que la cinta con rótulos vino a resolver.
+                  aria-label={
+                    una.cuantos === null
+                      ? una.titulo
+                      : una.cuantos === 0
+                        ? `${una.titulo} — vacío`
+                        : `${una.titulo} — ${una.cuantos}`
+                  }
+                  title={`${una.titulo} — clic para desplegar el navegador aquí`}
+                  className={[
+                    "relative mx-auto flex min-h-11 w-11 items-center justify-center rounded-sm",
+                    "transition-colors duration-[--duracion-corta] ease-[--ease-ab]",
+                    "[&>svg]:h-4 [&>svg]:w-4",
+                    una.cuantos === 0
+                      ? "text-apagado-fg hover:bg-surface-3 hover:text-fg-2"
+                      : "text-fg-2 hover:bg-surface-3 hover:text-fg",
+                  ].join(" ")}
+                >
+                  {una.icono}
+                  {/* **El punto es la cifra que aquí no cabe.** Sin él, el rail no distingue una
                     sección con tres modelos de una vacía, y entonces plegar cuesta información en
                     vez de solo sitio. Va con el color de acento, que sí se lee sobre el panel. */}
-                {una.cuantos !== null && una.cuantos > 0 && (
-                  <span
-                    aria-hidden="true"
-                    className="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-accent"
-                  />
-                )}
-              </button>
-            ))}
-          </Fragment>
-        ))}
+                  {una.cuantos !== null && una.cuantos > 0 && (
+                    <span
+                      aria-hidden="true"
+                      className="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-accent"
+                    />
+                  )}
+                </button>
+              ))}
+            </Fragment>
+          ),
+        )}
       </nav>
     );
 
@@ -551,6 +574,14 @@ export function ProjectBrowser({
     <div className="flex h-full min-h-0 flex-col overflow-y-auto">
       {GRUPOS.map((grupo) => {
         const suyas = SECCIONES.filter((una) => una.grupo === grupo);
+        /**
+         * **Un grupo sin ninguna sección no se dibuja.**
+         *
+         * Pasa entrando por un enlace compartido, donde «Del registro» y «Coordinación» se ocultan
+         * y el grupo «Empezar» se queda sin nada dentro. Se vio en la pantalla: un rótulo suelto
+         * sobre una raya, que quien viene de fuera lee como algo que falta por cargar.
+         */
+        if (suyas.length === 0) return null;
         /**
          * **Un grupo con una sección abierta se dibuja desplegado**, aunque esté marcado como
          * plegado. Es la regla que deja convivir las dos cosas: plegar un grupo dura entre

@@ -16,6 +16,7 @@ from rest_framework.throttling import AnonRateThrottle
 from apps.accounts import views as accounts_views
 from apps.accounts.views import PortalView
 from apps.core.health import SaludView
+from apps.documents import publico
 
 
 class TokenConThrottle(token_views.ObtainAuthToken):
@@ -79,5 +80,30 @@ urlpatterns = [
     # una sola API, y separarlas por aplicacion es cosa nuestra, no suya.
     path("api/", include("apps.projects.api_urls")),
     path("api-token/", TokenConThrottle.as_view(), name="api-token"),
+    # ══════════════════════════════════════════════════════════════════════════════════════
+    #   **LA ÚNICA PUERTA DE AEROBIM QUE CONTESTA SIN SESIÓN.**
+    #
+    #   Todo lo de arriba pide cuenta. Estas tres no, porque el sentido de un enlace compartido
+    #   es que quien lo recibe no tenga una. Lo que las acota es el testigo de la URL y nada más:
+    #   256 bits de azar que abren **una** revisión, caducan y se revocan.
+    #
+    #   Va con su propio prefijo y en su propio archivo (`apps/documents/publico.py`) para que
+    #   esa diferencia esté declarada en un sitio y no dependa de acordarse de heredar el mixin.
+    #   Si algún día hay que añadir algo aquí, lee primero el docstring de ese archivo.
+    #
+    #   `/compartido/` y no `/c/`: la URL la lee una persona que no conoce el producto, y quiere
+    #   saber qué está abriendo antes de pulsar.
+    # ══════════════════════════════════════════════════════════════════════════════════════
+    path("compartido/<str:testigo>/", publico.PaginaCompartidaView.as_view(), name="compartido"),
+    path(
+        "compartido/<str:testigo>/ficha/",
+        publico.FichaCompartidaAPI.as_view(),
+        name="compartido-ficha",
+    ),
+    path(
+        "compartido/<str:testigo>/contenido/",
+        publico.ContenidoCompartidoAPI.as_view(),
+        name="compartido-contenido",
+    ),
     path("admin/", admin.site.urls),
 ]
