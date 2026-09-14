@@ -64,6 +64,59 @@ def test_rechaza_el_archivo_vacio_y_el_demasiado_grande():
     assert motivo("modelo.ifc", b"x" * (TAMANO_MAXIMO_BYTES + 1)) == "demasiado-grande"
 
 
+def test_lo_demasiado_grande_se_rechaza_sin_leerlo():
+    """**Para decir «no cabe» ya no hay que traerlo entero a memoria.**
+
+    `clean_archivo` hacía `subido.read()` y **después** validaba, así que con un tope de 200 MB y
+    `workers = cpu*2+1` quien subiera por error el LAS original de 3,37 GB en vez del COPC hacía que
+    el servidor lo cargara antes de rechazarlo.
+
+    Se prueba con un archivo que **explota si alguien lo lee**: si el formulario vuelve a leer antes
+    de mirar el tamaño, esto falla con ese mensaje en vez de con un rechazo limpio.
+    """
+    from django import forms as django_forms
+
+    from apps.documents.forms import RevisionForm
+
+    class BombaDeLectura:
+        """Dice lo que pesa, y se queja si alguien intenta leerlo."""
+
+        name = "levantamiento.las"
+        size = TAMANO_MAXIMO_BYTES + 1
+
+        def read(self, *a, **k):  # pragma: no cover - la prueba falla si esto corre
+            raise AssertionError("leyó el archivo antes de comprobar que no cabía")
+
+        def seek(self, *a, **k):  # pragma: no cover - ídem
+            raise AssertionError("tocó el archivo antes de comprobar que no cabía")
+
+    formulario = RevisionForm()
+    formulario.cleaned_data = {"archivo": BombaDeLectura()}
+
+    with pytest.raises(django_forms.ValidationError) as rechazo:
+        formulario.clean_archivo()
+
+    # Y el mensaje sigue siendo el de siempre: lo que cambia es cuándo se dice, no qué se dice.
+    assert "200" in " ".join(rechazo.value.messages)
+
+
+def test_el_tope_se_sigue_vigilando_por_los_dos_caminos():
+    """`validar` conserva su propia comprobación aunque el formulario mire antes el tamaño.
+
+    La llaman también caminos que ya tienen los bytes —la API, las pruebas—, y quitarla dejaría el
+    tope sin vigilar según por dónde se entre.
+    """
+    from apps.documents.storage import validar_tamano
+
+    assert motivo("modelo.ifc", b"x" * (TAMANO_MAXIMO_BYTES + 1)) == "demasiado-grande"
+
+    with pytest.raises(CargaRechazada) as rechazo:
+        validar_tamano(TAMANO_MAXIMO_BYTES + 1)
+    assert rechazo.value.codigo == "demasiado-grande"
+    # Y lo que cabe justo, cabe: un tope que rechaza el borde rechaza el COPC de la obra.
+    validar_tamano(TAMANO_MAXIMO_BYTES)
+
+
 def test_cada_rechazo_trae_ademas_su_mensaje_para_la_persona():
     """El codigo es para el programa; el mensaje sigue siendo para quien sube el archivo, y no
     puede quedarse vacio: es lo que le dice que arreglar."""
