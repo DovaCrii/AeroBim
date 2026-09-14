@@ -1,0 +1,51 @@
+# Renovar el certificado de Tailscale.
+#
+# **Sin esto el servicio muere a los 90 días**, y el error que se ve —«certificado caducado»— no se
+# relaciona con Tailscale. Es el precio de `tailscale cert` frente a certbot: el certificado es un
+# Let's Encrypt de verdad, pedido por DNS-01 a través del tailnet **sin abrir el puerto 80 ni tener
+# registro DNS público**, pero la renovación no la hace nadie por su cuenta.
+#
+# **Corre a diario aunque el certificado dure noventa.** `tailscale cert` no lo pide de nuevo si el
+# que hay todavía sirve —solo renueva cuando le quedan menos de treinta días—, así que las corridas
+# de en medio no cuestan nada. Un trabajo mensual dejaría una ventana de un mes para que un fallo
+# pasara desapercibido; uno diario da treinta oportunidades de que salga bien antes de que importe.
+#
+# **Por qué el `AEROBIM_FQDN` va en el `.env`** y no escrito aquí: el nombre lo da MagicDNS y cambia
+# si la máquina se renombra. Sacarlo del mismo sitio que `ALLOWED_HOSTS` evita tener el nombre en dos
+# archivos que se separan el día que uno se cambia.
+#
+#   tailscale status --json | jq -r .Self.DNSName     # de aquí sale, sin el punto final
+#
+# Instalar:
+#
+#   sudo cp aerobim-certificado.{service,timer} /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now aerobim-certificado.timer
+#   sudo systemctl start aerobim-certificado.service    # una corrida a mano, para verla
+#   sudo openssl x509 -in /etc/ssl/aerobim/aerobim.crt -noout -dates
+
+[Unit]
+Description=Renueva el certificado de Tailscale y recarga nginx
+# `tailscaled` tiene que estar arriba: sin el tailnet no hay a quién pedirle el certificado.
+After=network-online.target tailscaled.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# **Root, al contrario que las otras unidades.** `tailscale cert` habla con el socket de `tailscaled`
+# y escribe en `/etc/ssl`, y `systemctl reload nginx` es del sistema. Es la única de las cinco que lo
+# necesita, y por eso lleva lo mínimo: un comando conocido y nada del código de la aplicación.
+User=root
+
+EnvironmentFile=/opt/aerobim/services/api/.env
+
+ExecStart=/usr/bin/tailscale cert \
+    --cert-file /etc/ssl/aerobim/aerobim.crt \
+    --key-file /etc/ssl/aerobim/aerobim.key \
+    ${AEROBIM_FQDN}
+
+# **`reload` y no `restart`**: recarga la configuración y los certificados sin cortar las conexiones
+# que están en curso. Una descarga de un IFC de 200 MB a medias no se entera.
+ExecStart=/usr/bin/systemctl reload nginx
+
+TimeoutStartSec=300

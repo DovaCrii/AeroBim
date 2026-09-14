@@ -197,6 +197,7 @@ razonamiento está en [docs/REFERENCES.md](docs/REFERENCES.md).
 | [docs/INTEGRATION_AEROPLANNER.md](docs/INTEGRATION_AEROPLANNER.md) | Contrato con AeroPlanner: qué cruza la frontera y qué no              |
 | [docs/PILOTO.md](docs/PILOTO.md)                                   | El guion del piloto en el CC 741: etapas, roles, y qué no se prueba   |
 | [docs/DEPLOY.md](docs/DEPLOY.md)                                   | Poner esto en una VM, y las dos cosas que rompen el visor en silencio |
+| [docs/OPERACION.md](docs/OPERACION.md)                             | Mantenerlo vivo: el repaso diario, lo que crece, y cómo se restaura   |
 | [docs/FORMATOS.md](docs/FORMATOS.md)                               | Qué formatos entran, qué se convierte y qué hay que pedir             |
 | [docs/NUBES_DE_PUNTOS.md](docs/NUBES_DE_PUNTOS.md)                 | Por qué COPC y no Potree ni 3D Tiles, medido                          |
 | [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md)                     | Los tokens, y qué prohíbe el sistema                                  |

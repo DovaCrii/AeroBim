@@ -1,0 +1,61 @@
+# El aseo semanal: las sesiones caducadas y los registros de intentos de entrada.
+#
+# **Ninguna de las dos tablas tenía quien las limpiara, y las dos crecen para siempre.**
+#
+# - `django_session`: `SESSION_SAVE_EVERY_REQUEST = True` (`config/settings/base.py`) reescribe la
+#   fila **en cada petición** para que la sesión de doce horas sea deslizante. Eso es correcto y
+#   deseado; lo que faltaba es que nadie borraba las caducadas. `clearsessions` es el comando que
+#   Django trae para eso, y no estaba en ningún sitio del repositorio.
+# - `axes_accessattempt` y `axes_accesslog`: una fila por intento de entrada. Con el bloqueo por
+#   nombre de usuario activado, cada equivocación al teclear la contraseña deja rastro.
+#
+# Ninguna de las dos hace daño el primer mes. Las dos hacen daño el primer año, y entonces el
+# síntoma es un disco lleno o unas consultas lentas que nadie relaciona con esto.
+#
+# **Semanal y no diario**: son tablas que crecen despacio, y un trabajo que corre todos los días sin
+# tener nada que hacer es un trabajo que se deja de mirar.
+#
+# **Y `axes_reset_logs` y no `axes_reset`**: el segundo borraría también los bloqueos vigentes, o sea
+# que desbloquearía a quien esté bloqueado justo ahora. Este solo se lleva el histórico.
+#
+# Instalar:
+#
+#   sudo cp aerobim-mantenimiento.{service,timer} /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now aerobim-mantenimiento.timer
+#   sudo systemctl start aerobim-mantenimiento.service   # una corrida a mano, para verla
+
+[Unit]
+Description=Aseo semanal de AeroBim: sesiones caducadas y registros de acceso
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=aerobim
+Group=aerobim
+WorkingDirectory=/opt/aerobim/services/api
+
+EnvironmentFile=/opt/aerobim/services/api/.env
+Environment=DJANGO_SETTINGS_MODULE=config.settings.prod
+Environment=PYTHONUNBUFFERED=1
+
+# **Dos `ExecStart` y no un guion**: systemd los corre en orden y **para al primer fallo**, que es
+# justo lo que se quiere. Con un `&&` dentro de un `sh -c` el journal diría una sola línea y habría
+# que leerla para saber cuál de los dos falló.
+ExecStart=/opt/aerobim/services/api/.venv/bin/python manage.py clearsessions
+ExecStart=/opt/aerobim/services/api/.venv/bin/python manage.py axes_reset_logs
+
+# Con muchas filas el borrado tarda, pero no minutos. Diez es holgura de sobra.
+TimeoutStartSec=600
+
+# ── Lo mismo que los otros, y por las mismas razones ────────────────────────────
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+ReadWritePaths=/var/lib/aerobim /var/log/aerobim

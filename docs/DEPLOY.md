@@ -1,5 +1,9 @@
 # Poner AeroBim en la VM
 
+> **Esta página se lee una vez. Para lo de después está [`OPERACION.md`](OPERACION.md)**: el repaso
+> diario, lo que crece hasta llenar el disco, cómo se restaura un respaldo con prisa, y la tabla de
+> «qué hacer si…». Son dos documentos porque se leen en momentos distintos.
+
 > Lo que hay que hacer, en orden, y **por qué** en los sitios donde hacerlo distinto
 > rompe algo sin dejar rastro. Las dos reglas del principio no son preferencias: cada
 > una costó una sesión encontrarla.
@@ -275,6 +279,19 @@ Tres cosas de esas unidades:
 el correo no sale de la máquina el resumen de la fila lo dice con un prefijo — **una corrida que fue
 bien y un correo que no salió se ven igual** si nadie lo marca.
 
+**5 ter. El aseo semanal.** Dos tablas crecían para siempre y **no las limpiaba nadie**:
+`django_session` —porque `SESSION_SAVE_EVERY_REQUEST` reescribe la fila en cada petición, que es lo
+que hace deslizante la sesión de doce horas— y las de `axes`, una fila por intento de entrada.
+Ninguna hace daño el primer mes; las dos lo hacen el primer año, y entonces el síntoma es un disco
+lleno que nadie relaciona con esto.
+
+```bash
+sudo cp services/api/deploy/aerobim-mantenimiento.{service,timer} /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now aerobim-mantenimiento.timer
+sudo systemctl start aerobim-mantenimiento.service    # una corrida a mano, para verla
+```
+
 **6. El certificado, por Tailscale y no por certbot.**
 
 La VM se alcanza **solo por el tailnet**: no hay dominio público ni puerto abierto a internet. Eso
@@ -299,9 +316,22 @@ Tres cosas que dependen de la consola del tailnet y no de la VM, y por eso van p
 3. **Comprobar que Funnel está apagado** en este nodo. Funnel expone a internet, y con él encendido
    toda la premisa de «no hay nada público» es falsa.
 
-**La renovación es nuestra:** el certificado dura 90 días. Hace falta un `oneshot` diario que repita
-ese mismo comando y haga `systemctl reload nginx`. **Sin ese timer el servicio muere a los tres
-meses** con un error de certificado que nadie relaciona con Tailscale.
+**La renovación es nuestra:** el certificado dura 90 días. **Sin timer, el servicio muere a los tres
+meses** con un error que nadie relaciona con Tailscale. El par de unidades ya está escrito:
+
+```bash
+# `AEROBIM_FQDN=<host>.<tailnet>.ts.net` en el `.env` — de ahí lo lee la unidad.
+sudo cp services/api/deploy/aerobim-certificado.{service,timer} /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now aerobim-certificado.timer
+sudo systemctl start aerobim-certificado.service
+sudo openssl x509 -in /etc/ssl/aerobim/aerobim.crt -noout -dates
+```
+
+Corre **a diario** aunque el certificado dure noventa: `tailscale cert` no lo pide de nuevo si el que
+hay todavía sirve, así que las corridas de en medio no cuestan nada y dan treinta oportunidades de
+que salga bien antes de que la caducidad importe. Es la única de las cinco unidades que corre como
+`root`, porque habla con el socket de `tailscaled` y recarga nginx.
 
 > **Por qué no `tailscale serve`, que renovaría solo.** Proxea a TCP y no a un socket de UNIX, así
 > que obligaría a poner gunicorn en `127.0.0.1:8000` y **se perdería el candado `0660
@@ -431,19 +461,26 @@ servidor, y ya corren en la CI.
 
 ## Actualizar
 
+**Un guion, y no siete comandos a mano.** Los pasos son siete y **un despliegue que se puede hacer a
+medias se hace a medias**: se olvida `bootstrap_roles` y un permiso nuevo no llega a ningún rol, o se
+olvida `collectstatic` y el visor sirve el JavaScript de la versión anterior. Ninguna de las dos da
+error.
+
 ```bash
-cd /opt/aerobim && sudo -u aerobim git pull
-npm ci && npm run build
-cd services/api && uv sync --no-default-groups --group deploy
-uv run python manage.py migrate && uv run python manage.py bootstrap_roles
-uv run python manage.py collectstatic --noinput
-sudo systemctl restart aerobim
-curl -s https://<host>.<tailnet>.ts.net/health/
+# Antes, un respaldo a mano: el de las 02:00 no sirve si el despliegue es a las 10:00.
+sudo -u aerobim /opt/aerobim/services/api/deploy/respaldo.sh
+sudo -u aerobim /opt/aerobim/services/api/deploy/desplegar.sh
 ```
 
-**El `curl` al final no es adorno**: `systemctl restart` vuelve sin error aunque los
-workers hayan muerto al cargar los ajustes, y `/health/` es lo que distingue "reiniciado"
-de "reiniciado y sirviendo".
+Para al primer fallo —`set -euo pipefail`— y **termina comprobando `/health/`, fallando si no dice
+`ok`**: `systemctl restart` vuelve sin error aunque los workers hayan muerto al cargar los ajustes, y
+esa comprobación es lo único que distingue «reiniciado» de «reiniciado y sirviendo».
+
+**Y las migraciones no se deshacen solas.** Si la versión nueva trae una destructiva, la vuelta atrás
+es restaurar el volcado — por eso el respaldo previo no es opcional. El procedimiento está en
+[`OPERACION.md`](OPERACION.md).
+
+> **Los despliegues no se hacen el día de una sesión del piloto** (`docs/PILOTO.md`).
 
 ## Lo que todavía no está
 
