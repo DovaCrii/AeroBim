@@ -1,10 +1,10 @@
-"""El catálogo tiene que decir la verdad, y hay cuatro formas de que no la diga.
+"""El catálogo tiene que decir la verdad, y hay cinco formas de que no la diga.
 
 Portado en su idea de `AeroControl/apps/core/test_translations.py`, que existe porque un
 catálogo se rompe **en silencio**: la aplicación sigue funcionando y solo muestra inglés donde
 debería mostrar español, y eso nadie lo nota hasta que un usuario lo dice.
 
-Las cuatro:
+Las cinco:
 
 1. **El `fuzzy` de la cabecera.** `makemessages` lo pone al crear el archivo, y con él gettext
    **ignora el catálogo entero**: se traducen las 277 cadenas y no se ve ni una.
@@ -12,6 +12,8 @@ Las cuatro:
 3. **El `fuzzy` de una entrada suelta**, que es el que faltaba y costó una pantalla. Ver abajo.
 4. **El `.mo` separado del `.po`.** El binario es lo que lee Django; si alguien edita el `.po`
    y no compila, la pantalla sigue mostrando lo viejo sin que nada falle.
+5. **Una traducción escrita dos veces**, que es la quinta y se añadió el 2026-09-14 después de
+   verla en la pantalla. Ver `test_ninguna_traduccion_sale_escrita_dos_veces`.
 """
 
 import re
@@ -107,6 +109,9 @@ def test_ninguna_traduccion_repite_el_original():
         # palabra que traducir, y forzar «Transmisión» pondría en el asunto una palabra que
         # nadie usa en obra.
         "[AeroBim] Transmittal %(folio)s: %(asunto)s",
+        # La abreviatura de «revisión» y de «revision» se escribe igual en los dos idiomas, y es
+        # la que va impresa en cada carátula de plano.
+        "rev.",
     }
     sospechosas = [
         msgid
@@ -115,6 +120,37 @@ def test_ninguna_traduccion_repite_el_original():
     ]
 
     assert sospechosas == [], f"Traducción igual al original: {sospechosas[:8]}"
+
+
+def test_ninguna_traduccion_sale_escrita_dos_veces():
+    """**El defecto que se vio en la pantalla y que ninguna de las otras cuatro veía.**
+
+    Un texto largo se reparte en el catálogo en varias líneas entrecomilladas que gettext
+    concatena. Una entrada bien formada empieza por `msgstr ""` y pone el contenido debajo:
+
+        msgstr ""
+        "Hasta que la cambie, esta clave la conocen dos personas. AeroBim le pedirá "
+        "elegir la suya…"
+
+    Si algo escribe el texto **en la propia línea del `msgstr`** sin borrar las de continuación,
+    gettext las suma y la frase sale **dos veces seguidas**. Pasó con cuatro entradas al añadir el
+    alta de cuentas, y se vio en la pantalla, no en el archivo: el `.po` se lee correcto de un
+    vistazo, y ni «sin traducir», ni «fuzzy», ni «igual al original» lo detectan — porque la
+    entrada tiene texto, no está marcada, y no coincide con su original.
+
+    La firma es exacta y por eso no da falsos positivos: un `msgstr` **con texto** seguido de
+    líneas de continuación no lo produce ninguna herramienta que funcione bien.
+    """
+    dobles = []
+    for bloque, msgid, _msgstr in bloques():
+        hallado = re.search(r'^msgstr "([^"]+)"\n((?:"[^"]*"\n?)+)', bloque, re.M)
+        if hallado:
+            dobles.append(f"{msgid[:50]!r} (+{len(hallado.group(2).splitlines())} líneas de más)")
+
+    assert dobles == [], (
+        "Traducciones que se imprimen dos veces seguidas. El contenido va **debajo** de un "
+        f'`msgstr ""`, nunca en su misma línea: {dobles[:8]}'
+    )
 
 
 def test_los_marcadores_de_formato_sobreviven_a_la_traduccion():
