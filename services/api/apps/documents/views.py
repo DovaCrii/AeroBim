@@ -312,16 +312,21 @@ class DescargarRevisionView(ModelViewPermissionRequiredMixin, View):
         if not Entregable.objects.filter(pk=revision.entregable_id).exists():
             raise Http404
         try:
-            contenido = storage.leer(revision.clave_archivo)
+            archivo = storage.abrir(revision.clave_archivo)
         except (OSError, storage.CargaRechazada) as error:
             raise Http404 from error
 
-        # **Va un `BytesIO`, no un iterador**, y no es estilo: `FileResponse` solo llama a
-        # `set_headers` cuando el contenido tiene `read`, así que con `iter([bytes])` se tragaba
-        # `as_attachment` y `filename` **sin avisar** — el nombre que este comentario promete no
-        # llegaba al navegador. Es el mismo defecto que apareció en la exportación a BCF.
+        # **El archivo abierto, y no sus bytes.** Esto era `BytesIO(storage.leer(...))`, o sea que
+        # **un IFC de 200 MB se materializaba entero en memoria para servirlo**; con nueve workers,
+        # tres descargas grandes a la vez son uno o dos gigas de RSS y el OOM killer. `FileResponse`
+        # sobre un archivo lo manda por tramos.
+        #
+        # **Lo que no cambia es por qué no un iterador**, que es la trampa que ya costó una vez:
+        # `FileResponse` solo llama a `set_headers` cuando el contenido tiene `read`, así que con
+        # `iter([bytes])` se tragaba `as_attachment` y `filename` **sin avisar**. Un archivo abierto
+        # sí tiene `read`, así que cumple las dos cosas a la vez.
         return FileResponse(
-            BytesIO(contenido),
+            archivo,
             as_attachment=True,
             # Se le devuelve **el nombre que traía**, que es el que la persona reconoce,
             # aunque en el disco viva con otro.
@@ -1186,16 +1191,21 @@ class ImagenDeComentarioView(ModelViewPermissionRequiredMixin, View):
             raise Http404
 
         try:
-            contenido = storage.leer(comentario.imagen)
+            archivo = storage.abrir(comentario.imagen)
         except (OSError, storage.CargaRechazada) as error:
             raise Http404 from error
 
         # **En línea y no como descarga**: el punto de la imagen es verla en el hilo. Y con su tipo
         # declarado por la extensión de la clave, que la construimos nosotros — no por nada que
         # viniera en la petición.
+        #
+        # **El archivo abierto y no sus bytes**, igual que la descarga de una revisión: una imagen
+        # llega hasta 8 MB, y con nueve workers eso son 72 MB de memoria que no hacen falta. Aquí no
+        # hay `filename` que perder, así que la trampa del `set_headers` no aplica — pero conviene
+        # que las dos descargas se sirvan igual, para que la próxima se copie de la buena.
         extension = storage.extension_de(comentario.imagen)
         return FileResponse(
-            BytesIO(contenido),
+            archivo,
             content_type="image/png" if extension == "png" else "image/jpeg",
         )
 

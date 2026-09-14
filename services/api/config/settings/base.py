@@ -212,6 +212,32 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 2621440
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+# ─────────────────────────────────────────────────────────────────────────────
+# **La cache compartida, y por que el limite del token no lo era.**
+#
+# Sin `CACHES` escrito, Django usa `LocMemCache`: **una cache por proceso**. En desarrollo hay uno y
+# no se nota; en la VM hay `workers = cpu*2+1` de gunicorn, cada uno con la suya.
+#
+# Y ahi es donde duele, porque el contador del throttle de DRF vive en la cache. `/api-token/` toma
+# pares usuario/contrasena **sin autenticar**, y su limite de `10/min` existe para que no sea un
+# oraculo de contrasenas fuera de linea (`config/urls.py`). Con nueve workers ese limite son en
+# realidad **hasta noventa por minuto**, y ademas **no es determinista**: depende de a que worker
+# caiga cada intento. Un limite que no se puede predecir tampoco se puede razonar.
+#
+# **`DatabaseCache` y no Redis**, aunque Redis sea mas rapido: PostgreSQL ya esta ahi y Redis seria
+# otro servicio que instalar, vigilar y respaldar. El coste es dos consultas por peticion con
+# throttle; con un piloto de cinco personas eso no se mide, y el dia que se mida, cambiar de backend
+# es cambiar estas cinco lineas.
+#
+# La tabla la crea la migracion `core.0003`, y no un paso mas del despliegue: un paso que hay que
+# acordarse de correr es un paso que se olvida — ya paso con `bootstrap_roles`.
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.db.DatabaseCache",
+        "LOCATION": "core_cache",
+    }
+}
+
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework.authentication.TokenAuthentication",
