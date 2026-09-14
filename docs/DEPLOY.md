@@ -120,6 +120,46 @@ sería un registro que pierde el archivo.
 > la revisión; si algún día hay muchas, hace falta una orden de gestión que las recorra — **no está
 > escrita**, y queda dicho para que nadie la dé por hecha.
 
+## Antes de nada: ¿esta máquina está libre?
+
+**`p340` no está vacía.** AeroControl y AeroConvert ya viven ahí, y hay una cosa que, mal hecha,
+**tumba los tres servicios a la vez**.
+
+```bash
+sudo /opt/aerobim/services/api/deploy/comprobar-vecinos.sh
+```
+
+No cambia nada: mira y contesta. Devuelve `0` si se puede instalar y `1` si hay algo que decidir.
+
+### Por qué AeroBim casi no puede chocar, y dónde sí
+
+|                 |                                                                                                                                                             |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **El puerto**   | No usa ninguno. gunicorn habla por el socket `/run/aerobim.sock`, no por `127.0.0.1:8000`. No hay nada que ocupar                                           |
+| **Los nombres** | Todo lleva el suyo: usuario `aerobim`, `/opt/aerobim`, `/var/lib/aerobim`, `/var/log/aerobim`, `/var/backups/aerobim`, base `aerobim`, unidades `aerobim-*` |
+| **nginx**       | **Aquí sí.** Ver abajo                                                                                                                                      |
+
+**El `default_server` del 443 solo lo puede declarar un sitio en toda la máquina.** Con dos,
+`nginx -t` falla con `a duplicate default server for 0.0.0.0:443` y **nginx entero no arranca** —
+o sea que instalar AeroBim dejaría también a AeroConvert sin servir, con un error que no menciona
+a AeroBim por ninguna parte.
+
+Medido en un WSL con el mismo Ubuntu 24.04 y el mismo nginx 1.24, los tres casos:
+
+|                                                                                 |                                                  |
+| ------------------------------------------------------------------------------- | ------------------------------------------------ |
+| AeroBim solo, con su servidor por defecto                                       | `syntax is ok`                                   |
+| AeroBim **con** su servidor por defecto, junto a un vecino que ya tiene el suyo | **`a duplicate default server for 0.0.0.0:443`** |
+| AeroBim **sin** su servidor por defecto, junto a ese vecino                     | `syntax is ok`                                   |
+
+Por eso son **dos archivos** y no uno:
+
+- `deploy/nginx-aerobim.conf` — el sitio. **Se instala siempre.**
+- `deploy/nginx-aerobim-default.conf` — el servidor por defecto. **Solo si nadie más lo tiene.**
+  Lo único que hace es cerrar el escaneo por IP; si ya lo cierra otro, no hace falta.
+
+---
+
 ## El despliegue, paso a paso
 
 ```bash
@@ -506,14 +546,31 @@ es restaurar el volcado — por eso el respaldo previo no es opcional. El proced
   resuelven en un dispositivo con Tailscale y MagicDNS: un teléfono sin la aplicación ve un enlace
   muerto. Conviene decírselo por escrito a quien reciba el resumen.
 
+  **Y lo mismo vale para los enlaces compartidos**, que es lo que los deja a medias hoy: el producto
+  ya sabe crearlos, caducarlos y revocarlos, pero quien los recibe no los puede abrir si no está en
+  el tailnet — que es justo lo contrario de para qué existen. La decisión de sacarlos a internet
+  está tomada (2026-09-14) y **el trabajo que falta es de despliegue, no de código**:
+
+  |                                   |                                                                          |
+  | --------------------------------- | ------------------------------------------------------------------------ |
+  | Un nombre público                 | dominio propio, o Tailscale Funnel si sirve para el piloto               |
+  | Un certificado para ese nombre    | Let's Encrypt por HTTP-01, o el de Funnel                                |
+  | Que **solo** `/compartido/` salga | un `server` aparte que no proxee nada más; todo lo demás se queda dentro |
+  | El límite de peticiones           | ya está escrito en `nginx-aerobim.conf`, zona `aerobim_compartido`       |
+
+  Lo que **no** cambia: el resto de la aplicación sigue solo en el tailnet. Abrir la puerta de los
+  enlaces no es abrir el registro.
+
   El día que haya dominio cambian **tres valores del `.env`** —`ALLOWED_HOSTS`,
   `CSRF_TRUSTED_ORIGINS`, `SITE_BASE_URL`—, el `server_name` de nginx y el origen del certificado.
   Nada más: gunicorn, el socket, whitenoise, la CSP y las reglas de COOP/COEP no dependen del nombre.
   Conviene **dejar el nombre `ts.net` una semana más** en `ALLOWED_HOSTS` para que los enlaces ya
   enviados por correo no mueran de golpe.
 
-- **Si comparte VM** con AeroControl y AeroPlanner. Decide el reparto de núcleos —`GUNICORN_WORKERS`—
-  y los nombres de las unidades. Sigue abierta en `HANDOFF.md`.
+- **El reparto de la VM con AeroControl y AeroConvert.** Lo que podía chocar ya no choca —ver
+  «¿esta máquina está libre?» al principio— y lo que queda es un reparto, no un conflicto:
+  **`GUNICORN_WORKERS` se fija a la RAM de `p340` y no a sus núcleos**, porque el número de fábrica
+  (`cpu*2+1`) supone que la máquina es entera nuestra y no lo es.
 - **Llevar el respaldo fuera de la VM.** El guion de abajo copia a `/var/backups`, que protege de un
   borrado y **no** de que se muera el disco ni de que se pierda la máquina. Con qué se saca —`rclone`,
   un `scp` a otra máquina, el respaldo del hipervisor— es una decisión de infraestructura del

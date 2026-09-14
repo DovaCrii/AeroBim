@@ -84,6 +84,53 @@ def test_todo_lo_que_el_procedimiento_manda_copiar_existe():
     )
 
 
+def test_el_servidor_por_defecto_vive_en_su_propio_archivo():
+    """**Un `default_server` en el sitio principal tumbaría a AeroConvert al instalar AeroBim.**
+
+    Solo un bloque de toda la máquina puede declararlo para un puerto dado. Con dos, `nginx -t`
+    falla con `a duplicate default server for 0.0.0.0:443` y **nginx entero no arranca**, así que
+    el vecino se cae con nosotros — y el error no menciona a AeroBim por ninguna parte.
+
+    Medido en un WSL con el mismo Ubuntu 24.04 y el mismo nginx 1.24: con el vecino y nuestro
+    servidor por defecto, ese error exacto; sin él, `syntax is ok`.
+
+    Por eso son dos archivos: el sitio se instala siempre y el servidor por defecto solo si nadie
+    más lo tiene. Esta prueba impide que alguien los junte «para simplificar», que es justo lo que
+    parece razonable hasta que se instala en una máquina compartida.
+    """
+    sitio = (DEPLOY / "nginx-aerobim.conf").read_text(encoding="utf-8")
+    aparte = DEPLOY / "nginx-aerobim-default.conf"
+
+    assert aparte.is_file(), "falta `nginx-aerobim-default.conf`"
+    # Se miran las líneas de directiva, no el texto: los comentarios de los dos archivos hablan
+    # largo de `default_server`, y buscarlo a secas daría un falso positivo en cada explicación.
+    directivas = [
+        linea.strip()
+        for linea in sitio.splitlines()
+        if linea.strip().startswith("listen") and "default_server" in linea
+    ]
+    assert not directivas, (
+        "`nginx-aerobim.conf` declara un servidor por defecto: donde otro servicio ya tenga el "
+        f"suyo, nginx no arranca y se caen los dos. Va en el archivo aparte. {directivas}"
+    )
+    assert "default_server" in aparte.read_text(encoding="utf-8")
+
+
+def test_las_zonas_del_limite_llevan_nuestro_nombre():
+    """Las zonas de `limit_req` son **globales de la máquina**, igual que el servidor por defecto.
+
+    Dos servicios que declaren una zona con el mismo nombre —`compartido`, por ejemplo— hacen que
+    `nginx -t` falle con «zone is already declared» y no arranque ninguno. Es el mismo choque, y se
+    evita igual: llamando a lo nuestro por su nombre.
+    """
+    sitio = (DEPLOY / "nginx-aerobim.conf").read_text(encoding="utf-8")
+    zonas = re.findall(r"zone=([A-Za-z0-9_]+)[:\s]", sitio)
+
+    ajenas = sorted({z for z in zonas if not z.startswith("aerobim_")})
+    assert not ajenas, f"zonas de nginx sin el prefijo `aerobim_`: {ajenas}"
+    assert zonas, "no se encontró ninguna zona: ¿se quitó el límite de los enlaces compartidos?"
+
+
 @pytest.mark.parametrize("nombre", [uno for uno in ARCHIVOS if uno.endswith(".timer")])
 def test_cada_timer_tiene_su_service_y_lo_nombra(nombre):
     """Un `.timer` sin su `.service` no arranca nada, y systemd no se queja al instalarlo."""
