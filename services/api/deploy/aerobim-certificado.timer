@@ -1,0 +1,29 @@
+# Cuando se renueva el certificado: **a diario, de madrugada**.
+#
+#   sudo systemctl enable --now aerobim-certificado.timer
+#   systemctl list-timers aerobim-certificado.timer
+#
+# **04:30**, después del respaldo y del aseo y antes del resumen. Recargar nginx es instantáneo, así
+# que la hora da igual mientras no compita con nada — y que no compita es lo que hace que el journal
+# de la noche se lea de una vez.
+#
+# **`Persistent=true`** y **un minuto de reparto aleatorio**: este es el único de los cuatro que
+# habla con un servicio de fuera, y si la máquina estuvo apagada varios días, arrancar y pedir el
+# certificado en el mismo segundo que otras cosas no aporta nada. Un minuto basta.
+#
+# **Diario aunque el certificado dure noventa días.** `tailscale cert` no lo pide de nuevo si el que
+# hay todavía sirve, así que las corridas de en medio no cuestan nada y dan treinta oportunidades de
+# que salga bien antes de que la caducidad importe.
+
+[Unit]
+Description=Dispara la renovación del certificado de Tailscale
+Requires=aerobim-certificado.service
+
+[Timer]
+OnCalendar=*-*-* 04:30:00
+RandomizedDelaySec=60
+Persistent=true
+Unit=aerobim-certificado.service
+
+[Install]
+WantedBy=timers.target

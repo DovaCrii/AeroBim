@@ -1,0 +1,27 @@
+# Cuando se hace el aseo: **los domingos de madrugada**, cuando no hay nadie.
+#
+#   sudo systemctl enable --now aerobim-mantenimiento.timer
+#   systemctl list-timers aerobim-mantenimiento.timer
+#
+# **03:30 del domingo**, entre el respaldo de las 02:00 y el resumen de las 07:30. Los tres van
+# separados a propósito: comparten disco y base, y si coincidieran el respaldo copiaría una base que
+# está siendo modificada por el aseo — no se rompería nada, pero la copia sería de un instante
+# distinto del que dice su nombre.
+#
+# **Hora local, igual que los otros.** systemd usa la zona del sistema, así que la VM tiene que estar
+# en `America/Santiago`.
+#
+# **`Persistent=true`**: si la máquina estaba apagada, se hace al arrancar. Una semana sin aseo no es
+# grave, pero varias seguidas sin que nadie se entere sí.
+
+[Unit]
+Description=Dispara el aseo semanal de AeroBim
+Requires=aerobim-mantenimiento.service
+
+[Timer]
+OnCalendar=Sun *-*-* 03:30:00
+Persistent=true
+Unit=aerobim-mantenimiento.service
+
+[Install]
+WantedBy=timers.target
