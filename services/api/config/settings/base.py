@@ -54,6 +54,10 @@ MIDDLEWARE = [
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
+    # **Despues de `Message`, y no antes.** Cuando manda a cambiar la clave deja un aviso
+    # explicando por que, y `messages` tiene que estar montado o el `add_message` revienta con
+    # `MessageFailure`. Y despues de `Authentication`, obviamente: sin `request.user` no mira nada.
+    "apps.accounts.middleware.ExigirCambioDeClave",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     # axes va al final para que vea la peticion y el usuario ya resueltos y pueda
     # convertir un intento bloqueado en su respuesta de bloqueo.

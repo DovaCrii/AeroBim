@@ -13,6 +13,7 @@ from django.urls import include, path
 from rest_framework.authtoken import views as token_views
 from rest_framework.throttling import AnonRateThrottle
 
+from apps.accounts import views as accounts_views
 from apps.accounts.views import PortalView
 from apps.core.health import SaludView
 
@@ -51,9 +52,10 @@ urlpatterns = [
     # entrar al `/admin/` tecnico a rotar su propia credencial.
     path(
         "accounts/password_change/",
-        auth_views.PasswordChangeView.as_view(
-            template_name="registration/password_change_form.html"
-        ),
+        # **La nuestra y no la de Django**, porque además de cambiar la clave tiene que apagar la
+        # marca de «clave provisional». Con la de Django, quien la cambiara seguiría rebotando aquí
+        # para siempre: el guardián no se enteraría. Ver `apps/accounts/views.py`.
+        accounts_views.CambiarClaveView.as_view(),
         name="password_change",
     ),
     path(
