@@ -5,6 +5,56 @@
 
 ## Cómo seguir (leer esto primero)
 
+> ## Estado al 2026-09-14: lo que el despliegue destapó, y que no era del despliegue
+>
+> Con el ensayo cerrado, la pasada siguiente fue por **lo que solo se rompe con varios procesos y
+> archivos de verdad** — o sea, lo que ningún oráculo del repositorio podía ver, porque la suite
+> corre en un proceso con archivos de kilobytes. Cinco cosas, todas medidas:
+>
+> |                                        | Qué pasaba                                                                                                                                                                                                                            |                                                    |
+> | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+> | **El límite del token no limitaba**    | Sin `CACHES`, la caché era **por proceso**. `/api-token/` acepta usuario y contraseña sin autenticar y su límite de `10/min` existe para que no sea un oráculo de contraseñas: con nueve workers eran **hasta 90**, y no determinista | [#18](https://github.com/DovaCrii/AeroBim/pull/18) |
+> | **La descarga cargaba 200 MB en RAM**  | `FileResponse(BytesIO(leer(...)))`. Ahora va por tramos **conservando el `filename`**, que es la trampa que en ese archivo ya costó tres veces                                                                                        | [#18](https://github.com/DovaCrii/AeroBim/pull/18) |
+> | **Las interferencias morían al borde** | Ver abajo                                                                                                                                                                                                                             | [#19](https://github.com/DovaCrii/AeroBim/pull/19) |
+> | **Subir para rechazar**                | Para decir «no cabe» había que cargarlo entero primero                                                                                                                                                                                | [#20](https://github.com/DovaCrii/AeroBim/pull/20) |
+> | **La subida cargaba 200 MB en RAM**    | Y `write_bytes` no es atómico: con la clave derivada del `sha256`, un archivo truncado quedaba **con el nombre del completo** y `exists()` lo daba por bueno — servido a medias para siempre                                          | [#21](https://github.com/DovaCrii/AeroBim/pull/21) |
+>
+> ### El que mejor enseña el patrón
+>
+> **`revisar.py` se contradecía a tres líneas de distancia.** Decía «con cuatro modelos son seis
+> pares, o sea unos dos minutos» y a continuación justificaba la espera con «veinte segundos caben de
+> sobra en los 120 del servidor». El razonamiento vale **por par** y la petición hace **todos**:
+> 6 × 20 = **120 s exactos**, que es el `timeout` de gunicorn.
+>
+> Y lo que quedaba no era un error limpio: las observaciones se escriben dentro del bucle, así que al
+> llegar el `SIGKILL` **las de los primeros pares ya estaban guardadas**. La pantalla daba un 502 y
+> aun así aparecían hallazgos nuevos.
+>
+> Ahora se mide antes de empezar y, si no cabe, **no arranca**. Nadie lo había visto porque la obra de
+> desarrollo tiene dos modelos, que es un par.
+>
+> **Y reabre `F3.4` con el número en la mano**: el umbral escrito para sacar el trabajo de la petición
+> son 30 s, y seis pares son 120.
+>
+> ### Dos afirmaciones más que eran falsas
+>
+> - **`apps/visor/views.py`** explicaba por qué el `index.html` lo sirve una vista, y leyéndolo se
+>   entendía que **solo** se alcanza por ahí. Medido: `/visor/` redirige al login y
+>   `/static/visor/index.html` devuelve **200** — `dist/` entra a `STATICFILES_DIRS`, así que
+>   whitenoise lo sirve también. **No es una fuga** —la API devuelve 401 y el HTML es un cascarón
+>   vacío— pero creerlo llevaría a poner algo sensible dentro. Ahora hay una prueba que fija las tres
+>   mitades.
+> - **`docs/OPERACION.md`** decía que un archivo de 200 MB se lee entero en RAM «para subirlo y otra
+>   vez para descargarlo». **Lo dejaron falso mis propios cambios**, y estuvo escrito así tres días.
+>
+> ### Lo que sigue abierto, y ninguno lo cierra el código
+>
+> La **retención de `core_auditevent`** —es una decisión: la tabla es de solo agregar a propósito y
+> añadirle un borrado debilita esa garantía—, **`F3.4`**, y el **enlace para compartir con externos**,
+> que el usuario pidió el 2026-09-14 y del que **no existe nada**: verificado, cero `AllowAny` en el
+> repositorio. Sus tres preguntas —qué se comparte, si caduca y se revoca, y si esto saca AeroBim del
+> tailnet a un dominio público— están en el plan.
+
 > ## Estado al 2026-09-11, al final: el despliegue **ensayado antes de la VM**, y once defectos
 >
 > **`docs/DEPLOY.md` era un procedimiento redactado y nunca ejecutado.** Ni gunicorn, ni las unidades

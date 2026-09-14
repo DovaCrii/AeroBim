@@ -10,6 +10,25 @@ en `prod.py` en vez de dos.
 archivo estático no se puede poner detrás de `LoginRequiredMixin`: whitenoise lo entrega antes
 de que Django mire quién pregunta. El HTML pasa por aquí; los assets con nombre con hash los
 sirve whitenoise, y no hay nada sensible en ellos.
+
+## Lo que este párrafo no decía, y conviene que diga
+
+Leyéndolo se entiende que el HTML **solo** se alcanza por aquí. **No es así.** `dist/` entra a
+`STATICFILES_DIRS` con el prefijo `visor` (`config/settings/base.py`), así que `collectstatic`
+copia también el `index.html` y whitenoise lo sirve en `/static/visor/index.html` **sin pedir
+sesión**. Medido contra el servidor: esta vista redirige al login y esa ruta devuelve **200**.
+
+**No es una fuga, y el motivo es el que hay que sostener:** ese HTML es un cascarón vacío. Todo
+lo que carga sale de la API, y la API devuelve **401 sin sesión** —medido igual—, así que quien
+abra esa ruta ve una pantalla que no puede traer nada. La protección de verdad no está en
+esconder el HTML sino en que los datos pidan permiso, que es la regla de `AGENTS.md`.
+
+Esta vista sigue teniendo su sentido: es la que se enlaza, la que redirige a quien no ha entrado
+y la que da un 503 con instrucciones si falta el build. Lo que no es, es la única puerta al
+archivo — y creerlo llevaría a poner algo sensible dentro del HTML.
+
+`apps/visor/tests/test_el_cascaron_no_da_datos.py` fija las tres mitades, para que la afirmación
+de arriba deje de ser una lectura y sea una medida.
 """
 
 from pathlib import Path
