@@ -77,6 +77,34 @@ def validar(ruta_ids: Path, ruta_ifc: Path) -> dict:
     **Nunca levanta**, por lo mismo que la extraccion de metadatos: un IDS mal formado o un IFC que
     no se puede abrir son un problema del que valida, no del entregable. Se devuelve
     `{"error": ...}` y la pantalla lo dice.
+
+    ## Abre el IFC cada vez, y se midio antes de dejarlo asi
+
+    `ValidarIdsView` recorre **todos** los requisitos activos del proyecto y llama aqui una vez por
+    cada uno, asi que el mismo archivo se abre `n` veces dentro de una peticion. Es la misma forma
+    que hizo morir al cruce de interferencias —`apps/documents/revisar.py`— asi que se midio en vez
+    de suponerlo.
+
+    Medido sobre el IFC real de la organizacion (`716-LCD-ME-ISUP-D-TEST.ifc`, **32,7 MB**), tres
+    aperturas: 1,26 s, 1,21 s y 1,23 s, o sea **1,23 s de media**. Solo el coste de abrir:
+
+    | Requisitos | Solo abrir |
+    | --- | --- |
+    | 5 | 6,2 s |
+    | 10 | 12,3 s |
+    | 20 | **24,6 s** |
+
+    Con la validacion encima —0,7 s medidos por IDS— veinte requisitos son unos 38 s. **Cabe**: el
+    presupuesto de media peticion son 60 s y el `timeout` de gunicorn 120. Asi que **no es un riesgo
+    de despliegue**, y por eso se deja como esta.
+
+    **Lo que se evaluo y se descarto**, para que no haya que volver a pensarlo: abrir el modelo una
+    sola vez y pasarselo a todas las especificaciones ahorraria esos 24 s. No se hace porque
+    `especificacion.validate(modelo)` de `ifctester` deja estado en la especificacion y no esta
+    claro que el modelo salga intacto; compartirlo entre validaciones podria filtrar el resultado de
+    un requisito al siguiente **sin dar ningun error**. Cambiar eso para ganar veinte segundos que
+    hoy sobran seria pagar el riesgo equivocado. Si algun dia un proyecto llega a cuarenta
+    requisitos o a un federado mucho mayor, **el numero que lo reabre esta aqui arriba**.
     """
     try:
         import ifcopenshell
