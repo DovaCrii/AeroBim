@@ -123,6 +123,32 @@ def normalize_storage_key(clave: str) -> str:
     return "/".join(partes)
 
 
+def validar_tamano(tamano: int) -> None:
+    """El tope, comprobado **con el numero y no con los bytes**.
+
+    ## Por que existe aparte de `validar`
+
+    `validar` recibe `bytes`, asi que para saber si un archivo es demasiado grande **ya habia que
+    traerlo entero a memoria**. Con un tope de 200 MB y `workers = cpu*2+1`, eso significa que
+    alguien podia hacer que el servidor cargara cualquier cosa que nginx dejara pasar **antes** de
+    decirle que no cabia — y quien sube por error el LAS original de 3,37 GB en vez del COPC no es
+    una hipotesis, es el caso que `TAMANO_MAXIMO_BYTES` existe para atajar.
+
+    Un archivo subido sabe lo que pesa sin leerse: Django lo deja en `.size`. Preguntar primero
+    cuesta nada y ahorra el caso peor entero.
+
+    `validar` conserva su propia comprobacion a proposito: la llaman tambien caminos que ya tienen
+    los bytes en la mano —la API, las pruebas— y quitarla dejaria ese tope sin vigilar segun por
+    donde se entre.
+    """
+    if tamano > TAMANO_MAXIMO_BYTES:
+        raise CargaRechazada(
+            _("The file is larger than the %(mb)s MB limit.")
+            % {"mb": TAMANO_MAXIMO_BYTES // (1024 * 1024)},
+            "demasiado-grande",
+        )
+
+
 def validar(nombre_original: str, contenido: bytes) -> tuple[str, str]:
     """Comprueba el archivo y devuelve `(extension, sha256)`.
 
@@ -130,12 +156,7 @@ def validar(nombre_original: str, contenido: bytes) -> tuple[str, str]:
     """
     if not contenido:
         raise CargaRechazada(_("The file is empty."), "vacio")
-    if len(contenido) > TAMANO_MAXIMO_BYTES:
-        raise CargaRechazada(
-            _("The file is larger than the %(mb)s MB limit.")
-            % {"mb": TAMANO_MAXIMO_BYTES // (1024 * 1024)},
-            "demasiado-grande",
-        )
+    validar_tamano(len(contenido))
 
     extension = extension_de(nombre_original)
     if extension not in EXTENSIONES_ACEPTADAS:

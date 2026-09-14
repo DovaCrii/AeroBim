@@ -20,7 +20,12 @@ from apps.documents.models import (
     Revision,
     Transmittal,
 )
-from apps.documents.storage import EXTENSIONES_ACEPTADAS, CargaRechazada, validar
+from apps.documents.storage import (
+    EXTENSIONES_ACEPTADAS,
+    CargaRechazada,
+    validar,
+    validar_tamano,
+)
 
 
 class EntregableForm(forms.ModelForm):
@@ -61,6 +66,23 @@ class RevisionForm(forms.ModelForm):
 
     def clean_archivo(self):
         subido = self.cleaned_data["archivo"]
+
+        # **El tamano se pregunta ANTES de leer, y ese es todo el punto.**
+        #
+        # Esto era `contenido = subido.read()` y despues `validar`, o sea que para decir «no cabe»
+        # habia que traerlo entero a memoria primero. Con `workers = cpu*2+1`, quien subiera por
+        # error el LAS original de 3,37 GB en vez del COPC hacia que el servidor lo cargara
+        # **antes** de rechazarlo. Un archivo subido sabe lo que pesa sin leerse: esta en `.size`.
+        try:
+            validar_tamano(subido.size)
+        except CargaRechazada as rechazo:
+            raise forms.ValidationError(str(rechazo)) from rechazo
+
+        # **Lo que cabe si se lee entero, y se dice.** El `sha256` y la firma piden el contenido, y
+        # guardarlo tambien: dentro del tope eso son hasta 200 MB por peticion. Servirlo ya no carga
+        # nada —`storage.abrir`— pero subirlo si, y arreglarlo pide calcular el hash por tramos y
+        # copiar del archivo subido al destino sin pasar por una variable. Es el camino mas delicado
+        # del producto —es el registro— y se hace en su propia pasada, no de refilon.
         contenido = subido.read()
         # Se rebobina: la vista lo vuelve a leer para guardarlo.
         subido.seek(0)
