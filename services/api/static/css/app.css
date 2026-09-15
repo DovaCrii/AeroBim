@@ -16,8 +16,15 @@
 
   --ab-bg: #f4f7fb;
   --ab-surface: #ffffff;
-  --ab-surface-alt: #f8fafc; /* filas alternas y cabeceras: separa sin dibujar una línea más */
-  --ab-border: #dbe3ee; /* 1,3:1 — separa bloques, **no vale como contorno de un control** */
+  /* Filas alternas y cabeceras: separa sin dibujar una línea más. **Era `#f8fafc`, o sea 1,05:1
+     sobre la tarjeta**: la fila alterna no alternaba nada que se pudiera ver. Ahora 1,22:1, con el
+     texto apagado encima todavía sobre 4,5:1 — que es el par que ata los dos valores. */
+  --ab-surface-alt: #e8eaec;
+  /* **Separa bloques, y no vale como contorno de un control** (para eso está el de abajo).
+     Era `#dbe3ee`: 1,29:1 sobre la tarjeta y 1,20:1 sobre la página, o sea una línea que casi no
+     estaba. Ahora 2,00:1 y 1,87:1. Ver la nota del bloque oscuro sobre por qué el borde es lo que
+     dibuja la tarjeta y la sombra no basta. */
+  --ab-border: #a9b1bc;
 
   /* **El contorno de un control, que hasta hoy no existía.**
    *
@@ -34,17 +41,25 @@
    * sin pista se lee como una barra al 0 %. Lo cazó el gate de `test_sistema_de_diseno.py` en su
    * primera corrida.
    *
-   * Lo que tiene que verse es **el relleno contra la pista**, y ahí hay 6,80:1. La pista contra la
-   * tarjeta se queda en 1,21:1 a propósito: es el hueco, no un dato. */
-  --ab-track: #e2eaf4;
+   * Lo que tiene que verse es **el relleno contra la pista**, y ahí hay 6,80:1.
+   *
+   * **Y la pista contra la tarjeta también, que es lo que se corrigió.** Decía «1,21:1 a propósito:
+   * es el hueco, no un dato» — y es al revés: en una barra al 0 % **el hueco es todo lo que hay**, y
+   * a 1,21:1 no se distinguía de la tarjeta, así que la barra desaparecía entera. Se ve en la
+   * portada, donde dos de las tres obras están al 0 %. Ahora 1,73:1. */
+  --ab-track: #bac2cc;
 
   --ab-text: #172238; /* 14,2:1 sobre --ab-surface */
   --ab-text-secondary: #4f5b72; /* 7,4:1 */
-  --ab-text-muted: #626f85; /* 5,1:1 — el minimo que se acepta */
+  /* 5,6:1 sobre la tarjeta y **4,6:1 sobre la fila alterna**, que es el par que manda desde que la
+     fila alterna se oscureció para verse. Era `#626f85` y ahí caía a 4,3:1. */
+  --ab-text-muted: #5a677d;
 
   --ab-primary: #5b3a9e; /* 7,9:1 sobre blanco: el violeta llevado a texto */
   --ab-primary-hover: #472d7d;
-  --ab-primary-soft: #efe7fb;
+  /* El fondo de las píldoras de conteo. Era `#efe7fb`: 1,20:1 sobre la tarjeta, o sea que la
+     píldora se leía como texto suelto. Ahora 1,50:1, con el acento encima a 5,3:1. */
+  --ab-primary-soft: #d5cde1;
   /*
    * **La tinta que va ENCIMA del relleno primario, y hacía falta.**
    *
@@ -119,21 +134,61 @@
  * no existía. Ahora `base.html` lo pone desde `localStorage` antes de pintar, y el interruptor de
  * la barra lo cambia.
  */
+/*
+ * ## La segunda pasada del oscuro: el texto estaba bien y la **estructura** no se veía
+ *
+ * Medido recorriendo el DOM de la portada con el tema oscuro puesto: **cero fallos de contraste de
+ * texto**, y 14 de 14 iconos por encima de 3:1. O sea que lo que se leía mal no eran las letras.
+ *
+ * Lo que fallaba era todo lo que **separa una cosa de otra**, y ninguna de esas medidas estaba
+ * escrita en ningún sitio porque no son texto:
+ *
+ * | | antes | ahora |
+ * | --- | --- | --- |
+ * | tarjeta sobre la página | 1,12:1 | **1,30:1** |
+ * | fila alterna sobre tarjeta | 1,09:1 | **1,22:1** |
+ * | borde sobre tarjeta | 1,28:1 | **1,94:1** |
+ * | carril de barra | 1,43:1 | **1,82:1** |
+ * | acento suave sobre tarjeta | **1,03:1** | **1,47:1** |
+ *
+ * Ese 1,03 es el que explica la queja: `--ab-primary-soft` es el fondo de las píldoras de conteo
+ * —«3 vencidas», «1 de prioridad alta»— y **era literalmente invisible** sobre la tarjeta.
+ *
+ * **Y la corrección a lo que yo mismo supuse primero:** empecé pensando que el tema claro separaba
+ * mejor, y no es verdad —1,07:1 la tarjeta sobre la página, o sea igual de plano—. Lo que separa en
+ * claro es **la sombra**, que ahí posa a 1,17:1 sobre el fondo; la misma sombra en oscuro es negra
+ * sobre casi negro y da **1,08:1**, o sea que no existe. En un tema oscuro la luz viene de arriba y
+ * las sombras no se ven: **lo que separa tiene que ser el borde**, y por eso el que más sube es él.
+ *
+ * ## Por qué estos números y no otros
+ *
+ * No se eligieron a ojo. Subir la superficie **se come el margen del texto que va encima** —en un
+ * primer intento `--ab-text-muted` sobre la fila alterna cayó a 4,3:1— así que no es un token, es un
+ * sistema con 17 restricciones a la vez. Se resolvió buscando el conjunto que las cumple **todas**
+ * moviéndose lo menos posible del tema de hoy. `apps/core/tests/test_contraste_del_tema.py` vuelve
+ * a comprobar las 17 en cada corrida, leyendo este mismo archivo: si alguien afloja un valor, falla.
+ */
 [data-theme="dark"] {
-  --ab-bg: #131a26;
-  --ab-surface: #1b2432;
-  --ab-surface-alt: #202b3b;
-  --ab-border: #2b3648;
-  /* 3,51:1 sobre la superficie y 3,21:1 sobre el fondo del campo. En oscuro el problema era peor:
+  /* El fondo baja en vez de subir la tarjeta, y es lo que hace que el conjunto tenga solución: al
+     oscurecer el fondo **todo el texto mejora**, mientras que subir la superficie lo empeora. */
+  --ab-bg: #070e1a;
+  --ab-surface: #1f2836;
+  --ab-surface-alt: #2d3644;
+  /* **El que más se mueve, porque en oscuro es el que hace el trabajo de la sombra.** 1,94:1 sobre
+     la tarjeta y 2,52:1 sobre la página, contra 1,28 y 1,43 de antes. */
+  --ab-border: #4b5462;
+  /* 3,33:1 sobre la superficie y 4,34:1 sobre la página. En oscuro el problema era peor:
      `--ab-border` daba **1,17:1**, o sea que el campo no tenía contorno visible en absoluto. */
   --ab-border-control: #6b7890;
-  --ab-track: #313d51; /* el relleno `--ab-primary` encima da 5,23:1 */
+  --ab-track: #47505e; /* 1,82:1 sobre la tarjeta; el relleno `--ab-primary` encima da 8,4:1 */
   --ab-text: #eef1f6;
   --ab-text-secondary: #b6c0d1;
   --ab-text-muted: #97a3b6;
-  --ab-primary: #c3a6f0; /* sobre superficie oscura, 7,1:1 */
+  --ab-primary: #c3a6f0; /* sobre superficie oscura, 7,09:1 */
   --ab-primary-hover: #d5c2f6;
-  --ab-primary-soft: #2a2140;
+  /* **Era 1,03:1 sobre la tarjeta**, o sea invisible: las píldoras de conteo de la portada se
+     pintaban con un fondo que no estaba. Ahora 1,47:1, y el acento encima sigue a 4,82:1. */
+  --ab-primary-soft: #463d5c;
   /* Y aquí el violeta es claro, así que lo de encima se oscurece: el navy de la familia, 6,79:1
      sobre el relleno y más sobre el del hover. Blanco daba 2,09. Ver `--ab-sobre-primary`. */
   --ab-sobre-primary: var(--ab-navy);
@@ -142,6 +197,10 @@
   /* **El mismo hexadecimal que `--color-warn` del visor**, y a proposito: es la costura que el
      usuario cruza al abrir un modelo desde su expediente. 9,5:1 sobre el fondo. */
   --ab-warn: #f0b45e;
+  /* **La sombra aquí casi no separa, y conviene saberlo antes de contar con ella.** Medida: posada
+     sobre el fondo del tema da 1,08:1, contra 1,17:1 la del tema claro. Se conserva porque sí da
+     profundidad a lo que flota de verdad —un desplegable sobre la página— pero **quien dibuja el
+     contorno de una tarjeta en oscuro es `--ab-border`**, no esto. */
   --ab-shadow: 0 10px 30px rgb(0 0 0 / 35%);
   /* Y la elevada, que antes no existía en oscuro: la del hover estaba escrita a mano con el azul
      del tema claro, así que sobre esta superficie no se veía. */
