@@ -64,9 +64,40 @@ no hay ningún despliegue de Vercel que ajustar.
 
 ```bash
 sudo apt install -y python3 postgresql postgresql-client gettext nginx
-curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash - && sudo apt install -y nodejs
-node -v   # v22.x o más: con v18 el build del visor no termina
 ```
+
+> ⚠️ **Node: en una máquina compartida, mira antes de instalarlo.** El comando de NodeSource
+>
+> ```bash
+> curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash - && sudo apt install -y nodejs
+> ```
+>
+> **sustituye el paquete `nodejs` de toda la máquina**. Si AeroConvert depende del que hay, se lo
+> cambiamos sin avisarle — y eso no se ve al instalar, se ve cuando algo suyo deja de construir.
+>
+> `comprobar-vecinos.sh` dice qué versión hay y de qué paquete viene. Tres caminos:
+>
+> | Situación                 | Qué hacer                                             |
+> | ------------------------- | ----------------------------------------------------- |
+> | No hay Node               | Instalar NodeSource sin más: no le quita nada a nadie |
+> | Hay Node **22 o más**     | **No tocar nada.** Sirve para construir el visor      |
+> | Hay Node **menor que 22** | **No instalar NodeSource sin preguntar.** Ver abajo   |
+>
+> **La alternativa sin ningún riesgo, y es la recomendada en `p340`: no instalar Node en la VM.**
+> El visor se construye en el equipo de desarrollo y se copia solo el resultado — es lo único que
+> se sirve, y son archivos estáticos:
+>
+> ```bash
+> # en el equipo de desarrollo, con el repositorio al día
+> npm ci && npm run build
+> rsync -av --delete apps/web/dist/ <usuario>@<host>.<tailnet>.ts.net:/tmp/visor-dist/
+>
+> # en la VM
+> sudo -u aerobim rsync -av --delete /tmp/visor-dist/ /opt/aerobim/apps/web/dist/
+> ```
+>
+> Con esto el paso 1 de más abajo (`npm ci && npm run build`) no se corre en la VM, y **Node no
+> hace falta ahí para nada**.
 
 > **PostgreSQL dejó de ser opcional el 2026-09-11, y el motivo es el respaldo.** `respaldo.sh` usa
 > `pg_dump` y `pg_restore`, así que **con SQLite no hay ningún camino de respaldo** — y el checklist
@@ -385,15 +416,53 @@ aerobim:www-data`** del socket — que es justamente lo que hace seguro que Djan
 sudo cp services/api/deploy/nginx-aerobim.conf /etc/nginx/sites-available/aerobim
 sudo sed -i "s/AEROBIM_FQDN/<host>.<tailnet>.ts.net/" /etc/nginx/sites-available/aerobim
 sudo ln -sf /etc/nginx/sites-available/aerobim /etc/nginx/sites-enabled/aerobim
-sudo rm -f /etc/nginx/sites-enabled/default
 sudo nginx -t && sudo systemctl reload nginx
 ```
 
-Y el cortafuegos, que es lo que de verdad acota a quién escucha:
+> ⚠️ **Esta página mandaba `rm -f /etc/nginx/sites-enabled/default` y se ha quitado.** En una
+> máquina vacía es inofensivo —es la página de bienvenida de Ubuntu—, pero **en `p340` no se sabe
+> qué hay ahí dentro**: si un vecino metió su configuración en ese archivo en vez de crear el suyo,
+> borrarlo lo deja sin servir y el síntoma aparece en su producto, no en el nuestro.
+>
+> `comprobar-vecinos.sh` mira cuántas líneas con contenido tiene y lo dice. Si es el de fábrica, se
+> puede borrar; si no, se deja.
+
+**Y el servidor por defecto, solo si nadie más lo tiene** (ver «¿esta máquina está libre?»):
 
 ```bash
-sudo ufw default deny incoming
+sudo cp services/api/deploy/nginx-aerobim-default.conf /etc/nginx/sites-available/aerobim-default
+sudo ln -sf /etc/nginx/sites-available/aerobim-default /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+### El cortafuegos — **el comando más peligroso de esta página**
+
+> ⚠️ **En una máquina compartida esto no se corre sin mirar antes.** `ufw default deny incoming`
+> afecta a **toda la VM**, no a AeroBim: si AeroControl o AeroConvert se alcanzan por otra
+> interfaz, dejan de alcanzarse. Y si **tu propia sesión de SSH no entra por `tailscale0`**,
+> `ufw enable` te deja fuera en el acto — con ufw ya activo y sin forma de volver salvo la consola
+> del hipervisor.
+>
+> `deploy/comprobar-vecinos.sh` lo comprueba por ti: dice por qué interfaz entra tu SSH y te da la
+> regla que hay que añadir **antes** si no es `tailscale0`.
+
+**Y la pregunta previa es si hace falta.** AeroBim no lo necesita para funcionar: nginx solo
+responde a su `server_name`, y todo lo demás va por un socket de UNIX que no escucha en ninguna
+interfaz. El cortafuegos cierra el escaneo por IP — una mejora, no un requisito.
+
+Así que en `p340`, con vecinos, **lo prudente es dejar el cortafuegos como esté** y que lo decida
+quien administre la máquina entera. Si aun así se activa:
+
+```bash
+# 1. PRIMERO la regla que protege tu propia sesión. `comprobar-vecinos.sh` dice la interfaz.
+sudo ufw allow in on <tu-interfaz> to any port 22 proto tcp
+
+# 2. Y lo que necesiten los vecinos, antes de cerrar nada.
+sudo ss -tlnp            # qué está escuchando hoy, y por dónde
+
+# 3. Solo entonces:
 sudo ufw allow in on tailscale0
+sudo ufw default deny incoming
 sudo ufw enable && sudo ufw status verbose
 ```
 

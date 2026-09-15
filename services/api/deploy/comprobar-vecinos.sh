@@ -25,6 +25,13 @@
 #    es de AeroBim, lo que hay es otro AeroBim a medio instalar o un nombre reutilizado.
 # 4. **Espacio en disco.** El respaldo guarda 14 juegos con la base **y los documentos sin
 #    comprimir**; con el COPC de 124 MB dentro, eso crece rápido. `docs/OPERACION.md`, R2.
+# 5. **El cortafuegos.** `docs/DEPLOY.md` manda `ufw default deny incoming` + `ufw enable`, y en una
+#    máquina compartida **ese es el comando más peligroso de todo el procedimiento**: puede cortar
+#    a los vecinos y, si tu SSH no entra por `tailscale0`, **te deja fuera de la VM en el acto**.
+# 6. **La versión de Node.** El procedimiento instala NodeSource 22, que **sustituye el `nodejs` de
+#    toda la máquina**. Si AeroConvert depende del que hay, se lo cambiamos sin avisar.
+# 7. **Quién más escucha, y qué hay en `sites-enabled`.** No para decidir nada: para que quien
+#    despliega vea a sus vecinos antes de tocar, que es lo que evita la mitad de los accidentes.
 #
 # Devuelve 0 si se puede instalar, 1 si hay algo que decidir primero.
 set -uo pipefail
@@ -138,7 +145,89 @@ if [ -n "$libres" ]; then
   fi
 fi
 
-titulo "7 · zona horaria"
+titulo "7 · el cortafuegos (lo más peligroso del procedimiento)"
+# **`ufw enable` con `default deny incoming` corta todo lo que no venga por `tailscale0`.**
+#
+# Dos consecuencias, y la segunda te deja sin poder arreglar la primera:
+#
+# 1. Si AeroControl o AeroConvert se alcanzan por otra interfaz, dejan de alcanzarse.
+# 2. **Si tu propio SSH no entra por `tailscale0`, pierdes la sesión en el acto** y con ufw ya
+#    activo no hay por dónde volver salvo la consola del hipervisor.
+if ! command -v ufw >/dev/null 2>&1; then
+  ojo "ufw no está instalado: el paso del cortafuegos de \`DEPLOY.md\` no aplica tal cual"
+else
+  estado=$(ufw status 2>/dev/null | head -1)
+  printf '   %s\n' "$estado"
+  # Por dónde entra esta misma sesión de SSH. `SSH_CONNECTION` trae la IP del servidor que se usó.
+  mia=$(printf '%s' "${SSH_CONNECTION:-}" | awk '{print $3}')
+  if [ -z "$mia" ]; then
+    ojo "no se pudo leer SSH_CONNECTION (¿sudo sin -E, o no es una sesión SSH?): comprueba a mano"
+  else
+    iface=$(ip -o route get "$mia" 2>/dev/null | sed -n 's/.* dev \([^ ]*\).*/\1/p')
+    if [ "$iface" = "tailscale0" ]; then
+      bien "tu SSH entra por \`tailscale0\` ($mia): \`ufw allow in on tailscale0\` no te echa"
+    else
+      mal "tu SSH entra por \`${iface:-?}\` ($mia), NO por tailscale0"
+      printf '     → \`ufw enable\` con la regla de DEPLOY.md **te deja fuera de la VM**.\n'
+      printf '     → Antes: sudo ufw allow in on %s to any port 22 proto tcp\n' "${iface:-eth0}"
+    fi
+  fi
+  if printf '%s' "$estado" | grep -qi inactive; then
+    ojo "ufw está inactivo: activarlo cambia el acceso de TODA la máquina, no solo el de AeroBim"
+    printf '     → Con vecinos, lo prudente es **no activarlo** y dejar el cortafuegos como está.\n'
+    printf '       AeroBim no lo necesita para funcionar: nginx solo sirve su \`server_name\`.\n'
+  fi
+fi
+
+titulo "8 · Node, que el procedimiento cambia para toda la máquina"
+# NodeSource **sustituye el paquete `nodejs` del sistema**. Si un vecino depende del que hay, se lo
+# cambiamos sin avisarle. Y AeroBim no necesita Node en la VM: el visor se puede construir aquí y
+# copiar `apps/web/dist`, que es lo único que se sirve.
+if ! command -v node >/dev/null 2>&1; then
+  bien "no hay Node instalado: NodeSource no le quita nada a nadie"
+else
+  version=$(node -v)
+  mayor=$(printf '%s' "$version" | sed 's/^v\([0-9]*\).*/\1/')
+  duenio=$(dpkg -S "$(command -v node)" 2>/dev/null | cut -d: -f1 || echo '?')
+  if [ "${mayor:-0}" -ge 22 ]; then
+    bien "Node $version (paquete: $duenio): sirve para construir el visor, no hay que tocarlo"
+  else
+    mal "Node $version (paquete: $duenio) y el visor necesita 22+"
+    printf '     → NodeSource **sustituiría el Node de toda la máquina**. Si AeroConvert usa este,\n'
+    printf '       pregúntale antes. La alternativa sin riesgo: construir el visor fuera y copiar\n'
+    printf '       \`apps/web/dist\` a la VM — Node no hace falta para servirlo.\n'
+  fi
+fi
+
+titulo "9 · los vecinos, para verlos antes de tocar"
+# No decide nada: es para que quien despliega sepa con quién comparte la máquina. La mitad de los
+# accidentes de un despliegue compartido son por no haber mirado esto.
+if command -v ss >/dev/null 2>&1; then
+  printf '   Escuchando:\n'
+  ss -tlnp 2>/dev/null | awk 'NR>1 {printf "     %-24s %s\n", $4, $6}' | sort -u | head -20
+fi
+if [ -d /etc/nginx/sites-enabled ]; then
+  printf '   Sitios de nginx habilitados:\n'
+  for sitio in /etc/nginx/sites-enabled/*; do
+    [ -e "$sitio" ] || continue
+    nombres=$(grep -hE '^\s*server_name' "$sitio" 2>/dev/null | tr -s ' ' | paste -sd' ' -)
+    printf '     %-28s %s\n' "$(basename "$sitio")" "${nombres:-（sin server_name）}"
+  done
+  # **`DEPLOY.md` manda borrar `sites-enabled/default`, y en una máquina compartida eso hay que
+  # mirarlo antes**: si un vecino metió su configuración dentro de ese archivo en vez de crear el
+  # suyo, borrarlo lo deja sin servir.
+  if [ -e /etc/nginx/sites-enabled/default ]; then
+    lineas=$(grep -cvE '^\s*(#|$)' /etc/nginx/sites-enabled/default 2>/dev/null || echo 0)
+    if [ "$lineas" -gt 25 ]; then
+      mal "\`sites-enabled/default\` tiene $lineas líneas con contenido: NO lo borres sin mirarlo"
+      printf '     → \`DEPLOY.md\` manda \`rm -f\`. Si alguien puso ahí su sitio, lo dejas sin servir.\n'
+    else
+      bien "\`sites-enabled/default\` parece el de fábrica ($lineas líneas): borrarlo no quita nada"
+    fi
+  fi
+fi
+
+titulo "10 · zona horaria"
 zona=$(timedatectl show -p Timezone --value 2>/dev/null || echo '?')
 if [ "$zona" = "America/Santiago" ]; then
   bien "$zona"
