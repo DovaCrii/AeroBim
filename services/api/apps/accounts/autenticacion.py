@@ -33,6 +33,49 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.backends import ModelBackend
 
 
+def nombre_para_el_bloqueo(request, credenciales=None) -> str:
+    """Con qué nombre cuenta `axes` los intentos fallidos. **El del usuario, nunca el correo.**
+
+    ## El agujero que cierra, y lo abrió esta misma funcionalidad
+
+    `axes` bloquea **por la cadena que la persona teclea**, no por la cuenta. Al aceptar dos cadenas
+    para la misma cuenta —el usuario y el correo— el bloqueo dejaba de bloquear:
+
+    | | |
+    | --- | --- |
+    | 5 fallos con `victima` | `429`, bloqueado |
+    | y acto seguido, con `v@ejemplo.cl` y la clave buena | **`302`: entró** |
+
+    Medido así, no leído. Son dos consecuencias y la segunda es la grave: el presupuesto de intentos
+    se duplica —cinco por cada cadena—, y **quien ya está bloqueado se salta el bloqueo cambiando de
+    identificador**, que es lo mismo que no tenerlo.
+
+    ## Cómo se cierra
+
+    `AXES_USERNAME_CALLABLE` es el gancho que la propia librería ofrece para esto: decide con qué
+    nombre cuenta. Aquí se resuelve el correo a su nombre de usuario **antes** de que cuente, así
+    que las dos formas de teclear la misma cuenta caen en el mismo contador.
+
+    **Un correo que no existe se cuenta tal cual**, y es deliberado: no se puede resolver a ninguna
+    cuenta, y contarlo aparte es lo correcto — son intentos contra una dirección inventada, no
+    contra una persona. Además, resolverlo a algo compartido haría que probar direcciones al azar
+    bloqueara a cuentas reales, que es una denegación de servicio regalada.
+    """
+    credenciales = credenciales or {}
+    tecleado = credenciales.get("username") or (request.POST.get("username") if request else "")
+    tecleado = (tecleado or "").strip()
+    if "@" not in tecleado:
+        return tecleado
+
+    U = get_user_model()
+    # `values_list` y no el objeto: aquí solo hace falta el nombre, y esto corre en **cada** intento
+    # de entrada, incluidos los de quien está atacando.
+    nombres = list(U.objects.filter(email__iexact=tecleado).values_list("username", flat=True)[:2])
+    # Con dos cuentas que compartan el correo, `CorreoOUsuario` no deja entrar a ninguna; contar por
+    # el correo tal cual mantiene el bloqueo sobre lo único que identifica ese intento.
+    return nombres[0] if len(nombres) == 1 else tecleado
+
+
 class CorreoOUsuario(ModelBackend):
     """Acepta el nombre de usuario o el correo, indistintamente.
 

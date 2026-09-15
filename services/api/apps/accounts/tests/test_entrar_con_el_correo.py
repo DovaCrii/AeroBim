@@ -124,6 +124,79 @@ def test_no_se_distingue_un_correo_que_existe_de_uno_que_no(client, persona):
     assert sin_testigo(conocido.content) == sin_testigo(desconocido.content)
 
 
+# --- El bloqueo por intentos, que esta funcionalidad estuvo a punto de romper -----------
+
+
+@pytest.fixture
+def con_bloqueo(settings, db):
+    """`axes` encendido y su almacén limpio.
+
+    La suite corre con `AXES_ENABLED=False` por omisión —si no, unas pruebas bloquearían a otras—
+    así que aquí se enciende a propósito: es justo el mecanismo que se está midiendo.
+    """
+    from axes.models import AccessAttempt, AccessLog
+
+    settings.AXES_ENABLED = True
+    AccessAttempt.objects.all().delete()
+    AccessLog.objects.all().delete()
+    yield
+    settings.AXES_ENABLED = False
+    AccessAttempt.objects.all().delete()
+
+
+@pytest.mark.django_db
+def test_el_bloqueo_no_se_esquiva_cambiando_al_correo(client, persona, con_bloqueo, settings):
+    """**Esta funcionalidad abrió este agujero, y medido antes de arreglarlo lo abría del todo.**
+
+    `axes` bloquea por **la cadena que se teclea**, no por la cuenta. Aceptar dos cadenas para la
+    misma cuenta significaba que cinco fallos con `carolina.herrera` la bloqueaban… y entrar acto
+    seguido con su correo y la clave buena **funcionaba**: `429` por un lado y `302` por el otro.
+
+    Dos consecuencias, y la segunda es la grave: el presupuesto de intentos se duplicaba, y **quien
+    ya estaba bloqueado se saltaba el bloqueo cambiando de identificador** — que es lo mismo que no
+    tenerlo.
+
+    Lo cierra `AXES_USERNAME_CALLABLE`, que resuelve el correo a su nombre de usuario antes de que
+    `axes` cuente, así que las dos formas de teclear la misma cuenta caen en el mismo contador.
+    """
+    for _ in range(settings.AXES_FAILURE_LIMIT):
+        entrar(client, "carolina.herrera", "clave-mala")
+
+    assert entrar(client, "carolina.herrera").status_code == 429, "no llegó a bloquear"
+    assert entrar(client, "carolina@ejemplo.cl").status_code == 429, (
+        "el bloqueo se esquiva escribiendo el correo en vez del usuario"
+    )
+
+
+@pytest.mark.django_db
+def test_y_tampoco_al_reves(client, persona, con_bloqueo, settings):
+    """La otra mitad: fallar por el correo también tiene que bloquear el usuario.
+
+    Sin esto, quien ataca probaría por el correo —que además es más fácil de adivinar— y dejaría el
+    nombre de usuario con su presupuesto intacto.
+    """
+    for _ in range(settings.AXES_FAILURE_LIMIT):
+        entrar(client, "carolina@ejemplo.cl", "clave-mala")
+
+    assert entrar(client, "carolina.herrera").status_code == 429
+
+
+@pytest.mark.django_db
+def test_probar_correos_inventados_no_bloquea_a_nadie(client, persona, con_bloqueo, settings):
+    """**Un correo que no existe se cuenta tal cual**, y es deliberado.
+
+    Resolverlo a algo compartido —una cadena fija, o el primer usuario— haría que probar direcciones
+    al azar bloqueara cuentas reales: una denegación de servicio regalada a quien solo necesita
+    saber el dominio del correo de la empresa.
+    """
+    for _ in range(settings.AXES_FAILURE_LIMIT + 2):
+        entrar(client, "no.existe@ejemplo.cl", "clave-mala")
+
+    assert entrar(client, "carolina.herrera").status_code == 302, (
+        "bloquearon una cuenta real probando direcciones inventadas"
+    )
+
+
 # --- Y que el resto del sistema no se entere -------------------------------------------
 
 
