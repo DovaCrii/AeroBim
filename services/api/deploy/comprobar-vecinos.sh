@@ -45,6 +45,31 @@ ojo()   { printf '%s ! %s%s\n' "$AMBAR" "$1" "$FIN"; avisos=$((avisos + 1)); }
 bien()  { printf '%s ✓ %s%s\n' "$VERDE" "$1" "$FIN"; }
 titulo(){ printf '\n\033[1m%s\033[0m\n' "$1"; }
 
+titulo "0 · ¿está libre el puerto 443?"
+# **La comprobación que faltaba, y la encontró `p340` el 2026-09-15.**
+#
+# Este guion miraba los archivos de nginx y daba el 443 por libre. No lo estaba: **`tailscaled`
+# tenía atado `100.121.16.118:443`** porque los vecinos se sirven con `tailscale serve`, no con
+# nginx. Un `listen 443` en nginx habría fallado con `EADDRINUSE` al recargar — y recargar nginx
+# con una configuración que no ata es lo que deja **a los vecinos que sí usan nginx sin servir**.
+#
+# Mirar la configuración no basta: hay que preguntarle al sistema quién tiene el puerto.
+if command -v ss >/dev/null 2>&1; then
+  quien443=$(ss -tlnpH 2>/dev/null | awk '$4 ~ /:443$/ {print $4"  "$6}')
+  if [ -z "$quien443" ]; then
+    bien "nadie escucha en el 443: nginx puede atarlo"
+  else
+    mal "el 443 ya lo tiene alguien:"
+    printf '     %s\n' "$quien443"
+    if printf '%s' "$quien443" | grep -q tailscaled; then
+      printf '     → Es `tailscale serve`. nginx **no puede** atar `0.0.0.0:443` con eso puesto.\n'
+      printf '       Mira `tailscale serve status` y decide antes de tocar nginx.\n'
+    fi
+  fi
+else
+  ojo "sin \`ss\` no se puede saber quién tiene el 443"
+fi
+
 titulo "1 · nginx: el servidor por defecto del 443"
 # Se mira en `sites-enabled` y en `conf.d`, que son los dos sitios desde donde se incluye algo.
 # **Se excluyen los archivos de AeroBim**: encontrarse a uno mismo no es un choque, y sin esto
@@ -159,9 +184,15 @@ else
   estado=$(ufw status 2>/dev/null | head -1)
   printf '   %s\n' "$estado"
   # Por dónde entra esta misma sesión de SSH. `SSH_CONNECTION` trae la IP del servidor que se usó.
-  mia=$(printf '%s' "${SSH_CONNECTION:-}" | awk '{print $3}')
+  # `sudo -E` **no funciona** en una instalación con `env_reset` forzado —Ubuntu contesta
+  # «preserving the entire environment is not supported»— así que la variable hay que pasarla a
+  # mano. Se vio en `p340`. Se acepta también `AEROBIM_SSH_CONNECTION` para poder dársela explícita.
+  conexion="${AEROBIM_SSH_CONNECTION:-${SSH_CONNECTION:-}}"
+  mia=$(printf '%s' "$conexion" | awk '{print $3}')
   if [ -z "$mia" ]; then
-    ojo "no se pudo leer SSH_CONNECTION (¿sudo sin -E, o no es una sesión SSH?): comprueba a mano"
+    ojo "no se sabe por qué interfaz entra tu SSH: \`sudo -E\` no sirve en esta máquina"
+    printf '     → Vuelve a correrlo así:\n'
+    printf '       sudo AEROBIM_SSH_CONNECTION="$SSH_CONNECTION" bash %s\n' "$0"
   else
     iface=$(ip -o route get "$mia" 2>/dev/null | sed -n 's/.* dev \([^ ]*\).*/\1/p')
     if [ "$iface" = "tailscale0" ]; then
