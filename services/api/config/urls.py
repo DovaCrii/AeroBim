@@ -7,6 +7,8 @@ exactamente el problema contrario —registro abierto con un secreto por defecto
 publicado en el codigo— y aqui no se repite.
 """
 
+from decouple import config
+from django.conf import settings
 from django.contrib import admin
 from django.contrib.auth import views as auth_views
 from django.urls import include, path
@@ -105,5 +107,30 @@ urlpatterns = [
         publico.ContenidoCompartidoAPI.as_view(),
         name="compartido-contenido",
     ),
-    path("admin/", admin.site.urls),
 ]
+
+# ══════════════════════════════════════════════════════════════════════════════════════════════
+#   **EL `/admin/` DE DJANGO NO SE PUBLICA, Y DESDE EL 2026-09-15 HAY QUE PEDIRLO.**
+#
+#   `p340` sirve AeroBim por Funnel, o sea **en internet**: el nombre tiene que resolver desde
+#   cualquier equipo del piloto, y dentro del tailnet no resuelve —los navegadores con
+#   DNS-over-HTTPS nunca le preguntan al sistema, asi que MagicDNS no se entera—.
+#
+#   Eso pone la pantalla de entrar al alcance de cualquiera, y es aceptable: no hay auto-registro,
+#   `axes` bloquea a los cinco intentos y las claves las pone un administrador. Lo que **no** es
+#   proporcionado es dejar ademas el `/admin/` tecnico, que es la ruta mas rastreada de internet
+#   entera y da control total de la base a quien entre.
+#
+#   **Y no hace falta para trabajar.** La aplicacion tiene sus propias pantallas de administracion
+#   —usuarios y roles, organizaciones, auditoria, trabajos— escritas a proposito para no tener que
+#   entrar aqui. Este `/admin/` es para lo que no tiene pantalla: un arreglo raro, una fila a mano.
+#
+#   Asi que se enciende cuando se necesita y se apaga despues:
+#
+#       AEROBIM_ADMIN_DJANGO=1   en el `.env`, y reiniciar el servicio
+#
+#   **Se apaga solo en produccion.** En desarrollo sigue estando sin pedir nada, porque ahi no hay
+#   nada que proteger y quitarlo seria una friccion diaria a cambio de ninguna seguridad.
+# ══════════════════════════════════════════════════════════════════════════════════════════════
+if settings.DEBUG or config("AEROBIM_ADMIN_DJANGO", default=False, cast=bool):
+    urlpatterns.append(path("admin/", admin.site.urls))
