@@ -366,10 +366,19 @@ journalctl -u aerobim-resumen.service -n 30
 
 Tres cosas de esas unidades:
 
-- **`OnCalendar=07:30` en hora local, no UTC.** El resumen dice qué vence hoy, así que llega antes
-  de la jornada. Con la VM en UTC sale a las 03:30 **o a las 04:30 según el horario de verano**, y
-  ese salto de una hora dos veces al año no se relaciona con la zona:
-  `timedatectl set-timezone America/Santiago`.
+- **`OnCalendar=07:30 America/Santiago`, con la zona escrita en el propio timer.** El resumen dice
+  qué vence hoy, así que llega antes de la jornada; sin la zona saldría a las 03:30 **o a las 04:30
+  según el horario de verano**, y ese salto de una hora dos veces al año no se relaciona con esto.
+
+  > **Y por eso NO se corre `timedatectl set-timezone`**, que es lo que esta página mandaba hasta el
+  > 2026-09-15. Eso cambia el reloj de **toda la máquina**: en `p340` AeroControl tiene once timers
+  > colgando de él —alertas, resúmenes, cierres mensuales— y moverlo los mueve todos, con el síntoma
+  > apareciendo en su producto.
+  >
+  > systemd admite la zona dentro del `OnCalendar` desde la versión 252 y Ubuntu 24.04 trae la 255.
+  > Comprobado: con el sistema en `Etc/UTC` —el estado de `p340`— dispara a las 10:30 UTC, que son
+  > las 07:30 de la obra.
+
 - **`Persistent=true`.** Si la máquina estaba apagada a esa hora, sale al arrancar. Sin esto un
   reinicio nocturno se lleva el resumen del día y en `/administracion/trabajos/` se ve como «no corrió» sin
   motivo.

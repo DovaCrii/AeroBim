@@ -153,6 +153,36 @@ def test_hay_dos_unidades_del_servicio_y_se_excluyen():
     )
 
 
+@pytest.mark.parametrize("nombre", [uno for uno in ARCHIVOS if uno.endswith(".timer")])
+def test_cada_timer_lleva_su_zona_horaria(nombre):
+    """**La hora va en el timer, no en el reloj de la máquina.**
+
+    Estos archivos decían «la VM tiene que estar en `America/Santiago`» y mandaban correr
+    `timedatectl set-timezone`. **En `p340` eso es un cambio a los vecinos**: la máquina está en
+    `Etc/UTC` y AeroControl tiene once timers colgando de ese reloj —alertas, resúmenes, cierres
+    mensuales—. Cambiar la zona los mueve todos, y el síntoma aparece en su producto.
+
+    systemd admite la zona **dentro del `OnCalendar`** desde la versión 252, y Ubuntu 24.04 trae la
+    255. Comprobado en un WSL con esa misma versión: con el sistema en `Etc/UTC`, un
+    `*-*-* 07:30:00 America/Santiago` dispara a las 10:30 UTC — que son las 07:30 de la obra.
+
+    Sin la zona escrita, el resumen saldría a las 03:30 **o a las 04:30 según el horario de
+    verano**, y ese salto de una hora dos veces al año no lo relaciona nadie con esto.
+    """
+    lineas = [
+        linea.strip()
+        for linea in (DEPLOY / nombre).read_text(encoding="utf-8").splitlines()
+        if linea.strip().startswith("OnCalendar=")
+    ]
+
+    assert lineas, f"{nombre} no tiene `OnCalendar`: no se dispara nunca"
+    sin_zona = [uno for uno in lineas if "/" not in uno.split("=", 1)[1]]
+    assert not sin_zona, (
+        f"{nombre} depende del reloj de la máquina: {sin_zona}. En una VM compartida eso significa "
+        "que la hora la decide quien administre la máquina, no nosotros"
+    )
+
+
 def test_la_unidad_del_puerto_no_bloquea_la_red_de_salida():
     """**El correo sale por la red, y estuvo a punto de quedarse dentro.**
 

@@ -259,12 +259,19 @@ if [ -d /etc/nginx/sites-enabled ]; then
 fi
 
 titulo "10 · zona horaria"
+# **Esto era un bloqueante y estaba mal.** Mandaba correr `timedatectl set-timezone`, que cambia el
+# reloj de **toda la máquina**: en `p340` AeroControl tiene once timers colgando de él —alertas,
+# resúmenes, cierres mensuales— y moverlo los mueve todos. El síntoma aparecería en su producto.
+#
+# La zona ahora va **dentro del `OnCalendar`** de cada timer nuestro, así que da igual en qué reloj
+# esté la máquina. Se sigue diciendo, porque es un dato que conviene saber al leer un `journalctl`.
 zona=$(timedatectl show -p Timezone --value 2>/dev/null || echo '?')
 if [ "$zona" = "America/Santiago" ]; then
   bien "$zona"
 else
-  mal "la zona es \`$zona\`: el resumen de las 07:30 se dispararía a otra hora"
-  printf '     → sudo timedatectl set-timezone America/Santiago\n'
+  bien "la máquina está en \`$zona\`, y **no hay que cambiarla**"
+  printf '     Nuestros timers llevan la zona escrita (`… America/Santiago`), así que no dependen\n'
+  printf '     del reloj del sistema. Cambiarlo movería los timers de los vecinos.\n'
 fi
 
 printf '\n'
