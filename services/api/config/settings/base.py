@@ -265,6 +265,33 @@ LOGIN_URL = "/accounts/login/"
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = LOGIN_URL
 
+# ══════════════════════════════════════════════════════════════════════════════════════════════
+#   **LAS COOKIES LLEVAN NUESTRO NOMBRE, Y ESO ES LO QUE EVITA ECHAR A LOS VECINOS.**
+#
+#   En `p340` conviven AeroControl, AeroConvert y AeroBim, y los tres se sirven **bajo el mismo
+#   nombre de maquina** con puertos distintos:
+#
+#     https://p340.tailccd107.ts.net        -> AeroControl
+#     https://p340.tailccd107.ts.net:8443   -> AeroConvert
+#     https://p340.tailccd107.ts.net:10000  -> AeroBim
+#
+#   **El navegador no separa las cookies por puerto.** No es un detalle de implementacion: es como
+#   estan definidas —el puerto no forma parte de su ambito— asi que tres aplicaciones en el mismo
+#   nombre comparten la misma caja de cookies aunque escuchen en puertos distintos.
+#
+#   Con el nombre de fabrica de Django, `sessionid`, **entrar en AeroBim sobreescribe la sesion de
+#   AeroControl y al reves**: la persona pierde la sesion de la otra aplicacion sin ninguna senal,
+#   y el sintoma —«me echa sola»— aparece en el producto que no se toco. Lo mismo con `csrftoken`,
+#   y ahi es peor: el testigo de una vale para la otra, asi que cada `POST` puede morir con un 403
+#   que no explica nada.
+#
+#   Un nombre propio lo cierra del todo, y es lo unico que hay que hacer. Va con valor por omision
+#   —no depende del `.env`— porque **un despliegue que se olvide de ponerlo es el que rompe a los
+#   vecinos**, y eso no puede depender de acordarse.
+# ══════════════════════════════════════════════════════════════════════════════════════════════
+SESSION_COOKIE_NAME = config("SESSION_COOKIE_NAME", default="aerobim_sessionid")
+CSRF_COOKIE_NAME = config("CSRF_COOKIE_NAME", default="aerobim_csrftoken")
+
 SESSION_COOKIE_HTTPONLY = True
 # **La cookie de sesion es `HttpOnly`; la de CSRF no puede serlo, y esto no es un descuido.**
 #

@@ -18,8 +18,24 @@
  * CSRF y por eso el gate entero pasaba en verde con las cuatro escrituras rotas.
  */
 
-/** El nombre de la cookie que Django escribe. Cambiarlo exige cambiarlo también en los ajustes. */
-const COOKIE = "csrftoken";
+/**
+ * El nombre de la cookie que Django escribe.
+ *
+ * **No es `csrftoken`, y el motivo no es estético.** En `p340` conviven AeroControl, AeroConvert y
+ * AeroBim **bajo el mismo nombre de máquina**, con puertos distintos — y el navegador **no separa
+ * las cookies por puerto**: el puerto no forma parte de su ámbito. Con el nombre de fábrica, las
+ * tres aplicaciones se pisan la misma cookie.
+ *
+ * Con la de sesión eso echa a la gente de la otra aplicación sin ninguna señal. Con esta es peor:
+ * el testigo de una valdría para la otra, así que **cada `POST` del visor moriría con un 403** que
+ * no explica nada — exactamente el fallo que ya costó cuatro capacidades enteras cuando la cookie
+ * era `HttpOnly`.
+ *
+ * Tiene que coincidir con `CSRF_COOKIE_NAME` de `config/settings/base.py`, y **hay una prueba que
+ * comprueba que los dos archivos dicen lo mismo**: `apps/core/tests/test_las_cookies.py`. Sin ella,
+ * cambiar uno de los dos deja el visor sin escribir y el gate en verde.
+ */
+const COOKIE = "aerobim_csrftoken";
 
 /** Y el de la cabecera que Django lee. */
 export const CABECERA_CSRF = "X-CSRFToken";
