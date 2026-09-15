@@ -122,6 +122,43 @@ def test_la_comprobacion_de_salud_no_la_tumba_la_redireccion_a_https():
     )
 
 
+def test_si_no_se_puede_reiniciar_se_sabe_antes_de_empezar():
+    """**Tres minutos de trabajo para morir en la última línea.**
+
+    Medido en `p340`: el guion corre como `aerobim` —así lo manda el procedimiento—, hizo los seis
+    pasos, y el séptimo contestó `sudo: I'm sorry aerobim. I'm afraid I can't do that`. O sea que
+    reconstruyó el visor, migró y recogió los estáticos, y **dejó corriendo la versión anterior**.
+
+    `sudo -n` no pide contraseña ni se queda esperándola, así que se puede preguntar al principio.
+    No aborta: los seis pasos sirven igual y rehacerlos después es peor que hacerlos.
+    """
+    codigo = _codigo()
+
+    assert "sudo -n true" in codigo, "el guion no comprueba al principio si podrá reiniciar"
+    assert codigo.index("sudo -n true") < codigo.index('paso "1/7'), (
+        "la comprobación está después de empezar a trabajar: el aviso llega tarde"
+    )
+
+
+def test_sin_reiniciar_no_se_comprueba_la_salud():
+    """**Un oráculo que confirma lo que no ha pasado es peor que no tenerlo.**
+
+    Si no se pudo reiniciar, `/health/` contesta `ok` igual —el proceso viejo está sano— y el guion
+    terminaría con «OK: desplegado y sirviendo» sobre una versión que no es la que se acaba de
+    construir. Así que la comprobación no llega a correr: se para antes, diciendo qué escribir.
+    """
+    codigo = _codigo()
+
+    corte = codigo.index('PUEDE_REINICIAR" = "0"')
+    assert corte < codigo.index("curl -s --max-time"), (
+        "la comprobación de salud corre aunque no se haya reiniciado: diría que todo fue bien"
+    )
+    assert "exit 1" in codigo[corte : codigo.index("curl -s --max-time")]
+    assert "sudo systemctl restart aerobim.service" in codigo, (
+        "no le dice a la persona el comando exacto que le falta"
+    )
+
+
 def test_una_respuesta_vacia_manda_a_mirar_la_direccion_y_no_el_journal():
     """Vacío y enfermo son dos cosas, y el mensaje era el mismo.
 

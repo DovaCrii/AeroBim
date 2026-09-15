@@ -39,6 +39,26 @@ SALUD="${AEROBIM_SALUD:-http://127.0.0.1:8002/health/}"
 
 paso() { printf '\n\033[1m== %s\033[0m\n' "$1"; }
 
+#
+# **¿Vamos a poder reiniciar al final? Se pregunta ahora, no dentro de tres minutos.**
+#
+# Medido en `p340` el 2026-09-15: el guion corre como `aerobim` —así lo manda el procedimiento—,
+# hizo los seis pasos enteros, y en el séptimo contestó:
+#
+#     sudo: I'm sorry aerobim. I'm afraid I can't do that
+#
+# O sea que reconstruyó el visor, migró, recogió los estáticos y **dejó el servicio corriendo con la
+# versión anterior**, después de tres minutos de trabajo y con un mensaje que no dice qué hacer.
+#
+# `sudo -n` no pide contraseña ni cuelga esperándola. Se avisa aquí y se decide en el paso 7: no se
+# aborta, porque los seis pasos de en medio sirven igual y rehacerlos después es peor.
+if sudo -n true 2>/dev/null; then
+    PUEDE_REINICIAR=1
+else
+    PUEDE_REINICIAR=0
+    echo "AVISO: este usuario no puede reiniciar servicios; el paso 7 te dirá qué escribir." >&2
+fi
+
 paso "0/7 · los vecinos"
 # **AeroBim no es el único inquilino de `p340`.** Casi nada suyo puede chocar —habla por un socket,
 # no por un puerto, y todo lleva su nombre—, pero un `default_server` duplicado en nginx tumba a
@@ -92,6 +112,27 @@ paso "6/7 · los estáticos y el catálogo"
 "$PYTHON" manage.py compilemessages -i .venv -i staticfiles
 
 paso "7/7 · reiniciar y comprobar"
+#
+# **Si no se puede reiniciar, se para aquí y no se comprueba la salud.**
+#
+# Y eso es lo importante: `/health/` contestaría `ok` —el proceso viejo está sano— así que el guion
+# terminaría diciendo «OK: desplegado y sirviendo» sobre una versión que no es la que se acaba de
+# construir. Un oráculo que confirma lo que no ha pasado es peor que no tenerlo.
+if [ "$PUEDE_REINICIAR" = "0" ]; then
+    echo
+    echo "El código, el visor, la base y los estáticos están al día. Falta reiniciar, y este" >&2
+    echo "usuario no puede. Sal de este guion y escribe:" >&2
+    echo >&2
+    echo "    sudo systemctl restart aerobim.service && sleep 4 && curl -s $SALUD" >&2
+    echo >&2
+    echo "Tiene que contestar '\"estado\": \"ok\"'." >&2
+    echo >&2
+    echo "Para que el guion lo haga solo, una vez y como root:" >&2
+    echo "    echo 'aerobim ALL=(root) NOPASSWD: /usr/bin/systemctl restart aerobim.service' \\" >&2
+    echo "      | sudo tee /etc/sudoers.d/aerobim-reinicio && sudo chmod 440 /etc/sudoers.d/aerobim-reinicio" >&2
+    exit 1
+fi
+
 sudo systemctl restart aerobim
 # Un momento para que los workers levanten: `Type=notify` hace que `restart` espere, pero el socket
 # puede tardar un instante más en aceptar.
