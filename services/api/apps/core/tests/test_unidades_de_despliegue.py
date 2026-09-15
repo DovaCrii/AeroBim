@@ -116,6 +116,65 @@ def test_el_servidor_por_defecto_vive_en_su_propio_archivo():
     assert "default_server" in aparte.read_text(encoding="utf-8")
 
 
+def test_hay_dos_unidades_del_servicio_y_se_excluyen():
+    """**Dos formas de servir, y instalar las dos deja a gunicorn atando un socket que nadie lee.**
+
+    | Archivo | Cuándo | Cómo llega la petición |
+    | --- | --- | --- |
+    | `aerobim.service` + `aerobim.socket` | nginx es el proxy | socket de UNIX |
+    | `aerobim-puerto.service` | el proxy es otro —`tailscale serve`— | `127.0.0.1:<puerto>` |
+
+    La segunda existe porque en `p340` **`tailscaled` tiene atado el 443**: los vecinos se sirven
+    con `tailscale serve` y nginx no puede escucharlo. Lo que esta prueba fija es que la del puerto
+    **no** arrastre la dependencia del socket, que es la única diferencia real entre las dos y la
+    que haría que instalar la equivocada fallara de una forma difícil de leer.
+    """
+
+    def directivas(nombre: str) -> list[str]:
+        """Las líneas que systemd **ejecuta**, sin los comentarios.
+
+        Mirar el texto entero no sirve aquí y fue el primer resultado de esta prueba: la cabecera de
+        `aerobim-puerto.service` explica precisamente que **no** lleva `Requires=aerobim.socket`, y
+        buscar la cadena a secas encuentra esa frase. Un comentario que explica una ausencia no es
+        la ausencia.
+        """
+        texto = (DEPLOY / nombre).read_text(encoding="utf-8")
+        return [
+            linea.strip()
+            for linea in texto.splitlines()
+            if linea.strip() and not linea.strip().startswith("#")
+        ]
+
+    assert "Requires=aerobim.socket" in directivas("aerobim.service"), (
+        "la unidad de nginx perdió su socket"
+    )
+    assert "Requires=aerobim.socket" not in directivas("aerobim-puerto.service"), (
+        "la unidad del puerto exige el socket: gunicorn ataría uno que nadie lee"
+    )
+
+
+def test_la_unidad_del_puerto_no_bloquea_la_red_de_salida():
+    """**El correo sale por la red, y estuvo a punto de quedarse dentro.**
+
+    Esta unidad llevó un `IPAddressDeny=any` con `IPAddressAllow=localhost`, para que un fallo de
+    configuración no pudiera exponer el puerto fuera de la máquina. La idea era buena y el efecto
+    era el contrario del buscado: `IPAddress*` filtra **en las dos direcciones**, así que gunicorn
+    no habría podido hablar con el servidor de correo.
+
+    Y el síntoma sería el peor posible: la aplicación funciona, las cuentas se crean y **ni un solo
+    aviso sale** — sin error en pantalla, porque el fallo ocurre al enviar. Nadie lo buscaría en una
+    unidad de systemd.
+    """
+    puerto = (DEPLOY / "aerobim-puerto.service").read_text(encoding="utf-8")
+    directivas = [
+        linea.strip()
+        for linea in puerto.splitlines()
+        if linea.strip().startswith(("IPAddressDeny", "IPAddressAllow"))
+    ]
+
+    assert not directivas, f"esto deja al servicio sin poder mandar correo: {directivas}"
+
+
 def test_las_zonas_del_limite_llevan_nuestro_nombre():
     """Las zonas de `limit_req` son **globales de la máquina**, igual que el servidor por defecto.
 
@@ -153,8 +212,16 @@ def test_cada_timer_sobrevive_a_la_maquina_apagada(nombre):
     assert "Persistent=true" in (DEPLOY / nombre).read_text(encoding="utf-8")
 
 
+#: Los dos servicios que **se quedan vivos**, y que por eso sí tienen que reiniciarse solos.
+#:
+#: Son dos formas de servir lo mismo y se instala una: `aerobim.service` habla por un socket de
+#: UNIX detrás de nginx, y `aerobim-puerto.service` por `127.0.0.1` detrás de otro proxy. Ver
+#: `test_hay_dos_unidades_del_servicio_y_se_excluyen`.
+SERVIDORES = {"aerobim.service", "aerobim-puerto.service"}
+
+
 @pytest.mark.parametrize(
-    "nombre", [uno for uno in ARCHIVOS if uno.endswith(".service") and uno != "aerobim.service"]
+    "nombre", [uno for uno in ARCHIVOS if uno.endswith(".service") and uno not in SERVIDORES]
 )
 def test_ningun_trabajo_periodico_se_reintenta_solo(nombre):
     """**Un `Restart=` en un `oneshot` manda el mismo correo cuatro veces.**
@@ -162,8 +229,7 @@ def test_ningun_trabajo_periodico_se_reintenta_solo(nombre):
     El del resumen lo dice en su cabecera: con un SMTP caído, los reintentos no arreglan nada y la
     gente recibe el aviso repetido. Lo mismo vale para el respaldo contra un disco lleno.
 
-    `aerobim.service` queda fuera: ese sí es un servicio que se queda vivo y **tiene** que
-    reiniciarse.
+    Los dos servidores quedan fuera: esos sí se quedan vivos y **tienen** que reiniciarse.
     """
     texto = (DEPLOY / nombre).read_text(encoding="utf-8")
     activas = [uno for uno in texto.splitlines() if uno.strip().startswith("Restart=")]

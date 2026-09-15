@@ -1,0 +1,103 @@
+# AeroBim servido por **puerto local**, para cuando el proxy no es nginx.
+#
+# Instalar en /etc/systemd/system/aerobim.service  (sí: con el nombre de la otra)
+#
+#   sudo cp deploy/aerobim-puerto.service /etc/systemd/system/aerobim.service
+#   sudo systemctl daemon-reload && sudo systemctl enable --now aerobim.service
+#
+# ══════════════════════════════════════════════════════════════════════════════════════════════
+#   **HAY DOS UNIDADES Y SE ELIGE UNA. No se instalan las dos.**
+#
+#   | Archivo | Cuándo | Cómo llega la petición |
+#   | --- | --- | --- |
+#   | `aerobim.service` + `aerobim.socket` | la máquina es nuestra y nginx es el proxy | socket de UNIX `/run/aerobim.sock` |
+#   | **este** | el proxy es otro —`tailscale serve`, Caddy, un nginx que no controlamos— | `127.0.0.1:<puerto>` |
+#
+#   **Por qué existe este archivo, y no es una comodidad.** En `p340` conviven AeroControl y
+#   AeroConvert, y **los dos se sirven con `tailscale serve`**, que proxea a `127.0.0.1:8000` y
+#   `:8001`. `tailscaled` tiene atado el 443, así que nginx no puede escucharlo — y aunque pudiera,
+#   montar el tercer servicio de otra manera significa el doble de cosas que recordar cuando algo
+#   falle a las tres de la mañana.
+#
+#   **Lo que se pierde, dicho.** El socket lo crea systemd con `0660 aerobim:www-data`, así que
+#   solo el servidor web llega a gunicorn. Con un puerto local llega **cualquier proceso de la
+#   máquina**, y eso importa porque es lo que hace seguro fiarse de `X-Forwarded-Proto`: quien
+#   pueda hablarle directo a gunicorn puede afirmar que su conexión era `https` cuando no lo era.
+#
+#   Lo que lo mantiene aceptable son tres cosas, y conviene que estén escritas:
+#
+#   1. **`127.0.0.1` y nunca `0.0.0.0`.** Va en el `.env` (`GUNICORN_BIND`) y hay que mirarlo: con
+#      `0.0.0.0` el servicio queda expuesto en todas las interfaces, tailnet incluido, **sin TLS y
+#      saltándose el proxy**. Es el peor error posible de este archivo.
+#   2. **`forwarded_allow_ips = 127.0.0.1`** ya está en `config/gunicorn.conf.py`: gunicorn solo
+#      acepta `X-Forwarded-For` del proxy local.
+#   3. **Es el nivel que la casa ya acepta.** AeroControl y AeroConvert corren así desde antes;
+#      subir el listón solo para AeroBim no protegería la máquina, que es lo que se protege.
+# ══════════════════════════════════════════════════════════════════════════════════════════════
+#
+# **`Type=notify` y no `simple`.** Con `simple`, systemd da el servicio por arrancado en cuanto el
+# proceso existe, o sea antes de que Django haya cargado los ajustes: un `SECRET_KEY` que falta o un
+# `psycopg` que no está se ven como «active» y el fallo aparece en la primera petición.
+
+[Unit]
+Description=API y portal de AeroBim
+Documentation=file:///opt/aerobim/docs/DEPLOY.md
+After=network-online.target postgresql.service
+Wants=network-online.target
+# **Sin `Requires=aerobim.socket`**, que es la única diferencia real con la otra unidad: aquí no hay
+# socket. Instalar las dos dejaría a gunicorn intentando atar un socket que nadie lee.
+
+[Service]
+Type=notify
+User=aerobim
+Group=aerobim
+WorkingDirectory=/opt/aerobim/services/api
+
+# Los ajustes viven en el `.env` del operador, fuera del repositorio y fuera de git.
+# `EnvironmentFile` **sin `-`** a propósito: sin `.env` no hay `SECRET_KEY`, y arrancar sin ella es
+# exactamente lo que no debe pasar.
+EnvironmentFile=/opt/aerobim/services/api/.env
+Environment=DJANGO_SETTINGS_MODULE=config.settings.prod
+Environment=PYTHONUNBUFFERED=1
+
+# **El gunicorn del entorno, no `uv run`.** `uv run` comprueba y sincroniza el entorno antes de
+# ejecutar, y con `ProtectSystem=strict` el disco está de solo lectura: el servicio no arrancaría, o
+# peor, arrancaría a veces. El `uv sync` es parte del despliegue, no del arranque.
+ExecStart=/opt/aerobim/services/api/.venv/bin/gunicorn \
+    --config config/gunicorn.conf.py config.wsgi:application
+
+ExecReload=/bin/kill -s HUP $MAINPID
+KillMode=mixed
+TimeoutStopSec=30
+Restart=on-failure
+RestartSec=5
+
+# ── Lo que este servicio no necesita poder hacer ────────────────────────────────
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+# **Aquí NO va `IPAddressDeny=any`, y estuvo puesto.** La idea era buena —con un puerto, un fallo de
+# configuración puede exponer el servicio fuera de la máquina, y systemd puede impedirlo aunque el
+# `.env` diga otra cosa— pero `IPAddress*` filtra **en las dos direcciones**: con `IPAddressAllow`
+# en `localhost`, gunicorn no podría hablar con el **servidor de correo**, que está fuera.
+#
+# El síntoma sería el peor de los posibles: la aplicación funciona, las cuentas se crean, y **ni un
+# solo aviso sale** — sin error en la pantalla, porque el fallo ocurre en el envío. Justo lo que
+# `listo_para_produccion` existe para cazar, pero por un motivo que nadie buscaría en una unidad de
+# systemd.
+#
+# Lo que de verdad acota el puerto es `GUNICORN_BIND=127.0.0.1:<puerto>` en el `.env`, y por eso
+# **hay que mirarlo al desplegar**: con `0.0.0.0` el servicio queda en todas las interfaces, tailnet
+# incluido, sin TLS y saltándose el proxy.
+# Los dos sitios donde esta aplicación escribe. `DOCUMENTS_DIR` y `LOGS_DIR` del `.env` tienen que
+# caer dentro, o el servicio arranca y falla al guardar el primer documento.
+ReadWritePaths=/var/lib/aerobim /var/log/aerobim
+
+[Install]
+WantedBy=multi-user.target

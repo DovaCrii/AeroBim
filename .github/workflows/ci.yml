@@ -5,6 +5,18 @@ on:
     branches: [main]
   pull_request:
 
+# **Una ejecución por rama, y la anterior se cancela.**
+#
+# Sin esto, empujar tres veces seguidas a la misma rama deja **tres ejecuciones corriendo a la vez**
+# y las dos primeras gastan sus trece minutos para dar un resultado que ya no interesa. Es la forma
+# más silenciosa de gastar la cuota: no se ve en ninguna parte hasta que llega el aviso del 90 %.
+#
+# `main` se excluye a propósito —`github.ref` entra en el grupo— porque ahí cada fusión es un estado
+# que conviene tener comprobado por sí mismo, no sustituido por la siguiente.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 jobs:
   # La mitad de TypeScript: el visor y el dominio.
   verify:
@@ -134,7 +146,19 @@ jobs:
           DB_PORT: "5432"
         run: uv run pytest --cov
 
+      # **Y la de SQLite solo en `main`, desde el 2026-09-15.** No es un recorte a ciegas: está
+      # medido. De los trece minutos del trabajo, **este paso son seis** —404 s el de PostgreSQL y
+      # 358 s este— o sea el 46 % de la cuota que consume cada revisión.
+      #
+      # Lo que lo hace aceptable es que **esta corrida ya ocurre en otro sitio**: `pyproject.toml`
+      # fija `config.settings.dev`, que es SQLite, así que **cada `pytest` del equipo en su propia
+      # máquina es exactamente esta corrida**. En una revisión no añade una comprobación que nadie
+      # más haga; en `main` sí, porque ahí es donde queda el estado que nadie vuelve a mirar.
+      #
+      # El motivo de recortar fue la cuota de Actions —1 802 de 2 000 minutos con dieciséis días por
+      # delante— y conviene decirlo: si algún día deja de importar, esto vuelve a correr siempre.
       - name: pytest contra SQLite, que es lo que usa el equipo
+        if: github.ref == 'refs/heads/main'
         run: uv run pytest -q
 
       - run: uv run ruff check .

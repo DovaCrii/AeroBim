@@ -296,7 +296,19 @@ resto los da de alta un administrador desde la aplicación. **Ojo con usarlo par
 permisos**: `apps/core/tenancy.py` le devuelve el queryset entero a un superusuario, así que probar
 con esa cuenta **no prueba nada** sobre las membresías.
 
-**5. Las unidades de systemd.**
+**5. Las unidades de systemd.** Y aquí **se elige una de dos formas de servir**, según quién sea el
+proxy de la máquina.
+
+| Si el proxy es…                                     | Instala                              | La petición llega por         |
+| --------------------------------------------------- | ------------------------------------ | ----------------------------- |
+| **nginx, y la máquina es nuestra**                  | `aerobim.socket` + `aerobim.service` | el socket `/run/aerobim.sock` |
+| **otro** —`tailscale serve`, Caddy, un nginx ajeno— | `aerobim-puerto.service`             | `127.0.0.1:<puerto>`          |
+
+> **En `p340` es la segunda, y no por gusto.** `tailscaled` tiene atado el 443 porque AeroControl y
+> AeroConvert se sirven con `tailscale serve`; nginx no puede escucharlo. Y montar el tercer
+> servicio de otra manera que los otros dos es el doble de cosas que recordar cuando algo falle.
+
+**Con nginx:**
 
 ```bash
 sudo cp services/api/deploy/aerobim.socket /etc/systemd/system/
@@ -304,6 +316,24 @@ sudo cp services/api/deploy/aerobim.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable --now aerobim.socket aerobim.service
 ```
+
+**Con otro proxy** — el archivo se copia **con el nombre de la otra**, y se instala una sola:
+
+```bash
+sudo cp services/api/deploy/aerobim-puerto.service /etc/systemd/system/aerobim.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now aerobim.service
+```
+
+Y en el `.env`, la línea que decide el puerto:
+
+```bash
+GUNICORN_BIND=127.0.0.1:8002
+```
+
+> ⚠️ **`127.0.0.1` y nunca `0.0.0.0`.** Con `0.0.0.0` el servicio queda expuesto en todas las
+> interfaces —tailnet incluido— **sin TLS y saltándose el proxy**. Es el peor error posible de esta
+> forma de servir, y no da ningún síntoma: funciona igual de bien.
 
 Dos cosas de esas unidades que conviene tener presentes:
 
