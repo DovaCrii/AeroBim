@@ -25,7 +25,7 @@ Description=Dispara el respaldo de AeroBim cada dia
 Requires=aerobim-respaldo.service
 
 [Timer]
-OnCalendar=*-*-* 02:00:00
+OnCalendar=*-*-* 02:00:00 America/Santiago
 Persistent=true
 Unit=aerobim-respaldo.service
 

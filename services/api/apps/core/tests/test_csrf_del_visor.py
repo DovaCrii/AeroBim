@@ -20,6 +20,7 @@ mandan el testigo que JavaScript puede leer de la cookie**. Si alguien vuelve a 
 import json
 
 import pytest
+from django.conf import settings
 from django.contrib.auth.models import Permission
 from django.test import Client
 from django.urls import reverse
@@ -36,7 +37,7 @@ def como_el_navegador(usuario) -> tuple[Client, str]:
     cliente = Client(enforce_csrf_checks=True)
     cliente.force_login(usuario)
     cliente.get(reverse("portal"))
-    return cliente, cliente.cookies["csrftoken"].value
+    return cliente, cliente.cookies[settings.CSRF_COOKIE_NAME].value
 
 
 def dar(user, *permisos):
@@ -59,7 +60,7 @@ def test_el_testigo_de_csrf_lo_puede_leer_javascript(proyectista):
     """
     cliente, _testigo = como_el_navegador(proyectista)
 
-    cookie = cliente.cookies["csrftoken"]
+    cookie = cliente.cookies[settings.CSRF_COOKIE_NAME]
 
     # Django deja la bandera como cadena vacía cuando no está puesta.
     assert not cookie["httponly"], (
@@ -67,7 +68,7 @@ def test_el_testigo_de_csrf_lo_puede_leer_javascript(proyectista):
         "escrituras devuelven 403. La de sesión sí debe ser HttpOnly; esta no puede."
     )
     # Y la de sesión sigue guardada, que es la que de verdad protege.
-    assert cliente.cookies["sessionid"]["httponly"]
+    assert cliente.cookies[settings.SESSION_COOKIE_NAME]["httponly"]
 
 
 @pytest.mark.django_db

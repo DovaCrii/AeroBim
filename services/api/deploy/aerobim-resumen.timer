@@ -9,10 +9,19 @@
 # antes de la jornada y se lee al empezar. A medianoche compite con el respaldo y con
 # `logrotate`, y ademas quien lo abre por la mañana ya lo tiene enterrado.
 #
-# **Hora local de la obra y no UTC.** systemd usa la zona del sistema, asi que la VM tiene
-# que estar en `America/Santiago` (`timedatectl set-timezone America/Santiago`). Con la VM
-# en UTC este resumen sale a las 03:30 o a las 04:30 segun el horario de verano — y ese
-# salto de una hora dos veces al año es el tipo de cosa que nadie relaciona con la zona.
+# **La zona va aqui, no en la maquina**, y eso cambio el 2026-09-15 mirando `p340`.
+#
+# Este archivo decia «la VM tiene que estar en America/Santiago» y mandaba correr
+# `timedatectl set-timezone`. **En una maquina compartida eso es un cambio a los vecinos**: `p340`
+# esta en `Etc/UTC` y AeroControl tiene once timers colgando de ese reloj — alertas, resumenes,
+# cierres mensuales. Cambiar la zona los mueve todos, y el sintoma aparece en su producto.
+#
+# systemd admite la zona **dentro del `OnCalendar`** desde la version 252; Ubuntu 24.04 trae la 255.
+# Asi que se pide la hora que se quiere sin tocar el reloj de nadie.
+#
+# **07:30 en hora de la obra y no UTC**: con la VM en UTC este resumen saldria a las 03:30 o a las
+# 04:30 segun el horario de verano, y ese salto de una hora dos veces al año es el tipo de cosa que
+# nadie relaciona con la zona.
 #
 # **`Persistent=true`**: si la maquina estaba apagada a la hora, el resumen sale al
 # arrancar. Sin esto, un reinicio de la noche se lleva el resumen del dia sin dejar rastro,
@@ -27,7 +36,7 @@ Description=Dispara el resumen de pendientes de AeroBim cada dia
 Requires=aerobim-resumen.service
 
 [Timer]
-OnCalendar=*-*-* 07:30:00
+OnCalendar=*-*-* 07:30:00 America/Santiago
 Persistent=true
 Unit=aerobim-resumen.service
 

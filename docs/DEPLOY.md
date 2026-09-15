@@ -296,7 +296,19 @@ resto los da de alta un administrador desde la aplicación. **Ojo con usarlo par
 permisos**: `apps/core/tenancy.py` le devuelve el queryset entero a un superusuario, así que probar
 con esa cuenta **no prueba nada** sobre las membresías.
 
-**5. Las unidades de systemd.**
+**5. Las unidades de systemd.** Y aquí **se elige una de dos formas de servir**, según quién sea el
+proxy de la máquina.
+
+| Si el proxy es…                                     | Instala                              | La petición llega por         |
+| --------------------------------------------------- | ------------------------------------ | ----------------------------- |
+| **nginx, y la máquina es nuestra**                  | `aerobim.socket` + `aerobim.service` | el socket `/run/aerobim.sock` |
+| **otro** —`tailscale serve`, Caddy, un nginx ajeno— | `aerobim-puerto.service`             | `127.0.0.1:<puerto>`          |
+
+> **En `p340` es la segunda, y no por gusto.** `tailscaled` tiene atado el 443 porque AeroControl y
+> AeroConvert se sirven con `tailscale serve`; nginx no puede escucharlo. Y montar el tercer
+> servicio de otra manera que los otros dos es el doble de cosas que recordar cuando algo falle.
+
+**Con nginx:**
 
 ```bash
 sudo cp services/api/deploy/aerobim.socket /etc/systemd/system/
@@ -304,6 +316,24 @@ sudo cp services/api/deploy/aerobim.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable --now aerobim.socket aerobim.service
 ```
+
+**Con otro proxy** — el archivo se copia **con el nombre de la otra**, y se instala una sola:
+
+```bash
+sudo cp services/api/deploy/aerobim-puerto.service /etc/systemd/system/aerobim.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now aerobim.service
+```
+
+Y en el `.env`, la línea que decide el puerto:
+
+```bash
+GUNICORN_BIND=127.0.0.1:8002
+```
+
+> ⚠️ **`127.0.0.1` y nunca `0.0.0.0`.** Con `0.0.0.0` el servicio queda expuesto en todas las
+> interfaces —tailnet incluido— **sin TLS y saltándose el proxy**. Es el peor error posible de esta
+> forma de servir, y no da ningún síntoma: funciona igual de bien.
 
 Dos cosas de esas unidades que conviene tener presentes:
 
@@ -336,10 +366,19 @@ journalctl -u aerobim-resumen.service -n 30
 
 Tres cosas de esas unidades:
 
-- **`OnCalendar=07:30` en hora local, no UTC.** El resumen dice qué vence hoy, así que llega antes
-  de la jornada. Con la VM en UTC sale a las 03:30 **o a las 04:30 según el horario de verano**, y
-  ese salto de una hora dos veces al año no se relaciona con la zona:
-  `timedatectl set-timezone America/Santiago`.
+- **`OnCalendar=07:30 America/Santiago`, con la zona escrita en el propio timer.** El resumen dice
+  qué vence hoy, así que llega antes de la jornada; sin la zona saldría a las 03:30 **o a las 04:30
+  según el horario de verano**, y ese salto de una hora dos veces al año no se relaciona con esto.
+
+  > **Y por eso NO se corre `timedatectl set-timezone`**, que es lo que esta página mandaba hasta el
+  > 2026-09-15. Eso cambia el reloj de **toda la máquina**: en `p340` AeroControl tiene once timers
+  > colgando de él —alertas, resúmenes, cierres mensuales— y moverlo los mueve todos, con el síntoma
+  > apareciendo en su producto.
+  >
+  > systemd admite la zona dentro del `OnCalendar` desde la versión 252 y Ubuntu 24.04 trae la 255.
+  > Comprobado: con el sistema en `Etc/UTC` —el estado de `p340`— dispara a las 10:30 UTC, que son
+  > las 07:30 de la obra.
+
 - **`Persistent=true`.** Si la máquina estaba apagada a esa hora, sale al arrancar. Sin esto un
   reinicio nocturno se lleva el resumen del día y en `/administracion/trabajos/` se ve como «no corrió» sin
   motivo.

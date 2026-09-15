@@ -19,8 +19,14 @@ Las dos preguntas que contesta:
 
 | Cookie | Quién la pone | Para qué | Estrictamente necesaria |
 | --- | --- | --- | --- |
-| `sessionid` | Django | saber quién eres | **sí** |
-| `csrftoken` | Django | que un tercero no pueda enviar formularios en tu nombre | **sí** |
+| `aerobim_sessionid` | Django | saber quién eres | **sí** |
+| `aerobim_csrftoken` | Django | que un tercero no pueda enviar formularios en tu nombre | **sí** |
+
+**Y el prefijo no es estético: es lo que evita echar a los vecinos.** En `p340` conviven
+AeroControl, AeroConvert y AeroBim bajo el **mismo nombre de máquina** con puertos distintos, y el
+navegador **no separa las cookies por puerto** — el puerto no forma parte de su ámbito. Con los
+nombres de fábrica, entrar en AeroBim sobreescribe la sesión de AeroControl y al revés, y el
+síntoma —«me echa sola»— aparece en el producto que nadie tocó.
 
 Y nada más: **ni analítica, ni publicidad, ni nada de un tercero**. El tema claro/oscuro va en
 `localStorage` y no en una cookie, que es otra decisión con el mismo efecto — no viaja en cada
@@ -43,7 +49,7 @@ U = get_user_model()
 #: **La lista es cerrada a propósito.** Una cookie nueva es una decisión —legal y de privacidad— y
 #: llega normalmente sin que nadie la tome: la añade una librería que alguien instaló por otra cosa.
 #: Si esta prueba falla, la pregunta no es «cómo la añado» sino «quién la puso y por qué».
-PERMITIDAS = {"sessionid", "csrftoken"}
+PERMITIDAS = {settings.SESSION_COOKIE_NAME, settings.CSRF_COOKIE_NAME}
 
 
 @pytest.fixture
@@ -85,8 +91,8 @@ def test_en_produccion_las_dos_van_marcadas_como_seguras(client, quien):
     respuesta = client.get("/")
     cookies = {**client.cookies, **respuesta.cookies}
 
-    assert cookies["sessionid"]["secure"], "la cookie de sesión viajaría sin cifrar"
-    assert cookies["csrftoken"]["secure"]
+    assert cookies[settings.SESSION_COOKIE_NAME]["secure"], "la sesión viajaría sin cifrar"
+    assert cookies[settings.CSRF_COOKIE_NAME]["secure"]
 
 
 def test_la_de_sesion_no_se_puede_leer_desde_javascript(client, quien):
@@ -99,8 +105,8 @@ def test_la_de_sesion_no_se_puede_leer_desde_javascript(client, quien):
     """
     client.post(reverse("login"), {"username": "alguien", "password": "una-clave-larga-99"})
 
-    assert client.cookies["sessionid"]["httponly"]
-    assert not client.cookies["csrftoken"]["httponly"]
+    assert client.cookies[settings.SESSION_COOKIE_NAME]["httponly"]
+    assert not client.cookies[settings.CSRF_COOKIE_NAME]["httponly"]
 
 
 def test_ninguna_cookie_cruza_a_otro_sitio(client, quien):
@@ -112,7 +118,7 @@ def test_ninguna_cookie_cruza_a_otro_sitio(client, quien):
     """
     client.post(reverse("login"), {"username": "alguien", "password": "una-clave-larga-99"})
 
-    for nombre in ("sessionid", "csrftoken"):
+    for nombre in PERMITIDAS:
         valor = client.cookies[nombre].get("samesite", "Lax") or "Lax"
         assert valor.lower() in {"lax", "strict"}, f"{nombre} tiene SameSite={valor}"
 
@@ -140,6 +146,55 @@ def test_la_sesion_no_echa_a_nadie_a_mitad_de_la_tarde():
     )
 
 
+def test_las_cookies_llevan_nuestro_nombre():
+    """**Lo que evita echar a los vecinos de su propia aplicación.**
+
+    En `p340` conviven AeroControl, AeroConvert y AeroBim bajo el **mismo nombre de máquina**, con
+    puertos distintos:
+
+        https://p340.tailccd107.ts.net        → AeroControl
+        https://p340.tailccd107.ts.net:8443   → AeroConvert
+        https://p340.tailccd107.ts.net:10000  → AeroBim
+
+    **El navegador no separa las cookies por puerto.** No es un detalle de implementación: el
+    puerto no forma parte del ámbito de una cookie, así que las tres comparten la misma caja.
+
+    Con los nombres de fábrica de Django, entrar en AeroBim **sobreescribe la sesión de
+    AeroControl** y al revés — y el síntoma, «me echa sola», aparece en el producto que nadie tocó.
+    Con el testigo de CSRF es peor: el de una valdría para la otra, y cada `POST` moriría con un
+    403 que no explica nada.
+    """
+    assert settings.SESSION_COOKIE_NAME.startswith("aerobim"), settings.SESSION_COOKIE_NAME
+    assert settings.CSRF_COOKIE_NAME.startswith("aerobim"), settings.CSRF_COOKIE_NAME
+
+
+def test_el_visor_lee_exactamente_la_cookie_que_el_servidor_escribe():
+    """**La costura entre los dos lados, y la que rompe todo sin que nada falle.**
+
+    El visor lee el testigo de `document.cookie` **por su nombre, escrito a mano** en
+    `apps/web/src/csrf.ts`. Si los dos archivos dejan de decir lo mismo, `testigoCsrf()` devuelve
+    cadena vacía y **todos los `POST` del visor mueren con 403**: dejar una nota sobre un elemento,
+    descartar un conflicto, marcar la coordinación como vista y guardar una vista compartida.
+
+    Ya pasó una vez por otro motivo —la cookie era `HttpOnly`— y **el gate entero estaba en verde
+    con las cuatro escrituras rotas**, porque el cliente de pruebas de Django no comprueba CSRF. Lo
+    destapó el usuario intentando anotar un elemento.
+
+    Así que el nombre no puede vivir en dos sitios sin nada que los ate. Esto es ese algo.
+    """
+    from pathlib import Path
+
+    fuente = (Path(settings.BASE_DIR).parents[1] / "apps" / "web" / "src" / "csrf.ts").read_text(
+        encoding="utf-8"
+    )
+    esperado = f'const COOKIE = "{settings.CSRF_COOKIE_NAME}";'
+
+    assert esperado in fuente, (
+        f"`csrf.ts` no lee «{settings.CSRF_COOKIE_NAME}». El visor no podría escribir nada, y "
+        "ninguna otra prueba lo vería: el cliente de Django no comprueba CSRF"
+    )
+
+
 @pytest.mark.django_db
 def test_el_enlace_compartido_no_pone_ninguna_cookie_de_sesion(client):
     """Quien abre un enlace **no empieza una sesión**, y eso también es una decisión de cookies.
@@ -149,5 +204,5 @@ def test_el_enlace_compartido_no_pone_ninguna_cookie_de_sesion(client):
     """
     respuesta = client.get(reverse("compartido", args=["x" * 43]))
 
-    assert "sessionid" not in respuesta.cookies
+    assert settings.SESSION_COOKIE_NAME not in respuesta.cookies
     assert respuesta.status_code == 404
