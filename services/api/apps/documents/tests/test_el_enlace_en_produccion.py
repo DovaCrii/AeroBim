@@ -145,10 +145,18 @@ def test_ninguna_ruta_publica_sirve_aislamiento_de_origen(client, enlace, tmp_pa
     SECURE_SSL_REDIRECT=True, SECURE_PROXY_SSL_HEADER=("HTTP_X_FORWARDED_PROTO", "https")
 )
 def test_detras_del_proxy_el_enlace_contesta_y_no_redirige(client, enlace, tmp_path):
-    """Con la cabecera que pone nginx, las tres rutas contestan.
+    """Con la cabecera que pone nginx, las tres rutas contestan **sin redirigir**.
 
     Sin `SECURE_PROXY_SSL_HEADER` esto sería un bucle de redirección — y en el visor no se vería
     como un bucle sino como «no se pudo cargar», porque quien pide la ficha es un `fetch`.
+
+    **Lo que se mide es que no haya redirección, no que sea un 200**, y esa diferencia la enseñó el
+    gate: aquí decía `== {200}` y fallaba en CI con un `503` en la página. No era un defecto del
+    producto sino de la prueba — en CI **no hay build del visor**, así que `PaginaCompartidaView`
+    devuelve su 503 con el aviso, que es el comportamiento correcto y escrito. Atar la prueba al
+    200 la ataba a que alguien hubiera corrido `npm run build` en esa máquina.
+
+    Y `3xx` es exactamente lo que este mecanismo puede romper, así que es lo que se comprueba.
     """
     with override_settings(DOCUMENTS_DIR=tmp_path):
         codigos = {
@@ -158,7 +166,12 @@ def test_detras_del_proxy_el_enlace_contesta_y_no_redirige(client, enlace, tmp_p
             for nombre in ("compartido", "compartido-ficha", "compartido-contenido")
         }
 
-    assert set(codigos.values()) == {200}, codigos
+    redirigidas = {nombre: c for nombre, c in codigos.items() if 300 <= c < 400}
+    assert not redirigidas, f"detrás del proxy siguen redirigiendo: {redirigidas}"
+    # Las dos que no dependen del build sí tienen que contestar: si estas dieran 503, el fallo sería
+    # del producto y no del entorno.
+    assert codigos["compartido-ficha"] == 200
+    assert codigos["compartido-contenido"] == 200
 
 
 @override_settings(
