@@ -112,6 +112,11 @@ def test_ninguna_traduccion_repite_el_original():
         # La abreviatura de «revisión» y de «revision» se escribe igual en los dos idiomas, y es
         # la que va impresa en cada carátula de plano.
         "rev.",
+        # «Cookie» es la palabra que la gente busca y la que usa la ley. «Galleta informática» no
+        # la escribe nadie y haría que la página no se encontrara buscando lo que todo el mundo
+        # busca. Es un préstamo asentado, como «transmittal» aquí arriba.
+        "Cookie",
+        "Cookies",
     }
     sospechosas = [
         msgid

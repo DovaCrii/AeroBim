@@ -121,5 +121,18 @@
         find out in the meeting where a cost report was promised.{% endblocktranslate %}
       </div>
     </a>
+    {% comment %}
+      **Las dos preguntas que aparecen en cuanto entra gente real**: «¿esto lleva cookies?» y «¿qué
+      guarda de nosotros?». Las dos tienen respuesta corta y buena, y por eso conviene que esté
+      escrita en una pantalla y no en la cabeza de quien instaló esto.
+    {% endcomment %}
+    <a class="tarjeta" href="{% url 'accounts:privacidad' %}">
+      <div class="titulo">{% translate "Cookies and your data" %}</div>
+      <div class="detalle">
+        {% blocktranslate %}Two cookies, both needed for it to work, so there is nothing to accept.
+        What AeroBim keeps about you and what it does not do — no analytics, no third parties, and
+        the project files stay on your own server.{% endblocktranslate %}
+      </div>
+    </a>
   </div>
 {% endblock %}

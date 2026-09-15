@@ -226,6 +226,33 @@ class AyudaView(LoginRequiredMixin, TemplateView):
         return contexto
 
 
+class PrivacidadView(LoginRequiredMixin, TemplateView):
+    """Qué cookies hay y qué se guarda. **Cuelga de la ayuda, que es donde se busca.**
+
+    El contenido vive en `apps/accounts/privacidad.py` y no en la plantilla porque es **la misma
+    lista que una prueba comprueba**: `test_las_cookies.py` mide qué cookies pone el producto de
+    verdad y falla si aparece una que nadie declaró. Con el texto en la plantilla, la prueba y la
+    página se separarían el día que alguien añadiera una — y la pantalla seguiría diciendo que hay
+    dos.
+
+    **Pide sesión, como todo lo demás.** Podría ser pública —es información, no datos— y no lo es
+    por una razón: sin cuenta no hay nada que preguntar, porque AeroBim no guarda nada de quien no
+    ha entrado. La única superficie sin sesión es el enlace compartido, y esa **no pone cookies**.
+    """
+
+    template_name = "accounts/privacidad.html"
+
+    def get_context_data(self, **kwargs):
+        from apps.accounts import privacidad
+
+        contexto = super().get_context_data(**kwargs)
+        contexto["cookies"] = privacidad.COOKIES
+        contexto["que_se_guarda"] = privacidad.QUE_SE_GUARDA
+        contexto["lo_que_no"] = privacidad.LO_QUE_NO
+        contexto["sobre_los_enlaces"] = privacidad.SOBRE_LOS_ENLACES
+        return contexto
+
+
 class GlosarioView(LoginRequiredMixin, TemplateView):
     """Un vocabulario del oficio, y qué hace AeroBim con cada palabra. `F11.11`, `F11.12`.
 

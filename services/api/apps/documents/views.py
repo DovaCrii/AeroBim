@@ -8,6 +8,7 @@ a probar puertas.
 """
 
 import hashlib
+import logging
 from io import BytesIO
 
 from django.contrib import messages
@@ -58,8 +59,12 @@ from apps.documents.models import (
     Transmittal,
     ValidacionIds,
 )
-from apps.documents.notify import avisar_asignacion, avisar_transmittal
+from apps.documents.notify import avisar_asignacion, avisar_comentario, avisar_transmittal
 from apps.projects.models import Proyecto
+
+#: Para lo que no puede tumbar una petición pero tiene que dejar rastro: el aviso del hilo cuando el
+#: correo falla. Sin esto, «se guardó pero no se avisó» sería una frase en la pantalla y nada más.
+logger = logging.getLogger("aerobim.jobs")
 
 
 def solo_publicadas(queryset, user):
@@ -1133,6 +1138,30 @@ class ComentarObservacionView(ModelPermissionRequiredMixin, View):
                 observacion.estado = Observacion.RESPONDIDA
                 observacion.save(update_fields=["estado", "updated_at"])
             set_audit_context(request, comentario, action="comentar_observacion")
+
+            # **El aviso del hilo, que era el que faltaba.** Un hallazgo se abre y se avisa, se
+            # reparte y se avisa, y **se contestaba sin avisar a nadie**: quien lo había abierto no
+            # se enteraba hasta volver a entrar, o sea hasta la siguiente reunión de coordinación —
+            # que es exactamente lo que el hilo existe para evitar.
+            #
+            # **Va después de guardar y no puede tumbar lo guardado.** Con el SMTP caído, un
+            # `send_mail` sin guarda deja un 500 con el comentario ya escrito: la persona lo
+            # reintenta y lo duplica. Lo que se pierde aquí es el aviso, no el comentario, y se
+            # dice en la pantalla en vez de callarlo.
+            try:
+                avisados = avisar_comentario(comentario)
+            except Exception:
+                logger.exception("aviso_de_comentario_fallo")
+                messages.warning(
+                    request,
+                    _("Your reply was saved, but the notification could not be sent."),
+                )
+            else:
+                if not avisados:
+                    messages.warning(
+                        request,
+                        _("Reply saved. Nobody was notified: there is no other email on this one."),
+                    )
         else:
             messages.error(request, _("The comment cannot be empty."))
         return redirect("documents:observacion", pk=observacion.pk)
