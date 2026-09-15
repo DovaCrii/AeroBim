@@ -151,17 +151,46 @@ se construye para el piloto** y se reabre solo si el triage la pide dos semanas 
 > Todo esto fue contra la base de **desarrollo** y con el correo a consola. Lo que hace falta en la
 > VM sigue en el checklist de abajo.
 
+### La mitad que ya no se marca a mano
+
+```bash
+uv run python manage.py listo_para_produccion
+```
+
+**No escribe nada** y contesta con lo que hay en la base, no con lo que alguien recuerde haber
+hecho. Devuelve `1` si algo bloquea, así que sirve dentro de un guion.
+
+Existe porque un checklist a mano falla de dos maneras, y las dos se pagan el primer día:
+
+1. **Se marca lo que se cree, no lo que hay.** «Cada cuenta entró y vio la obra» se marca después
+   de crear las cuentas, porque parece lo mismo — y no lo es: sin `Membresia` la persona entra
+   perfectamente y **todas las listas salen vacías sin un solo mensaje**.
+2. **No se vuelve a mirar.** Se marca una vez, y tres semanas después alguien añadió una cuenta sin
+   organización o el timer del resumen lleva diez días caído.
+
+Comprueba los ajustes (`DEBUG`, `SITE_BASE_URL`, la zona horaria), los cinco roles y que tengan
+permisos, cada cuenta —organización, rol, correo, y cuáles siguen con la clave del alta—, que haya
+obra con una revisión publicada, que el correo salga de la máquina de verdad, que los trabajos
+programados estén corriendo, y **que no queden obras de ejemplo**.
+
+### Lo que sigue siendo tuyo
+
 - [ ] Decidida **la rama a desplegar** y la VM.
+- [ ] `sudo deploy/comprobar-vecinos.sh` en verde: **`p340` no está vacía** y un `default_server`
+      duplicado tumba también a AeroConvert ([`DEPLOY.md`](DEPLOY.md)).
 - [ ] `/health/` responde `ok`. Sin COOP/COEP, `client_max_body_size 200M`, `conversor_cad` según se
       haya decidido sobre ODA ([`DEPLOY.md`](DEPLOY.md)).
 - [ ] `EMAIL_BACKEND` de SMTP **real**. Con el de consola la aplicación diría «enviado» y lo
-      imprimiría en el log.
+      imprimiría en el log. — _lo comprueba `listo_para_produccion`_
 - [ ] El **timer del resumen** instalado, y probado con `enviar_resumen --dry-run` y una corrida de
       verdad. Hasta el 2026-09-07 **no existía**: el resumen no salía nunca.
-- [ ] Base **limpia**, no la de desarrollo: `migrate`, `bootstrap_roles`, `createsuperuser`,
-      `preparar_piloto`.
+- [ ] Base **limpia**, no la de desarrollo: `migrate`, `bootstrap_roles`, `createsuperuser`.
+      — _lo comprueba `listo_para_produccion`_
 - [ ] **Cada cuenta entró y vio la obra.** No solo entró: ver la trampa de la sección 2.
+      — _la mitad estructural la comprueba `listo_para_produccion`; que **vea** la obra, no: eso
+      pide que una persona lo mire_
 - [ ] Al menos **una revisión en `A`**, o el mandante entra a un expediente vacío.
+      — _lo comprueba `listo_para_produccion`_
 - [ ] **Copia de seguridad hecha y restaurada una vez**: `respaldo.sh` y `respaldo.sh --verificar`.
       Un volcado que nunca se restauró no es un respaldo.
 - [ ] **Nada del CC 741 en `apps/web/public/`.** `HEAD /static/visor/samples/...` tiene que dar 404.

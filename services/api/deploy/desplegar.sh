@@ -35,6 +35,15 @@ SALUD="${AEROBIM_SALUD:-http://127.0.0.1/health/}"
 
 paso() { printf '\n\033[1m== %s\033[0m\n' "$1"; }
 
+paso "0/7 · los vecinos"
+# **AeroBim no es el único inquilino de `p340`.** Casi nada suyo puede chocar —habla por un socket,
+# no por un puerto, y todo lleva su nombre—, pero un `default_server` duplicado en nginx tumba a
+# los tres servicios a la vez. Se mira antes de tocar nada, y **no aborta**: en una actualización
+# los avisos son normales, y el guion de comprobación distingue lo que bloquea de lo que no.
+if [ -x "$AEROBIM_HOME/deploy/comprobar-vecinos.sh" ]; then
+  "$AEROBIM_HOME/deploy/comprobar-vecinos.sh" || echo "  (sigue adelante: esto es una actualización)"
+fi
+
 paso "1/7 · el código"
 git -C "$RAIZ" pull --ff-only
 git -C "$RAIZ" log --oneline -1

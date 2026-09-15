@@ -63,11 +63,25 @@
         <div class="error">{% translate "Invalid username or password. Try again." %}</div>
       {% endif %}
 
-      <label for="{{ form.username.id_for_label }}">{% translate "Username" %}</label>
+      {% comment %}
+        **Dice «correo o usuario» porque las dos cosas entran** (`CorreoOUsuario`).
+
+        El nombre de usuario lo genera AeroBim al crear la cuenta —`carolina.herrera`— y eso está
+        bien para que una lista de responsables se lea, pero **es lo que nadie recuerda tres semanas
+        después**. El correo sí, porque es el que esa persona escribe diez veces al día.
+
+        Y la etiqueta importa tanto como el backend: si dijera «Nombre de usuario», quien no lo
+        recuerde no probaría con su correo — tendría la llave en la mano y no sabría que abre.
+      {% endcomment %}
+      <label for="{{ form.username.id_for_label }}">{% translate "Email or username" %}</label>
       <input
         type="text"
         name="{{ form.username.html_name }}"
         id="{{ form.username.id_for_label }}"
+        {% comment %}
+          `username` y no `email`: el gestor de contraseñas tiene que ofrecer lo guardado para este
+          sitio sea cual sea de los dos, y con `email` filtraría solo las direcciones.
+        {% endcomment %}
         autocomplete="username"
         autofocus
         required

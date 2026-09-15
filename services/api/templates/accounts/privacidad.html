@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block titulo %}{% translate "Cookies and your data" %} · AeroBim{% endblock %}
+
+{% block migas %}
+<nav class="migas" aria-label="{% translate 'Breadcrumb' %}">
+  <a href="{% url 'accounts:ayuda' %}">{% translate "Help" %}</a>
+</nav>
+{% endblock %}
+
+{% block titulo_pagina %}<h1>{% translate "Cookies and your data" %}</h1>{% endblock %}
+
+{% block subtitulo %}
+<p class="subtitulo">
+  {% translate "The short answer: two cookies, both strictly necessary, and nothing leaves your organisation." %}
+</p>
+{% endblock %}
+
+{% block contenido %}
+
+  <section>
+    <h2>{% translate "Cookies" %}</h2>
+
+    {% comment %}
+      **Se dice, no se pide.** Con solo cookies estrictamente necesarias no hace falta pedir
+      consentimiento, y poner un banner igualmente no es prudencia: es enseñarle a la gente a
+      aceptar cosas sin leerlas, que es el daño que hicieron los banners.
+    {% endcomment %}
+    <p>
+      {% translate "AeroBim sets two cookies and no more. Both are needed for it to work at all, so there is nothing to accept or refuse — refusing them would be the same as not signing in." %}
+    </p>
+
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">{% translate "Cookie" %}</th>
+          <th scope="col">{% translate "What it is for" %}</th>
+          <th scope="col">{% translate "How long" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for cookie in cookies %}
+          <tr>
+            <td><code>{{ cookie.nombre }}</code></td>
+            <td>{{ cookie.para_que }}</td>
+            <td>{{ cookie.cuanto }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <p class="subtitulo">
+      {% translate "The light or dark theme is remembered in your own browser, not in a cookie: it never travels to the server." %}
+    </p>
+  </section>
+
+  <section>
+    <h2>{% translate "What AeroBim keeps about you" %}</h2>
+    <dl>
+      {% for que, por_que in que_se_guarda %}
+        <dt>{{ que }}</dt>
+        <dd>{{ por_que }}</dd>
+      {% endfor %}
+    </dl>
+  </section>
+
+  <section>
+    <h2>{% translate "And what it does not do" %}</h2>
+    <ul>
+      {% for uno in lo_que_no %}<li>{{ uno }}</li>{% endfor %}
+    </ul>
+  </section>
+
+  <section>
+    <h2>{% translate "Links shared outside" %}</h2>
+    <p>{{ sobre_los_enlaces }}</p>
+  </section>
+{% endblock %}

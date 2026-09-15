@@ -11,6 +11,9 @@ urlpatterns = [
     # pantallas de trabajo, y quien los busca los busca desde «cómo se usa». La clave va en la URL
     # —`bim`, `levantamiento`— para que añadir un tercero sea añadir un archivo y nada más.
     path("ayuda/vocabulario/<slug:cual>/", views.GlosarioView.as_view(), name="glosario"),
+    # Cuelga de la ayuda por lo mismo que los vocabularios: es material de lectura, y quien lo busca
+    # lo busca desde «cómo se usa esto» — no desde una pantalla de trabajo.
+    path("ayuda/cookies-y-datos/", views.PrivacidadView.as_view(), name="privacidad"),
     path("usuarios-y-roles/", views.UsuariosRolesView.as_view(), name="usuarios-roles"),
     # El alta cuelga de la lista porque es donde se mira antes de crear a alguien: la mitad de las
     # veces la persona ya tiene cuenta y lo que falta es el rol.

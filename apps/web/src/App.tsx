@@ -37,6 +37,7 @@ import {
   type RegistryOrigin,
 } from "@aerobim/bim-core";
 import { cabecerasDeEscritura, motivoDe403 } from "./csrf.js";
+import { type FichaCompartida, pedirFicha, testigoCompartido } from "./compartido.js";
 import { cambiarTema, type Tema, temaGuardado } from "./tema.js";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DrawingsPanel } from "./components/DrawingsPanel.js";
@@ -52,6 +53,7 @@ import { PuertaDeEntrada } from "./components/PuertaDeEntrada.js";
 import { Resizer } from "./components/Resizer.js";
 import { Selector } from "./components/Selector.js";
 import { CalcePanel } from "./components/CalcePanel.js";
+import { Compartido } from "./components/Compartido.js";
 import { NubesPanel } from "./components/NubesPanel.js";
 import { Plan2DCard, PropertiesPanel, PuntoDeNubeCard } from "./components/PropertiesPanel.js";
 import { Ribbon, type RibbonTab } from "./components/Ribbon.js";
@@ -443,6 +445,14 @@ export function App() {
    * que termine en un 404 es peor que no ofrecerlo.
    */
   const [origen, setOrigen] = useState<RegistryOrigin | null>(null);
+  /**
+   * El enlace por el que se entró, si esta es una sesión compartida.
+   *
+   * Se lee una vez: la ruta no cambia mientras el visor vive, y releerla en cada pintado haría que
+   * un `useEffect` que dependa de ella se disparase sin motivo.
+   */
+  const testigo = useMemo(() => testigoCompartido(), []);
+  const [compartido, setCompartido] = useState<FichaCompartida | null>(null);
   /** Los planos 2D cargados, en el orden en que se abrieron. */
   const [plans, setPlans] = useState<readonly LoadedPlan[]>([]);
   /**
@@ -1172,6 +1182,49 @@ export function App() {
   );
 
   /**
+   * Lo mismo, pero **entrando desde un enlace compartido y sin cuenta**.
+   *
+   * Es casi `abrirRevision` y no se fusionan, a propósito: la diferencia no es un parámetro, es
+   * **de qué superficie se fía cada una**. Aquella habla con `/api/`, que acota por la sesión;
+   * esta con `/compartido/<testigo>/`, que acota por el testigo y sirve una sola revisión.
+   * Fusionarlas dejaría una función con un `if` decidiendo si la petición lleva credenciales, y
+   * ese `if` es exactamente el que no conviene que exista.
+   *
+   * Y no pone `origen`: el origen es lo que permite volver al expediente y anotar sobre la
+   * revisión, y quien entra por un enlace no tiene ni expediente al que volver ni permiso para
+   * anotar. Con `origen` en `null`, los botones de observar ya no se dibujan — la misma regla que
+   * gobierna un archivo abierto desde el disco.
+   */
+  const abrirCompartido = useCallback(
+    async (testigo: string) => {
+      setStatus({ kind: "loading", name: "…", stage: "reading" });
+      try {
+        const ficha = await pedirFicha(testigo);
+        setCompartido(ficha);
+        const etiqueta = `${ficha.entregable.codigo} rev. ${ficha.correlativo}`;
+        setStatus({ kind: "loading", name: etiqueta, stage: "reading" });
+
+        if (ficha.nombre.toLowerCase().endsWith(".copc.laz")) {
+          await abrirNube(ficha.contenido, ficha.nombre, { revocable: false });
+        } else {
+          const archivo = await fetch(ficha.contenido);
+          if (!archivo.ok) {
+            setStatus({
+              kind: "error",
+              message: `No se pudo leer el archivo (${archivo.status}).`,
+            });
+            return;
+          }
+          await openFile(new File([await archivo.blob()], ficha.nombre));
+        }
+      } catch (error: unknown) {
+        setStatus({ kind: "error", message: describe(error) });
+      }
+    },
+    [openFile, abrirNube],
+  );
+
+  /**
    * Si la URL pide una revisión, se abre en cuanto el visor está listo.
    *
    * Se espera al visor a propósito: `abrirRevision` necesita la instancia, y arrancar la
@@ -1179,6 +1232,17 @@ export function App() {
    */
   useEffect(() => {
     if (status.kind !== "ready" || viewer.current === null) return;
+
+    // **El enlace compartido manda sobre el `?revision=`.** Estando en `/compartido/<testigo>/`,
+    // un `?revision=` en la misma URL solo puede venir de que alguien lo pegó: pedirlo daría 401 y
+    // dejaría la pantalla en un error que no explica nada a quien viene de fuera.
+    if (testigo !== null) {
+      if (testigo === revisionAbierta.current) return;
+      revisionAbierta.current = testigo;
+      void abrirCompartido(testigo);
+      return;
+    }
+
     const pedida = revisionPedida();
     if (pedida === null || pedida === revisionAbierta.current) return;
 
@@ -1186,7 +1250,7 @@ export function App() {
     // durante una carga— volvería a abrir la misma revisión.
     revisionAbierta.current = pedida;
     void abrirRevision(pedida);
-  }, [status.kind, abrirRevision]);
+  }, [status.kind, abrirRevision, abrirCompartido, testigo]);
 
   const onDrop = useCallback(
     (event: React.DragEvent<HTMLDivElement>) => {
@@ -2159,10 +2223,16 @@ export function App() {
           <span className="flex min-w-0 items-center gap-3">
             {/* La marca lleva al portal: es donde uno espera que lleve el logo, y desde acá era
                 lo único que faltaba para poder salir. */}
+            {/* **Entrando por un enlace, la marca no lleva a ninguna parte.** Quien viene de fuera
+                no tiene cuenta: pulsar el logo lo dejaría en la pantalla de entrar, que le pide algo
+                que no tiene y le sugiere que debería. Se queda como marca y no como salida. */}
             <a
-              href="/"
-              className="flex shrink-0 items-center gap-2 hover:opacity-80"
-              title="AeroBim — al portal"
+              href={compartido === null ? "/" : undefined}
+              className={[
+                "flex shrink-0 items-center gap-2",
+                compartido === null ? "hover:opacity-80" : "cursor-default",
+              ].join(" ")}
+              title={compartido === null ? "AeroBim — al portal" : "AeroBim"}
             >
               {/* **Sin placa.** Hubo una placa blanca aquí y duró una tarde: resolvía el contraste
                   —el relleno del dibujo original es `#1B2A4A` y la cinta es `#18202f`, o sea
@@ -2172,8 +2242,10 @@ export function App() {
               <img src={RUTA_MARCA} alt="" className="h-7 w-auto" />
               <span className="text-sm font-semibold">AeroBim</span>
             </a>
-            {/* De dónde vino lo que está abierto. No se dibuja si es un archivo del disco. */}
-            <Origen origen={origen} />
+            {/* De dónde vino lo que está abierto. No se dibuja si es un archivo del disco.
+                Y entrando por un enlace, en su lugar va qué es y hasta cuándo: quien viene de fuera
+                no tiene expediente al que volver, así que necesita lo contrario de una vuelta. */}
+            {compartido === null ? <Origen origen={origen} /> : <Compartido ficha={compartido} />}
           </span>
         }
         actions={
@@ -2494,6 +2566,11 @@ export function App() {
             plegado={navegadorPlegado}
             onDesplegarEn={irASeccion}
             pedida={seccionPedida}
+            // **Lo que un enlace compartido no puede traer.** Las tres piden sesión: el selector
+            // del registro, las observaciones de la obra y sus vistas guardadas. Sin ocultarlas,
+            // las tres contestarían 401 y quien viene de fuera vería tres secciones rotas en vez
+            // de un modelo. Ver `compartido.ts`.
+            ocultas={compartido !== null ? ["registro", "coordinacion", "vistas-proyecto"] : []}
             registro={
               <Selector
                 onAbrir={(revisionId) => void abrirRevision(revisionId)}

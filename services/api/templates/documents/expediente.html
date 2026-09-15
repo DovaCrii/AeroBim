@@ -103,6 +103,21 @@
                     {% translate "What it carries" %} →
                   </a>
                 {% endif %}
+                {% comment %}
+                  **Compartir cuelga de «abrir en el visor» y no del archivo**, porque lo que se
+                  comparte es la vista, no el archivo: quien reciba el enlace abre el modelo en el
+                  visor, no descarga nada.
+
+                  Y **pide `add_enlacecompartido`, no `view_revision`**: mandar un modelo de obra
+                  fuera de la organización no es leerlo. Con el permiso de lectura, hasta la cuenta
+                  del mandante podría publicarlo.
+                {% endcomment %}
+                {% if perms.documents.add_enlacecompartido %}
+                  <br />
+                  <a href="{% url 'documents:enlaces' revision.pk %}">
+                    {% translate "Share outside" %} →
+                  </a>
+                {% endif %}
               {% endif %}
               <br /><small>sha256 {{ revision.sha256|slice:":12" }}…</small>
 

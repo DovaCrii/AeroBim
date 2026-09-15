@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-14 18:22-0300\n"
+"POT-Creation-Date: 2026-09-15 08:32-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -54,23 +54,27 @@ msgstr "Rol"
 msgid "There is already an account with that email."
 msgstr "Ya hay una cuenta con ese correo."
 
-#: .\apps\accounts\middleware.py:90
+#: .\apps\accounts\middleware.py:88
 msgid ""
 "This account still uses the password it was created with. Sign in and change "
 "it before using the API."
-msgstr "Esta cuenta todavía usa la clave con la que se creó. Entra y cámbiala antes de usar la API."
+msgstr ""
+"Esta cuenta todavía usa la clave con la que se creó. Entra y cámbiala antes "
+"de usar la API."
 
-#: .\apps\accounts\middleware.py:100
+#: .\apps\accounts\middleware.py:98
 msgid ""
 "This account still uses the password it was given. Choose your own before "
 "carrying on — somebody else knows this one."
-msgstr "Esta cuenta todavía usa la clave que le dieron. Elige la tuya antes de seguir: esta la conoce alguien más."
+msgstr ""
+"Esta cuenta todavía usa la clave que le dieron. Elige la tuya antes de "
+"seguir: esta la conoce alguien más."
 
 #: .\apps\accounts\models.py:48
 msgid "user"
 msgstr "usuario"
 
-#: .\apps\accounts\models.py:59
+#: .\apps\accounts\models.py:59 .\apps\documents\compartir.py:116
 msgid "created by"
 msgstr "creada por"
 
@@ -165,7 +169,7 @@ msgstr "Todo lo pendiente"
 msgid "Yours alone, soonest due first: what you have to answer."
 msgstr "Solo lo tuyo, y lo que antes vence primero: lo que te toca contestar."
 
-#: .\apps\accounts\modulos.py:148 .\templates\documents\expediente.html:256
+#: .\apps\accounts\modulos.py:148 .\templates\documents\expediente.html:272
 #: .\templates\documents\observacion.html:30
 #: .\templates\documents\observaciones.html:4
 #: .\templates\documents\observaciones.html:6
@@ -178,7 +182,7 @@ msgstr "Todo lo que hay que resolver, con responsable y fecha de vencimiento."
 
 #: .\apps\accounts\modulos.py:156 .\templates\documents\actividades.html:4
 #: .\templates\documents\actividades.html:6
-#: .\templates\documents\expediente.html:285
+#: .\templates\documents\expediente.html:301
 msgid "Activities"
 msgstr "Actividades"
 
@@ -249,13 +253,13 @@ msgstr "Lee los entregables publicados, los descarga y comenta."
 msgid "Not a role: notification group for the executive summary."
 msgstr "No es un rol: grupo de notificación para el resumen ejecutivo."
 
-#: .\apps\accounts\views.py:69 .\apps\documents\notify.py:200
-#: .\apps\documents\views.py:1611
+#: .\apps\accounts\views.py:69 .\apps\documents\notify.py:295
+#: .\apps\documents\views.py:1581
 msgid "Overdue"
 msgstr "Vencido"
 
-#: .\apps\accounts\views.py:70 .\apps\documents\notify.py:201
-#: .\apps\documents\views.py:1612
+#: .\apps\accounts\views.py:70 .\apps\documents\notify.py:296
+#: .\apps\documents\views.py:1582
 msgid "Next 7 days"
 msgstr "Próximos 7 días"
 
@@ -491,6 +495,35 @@ msgstr "Ese archivo trae demasiados temas para importarlos de una vez."
 msgid "A topic (%(cual)s…) arrived with no title and was skipped."
 msgstr "Un tema (%(cual)s…) llegó sin título y se saltó."
 
+#: .\apps\documents\compartir.py:94 .\apps\documents\models.py:188
+#: .\apps\documents\models.py:230
+msgid "revision"
+msgstr "revisión"
+
+#: .\apps\documents\compartir.py:104
+msgid "who it is for"
+msgstr "para quién es"
+
+#: .\apps\documents\compartir.py:105
+msgid "A name you will recognise later, to revoke this one and not the others."
+msgstr "Un nombre que reconozcas después, para revocar este y no los otros."
+
+#: .\apps\documents\compartir.py:107
+msgid "expires"
+msgstr "vence"
+
+#: .\apps\documents\compartir.py:110
+msgid "revoked"
+msgstr "revocado"
+
+#: .\apps\documents\compartir.py:126
+msgid "shared link"
+msgstr "enlace compartido"
+
+#: .\apps\documents\compartir.py:127
+msgid "shared links"
+msgstr "enlaces compartidos"
+
 #: .\apps\documents\forms.py:59 .\templates\documents\expediente.html:51
 #: .\templates\documents\requisitos_ids.html:26
 msgid "File"
@@ -597,7 +630,7 @@ msgstr "A · Publicado y autorizado"
 msgid "B · Published with comments"
 msgstr "B · Publicado con comentarios"
 
-#: .\apps\documents\models.py:68 .\apps\documents\views.py:558
+#: .\apps\documents\models.py:68 .\apps\documents\views.py:513
 msgid "Drawing"
 msgstr "Plano"
 
@@ -651,10 +684,6 @@ msgstr "entregable"
 msgid "deliverables"
 msgstr "entregables"
 
-#: .\apps\documents\models.py:188 .\apps\documents\models.py:230
-msgid "revision"
-msgstr "revisión"
-
 #: .\apps\documents\models.py:190
 msgid "suitability"
 msgstr "idoneidad"
@@ -705,7 +734,8 @@ msgstr "transmittal"
 msgid "transmittals"
 msgstr "transmittals"
 
-#: .\apps\documents\models.py:380 .\templates\projects\proyecto.html:445
+#: .\apps\documents\models.py:380 .\templates\documents\enlaces.html:69
+#: .\templates\projects\proyecto.html:445
 msgid "Open"
 msgstr "Abierta"
 
@@ -750,7 +780,7 @@ msgstr "resolución"
 msgid "tags"
 msgstr "etiquetas"
 
-#: .\apps\documents\models.py:529 .\apps\documents\notify.py:58
+#: .\apps\documents\models.py:529 .\apps\documents\notify.py:153
 msgid "observation"
 msgstr "observación"
 
@@ -782,7 +812,7 @@ msgstr "En revisión"
 msgid "Done"
 msgstr "Hecha"
 
-#: .\apps\documents\models.py:720 .\apps\documents\notify.py:62
+#: .\apps\documents\models.py:720 .\apps\documents\notify.py:157
 msgid "activity"
 msgstr "actividad"
 
@@ -822,66 +852,89 @@ msgstr "marca de coordinación"
 msgid "coordination marks"
 msgstr "marcas de coordinación"
 
-#: .\apps\documents\notify.py:56
+#: .\apps\documents\notify.py:99
 #, python-format
-msgid "[AeroBim] Observation assigned: %(titulo)s"
-msgstr "[AeroBim] Observación asignada: %(titulo)s"
+msgid "[AeroBim] New reply: %(titulo)s"
+msgstr "[AeroBim] Nueva respuesta: %(titulo)s"
 
-#: .\apps\documents\notify.py:60
+#: .\apps\documents\notify.py:109
 #, python-format
-msgid "[AeroBim] Activity assigned: %(titulo)s"
-msgstr "[AeroBim] Actividad asignada: %(titulo)s"
+msgid "%(quien)s replied on an observation you are part of."
+msgstr "%(quien)s respondió en un hallazgo del que formas parte."
 
-#: .\apps\documents\notify.py:64
-msgid "no due date"
-msgstr "sin fecha de vencimiento"
-
-#: .\apps\documents\notify.py:67
-#, python-format
-msgid "You have been assigned a %(que)s in AeroBim."
-msgstr "Te asignaron una %(que)s en AeroBim."
-
-#: .\apps\documents\notify.py:71 .\apps\documents\notify.py:116
+#: .\apps\documents\notify.py:113 .\apps\documents\notify.py:166
+#: .\apps\documents\notify.py:211
 #, python-format
 msgid "Project: %(p)s"
 msgstr "Proyecto: %(p)s"
 
-#: .\apps\documents\notify.py:72
+#: .\apps\documents\notify.py:151
+#, python-format
+msgid "[AeroBim] Observation assigned: %(titulo)s"
+msgstr "[AeroBim] Observación asignada: %(titulo)s"
+
+#: .\apps\documents\notify.py:155
+#, python-format
+msgid "[AeroBim] Activity assigned: %(titulo)s"
+msgstr "[AeroBim] Actividad asignada: %(titulo)s"
+
+#: .\apps\documents\notify.py:159
+msgid "no due date"
+msgstr "sin fecha de vencimiento"
+
+#: .\apps\documents\notify.py:162
+#, python-format
+msgid "You have been assigned a %(que)s in AeroBim."
+msgstr "Te asignaron una %(que)s en AeroBim."
+
+#: .\apps\documents\notify.py:167
 #, python-format
 msgid "Due: %(v)s"
 msgstr "Vence: %(v)s"
 
-#: .\apps\documents\notify.py:111
+#: .\apps\documents\notify.py:206
 #, python-format
 msgid "%(quien)s has issued a transmittal to you in AeroBim."
 msgstr "%(quien)s te emitió un transmittal en AeroBim."
 
-#: .\apps\documents\notify.py:117
+#: .\apps\documents\notify.py:212
 #, python-format
 msgid "Documents (%(n)s):"
 msgstr "Documentos (%(n)s):"
 
-#: .\apps\documents\notify.py:123
+#: .\apps\documents\notify.py:218
 #, python-format
 msgid "[AeroBim] Transmittal %(folio)s: %(asunto)s"
 msgstr "[AeroBim] Transmittal %(folio)s: %(asunto)s"
 
-#: .\apps\documents\notify.py:202 .\apps\documents\views.py:1613
+#: .\apps\documents\notify.py:297 .\apps\documents\views.py:1583
 msgid "Next 15 days"
 msgstr "Próximos 15 días"
 
-#: .\apps\documents\notify.py:203 .\apps\documents\views.py:1614
+#: .\apps\documents\notify.py:298 .\apps\documents\views.py:1584
 msgid "Next 30 days"
 msgstr "Próximos 30 días"
 
-#: .\apps\documents\notify.py:205
+#: .\apps\documents\notify.py:300
 msgid "What is on your plate in AeroBim."
 msgstr "Lo que tienes pendiente en AeroBim."
 
-#: .\apps\documents\notify.py:217
+#: .\apps\documents\notify.py:312
 #, python-format
 msgid "[AeroBim] %(n)s items on your plate"
 msgstr "[AeroBim] %(n)s pendientes"
+
+#: .\apps\documents\publico.py:77
+msgid "Not available"
+msgstr "No disponible"
+
+#: .\apps\documents\publico.py:80
+msgid "This link is not available right now"
+msgstr "Este enlace no está disponible ahora mismo"
+
+#: .\apps\documents\publico.py:81
+msgid "Ask whoever sent it to you to try again later."
+msgstr "Pídele a quien te lo envió que lo intente más tarde."
 
 #: .\apps\documents\revisar.py:148
 #, python-format
@@ -973,224 +1026,232 @@ msgstr "Un archivo «%(ext)s» tiene que ser texto."
 msgid "To do"
 msgstr "Por hacer"
 
-#: .\apps\documents\views.py:212
+#: .\apps\documents\views.py:186
 msgid "There is no revision yet: nothing has been issued."
 msgstr "Todavía no hay ninguna revisión: no se ha emitido nada."
 
-#: .\apps\documents\views.py:218 .\templates\documents\expediente.html:42
+#: .\apps\documents\views.py:192 .\templates\documents\expediente.html:42
 #: .\templates\documents\subir_revision.html:4
 #: .\templates\documents\subir_revision.html:6
 msgid "Upload a revision"
 msgstr "Subir una revisión"
 
-#: .\apps\documents\views.py:224
+#: .\apps\documents\views.py:198
 msgid "The current revision is not published (no A or B code yet)."
 msgstr "La revisión vigente no está publicada (todavía sin código A ni B)."
 
-#: .\apps\documents\views.py:233
+#: .\apps\documents\views.py:207
 #, python-format
 msgid "%(n)s open observations."
 msgstr "%(n)s observaciones abiertas."
 
-#: .\apps\documents\views.py:235
+#: .\apps\documents\views.py:209
 msgid "See them"
 msgstr "Verlas"
 
-#: .\apps\documents\views.py:239
+#: .\apps\documents\views.py:213
 msgid "No planned date."
 msgstr "Sin fecha planificada."
 
-#: .\apps\documents\views.py:337
+#: .\apps\documents\views.py:311
 #, python-format
 msgid "Revision %(rev)s uploaded (%(kb)s KB)."
 msgstr "Revisión %(rev)s subida (%(kb)s KB)."
 
-#: .\apps\documents\views.py:421
+#: .\apps\documents\views.py:376
 msgid "This project has no observations to export."
 msgstr "Este proyecto no tiene observaciones que exportar."
 
-#: .\apps\documents\views.py:552 .\apps\documents\views.py:554
+#: .\apps\documents\views.py:507 .\apps\documents\views.py:509
 msgid "The sheet did not arrive as JSON."
 msgstr "La lámina no llegó como JSON."
 
-#: .\apps\documents\views.py:561
+#: .\apps\documents\views.py:516
 msgid "The sheet arrived with nothing to draw."
 msgstr "La lámina llegó sin nada que dibujar."
 
-#: .\apps\documents\views.py:630
+#: .\apps\documents\views.py:585
 msgid "The BCF was left without importing anything."
 msgstr "Se dejó el BCF sin importar nada."
 
-#: .\apps\documents\views.py:638
+#: .\apps\documents\views.py:593
 msgid "Choose a BCF file to import."
 msgstr "Elige un archivo BCF para importar."
 
-#: .\apps\documents\views.py:705 .\apps\documents\views.py:713
+#: .\apps\documents\views.py:660 .\apps\documents\views.py:668
 msgid "That BCF is no longer available. Upload it again."
 msgstr "Ese BCF ya no está disponible. Vuelve a subirlo."
 
-#: .\apps\documents\views.py:770
+#: .\apps\documents\views.py:725
 msgid "Coverage can only be measured on an IFC model."
 msgstr "La cobertura solo se puede medir sobre un modelo IFC."
 
-#: .\apps\documents\views.py:820
+#: .\apps\documents\views.py:775
 #, python-format
 msgid "Information requirement of %(codigo)s"
 msgstr "Requisito de información de %(codigo)s"
 
-#: .\apps\documents\views.py:855
+#: .\apps\documents\views.py:810
 msgid "Starting IDS generated. Review it before agreeing it with the client."
 msgstr "IDS de partida generado. Revísalo antes de acordarlo con el mandante."
 
-#: .\apps\documents\views.py:920
+#: .\apps\documents\views.py:875
 msgid "Untitled"
 msgstr "Sin título"
 
-#: .\apps\documents\views.py:928
+#: .\apps\documents\views.py:883
 msgid "Information requirement uploaded."
 msgstr "Requisito de información subido."
 
-#: .\apps\documents\views.py:948
+#: .\apps\documents\views.py:903
 msgid "Only an IFC can be validated against an IDS."
 msgstr "Contra un IDS solo se puede validar un IFC."
 
-#: .\apps\documents\views.py:956
+#: .\apps\documents\views.py:911
 msgid "This project has no information requirement yet: upload an IDS first."
 msgstr ""
 "Este proyecto todavía no tiene requisito de información: primero hay que "
 "subir un IDS."
 
-#: .\apps\documents\views.py:980
+#: .\apps\documents\views.py:935
 #, python-format
 msgid "Validated against %(total)s requirements: %(ok)s comply."
 msgstr "Validado contra %(total)s requisitos: %(ok)s cumplen."
 
-#: .\apps\documents\views.py:1076 .\templates\documents\observaciones.html:92
+#: .\apps\documents\views.py:1031 .\templates\documents\observaciones.html:92
 #: .\templates\projects\proyecto.html:178
 msgid "Priority"
 msgstr "Prioridad"
 
-#: .\apps\documents\views.py:1077 .\templates\projects\proyecto.html:179
+#: .\apps\documents\views.py:1032 .\templates\projects\proyecto.html:179
 msgid "Finding"
 msgstr "Hallazgo"
 
-#: .\apps\documents\views.py:1078 .\templates\documents\observacion.html:212
+#: .\apps\documents\views.py:1033 .\templates\documents\observacion.html:212
 #: .\templates\projects\proyecto.html:180
 msgid "On"
 msgstr "Sobre"
 
-#: .\apps\documents\views.py:1079 .\templates\documents\actividades.html:26
+#: .\apps\documents\views.py:1034 .\templates\documents\actividades.html:26
 #: .\templates\documents\entregables.html:27
-#: .\templates\documents\expediente.html:264
-#: .\templates\documents\expediente.html:290
+#: .\templates\documents\expediente.html:280
+#: .\templates\documents\expediente.html:306
 #: .\templates\documents\observacion.html:192
 #: .\templates\projects\proyecto.html:181
 msgid "Owner"
 msgstr "Responsable"
 
-#: .\apps\documents\views.py:1080 .\templates\documents\actividades.html:27
-#: .\templates\documents\expediente.html:265
-#: .\templates\documents\expediente.html:291
+#: .\apps\documents\views.py:1035 .\templates\documents\actividades.html:27
+#: .\templates\documents\expediente.html:281
+#: .\templates\documents\expediente.html:307
 #: .\templates\documents\observacion.html:196
 #: .\templates\projects\proyecto.html:182
 msgid "Due"
 msgstr "Vence"
 
-#: .\apps\documents\views.py:1081 .\templates\documents\actividades.html:28
-#: .\templates\documents\expediente.html:266
-#: .\templates\documents\expediente.html:292
+#: .\apps\documents\views.py:1036 .\templates\documents\actividades.html:28
+#: .\templates\documents\expediente.html:282
+#: .\templates\documents\expediente.html:308
 #: .\templates\documents\observaciones.html:103
 #: .\templates\documents\transmittal.html:22
 #: .\templates\documents\transmittals.html:28
 msgid "State"
 msgstr "Estado"
 
-#: .\apps\documents\views.py:1187
+#: .\apps\documents\views.py:1157
+msgid "Your reply was saved, but the notification could not be sent."
+msgstr "Tu respuesta se guardó, pero el aviso no se pudo enviar."
+
+#: .\apps\documents\views.py:1163
+msgid "Reply saved. Nobody was notified: there is no other email on this one."
+msgstr "Respuesta guardada. No se avisó a nadie: no hay otro correo en este hallazgo."
+
+#: .\apps\documents\views.py:1166
 msgid "The comment cannot be empty."
 msgstr "El comentario no puede estar vacío."
 
-#: .\apps\documents\views.py:1215
+#: .\apps\documents\views.py:1194
 msgid "The image could not be saved. Try again."
 msgstr "No se pudo guardar la imagen. Vuelve a intentarlo."
 
-#: .\apps\documents\views.py:1300
+#: .\apps\documents\views.py:1270
 msgid "Those tags do not belong to this project."
 msgstr "Esas etiquetas no son de este proyecto."
 
-#: .\apps\documents\views.py:1305
+#: .\apps\documents\views.py:1275
 msgid "Tags saved."
 msgstr "Etiquetas guardadas."
 
-#: .\apps\documents\views.py:1357
+#: .\apps\documents\views.py:1327
 #, python-format
 msgid "Assigned to %(quien)s."
 msgstr "Repartido a %(quien)s."
 
-#: .\apps\documents\views.py:1360
+#: .\apps\documents\views.py:1330
 msgid "Observation updated."
 msgstr "Hallazgo repartido."
 
-#: .\apps\documents\views.py:1372
+#: .\apps\documents\views.py:1342
 msgid "An observation is not closed without saying how."
 msgstr "Una observación no se cierra sin decir cómo se resolvió."
 
-#: .\apps\documents\views.py:1377
+#: .\apps\documents\views.py:1347
 msgid "Observation closed."
 msgstr "Observación cerrada."
 
-#: .\apps\documents\views.py:1462
+#: .\apps\documents\views.py:1432
 msgid "Add at least one revision."
 msgstr "Agregar al menos una revisión."
 
-#: .\apps\documents\views.py:1464
+#: .\apps\documents\views.py:1434
 msgid "Add at least one recipient."
 msgstr "Agregar al menos un destinatario."
 
-#: .\apps\documents\views.py:1509
+#: .\apps\documents\views.py:1479
 msgid "Draft transmittal created. Review the cover and issue it."
 msgstr "Transmittal creado en borrador. Revisa la carátula y emítelo."
 
-#: .\apps\documents\views.py:1539
+#: .\apps\documents\views.py:1509
 #, python-format
 msgid "Transmittal %(folio)s issued, %(n)s recipients notified."
 msgstr "Transmittal %(folio)s emitido, %(n)s destinatarios avisados."
 
-#: .\apps\documents\views.py:1548
+#: .\apps\documents\views.py:1518
 #, python-format
 msgid "No email address for %(quienes)s: they were not notified."
 msgstr "Sin dirección de correo para %(quienes)s: no se les avisó."
 
-#: .\apps\documents\views.py:1571
+#: .\apps\documents\views.py:1541
 msgid "Receipt acknowledged."
 msgstr "Recibo acusado."
 
-#: .\apps\documents\views.py:1641
+#: .\apps\documents\views.py:1611
 #, python-format
 msgid "Saved, but %(quien)s has no email address: nobody was notified."
 msgstr "Se guardó, pero %(quien)s no tiene correo: no se avisó a nadie."
 
-#: .\apps\documents\views.py:1734
+#: .\apps\documents\views.py:1704
 msgid "Observation opened and the owner notified."
 msgstr "Observación abierta, y se avisó al responsable."
 
-#: .\apps\documents\views.py:1793
+#: .\apps\documents\views.py:1763
 msgid "That is not the next step for this activity."
 msgstr "Ese no es el paso siguiente de esta actividad."
 
-#: .\apps\documents\views.py:1801
+#: .\apps\documents\views.py:1771
 #, python-format
 msgid "Activity moved to %(estado)s."
 msgstr "Actividad movida a %(estado)s."
 
-#: .\apps\documents\views.py:1826
+#: .\apps\documents\views.py:1796
 msgid "Pick the deliverable the activity belongs to."
 msgstr "Elige el entregable al que pertenece la actividad."
 
-#: .\apps\documents\views.py:1832
+#: .\apps\documents\views.py:1802
 msgid "Activity created and the owner notified."
 msgstr "Actividad creada, y se avisó al responsable."
 
-#: .\apps\documents\views.py:1889
+#: .\apps\documents\views.py:1859
 #, python-format
 msgid ""
 "This project has %(models)s current models: %(pairs)s comparisons, about "
@@ -1203,35 +1264,66 @@ msgstr ""
 "corrida a medias deja hallazgos sin decirlo. Córrela desde el servidor con "
 "`manage.py detectar_interferencias`, que no tiene límite de tiempo."
 
-#: .\apps\documents\views.py:1912
+#: .\apps\documents\views.py:1882
 msgid "There is only one model in this project: nothing to compare it against."
 msgstr "Esta obra tiene un solo modelo: no hay nada contra qué compararlo."
 
-#: .\apps\documents\views.py:1917
+#: .\apps\documents\views.py:1887
 #, python-format
 msgid "Checked %(resumen)s. Nothing new."
 msgstr "Revisado %(resumen)s. Nada nuevo."
 
-#: .\apps\documents\views.py:1922
+#: .\apps\documents\views.py:1892
 #, python-format
 msgid "Checked %(resumen)s. The new ones are in the open observations below."
 msgstr ""
 "Revisado %(resumen)s. Los nuevos están abajo, entre las observaciones "
 "abiertas."
 
-#: .\apps\documents\views.py:1931
+#: .\apps\documents\views.py:1901
 #, python-format
 msgid "Left out, their file is not on disk: %(cuales)s"
 msgstr "Quedaron fuera, su archivo no está en el disco: %(cuales)s"
 
-#: .\apps\documents\views.py:1971
+#: .\apps\documents\views.py:1934
 #, python-format
 msgid "Revision %(rev)s is now %(cod)s."
 msgstr "La revisión %(rev)s queda en %(cod)s."
 
-#: .\apps\documents\views.py:2000
+#: .\apps\documents\views.py:1963
 msgid "Deliverable created."
 msgstr "Entregable creado."
+
+#: .\apps\documents\vistas_compartir.py:32
+msgid "Who is it for"
+msgstr "Para quién es"
+
+#: .\apps\documents\vistas_compartir.py:35
+msgid ""
+"A name you will recognise later. It is how you revoke this one and not the "
+"others."
+msgstr "Un nombre que reconozcas después. Es como revocas este y no los otros."
+
+#: .\apps\documents\vistas_compartir.py:39
+msgid "Days it stays open"
+msgstr "Días que queda abierto"
+
+#: .\apps\documents\vistas_compartir.py:43
+msgid "After that it stops working on its own. There is no «forever»."
+msgstr "Después deja de funcionar solo. No hay «para siempre»."
+
+#: .\apps\documents\vistas_compartir.py:95
+msgid "The viewer cannot open this file, so there is nothing to share."
+msgstr ""
+"El visor no puede abrir este archivo, así que no hay nada que compartir."
+
+#: .\apps\documents\vistas_compartir.py:110
+msgid "Link created. Copy it now and send it to its recipient."
+msgstr "Enlace creado. Cópialo ahora y mándaselo a quien va dirigido."
+
+#: .\apps\documents\vistas_compartir.py:137
+msgid "Link revoked. It stops working immediately."
+msgstr "Enlace revocado. Deja de funcionar de inmediato."
 
 #: .\apps\projects\api.py:98
 msgid "The view needs a name."
@@ -1437,6 +1529,7 @@ msgstr "Ruta"
 
 #: .\templates\accounts\auditoria.html:24
 #: .\templates\accounts\usuarios_roles.html:38
+#: .\templates\documents\enlaces.html:56
 msgid "Status"
 msgstr "Código"
 
@@ -1569,6 +1662,22 @@ msgstr ""
 "leerlo aquí que descubrirlo en la reunión donde se prometió un informe de "
 "costos."
 
+#: .\templates\accounts\ayuda.html:135 .\templates\accounts\privacidad.html:4
+#: .\templates\accounts\privacidad.html:12
+msgid "Cookies and your data"
+msgstr "Cookies y tus datos"
+
+#: .\templates\accounts\ayuda.html:137
+msgid ""
+"Two cookies, both needed for it to work, so there is nothing to accept.\n"
+"        What AeroBim keeps about you and what it does not do — no analytics, "
+"no third parties, and\n"
+"        the project files stay on your own server."
+msgstr ""
+"Dos cookies, las dos necesarias para que funcione, así que no hay nada que "
+"aceptar. Lo que AeroBim guarda de ti y lo que no hace: sin analítica, sin "
+"terceros, y los archivos de la obra se quedan en tu propio servidor."
+
 #: .\templates\accounts\glosario.html:10
 #, python-format
 msgid ""
@@ -1613,6 +1722,7 @@ msgid "New account"
 msgstr "Cuenta nueva"
 
 #: .\templates\accounts\nueva_cuenta.html:7
+#: .\templates\accounts\privacidad.html:7 .\templates\documents\enlaces.html:7
 msgid "Breadcrumb"
 msgstr "Ruta"
 
@@ -1631,7 +1741,6 @@ msgstr "Entrégale estos dos a su dueño. No se volverán a mostrar."
 
 #: .\templates\accounts\nueva_cuenta.html:45
 #: .\templates\accounts\usuarios_roles.html:34
-#: .\templates\registration\login.html:71
 msgid "Username"
 msgstr "Nombre de usuario"
 
@@ -1644,13 +1753,18 @@ msgid ""
 "Until they change it, two people know this password. AeroBim will ask them "
 "to choose their own the first time they sign in, and will not let them do "
 "anything else until they do."
-msgstr "Hasta que la cambie, esta clave la conocen dos personas. AeroBim le pedirá elegir la suya la primera vez que entre, y no la dejará hacer nada más hasta que lo haga."
+msgstr ""
+"Hasta que la cambie, esta clave la conocen dos personas. AeroBim le pedirá "
+"elegir la suya la primera vez que entre, y no la dejará hacer nada más hasta "
+"que lo haga."
 
 #: .\templates\accounts\nueva_cuenta.html:56
 msgid ""
 "If it gets lost before they sign in, generate another one from the list — "
 "there is no way to look this one up."
-msgstr "Si se pierde antes de que entre, genera otra desde la lista: esta no se puede volver a consultar."
+msgstr ""
+"Si se pierde antes de que entre, genera otra desde la lista: esta no se "
+"puede volver a consultar."
 
 #: .\templates\accounts\nueva_cuenta.html:69
 msgid "Create account"
@@ -1765,6 +1879,57 @@ msgstr "Por dónde seguir"
 msgid "See the whole walkthrough"
 msgstr "Ver el recorrido completo"
 
+#: .\templates\accounts\privacidad.html:8 .\templates\base.html:93
+msgid "Help"
+msgstr "Ayuda"
+
+#: .\templates\accounts\privacidad.html:16
+msgid ""
+"The short answer: two cookies, both strictly necessary, and nothing leaves "
+"your organisation."
+msgstr "La respuesta corta: dos cookies, las dos estrictamente necesarias, y nada sale de tu organización."
+
+#: .\templates\accounts\privacidad.html:23
+msgid "Cookies"
+msgstr "Cookies"
+
+#: .\templates\accounts\privacidad.html:32
+msgid ""
+"AeroBim sets two cookies and no more. Both are needed for it to work at all, "
+"so there is nothing to accept or refuse — refusing them would be the same as "
+"not signing in."
+msgstr "AeroBim pone dos cookies y ninguna más. Las dos hacen falta para que funcione, así que no hay nada que aceptar ni rechazar: rechazarlas sería lo mismo que no entrar."
+
+#: .\templates\accounts\privacidad.html:38
+msgid "Cookie"
+msgstr "Cookie"
+
+#: .\templates\accounts\privacidad.html:39
+msgid "What it is for"
+msgstr "Para qué sirve"
+
+#: .\templates\accounts\privacidad.html:40
+msgid "How long"
+msgstr "Cuánto dura"
+
+#: .\templates\accounts\privacidad.html:55
+msgid ""
+"The light or dark theme is remembered in your own browser, not in a cookie: "
+"it never travels to the server."
+msgstr "El tema claro u oscuro se recuerda en tu propio navegador, no en una cookie: nunca viaja al servidor."
+
+#: .\templates\accounts\privacidad.html:60
+msgid "What AeroBim keeps about you"
+msgstr "Lo que AeroBim guarda de ti"
+
+#: .\templates\accounts\privacidad.html:70
+msgid "And what it does not do"
+msgstr "Y lo que no hace"
+
+#: .\templates\accounts\privacidad.html:77
+msgid "Links shared outside"
+msgstr "Los enlaces compartidos"
+
 #: .\templates\accounts\trabajos.html:10
 msgid ""
 "A job that stops running raises no error: nothing happens, and the\n"
@@ -1834,7 +1999,7 @@ msgid "Roles"
 msgstr "Roles"
 
 #: .\templates\accounts\usuarios_roles.html:39
-#: .\templates\registration\login.html:81
+#: .\templates\registration\login.html:97
 msgid "Password"
 msgstr "Contraseña"
 
@@ -1870,10 +2035,6 @@ msgstr "Cambiar al tema oscuro"
 msgid "Switch to the light theme"
 msgstr "Cambiar al tema claro"
 
-#: .\templates\base.html:93
-msgid "Help"
-msgstr "Ayuda"
-
 #: .\templates\base.html:94
 #: .\templates\registration\password_change_form.html:4
 #: .\templates\registration\password_change_form.html:6
@@ -1886,7 +2047,7 @@ msgid "Sign out"
 msgstr "Salir"
 
 #: .\templates\base.html:100 .\templates\registration\login.html:7
-#: .\templates\registration\login.html:90
+#: .\templates\registration\login.html:106
 msgid "Sign in"
 msgstr "Entrar"
 
@@ -1951,8 +2112,8 @@ msgstr "Nueva actividad"
 #: .\templates\documents\actividades.html:24
 #: .\templates\documents\bandeja.html:105
 #: .\templates\documents\entregables.html:25
-#: .\templates\documents\expediente.html:263
-#: .\templates\documents\expediente.html:289
+#: .\templates\documents\expediente.html:279
+#: .\templates\documents\expediente.html:305
 #: .\templates\documents\requisitos_ids.html:24
 #: .\templates\documents\transmittal.html:70
 #: .\templates\projects\proyecto.html:442
@@ -2204,6 +2365,81 @@ msgstr ""
 "Y %(total)s clases más con menos elementos, dejadas fuera para que el ruido "
 "no tape las que importan."
 
+#: .\templates\documents\enlaces.html:4 .\templates\documents\enlaces.html:12
+#: .\templates\documents\expediente.html:122
+msgid "Share outside"
+msgstr "Compartir al exterior"
+
+#: .\templates\documents\enlaces.html:16
+msgid "rev."
+msgstr "rev."
+
+#: .\templates\documents\enlaces.html:25
+msgid ""
+"The viewer cannot open this file, so there is nothing to share. Whoever "
+"received a link would land on a screen telling them the format cannot be "
+"shown."
+msgstr ""
+"El visor no puede abrir este archivo, así que no hay nada que compartir. "
+"Quien recibiera un enlace acabaría en una pantalla que le dice que el "
+"formato no se puede ver."
+
+#: .\templates\documents\enlaces.html:39
+msgid "Before you send one:"
+msgstr "Antes de mandar uno:"
+
+#: .\templates\documents\enlaces.html:40
+msgid ""
+"whoever opens the link gets the model drawn in their browser, which means "
+"the file itself reaches their machine. There is no download button and they "
+"cannot reach anything else of the project — but somebody determined can keep "
+"a copy. Share accordingly."
+msgstr ""
+"quien abra el enlace recibe el modelo dibujado en su navegador, o sea que el "
+"archivo llega a su máquina. No hay botón de descarga y no puede alcanzar "
+"nada más del proyecto, pero alguien decidido puede quedarse una copia. "
+"Compártelo sabiendo eso."
+
+#: .\templates\documents\enlaces.html:46
+msgid "Create link"
+msgstr "Crear el enlace"
+
+#: .\templates\documents\enlaces.html:50
+msgid "Links for this revision"
+msgstr "Enlaces de esta revisión"
+
+#: .\templates\documents\enlaces.html:55
+msgid "Who it is for"
+msgstr "Para quién es"
+
+#: .\templates\documents\enlaces.html:57
+msgid "Expires"
+msgstr "Vence"
+
+#: .\templates\documents\enlaces.html:58
+msgid "Times opened"
+msgstr "Veces abierto"
+
+#: .\templates\documents\enlaces.html:59
+msgid "Link"
+msgstr "Enlace"
+
+#: .\templates\documents\enlaces.html:71
+msgid "Revoked"
+msgstr "Revocado"
+
+#: .\templates\documents\enlaces.html:73
+msgid "Expired"
+msgstr "Caducado"
+
+#: .\templates\documents\enlaces.html:99
+msgid "Revoke"
+msgstr "Revocar"
+
+#: .\templates\documents\enlaces.html:105
+msgid "Nothing shared yet."
+msgstr "Todavía no se ha compartido nada."
+
 #: .\templates\documents\entregables.html:10
 msgid ""
 "The register: what has to be delivered, who owns it and how far along it\n"
@@ -2264,80 +2500,80 @@ msgstr "Abrir en el visor"
 msgid "What it carries"
 msgstr "Qué trae"
 
-#: .\templates\documents\expediente.html:135
+#: .\templates\documents\expediente.html:151
 msgid "elements"
 msgstr "elementos"
 
-#: .\templates\documents\expediente.html:150
+#: .\templates\documents\expediente.html:166
 msgid "georeferenced"
 msgstr "georreferenciado"
 
-#: .\templates\documents\expediente.html:150
+#: .\templates\documents\expediente.html:166
 #, python-format
 msgid "rotated %(grados)s°"
 msgstr "girado %(grados)s° respecto al norte"
 
-#: .\templates\documents\expediente.html:150
+#: .\templates\documents\expediente.html:166
 msgid "no rotation declared"
 msgstr "sin giro declarado"
 
-#: .\templates\documents\expediente.html:152
+#: .\templates\documents\expediente.html:168
 msgid "not georeferenced"
 msgstr "sin georreferenciar"
 
-#: .\templates\documents\expediente.html:157
+#: .\templates\documents\expediente.html:173
 msgid "the file's own data could not be read"
 msgstr "no se pudieron leer los datos del propio archivo"
 
-#: .\templates\documents\expediente.html:178
+#: .\templates\documents\expediente.html:194
 msgid "nothing was checked"
 msgstr "no se comprobó nada"
 
-#: .\templates\documents\expediente.html:181
-#: .\templates\documents\expediente.html:205
+#: .\templates\documents\expediente.html:197
+#: .\templates\documents\expediente.html:221
 msgid "of"
 msgstr "de"
 
-#: .\templates\documents\expediente.html:182
+#: .\templates\documents\expediente.html:198
 msgid "specifications fail"
 msgstr "especificaciones fallan"
 
-#: .\templates\documents\expediente.html:194
+#: .\templates\documents\expediente.html:210
 msgid "did not apply to this model"
 msgstr "no aplicaron a este modelo"
 
-#: .\templates\documents\expediente.html:216
+#: .\templates\documents\expediente.html:232
 msgid "open an observation"
 msgstr "abrir una observación"
 
-#: .\templates\documents\expediente.html:223
+#: .\templates\documents\expediente.html:239
 msgid "in total"
 msgstr "en total"
 
-#: .\templates\documents\expediente.html:239
+#: .\templates\documents\expediente.html:255
 msgid "Validate against the IDS"
 msgstr "Validar contra el IDS"
 
-#: .\templates\documents\expediente.html:246
+#: .\templates\documents\expediente.html:262
 msgid "Yes"
 msgstr "Sí"
 
-#: .\templates\documents\expediente.html:250
+#: .\templates\documents\expediente.html:266
 #: .\templates\documents\transmittals.html:59
 msgid "Nothing issued yet."
 msgstr "Todavía no se ha emitido nada."
 
-#: .\templates\documents\expediente.html:258
+#: .\templates\documents\expediente.html:274
 #: .\templates\documents\nueva_observacion.html:4
 #: .\templates\documents\nueva_observacion.html:6
 msgid "Open an observation"
 msgstr "Abrir una observación"
 
-#: .\templates\documents\expediente.html:279
+#: .\templates\documents\expediente.html:295
 msgid "No observation."
 msgstr "Sin observaciones."
 
-#: .\templates\documents\expediente.html:305
+#: .\templates\documents\expediente.html:321
 msgid "No activity."
 msgstr "Sin actividades."
 
@@ -3050,15 +3286,19 @@ msgstr "Modelo, planos y control documental."
 msgid "Invalid username or password. Try again."
 msgstr "Usuario o contraseña inválidos. Inténtalo de nuevo."
 
-#: .\templates\registration\login.html:94
+#: .\templates\registration\login.html:82
+msgid "Email or username"
+msgstr "Correo o usuario"
+
+#: .\templates\registration\login.html:110
 msgid "There is no self sign-up: an administrator creates the accounts."
 msgstr "No hay auto-registro: las cuentas las crea un administrador."
 
-#: .\templates\registration\login.html:108
+#: .\templates\registration\login.html:124
 msgid "The model, the drawings and the site <em>on one screen</em>."
 msgstr "El modelo, los planos y la obra <em>en la misma pantalla</em>."
 
-#: .\templates\registration\login.html:110
+#: .\templates\registration\login.html:126
 msgid ""
 "Nothing to install, and the project does not go up to anybody's\n"
 "          cloud: the models open in the browser and the files stay in the "
@@ -3067,11 +3307,11 @@ msgstr ""
 "Sin instalar nada y sin subir la obra a la nube de nadie: los modelos se "
 "abren en el navegador y los archivos se quedan en casa."
 
-#: .\templates\registration\login.html:117
+#: .\templates\registration\login.html:133
 msgid "Open the model from its own record"
 msgstr "Abre el modelo desde su expediente"
 
-#: .\templates\registration\login.html:118
+#: .\templates\registration\login.html:134
 msgid ""
 "The IFC and the DXF already in the register, one click and no hunting for "
 "the file."
@@ -3079,28 +3319,28 @@ msgstr ""
 "El IFC y el DXF que ya están en el registro, con un clic y sin buscar el "
 "archivo."
 
-#: .\templates\registration\login.html:124
+#: .\templates\registration\login.html:140
 msgid "Cross the disciplines and hand out what clashes"
 msgstr "Cruza las disciplinas y reparte lo que choca"
 
-#: .\templates\registration\login.html:125
+#: .\templates\registration\login.html:141
 msgid "Neighbouring conflicts arrive as one problem, not as thirty-five rows."
 msgstr ""
 "Los conflictos vecinos llegan como un problema, no como treinta y cinco "
 "filas."
 
-#: .\templates\registration\login.html:131
+#: .\templates\registration\login.html:147
 msgid "Take it out on paper or as BCF"
 msgstr "Sácalo en papel o en BCF"
 
-#: .\templates\registration\login.html:132
+#: .\templates\registration\login.html:148
 msgid ""
 "A report on the company letterhead, or the file the client's software opens."
 msgstr ""
 "Un informe con el membrete de la casa, o el archivo que abre el software del "
 "mandante."
 
-#: .\templates\registration\login.html:138
+#: .\templates\registration\login.html:154
 msgid ""
 "<b>We built this for the team.</b> Every finding you write down saves\n"
 "          somebody a trip to site, and every model you upload saves half a "

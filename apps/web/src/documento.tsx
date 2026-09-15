@@ -25,6 +25,7 @@ import { createRoot } from "react-dom/client";
 import { StrictMode } from "react";
 import { createPdfiumEngine } from "@embedpdf/engines/pdfium-direct-engine";
 import type { PdfDocumentObject, PdfTextRectObject } from "@embedpdf/models";
+import { pedirFicha, testigoCompartido } from "./compartido.js";
 import "./index.css";
 
 /**
@@ -70,7 +71,18 @@ interface Revision {
   readonly correlativo: string;
   readonly idoneidad: string;
   readonly visor: string | null;
-  readonly entregable: { readonly id: string; readonly codigo: string; readonly titulo: string };
+  /**
+   * **El `id` es opcional, y esa es toda la diferencia entre las dos formas de llegar aquí.**
+   *
+   * Con sesión lo manda `/api/revisiones/<id>/` y sirve para volver al expediente y para abrir una
+   * observación. Con un enlace compartido **no viene**, a propósito: quien entra así no tiene
+   * expediente al que volver ni permiso para anotar, y publicar el identificador sería regalar la
+   * mitad de una dirección que hoy no abre nada pero mañana podría.
+   *
+   * Declararlo opcional hace que TypeScript obligue a decidir en cada uso, que es exactamente lo
+   * que hace falta: los dos sitios que lo usan son acciones que un externo no debe tener.
+   */
+  readonly entregable: { readonly id?: string; readonly codigo: string; readonly titulo: string };
   readonly proyecto: { readonly codigo: string; readonly nombre: string };
 }
 
@@ -309,9 +321,18 @@ function Documento() {
   const paginas = useRef<(HTMLDivElement | null)[]>([]);
 
   const revisionId = useMemo(() => revisionPedida(), []);
+  /**
+   * El testigo del enlace compartido, si se entró por uno.
+   *
+   * **Esta pantalla también se comparte**, y se me pasó al escribir el enlace: `PaginaCompartidaView`
+   * sirve `documento.html` cuando lo compartido es un PDF —que en obra es lo más común, porque un
+   * plano se manda en PDF— y este archivo solo sabía leer `?revision=`. Quien recibiera el enlace de
+   * un plano veía «La dirección no dice qué documento abrir», que además le echa la culpa a él.
+   */
+  const testigo = useMemo(() => testigoCompartido(), []);
 
   useEffect(() => {
-    if (revisionId === null) {
+    if (revisionId === null && testigo === null) {
       setError("La dirección no dice qué documento abrir.");
       return;
     }
@@ -320,7 +341,14 @@ function Documento() {
     void (async () => {
       try {
         setAviso("leyendo el registro…");
-        const datos = await json<Revision>(`/api/revisiones/${revisionId}/`);
+        // **Dos superficies, y la diferencia no es un parámetro: es de qué se fía cada una.**
+        // Con sesión se pregunta a `/api/`, que acota por quién eres; con un enlace, a
+        // `/compartido/<testigo>/`, que acota por el testigo y sirve una sola revisión. Ver
+        // `compartido.ts`.
+        const datos: Revision =
+          testigo !== null
+            ? await pedirFicha(testigo)
+            : await json<Revision>(`/api/revisiones/${revisionId}/`);
         if (!vivo) return;
         setRevision(datos);
 
@@ -350,11 +378,19 @@ function Documento() {
         engine.current = motor;
 
         setAviso("abriendo el PDF…");
+        // El identificador que PDFium usa para su caché. Con un enlace no hay `pk`, así que sirve
+        // el testigo: lo único que se le pide es ser distinto por documento.
         const abierto = await motor
-          .openDocumentBuffer({ id: revisionId, content: bytes })
+          .openDocumentBuffer({ id: revisionId ?? testigo ?? "compartido", content: bytes })
           .toPromise();
         if (!vivo) return;
         setDoc(abierto);
+
+        // **Con un enlace no se piden las observaciones, y no es una omisión.** Son los hallazgos
+        // internos de la obra —quién marcó qué y a quién se le asignó— y quien mira desde fuera no
+        // tiene por qué verlos. Además `/api/` le contestaría 401 y el `catch` de abajo convertiría
+        // eso en un error en pantalla sobre un documento que se abrió perfectamente.
+        if (testigo !== null) return;
 
         const marcas = await json<{
           observaciones: Observacion[];
@@ -374,7 +410,7 @@ function Documento() {
       engine.current = null;
       if (motor !== null) void motor.destroy();
     };
-  }, [revisionId]);
+  }, [revisionId, testigo]);
 
   /** Qué página se está mirando, para decidir cuáles dibujar. */
   const alDesplazar = useCallback(() => {
@@ -393,14 +429,19 @@ function Documento() {
    */
   const abrirObservacion = useCallback(
     (numero: number, x: number, y: number) => {
-      if (revision === null || revisionId === null) return;
+      // **`entregable.id` decide, y no un `if (testigo)`.** Con un enlace compartido ese campo no
+      // viene, así que la guarda es la misma que TypeScript ya obliga a poner: sin identificador no
+      // hay formulario al que ir. Comprobar el testigo aparte sería una segunda regla que se separa
+      // de esta en el primer cambio.
+      const entregableId = revision?.entregable.id;
+      if (revision === null || revisionId === null || entregableId === undefined) return;
       const consulta = new URLSearchParams({
         revision: revisionId,
         pagina: String(numero),
         x: x.toFixed(4),
         y: y.toFixed(4),
       });
-      globalThis.location.href = `/documentos/entregables/${revision.entregable.id}/observar/?${consulta}`;
+      globalThis.location.href = `/documentos/entregables/${entregableId}/observar/?${consulta}`;
     },
     [revision, revisionId],
   );
@@ -479,21 +520,44 @@ function Documento() {
   return (
     <div className="flex h-full flex-col">
       <header className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-borde px-4 py-2 text-sm">
-        <a href="/documentos/entregables/" className="font-semibold text-accent">
-          AeroBim
-        </a>
+        {/* **Con un enlace, la marca no lleva a ninguna parte.** Quien viene de fuera no tiene
+            cuenta: pulsarla lo dejaría en la pantalla de entrar, que le pide algo que no tiene. */}
+        {testigo === null ? (
+          <a href="/documentos/entregables/" className="font-semibold text-accent">
+            AeroBim
+          </a>
+        ) : (
+          <span className="font-semibold text-accent">AeroBim</span>
+        )}
         {revision !== null && (
           <>
             <span className="font-medium">
               {revision.entregable.codigo} rev. {revision.correlativo}
             </span>
             <span className="text-fg-3">{revision.entregable.titulo}</span>
-            <a
-              className="text-fg-2 underline"
-              href={`/documentos/entregables/${revision.entregable.id}/`}
-            >
-              expediente
-            </a>
+            {revision.entregable.id !== undefined && (
+              <a
+                className="text-fg-2 underline"
+                href={`/documentos/entregables/${revision.entregable.id}/`}
+              >
+                expediente
+              </a>
+            )}
+            {/* **La idoneidad, y solo al entrar por un enlace.**
+
+                Dentro de la aplicación no hace falta aquí: se viene del expediente, que ya la
+                enseña en su columna. Quien llega por un enlace **no ha visto el expediente** —lo
+                que le llegó fue una dirección suelta, como llega un plano por WhatsApp— y es
+                exactamente quien puede confundir un `S2` con un `A`: trabajo para coordinar contra
+                aprobado para construir.
+
+                Y en un plano importa más que en un modelo, porque un plano es lo que alguien
+                imprime y se lleva a la obra. */}
+            {testigo !== null && (
+              <span className="rounded border border-borde px-1.5 py-0.5 text-fg">
+                {revision.idoneidad}
+              </span>
+            )}
           </>
         )}
         <span className="ml-auto flex items-center gap-2">
@@ -545,9 +609,22 @@ function Documento() {
         <span>
           {doc === null
             ? aviso
-            : puedeObservar
-              ? `${observaciones.length} observaciones sobre el documento · clic en la página para abrir una nueva`
-              : `${observaciones.length} observaciones sobre el documento`}
+            : /*
+               * **Con un enlace compartido no se dice ninguna cifra, y no es por esconder.**
+               *
+               * Decía «0 observaciones sobre el documento», y eso es una **afirmación sobre la obra
+               * que no comprobamos**: no se piden, porque son los hallazgos internos y quien mira
+               * desde fuera no tiene por qué verlos. Un cero que en realidad significa «no
+               * preguntamos» es peor que no decir nada — le dice a alguien de fuera que este plano
+               * está limpio, y puede no estarlo.
+               *
+               * Se vio en la pantalla abriendo un PDF compartido, no leyendo el código.
+               */
+              testigo !== null
+              ? `${doc.pageCount} página${doc.pageCount === 1 ? "" : "s"}`
+              : puedeObservar
+                ? `${observaciones.length} observaciones sobre el documento · clic en la página para abrir una nueva`
+                : `${observaciones.length} observaciones sobre el documento`}
         </span>
 
         {/*

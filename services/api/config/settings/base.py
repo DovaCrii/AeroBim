@@ -296,9 +296,18 @@ AUTHENTICATION_BACKENDS = [
     # **axes va primero**: corta un intento bloqueado antes de que el backend real
     # llegue a comprobar la contraseña.
     "axes.backends.AxesStandaloneBackend",
-    "django.contrib.auth.backends.ModelBackend",
+    # **Y el nuestro sustituye a `ModelBackend`, no se suma a él.** Hereda de él y solo cambia como
+    # encuentra a la persona —acepta el correo ademas del nombre de usuario—, asi que poner los dos
+    # significaria comprobar la contraseña dos veces contra el mismo hash en cada intento fallido.
+    # Ver `apps/accounts/autenticacion.py`.
+    "apps.accounts.autenticacion.CorreoOUsuario",
 ]
 AXES_ENABLED = config("AXES_ENABLED", default=True, cast=bool)
+# **Con que nombre cuenta `axes` los intentos.** Sin esto, aceptar el correo **rompia el bloqueo**:
+# `axes` cuenta por la cadena tecleada, asi que cinco fallos con `victima` lo bloqueaban y entrar
+# acto seguido con `v@ejemplo.cl` funcionaba. Medido: 429 por un lado y 302 por el otro.
+# Ver `apps/accounts/autenticacion.py`.
+AXES_USERNAME_CALLABLE = "apps.accounts.autenticacion.nombre_para_el_bloqueo"
 AXES_FAILURE_LIMIT = config("AXES_FAILURE_LIMIT", default=5, cast=int)
 AXES_COOLOFF_TIME = timedelta(minutes=config("AXES_COOLOFF_MINUTES", default=15, cast=int))
 AXES_RESET_ON_SUCCESS = True

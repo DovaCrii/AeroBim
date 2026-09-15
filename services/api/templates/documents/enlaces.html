@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block titulo %}{% translate "Share outside" %} · AeroBim{% endblock %}
+
+{% block migas %}
+<nav class="migas" aria-label="{% translate 'Breadcrumb' %}">
+  <a href="{% url 'documents:expediente' revision.entregable_id %}">{{ revision.entregable.codigo }}</a>
+</nav>
+{% endblock %}
+
+{% block titulo_pagina %}<h1>{% translate "Share outside" %}</h1>{% endblock %}
+
+{% block subtitulo %}
+<p class="subtitulo">
+  {{ revision.entregable.codigo }} · {% translate "rev." %} {{ revision.correlativo }}
+  · {{ revision.get_idoneidad_display }}
+</p>
+{% endblock %}
+
+{% block contenido %}
+
+  {% if not abrible %}
+    <div class="aviso warning" role="status">
+      {% translate "The viewer cannot open this file, so there is nothing to share. Whoever received a link would land on a screen telling them the format cannot be shown." %}
+    </div>
+  {% else %}
+
+    {% comment %}
+      **Lo que el enlace no puede impedir va arriba y no en letra chica.**
+
+      Quien comparte decide mirando esta pantalla, y si la limitación está al final o no está,
+      decide creyendo que «solo ver» significa que el archivo no sale. Sale: el visor dibuja el
+      modelo en la máquina de quien mira, así que el archivo viaja. Decirlo aquí es la diferencia
+      entre una decisión informada y una sorpresa.
+    {% endcomment %}
+    <div class="aviso warning" role="status">
+      <strong>{% translate "Before you send one:" %}</strong>
+      {% translate "whoever opens the link gets the model drawn in their browser, which means the file itself reaches their machine. There is no download button and they cannot reach anything else of the project — but somebody determined can keep a copy. Share accordingly." %}
+    </div>
+
+    <form method="post" style="max-width: 560px">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <button type="submit">{% translate "Create link" %}</button>
+    </form>
+  {% endif %}
+
+  <h2>{% translate "Links for this revision" %}</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">{% translate "Who it is for" %}</th>
+        <th scope="col">{% translate "Status" %}</th>
+        <th scope="col">{% translate "Expires" %}</th>
+        <th scope="col">{% translate "Times opened" %}</th>
+        <th scope="col">{% translate "Link" %}</th>
+        <th scope="col"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for enlace in enlaces %}
+        <tr>
+          <td>{{ enlace.para }}</td>
+          <td>
+            {% if enlace.estado == "vigente" %}
+              <span class="distintivo ok">{% translate "Open" %}</span>
+            {% elif enlace.estado == "revocado" %}
+              <span class="distintivo apagado">{% translate "Revoked" %}</span>
+            {% else %}
+              <span class="distintivo apagado">{% translate "Expired" %}</span>
+            {% endif %}
+          </td>
+          <td>{{ enlace.expira_en|date:"d-m-Y" }}</td>
+          <td>
+            {% comment %}
+              **El número que delata un enlace reenviado.** Uno mandado a una persona que aparece
+              con ochenta aperturas no lo abrió una persona. Es la única señal que hay.
+            {% endcomment %}
+            {{ enlace.visitas }}
+            {% if enlace.ultima_visita %}
+              <span class="subtitulo">({{ enlace.ultima_visita|date:"d-m-Y" }})</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if enlace.estado == "vigente" %}
+              <code class="secreto">{{ base }}{% url 'compartido' enlace.testigo %}</code>
+            {% else %}
+              —
+            {% endif %}
+          </td>
+          <td>
+            {% if enlace.estado == "vigente" %}
+              <form method="post" action="{% url 'documents:revocar-enlace' enlace.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="enlace">{% translate "Revoke" %}</button>
+              </form>
+            {% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6" class="vacio">{% translate "Nothing shared yet." %}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}
