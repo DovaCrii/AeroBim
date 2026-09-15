@@ -6,16 +6,17 @@
 probar puertas.
 """
 
+from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth import views as auth_views
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import Http404
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import TemplateView, View
 
 from apps.accounts import altas
-from apps.accounts.forms import NuevaCuentaForm
+from apps.accounts.forms import NuevaCuentaForm, NuevaOrganizacionForm
 from apps.accounts.modulos import modulos_para
 from apps.core.audit import set_audit_context
 from apps.core.exports import CsvExportMixin
@@ -437,7 +438,52 @@ class OrganizacionesView(ModelViewPermissionRequiredMixin, TemplateView):
         contexto["organizaciones"] = organizaciones_de(self.request.user).prefetch_related(
             "miembros"
         )
+        # El botón de crear solo para quien puede: enseñarlo a quien recibiría un 403 al pulsarlo
+        # es peor que no enseñarlo — promete algo y luego lo niega sin decir por qué.
+        contexto["puede_crear"] = self.request.user.has_perm("core.add_organizacion")
         return contexto
+
+
+class NuevaOrganizacionView(ModelPermissionRequiredMixin, View):
+    """Crear la empresa a la que pertenecen las obras.
+
+    **Es el primer paso del producto y no tenía pantalla.** Medido en `p340` con la instalación
+    recién hecha: «Cuenta nueva» pide una organización, el desplegable sale vacío, y no hay ningún
+    sitio donde crear una — la pantalla de Organizaciones era una tabla de solo leer. El camino que
+    quedaba era el `/admin/` técnico, que dejó de publicarse el mismo día por estar AeroBim en
+    internet. O sea que **el producto recién instalado no se podía empezar a usar**.
+
+    El motivo de que no se viera antes: en desarrollo la base viene sembrada con `preparar_piloto`,
+    así que el desplegable **siempre tenía algo dentro**. El agujero solo existe en una base limpia,
+    que es exactamente la única base que va a ver quien instala.
+
+    Va detrás de `add_organizacion`, que hoy tienen el superusuario y `Administrador` y ningún rol
+    más: crear la empresa a la que pertenece todo no es una tarea del día a día del coordinador.
+    """
+
+    model = Organizacion
+    permission_action = "add"
+    template_name = "accounts/nueva_organizacion.html"
+
+    def get(self, request, *args, **kwargs):
+        return render(request, self.template_name, {"form": NuevaOrganizacionForm()})
+
+    def post(self, request, *args, **kwargs):
+        form = NuevaOrganizacionForm(request.POST)
+        if not form.is_valid():
+            return render(request, self.template_name, {"form": form})
+
+        organizacion = form.crear(autor=request.user)
+        set_audit_context(request, organizacion, action="crear_organizacion")
+        messages.success(
+            request,
+            _("«%(nombre)s» created. Now you can create the accounts of the people in it.")
+            % {"nombre": organizacion.nombre},
+        )
+        # **Al listado y no de vuelta al formulario.** Crear organizaciones no es algo que se haga
+        # en serie —lo normal es una, la empresa— así que devolver el formulario vacío sugeriría
+        # que falta otra.
+        return redirect("core:organizaciones")
 
 
 class NuevaCuentaView(ModelPermissionRequiredMixin, View):
@@ -466,30 +512,42 @@ class NuevaCuentaView(ModelPermissionRequiredMixin, View):
     permission_action = "add"
     template_name = "accounts/nueva_cuenta.html"
 
+    def contexto(self, request, **extra):
+        """El formulario **y si hay dónde poner a la persona**.
+
+        **Sin esto la pantalla es un callejón sin salida, y lo fue de verdad.** Con la base recién
+        instalada el desplegable de organización sale vacío, el formulario no valida nunca, y la
+        pantalla no dice **qué falta ni dónde se consigue**: quien la abre escribe el nombre, el
+        correo, llega al desplegable y se queda ahí. Medido en `p340` el 2026-09-15 — el usuario
+        lo dijo con estas palabras: «me pide organización y no aparece cómo generar».
+
+        Es la misma forma de fallo que el producto ya arregló una vez en otro sitio: una pantalla
+        que exige algo correcto **sin decir de dónde sale**.
+        """
+        form = extra.pop("form", None) or NuevaCuentaForm(autor=request.user)
+        return {
+            "form": form,
+            "hay_organizaciones": form.fields["organizacion"].queryset.exists(),
+            "puede_crear_organizacion": request.user.has_perm("core.add_organizacion"),
+            **extra,
+        }
+
     def get(self, request, *args, **kwargs):
-        return render(
-            request,
-            self.template_name,
-            {"form": NuevaCuentaForm(autor=request.user)},
-        )
+        return render(request, self.template_name, self.contexto(request))
 
     def post(self, request, *args, **kwargs):
         form = NuevaCuentaForm(request.POST, autor=request.user)
         if not form.is_valid():
-            return render(request, self.template_name, {"form": form})
+            return render(request, self.template_name, self.contexto(request, form=form))
 
         usuario, clave = form.crear(autor=request.user)
         set_audit_context(request, usuario, action="crear_cuenta")
+        # **Formulario nuevo y no el rellenado**: quien crea una cuenta suele crear varias
+        # seguidas, y volver con los datos de la anterior invita a mandar dos veces.
         return render(
             request,
             self.template_name,
-            {
-                # **Formulario nuevo y no el rellenado**: quien crea una cuenta suele crear varias
-                # seguidas, y volver con los datos de la anterior invita a mandar dos veces.
-                "form": NuevaCuentaForm(autor=request.user),
-                "creada": usuario,
-                "clave": clave,
-            },
+            self.contexto(request, creada=usuario, clave=clave),
         )
 
 

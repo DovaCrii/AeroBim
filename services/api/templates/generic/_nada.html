@@ -1,0 +1,26 @@
+{% comment %}
+  **Una pantalla sin nada todavía, dicho con un dibujo además de con la frase.**
+
+  ## Por qué hacía falta
+
+  En una instalación recién hecha **todas** las listas están vacías, así que esto no es un caso
+  raro: es lo primero que ve quien abre AeroBim el primer día. Y lo que veía era una fila de tabla
+  con una frase gris del mismo tamaño y el mismo color que cualquier otra celda —«Todavía no hay
+  requisito: no se está verificando nada contra el modelo»—, o sea **indistinguible de un dato**.
+
+  La caja abierta y vacía dice en un golpe de vista lo que la frase dice leyendo: aquí no hay nada
+  *todavía*. No un aspa ni un círculo tachado, que dirían que algo va mal: no va mal, está
+  esperando el primer dato. Ver `i-nada` en `generic/_iconos.html`.
+
+  **El dibujo no sustituye a la frase**, que sigue entera y es la que explica *qué* falta y por qué
+  importa. Un icono solo no se lee en voz alta.
+
+  Uso:
+
+      {% translate "Nothing here." as nada %}
+      <td colspan="5">{% include "generic/_nada.html" with texto=nada %}</td>
+{% endcomment %}
+<span class="nada">
+  <svg class="icono-en-linea" aria-hidden="true"><use href="#i-nada"></use></svg>
+  <span>{{ texto }}</span>
+</span>

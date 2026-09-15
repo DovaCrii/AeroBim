@@ -29,13 +29,16 @@
   {% endcomment %}
   {% if clave %}
     <section class="tarjeta entrega-de-clave" aria-labelledby="titulo-clave">
-      {% comment %}
-        En una sola línea a propósito: `blocktranslate` en varias mete el salto y la sangría
-        **dentro** del `msgid`, y entonces `msgfmt` exige que la traducción empiece y acabe con el
-        mismo blanco. Falla al compilar, y el mensaje —«no comienzan ambas con \n»— no dice que el
-        problema esté en la plantilla.
-      {% endcomment %}
-      <h2 id="titulo-clave">{% blocktranslate with nombre=creada.get_full_name|default:creada.username %}Account ready for {{ nombre }}{% endblocktranslate %}</h2>
+      <h2 id="titulo-clave">
+        <svg class="icono-titular" aria-hidden="true"><use href="#i-clave"></use></svg>
+        {% comment %}
+          En una sola línea a propósito: `blocktranslate` en varias mete el salto y la sangría
+          **dentro** del `msgid`, y entonces `msgfmt` exige que la traducción empiece y acabe con el
+          mismo blanco. Falla al compilar, y el mensaje —«no comienzan ambas con \n»— no dice que el
+          problema esté en la plantilla.
+        {% endcomment %}
+        <span>{% blocktranslate with nombre=creada.get_full_name|default:creada.username %}Account ready for {{ nombre }}{% endblocktranslate %}</span>
+      </h2>
 
       <p>{% translate "Give these two to its owner. They will not be shown again." %}</p>
 
@@ -57,13 +60,96 @@
   {% endif %}
 
   {% comment %}
-    `form.as_p` y no una rejilla propia: es lo que usan las otras seis pantallas de formulario, y
-    una maquetación distinta solo para esta se notaría al cruzar de una a otra.
+    ══════════════════════════════════════════════════════════════════════════════════════════
+    **Los tres pasos, y no son adorno: eran la pregunta que la pantalla no contestaba.**
+
+    Antes esto era un título, cinco campos y un botón. Quien la abría por primera vez no sabía
+    **qué iba a pasar al pulsar** —¿se manda un correo?, ¿la persona elige su clave?, ¿hay que
+    avisarle?— y esa duda es exactamente la que hace que un administrador cree la cuenta y la deje
+    a medias.
+
+    Aquí está dicho antes de empezar: AeroBim genera la clave, **no la manda a ninguna parte**, y
+    entregársela es un paso humano. El tercero es el que se olvida siempre.
+
+    El del correo es el que más confunde, y por eso lleva el sobre con la campanita y no el del
+    registro: ese correo es para **los avisos de después**, no para mandar la clave.
+    ══════════════════════════════════════════════════════════════════════════════════════════
   {% endcomment %}
-  <form method="post" style="max-width: 560px">
+  {% comment %}
+    ══════════════════════════════════════════════════════════════════════════════════════════
+    **SIN ORGANIZACIÓN ESTA PANTALLA NO LLEVA A NINGUNA PARTE, Y ANTES NO LO DECÍA.**
+
+    Con la base recién instalada el desplegable sale vacío: se escribe el nombre, el apellido, el
+    correo, se llega a «Organización» y **no hay nada que elegir ni nada que explique por qué**.
+    El formulario no puede validar nunca. Ocurrió el primer día en `p340`.
+
+    Así que cuando no hay ninguna, el formulario desaparece —no tiene sentido rellenar algo que no
+    se va a poder enviar— y en su lugar va lo que falta y el botón que lo resuelve.
+    ══════════════════════════════════════════════════════════════════════════════════════════
+  {% endcomment %}
+  {% if not hay_organizaciones %}
+    <div class="aviso warning" role="status">
+      <p><b>{% translate "First, the organisation." %}</b></p>
+      <p>
+        {% blocktranslate %}An account belongs to a company, and there is none yet — that is why
+        the list below is empty. Create it once and every account you create afterwards will go
+        into it.{% endblocktranslate %}
+      </p>
+      {% if puede_crear_organizacion %}
+        <p class="acciones" style="margin-bottom: 0">
+          <a class="boton" href="{% url 'core:nueva-organizacion' %}">
+            {% translate "Create the organisation" %}
+          </a>
+        </p>
+      {% else %}
+        <p class="subtitulo" style="margin-bottom: 0">
+          {% blocktranslate %}You cannot create one with your role: ask whoever administers
+          AeroBim.{% endblocktranslate %}
+        </p>
+      {% endif %}
+    </div>
+  {% else %}
+
+  <ol class="receta" aria-label="{% translate 'How creating an account works' %}">
+    <li>
+      <span class="receta-numero" aria-hidden="true">1</span>
+      <div>
+        <b>{% translate "Fill in the five fields" %}</b>
+        <span class="detalle">
+          <svg class="icono-en-linea" aria-hidden="true"><use href="#i-aviso-correo"></use></svg>
+          {% translate "The email is where their notifications will go later — it is not used to send the password." %}
+        </span>
+      </div>
+    </li>
+    <li>
+      <span class="receta-numero" aria-hidden="true">2</span>
+      <div>
+        <b>{% translate "Copy the username and the initial password" %}</b>
+        <span class="detalle">
+          <svg class="icono-en-linea" aria-hidden="true"><use href="#i-clave"></use></svg>
+          {% translate "They appear here once, on this screen, and cannot be looked up again." %}
+        </span>
+      </div>
+    </li>
+    <li>
+      <span class="receta-numero" aria-hidden="true">3</span>
+      <div>
+        <b>{% translate "Hand them over to the person" %}</b>
+        <span class="detalle">
+          <svg class="icono-en-linea" aria-hidden="true"><use href="#i-listo"></use></svg>
+          {% translate "AeroBim will make them choose their own password the first time they sign in." %}
+        </span>
+      </div>
+    </li>
+  </ol>
+
+  <form method="post">
     {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">{% translate "Create account" %}</button>
+    {% include "generic/_campos.html" with form=form %}
+    <div class="acciones">
+      <button type="submit">{% translate "Create account" %}</button>
+      <a class="enlace-suave" href="{% url 'accounts:usuarios-roles' %}">{% translate "Back" %}</a>
+    </div>
   </form>
-  <p><a href="{% url 'accounts:usuarios-roles' %}">{% translate "Back" %}</a></p>
+  {% endif %}
 {% endblock %}

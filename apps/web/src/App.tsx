@@ -61,6 +61,7 @@ import { SpatialTree } from "./components/SpatialTree.js";
 import { StatusBar } from "./components/StatusBar.js";
 import { ViewCube } from "./components/ViewCube.js";
 import { VistasCompartidas } from "./components/VistasCompartidas.js";
+import { IconArrowLeft } from "./components/icons.js";
 
 /**
  * Lo que la interfaz da por oculto, en las tres listas que pinta.
@@ -2242,6 +2243,39 @@ export function App() {
               <img src={RUTA_MARCA} alt="" className="h-7 w-auto" />
               <span className="text-sm font-semibold">AeroBim</span>
             </a>
+            {/* ══════════════════════════════════════════════════════════════════════════════
+                **LA VUELTA, ESCRITA.**
+
+                Ya se podía volver: el logo de al lado lleva a `/`. No servía, y el usuario lo dijo
+                con las palabras exactas —«al entrar al visor bim buscar la forma de volver»—
+                después de haber estado dentro.
+
+                Y es que un logo que navega **no se ve**: es la convención de la web, sí, pero aquí
+                el visor ocupa la pantalla completa sin ninguna otra cosa alrededor, así que no hay
+                nada que sugiera que esto es «una página» de la que se sale. Lo único que lo decía
+                era un `title`, que aparece tras un segundo de reposo del ratón encima de un sitio
+                donde no hay motivo para dejar el ratón.
+
+                Un enlace con su palabra no se puede no ver. El logo sigue llevando al portal —eso
+                no se quita, quien lo busque ahí lo encuentra—: esto es la señal, no el mecanismo.
+
+                **Entrando por un enlace compartido no se dibuja**, por lo mismo que el logo deja
+                de navegar: quien viene de fuera no tiene cuenta, y ofrecerle una salida al portal
+                lo dejaría en la pantalla de entrar pidiéndole algo que no tiene.
+                ══════════════════════════════════════════════════════════════════════════════ */}
+            {compartido === null && (
+              <a
+                href="/"
+                // `shrink-0` para que no sea lo primero que se estrecha cuando el nombre del
+                // expediente de al lado es largo: una salida a medio recortar no es una salida.
+                // Y `hidden sm:inline-flex` no: en un teléfono es **más** necesaria, no menos.
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-borde px-2.5 py-1 text-xs text-fg-2 transition-colors duration-[--duracion-corta] ease-[--ease-ab] hover:border-accent hover:bg-surface-3 hover:text-fg"
+                title="Volver al registro documental"
+              >
+                <IconArrowLeft className="h-3.5 w-3.5" />
+                Al portal
+              </a>
+            )}
             {/* De dónde vino lo que está abierto. No se dibuja si es un archivo del disco.
                 Y entrando por un enlace, en su lugar va qué es y hasta cuándo: quien viene de fuera
                 no tiene expediente al que volver, así que necesita lo contrario de una vuelta. */}

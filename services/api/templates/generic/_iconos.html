@@ -133,4 +133,63 @@
     <path d="M9.5 9.5a2.5 2.5 0 1 1 3.4 2.3c-.6.3-.9.8-.9 1.4v.6" />
     <path d="M12 17h.01" />
   </symbol>
+
+  {% comment %}
+    ─────────────────────────────────────────────────────────────────────────────────────────
+    **Los cuatro de estado.** Los doce de arriba nombran un sitio al que se va; estos cuatro
+    dicen qué está pasando en el que ya estás, y por eso no llevan acento de grupo: heredan el
+    color del aviso que los lleva —rojo el problema, verde lo hecho— con `currentColor`.
+    ─────────────────────────────────────────────────────────────────────────────────────────
+  {% endcomment %}
+
+  {% comment %}
+    Un problema. **Triángulo y no círculo**: el círculo ya es «ayuda» tres símbolos más arriba, y
+    a 16 px dos circunferencias con algo dentro son el mismo borrón. La forma es lo único que
+    queda cuando el color no se distingue, que es el caso de uno de cada doce hombres.
+  {% endcomment %}
+  <symbol id="i-problema" viewBox="0 0 24 24">
+    <path d="M12 3.8 1.9 20.2h20.2z" />
+    <path d="M12 10v4M12 17.2h.01" />
+  </symbol>
+
+  {# Hecho. #}
+  <symbol id="i-listo" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="8.5" />
+    <path d="M8 12.2l2.7 2.8L16 9.5" />
+  </symbol>
+
+  {% comment %}
+    Nada todavía. **Una caja abierta y vacía, no una prohibición.**
+
+    Es el dibujo de las pantallas sin una sola fila, que en una instalación recién hecha son
+    todas. Un aspa o un círculo tachado diría «esto está mal» y no lo está: está esperando el
+    primer dato. La tapa levantada es lo que cuenta esa diferencia sin una palabra.
+  {% endcomment %}
+  <symbol id="i-nada" viewBox="0 0 24 24">
+    <path d="M3.5 10.5h17v9.5h-17z" />
+    <path d="M2.5 10.5 5 5.5h14l2.5 5" />
+    <path d="M9.5 14h5" />
+  </symbol>
+
+  {% comment %}
+    La clave inicial. **Una llave, y es el único sitio donde aparece.**
+
+    La caja que la entrega es lo único que importa de esa pantalla —se enseña una vez y no se
+    puede volver a ver—, así que lleva el símbolo que dice «esto es un secreto, cópialo».
+  {% endcomment %}
+  <symbol id="i-clave" viewBox="0 0 24 24">
+    <circle cx="8" cy="12" r="4.5" />
+    <path d="M12.5 12h8M18 12v3.5M15.5 12v2.5" />
+  </symbol>
+
+  {% comment %}
+    Un correo que se manda a una persona. **No es `i-transmittal`**, que es el sobre del registro:
+    aquel es un acto documental con acuse, este es «aquí llega el aviso». La diferencia importa en
+    la pantalla del alta, donde las dos ideas conviven.
+  {% endcomment %}
+  <symbol id="i-aviso-correo" viewBox="0 0 24 24">
+    <path d="M3.5 6.5h13v11h-13z" />
+    <path d="M3.5 7l6.5 4.5L16.5 7" />
+    <circle cx="19" cy="6" r="2.5" />
+  </symbol>
 </svg>

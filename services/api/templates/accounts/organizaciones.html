@@ -13,6 +13,19 @@
 {% endblock %}
 
 {% block contenido %}
+  {% comment %}
+    **La acción va arriba y no al pie**, porque cuando hace falta la lista está vacía: un botón
+    debajo de una tabla de una fila que dice «no hay ninguna» se lee después del callejón sin
+    salida, no antes.
+  {% endcomment %}
+  {% if puede_crear %}
+    <p class="acciones">
+      <a class="boton" href="{% url 'core:nueva-organizacion' %}">
+        {% translate "New organisation" %}
+      </a>
+    </p>
+  {% endif %}
+
   <table>
     <thead>
       <tr>
@@ -30,7 +43,8 @@
         </tr>
       {% empty %}
         <tr>
-          <td colspan="3">{% translate "No organisation created yet." %}</td>
+          {% translate "No organisation yet. It is the first thing to create: without one there is nowhere to put an account." as nada_noorganisationcre %}
+          <td colspan="3">{% include "generic/_nada.html" with texto=nada_noorganisationcre %}</td>
         </tr>
       {% endfor %}
     </tbody>

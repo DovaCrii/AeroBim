@@ -41,7 +41,7 @@
 
     <form method="post" style="max-width: 560px">
       {% csrf_token %}
-      {{ form.as_p }}
+      {% include "generic/_campos.html" with form=form %}
       <button type="submit">{% translate "Create link" %}</button>
     </form>
   {% endif %}
@@ -100,7 +100,7 @@
           </td>
         </tr>
       {% empty %}
-        <tr><td colspan="6" class="vacio">{% translate "Nothing shared yet." %}</td></tr>
+        <tr><td colspan="6" class="vacio"><svg class="icono-en-linea" aria-hidden="true"><use href="#i-nada"></use></svg>{% translate "Nothing shared yet." %}</td></tr>
       {% endfor %}
     </tbody>
   </table>

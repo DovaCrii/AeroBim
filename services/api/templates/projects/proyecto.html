@@ -85,14 +85,14 @@
           </div>
         </div>
       {% empty %}
-        <div class="vacio" style="margin: 0 14px">
+        <div class="vacio" style="margin: 0 14px"><svg class="icono-en-linea" aria-hidden="true"><use href="#i-nada"></use></svg>
           {% blocktranslate %}No deliverable has a planned date, so there is nothing to place on the
           timeline.{% endblocktranslate %}
         </div>
       {% endfor %}
     </div>
   {% else %}
-    <div class="vacio">
+    <div class="vacio"><svg class="icono-en-linea" aria-hidden="true"><use href="#i-nada"></use></svg>
       {% blocktranslate %}The project has no dates and neither do its deliverables: there is no
       interval to draw. Give the project a start and an end.{% endblocktranslate %}
     </div>
@@ -233,7 +233,8 @@
         </tr>
       {% empty %}
         <tr>
-          <td colspan="5">{% translate "Nothing open." %}</td>
+          {% translate "Nothing open." as nada_nothingopen %}
+          <td colspan="5">{% include "generic/_nada.html" with texto=nada_nothingopen %}</td>
         </tr>
       {% endfor %}
     </tbody>
@@ -416,7 +417,7 @@
       {% endfor %}
     </div>
   {% else %}
-    <div class="vacio">
+    <div class="vacio"><svg class="icono-en-linea" aria-hidden="true"><use href="#i-nada"></use></svg>
       {% blocktranslate %}No model or drawing published yet. An IFC or a DXF uploaded as a revision
       opens here.{% endblocktranslate %}
     </div>

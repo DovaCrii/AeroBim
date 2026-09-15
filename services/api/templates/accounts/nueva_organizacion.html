@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block titulo %}{% translate "New organisation" %} · AeroBim{% endblock %}
+
+{% block migas %}
+<nav class="migas" aria-label="{% translate 'Breadcrumb' %}">
+  <a href="{% url 'core:organizaciones' %}">{% translate "Organisations" %}</a>
+</nav>
+{% endblock %}
+
+{% block titulo_pagina %}<h1>{% translate "New organisation" %}</h1>{% endblock %}
+
+{% block subtitulo %}
+<p class="subtitulo">
+  {% translate "The company the works belong to. It is the first thing AeroBim needs." %}
+</p>
+{% endblock %}
+
+{% block contenido %}
+
+  {% comment %}
+    **Esto contesta la pregunta que dejó a alguien encallado**: «¿una por persona, o una para
+    todos?». Con el equipo entero en la misma empresa la respuesta es **una sola**, y equivocarse
+    aquí se paga caro: dos organizaciones para la misma gente parten las obras en dos mitades que
+    no se ven entre sí, y no hay pantalla para moverlas.
+  {% endcomment %}
+  <div class="aviso" role="note">
+    <p>
+      {% blocktranslate %}One organisation per company, not per person. Everyone who works at the
+      same company goes into the same one, and they all see the same works — what each person can
+      <em>do</em> is their role, which is chosen account by account.{% endblocktranslate %}
+    </p>
+    <p class="subtitulo" style="margin-bottom: 0">
+      {% blocktranslate %}A second one is for a different company: a client who reviews, an
+      external office. They see nothing of yours unless you share a link with them.{% endblocktranslate %}
+    </p>
+  </div>
+
+  <form method="post">
+    {% csrf_token %}
+    {% include "generic/_campos.html" with form=form %}
+    <div class="acciones">
+      <button type="submit">{% translate "Create organisation" %}</button>
+      <a class="enlace-suave" href="{% url 'core:organizaciones' %}">{% translate "Back" %}</a>
+    </div>
+  </form>
+{% endblock %}

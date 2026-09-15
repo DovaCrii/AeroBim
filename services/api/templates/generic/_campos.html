@@ -1,0 +1,61 @@
+{% load i18n %}
+{% comment %}
+  **Los campos de un formulario, una vez y para las diez pantallas que los tienen.**
+
+  ## Qué reemplaza, y por qué no bastaba
+
+  Hasta hoy las diez pantallas de formulario pintaban `{{ form.as_p }}`, que emite
+  `<p><label>Correo:</label> <input></p>` — **la etiqueta y la caja en la misma línea, y el texto de
+  ayuda a continuación, en el mismo párrafo**. Medido en la pantalla de alta a 1900 px: el rótulo
+  «Correo:» ocupaba 55 px, la caja 190, y la ayuda —«A dónde llegan los avisos. Una dirección real,
+  o no llegarán nunca»— salía a la derecha de la caja y **envolvía por debajo del rótulo del campo
+  siguiente**. O sea que la ayuda de un campo aparecía pegada al de abajo.
+
+  Y las cajas quedaban del ancho que Django le da a cada widget, no del ancho de la columna: cuatro
+  cajas de cuatro anchos distintos, una encima de otra. Es lo que se ve como «plano»: no es falta de
+  adorno, es que **no hay ninguna línea recta que seguir con la vista**.
+
+  ## Lo que hace este
+
+  Una rejilla por campo: rótulo arriba, caja al ancho de la columna, ayuda debajo en gris, error
+  debajo en rojo **y con su icono**. Cuatro filas alineadas a la misma izquierda.
+
+  ## Tres decisiones que parecen detalle y no lo son
+
+  1. **No hay `:` detrás del rótulo.** Con la etiqueta encima de la caja, los dos puntos apuntan a
+     un vacío. Los pone `label_tag`, que es lo que usa `as_p`; aquí se escribe `{{ campo.label }}`
+     dentro de un `<label for>` propio, así que no aparecen. **Ni una cadena traducida cambia** —el
+     `:` nunca estuvo en el `msgid`, lo añadía Django al pintar.
+  2. **Lo obligatorio se dice con la palabra, no con un asterisco.** Un `*` hay que saber qué
+     significa, y un lector de pantalla lee «asterisco». Aquí lo que se marca es lo **opcional**,
+     que es lo menos frecuente, así que la pantalla no se llena de marcas.
+  3. **El error va debajo de su campo, no todo junto arriba.** Una lista de errores en la cabecera
+     obliga a buscar a qué caja corresponde cada uno. Los que no son de ningún campo —los de
+     `clean()`— sí van arriba, porque no tienen caja a la que pegarse.
+{% endcomment %}
+{% for oculto in form.hidden_fields %}{{ oculto }}{% endfor %}
+
+{% if form.non_field_errors %}
+  <div class="aviso error" role="alert">
+    {% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+  </div>
+{% endif %}
+
+<div class="campos">
+  {% for campo in form.visible_fields %}
+    <div class="campo{% if campo.errors %} campo-malo{% endif %}">
+      <label for="{{ campo.id_for_label }}">
+        {{ campo.label }}
+        {% if not campo.field.required %}<span class="campo-opcional">{% translate "optional" %}</span>{% endif %}
+      </label>
+      {{ campo }}
+      {% if campo.help_text %}<p class="campo-ayuda">{{ campo.help_text }}</p>{% endif %}
+      {% for error in campo.errors %}
+        <p class="campo-error" role="alert">
+          <svg class="icono-en-linea" aria-hidden="true"><use href="#i-problema"></use></svg>
+          {{ error }}
+        </p>
+      {% endfor %}
+    </div>
+  {% endfor %}
+</div>

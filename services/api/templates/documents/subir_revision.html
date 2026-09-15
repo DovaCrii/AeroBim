@@ -18,7 +18,7 @@
   {% endcomment %}
   <form method="post" enctype="multipart/form-data" style="max-width: 560px">
     {% csrf_token %}
-    {{ form.as_p }}
+    {% include "generic/_campos.html" with form=form %}
     <button type="submit">{% translate "Upload" %}</button>
   </form>
   <p><a href="{% url 'documents:expediente' entregable.pk %}">{% translate "Back" %}</a></p>

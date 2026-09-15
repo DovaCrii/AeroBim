@@ -33,7 +33,7 @@
       </tbody>
     </table>
   {% else %}
-    <div class="vacio">{% translate "Nothing missing: complete and documented." %}</div>
+    <div class="vacio"><svg class="icono-en-linea" aria-hidden="true"><use href="#i-nada"></use></svg>{% translate "Nothing missing: complete and documented." %}</div>
   {% endif %}
 
   <p class="grupo">{% translate "Revisions" %}</p>
@@ -254,7 +254,8 @@
         </tr>
       {% empty %}
         <tr>
-          <td colspan="6">{% translate "Nothing issued yet." %}</td>
+          {% translate "Nothing issued yet." as nada_nothingissuedyet %}
+          <td colspan="6">{% include "generic/_nada.html" with texto=nada_nothingissuedyet %}</td>
         </tr>
       {% endfor %}
     </tbody>
@@ -283,7 +284,8 @@
         </tr>
       {% empty %}
         <tr>
-          <td colspan="4">{% translate "No observation." %}</td>
+          {% translate "No observation." as nada_noobservation %}
+          <td colspan="4">{% include "generic/_nada.html" with texto=nada_noobservation %}</td>
         </tr>
       {% endfor %}
     </tbody>
@@ -309,7 +311,8 @@
         </tr>
       {% empty %}
         <tr>
-          <td colspan="4">{% translate "No activity." %}</td>
+          {% translate "No activity." as nada_noactivity %}
+          <td colspan="4">{% include "generic/_nada.html" with texto=nada_noactivity %}</td>
         </tr>
       {% endfor %}
     </tbody>
