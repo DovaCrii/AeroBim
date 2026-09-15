@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block titulo %}{% translate "Delete account" %} · AeroBim{% endblock %}
+
+{% block migas %}
+<nav class="migas" aria-label="{% translate 'Breadcrumb' %}">
+  <a href="{% url 'accounts:usuarios-roles' %}">{% translate "Users and roles" %}</a>
+  <span aria-hidden="true">›</span>
+  <a href="{% url 'accounts:editar-cuenta' cuenta.pk %}">{{ cuenta.get_full_name|default:cuenta.username }}</a>
+</nav>
+{% endblock %}
+
+{% block titulo_pagina %}
+<h1>{% blocktranslate with nombre=cuenta.get_full_name|default:cuenta.username %}Delete {{ nombre }}?{% endblocktranslate %}</h1>
+{% endblock %}
+
+{% block contenido %}
+
+  {% comment %}
+    ══════════════════════════════════════════════════════════════════════════════════════════
+    **La pantalla contesta una pregunta antes de ofrecer el botón: ¿esta persona ha dejado algo?**
+
+    Son dos casos que desde la lista se parecen mucho y no tienen nada que ver:
+
+    - La cuenta creada hace dos minutos con el correo mal escrito. No ha entrado, no ha subido
+      nada. Borrarla no borra nada de nadie.
+    - La persona que lleva meses trabajando. Sus revisiones y sus transmittals **son** el registro
+      documental: en ISO 19650 quién emitió es tanto dato como qué se emitió.
+
+    Lo que hace que el segundo caso no pueda ocurrir por accidente es que los enlaces al registro
+    son `PROTECT` y la base se niega. Esta pantalla se limita a preguntarlo antes, para que la
+    respuesta sea una explicación y no un error.
+    ══════════════════════════════════════════════════════════════════════════════════════════
+  {% endcomment %}
+  {% if rastro %}
+    <div class="aviso warning" role="alert">
+      <p><b>{% translate "This account cannot be deleted, and that is on purpose." %}</b></p>
+      <p>
+        {% blocktranslate %}Their work is part of the document register. Who issued a revision is as
+        much a part of the record as the revision itself, so AeroBim will not let it be
+        erased.{% endblocktranslate %}
+      </p>
+      <p>{% translate "What is in their name:" %}</p>
+      <ul>
+        {% for una in rastro %}<li>{{ una }}</li>{% endfor %}
+      </ul>
+    </div>
+
+    <p class="detalle">
+      {% blocktranslate %}What you want here is to disable them: they stop being able to sign in,
+      and everything stays where it is.{% endblocktranslate %}
+    </p>
+    <div class="acciones">
+      <form method="post" action="{% url 'accounts:activar-cuenta' cuenta.pk %}">
+        {% csrf_token %}
+        <button type="submit">{% translate "Disable this account" %}</button>
+      </form>
+      <a class="enlace-suave" href="{% url 'accounts:usuarios-roles' %}">{% translate "Back" %}</a>
+    </div>
+
+  {% else %}
+    <div class="aviso" role="note">
+      <p>
+        {% blocktranslate %}This account has not been used for anything: no revision, no transmittal,
+        no observation, no message. Deleting it removes nothing from the record.{% endblocktranslate %}
+      </p>
+      <p style="margin-bottom: 0">{% translate "It cannot be undone. You would have to create it again." %}</p>
+    </div>
+
+    <dl class="credenciales">
+      <dt>{% translate "Username" %}</dt>
+      <dd><code class="secreto">{{ cuenta.username }}</code></dd>
+      <dt>{% translate "Email" %}</dt>
+      <dd>{{ cuenta.email|default:"—" }}</dd>
+    </dl>
+
+    <div class="acciones">
+      <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="peligro">{% translate "Delete this account" %}</button>
+      </form>
+      <a class="enlace-suave" href="{% url 'accounts:editar-cuenta' cuenta.pk %}">{% translate "Cancel" %}</a>
+    </div>
+  {% endif %}
+{% endblock %}

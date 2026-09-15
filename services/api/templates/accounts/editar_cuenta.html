@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block titulo %}{% translate "Edit account" %} · AeroBim{% endblock %}
+
+{% block migas %}
+<nav class="migas" aria-label="{% translate 'Breadcrumb' %}">
+  <a href="{% url 'accounts:usuarios-roles' %}">{% translate "Users and roles" %}</a>
+</nav>
+{% endblock %}
+
+{% block titulo_pagina %}
+<h1>{% blocktranslate with nombre=cuenta.get_full_name|default:cuenta.username %}Edit {{ nombre }}{% endblocktranslate %}</h1>
+{% endblock %}
+
+{% block subtitulo %}
+<p class="subtitulo">
+  {% blocktranslate with usuario=cuenta.username %}Signs in as <b>{{ usuario }}</b>. That name does not change.{% endblocktranslate %}
+</p>
+{% endblock %}
+
+{% block contenido %}
+
+  {% comment %}
+    **Se dice por qué el nombre de usuario no se toca, y no se calla.**
+
+    Es lo primero que alguien intenta corregir cuando el apellido salió mal —el usuario se deriva
+    del nombre— y si el campo simplemente no está, parece un olvido. Es lo que esa persona escribe
+    para entrar y lo que aparece en la auditoría al lado de cada cosa que hizo: cambiarlo deja a
+    alguien fuera de su propia cuenta y convierte el registro en nombres que ya no existen.
+  {% endcomment %}
+  <div class="aviso" role="note">
+    <p style="margin-bottom: 0">
+      {% blocktranslate %}Everything here can be corrected. The username cannot: it is what this
+      person types to sign in, and what appears next to everything they have done.{% endblocktranslate %}
+    </p>
+  </div>
+
+  <form method="post">
+    {% csrf_token %}
+    {% include "generic/_campos.html" with form=form %}
+    <div class="acciones">
+      <button type="submit">{% translate "Save changes" %}</button>
+      <a class="enlace-suave" href="{% url 'accounts:usuarios-roles' %}">{% translate "Cancel" %}</a>
+    </div>
+  </form>
+
+  {% comment %}
+    **Las dos salidas, al pie y separadas del formulario.**
+
+    Van aquí y no en la fila de la lista por lo mismo: son cosas que se hacen mirando a una persona
+    concreta, no recorriendo una tabla. Y no se le ofrecen a quien está mirando su propia cuenta —
+    desactivarse es quedarse fuera en el acto.
+  {% endcomment %}
+  {% if not es_uno_mismo %}
+    <section class="zona-delicada" aria-labelledby="titulo-salidas">
+      <h2 id="titulo-salidas">{% translate "If this person is leaving" %}</h2>
+
+      {% if cuenta.is_active %}
+        <p class="detalle">
+          {% blocktranslate %}Disabling is what you almost always want: they stop being able to sign
+          in, and everything they uploaded or wrote stays in the record with their name on
+          it.{% endblocktranslate %}
+        </p>
+        <form method="post" action="{% url 'accounts:activar-cuenta' cuenta.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="secundario">{% translate "Disable this account" %}</button>
+        </form>
+      {% else %}
+        <p class="detalle">
+          {% translate "This account is disabled: they cannot sign in." %}
+        </p>
+        <form method="post" action="{% url 'accounts:activar-cuenta' cuenta.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="secundario">{% translate "Let them sign in again" %}</button>
+        </form>
+      {% endif %}
+
+      {% if puede_borrar %}
+        <p class="detalle" style="margin-top: 18px">
+          {% blocktranslate %}And if you just created it by mistake and it has not been used for
+          anything, it can be deleted outright.{% endblocktranslate %}
+        </p>
+        <p><a class="enlace-suave" href="{% url 'accounts:borrar-cuenta' cuenta.pk %}">
+          {% translate "Delete it instead…" %}
+        </a></p>
+      {% endif %}
+    </section>
+  {% endif %}
+{% endblock %}

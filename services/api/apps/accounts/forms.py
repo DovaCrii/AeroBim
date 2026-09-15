@@ -137,6 +137,8 @@ class NuevaCuentaForm(forms.Form):
     def clean_correo(self):
         """Dos cuentas con el mismo correo rompen los avisos **sin dar ningún error**.
 
+        Ver también `EditarCuentaForm.clean_correo`, que hace lo mismo excluyéndose a sí misma.
+
         `notify.py` manda a `usuario.email`; con el correo repetido, la misma persona recibe los
         avisos de dos cuentas y no sabe cuál es la suya. Django no lo impide por su cuenta: el campo
         `email` del usuario **no es único**.
@@ -176,3 +178,115 @@ class NuevaCuentaForm(forms.Form):
             )
             ClaveProvisional.objects.create(usuario=usuario, creada_por=autor)
         return usuario, clave
+
+
+class EditarCuentaForm(forms.Form):
+    """Corregir una cuenta. **Un apellido mal escrito no se arreglaba por ninguna vía.**
+
+    ## Por qué hacía falta
+
+    Se podía crear una cuenta y generarle otra clave, y nada más. Un nombre con una letra de menos,
+    un correo mal tecleado —que es **el que decide si le llegan los avisos**— o un rol equivocado se
+    quedaban así para siempre. El único camino era el `/admin/` técnico, que dejó de publicarse el
+    2026-09-15 porque AeroBim pasó a estar en internet.
+
+    Y el correo mal escrito es el peor de los tres, porque **no falla**: la aplicación dice
+    «enviado», el mensaje se va a una dirección que no existe, y la persona no se entera de nada.
+
+    ## Lo que se puede cambiar, y lo que no
+
+    Nombre, apellido, correo, rol y organización. **El nombre de usuario no**: es lo que esa persona
+    escribe para entrar y lo que aparece en la auditoría al lado de cada cosa que hizo. Cambiarlo
+    deja a alguien fuera de su propia cuenta y convierte el registro en una lista de nombres que ya
+    no existen.
+    """
+
+    nombre = forms.CharField(label=_("First name"), max_length=150)
+    apellido = forms.CharField(label=_("Last name"), max_length=150)
+    correo = forms.EmailField(
+        label=_("Email"),
+        help_text=_("Where the notifications go. A real address, or they will never arrive."),
+    )
+    organizacion = forms.ModelChoiceField(
+        label=_("Organisation"),
+        queryset=Organizacion.objects.none(),
+        help_text=_("What this person will be able to see. Nothing outside it."),
+    )
+    rol = forms.ChoiceField(label=_("Role"), choices=[])
+
+    def __init__(self, *args, cuenta, autor=None, **kwargs):
+        """`cuenta` es la que se edita; `autor` acota las organizaciones ofrecidas a las suyas."""
+        self.cuenta = cuenta
+        super().__init__(*args, **kwargs)
+        from apps.core.tenancy import organizaciones_de
+
+        # **El mismo acotado que el alta, y por el mismo motivo**: sin él, quien edita puede mover a
+        # alguien a la empresa de otro eligiéndola en la lista — y la lista misma le enseña qué
+        # otras empresas hay.
+        self.fields["organizacion"].queryset = organizaciones_de(autor)
+        self.fields["rol"].choices = [
+            (nombre, f"{nombre} — {roles.DESCRIPCIONES[nombre]}") for nombre in ASIGNABLES
+        ]
+        # Los valores de partida son los que tiene hoy: un formulario de editar que sale vacío
+        # obliga a reescribir lo que estaba bien, y es como se pierde un dato al corregir otro.
+        if not self.is_bound:
+            self.initial.setdefault("nombre", cuenta.first_name)
+            self.initial.setdefault("apellido", cuenta.last_name)
+            self.initial.setdefault("correo", cuenta.email)
+            actual = cuenta.organizaciones.first()
+            if actual is not None:
+                self.initial.setdefault("organizacion", actual.pk)
+            grupo = cuenta.groups.filter(name__in=ASIGNABLES).first()
+            if grupo is not None:
+                self.initial.setdefault("rol", grupo.name)
+
+    def clean_correo(self):
+        """Lo mismo que en el alta, **excluyéndose a sí misma**.
+
+        Sin el `exclude`, guardar la cuenta sin tocar el correo se rechazaría por chocar consigo
+        misma: «ya hay una cuenta con ese correo», que es la suya. Es el error clásico de copiar una
+        validación de unicidad de un formulario de crear a uno de editar.
+        """
+        correo = self.cleaned_data["correo"].strip().lower()
+        otras = get_user_model().objects.filter(email__iexact=correo).exclude(pk=self.cuenta.pk)
+        if otras.exists():
+            raise forms.ValidationError(_("There is already an account with that email."))
+        return correo
+
+    def guardar(self):
+        """Aplica los cambios. Devuelve **qué cambió**, para el registro y para el mensaje."""
+        from django.db import transaction
+
+        from apps.core.models import Membresia
+
+        cuenta = self.cuenta
+        cambios: list[str] = []
+        with transaction.atomic():
+            for campo, atributo, etiqueta in (
+                ("nombre", "first_name", _("first name")),
+                ("apellido", "last_name", _("last name")),
+                ("correo", "email", _("email")),
+            ):
+                nuevo = self.cleaned_data[campo].strip()
+                if getattr(cuenta, atributo) != nuevo:
+                    setattr(cuenta, atributo, nuevo)
+                    cambios.append(str(etiqueta))
+            cuenta.save(update_fields=["first_name", "last_name", "email"])
+
+            rol = self.cleaned_data["rol"]
+            if not cuenta.groups.filter(name=rol).exists():
+                # **Se quitan solo los roles asignables.** `cuenta.groups.clear()` se llevaría por
+                # delante `Direccion` —que no es un rol sino la lista de quién recibe el resumen— y
+                # alguien dejaría de recibirlo por haberle corregido un apellido.
+                cuenta.groups.remove(*Group.objects.filter(name__in=ASIGNABLES))
+                cuenta.groups.add(Group.objects.get(name=rol))
+                cambios.append(str(_("role")))
+
+            organizacion = self.cleaned_data["organizacion"]
+            if not cuenta.organizaciones.filter(pk=organizacion.pk).exists():
+                # Borrar y crear, no `update`: `Membresia` lleva su propia restricción de unicidad
+                # y su `rol` interno, y moverla a mano dejaría el estado a medias si algo falla.
+                Membresia.objects.filter(usuario=cuenta).delete()
+                Membresia.objects.create(organizacion=organizacion, usuario=cuenta)
+                cambios.append(str(_("organisation")))
+        return cambios

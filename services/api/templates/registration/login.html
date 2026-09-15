@@ -28,6 +28,19 @@
       del contenido se veria un destello del tema equivocado en cada carga.
     {% endcomment %}
     <script src="{% static 'js/tema.js' %}"></script>
+    {% comment %}
+      **El ojo del campo de contraseña, y esta es la pantalla donde más falta hace.**
+
+      Esta plantilla **no extiende `base.html`** —es una página entera por su cuenta— así que
+      ponerlo allí no llegaba aquí. Comprobado en el navegador: de los tres scripts del portal, en
+      la puerta solo cargaba `tema.js`.
+
+      Y aquí es donde importa: la clave que se teclea son dieciséis caracteres generados que
+      alguien acaba de dictar, contra un error genérico —«usuario o contraseña incorrectos», a
+      propósito para no confirmar qué usuarios existen— y contra `axes`, que bloquea a los cinco
+      intentos. El porqué largo está en `ver-la-clave.js`.
+    {% endcomment %}
+    <script src="{% static 'js/ver-la-clave.js' %}" defer></script>
   </head>
   <body class="puerta">
     <div class="portada">

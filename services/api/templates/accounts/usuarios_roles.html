@@ -27,6 +27,37 @@
 {% endblock %}
 
 {% block contenido %}
+  {% comment %}
+    ══════════════════════════════════════════════════════════════════════════════════════════
+    **Qué es cada rol, en la pantalla donde se elige uno.**
+
+    La descripción estaba solo dentro del desplegable del alta —«Coordinador BIM — Crea proyectos
+    y entregables, asigna…»— y ahí se lee una vez, recortada por el ancho del control, en el
+    momento de decidir y no antes. Desde la lista, un rol era **una palabra en una columna**.
+
+    Aquí van los cuatro juntos, que es lo que hace la pregunta contestable: no «¿qué es un
+    revisor?» sino **«¿cuál de estos cuatro es esta persona?»**, que es otra cosa y se responde
+    comparando.
+
+    Y lo que va primero es lo que más tranquiliza y nadie pregunta hasta que duda: **el visor lo
+    abren los cuatro**. El rol decide qué se puede *cambiar*, nunca qué se puede *mirar*.
+    ══════════════════════════════════════════════════════════════════════════════════════════
+  {% endcomment %}
+  <details class="que-hace-cada-rol">
+    <summary>{% translate "What each role can do" %}</summary>
+    <p class="detalle">
+      {% blocktranslate %}All four open the model viewer and read the register of the works they
+      belong to. The role decides what they can <b>change</b>, never what they can
+      <b>see</b>.{% endblocktranslate %}
+    </p>
+    <dl class="roles-explicados">
+      {% for nombre, descripcion in roles_explicados %}
+        <dt>{{ nombre }}</dt>
+        <dd>{{ descripcion }}</dd>
+      {% endfor %}
+    </dl>
+  </details>
+
   <table>
     <thead>
       <tr>
@@ -36,6 +67,7 @@
         <th scope="col">{% translate "Roles" %}</th>
         <th scope="col">{% translate "Status" %}</th>
         {% if puede_crear %}<th scope="col">{% translate "Password" %}</th>{% endif %}
+        {% if puede_editar %}<th scope="col"><span class="visualmente-oculto">{% translate "Actions" %}</span></th>{% endif %}
       </tr>
     </thead>
     <tbody>
@@ -67,10 +99,31 @@
               </form>
             </td>
           {% endif %}
+          {% comment %}
+            **Una sola salida por fila, y lleva a la ficha.** Desactivar y borrar viven dentro, no
+            aquí: son decisiones que se toman mirando a una persona, y un botón de borrar en una
+            tabla de doce filas es un borrado de la fila de al lado.
+
+            Y no se ofrece sobre uno mismo: lo único que se puede hacer con la propia cuenta desde
+            aquí sería equivocarse.
+          {% endcomment %}
+          {% if puede_editar %}
+            <td>
+              {% if usuario.pk != request.user.pk %}
+                <a href="{% url 'accounts:editar-cuenta' usuario.pk %}">{% translate "Edit" %}</a>
+              {% else %}
+                <span class="detalle">{% translate "you" %}</span>
+              {% endif %}
+            </td>
+          {% endif %}
         </tr>
       {% empty %}
         <tr>
-          <td colspan="6" class="vacio"><svg class="icono-en-linea" aria-hidden="true"><use href="#i-nada"></use></svg>
+          {% comment %}
+            `colspan` generoso a propósito: pasarse no rompe nada y quedarse corto deja la celda
+            sin cubrir la fila, que es como la única frase de la pantalla acaba torcida.
+          {% endcomment %}
+          <td colspan="7" class="vacio"><svg class="icono-en-linea" aria-hidden="true"><use href="#i-nada"></use></svg>
             {% translate "No accounts in your organisations yet." %}
           </td>
         </tr>

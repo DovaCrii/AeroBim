@@ -15,8 +15,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import TemplateView, View
 
-from apps.accounts import altas
-from apps.accounts.forms import NuevaCuentaForm, NuevaOrganizacionForm
+from apps.accounts import altas, roles
+from apps.accounts.forms import EditarCuentaForm, NuevaCuentaForm, NuevaOrganizacionForm
 from apps.accounts.modulos import modulos_para
 from apps.core.audit import set_audit_context
 from apps.core.exports import CsvExportMixin
@@ -367,6 +367,13 @@ class UsuariosRolesView(ModelViewPermissionRequiredMixin, CsvExportMixin, Templa
         contexto = super().get_context_data(**kwargs)
         contexto["usuarios"] = list(self._filas())
         contexto["puede_crear"] = self.request.user.has_perm("auth.add_user")
+        contexto["puede_editar"] = self.request.user.has_perm("auth.change_user")
+        # **Los mismos cuatro que ofrece el alta y en el mismo orden**, sacados de la misma
+        # constante: una lista escrita a mano en la plantilla se separa de `ASIGNABLES` en cuanto
+        # alguien añada un rol, y entonces la pantalla explica cuatro y el desplegable ofrece cinco.
+        from apps.accounts.forms import ASIGNABLES
+
+        contexto["roles_explicados"] = [(n, roles.DESCRIPCIONES[n]) for n in ASIGNABLES]
         return contexto
 
 
@@ -580,11 +587,224 @@ class ReiniciarClaveView(ModelPermissionRequiredMixin, View):
             usuario=usuario, defaults={"creada_por": request.user}
         )
         set_audit_context(request, usuario, action="reiniciar_clave")
+        # **El contexto entero y no tres claves sueltas**, que es el defecto que esto arregla.
+        #
+        # Esta vista pinta la plantilla del alta para enseñar la clave nueva, y desde que esa
+        # plantilla decide si hay organizaciones, faltarle la clave `hay_organizaciones` la hacía
+        # **falsa**: reiniciar una clave enseñaba el aviso «Primero, la organización» —con su botón
+        # de crear— en una instalación que tiene organizaciones de sobra. O sea que la pantalla
+        # contradecía a la propia lista desde la que se había pulsado.
+        #
+        # Es el riesgo de dos vistas que pintan la misma plantilla: la que la conoce menos se
+        # queda atrás sin que nada falle. Se comparte el constructor del contexto.
         return render(
             request,
             "accounts/nueva_cuenta.html",
-            {"form": NuevaCuentaForm(autor=request.user), "creada": usuario, "clave": clave},
+            NuevaCuentaView().contexto(request, creada=usuario, clave=clave),
         )
+
+
+class CuentaDelEquipoMixin(ModelPermissionRequiredMixin):
+    """Las tres guardas que toda vista que **toca** una cuenta ajena necesita, escritas una vez.
+
+    Se repetían a mano en cada vista nueva, que es como se acaba olvidando una. Y las tres protegen
+    cosas distintas:
+
+    1. **Por el listado acotado y no por `pk`.** Sin esto, `/usuarios-y-roles/57/editar/` deja
+       cambiarle el correo a alguien de otra empresa — y con el correo cambiado, reiniciarle la
+       clave y entrar en su cuenta. Es la invariante que ya estuvo rota en siete vistas.
+    2. **Un superusuario no lo toca quien no lo es.** Si no, quien puede editar cuentas se pone el
+       correo de la cuenta del administrador y se reinicia la clave: escalada en dos clics.
+    3. **Nadie se toca a sí mismo.** Desactivarse o borrarse es quedarse fuera en el acto, y si
+       era la única cuenta que administra, dejar el sistema sin quién lo administre.
+    """
+
+    permission_action = "change"
+
+    @property
+    def model(self):
+        return get_user_model()
+
+    def cuenta(self, request, pk):
+        usuario = get_object_or_404(usuarios_visibles(request.user), pk=pk)
+        if usuario.is_superuser and not request.user.is_superuser:
+            raise Http404
+        return usuario
+
+    @staticmethod
+    def no_uno_mismo(request, usuario) -> bool:
+        return usuario.pk != request.user.pk
+
+
+class EditarCuentaView(CuentaDelEquipoMixin, View):
+    """Corregir una cuenta: nombre, apellido, correo, rol y organización.
+
+    **No se podía, por ninguna vía.** La lista dejaba crear y generar otra clave, y nada más; el
+    `/admin/` técnico, que era el camino, dejó de publicarse el mismo día que AeroBim salió a
+    internet. Una letra de menos en un apellido se quedaba para siempre.
+
+    Y el correo era el caso caro: mal escrito **no falla**. La aplicación dice «enviado», el aviso
+    se va a una dirección que no existe, y nadie se entera hasta que alguien pregunta por qué no le
+    llegó nada.
+    """
+
+    template_name = "accounts/editar_cuenta.html"
+
+    def contexto(self, request, cuenta, form=None):
+        return {
+            "cuenta": cuenta,
+            "form": form or EditarCuentaForm(cuenta=cuenta, autor=request.user),
+            "es_uno_mismo": not self.no_uno_mismo(request, cuenta),
+            # El enlace a borrar solo si el permiso existe: ofrecerlo y que termine en 403 enseña a
+            # probar puertas, que es la regla que ya ordena el portal entero.
+            "puede_borrar": request.user.has_perm("auth.delete_user"),
+        }
+
+    def get(self, request, *args, **kwargs):
+        cuenta = self.cuenta(request, kwargs["pk"])
+        return render(request, self.template_name, self.contexto(request, cuenta))
+
+    def post(self, request, *args, **kwargs):
+        cuenta = self.cuenta(request, kwargs["pk"])
+        form = EditarCuentaForm(request.POST, cuenta=cuenta, autor=request.user)
+        if not form.is_valid():
+            return render(request, self.template_name, self.contexto(request, cuenta, form))
+
+        cambios = form.guardar()
+        set_audit_context(request, cuenta, action="editar_cuenta")
+        if cambios:
+            messages.success(
+                request,
+                _("%(nombre)s updated: %(cambios)s.")
+                % {
+                    "nombre": cuenta.get_full_name() or cuenta.username,
+                    "cambios": ", ".join(cambios),
+                },
+            )
+        else:
+            # **Se dice, no se calla.** Un «guardado» sobre cero cambios hace dudar de si se guardó.
+            messages.info(request, _("Nothing changed: it was already like that."))
+        return redirect("accounts:usuarios-roles")
+
+
+class ActivarCuentaView(CuentaDelEquipoMixin, View):
+    """Desactivar a alguien que se va, o volver a activarlo.
+
+    **Es lo que hay que hacer casi siempre, y no borrar.** Quien subió una revisión o cerró un
+    hallazgo forma parte del registro documental: en ISO 19650 *quién emitió* es tanto dato como
+    *qué se emitió*. Una cuenta desactivada no entra y sigue estando al lado de lo que hizo.
+
+    La columna «Estado» ya pintaba «Desactivado» desde el primer día —y nada podía ponerlo—.
+    """
+
+    def post(self, request, *args, **kwargs):
+        cuenta = self.cuenta(request, kwargs["pk"])
+        if not self.no_uno_mismo(request, cuenta):
+            # 403 y no un mensaje: no es un aviso, es que la operación no existe para este caso.
+            raise Http404
+
+        cuenta.is_active = not cuenta.is_active
+        cuenta.save(update_fields=["is_active"])
+        set_audit_context(
+            request, cuenta, action="activar_cuenta" if cuenta.is_active else "desactivar_cuenta"
+        )
+        quien = cuenta.get_full_name() or cuenta.username
+        if cuenta.is_active:
+            messages.success(request, _("%(nombre)s can sign in again.") % {"nombre": quien})
+        else:
+            messages.success(
+                request,
+                _("%(nombre)s can no longer sign in. Everything they did stays in the record.")
+                % {"nombre": quien},
+            )
+        return redirect("accounts:usuarios-roles")
+
+
+class BorrarCuentaView(CuentaDelEquipoMixin, View):
+    """Borrar de verdad una cuenta **que no ha dejado rastro**.
+
+    ## Por qué esto no es un botón en la fila
+
+    Porque casi nunca es lo correcto, y cuando lo es, es inofensivo. Son dos casos muy distintos y
+    se parecen mucho desde la lista:
+
+    - **La cuenta recién creada con un dato mal**: no ha entrado, no ha subido nada, no ha escrito
+      nada. Borrarla no borra nada de nadie. Es lo que pide quien acaba de equivocarse tecleando.
+    - **La persona que lleva meses trabajando**: sus revisiones, sus transmittals y sus comentarios
+      **son el registro documental**. Borrarla sería borrar quién emitió qué.
+
+    Lo que hace que esto se pueda ofrecer sin miedo es que el segundo caso **no puede ocurrir por
+    accidente**: los enlaces que llevan al registro son `PROTECT`, así que la base se niega. Esta
+    pantalla se limita a preguntárselo antes, para que la respuesta sea una explicación y no un
+    error 500.
+
+    ## Y por eso hay una pantalla intermedia
+
+    `GET` enseña qué se va a borrar y qué lo impide; `POST` lo hace. Un borrado a un clic desde una
+    lista de doce filas es un borrado de la fila de al lado.
+    """
+
+    permission_action = "delete"
+    template_name = "accounts/borrar_cuenta.html"
+
+    def rastro(self, cuenta) -> list[str]:
+        """Lo que esta persona ha dejado en el registro, contado. **Vacío quiere decir borrable.**
+
+        Se pregunta con `exists()` por cada tipo en vez de intentar borrar y atrapar el
+        `ProtectedError`, porque el error dice *que* algo protege y no *qué*: «no se puede borrar»
+        sin nombrar el motivo obliga a adivinar.
+        """
+        from apps.documents.models import Comentario, Entregable, Observacion, Revision, Transmittal
+
+        huellas = (
+            (Revision.objects.filter(subida_por=cuenta), _("revisions uploaded")),
+            (Entregable.objects.filter(responsable=cuenta), _("deliverables they own")),
+            (Transmittal.objects.filter(emisor=cuenta), _("transmittals issued")),
+            (Observacion.objects.filter(autor=cuenta), _("observations opened")),
+            (Observacion.objects.filter(responsable=cuenta), _("observations they own")),
+            (Comentario.objects.filter(autor=cuenta), _("messages in threads")),
+        )
+        return [
+            f"{cuantos} {etiqueta}"
+            for consulta, etiqueta in huellas
+            if (cuantos := consulta.count())
+        ]
+
+    def get(self, request, *args, **kwargs):
+        cuenta = self.cuenta(request, kwargs["pk"])
+        return render(
+            request,
+            self.template_name,
+            {
+                "cuenta": cuenta,
+                "rastro": self.rastro(cuenta),
+                "es_uno_mismo": not self.no_uno_mismo(request, cuenta),
+            },
+        )
+
+    def post(self, request, *args, **kwargs):
+        cuenta = self.cuenta(request, kwargs["pk"])
+        if not self.no_uno_mismo(request, cuenta):
+            raise Http404
+
+        rastro = self.rastro(cuenta)
+        if rastro:
+            # **No se intenta y se falla: no se intenta.** Llegar aquí con rastro significa que la
+            # pantalla de confirmación se saltó o que alguien trabajó entre el `GET` y el `POST`.
+            messages.error(
+                request,
+                _("%(nombre)s cannot be deleted: their work is part of the record. Disable them.")
+                % {"nombre": cuenta.get_full_name() or cuenta.username},
+            )
+            return redirect("accounts:borrar-cuenta", pk=cuenta.pk)
+
+        quien = cuenta.get_full_name() or cuenta.username
+        # **La auditoría se escribe antes de borrar.** `AuditEvent.actor` es `SET_NULL` y el objeto
+        # tiene que existir para poder nombrarlo: después del `delete()` ya no hay a qué apuntar.
+        set_audit_context(request, cuenta, action="borrar_cuenta")
+        cuenta.delete()
+        messages.success(request, _("%(nombre)s deleted.") % {"nombre": quien})
+        return redirect("accounts:usuarios-roles")
 
 
 class CambiarClaveView(auth_views.PasswordChangeView):
