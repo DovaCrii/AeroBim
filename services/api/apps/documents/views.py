@@ -94,6 +94,37 @@ def revisiones_visibles(user):
     return solo_publicadas(consulta, user)
 
 
+def observacion_visible(request, pk) -> Observacion:
+    """La observación, **o 404 si es de otra organización**. Levanta `Http404`, como su nombre pide.
+
+    ## Por qué esto existe en vez de `get_object_or_404(Observacion, pk=…)`
+
+    Siete vistas usaban esa segunda forma. `ModelPermissionRequiredMixin` comprueba el **permiso** y
+    nada más: `change_observacion` dice que esta persona puede cerrar hallazgos, no *cuáles*. Sin
+    acotar, el `pk` de la URL alcanzaba cualquier fila de la tabla.
+
+    **Medido antes de escribir esto** (`tests/test_no_se_cruzan_las_organizaciones.py`), con una
+    cuenta de una organización actuando sobre un hallazgo de otra:
+
+    | | |
+    | --- | --- |
+    | comentar | **escribió** en el hilo ajeno, y de paso lo pasó a «respondida» |
+    | cerrar | **cerró** el hallazgo ajeno |
+    | cambiar idoneidad | **aprobó** un documento de obra ajeno, de `A` a `B` |
+    | repartir, etiquetar | 302 sin efecto: el formulario rechaza un valor de fuera de la obra |
+
+    Los dos últimos no escribían **por casualidad**: lo impide la validación del formulario, que
+    está ahí por otro motivo. Pasan por aquí igual — un acotado que depende de que otro control no
+    cambie no es un acotado.
+
+    `Observacion` **sí** lleva el campo `organizacion`, así que aquí el ayudante genérico sirve; es
+    `Revision` y `Comentario` los que no, y por eso tienen su propio camino.
+    """
+    return get_object_or_404(
+        scope_queryset_to_organizacion(Observacion.objects.all(), request.user), pk=pk
+    )
+
+
 class EntregablesView(
     ModelViewPermissionRequiredMixin,
     OrganizacionScopedQuerysetMixin,
@@ -310,16 +341,35 @@ class SubirRevisionView(ModelPermissionRequiredMixin, View):
 
 
 class DescargarRevisionView(ModelViewPermissionRequiredMixin, View):
+    """Los bytes de una revisión, **acotados por organización de verdad**.
+
+    ## Lo que había aquí, y por qué no protegía nada
+
+    Esta vista acotaba así, con el comentario «el acotado por organización va por el entregable»:
+
+    ```python
+    if not Entregable.objects.filter(pk=revision.entregable_id).exists():
+        raise Http404
+    ```
+
+    `Entregable.objects` es el manager normal de Django —`BaseModel` no declara ninguno propio—, así
+    que esa línea pregunta «¿existe?», nunca «¿puede verlo esta persona?». Para un entregable que se
+    acaba de leer por su clave ajena, **la respuesta es siempre sí**.
+
+    **Medido, no leído** (`tests/test_no_se_cruzan_las_organizaciones.py`): una cuenta de la
+    organización A con `view_revision` se descargaba el plano de la organización B sabiendo su UUID
+    — y ese UUID viaja en los enlaces de los correos de transmittal. **200, con el archivo dentro.**
+
+    Ahora pasa por `revisiones_visibles`, que ya existía a treinta líneas de aquí y lleva la regla
+    escrita: filtra por `entregable__organizacion_id` porque sabe que `Revision` **no lleva el
+    campo** y que `scope_queryset_to_organizacion` devuelve intacto lo que no lo lleva. Su propio
+    docstring lo dice —«confiar en él dejaría el hueco abierto»— y el hueco estaba aquí.
+    """
+
     model = Revision
 
     def get(self, request, *args, **kwargs):
-        revision = get_object_or_404(
-            solo_publicadas(Revision.objects.select_related("entregable"), request.user),
-            pk=kwargs["pk"],
-        )
-        # El acotado por organización va por el entregable, que es quien lo lleva.
-        if not Entregable.objects.filter(pk=revision.entregable_id).exists():
-            raise Http404
+        revision = get_object_or_404(revisiones_visibles(request.user), pk=kwargs["pk"])
         try:
             archivo = storage.abrir(revision.clave_archivo)
         except (OSError, storage.CargaRechazada) as error:
@@ -1106,7 +1156,7 @@ class ComentarObservacionView(ModelPermissionRequiredMixin, View):
     permission_action = "add"
 
     def post(self, request, *args, **kwargs):
-        observacion = get_object_or_404(Observacion, pk=kwargs["pk"])
+        observacion = observacion_visible(request, kwargs["pk"])
         # `request.FILES` hace falta desde `F12.11`: sin él el adjunto no llega y el formulario
         # valida igual, o sea que la imagen se perdería en silencio.
         form = ComentarioForm(request.POST, request.FILES)
@@ -1179,6 +1229,13 @@ class ImagenDeComentarioView(ModelViewPermissionRequiredMixin, View):
     organización a través de la observación, que es quien la lleva — el mismo camino que la descarga
     de una revisión.
 
+    **Y ese acotado estaba escrito mal.** Decía `Observacion.objects.filter(pk=…).exists()`, con un
+    comentario que afirmaba que «`Observacion` pasa por `scope_queryset_to_organizacion`, así que un
+    id de otra organización no existe». Era falso: `.objects` es el manager normal de Django —quien
+    acota es la **vista**, no el modelo— así que esa línea comprobaba que la fila existiera, que es
+    justo lo que ya se sabía. Medido en `tests/test_no_se_cruzan_las_organizaciones.py`: la foto de
+    obra adjunta a un hallazgo ajeno salía con **200**.
+
     **Y el permiso es `view_observacion`, no `view_comentario`**, aunque lo que se sirve cuelgue de
     un comentario. El motivo lo enseñó una prueba: la ficha del hallazgo dibuja el hilo entero a
     quien puede ver la observación, sin pedir `view_comentario` por separado. Con el permiso más
@@ -1194,9 +1251,11 @@ class ImagenDeComentarioView(ModelViewPermissionRequiredMixin, View):
         )
         if not comentario.imagen:
             raise Http404
-        # El acotado por organización va por la observación, que es quien la lleva. `Observacion`
-        # pasa por `scope_queryset_to_organizacion`, así que un id de otra organización no existe.
-        if not Observacion.objects.filter(pk=comentario.observacion_id).exists():
+        # El acotado por organización va por la observación, que es quien lleva el campo — y por eso
+        # aquí sí sirve `scope_queryset_to_organizacion`: el ayudante devuelve intacto lo que no lo
+        # lleva, y `Observacion` lo lleva. Es la línea que antes no acotaba nada.
+        visibles = scope_queryset_to_organizacion(Observacion.objects.all(), request.user)
+        if not visibles.filter(pk=comentario.observacion_id).exists():
             raise Http404
 
         try:
@@ -1235,7 +1294,7 @@ class EtiquetarObservacionView(ModelPermissionRequiredMixin, View):
     permission_action = "change"
 
     def post(self, request, *args, **kwargs):
-        observacion = get_object_or_404(Observacion, pk=kwargs["pk"])
+        observacion = observacion_visible(request, kwargs["pk"])
         form = EtiquetasForm(request.POST, proyecto=observacion.proyecto)
         if not form.is_valid():
             messages.error(request, _("Those tags do not belong to this project."))
@@ -1262,7 +1321,7 @@ class RepartirObservacionView(ModelPermissionRequiredMixin, View):
     permission_action = "change"
 
     def post(self, request, *args, **kwargs):
-        observacion = get_object_or_404(Observacion, pk=kwargs["pk"])
+        observacion = observacion_visible(request, kwargs["pk"])
         # Quien la tenia, leido **antes** de que el formulario la modifique: `form.save()` escribe
         # sobre la misma instancia, asi que despues ya no se puede saber de donde venia.
         antes = observacion.responsable
@@ -1307,7 +1366,7 @@ class CerrarObservacionView(ModelPermissionRequiredMixin, View):
     permission_action = "change"
 
     def post(self, request, *args, **kwargs):
-        observacion = get_object_or_404(Observacion, pk=kwargs["pk"])
+        observacion = observacion_visible(request, kwargs["pk"])
         form = CierreForm(request.POST)
         if not form.is_valid():
             messages.error(request, _("An observation is not closed without saying how."))
@@ -1883,13 +1942,20 @@ class RevisarInterferenciasView(ModelPermissionRequiredMixin, View):
 
 
 class CambiarIdoneidadView(ModelPermissionRequiredMixin, View):
-    """El trabajo del revisor: decir para qué sirve el documento."""
+    """El trabajo del revisor: decir para qué sirve el documento.
+
+    **Es la firma del registro**: la idoneidad dice si ese plano se puede usar para construir, y por
+    eso el acotado por organización aquí no es una formalidad. Iba con `Revision.objects`, o sea sin
+    acotar, y **medido salió que se podía aprobar un documento de otra empresa** —de `A` a `B`— con
+    solo conocer el UUID de su revisión. Va por `revisiones_visibles`, que sabe que `Revision` no
+    lleva el campo `organizacion` y filtra por el de su entregable.
+    """
 
     model = Revision
     permission_action = "change"
 
     def post(self, request, *args, **kwargs):
-        revision = get_object_or_404(Revision.objects.select_related("entregable"), pk=kwargs["pk"])
+        revision = get_object_or_404(revisiones_visibles(request.user), pk=kwargs["pk"])
         form = IdoneidadForm(request.POST)
         if form.is_valid():
             revision.idoneidad = form.cleaned_data["idoneidad"]
