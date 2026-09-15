@@ -268,6 +268,71 @@ def test_nada_de_esto_se_indexa(client, enlace, tmp_path):
         assert "noindex" in respuesta["X-Robots-Tag"]
 
 
+@pytest.mark.django_db
+def test_un_pdf_compartido_abre_en_el_visor_de_documentos(
+    client, organizacion, proyecto, disciplina, proyectista, tmp_path, settings
+):
+    """**Compartir un plano es el caso más común, y era el que estaba roto.**
+
+    En obra un plano se manda en PDF, así que esta es la mitad del uso — y la primera versión del
+    enlace solo enseñó a leer el testigo al visor de tres dimensiones. `PaginaCompartidaView` sí
+    servía `documento.html`, pero ese visor únicamente sabía leer `?revision=<uuid>` y pedía
+    `/api/`, que a quien no ha entrado le contesta 401.
+
+    Resultado: quien recibía el enlace de un plano veía **«La dirección no dice qué documento
+    abrir»** — un mensaje que además le echa la culpa a él por una dirección que le mandamos
+    nosotros. Se encontró releyendo el código antes de fusionar, no con una prueba.
+
+    Lo que se fija aquí es la mitad que el servidor decide: **que un PDF vaya a la página del visor
+    de documentos y no a la del modelo**. La otra mitad —que ese visor lea el testigo— vive en
+    `apps/web/src/documento.tsx` y se comprobó abriendo un enlace de verdad sin ninguna cookie.
+    """
+    pdf = b"%PDF-1.4\n% un plano de obra\n%%EOF\n"
+    entregable = Entregable.objects.create(
+        organizacion=organizacion,
+        proyecto=proyecto,
+        disciplina=disciplina,
+        codigo="716-LCD-AR-P-005",
+        titulo="Planta piso 5",
+        responsable=proyectista,
+        peso=3,
+    )
+    with override_settings(DOCUMENTS_DIR=tmp_path):
+        clave = storage.clave_para(
+            proyecto_codigo=proyecto.codigo,
+            entregable_codigo=entregable.codigo,
+            sha256=hashlib.sha256(pdf).hexdigest(),
+            extension="pdf",
+        )
+        storage.guardar(clave, pdf)
+        revision = Revision.objects.create(
+            entregable=entregable,
+            correlativo="A1",
+            idoneidad=Idoneidad.A,
+            subida_por=proyectista,
+            clave_archivo=clave,
+            nombre_original="Planta piso 5.pdf",
+            sha256=hashlib.sha256(pdf).hexdigest(),
+            es_vigente=True,
+        )
+        enlace = EnlaceCompartido.objects.create(
+            revision=revision,
+            para="el mandante",
+            expira_en=timezone.now() + timedelta(days=7),
+        )
+
+        # El build puede no estar en el equipo de quien corre la suite; lo que se mide es **qué
+        # página elige el servidor**, y eso se ve en la ficha sin depender de `dist/`.
+        ficha = client.get(reverse("compartido-ficha", args=[enlace.testigo])).json()
+
+    assert ficha["visor"] == "documento", (
+        "un PDF compartido iría al visor de modelos, que no sabe abrirlo"
+    )
+    # Y la ficha trae lo que ese visor necesita para pintarse sin preguntarle nada a `/api/`.
+    for campo in ("contenido", "correlativo", "idoneidad", "entregable", "proyecto"):
+        assert campo in ficha, f"la ficha no trae «{campo}» y el visor de documentos lo usa"
+
+
 # --- Y quién puede crearlos ------------------------------------------------------------
 
 
