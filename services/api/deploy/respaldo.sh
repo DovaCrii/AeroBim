@@ -160,15 +160,35 @@ verificar() {
         )"
     )
 
-    # Y los documentos: que el `tar` se pueda abrir y traiga archivos. `--test-label` no basta —
-    # confirma que es un tar, no que tenga algo dentro.
-    local cuantos
-    cuantos="$(tar --list --file="$ultimo/documentos.tar" | wc -l)"
-    echo "documentos en la copia: $cuantos"
-    [ "$cuantos" -gt 1 ] || {
-        echo "ERROR: el tar de documentos esta vacio" >&2
+    # Y los documentos: que el `tar` se pueda abrir y traiga **los archivos que hay**. `--test-label`
+    # no basta — confirma que es un tar, no que tenga algo dentro.
+    #
+    # ## Lo que esta comprobacion decia mal, y se vio el primer dia
+    #
+    # Contaba entradas del tar y exigia mas de una. El tar de un directorio **vacio** tiene
+    # exactamente una —el propio directorio— asi que **la primera verificacion de la historia
+    # fallaba**, en una instalacion recien hecha donde no se habia subido ningun documento todavia.
+    #
+    # Y ese es el peor falso positivo posible: el dia uno, cuando todo esta bien, con un mensaje que
+    # dice «ERROR». La reaccion natural es «es nuevo, da igual» — y eso **enseña a ignorar la
+    # comprobacion del respaldo**, que es justo la que no se puede ignorar. Medido en `p340` el
+    # 2026-09-15.
+    #
+    # Lo que hay que comprobar no es «el tar tiene algo» sino **«el tar tiene lo que hay»**: se
+    # cuentan los archivos de verdad —no los directorios— a los dos lados.
+    local en_la_copia en_el_disco
+    en_la_copia="$(tar --list --file="$ultimo/documentos.tar" | grep -cv '/$' || true)"
+    en_el_disco="$(find "$DOCUMENTOS" -type f 2>/dev/null | wc -l)"
+    echo "documentos: $en_la_copia en la copia, $en_el_disco en el disco"
+
+    if [ "$en_la_copia" -eq 0 ] && [ "$en_el_disco" -eq 0 ]; then
+        # **Se dice, no se calla.** Un respaldo correcto de una instalacion vacia es correcto, y
+        # quien lo lee tiene que poder distinguirlo de «no se copio nada».
+        echo "  (no hay ningun documento subido todavia: la copia esta bien)"
+    elif [ "$en_la_copia" -eq 0 ]; then
+        echo "ERROR: hay $en_el_disco documento(s) en el disco y el tar no trae ninguno" >&2
         exit 1
-    }
+    fi
 
     echo "OK: de este respaldo se puede volver"
 }
