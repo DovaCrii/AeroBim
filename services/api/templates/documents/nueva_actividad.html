@@ -14,7 +14,7 @@
 {% block contenido %}
   <form method="post" style="max-width: 560px">
     {% csrf_token %}
-    {{ form.as_p }}
+    {% include "generic/_campos.html" with form=form %}
     <button type="submit">{% translate "Create and notify" %}</button>
   </form>
   <p><a href="{% url 'documents:actividades' %}">{% translate "Back" %}</a></p>

@@ -571,6 +571,22 @@ export function IconChevronRight(props: IconProps) {
   );
 }
 
+/**
+ * Volver al portal.
+ *
+ * **Una flecha entera y no el chevron de al lado**, aunque las dos apunten a la izquierda. El
+ * chevron es «pliega esta columna», un gesto que ocurre dentro del visor y no lleva a ninguna
+ * parte; esto es salir de la aplicación. A 16 px, lo que distingue las dos ideas es que esta tiene
+ * cola: una punta suelta se lee como un control de panel.
+ */
+export function IconArrowLeft(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M19 12H5M10.5 6.5 5 12l5.5 5.5" />
+    </Svg>
+  );
+}
+
 /** Reducir la columna de herramientas. */
 export function IconChevronLeft(props: IconProps) {
   return (

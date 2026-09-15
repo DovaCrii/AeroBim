@@ -73,7 +73,7 @@
       {% if observacion.descripcion %}
         <div class="hallazgo-descripcion">{{ observacion.descripcion|linebreaksbr }}</div>
       {% else %}
-        <div class="vacio">
+        <div class="vacio"><svg class="icono-en-linea" aria-hidden="true"><use href="#i-nada"></use></svg>
           {% blocktranslate %}Nobody wrote what the problem is: only the title. If you know, say it
           in the thread.{% endblocktranslate %}
         </div>
@@ -117,7 +117,7 @@
             {% endif %}
           </li>
         {% empty %}
-          <li class="vacio">
+          <li class="vacio"><svg class="icono-en-linea" aria-hidden="true"><use href="#i-nada"></use></svg>
             {% blocktranslate %}Nothing said yet. The thread is what explains, six months later, why
             this ended up the way it did.{% endblocktranslate %}
           </li>
@@ -235,7 +235,7 @@
                 action="{% url 'documents:repartir-observacion' observacion.pk %}">
             {% csrf_token %}
             <h3>{% translate "Hand it over" %}</h3>
-            {{ form_reparto.as_p }}
+            {% include "generic/_campos.html" with form=form_reparto %}
             <button type="submit" class="boton secundario">{% translate "Save" %}</button>
           </form>
         {% endif %}

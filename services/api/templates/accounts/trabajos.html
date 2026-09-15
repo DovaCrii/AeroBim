@@ -80,7 +80,8 @@
         </tr>
       {% empty %}
         <tr>
-          <td colspan="5">{% translate "No job has run yet." %}</td>
+          {% translate "No job has run yet." as nada_nojobhasrunyet %}
+          <td colspan="5">{% include "generic/_nada.html" with texto=nada_nojobhasrunyet %}</td>
         </tr>
       {% endfor %}
     </tbody>

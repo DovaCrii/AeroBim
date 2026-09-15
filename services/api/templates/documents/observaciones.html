@@ -254,7 +254,8 @@
         </tr>
       {% empty %}
         <tr>
-          <td colspan="6">{% translate "Nothing here." %}</td>
+          {% translate "Nothing here." as nada_nothinghere %}
+          <td colspan="6">{% include "generic/_nada.html" with texto=nada_nothinghere %}</td>
         </tr>
       {% endfor %}
     </tbody>

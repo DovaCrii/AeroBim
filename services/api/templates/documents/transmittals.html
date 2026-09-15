@@ -56,7 +56,8 @@
         </tr>
       {% empty %}
         <tr>
-          <td colspan="7">{% translate "Nothing issued yet." %}</td>
+          {% translate "Nothing issued yet." as nada_nothingissuedyet %}
+          <td colspan="7">{% include "generic/_nada.html" with texto=nada_nothingissuedyet %}</td>
         </tr>
       {% endfor %}
     </tbody>

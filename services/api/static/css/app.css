@@ -382,16 +382,67 @@ a:hover {
   box-shadow: inset 3px 0 0 var(--ab-primary);
 }
 
+/*
+ * El icono del rail, **sobre la baldosa de su grupo**.
+ *
+ * ## Qué estaba plano, medido
+ *
+ * Los doce iconos heredaban `--ab-text-secondary` de `.rail-item`: **doce dibujos del mismo gris
+ * que su rótulo**, con el mismo peso de trazo, uno debajo de otro. El acento del grupo existía y
+ * llegaba solo a tres píxeles de borde en el rótulo —«LAS OBRAS», «EL MODELO»—, así que la columna
+ * entera era gris con cuatro rayitas de color.
+ *
+ * Y donde más se notaba es donde más falta hacía: **entre 760 y 1100 px el rótulo se oculta y el
+ * icono es lo único que queda**. Doce manchas grises idénticas de 20 px para elegir a dónde ir.
+ *
+ * ## Por qué esta baldosa y no otra cosa
+ *
+ * **Es la misma que la de las tarjetas del portal** —`color-mix` al 20 % con filo al 35 %, ver
+ * `.tarjetas .icono`— y eso no es ahorro de código: quien entra por la portada ve «Entregables»
+ * con su baldosa ámbar y la vuelve a encontrar idéntica en el rail. Dos dibujos distintos para la
+ * misma cosa obligan a aprenderse el producto dos veces.
+ *
+ * El acento sale del `.acento-N` que `_rail.html` pone en cada `<ul>`. «Mi trabajo» y «Cómo se usa»
+ * no pertenecen a ningún grupo, así que caen al violeta de la marca por el segundo argumento de
+ * `var()` — que es lo correcto: son la entrada y la salida, no una sección.
+ */
 .rail-icono {
+  box-sizing: content-box;
   flex: none;
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
+  padding: 5px;
+  border-radius: var(--ab-radio-sm);
+  color: var(--acento, var(--ab-primary));
+  background: color-mix(in srgb, var(--acento, var(--ab-primary)) 20%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--acento, var(--ab-primary)) 35%, transparent);
   fill: none;
   /* Lo que pinta un icono de trazo es `stroke`, no `color` — la lección de `_iconos.html`. */
   stroke: currentcolor;
-  stroke-width: 1.6;
+  /* A 18 px un trazo de 1,6 se pinta a poco más de un píxel y el dibujo se lee como un boceto: la
+     misma corrección que ya necesitaron las tarjetas del portal y la marca del visor. */
+  stroke-width: 1.75;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+/* Al pasar por encima, la baldosa se afirma. **El icono no cambia de color**, por lo mismo que en
+   las tarjetas: volverlo violeta borraría el acento del grupo justo cuando lo estás mirando. */
+.rail-item:hover .rail-icono {
+  background: color-mix(in srgb, var(--acento, var(--ab-primary)) 32%, transparent);
+}
+
+/* Y en la entrada activa la baldosa se llena: es la única del rail con el acento sólido, así que
+   dónde estás se ve desde el otro lado de la pantalla y sin leer una palabra. Va **además** del
+   fondo, el borde y el `aria-current` que ya tenía — nunca en su lugar. */
+.rail-activo .rail-icono {
+  /* `--acento-fg` lo trae el `.acento-N` del grupo. «Mi trabajo» y «Cómo se usa» no están en
+     ninguno, así que caen al relleno de la marca — y su tinta es `--ab-sobre-primary`, el token que
+     ya existe justo por esto: en claro es blanco y en oscuro el navy, porque el violeta cambia de
+     claridad con el tema y blanco encima del violeta claro daba 2,09:1. */
+  color: var(--acento-fg, var(--ab-sobre-primary));
+  background: var(--acento, var(--ab-primary));
+  box-shadow: none;
 }
 
 /* «Cómo se usa» al pie, separado: es el recorrido del producto, no un módulo de trabajo. */
@@ -1526,12 +1577,57 @@ tbody tr:last-child td {
   color: var(--ab-text-muted);
 }
 
+/*
+ * **Una lista sin nada todavía.**
+ *
+ * En una instalación recién hecha están vacías **todas**, así que esto no es el caso raro: es lo
+ * primero que ve quien abre AeroBim el primer día. Y la frase sola no bastaba —«Todavía no hay
+ * requisito: no se está verificando nada contra el modelo» era texto gris del mismo tamaño que
+ * cualquier celda—, así que la caja abierta y vacía lo dice de un vistazo. El porqué del dibujo
+ * está en `generic/_nada.html` y en `i-nada`.
+ *
+ * **Es una fila y no un bloque de texto**: el icono no se centra ni se agranda a media pantalla,
+ * que es lo que hacen los «estados vacíos» ilustrados. Aquí la lista vacía es un estado normal y
+ * pasajero, no una noticia; darle media pantalla lo convertiría en el elemento más llamativo de
+ * una aplicación cuyo trabajo está en otro sitio.
+ */
 .vacio {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
   color: var(--ab-text-muted);
   padding: 18px;
   background: var(--ab-surface);
   border: 1px dashed var(--ab-border);
   border-radius: var(--ab-radius);
+}
+
+/* El icono se alinea con la primera línea, no con el centro del bloque: con dos líneas de texto,
+   centrado queda a media altura y parece una viñeta perdida. */
+.vacio > .icono-en-linea {
+  margin-top: 0.15em;
+  opacity: 0.85;
+}
+
+/* Y dentro de una celda: el mismo dibujo, sin la caja. La tabla ya tiene su borde y su fondo, así
+   que repetirlos dentro dibuja una caja dentro de otra. */
+.nada {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: var(--ab-text-muted);
+}
+
+.nada > .icono-en-linea {
+  opacity: 0.85;
+}
+
+/* En una celda, sin la caja: la tabla ya trae borde y fondo, y repetirlos dentro dibuja una caja
+   dentro de otra. El `<li>` del hilo sí la conserva — ahí no hay tabla alrededor. */
+td.vacio {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--ab-border);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════════
@@ -2367,6 +2463,292 @@ input[type="file"]::file-selector-button {
 input[type="file"]::file-selector-button:hover {
   background: var(--ab-surface);
   border-color: var(--ab-primary);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════════
+ * LOS CAMPOS DE UN FORMULARIO.
+ *
+ * **Diez pantallas y ni una línea de maquetación.** Los widgets estaban vestidos —lo de aquí
+ * arriba— y la *disposición* no existía: `{{ form.as_p }}` emite
+ * `<p><label>Correo:</label> <input></p>`, o sea rótulo y caja **en la misma línea**, con el texto
+ * de ayuda a continuación dentro del mismo párrafo.
+ *
+ * Medido en la pantalla de alta a 1900 px antes de esto: la ayuda del correo —«A dónde llegan los
+ * avisos. Una dirección real, o no llegarán nunca»— salía a la derecha de la caja y **envolvía por
+ * debajo del rótulo del campo siguiente**, así que la explicación de un campo quedaba pegada al de
+ * abajo. Y las cuatro cajas tenían cuatro anchos distintos, el que Django le da a cada widget.
+ *
+ * Eso es lo que se ve como «plano». No es falta de adorno: **no hay ninguna línea recta que seguir
+ * con la vista**, y sin ella cuatro campos son cuatro cosas sueltas en vez de una lista.
+ *
+ * La rejilla la pinta `generic/_campos.html`, y ahí está el porqué de cada decisión.
+ * ═══════════════════════════════════════════════════════════════════════════════════ */
+
+.campos {
+  display: grid;
+  gap: 20px;
+  /* El tope es del bloque y no del campo: es lo que hace que las cuatro cajas midan lo mismo.
+     44 caracteres de ancho es la medida cómoda para escribir un nombre o un correo; más ancho no
+     ayuda a escribir y sí obliga a mover la vista de un extremo al otro para leer el rótulo. */
+  max-width: 34rem;
+  margin-bottom: 24px;
+}
+
+.campo {
+  display: grid;
+  gap: 6px;
+}
+
+.campo > label {
+  color: var(--ab-text);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* **Se marca lo opcional, no lo obligatorio.** Un `*` hay que saber qué significa y un lector de
+   pantalla lo lee como «asterisco»; y como casi todo es obligatorio, marcarlo llenaría la columna
+   de símbolos para no distinguir nada. Con la palabra, la marca aparece una vez cada seis campos y
+   se entiende sin leyenda. */
+.campo-opcional {
+  margin-left: 6px;
+  color: var(--ab-text-muted);
+  font-size: 0.78rem;
+  font-weight: 400;
+  text-transform: lowercase;
+}
+
+/* El ancho lo manda la rejilla, no el `size` del widget. Es la línea que alinea las cuatro cajas. */
+.campo > input,
+.campo > select,
+.campo > textarea {
+  width: 100%;
+}
+
+.campo-ayuda {
+  margin: 0;
+  color: var(--ab-text-muted);
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+/*
+ * **El error va debajo de su campo y con su dibujo.**
+ *
+ * Debajo, porque una lista de errores en la cabecera obliga a buscar a qué caja corresponde cada
+ * uno. Y con dibujo, porque el color solo no basta: `--ab-danger` sobre el fondo de la página pasa
+ * el contraste de texto, pero **quien no distingue el rojo lee una frase gris más** — el triángulo
+ * es lo que queda cuando el color no llega.
+ */
+.campo-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+  color: var(--ab-danger);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+/* Y el propio campo lo dice también, para que se vea sin leer: al recorrer un formulario largo
+   buscando qué falta, lo que se busca es el contorno distinto, no el texto. */
+.campo-malo > input,
+.campo-malo > select,
+.campo-malo > textarea {
+  border-color: var(--ab-danger);
+}
+
+/* La fila de abajo: el botón que hace la cosa y la salida, al mismo nivel y separados. Antes la
+   vuelta era un `<p><a>` suelto debajo del formulario y se leía como un pie de página. */
+.acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 20px;
+  margin-top: 4px;
+}
+
+/* La salida no compite con la acción: no es un botón, es un enlace en gris que se aclara al pasar
+   por encima. Un segundo botón al lado de «Crear la cuenta» haría dudar cuál de los dos crea. */
+.enlace-suave {
+  color: var(--ab-text-muted);
+  font-size: 0.9rem;
+}
+
+.enlace-suave:hover {
+  color: var(--ab-text);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════════
+ * LA RECETA: qué va a pasar, antes de empezar.
+ *
+ * **No es decoración: es la pregunta que el formulario no contestaba.** Cinco campos y un botón no
+ * dicen si al pulsar se manda un correo, si la persona elige su clave o si hay que avisarle — y esa
+ * duda es lo que hace que alguien cree la cuenta y la deje a medias.
+ *
+ * Se distingue de `.pasos` —el avance de un registro, que sale del modelo— en que esto es fijo y de
+ * la pantalla: son instrucciones, no estado. Por eso lleva su número escrito en un disco y no una
+ * marca de completado: **ninguno de los tres está hecho todavía** cuando se lee.
+ * ═══════════════════════════════════════════════════════════════════════════════════ */
+.receta {
+  display: grid;
+  gap: 14px;
+  max-width: 34rem;
+  margin: 0 0 26px;
+  padding: 16px 18px;
+  list-style: none;
+  background: var(--ab-surface);
+  border: 1px solid var(--ab-border);
+  border-radius: var(--ab-radius);
+}
+
+.receta > li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.receta b {
+  color: var(--ab-text);
+  font-size: 0.94rem;
+  font-weight: 600;
+}
+
+.receta .detalle {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 3px;
+  color: var(--ab-text-muted);
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+/* El disco con el número. Relleno sólido y no contorno: es lo que da el ritmo de tres a la columna
+   —el ojo salta de disco en disco— y a 24 px un contorno de un píxel con un dígito dentro es una
+   mancha. La tinta es `--ab-sobre-primary` por lo de siempre: el violeta cambia de claridad con el
+   tema, y blanco encima del claro daba 2,09:1. */
+.receta-numero {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--ab-primary);
+  color: var(--ab-sobre-primary);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════════
+ * LA ENTREGA DE LA CLAVE.
+ *
+ * **Tenía tres clases escritas en la plantilla y ninguna existía en esta hoja.** Medido: la caja
+ * salía como un párrafo más, el usuario y la clave como texto monoespaciado del tamaño del cuerpo,
+ * y el `<dl>` con la sangría de fábrica del navegador. O sea que **lo único irrepetible de la
+ * pantalla —dos cadenas que no se pueden volver a ver— se pintaba más flojo que el formulario que
+ * ya no hace falta**.
+ *
+ * Lo que la hoja tiene que decir aquí es una sola cosa: *esto se copia ahora*.
+ * ═══════════════════════════════════════════════════════════════════════════════════ */
+.entrega-de-clave {
+  max-width: 34rem;
+  margin-bottom: 26px;
+  /* El filo verde de arriba. Es lo hecho —la cuenta existe— y separa la caja del formulario de
+     abajo, que es lo por hacer. Va con `border-top` y no con un `::before` porque `.tarjeta` ya
+     usa el suyo para la franja del acento. */
+  border-top: 3px solid var(--ab-ok);
+}
+
+.entrega-de-clave h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 0;
+}
+
+/* El icono de un titular: se dimensiona con la letra del título y lleva su baldosa, igual que los
+   del rail y los de las tarjetas. Es el mismo lenguaje en el tercer sitio. */
+.icono-titular {
+  box-sizing: content-box;
+  flex: none;
+  width: 1.05em;
+  height: 1.05em;
+  padding: 6px;
+  border-radius: var(--ab-radio-sm);
+  color: var(--ab-primary);
+  background: color-mix(in srgb, var(--ab-primary) 20%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ab-primary) 35%, transparent);
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.credenciales {
+  display: grid;
+  /* Rótulo y valor en dos columnas, con el rótulo al ancho de su texto: así los dos valores quedan
+     alineados entre sí, que es lo que se va a copiar. A 420 px se apilan. */
+  grid-template-columns: auto 1fr;
+  gap: 10px 16px;
+  align-items: center;
+  margin: 0 0 18px;
+}
+
+.credenciales dt {
+  color: var(--ab-text-muted);
+  font-size: 0.85rem;
+}
+
+.credenciales dd {
+  margin: 0;
+}
+
+@media (max-width: 420px) {
+  .credenciales {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .credenciales dd {
+    margin-bottom: 8px;
+  }
+}
+
+/*
+ * **Lo que hay que copiar, con aspecto de cosa que se copia.**
+ *
+ * Monoespaciado porque se va a transcribir a mano o por teléfono y hay que distinguir el 0 de la O
+ * y el 1 de la l; `user-select: all` porque un solo clic la selecciona entera, que es lo que evita
+ * copiar la clave a medias — el error más caro posible en esta pantalla, porque la persona no puede
+ * entrar y **nadie puede volver a mirar cuál era**.
+ */
+.secreto {
+  display: inline-block;
+  padding: 7px 12px;
+  background: var(--ab-surface-alt);
+  border: 1px solid var(--ab-border-control);
+  border-radius: var(--ab-radio-sm);
+  color: var(--ab-text);
+  font-family: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, monospace;
+  font-size: 1rem;
+  letter-spacing: 0.04em;
+  user-select: all;
+}
+
+/* El icono dentro de una línea de texto: se alinea con la letra, no con la caja. `em` y no `rem`
+   para que siga al tamaño del texto que acompaña. */
+.icono-en-linea {
+  width: 1.05em;
+  height: 1.05em;
+  flex: none;
+  margin-top: 0.1em;
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 /*
