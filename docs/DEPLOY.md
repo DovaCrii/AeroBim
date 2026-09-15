@@ -422,6 +422,22 @@ gate.
 
 ## Comprobar que quedó bien
 
+### La pregunta completa, en una orden
+
+```bash
+cd /opt/aerobim/services/api && uv run python manage.py listo_para_produccion
+```
+
+**`/health/` contesta «¿este proceso puede atender?». Esta contesta «¿puede entrar gente?».** Son
+dos preguntas distintas y la segunda es la que decide si se abre la puerta: un servidor puede estar
+perfectamente sano y tener todas las cuentas sin organización, el correo saliendo a la consola y la
+obra de ejemplo del desarrollo dentro.
+
+No escribe nada y devuelve `1` si algo bloquea, así que sirve dentro de un guion. El detalle de qué
+mira y por qué está en [`PILOTO.md`](PILOTO.md), sección 6.
+
+### Y la de siempre
+
 ```bash
 curl -s https://<host>.<tailnet>.ts.net/health/ | python3 -m json.tool
 ```
