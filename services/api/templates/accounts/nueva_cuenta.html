@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block titulo %}{% translate "New account" %} · AeroBim{% endblock %}
+
+{% block migas %}
+<nav class="migas" aria-label="{% translate 'Breadcrumb' %}">
+  <a href="{% url 'accounts:usuarios-roles' %}">{% translate "Users and roles" %}</a>
+</nav>
+{% endblock %}
+
+{% block titulo_pagina %}<h1>{% translate "New account" %}</h1>{% endblock %}
+
+{% block subtitulo %}
+<p class="subtitulo">
+  {% translate "The person, their organisation and their role, in one step." %}
+</p>
+{% endblock %}
+
+{% block contenido %}
+
+  {% comment %}
+    **La clave va arriba del todo y ocupa media pantalla, y es a propósito.**
+
+    Se enseña una vez y no se puede volver a ver: si esta caja fuera una línea discreta debajo del
+    formulario, se perdería en cuanto alguien pulse «Crear» dos veces seguidas creando varias
+    cuentas. Lo que hay que hacer con esta pantalla es **copiar la clave antes de seguir**, así que
+    es lo único que se ve.
+  {% endcomment %}
+  {% if clave %}
+    <section class="tarjeta entrega-de-clave" aria-labelledby="titulo-clave">
+      {% comment %}
+        En una sola línea a propósito: `blocktranslate` en varias mete el salto y la sangría
+        **dentro** del `msgid`, y entonces `msgfmt` exige que la traducción empiece y acabe con el
+        mismo blanco. Falla al compilar, y el mensaje —«no comienzan ambas con \n»— no dice que el
+        problema esté en la plantilla.
+      {% endcomment %}
+      <h2 id="titulo-clave">{% blocktranslate with nombre=creada.get_full_name|default:creada.username %}Account ready for {{ nombre }}{% endblocktranslate %}</h2>
+
+      <p>{% translate "Give these two to its owner. They will not be shown again." %}</p>
+
+      <dl class="credenciales">
+        <dt>{% translate "Username" %}</dt>
+        <dd><code class="secreto">{{ creada.username }}</code></dd>
+        <dt>{% translate "Initial password" %}</dt>
+        <dd><code class="secreto">{{ clave }}</code></dd>
+      </dl>
+
+      <p class="aviso warning" role="status">
+        {% translate "Until they change it, two people know this password. AeroBim will ask them to choose their own the first time they sign in, and will not let them do anything else until they do." %}
+      </p>
+
+      <p class="subtitulo">
+        {% translate "If it gets lost before they sign in, generate another one from the list — there is no way to look this one up." %}
+      </p>
+    </section>
+  {% endif %}
+
+  {% comment %}
+    `form.as_p` y no una rejilla propia: es lo que usan las otras seis pantallas de formulario, y
+    una maquetación distinta solo para esta se notaría al cruzar de una a otra.
+  {% endcomment %}
+  <form method="post" style="max-width: 560px">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">{% translate "Create account" %}</button>
+  </form>
+  <p><a href="{% url 'accounts:usuarios-roles' %}">{% translate "Back" %}</a></p>
+{% endblock %}

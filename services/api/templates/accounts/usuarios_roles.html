@@ -7,7 +7,21 @@
 
 {% block subtitulo %}
 <p class="subtitulo">
-  {% translate "Read-only." %}
+  {% translate "The people in your organisations, and what each one can do." %}
+</p>
+{% endblock %}
+
+{% block acciones %}
+<p class="acciones-pagina">
+  {% comment %}
+    **El botón solo si se puede usar.** Es la regla de la casa: ofrecer uno que termina en 403
+    enseña a probar puertas, y aquí además haría creer que el alta existe para todo el mundo.
+  {% endcomment %}
+  {% if puede_crear %}
+    <a class="boton primario" href="{% url 'accounts:nueva-cuenta' %}">
+      {% translate "New account" %}
+    </a>
+  {% endif %}
   <a href="?formato=csv">{% translate "Download CSV" %}</a>
 </p>
 {% endblock %}
@@ -20,7 +34,8 @@
         <th scope="col">{% translate "Name" %}</th>
         <th scope="col">{% translate "Email" %}</th>
         <th scope="col">{% translate "Roles" %}</th>
-        <th scope="col">{% translate "Active" %}</th>
+        <th scope="col">{% translate "Status" %}</th>
+        {% if puede_crear %}<th scope="col">{% translate "Password" %}</th>{% endif %}
       </tr>
     </thead>
     <tbody>
@@ -30,7 +45,34 @@
           <td>{{ usuario.get_full_name|default:"—" }}</td>
           <td>{{ usuario.email|default:"—" }}</td>
           <td>{{ usuario.roles }}</td>
-          <td>{% if usuario.is_active %}{% translate "Yes" %}{% else %}{% translate "No" %}{% endif %}</td>
+          <td>
+            {% comment %}
+              Tres estados y no dos. «Sin estrenar» es el que pide algo: esa persona todavía no ha
+              entrado y sigue con la clave que le diste, así que o se le recuerda o se le genera
+              otra. Sin esta columna, «¿la usó?» se contesta preguntándole.
+            {% endcomment %}
+            {% if not usuario.is_active %}
+              <span class="distintivo apagado">{% translate "Disabled" %}</span>
+            {% elif usuario.sin_estrenar %}
+              <span class="distintivo aviso">{% translate "Not signed in yet" %}</span>
+            {% else %}
+              <span class="distintivo ok">{% translate "Active" %}</span>
+            {% endif %}
+          </td>
+          {% if puede_crear %}
+            <td>
+              <form method="post" action="{% url 'accounts:reiniciar-clave' usuario.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="enlace">{% translate "Generate a new one" %}</button>
+              </form>
+            </td>
+          {% endif %}
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="6" class="vacio">
+            {% translate "No accounts in your organisations yet." %}
+          </td>
         </tr>
       {% endfor %}
     </tbody>

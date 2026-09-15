@@ -12,6 +12,14 @@ urlpatterns = [
     # —`bim`, `levantamiento`— para que añadir un tercero sea añadir un archivo y nada más.
     path("ayuda/vocabulario/<slug:cual>/", views.GlosarioView.as_view(), name="glosario"),
     path("usuarios-y-roles/", views.UsuariosRolesView.as_view(), name="usuarios-roles"),
+    # El alta cuelga de la lista porque es donde se mira antes de crear a alguien: la mitad de las
+    # veces la persona ya tiene cuenta y lo que falta es el rol.
+    path("usuarios-y-roles/nueva/", views.NuevaCuentaView.as_view(), name="nueva-cuenta"),
+    path(
+        "usuarios-y-roles/<int:pk>/reiniciar-clave/",
+        views.ReiniciarClaveView.as_view(),
+        name="reiniciar-clave",
+    ),
     path("auditoria/", views.AuditoriaView.as_view(), name="auditoria"),
     path("trabajos/", views.TrabajosView.as_view(), name="trabajos"),
 ]
