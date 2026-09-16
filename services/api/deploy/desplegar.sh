@@ -52,7 +52,21 @@ paso() { printf '\n\033[1m== %s\033[0m\n' "$1"; }
 #
 # `sudo -n` no pide contraseña ni cuelga esperándola. Se avisa aquí y se decide en el paso 7: no se
 # aborta, porque los seis pasos de en medio sirven igual y rehacerlos después es peor.
-if sudo -n true 2>/dev/null; then
+#
+# ## Y se pregunta por **este** comando, no por «¿puedes sudo?»
+#
+# La primera versión probaba `sudo -n true`, que es «¿puedes ejecutar cualquier cosa como root?».
+# Medido en `p340` el 2026-09-16, y el caso es el que la propia guía recomienda: se instaló el
+# permiso **acotado** —solo `systemctl restart aerobim.service`, que es lo correcto y lo que decía
+# el mensaje de este guion— y la comprobación **siguió diciendo que no se podía reiniciar**.
+#
+# O sea que la prueba castigaba justo a quien hace lo seguro, y premiaba a quien le da sudo entero
+# al usuario del servicio. Un guardián que empuja hacia el permiso ancho está al revés.
+#
+# `sudo -l <comando>` contesta por el comando exacto —sale 0 si está permitido— y con `-n` no pide
+# nada. Es la pregunta que de verdad importa.
+REINICIO=(/usr/bin/systemctl restart aerobim.service)
+if sudo -n -l "${REINICIO[@]}" >/dev/null 2>&1; then
     PUEDE_REINICIAR=1
 else
     PUEDE_REINICIAR=0
@@ -120,8 +134,28 @@ paso "7/7 · reiniciar y comprobar"
 # construir. Un oráculo que confirma lo que no ha pasado es peor que no tenerlo.
 if [ "$PUEDE_REINICIAR" = "0" ]; then
     echo
-    echo "El código, el visor, la base y los estáticos están al día. Falta reiniciar, y este" >&2
-    echo "usuario no puede. Sal de este guion y escribe:" >&2
+    # ══════════════════════════════════════════════════════════════════════════════════════
+    # **Esto no es «falta un paso»: el sitio está roto AHORA MISMO.**
+    #
+    # Lo decía como si fuera un estado a medias benigno —«el código está al día, falta
+    # reiniciar»— y no lo es. Django lee las plantillas **del disco en cada petición**, así que
+    # los seis pasos anteriores ya pusieron las nuevas delante del proceso viejo. Una plantilla
+    # que nombra una ruta que ese proceso todavía no conoce revienta con `NoReverseMatch`.
+    #
+    # Medido en `p340` el 2026-09-16: `usuarios_roles.html` pasó a enlazar
+    # `accounts:editar-cuenta`, el servicio no se reinició, y la pantalla entera devolvió **500**
+    # a quien ya estaba dentro. El guion había terminado diciendo algo que sonaba tranquilo.
+    #
+    # Así que el mensaje lo dice primero y con todas las letras. Quien lee esto tiene minutos,
+    # no horas.
+    # ══════════════════════════════════════════════════════════════════════════════════════
+    echo "  ██ ATENCIÓN: AeroBim está ROTO hasta que reinicies." >&2
+    echo >&2
+    echo "El código nuevo está en disco y el proceso sigue con el viejo. Django lee las" >&2
+    echo "plantillas en cada petición, así que las pantallas que estrena esta versión" >&2
+    echo "responden 500 a quien ya está dentro. No es «falta un paso»: hay que darlo ya." >&2
+    echo >&2
+    echo "Este usuario no puede reiniciar. Sal de este guion y escribe:" >&2
     echo >&2
     echo "    sudo systemctl restart aerobim.service && sleep 4 && curl -s $SALUD" >&2
     echo >&2
@@ -133,7 +167,10 @@ if [ "$PUEDE_REINICIAR" = "0" ]; then
     exit 1
 fi
 
-sudo systemctl restart aerobim
+# **La misma línea que se comprobó arriba, carácter por carácter.** `sudo -l` autoriza por el
+# comando exacto: con `sudo systemctl restart aerobim` —sin la ruta y sin el `.service`— la
+# comprobación diría que sí y el reinicio pediría la contraseña igualmente.
+sudo -n "${REINICIO[@]}"
 # Un momento para que los workers levanten: `Type=notify` hace que `restart` espere, pero el socket
 # puede tardar un instante más en aceptar.
 #

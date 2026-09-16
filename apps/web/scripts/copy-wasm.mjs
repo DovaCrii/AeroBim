@@ -43,4 +43,31 @@ for (const file of files) {
 // pegamento de JavaScript, y la que carga el navegador es esta.
 await copyFile(require.resolve("laz-perf/lib/web/laz-perf.wasm"), join(target, "laz-perf.wasm"));
 
-console.log(`WASM copiados a public/wasm/: ${files.join(", ")}, laz-perf.wasm`);
+// ══════════════════════════════════════════════════════════════════════════════════════════
+// **El worker de Fragments, y este no es un WASM: es la avería que dejaba el visor en negro.**
+//
+// `OBC.FragmentsManager.getWorker()` —la forma que la propia documentación de That Open
+// recomienda— **se descarga el worker de unpkg en tiempo de ejecución**:
+//
+//     https://unpkg.com/@thatopen/fragments@3.4.7/dist/worker/worker.mjs
+//
+// En desarrollo eso funciona, y por el peor motivo posible: `CSP_REPORT_ONLY=True`, así que la
+// violación se **anota y se permite**. En producción la política se aplica —`connect-src 'self'`—
+// la descarga se bloquea, `init()` no termina nunca y el visor se queda en «Iniciando visor…»
+// **sin un solo error en pantalla**. Medido en `p340` el 2026-09-16: pantalla negra.
+//
+// Es exactamente el fallo que `AGENTS.md` prohíbe —nada se descarga de un CDN— y la razón por la
+// que la regla existe: una faena sin internet habría dado el mismo negro.
+//
+// Se copia igual que el WASM de `web-ifc` y por lo mismo: la biblioteca decide la URL **en tiempo
+// de ejecución**, así que no vale el `import "…?url"` que Vite resuelve para PDFium.
+//
+// Se pide por el subpath `@thatopen/fragments/worker`, que es el que el paquete **exporta**. La
+// ruta literal del archivo —`dist/worker.mjs`— la rechaza Node con `ERR_PACKAGE_PATH_NOT_EXPORTED`,
+// y además el directorio real lleva mayúscula (`dist/Worker/`): en Windows daría igual y en la VM
+// no. Dejar que los `exports` resuelvan es lo que hace que esto funcione en las dos.
+await copyFile(require.resolve("@thatopen/fragments/worker"), join(target, "fragments-worker.mjs"));
+
+console.log(
+  `WASM copiados a public/wasm/: ${files.join(", ")}, laz-perf.wasm, fragments-worker.mjs`,
+);

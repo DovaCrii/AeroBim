@@ -272,6 +272,15 @@ export interface BimViewerOptions {
    */
   readonly wasmPath?: string;
   /**
+   * De dónde sale el worker de Fragments. Por omisión, `/wasm/fragments-worker.mjs`, servido por
+   * nosotros.
+   *
+   * **No se usa `FragmentsManager.getWorker()`, que es lo que recomienda That Open**: se lo
+   * descarga de unpkg en tiempo de ejecución, y con la CSP aplicada eso bloquea el arranque
+   * entero y deja la pantalla en negro sin decir nada. Ver `DEFAULT_FRAGMENTS_WORKER`.
+   */
+  readonly fragmentsWorkerUrl?: string;
+  /**
    * El worker que convierte los IFC. **Sin él se convierte en el hilo principal.**
    *
    * Lo crea la aplicación porque crear un worker es cosa del empaquetador — ver la cabecera de
@@ -503,6 +512,33 @@ export interface PaintAudit {
 }
 
 const DEFAULT_WASM_PATH = "/wasm/";
+
+/**
+ * El worker de Fragments, **servido por nosotros**.
+ *
+ * ## La avería que esto arregla
+ *
+ * `OBC.FragmentsManager.getWorker()` —lo que recomienda la documentación de That Open— se descarga
+ * el worker de `unpkg.com` en tiempo de ejecución. En desarrollo funciona, y por el peor motivo
+ * posible: la CSP va en modo informe (`CSP_REPORT_ONLY=True`), así que la violación **se anota y se
+ * permite**. En producción la política se aplica, `connect-src 'self'` bloquea la descarga,
+ * `init()` no termina nunca y el visor se queda en «Iniciando visor…» **con la pantalla en negro y
+ * sin un solo error visible**.
+ *
+ * Medido en `p340` el 2026-09-16. Lo delató la consola del navegador en desarrollo, donde la misma
+ * violación aparece como una línea `[info]` entre otras dos: en modo informe nadie la mira, porque
+ * no rompe nada *ahí*.
+ *
+ * ## Por qué una URL y no un `blob:`
+ *
+ * `getWorker()` devuelve un `blob:` porque tiene que saltar el origen cruzado. Sirviéndolo nosotros
+ * no hace falta, y un `blob:` es **peor**: rompe los `import` relativos que el worker pueda tener,
+ * porque un blob no cuenta con una URL base de la que colgar. Mismo origen, `worker-src 'self'`.
+ *
+ * Lo copia `apps/web/scripts/copy-wasm.mjs` al mismo sitio que el WASM de `web-ifc`, y por el mismo
+ * motivo: la biblioteca compone la URL al arrancar, así que el empaquetador no puede resolverla.
+ */
+const DEFAULT_FRAGMENTS_WORKER = "/wasm/fragments-worker.mjs";
 
 /** Un fotograma a 60 Hz, para forzar el avance de los controles de cámara. */
 const ONE_FRAME_S = 1 / 60;
@@ -1863,7 +1899,9 @@ export class BimViewer {
     postproduction.style = OBF.PostproductionAspect.COLOR_PEN_SHADOWS;
 
     const fragments = components.get(OBC.FragmentsManager);
-    fragments.init(await OBC.FragmentsManager.getWorker());
+    // **Nuestro worker y no `OBC.FragmentsManager.getWorker()`**, que se lo baja de unpkg y deja
+    // el visor en negro en cuanto la CSP se aplica de verdad. Ver `DEFAULT_FRAGMENTS_WORKER`.
+    fragments.init(options.fragmentsWorkerUrl ?? DEFAULT_FRAGMENTS_WORKER);
 
     // La rueda acerca hacia donde apunta el cursor y no hacia el centro de la pantalla. Es el
     // gesto de cualquier visor de escritorio, y sin él acercarse a un detalle exige acercar y
