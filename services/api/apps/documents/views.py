@@ -255,6 +255,64 @@ class ArchivosView(ModelViewPermissionRequiredMixin, FiltrosEnLaPaginacionMixin,
         return contexto
 
 
+class EmpezarASubirView(ModelPermissionRequiredMixin, View):
+    """**Subir un archivo al registro sin haber montado antes el andamio.**
+
+    El camino era: crear la obra, abrirla, añadir una disciplina, volver a Entregables, Nuevo
+    entregable, rellenar siete campos, entrar al expediente y Subir revisión. **Ocho pantallas**
+    para poner un archivo en el servidor, y las cinco primeras son andamio — cosas que el registro
+    necesita y que quien tiene una nube en el escritorio no sabe que hay que crear.
+
+    **No crea un almacén paralelo**: sigue habiendo un entregable con su obra, su disciplina y su
+    código, y una revisión con su emisor y su idoneidad. Lo que cambia es cuándo se rellena.
+
+    **Y no guarda el archivo.** Crea lo que falta y manda a `SubirRevisionView`, que es donde está
+    la parte delicada —la clave por `sha256`, el guardado por tramos, los metadatos del IFC, la
+    conversión de DWG—. El porqué largo está en `apps/documents/empezar.py`.
+
+    Pide `add_revision` y no `add_entregable`: lo que se viene a hacer aquí es **subir**, y crear el
+    entregable es el medio. Quien puede emitir puede crear el sitio donde emitir.
+    """
+
+    model = Revision
+    permission_action = "add"
+    template_name = "documents/empezar_a_subir.html"
+
+    def contexto(self, request, form=None):
+        from apps.documents.empezar import EmpezarASubirForm
+
+        form = form or EmpezarASubirForm(autor=request.user)
+        return {
+            "form": form,
+            "hay_proyectos": form.fields["proyecto"].queryset.exists(),
+            "puede_crear_proyecto": request.user.has_perm("projects.add_proyecto"),
+        }
+
+    def get(self, request, *args, **kwargs):
+        from django.shortcuts import render
+
+        return render(request, self.template_name, self.contexto(request))
+
+    def post(self, request, *args, **kwargs):
+        from django.shortcuts import render
+
+        from apps.documents.empezar import EmpezarASubirForm
+
+        form = EmpezarASubirForm(request.POST, autor=request.user)
+        if not form.is_valid():
+            return render(request, self.template_name, self.contexto(request, form), status=400)
+
+        entregable = form.crear(autor=request.user)
+        set_audit_context(request, entregable, action="crear_entregable_para_subir")
+        messages.success(
+            request,
+            _("«%(codigo)s» created. Now the file.") % {"codigo": entregable.codigo},
+        )
+        # **Al formulario de subir, que es a lo que venía.** Terminar en el expediente dejaría a
+        # alguien mirando una ficha vacía con el archivo todavía en el escritorio.
+        return redirect("documents:subir-revision", pk=entregable.pk)
+
+
 class EntregablesView(
     ModelViewPermissionRequiredMixin,
     OrganizacionScopedQuerysetMixin,

@@ -16,13 +16,16 @@
 {% if puede_subir %}
 <p class="acciones-pagina">
   {% comment %}
-    **Lleva al camino de siempre y no abre un formulario propio.**
+    **Lleva a subir, y antes llevaba a la lista de entregables.**
 
-    Todo lo que sale en esta pantalla llegó como revisión de un entregable, con su emisor, su fecha
-    y su código de idoneidad — que es lo que separa un registro documental de una carpeta
-    compartida. Dos puertas al mismo almacén se separan en cuanto una de las dos olvide pedir algo.
+    Era correcto y no servía: quien pulsa «Subir un archivo» quiere subir un archivo, y aterrizaba
+    en una tabla desde la que había que deducir que primero se crea un entregable, que antes hace
+    falta una disciplina, y que la disciplina se crea dentro de la obra. Ocho pantallas.
+
+    Sigue sin ser una segunda puerta al almacén: `EmpezarASubirView` crea el entregable con todo lo
+    que el registro pide y manda al formulario de subir de siempre, que es el único que guarda.
   {% endcomment %}
-  <a class="boton primario" href="{% url 'documents:entregables' %}">
+  <a class="boton primario" href="{% url 'documents:empezar-a-subir' %}">
     {% translate "Upload a file" %}
   </a>
 </p>

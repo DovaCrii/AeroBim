@@ -9,6 +9,9 @@ urlpatterns = [
     # **El repositorio**: todo lo guardado en el servidor, por categoría. Ver `ArchivosView` —
     # no es otro almacén, es otra forma de mirar el mismo.
     path("archivos/", views.ArchivosView.as_view(), name="archivos"),
+    # **Subir sin haber montado antes el andamio.** Crea la disciplina y el entregable que falten y
+    # manda al formulario de subir de siempre — no guarda el archivo, ver `EmpezarASubirView`.
+    path("archivos/subir/", views.EmpezarASubirView.as_view(), name="empezar-a-subir"),
     path("entregables/", views.EntregablesView.as_view(), name="entregables"),
     path("entregables/nuevo/", views.NuevoEntregableView.as_view(), name="nuevo-entregable"),
     path("entregables/<uuid:pk>/", views.ExpedienteView.as_view(), name="expediente"),

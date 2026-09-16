@@ -9,15 +9,44 @@
 <p class="subtitulo">
   {% blocktranslate %}The register: what has to be delivered, who owns it and how far along it
   is.{% endblocktranslate %}
-  <a href="?mios=1">{% translate "Only mine" %}</a> ·
-  <a href="{% url 'documents:entregables' %}">{% translate "All" %}</a>
-  {% if perms.documents.add_entregable %}
-    · <a href="{% url 'documents:nuevo-entregable' %}">{% translate "New deliverable" %}</a>
-  {% endif %}
 </p>
 {% endblock %}
 
+{% comment %}
+  **La acción sale del párrafo del subtítulo**, igual que en Proyectos y por lo mismo: «Nuevo
+  entregable» iba detrás de dos filtros y separado por un `·`, o sea **una acción disfrazada de
+  filtro**. La única cosa de esa línea que *cambia* algo estaba escrita igual que las dos que solo
+  *miran*, y en una instalación recién hecha era además la única que servía.
+{% endcomment %}
+{% block acciones %}
+{% if perms.documents.add_entregable %}
+<p class="acciones-pagina">
+  <a class="boton primario" href="{% url 'documents:nuevo-entregable' %}">
+    {% translate "New deliverable" %}
+  </a>
+</p>
+{% endif %}
+{% endblock %}
+
 {% block contenido %}
+  {% comment %}
+    Y los dos filtros pasan a ser un control, no dos enlaces azules separados por un punto: el
+    mismo segmentado que usan la bandeja y Proyectos, con el activo marcado. Tres pantallas con el
+    mismo gesto en vez de tres formas distintas de filtrar lo mismo.
+  {% endcomment %}
+  <nav class="segmentado filtro-etapas" aria-label="{% translate 'Filter' %}">
+    <a class="segmento{% if not request.GET.mios %} segmento-activo{% endif %}"
+       href="{% url 'documents:entregables' %}"
+       {% if not request.GET.mios %}aria-current="page"{% endif %}>
+      {% translate "All" %}
+    </a>
+    <a class="segmento{% if request.GET.mios %} segmento-activo{% endif %}"
+       href="?mios=1"
+       {% if request.GET.mios %}aria-current="page"{% endif %}>
+      {% translate "Only mine" %}
+    </a>
+  </nav>
+
   <table>
     <thead>
       <tr>

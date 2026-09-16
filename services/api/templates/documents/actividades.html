@@ -9,15 +9,36 @@
 <p class="subtitulo">
   {% blocktranslate %}Planned work: who does what, and by when. Not every task comes from a
   finding.{% endblocktranslate %}
-  <a href="?mias=1">{% translate "Only mine" %}</a> ·
-  <a href="{% url 'documents:actividades' %}">{% translate "All" %}</a>
-  {% if perms.documents.add_actividad %}
-    · <a href="{% url 'documents:nueva-actividad' %}">{% translate "New activity" %}</a>
-  {% endif %}
 </p>
 {% endblock %}
 
+{% comment %}
+  La acción a su sitio, igual que en Proyectos y en Entregables: ver el motivo allí.
+{% endcomment %}
+{% block acciones %}
+{% if perms.documents.add_actividad %}
+<p class="acciones-pagina">
+  <a class="boton primario" href="{% url 'documents:nueva-actividad' %}">
+    {% translate "New activity" %}
+  </a>
+</p>
+{% endif %}
+{% endblock %}
+
 {% block contenido %}
+  <nav class="segmentado filtro-etapas" aria-label="{% translate 'Filter' %}">
+    <a class="segmento{% if not request.GET.mias %} segmento-activo{% endif %}"
+       href="{% url 'documents:actividades' %}"
+       {% if not request.GET.mias %}aria-current="page"{% endif %}>
+      {% translate "All" %}
+    </a>
+    <a class="segmento{% if request.GET.mias %} segmento-activo{% endif %}"
+       href="?mias=1"
+       {% if request.GET.mias %}aria-current="page"{% endif %}>
+      {% translate "Only mine" %}
+    </a>
+  </nav>
+
   <table>
     <thead>
       <tr>

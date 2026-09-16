@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block titulo %}{% translate "Upload a file" %} · AeroBim{% endblock %}
+
+{% block migas %}
+<nav class="migas" aria-label="{% translate 'Breadcrumb' %}">
+  <a href="{% url 'documents:archivos' %}">{% translate "Files" %}</a>
+</nav>
+{% endblock %}
+
+{% block titulo_pagina %}<h1>{% translate "Upload a file" %}</h1>{% endblock %}
+
+{% block subtitulo %}
+<p class="subtitulo">
+  {% blocktranslate %}Say what it is and where it goes. The file comes on the next
+  screen.{% endblocktranslate %}
+</p>
+{% endblock %}
+
+{% block contenido %}
+
+  {% if not hay_proyectos %}
+    {% comment %}
+      Sin obra no hay dónde poner nada, y es el único caso en que esta pantalla no puede hacer su
+      trabajo: la disciplina la crea ella si falta, pero una obra es una decisión con código,
+      cliente y etapa — no algo que se rellene de paso mientras se sube un archivo.
+    {% endcomment %}
+    <div class="aviso warning" role="status">
+      <p><b>{% translate "First, a work." %}</b></p>
+      <p>
+        {% blocktranslate %}Everything in the register hangs off a work: it is what gives a file a
+        code, a client and a stage.{% endblocktranslate %}
+      </p>
+      {% if puede_crear_proyecto %}
+        <p class="acciones" style="margin-bottom: 0">
+          <a class="boton" href="{% url 'projects:nuevo-proyecto' %}">
+            {% translate "Create the first work" %}
+          </a>
+        </p>
+      {% endif %}
+    </div>
+  {% else %}
+
+    {% comment %}
+      ══════════════════════════════════════════════════════════════════════════════════════════
+      **Los tres pasos, porque lo que confunde es no saber dónde acaba.**
+
+      Esta pantalla no sube el archivo: crea el sitio donde va a vivir. Sin decirlo, quien llega
+      con la nube en el escritorio busca el campo de archivo, no lo encuentra y se va — que es
+      exactamente lo que pasaba con el camino largo, solo que ocho pantallas más tarde.
+      ══════════════════════════════════════════════════════════════════════════════════════════
+    {% endcomment %}
+    <ol class="receta" aria-label="{% translate 'How uploading works' %}">
+      <li>
+        <span class="receta-numero" aria-hidden="true">1</span>
+        <div>
+          <b>{% translate "Here: what it is and where it goes" %}</b>
+          <span class="detalle">
+            {% translate "The work, the discipline and a code. If the discipline does not exist yet, write it and AeroBim creates it." %}
+          </span>
+        </div>
+      </li>
+      <li>
+        <span class="receta-numero" aria-hidden="true">2</span>
+        <div>
+          <b>{% translate "Next screen: the file" %}</b>
+          <span class="detalle">
+            {% translate "IFC, DXF, DWG, a COPC point cloud or a PDF, with a progress bar while it goes up." %}
+          </span>
+        </div>
+      </li>
+      <li>
+        <span class="receta-numero" aria-hidden="true">3</span>
+        <div>
+          <b>{% translate "And it is on the server" %}</b>
+          <span class="detalle">
+            {% translate "Anyone on the team opens it from the viewer without downloading it, and you can share it outside with a view-only link." %}
+          </span>
+        </div>
+      </li>
+    </ol>
+
+    <form method="post">
+      {% csrf_token %}
+      {% include "generic/_campos.html" with form=form %}
+      <div class="acciones">
+        <button type="submit">{% translate "Continue to the file" %}</button>
+        <a class="enlace-suave" href="{% url 'documents:archivos' %}">{% translate "Cancel" %}</a>
+      </div>
+    </form>
+  {% endif %}
+{% endblock %}
