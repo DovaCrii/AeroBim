@@ -9,6 +9,7 @@ navegador.
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
+from apps.core.personas import PersonasConNombre
 from apps.documents.camara import leer as leer_camara
 from apps.documents.ids import titulo_de_ids
 from apps.documents.models import (
@@ -28,7 +29,7 @@ from apps.documents.storage import (
 )
 
 
-class EntregableForm(forms.ModelForm):
+class EntregableForm(PersonasConNombre, forms.ModelForm):
     class Meta:
         model = Entregable
         fields = (
@@ -90,7 +91,7 @@ class RevisionForm(forms.ModelForm):
         return subido
 
 
-class ObservacionForm(forms.ModelForm):
+class ObservacionForm(PersonasConNombre, forms.ModelForm):
     """Abrir una observación, con o sin ancla en el documento.
 
     **El ancla va oculta y no la teclea nadie.** Llega desde el visor del documento cuando
@@ -182,7 +183,7 @@ class ObservacionForm(forms.ModelForm):
         return datos
 
 
-class RepartoForm(forms.ModelForm):
+class RepartoForm(PersonasConNombre, forms.ModelForm):
     """Repartir un hallazgo ya abierto: **quien lo tiene, para cuando y cuanto corre**. `F12.10`.
 
     ## El hueco que cierra
@@ -286,7 +287,7 @@ class EtiquetasForm(forms.Form):
         self.fields["etiquetas"].queryset = consulta
 
 
-class ActividadForm(forms.ModelForm):
+class ActividadForm(PersonasConNombre, forms.ModelForm):
     class Meta:
         model = Actividad
         fields = ("titulo", "descripcion", "responsable", "vence", "entregable", "status")
@@ -353,7 +354,7 @@ class RequisitoIdsForm(forms.ModelForm):
         return subido
 
 
-class TransmittalForm(forms.ModelForm):
+class TransmittalForm(PersonasConNombre, forms.ModelForm):
     """El borrador del transmittal: que revisiones van y a quien.
 
     **El proyecto no se elige: lo dicen las revisiones.** Pedirlo aparte abre la puerta a
