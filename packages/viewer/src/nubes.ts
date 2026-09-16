@@ -253,9 +253,44 @@ const RECORRIDO_MINIMO = 24;
  * rango, no la nube, así que con esto se puede decir «son 180 millones de puntos, no caben» sin
  * haber descargado nada.
  */
+/**
+ * **Un LAZ que no es COPC, dicho en el idioma de quien lo abre.**
+ *
+ * La biblioteca contesta `COPC info VLR is required`, que es exacto y no le sirve a nadie: sale
+ * arriba en la cinta, en inglés, nombrando una estructura interna del formato. Quien acaba de
+ * arrastrar el levantamiento que le pasó el topógrafo no tiene forma de saber qué hacer con eso.
+ *
+ * Y **no es un fallo de AeroBim ni del archivo**: un LAZ normal es un archivo correcto que
+ * simplemente no lleva el octree dentro, así que no se puede pedir por partes — habría que
+ * descargar los 130 MB enteros para ver el primer punto. Por eso el visor lee COPC y por eso la
+ * conversión existe.
+ *
+ * Lo único que faltaba era decirlo: qué pasa, por qué, y qué hacer.
+ */
+export function comoSeCuenta(error: unknown, url: string): Error {
+  const texto = error instanceof Error ? error.message : String(error);
+  if (/COPC info VLR|copc\.info|not a COPC/i.test(texto)) {
+    const archivo = url.split("/").pop() ?? url;
+    return new Error(
+      `«${archivo}» es un LAZ normal, no un COPC. ` +
+        "Un LAZ no lleva el índice dentro, así que habría que descargarlo entero para ver el " +
+        "primer punto: por eso el visor solo abre COPC. Conviértelo antes de subirlo — " +
+        "ver docs/NUBES_DE_PUNTOS.md.",
+    );
+  }
+  return error instanceof Error ? error : new Error(texto);
+}
+
 export async function fichaDeNube(url: string): Promise<FichaDeNube> {
   const getter = lectorPorRango(url);
-  const copc = await Copc.create(getter);
+  let copc;
+  try {
+    copc = await Copc.create(getter);
+  } catch (error) {
+    // **Se traduce aquí y no donde se pinta**, porque aquí se sabe **qué archivo** era: el
+    // mensaje que llega a la cinta ya no tiene esa información y acabaría diciendo «un archivo».
+    throw comoSeCuenta(error, url);
+  }
   const pagina = await Copc.loadHierarchyPage(getter, copc.info.rootHierarchyPage);
 
   const claves = Object.keys(pagina.nodes);
@@ -421,7 +456,14 @@ export class NubeEnEscena {
   /** Abre la nube: lee la cabecera y la jerarquía, y prepara el WASM. No descarga puntos. */
   static async abrir(url: string, opciones: OpcionesDeNube): Promise<NubeEnEscena> {
     const getter = lectorPorRango(url);
-    const copc = await Copc.create(getter);
+    // La misma traducción que en `fichaDeNube`: **los dos caminos abren el archivo**, y el que no
+    // la lleve deja escapar el «COPC info VLR is required» crudo por la otra puerta.
+    let copc;
+    try {
+      copc = await Copc.create(getter);
+    } catch (error) {
+      throw comoSeCuenta(error, url);
+    }
     const ficha = await fichaDeNube(url);
     const pagina = await Copc.loadHierarchyPage(getter, copc.info.rootHierarchyPage);
     // El WASM se crea una vez y se le pasa a cada nodo: si no, `copc` crea el suyo buscandolo donde

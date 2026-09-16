@@ -2127,17 +2127,54 @@ class NuevoEntregableView(ModelPermissionRequiredMixin, View):
     permission_action = "add"
     template_name = "documents/nuevo_entregable.html"
 
+    def contexto(self, request, form=None):
+        """El formulario **y si hay dónde colgar el entregable**.
+
+        ## El callejón que esto cierra
+
+        Un entregable necesita una disciplina, y las disciplinas **cuelgan de un proyecto**: en una
+        instalación recién hecha no hay ninguna. El desplegable salía vacío, el formulario no podía
+        validar nunca, y la pantalla no decía **qué faltaba ni dónde se conseguía**.
+
+        Es el mismo callejón que tenía «Cuenta nueva» sin organizaciones, un piso más abajo — y la
+        misma forma de fallo: una pantalla que exige algo correcto sin decir de dónde sale. Se
+        arregla igual, porque la respuesta correcta es la misma: no ofrecer un formulario que no se
+        va a poder enviar.
+
+        ## Y por qué se nombra el proyecto
+
+        Porque crear una disciplina se hace **dentro de una obra**, así que la salida no puede ser
+        un enlace genérico: tiene que llevar a un proyecto concreto. Con una sola obra —el caso del
+        piloto— se lleva directo a ella.
+        """
+        form = form or EntregableForm(autor=request.user)
+        proyectos = scope_queryset_to_organizacion(Proyecto.objects.all(), request.user).filter(
+            is_active=True
+        )
+        return {
+            "form": form,
+            "hay_disciplinas": form.fields["disciplina"].queryset.exists(),
+            "proyectos": list(proyectos.order_by("codigo")[:6]),
+            "hay_proyectos": proyectos.exists(),
+            "puede_crear_proyecto": request.user.has_perm("projects.add_proyecto"),
+        }
+
     def get(self, request, *args, **kwargs):
         from django.shortcuts import render
 
-        return render(request, self.template_name, {"form": EntregableForm()})
+        return render(request, self.template_name, self.contexto(request))
 
     def post(self, request, *args, **kwargs):
         from django.shortcuts import render
 
-        form = EntregableForm(request.POST)
+        # **`autor` también en el POST, y esa es la mitad que protege.** El acotado del `GET` solo
+        # decide qué se ofrece; sin repetirlo aquí, un `disciplina=<id ajeno>` enviado a mano
+        # seguiría creando el entregable **dentro de la empresa de otro** —la vista hace
+        # `entregable.organizacion = disciplina.proyecto.organizacion`—. Es la lección de las siete
+        # fugas: lo que decide no es la pantalla, es la consulta.
+        form = EntregableForm(request.POST, autor=request.user)
         if not form.is_valid():
-            return render(request, self.template_name, {"form": form}, status=400)
+            return render(request, self.template_name, self.contexto(request, form), status=400)
 
         entregable = form.save(commit=False)
         disciplina = form.cleaned_data["disciplina"]
