@@ -134,10 +134,37 @@ def test_si_no_se_puede_reiniciar_se_sabe_antes_de_empezar():
     """
     codigo = _codigo()
 
-    assert "sudo -n true" in codigo, "el guion no comprueba al principio si podrá reiniciar"
-    assert codigo.index("sudo -n true") < codigo.index('paso "1/7'), (
+    assert "sudo -n -l" in codigo, "el guion no comprueba al principio si podrá reiniciar"
+    assert codigo.index("sudo -n -l") < codigo.index('paso "1/7'), (
         "la comprobación está después de empezar a trabajar: el aviso llega tarde"
     )
+
+
+def test_se_pregunta_por_el_comando_exacto_y_no_por_sudo_entero():
+    """**Un guardián que empuja hacia el permiso ancho está al revés.**
+
+    La primera versión probaba `sudo -n true`: «¿puedes ejecutar cualquier cosa como root?».
+    Medido en `p340` el 2026-09-16, y en el caso que la propia guía recomienda: se instaló el
+    permiso **acotado** —solo `systemctl restart aerobim.service`, que es lo correcto y lo que pedía
+    el mensaje de este mismo guion— y la comprobación **siguió diciendo que no se podía reiniciar**.
+
+    O sea que castigaba a quien hace lo seguro y solo aprobaba a quien le da sudo entero al usuario
+    del servicio. `sudo -l <comando>` contesta por el comando exacto, que es la pregunta de verdad.
+
+    **Y el comando que se comprueba tiene que ser el que se ejecuta, carácter por carácter**: con
+    `sudo systemctl restart aerobim` —sin ruta y sin `.service`— la comprobación diría que sí y el
+    reinicio pediría la contraseña igual.
+    """
+    codigo = _codigo()
+
+    assert "sudo -n true" not in codigo, (
+        "vuelve a preguntar «¿puedes sudo?» en vez de «¿puedes este comando?»: eso rechaza el "
+        "permiso acotado que la guía recomienda"
+    )
+    assert "REINICIO=(/usr/bin/systemctl restart aerobim.service)" in codigo
+    # Lo que se comprueba y lo que se ejecuta salen de la misma variable: si alguien cambia uno de
+    # los dos a mano, vuelven a poder decir cosas distintas.
+    assert codigo.count('"${REINICIO[@]}"') == 2
 
 
 def test_sin_reiniciar_no_se_comprueba_la_salud():
@@ -157,6 +184,32 @@ def test_sin_reiniciar_no_se_comprueba_la_salud():
     assert "sudo systemctl restart aerobim.service" in codigo, (
         "no le dice a la persona el comando exacto que le falta"
     )
+
+
+def test_no_reiniciar_se_anuncia_como_una_averia_y_no_como_un_paso_pendiente():
+    """**Parar en el paso 7 no deja el sistema viejo: lo deja roto.**
+
+    Django lee las plantillas **del disco en cada petición**, así que los seis pasos anteriores ya
+    pusieron las nuevas delante del proceso viejo. Una plantilla que nombra una ruta que ese proceso
+    todavía no tiene revienta con `NoReverseMatch`.
+
+    Medido en `p340` el 2026-09-16: `usuarios_roles.html` pasó a enlazar `accounts:editar-cuenta`,
+    el servicio no se reinició, y la pantalla devolvió **500** a quien ya estaba dentro. El guion
+    había terminado con «el código, el visor, la base y los estáticos están al día. Falta
+    reiniciar» — que suena a tarea pendiente y era una avería en curso.
+
+    El tono del mensaje es la funcionalidad aquí: quien lo lee decide en ese momento si sale a
+    escribir el comando o si lo deja para después de comer.
+    """
+    guion = (DEPLOY / "desplegar.sh").read_text(encoding="utf-8")
+
+    assert "ROTO" in guion, (
+        "el mensaje de «no se pudo reiniciar» no dice que el sitio esté caído: se va a leer como "
+        "un paso pendiente, que es lo que ya pasó una vez"
+    )
+    # Y lo dice **antes** de las instrucciones: enterrado bajo el comando, se lee después de haber
+    # decidido que no corría prisa.
+    assert guion.index("ROTO") < guion.index("Sal de este guion y escribe")
 
 
 def test_una_respuesta_vacia_manda_a_mirar_la_direccion_y_no_el_journal():
