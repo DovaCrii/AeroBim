@@ -110,6 +110,141 @@ class ProyectosView(
         return contexto
 
 
+class ArchivarProyectoView(ModelPermissionRequiredMixin, View):
+    """Archivar una obra que ya no se trabaja, o volver a abrirla.
+
+    ## Por qué hacía falta y por qué no se vio antes
+
+    `Proyecto` hereda `is_active` de `BaseModel`, y **todos los listados ya filtran por él** desde
+    el primer día: la lista de obras, la portada, los desplegables de disciplina. O sea que el
+    archivado estaba construido entero y **nada podía ponerlo** — igual que la columna «Desactivado»
+    de las cuentas, que se pintaba sin que existiera el botón.
+
+    Lo destapó el usuario en el peor momento posible, que es el mejor: probando. «Necesito una forma
+    de borrar o archivar proyectos, ya que aún estoy en modo pruebas y no tengo cómo quitarlos.»
+    Una aplicación que solo sabe crear no se puede ensayar.
+
+    ## Archivar y no borrar, casi siempre
+
+    Una obra archivada desaparece de las listas y **se lleva con ella todo lo suyo**: sus
+    entregables, sus revisiones y sus observaciones dejan de estorbar sin perderse. Eso es lo que se
+    quiere de una obra terminada — el registro documental de una obra es, precisamente, lo que hay
+    que conservar cuando la obra acaba.
+
+    Se puede deshacer, que es lo que la separa de borrar.
+    """
+
+    model = Proyecto
+    permission_action = "change"
+
+    def post(self, request, *args, **kwargs):
+        proyecto = get_object_or_404(
+            scope_queryset_to_organizacion(Proyecto.objects.all(), request.user), pk=kwargs["pk"]
+        )
+        proyecto.is_active = not proyecto.is_active
+        proyecto.save(update_fields=["is_active"])
+        set_audit_context(
+            request,
+            proyecto,
+            action="reabrir_proyecto" if proyecto.is_active else "archivar_proyecto",
+        )
+        if proyecto.is_active:
+            messages.success(
+                request,
+                _("«%(codigo)s» is open again.") % {"codigo": proyecto.codigo},
+            )
+            return redirect("projects:proyecto", pk=proyecto.pk)
+
+        messages.success(
+            request,
+            _("«%(codigo)s» archived. Everything in it stays, out of the way.")
+            % {"codigo": proyecto.codigo},
+        )
+        # **A la lista y no a la ficha.** Archivada, la ficha sigue abriéndose por su enlace, pero
+        # dejar a alguien mirando lo que acaba de apartar invita a preguntarse si funcionó.
+        return redirect("projects:proyectos")
+
+
+class BorrarProyectoView(ModelPermissionRequiredMixin, View):
+    """Borrar de verdad una obra **que no tiene nada dentro**.
+
+    ## Por qué existe además de archivar
+
+    Porque son dos casos que se parecen desde la lista y no tienen nada que ver:
+
+    - **La obra de prueba**, creada hace diez minutos para ver cómo va esto. No tiene entregables
+      ni archivos: borrarla no borra nada de nadie, y archivarla dejaría basura para siempre en una
+      pantalla que se va a mirar todos los días.
+    - **La obra terminada**, con dos años de revisiones emitidas. Eso **es** el registro documental,
+      y lo que se hace con ella es archivarla.
+
+    Lo que hace que el segundo caso no pueda ocurrir por accidente es la misma comprobación que en
+    las cuentas: se pregunta **antes** qué hay dentro, y si hay algo no se ofrece borrar.
+
+    ## Y por qué una pantalla intermedia
+
+    `GET` enseña qué se va a borrar y qué lo impide; `POST` lo hace. Un borrado a un clic desde una
+    lista de obras es el borrado de la obra de al lado.
+    """
+
+    model = Proyecto
+    permission_action = "delete"
+    template_name = "projects/borrar_proyecto.html"
+
+    def proyecto(self, request, pk):
+        return get_object_or_404(
+            scope_queryset_to_organizacion(Proyecto.objects.all(), request.user), pk=pk
+        )
+
+    @staticmethod
+    def rastro(proyecto) -> list[str]:
+        """Lo que hay dentro de la obra, contado. **Vacío quiere decir borrable.**
+
+        Se cuenta lo que se ve en las pantallas —entregables, observaciones, actividades— y no las
+        disciplinas ni los paquetes: esos son andamio de la propia obra, no trabajo de nadie, y
+        contarlos haría que ninguna obra recién creada fuera borrable. Que es justo el caso.
+        """
+        from apps.documents.models import Actividad, Entregable, Observacion
+
+        cuenta = (
+            (Entregable.objects.filter(proyecto=proyecto), _("deliverables")),
+            (Observacion.objects.filter(proyecto=proyecto), _("observations")),
+            (Actividad.objects.filter(proyecto=proyecto), _("activities")),
+        )
+        return [
+            f"{cuantos} {etiqueta}"
+            for consulta, etiqueta in cuenta
+            if (cuantos := consulta.count())
+        ]
+
+    def get(self, request, *args, **kwargs):
+        proyecto = self.proyecto(request, kwargs["pk"])
+        return render(
+            request,
+            self.template_name,
+            {"proyecto": proyecto, "rastro": self.rastro(proyecto)},
+        )
+
+    def post(self, request, *args, **kwargs):
+        proyecto = self.proyecto(request, kwargs["pk"])
+        rastro = self.rastro(proyecto)
+        if rastro:
+            # **No se intenta y se falla: no se intenta.** Llegar aquí con rastro significa que
+            # alguien trabajó entre el `GET` y el `POST`, o que se saltó la pantalla.
+            messages.error(
+                request,
+                _("«%(codigo)s» has work in it. Archive it instead.") % {"codigo": proyecto.codigo},
+            )
+            return redirect("projects:borrar-proyecto", pk=proyecto.pk)
+
+        codigo = proyecto.codigo
+        # La auditoría se escribe **antes** de borrar: después no hay a qué apuntar.
+        set_audit_context(request, proyecto, action="borrar_proyecto")
+        proyecto.delete()
+        messages.success(request, _("«%(codigo)s» deleted.") % {"codigo": codigo})
+        return redirect("projects:proyectos")
+
+
 class ProyectoView(ModelViewPermissionRequiredMixin, OrganizacionScopedQuerysetMixin, DetailView):
     """El proyecto: **donde sigue el trabajo**, no solo que contiene.
 

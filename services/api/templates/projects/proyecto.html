@@ -512,4 +512,55 @@
       {% endfor %}
     </tbody>
   </table>
+
+  {% comment %}
+    ══════════════════════════════════════════════════════════════════════════════════════════
+    **Las dos salidas, al pie y separadas del trabajo.**
+
+    Van aquí y no en la lista de obras por lo mismo que en las cuentas: son decisiones que se
+    toman mirando **esta** obra —qué tiene dentro, en qué etapa está— y un botón de archivar en
+    una tabla de doce filas es el archivado de la fila de al lado.
+
+    **Archivar es lo normal y va primero.** Una obra terminada no se borra: su registro documental
+    es precisamente lo que hay que conservar. Borrar existe para la obra de prueba creada hace
+    diez minutos, y por eso es un enlace discreto y no un botón.
+
+    `is_active` estaba en el modelo y todos los listados ya filtraban por él desde el primer día:
+    lo único que faltaba era poder ponerlo.
+    ══════════════════════════════════════════════════════════════════════════════════════════
+  {% endcomment %}
+  {% if perms.projects.change_proyecto %}
+    <section class="zona-delicada" aria-labelledby="titulo-salidas">
+      <h2 id="titulo-salidas">{% translate "When this work is over" %}</h2>
+
+      {% if proyecto.is_active %}
+        <p class="detalle">
+          {% blocktranslate %}Archiving takes it out of the lists and keeps everything inside:
+          deliverables, revisions and observations stay exactly as they are.{% endblocktranslate %}
+        </p>
+        <form method="post" action="{% url 'projects:archivar-proyecto' proyecto.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="secundario">{% translate "Archive this work" %}</button>
+        </form>
+      {% else %}
+        <p class="detalle">
+          {% translate "This work is archived: it does not show up in the lists." %}
+        </p>
+        <form method="post" action="{% url 'projects:archivar-proyecto' proyecto.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="secundario">{% translate "Open it again" %}</button>
+        </form>
+      {% endif %}
+
+      {% if perms.projects.delete_proyecto %}
+        <p class="detalle" style="margin-top: 18px">
+          {% blocktranslate %}And if you created it to try things out and it has nothing in it, it
+          can be deleted outright.{% endblocktranslate %}
+        </p>
+        <p><a class="enlace-suave" href="{% url 'projects:borrar-proyecto' proyecto.pk %}">
+          {% translate "Delete it instead…" %}
+        </a></p>
+      {% endif %}
+    </section>
+  {% endif %}
 {% endblock %}

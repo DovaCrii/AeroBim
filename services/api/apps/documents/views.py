@@ -246,12 +246,24 @@ class ArchivosView(ModelViewPermissionRequiredMixin, FiltrosEnLaPaginacionMixin,
         contexto["categoria_activa"] = activa
         contexto["hay_archivos"] = sum(cuantas.values())
         contexto["puede_subir"] = self.request.user.has_perm("documents.add_revision")
-        # **`change_revision` y no `view_revision`**: compartir hacia fuera no es leer. Con el de
-        # lectura, cualquier cuenta —incluida la del mandante— podría publicar el modelo. Es la
-        # misma regla que ya aplica `EnlacesDeRevisionView`, y se repite aquí porque ofrecer el
-        # enlace y dejar entrar son dos decisiones: ofrecer lo que termina en 403 enseña a probar
-        # puertas.
-        contexto["puede_compartir"] = self.request.user.has_perm("documents.change_revision")
+        # ══════════════════════════════════════════════════════════════════════════════════
+        #   **El mismo permiso que pide la puerta, y este ya se escribió mal una vez.**
+        #
+        #   La primera versión de esta línea comprobaba `change_revision`, que es la **regla**
+        #   —compartir hacia fuera no es leer, y con el permiso de lectura hasta el mandante
+        #   podría publicar el modelo—. Pero `EnlacesDeRevisionView` la **implementa** con
+        #   `add_enlacecompartido`, y las dos cosas pueden separarse: a quien tuviera una y no
+        #   la otra, la fila le ofrecía un enlace que terminaba en 403.
+        #
+        #   Es exactamente lo que la regla de la casa prohíbe —ofrecer una puerta que no abre
+        #   enseña a probar puertas— y lo encontró la prueba de punta a punta, no leerlo: mi
+        #   propia fixture daba `change_revision` y el POST contestaba 403.
+        #
+        #   La lección, que vale para la siguiente pantalla que ofrezca una acción: **se
+        #   comprueba el permiso que exige la vista de destino**, no el que uno cree que
+        #   debería exigir.
+        # ══════════════════════════════════════════════════════════════════════════════════
+        contexto["puede_compartir"] = self.request.user.has_perm("documents.add_enlacecompartido")
         return contexto
 
 

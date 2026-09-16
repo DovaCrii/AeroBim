@@ -191,6 +191,39 @@ def test_el_filtro_por_categoria_acota(client, jej):
 
 
 @pytest.mark.django_db
+def test_el_boton_de_compartir_pide_el_mismo_permiso_que_la_puerta(client, jej):
+    """**Ofrecer una puerta que no abre enseña a probar puertas**, y aquí se hizo mal una vez.
+
+    La primera versión comprobaba `change_revision` —que es **la regla**: compartir hacia fuera no
+    es leer— mientras `EnlacesDeRevisionView` la **implementa** con `add_enlacecompartido`. Las dos
+    pueden separarse, y a quien tuviera una y no la otra la fila le ofrecía un enlace que terminaba
+    en 403.
+
+    Lo destapó la prueba de punta a punta, no leer el código. Esta lo fija: la pantalla ofrece
+    exactamente lo que la vista de destino deja hacer, comprobado **contra la vista** y no contra
+    una cadena repetida aquí.
+    """
+    from apps.documents.vistas_compartir import EnlacesDeRevisionView
+
+    autor = _persona("autor", jej, permisos=("view_revision", "add_revision"))
+    _con_archivo(jej, "modelo.ifc", codigo="M", autor=autor)
+
+    # Sin el permiso de la puerta, la fila no ofrece «Compartir».
+    client.force_login(autor)
+    assert "Compartir" not in client.get(reverse("documents:archivos")).content.decode()
+
+    # Y con él, sí. El permiso se pide **a la vista**, para que cambiarlo allí rompa esto en rojo
+    # en vez de dejar un botón que lleva a un 403.
+    codename = EnlacesDeRevisionView().get_permission_required()[0].split(".")[1]
+    autor.user_permissions.add(
+        Permission.objects.get(codename=codename, content_type__app_label="documents")
+    )
+    client.force_login(get_user_model().objects.get(pk=autor.pk))
+
+    assert "Compartir" in client.get(reverse("documents:archivos")).content.decode()
+
+
+@pytest.mark.django_db
 def test_sin_permiso_de_leer_revisiones_no_se_entra(client, jej):
     """La regla de la casa: toda superficie de lectura pide su `view_*` explícito."""
     sin_permiso = get_user_model().objects.create_user(username="nadie", password="x" * 14)

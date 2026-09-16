@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block titulo %}{% translate "Delete work" %} · AeroBim{% endblock %}
+
+{% block migas %}
+<nav class="migas" aria-label="{% translate 'Breadcrumb' %}">
+  <a href="{% url 'projects:proyectos' %}">{% translate "Projects" %}</a>
+  <span aria-hidden="true">›</span>
+  <a href="{% url 'projects:proyecto' proyecto.pk %}">{{ proyecto.codigo }}</a>
+</nav>
+{% endblock %}
+
+{% block titulo_pagina %}
+<h1>{% blocktranslate with codigo=proyecto.codigo %}Delete {{ codigo }}?{% endblocktranslate %}</h1>
+{% endblock %}
+
+{% block contenido %}
+
+  {% comment %}
+    ══════════════════════════════════════════════════════════════════════════════════════════
+    **Dos casos que desde la lista se parecen y no tienen nada que ver.**
+
+    La obra de prueba creada hace diez minutos para ver cómo va esto: sin entregables, sin
+    archivos. Borrarla no borra nada de nadie, y archivarla dejaría basura para siempre en una
+    pantalla que se mira todos los días.
+
+    La obra terminada con dos años de revisiones emitidas: eso **es** el registro documental, y lo
+    que se hace con ella es archivarla — desaparece de las listas y se conserva entera.
+
+    La pantalla pregunta antes cuál de las dos es, para que la respuesta sea una explicación y no
+    un error de base de datos.
+    ══════════════════════════════════════════════════════════════════════════════════════════
+  {% endcomment %}
+  {% if rastro %}
+    <div class="aviso warning" role="alert">
+      <p><b>{% translate "This work has things in it." %}</b></p>
+      <p>
+        {% blocktranslate %}What is inside is the document register of the work: who issued what,
+        when, and in which revision. Deleting it would take that with it.{% endblocktranslate %}
+      </p>
+      <ul>
+        {% for una in rastro %}<li>{{ una }}</li>{% endfor %}
+      </ul>
+    </div>
+
+    <p class="detalle">
+      {% blocktranslate %}What you want here is to archive it: it disappears from the lists and
+      everything inside stays where it is.{% endblocktranslate %}
+    </p>
+    <div class="acciones">
+      <form method="post" action="{% url 'projects:archivar-proyecto' proyecto.pk %}">
+        {% csrf_token %}
+        <button type="submit">{% translate "Archive this work" %}</button>
+      </form>
+      <a class="enlace-suave" href="{% url 'projects:proyecto' proyecto.pk %}">{% translate "Back" %}</a>
+    </div>
+
+  {% else %}
+    <div class="aviso" role="note">
+      <p>
+        {% blocktranslate %}This work has nothing in it: no deliverable, no observation, no
+        activity. Deleting it removes nothing from the register.{% endblocktranslate %}
+      </p>
+      <p style="margin-bottom: 0">{% translate "It cannot be undone." %}</p>
+    </div>
+
+    <dl class="credenciales">
+      <dt>{% translate "Code" %}</dt>
+      <dd><code class="secreto">{{ proyecto.codigo }}</code></dd>
+      <dt>{% translate "Name" %}</dt>
+      <dd>{{ proyecto.nombre }}</dd>
+    </dl>
+
+    <div class="acciones">
+      <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="peligro">{% translate "Delete this work" %}</button>
+      </form>
+      <a class="enlace-suave" href="{% url 'projects:proyecto' proyecto.pk %}">{% translate "Cancel" %}</a>
+    </div>
+  {% endif %}
+{% endblock %}
