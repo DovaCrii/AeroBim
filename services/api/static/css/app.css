@@ -80,6 +80,19 @@
    */
   --ab-sobre-primary: #fff;
   --ab-danger: #c53b4d; /* 4,8:1 */
+  /*
+   * **Y la tinta que va encima del rojo cuando el rojo es relleno**, que es el mismo caso que
+   * `--ab-sobre-primary` un piso más abajo y ya nos ha costado tres veces.
+   *
+   * `--ab-danger` se usa como **texto** —el error de un campo, el borde de un aviso— y ahora
+   * también como **relleno**, en el botón de borrar una cuenta. Y el tema lo invierte: en claro es
+   * oscuro para leerse sobre blanco, en oscuro se aclara para leerse sobre el panel.
+   *
+   * Medido: blanco sobre el rojo claro **5,11:1**; blanco sobre el rojo oscuro **2,39:1**. O sea
+   * que la opción evidente —`color: #fff` y listo— dejaría ilegible el único botón del producto
+   * que no se puede deshacer, en la mitad de las sesiones. Con el navy de la familia, 5,95:1.
+   */
+  --ab-sobre-danger: #fff;
   --ab-ok: #0f7a5f; /* 4,9:1 */
   --ab-warn: #8a5a00; /* 5,5:1 — el ámbar llevado a texto sobre fondo claro */
 
@@ -193,6 +206,9 @@
      sobre el relleno y más sobre el del hover. Blanco daba 2,09. Ver `--ab-sobre-primary`. */
   --ab-sobre-primary: var(--ab-navy);
   --ab-danger: #f08a97; /* el #c53b4d no llega a 4,5:1 sobre superficie oscura */
+  /* Aquí el rojo es claro, así que lo de encima se oscurece: 5,95:1 con el navy. Blanco daba
+     2,39. Ver `--ab-sobre-danger` arriba. */
+  --ab-sobre-danger: var(--ab-navy);
   --ab-ok: #5fd3ae;
   /* **El mismo hexadecimal que `--color-warn` del visor**, y a proposito: es la costura que el
      usuario cruza al abrir un modelo desde su expediente. 9,5:1 sobre el fondo. */
@@ -2557,6 +2573,126 @@ input[type="file"]::file-selector-button:hover {
   border-color: var(--ab-danger);
 }
 
+/*
+ * **Lo que no se deshace se pinta distinto.** Borrar una cuenta es el único botón del producto que
+ * no tiene vuelta atrás, y con el aspecto del botón primario —el mismo violeta que «Guardar»— la
+ * mano va sola. No es rojo *además* del texto: el texto dice «Borrar esta cuenta» y el color lo
+ * subraya, que es el orden correcto.
+ */
+button.peligro {
+  background: var(--ab-danger);
+  color: var(--ab-sobre-danger);
+  border-color: var(--ab-danger);
+}
+
+button.peligro:hover {
+  background: var(--ab-danger);
+  filter: brightness(0.92);
+}
+
+/*
+ * **La zona de la que no se vuelve**, al pie de la ficha de una cuenta y separada del formulario.
+ *
+ * Va con una línea arriba y no dentro de una caja roja: desactivar a alguien que se va es una
+ * operación **normal**, no una emergencia, y pintarla de alarma haría dudar de hacer lo correcto.
+ * Lo que separa no es el color sino la distancia.
+ */
+.zona-delicada {
+  max-width: 34rem;
+  margin-top: 36px;
+  padding-top: 20px;
+  border-top: 1px solid var(--ab-border);
+}
+
+.zona-delicada h2 {
+  margin-top: 0;
+  font-size: 1rem;
+}
+
+.zona-delicada .detalle {
+  margin: 0 0 12px;
+  color: var(--ab-text-muted);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+/* Un rótulo que solo existe para quien no ve la pantalla. La columna de acciones no lleva título
+   visible —la cabecera diría «Acciones» encima de una sola palabra— pero una tabla con una columna
+   sin nombre se lee fatal con un lector de pantalla. */
+.visualmente-oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/*
+ * **Qué hace cada rol, plegado.**
+ *
+ * `<details>` y no un bloque siempre abierto: quien administra a diario ya se los sabe y tener la
+ * explicación desplegada encima de la tabla empuja las filas fuera de la pantalla todos los días
+ * para contestar una pregunta que se hace dos veces. Plegado es una línea, y no necesita ni una
+ * línea de JavaScript — que en esta aplicación importa: la CSP prohíbe el inline.
+ */
+.que-hace-cada-rol {
+  max-width: 44rem;
+  margin-bottom: 18px;
+  padding: 12px 16px;
+  background: var(--ab-surface);
+  border: 1px solid var(--ab-border);
+  border-radius: var(--ab-radius);
+}
+
+.que-hace-cada-rol > summary {
+  color: var(--ab-primary);
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.que-hace-cada-rol .detalle {
+  margin: 12px 0;
+  color: var(--ab-text-secondary);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+/* Nombre y explicación en dos columnas: es una comparación, y la pregunta que se hace aquí no es
+   «¿qué es un revisor?» sino «¿cuál de estos cuatro es esta persona?». En columna no se compara. */
+.roles-explicados {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px 18px;
+  margin: 0;
+}
+
+.roles-explicados dt {
+  color: var(--ab-text);
+  font-size: 0.88rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.roles-explicados dd {
+  margin: 0;
+  color: var(--ab-text-muted);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+@media (max-width: 560px) {
+  .roles-explicados {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+
+  .roles-explicados dd {
+    margin-bottom: 10px;
+  }
+}
+
 /* La fila de abajo: el botón que hace la cosa y la salida, al mismo nivel y separados. Antes la
    vuelta era un `<p><a>` suelto debajo del formulario y se leía como un pie de página. */
 .acciones {
@@ -2735,6 +2871,91 @@ input[type="file"]::file-selector-button:hover {
   font-size: 1rem;
   letter-spacing: 0.04em;
   user-select: all;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════════
+ * EL OJO DE LOS CAMPOS DE CONTRASEÑA.
+ *
+ * AeroBim reparte **claves generadas** de dieciséis caracteres que llegan dictadas o por WhatsApp,
+ * y se tecleaban a ciegas contra un error genérico —«usuario o contraseña incorrectos», a propósito
+ * para no confirmar qué usuarios existen— y contra `axes`, que bloquea a los cinco intentos.
+ *
+ * La caja y el botón los crea `static/js/ver-la-clave.js`; aquí solo están las medidas. El porqué
+ * de que los cree el script y no la plantilla está escrito allí.
+ * ═══════════════════════════════════════════════════════════════════════════════════ */
+.campo-con-ojo {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* Sitio para el botón, para que el texto de la clave no pase por debajo del dibujo. 44 px es el
+   área de toque mínima de la casa, y es lo que ocupa el botón. */
+.campo-con-ojo > input {
+  width: 100%;
+  padding-right: 44px;
+}
+
+/*
+ * **Ancla a la derecha del campo y no a la del bloque.** Con `position: absolute` respecto de un
+ * contenedor más ancho, el ojo quedaría flotando lejos de la caja en cuanto el campo no llene la
+ * columna — que es justo lo que pasa en la puerta, donde el formulario es más estrecho que su
+ * tarjeta.
+ */
+/*
+ * **El área de toque la limita el campo, y eso es correcto aquí.** Medido: 42 × 40 px dentro de un
+ * campo de 42 de alto. La regla de la casa son 44, y viene de la cinta del visor —botones sueltos
+ * en una barra—; este no es uno suelto: vive **dentro** de un control, y crecer hasta 44 lo haría
+ * asomar por fuera del campo, que es peor de leer y peor de acertar. WCAG 2.5.8 pide 24.
+ */
+.ojo {
+  position: absolute;
+  right: 1px;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  /* Que no se estire con el alto del campo ni lo estire él: hereda el del campo menos el borde. */
+  height: calc(100% - 2px);
+  padding: 0;
+  color: var(--ab-text-muted);
+  background: transparent;
+  border: 0;
+  border-radius: var(--ab-radio-sm);
+  cursor: pointer;
+}
+
+.ojo:hover {
+  color: var(--ab-text);
+  background: transparent;
+}
+
+.ojo:focus-visible {
+  outline: 2px solid var(--ab-primary);
+  outline-offset: -2px;
+}
+
+.ojo svg {
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* En la puerta el campo va sobre `--ab-surface-alt` igual que en el resto, así que el ojo hereda
+   las mismas medidas. Se declara para ganar a `.puerta button[type="submit"]`, que pinta de violeta
+   cualquier botón de esa pantalla — y el ojo no es el botón de entrar. */
+.puerta .ojo {
+  background: transparent;
+  color: var(--ab-text-muted);
+  font: inherit;
+}
+
+.puerta .ojo:hover {
+  background: transparent;
+  color: var(--ab-text);
 }
 
 /* El icono dentro de una línea de texto: se alinea con la letra, no con la caja. `em` y no `rem`

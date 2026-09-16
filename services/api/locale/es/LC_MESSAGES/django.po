@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-15 16:17-0300\n"
+"POT-Creation-Date: 2026-09-15 18:38-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -30,43 +30,67 @@ msgstr "Nombre de la organización"
 msgid ""
 "The company the works belong to. If the whole team works at the same one, "
 "this is the only organisation you need."
-msgstr "La empresa a la que pertenecen las obras. Si el equipo entero trabaja en la misma, esta es la única organización que necesitas."
+msgstr ""
+"La empresa a la que pertenecen las obras. Si el equipo entero trabaja en la "
+"misma, esta es la única organización que necesitas."
 
 #: .\apps\accounts\forms.py:62
 msgid "There is already an organisation with that name."
 msgstr "Ya hay una organización con ese nombre."
 
-#: .\apps\accounts\forms.py:105
+#: .\apps\accounts\forms.py:105 .\apps\accounts\forms.py:204
 msgid "First name"
 msgstr "Nombre"
 
-#: .\apps\accounts\forms.py:106
+#: .\apps\accounts\forms.py:106 .\apps\accounts\forms.py:205
 msgid "Last name"
 msgstr "Apellido"
 
-#: .\apps\accounts\forms.py:108 .\templates\accounts\usuarios_roles.html:36
+#: .\apps\accounts\forms.py:108 .\apps\accounts\forms.py:207
+#: .\templates\accounts\borrar_cuenta.html:75
+#: .\templates\accounts\usuarios_roles.html:68
 msgid "Email"
 msgstr "Correo"
 
-#: .\apps\accounts\forms.py:109
+#: .\apps\accounts\forms.py:109 .\apps\accounts\forms.py:208
 msgid "Where the notifications go. A real address, or they will never arrive."
 msgstr "A dónde llegan los avisos. Una dirección real, o no llegarán nunca."
 
-#: .\apps\accounts\forms.py:112
+#: .\apps\accounts\forms.py:112 .\apps\accounts\forms.py:211
 msgid "Organisation"
 msgstr "Organización"
 
-#: .\apps\accounts\forms.py:114
+#: .\apps\accounts\forms.py:114 .\apps\accounts\forms.py:213
 msgid "What this person will be able to see. Nothing outside it."
 msgstr "Lo que esta persona podrá ver. Nada de fuera."
 
-#: .\apps\accounts\forms.py:116
+#: .\apps\accounts\forms.py:116 .\apps\accounts\forms.py:215
 msgid "Role"
 msgstr "Rol"
 
-#: .\apps\accounts\forms.py:146
+#: .\apps\accounts\forms.py:148 .\apps\accounts\forms.py:253
 msgid "There is already an account with that email."
 msgstr "Ya hay una cuenta con ese correo."
+
+#: .\apps\accounts\forms.py:266
+msgid "first name"
+msgstr "el nombre"
+
+#: .\apps\accounts\forms.py:267
+msgid "last name"
+msgstr "el apellido"
+
+#: .\apps\accounts\forms.py:268
+msgid "email"
+msgstr "el correo"
+
+#: .\apps\accounts\forms.py:283
+msgid "role"
+msgstr "el rol"
+
+#: .\apps\accounts\forms.py:291 .\apps\core\models.py:123
+msgid "organisation"
+msgstr "la organización"
 
 #: .\apps\accounts\middleware.py:88
 msgid ""
@@ -210,7 +234,9 @@ msgstr "Trabajo planificado: quién hace qué, y para cuándo."
 msgid "Administration"
 msgstr "Administración"
 
-#: .\apps\accounts\modulos.py:164 .\templates\accounts\nueva_cuenta.html:8
+#: .\apps\accounts\modulos.py:164 .\templates\accounts\borrar_cuenta.html:8
+#: .\templates\accounts\editar_cuenta.html:8
+#: .\templates\accounts\nueva_cuenta.html:8
 #: .\templates\accounts\usuarios_roles.html:4
 #: .\templates\accounts\usuarios_roles.html:6
 msgid "Users and roles"
@@ -303,11 +329,67 @@ msgid_plural "%(n)s works"
 msgstr[0] "%(n)s obra"
 msgstr[1] "%(n)s obras"
 
-#: .\apps\accounts\views.py:480
+#: .\apps\accounts\views.py:487
 #, python-format
 msgid ""
 "«%(nombre)s» created. Now you can create the accounts of the people in it."
-msgstr "«%(nombre)s» creada. Ya puedes crear las cuentas de quienes trabajan en ella."
+msgstr ""
+"«%(nombre)s» creada. Ya puedes crear las cuentas de quienes trabajan en ella."
+
+#: .\apps\accounts\views.py:678
+#, python-format
+msgid "%(nombre)s updated: %(cambios)s."
+msgstr "%(nombre)s actualizado: %(cambios)s."
+
+#: .\apps\accounts\views.py:686
+msgid "Nothing changed: it was already like that."
+msgstr "No cambió nada: ya estaba así."
+
+#: .\apps\accounts\views.py:713
+#, python-format
+msgid "%(nombre)s can sign in again."
+msgstr "%(nombre)s ya puede volver a entrar."
+
+#: .\apps\accounts\views.py:717
+#, python-format
+msgid ""
+"%(nombre)s can no longer sign in. Everything they did stays in the record."
+msgstr "%(nombre)s ya no puede entrar. Todo lo que hizo sigue en el registro."
+
+#: .\apps\accounts\views.py:760
+msgid "revisions uploaded"
+msgstr "revisiones subidas"
+
+#: .\apps\accounts\views.py:761
+msgid "deliverables they own"
+msgstr "entregables a su cargo"
+
+#: .\apps\accounts\views.py:762
+msgid "transmittals issued"
+msgstr "transmittals emitidos"
+
+#: .\apps\accounts\views.py:763
+msgid "observations opened"
+msgstr "observaciones abiertas"
+
+#: .\apps\accounts\views.py:764
+msgid "observations they own"
+msgstr "observaciones a su cargo"
+
+#: .\apps\accounts\views.py:765
+msgid "messages in threads"
+msgstr "mensajes en hilos"
+
+#: .\apps\accounts\views.py:796
+#, python-format
+msgid ""
+"%(nombre)s cannot be deleted: their work is part of the record. Disable them."
+msgstr "%(nombre)s no se puede borrar: su trabajo es parte del registro. Desactívalo."
+
+#: .\apps\accounts\views.py:806
+#, python-format
+msgid "%(nombre)s deleted."
+msgstr "%(nombre)s borrado."
 
 #: .\apps\core\apps.py:8
 msgid "Core"
@@ -326,10 +408,6 @@ msgstr "notas"
 #: .\apps\projects\models.py:167 .\apps\projects\models.py:236
 msgid "name"
 msgstr "nombre"
-
-#: .\apps\core\models.py:123
-msgid "organisation"
-msgstr "organización"
 
 #: .\apps\core\models.py:124
 msgid "organisations"
@@ -1550,7 +1628,7 @@ msgid "Path"
 msgstr "Ruta"
 
 #: .\templates\accounts\auditoria.html:24
-#: .\templates\accounts\usuarios_roles.html:38
+#: .\templates\accounts\usuarios_roles.html:70
 #: .\templates\documents\enlaces.html:56
 msgid "Status"
 msgstr "Código"
@@ -1700,6 +1778,148 @@ msgstr ""
 "aceptar. Lo que AeroBim guarda de ti y lo que no hace: sin analítica, sin "
 "terceros, y los archivos de la obra se quedan en tu propio servidor."
 
+#: .\templates\accounts\borrar_cuenta.html:4
+msgid "Delete account"
+msgstr "Borrar la cuenta"
+
+#: .\templates\accounts\borrar_cuenta.html:7
+#: .\templates\accounts\editar_cuenta.html:7
+#: .\templates\accounts\nueva_cuenta.html:7
+#: .\templates\accounts\nueva_organizacion.html:7
+#: .\templates\accounts\privacidad.html:7 .\templates\documents\enlaces.html:7
+msgid "Breadcrumb"
+msgstr "Ruta"
+
+#: .\templates\accounts\borrar_cuenta.html:15
+#, python-format
+msgid "Delete %(nombre)s?"
+msgstr "¿Borrar a %(nombre)s?"
+
+#: .\templates\accounts\borrar_cuenta.html:39
+msgid "This account cannot be deleted, and that is on purpose."
+msgstr "Esta cuenta no se puede borrar, y es a propósito."
+
+#: .\templates\accounts\borrar_cuenta.html:41
+msgid ""
+"Their work is part of the document register. Who issued a revision is as\n"
+"        much a part of the record as the revision itself, so AeroBim will "
+"not let it be\n"
+"        erased."
+msgstr "Su trabajo es parte del registro documental. Quién emitió una revisión es tanto parte del registro como la revisión misma, así que AeroBim no deja borrarlo."
+
+#: .\templates\accounts\borrar_cuenta.html:45
+msgid "What is in their name:"
+msgstr "Lo que está a su nombre:"
+
+#: .\templates\accounts\borrar_cuenta.html:52
+msgid ""
+"What you want here is to disable them: they stop being able to sign in,\n"
+"      and everything stays where it is."
+msgstr "Lo que quieres aquí es desactivarlo: deja de poder entrar, y todo se queda donde está."
+
+#: .\templates\accounts\borrar_cuenta.html:58
+#: .\templates\accounts\editar_cuenta.html:69
+msgid "Disable this account"
+msgstr "Desactivar esta cuenta"
+
+#: .\templates\accounts\borrar_cuenta.html:60
+#: .\templates\accounts\nueva_cuenta.html:155
+#: .\templates\accounts\nueva_organizacion.html:46
+#: .\templates\documents\actividad.html:73
+#: .\templates\documents\cobertura.html:132
+#: .\templates\documents\nueva_actividad.html:20
+#: .\templates\documents\nueva_observacion.html:22
+#: .\templates\documents\nuevo_entregable.html:21
+#: .\templates\documents\nuevo_requisito_ids.html:22
+#: .\templates\documents\nuevo_transmittal.html:22
+#: .\templates\documents\subir_revision.html:25
+#: .\templates\documents\transmittal.html:134
+#: .\templates\projects\nueva_disciplina.html:22
+#: .\templates\projects\nuevo_proyecto.html:21
+msgid "Back"
+msgstr "Volver"
+
+#: .\templates\accounts\borrar_cuenta.html:66
+msgid ""
+"This account has not been used for anything: no revision, no transmittal,\n"
+"        no observation, no message. Deleting it removes nothing from the "
+"record."
+msgstr "Esta cuenta no se ha usado para nada: ninguna revisión, ningún transmittal, ninguna observación, ningún mensaje. Borrarla no quita nada del registro."
+
+#: .\templates\accounts\borrar_cuenta.html:69
+msgid "It cannot be undone. You would have to create it again."
+msgstr "No se puede deshacer. Habría que crearla otra vez."
+
+#: .\templates\accounts\borrar_cuenta.html:73
+#: .\templates\accounts\nueva_cuenta.html:48
+#: .\templates\accounts\usuarios_roles.html:66
+msgid "Username"
+msgstr "Nombre de usuario"
+
+#: .\templates\accounts\borrar_cuenta.html:82
+msgid "Delete this account"
+msgstr "Borrar esta cuenta"
+
+#: .\templates\accounts\borrar_cuenta.html:84
+#: .\templates\accounts\editar_cuenta.html:45
+msgid "Cancel"
+msgstr "Cancelar"
+
+#: .\templates\accounts\editar_cuenta.html:4
+msgid "Edit account"
+msgstr "Editar la cuenta"
+
+#: .\templates\accounts\editar_cuenta.html:13
+#, python-format
+msgid "Edit %(nombre)s"
+msgstr "Editar a %(nombre)s"
+
+#: .\templates\accounts\editar_cuenta.html:18
+#, python-format
+msgid "Signs in as <b>%(usuario)s</b>. That name does not change."
+msgstr "Entra como <b>%(usuario)s</b>. Ese nombre no cambia."
+
+#: .\templates\accounts\editar_cuenta.html:35
+msgid ""
+"Everything here can be corrected. The username cannot: it is what this\n"
+"      person types to sign in, and what appears next to everything they have "
+"done."
+msgstr "Todo esto se puede corregir. El nombre de usuario no: es lo que esta persona escribe para entrar, y lo que aparece al lado de todo lo que ha hecho."
+
+#: .\templates\accounts\editar_cuenta.html:44
+msgid "Save changes"
+msgstr "Guardar los cambios"
+
+#: .\templates\accounts\editar_cuenta.html:59
+msgid "If this person is leaving"
+msgstr "Si esta persona se va"
+
+#: .\templates\accounts\editar_cuenta.html:63
+msgid ""
+"Disabling is what you almost always want: they stop being able to sign\n"
+"          in, and everything they uploaded or wrote stays in the record with "
+"their name on\n"
+"          it."
+msgstr "Desactivar es lo que quieres casi siempre: deja de poder entrar, y todo lo que subió o escribió sigue en el registro con su nombre."
+
+#: .\templates\accounts\editar_cuenta.html:73
+msgid "This account is disabled: they cannot sign in."
+msgstr "Esta cuenta está desactivada: no puede entrar."
+
+#: .\templates\accounts\editar_cuenta.html:77
+msgid "Let them sign in again"
+msgstr "Dejar que vuelva a entrar"
+
+#: .\templates\accounts\editar_cuenta.html:83
+msgid ""
+"And if you just created it by mistake and it has not been used for\n"
+"          anything, it can be deleted outright."
+msgstr "Y si la acabas de crear por error y no se ha usado para nada, se puede borrar del todo."
+
+#: .\templates\accounts\editar_cuenta.html:87
+msgid "Delete it instead…"
+msgstr "Borrarla en vez de eso…"
+
 #: .\templates\accounts\glosario.html:10
 #, python-format
 msgid ""
@@ -1743,12 +1963,6 @@ msgstr "Volver a cómo se usa AeroBim"
 msgid "New account"
 msgstr "Cuenta nueva"
 
-#: .\templates\accounts\nueva_cuenta.html:7
-#: .\templates\accounts\nueva_organizacion.html:7
-#: .\templates\accounts\privacidad.html:7 .\templates\documents\enlaces.html:7
-msgid "Breadcrumb"
-msgstr "Ruta"
-
 #: .\templates\accounts\nueva_cuenta.html:16
 msgid "The person, their organisation and their role, in one step."
 msgstr "La persona, su organización y su rol, en un solo paso."
@@ -1761,11 +1975,6 @@ msgstr "Cuenta lista para %(nombre)s"
 #: .\templates\accounts\nueva_cuenta.html:45
 msgid "Give these two to its owner. They will not be shown again."
 msgstr "Entrégale estos dos a su dueño. No se volverán a mostrar."
-
-#: .\templates\accounts\nueva_cuenta.html:48
-#: .\templates\accounts\usuarios_roles.html:34
-msgid "Username"
-msgstr "Nombre de usuario"
 
 #: .\templates\accounts\nueva_cuenta.html:50
 msgid "Initial password"
@@ -1799,7 +2008,10 @@ msgid ""
 "        the list below is empty. Create it once and every account you create "
 "afterwards will go\n"
 "        into it."
-msgstr "Una cuenta pertenece a una empresa, y todavía no hay ninguna: por eso la lista de abajo está vacía. Créala una vez y todas las cuentas que hagas después irán dentro."
+msgstr ""
+"Una cuenta pertenece a una empresa, y todavía no hay ninguna: por eso la "
+"lista de abajo está vacía. Créala una vez y todas las cuentas que hagas "
+"después irán dentro."
 
 #: .\templates\accounts\nueva_cuenta.html:105
 msgid "Create the organisation"
@@ -1823,7 +2035,9 @@ msgstr "Rellena los cinco campos"
 msgid ""
 "The email is where their notifications will go later — it is not used to "
 "send the password."
-msgstr "El correo es a donde llegarán sus avisos más adelante; no se usa para mandarle la clave."
+msgstr ""
+"El correo es a donde llegarán sus avisos más adelante; no se usa para "
+"mandarle la clave."
 
 #: .\templates\accounts\nueva_cuenta.html:131
 msgid "Copy the username and the initial password"
@@ -1831,7 +2045,8 @@ msgstr "Copia el usuario y la clave inicial"
 
 #: .\templates\accounts\nueva_cuenta.html:134
 msgid "They appear here once, on this screen, and cannot be looked up again."
-msgstr "Aparecen aquí una vez, en esta pantalla, y no se pueden volver a consultar."
+msgstr ""
+"Aparecen aquí una vez, en esta pantalla, y no se pueden volver a consultar."
 
 #: .\templates\accounts\nueva_cuenta.html:141
 msgid "Hand them over to the person"
@@ -1846,22 +2061,6 @@ msgstr "AeroBim le hará elegir su propia clave la primera vez que entre."
 msgid "Create account"
 msgstr "Crear la cuenta"
 
-#: .\templates\accounts\nueva_cuenta.html:155
-#: .\templates\accounts\nueva_organizacion.html:46
-#: .\templates\documents\actividad.html:73
-#: .\templates\documents\cobertura.html:132
-#: .\templates\documents\nueva_actividad.html:20
-#: .\templates\documents\nueva_observacion.html:22
-#: .\templates\documents\nuevo_entregable.html:21
-#: .\templates\documents\nuevo_requisito_ids.html:22
-#: .\templates\documents\nuevo_transmittal.html:22
-#: .\templates\documents\subir_revision.html:25
-#: .\templates\documents\transmittal.html:134
-#: .\templates\projects\nueva_disciplina.html:22
-#: .\templates\projects\nuevo_proyecto.html:21
-msgid "Back"
-msgstr "Volver"
-
 #: .\templates\accounts\nueva_organizacion.html:4
 #: .\templates\accounts\nueva_organizacion.html:12
 #: .\templates\accounts\organizaciones.html:25
@@ -1870,7 +2069,8 @@ msgstr "Organización nueva"
 
 #: .\templates\accounts\nueva_organizacion.html:16
 msgid "The company the works belong to. It is the first thing AeroBim needs."
-msgstr "La empresa a la que pertenecen las obras. Es lo primero que AeroBim necesita."
+msgstr ""
+"La empresa a la que pertenecen las obras. Es lo primero que AeroBim necesita."
 
 #: .\templates\accounts\nueva_organizacion.html:31
 msgid ""
@@ -1878,14 +2078,19 @@ msgid ""
 "      same company goes into the same one, and they all see the same works — "
 "what each person can\n"
 "      <em>do</em> is their role, which is chosen account by account."
-msgstr "Una organización por empresa, no por persona. Todos los que trabajan en la misma empresa van a la misma, y todos ven las mismas obras: lo que cada uno puede <em>hacer</em> es su rol, que se elige cuenta por cuenta."
+msgstr ""
+"Una organización por empresa, no por persona. Todos los que trabajan en la "
+"misma empresa van a la misma, y todos ven las mismas obras: lo que cada uno "
+"puede <em>hacer</em> es su rol, que se elige cuenta por cuenta."
 
 #: .\templates\accounts\nueva_organizacion.html:36
 msgid ""
 "A second one is for a different company: a client who reviews, an\n"
 "      external office. They see nothing of yours unless you share a link "
 "with them."
-msgstr "Una segunda es para otra empresa: un mandante que revisa, una oficina externa. No ven nada de lo tuyo salvo que les compartas un enlace."
+msgstr ""
+"Una segunda es para otra empresa: un mandante que revisa, una oficina "
+"externa. No ven nada de lo tuyo salvo que les compartas un enlace."
 
 #: .\templates\accounts\nueva_organizacion.html:45
 msgid "Create organisation"
@@ -1899,7 +2104,7 @@ msgstr ""
 "A quién pertenecen los datos del proyecto. Toda consulta se acota por esto."
 
 #: .\templates\accounts\organizaciones.html:33
-#: .\templates\accounts\usuarios_roles.html:35
+#: .\templates\accounts\usuarios_roles.html:67
 #: .\templates\projects\proyectos.html:27
 msgid "Name"
 msgstr "Nombre"
@@ -1916,7 +2121,9 @@ msgstr "Miembros"
 msgid ""
 "No organisation yet. It is the first thing to create: without one there is "
 "nowhere to put an account."
-msgstr "Todavía no hay ninguna organización. Es lo primero que hay que crear: sin una no hay dónde poner una cuenta."
+msgstr ""
+"Todavía no hay ninguna organización. Es lo primero que hay que crear: sin "
+"una no hay dónde poner una cuenta."
 
 #: .\templates\accounts\portal.html:4 .\templates\accounts\portal.html:16
 #: .\templates\generic\_rail.html:26
@@ -1987,7 +2194,7 @@ msgstr "Por dónde seguir"
 msgid "See the whole walkthrough"
 msgstr "Ver el recorrido completo"
 
-#: .\templates\accounts\privacidad.html:8 .\templates\base.html:93
+#: .\templates\accounts\privacidad.html:8 .\templates\base.html:104
 msgid "Help"
 msgstr "Ayuda"
 
@@ -2109,59 +2316,83 @@ msgstr "Las personas de tus organizaciones, y lo que puede hacer cada una."
 msgid "Download CSV"
 msgstr "Descargar CSV"
 
-#: .\templates\accounts\usuarios_roles.html:37
+#: .\templates\accounts\usuarios_roles.html:49
+msgid "What each role can do"
+msgstr "Qué puede hacer cada rol"
+
+#: .\templates\accounts\usuarios_roles.html:51
+msgid ""
+"All four open the model viewer and read the register of the works they\n"
+"      belong to. The role decides what they can <b>change</b>, never what "
+"they can\n"
+"      <b>see</b>."
+msgstr "Los cuatro abren el visor del modelo y leen el registro de las obras a las que pertenecen. El rol decide qué pueden <b>cambiar</b>, nunca qué pueden <b>ver</b>."
+
+#: .\templates\accounts\usuarios_roles.html:69
 msgid "Roles"
 msgstr "Roles"
 
-#: .\templates\accounts\usuarios_roles.html:39
+#: .\templates\accounts\usuarios_roles.html:71
 #: .\templates\registration\login.html:97
 msgid "Password"
 msgstr "Contraseña"
 
-#: .\templates\accounts\usuarios_roles.html:57
+#: .\templates\accounts\usuarios_roles.html:72
+msgid "Actions"
+msgstr "Acciones"
+
+#: .\templates\accounts\usuarios_roles.html:90
 msgid "Disabled"
 msgstr "Deshabilitada"
 
-#: .\templates\accounts\usuarios_roles.html:59
+#: .\templates\accounts\usuarios_roles.html:92
 msgid "Not signed in yet"
 msgstr "No ha entrado todavía"
 
-#: .\templates\accounts\usuarios_roles.html:61
+#: .\templates\accounts\usuarios_roles.html:94
 msgid "Active"
 msgstr "Activo"
 
-#: .\templates\accounts\usuarios_roles.html:68
+#: .\templates\accounts\usuarios_roles.html:101
 msgid "Generate a new one"
 msgstr "Generar otra"
 
-#: .\templates\accounts\usuarios_roles.html:76
+#: .\templates\accounts\usuarios_roles.html:117
+msgid "Edit"
+msgstr "Editar"
+
+#: .\templates\accounts\usuarios_roles.html:119
+msgid "you"
+msgstr "tú"
+
+#: .\templates\accounts\usuarios_roles.html:132
 msgid "No accounts in your organisations yet."
 msgstr "Todavía no hay cuentas en tus organizaciones."
 
-#: .\templates\base.html:42
+#: .\templates\base.html:53
 msgid "Skip to content"
 msgstr "Ir al contenido"
 
-#: .\templates\base.html:81
+#: .\templates\base.html:92
 msgid "Switch to the dark theme"
 msgstr "Cambiar al tema oscuro"
 
-#: .\templates\base.html:82
+#: .\templates\base.html:93
 msgid "Switch to the light theme"
 msgstr "Cambiar al tema claro"
 
-#: .\templates\base.html:94
+#: .\templates\base.html:105
 #: .\templates\registration\password_change_form.html:4
 #: .\templates\registration\password_change_form.html:6
 #: .\templates\registration\password_change_form.html:19
 msgid "Change password"
 msgstr "Cambiar la contraseña"
 
-#: .\templates\base.html:97
+#: .\templates\base.html:108
 msgid "Sign out"
 msgstr "Salir"
 
-#: .\templates\base.html:100 .\templates\registration\login.html:7
+#: .\templates\base.html:111 .\templates\registration\login.html:7
 #: .\templates\registration\login.html:106
 msgid "Sign in"
 msgstr "Entrar"

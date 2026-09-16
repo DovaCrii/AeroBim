@@ -34,6 +34,16 @@
       oyente, no cuesta nada en las que no lo usan.
     {% endcomment %}
     <script src="{% static 'js/filtros.js' %}" defer></script>
+    {% comment %}
+      **El ojo de los campos de contraseña.** Va en la base y no solo en la puerta porque los campos
+      de clave están en tres pantallas —entrar, cambiar la contraseña y el primer cambio obligatorio—
+      y la tercera es la que más lo necesita: es donde alguien teclea una clave generada de dieciséis
+      caracteres que le acaban de dictar.
+
+      **El botón lo crea el propio script**, no esta plantilla: si el archivo no llega, mejor que no
+      haya ojo a que haya uno que no hace nada. El porqué largo está en `ver-la-clave.js`.
+    {% endcomment %}
+    <script src="{% static 'js/ver-la-clave.js' %}" defer></script>
   </head>
   <body>
     <a class="salto" href="#contenido">{% translate "Skip to content" %}</a>

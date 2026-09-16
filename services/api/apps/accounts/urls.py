@@ -23,6 +23,27 @@ urlpatterns = [
         views.ReiniciarClaveView.as_view(),
         name="reiniciar-clave",
     ),
+    # **Corregir lo que se tecleó mal**, que hasta hoy solo se podía en el `/admin/` técnico — y
+    # ese dejó de publicarse el 2026-09-15. Ver `EditarCuentaView`.
+    path(
+        "usuarios-y-roles/<int:pk>/editar/",
+        views.EditarCuentaView.as_view(),
+        name="editar-cuenta",
+    ),
+    # Desactivar a quien se va, y volver a activarlo. **Es lo que hay que hacer casi siempre**: lo
+    # que esa persona subió o escribió forma parte del registro documental.
+    path(
+        "usuarios-y-roles/<int:pk>/activar/",
+        views.ActivarCuentaView.as_view(),
+        name="activar-cuenta",
+    ),
+    # Y borrar de verdad, **solo si no ha dejado rastro**. Con su pantalla de confirmación: un
+    # borrado a un clic en una lista de doce filas es un borrado de la fila de al lado.
+    path(
+        "usuarios-y-roles/<int:pk>/borrar/",
+        views.BorrarCuentaView.as_view(),
+        name="borrar-cuenta",
+    ),
     path("auditoria/", views.AuditoriaView.as_view(), name="auditoria"),
     path("trabajos/", views.TrabajosView.as_view(), name="trabajos"),
 ]
