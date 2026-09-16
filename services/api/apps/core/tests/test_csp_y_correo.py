@@ -34,6 +34,29 @@ def test_el_visor_necesita_wasm_y_se_declara_sin_abrir_la_politica():
     assert "object-src 'none'" in politica
 
 
+def test_una_nube_de_puntos_se_puede_leer_del_disco():
+    """**`connect-src` tiene que admitir `blob:`, y sin eso subir un levantamiento fallaba.**
+
+    Al abrir un archivo del disco, el visor lo envuelve en un `Blob`, saca su URL y se la pasa al
+    lector de COPC, que **lee por tramos con `fetch`** — es lo que permite abrir 130 MB sin
+    cargarlos enteros en memoria. Con `connect-src 'self'` a secas, ese `fetch` lo bloquea la
+    politica.
+
+    Medido en `p340` el 2026-09-16: «Failed to fetch» en la cinta y dos errores en la consola. Y
+    **en desarrollo la nube abre perfectamente**, porque alli la politica es solo un informe: es la
+    tercera vez esta semana que un fallo solo existe con la politica aplicada de verdad.
+
+    Permitirlo no afloja nada: un `blob:` solo lo puede crear codigo que ya corre en esta pagina.
+    No es un origen, es un dato propio. `img-src` y `worker-src` ya lo llevan por lo mismo.
+    """
+    politica = build_csp()
+
+    assert "connect-src 'self' blob:" in politica
+    # Y no se ha colado un comodin de paso: lo que se abre es `blob:`, no la red.
+    assert "connect-src 'self' blob: https:" not in politica
+    assert "connect-src *" not in politica
+
+
 def test_el_pdf_puede_enmarcarse_en_su_propia_ficha_y_nada_mas():
     """Todo se niega a ser enmarcado —eso es la proteccion contra clickjacking— salvo un
     documento mostrado dentro de su propia ficha, que no es ese ataque."""

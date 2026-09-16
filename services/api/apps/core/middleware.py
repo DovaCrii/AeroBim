@@ -46,7 +46,25 @@ def build_csp(
         # El visor descarga su WASM del propio origen; sin esto, `fetch` del `.wasm`
         # cae en `default-src` y queda igual, pero declararlo evita que un cambio en
         # `default-src` lo rompa de lado.
-        "connect-src 'self'",
+        #
+        # ── Y `blob:`, que es lo que rompia subir una nube de puntos ──────────────────────
+        #
+        # **Un `blob:` no es un destino de red: es un dato que la propia pagina acaba de
+        # crear.** Al abrir un archivo del disco, el visor lo envuelve en un `Blob`, saca su
+        # URL y se la pasa al lector de COPC, que **lee por tramos con `fetch`** —es lo que
+        # permite abrir un levantamiento de 130 MB sin cargarlo entero en memoria—. Sin
+        # `blob:` aqui, ese `fetch` lo bloquea la politica.
+        #
+        # El sintoma, medido en `p340` el 2026-09-16: **«Failed to fetch»** arriba en la
+        # cinta y dos errores en la consola —«Refused to connect because it violates the
+        # document's Content Security Policy»—. Con la politica en modo informe, o sea en
+        # desarrollo, la nube abre perfectamente: es la **tercera** vez en esta semana que un
+        # fallo solo existe con la politica aplicada.
+        #
+        # **No afloja nada.** Un `blob:` solo lo puede crear codigo que ya corre en esta
+        # pagina; permitirlo no abre ningun origen nuevo ni deja salir un solo byte. `img-src`
+        # ya lo lleva por el mismo motivo, y `worker-src` tambien.
+        "connect-src 'self' blob:",
         "object-src 'none'",
         "base-uri 'self'",
         f"frame-ancestors {frame_ancestors}",
