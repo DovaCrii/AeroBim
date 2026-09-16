@@ -68,8 +68,45 @@ class ProyectosView(
 
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)
-        contexto["etapas"] = Proyecto.STATUS_CHOICES
         contexto["puede_crear"] = self.request.user.has_perm("projects.add_proyecto")
+
+        # ══════════════════════════════════════════════════════════════════════════════════
+        # **Las etapas, con cuántas obras hay en cada una.**
+        #
+        # Iban como cinco enlaces sueltos dentro del párrafo del subtítulo, mezclados con la
+        # frase que explica la pantalla y con «Nuevo proyecto» —una acción entre filtros—.
+        # El usuario lo dijo así: «no sé cuál es la idea de anteproyecto, proyecto y toda esa
+        # línea; ahora no sirve y no lleva a nada».
+        #
+        # Y tenía razón en lo literal: **con la base vacía los cinco llevaban a una lista
+        # vacía**. Un filtro que no dice cuánto filtra obliga a probarlos uno por uno para
+        # descubrir que ninguno tiene nada.
+        #
+        # Con la cuenta al lado, el filtro contesta antes de pulsarlo. Y las etapas sin
+        # ninguna obra **se siguen dibujando, apagadas**: son las fases por las que pasa un
+        # encargo, así que ver las cinco es lo que enseña el recorrido — esconderlas dejaría
+        # una fila que cambia de contenido según el día y no se aprendería nunca.
+        # ══════════════════════════════════════════════════════════════════════════════════
+        # Sobre **todas** las obras visibles, no sobre el queryset de la vista: ese ya viene
+        # filtrado por etapa, así que contar ahí daría cero en las otras cuatro.
+        todas = scope_queryset_to_organizacion(Proyecto.objects.all(), self.request.user).filter(
+            is_active=True
+        )
+        cuantas = dict(
+            todas.values_list("status").annotate(n=Count("id")).values_list("status", "n")
+        )
+        etapa_activa = self.request.GET.get("etapa") or ""
+        contexto["etapas"] = [
+            {
+                "clave": clave,
+                "etiqueta": etiqueta,
+                "cuantas": cuantas.get(clave, 0),
+                "activa": etapa_activa == clave,
+            }
+            for clave, etiqueta in Proyecto.STATUS_CHOICES
+        ]
+        contexto["etapa_activa"] = etapa_activa
+        contexto["hay_obras"] = sum(cuantas.values())
         return contexto
 
 

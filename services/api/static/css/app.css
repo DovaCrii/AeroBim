@@ -817,23 +817,73 @@ main {
  * mandante pueden ser el 1, el 6 y el 8. El marcador del navegador los numeraría 1, 2, 3 y estaría
  * mintiendo sobre dónde caen en el recorrido de nueve; el número del título dice el de verdad.
  */
+/*
+ * **Eran tres párrafos y ahora son tres tarjetas.**
+ *
+ * Con un enlace subrayado y su explicación en gris debajo, los tres pasos eran tres bloques de
+ * texto del mismo peso en una columna: se leían de arriba abajo como prosa, que es justo lo que un
+ * recorrido no es. En tarjetas se ven **como tres cosas** y se elige una.
+ *
+ * `auto-fit` con mínimo de 260 px: tres en un monitor, dos en un portátil, una en el teléfono. Sin
+ * `minmax` la rejilla parte la pantalla en tres siempre, y a 400 px cada paso queda en una columna
+ * de 120 px donde no cabe una frase.
+ */
 .pasos-cortos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
   margin: 0;
   padding-left: 0;
   list-style: none;
-  display: grid;
-  gap: 10px;
 }
 
 .pasos-cortos > li {
+  padding: 14px 16px;
   color: var(--ab-text-secondary);
+  background: var(--ab-surface);
+  border: 1px solid var(--ab-border);
+  border-radius: var(--ab-radius);
+  /* El filo del acento arriba, como las tarjetas de la portada: es lo que hace que la fila de tres
+     tenga ritmo en vez de ser tres rectángulos. Violeta porque el recorrido no es de ningún grupo:
+     atraviesa el producto entero. */
+  border-top: 3px solid var(--ab-primary);
+}
+
+/* El título del paso sin subrayar: la tarjeta entera es lo que se pulsa, y tres subrayados en fila
+   compiten entre sí. Al pasar por encima se subraya, que es cuando el subrayado dice algo. */
+.pasos-cortos > li > a {
+  color: var(--ab-text);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.pasos-cortos > li:hover {
+  border-color: color-mix(in srgb, var(--ab-primary) 60%, var(--ab-border));
+}
+
+.pasos-cortos > li:hover > a {
+  color: var(--ab-primary);
+  text-decoration: underline;
 }
 
 .pasos-cortos .detalle {
   display: block;
-  margin-top: 2px;
+  margin-top: 6px;
   font-size: 0.88rem;
+  line-height: 1.5;
   color: var(--ab-text-muted);
+}
+
+/*
+ * **Las tres cifras del día, en la puerta.**
+ *
+ * `.datos` ya existe y lo usa el tablero de una obra; esto solo ajusta el tamaño para que tres
+ * baldosas no ocupen el ancho de un monitor de 1900 px. El motivo de que existan —y de por qué
+ * aquí sí se dibuja el cero— está en `accounts/portal.html`.
+ */
+.datos-del-dia {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 220px));
+  margin-bottom: 26px;
 }
 
 /* --- La puerta: la pantalla de entrada -------------------------------------------- */
@@ -2573,6 +2623,88 @@ input[type="file"]::file-selector-button:hover {
   border-color: var(--ab-danger);
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════════════
+ * EL FILTRO DE ETAPAS, Y LO QUE ERA ANTES.
+ *
+ * Cinco enlaces sueltos dentro del párrafo del subtítulo, separados por `·`, mezclados con la
+ * frase que explica la pantalla y con «Nuevo proyecto» — una acción entre filtros. Se leía como
+ * texto, no como un control, y no decía cuánto filtraba cada uno: con la base vacía había que
+ * probar los cinco para descubrir que ninguno tenía nada.
+ *
+ * Reusa `.segmentado`, que ya es el control de filtro de la bandeja: el mismo gesto en las dos
+ * pantallas donde se filtra. Lo que se añade aquí es la cuenta y el estado apagado.
+ * ═══════════════════════════════════════════════════════════════════════════════════ */
+.filtro-etapas {
+  margin-bottom: 18px;
+  /* En pantalla estrecha los seis no caben en una línea. `.segmentado` es `inline-flex` sin
+     envolver —es lo correcto para tres segmentos— así que aquí se deja envolver y se quitan las
+     esquinas redondeadas del conjunto, que con dos filas quedarían en mitad del bloque. */
+  flex-wrap: wrap;
+}
+
+/* La cuenta, dentro del propio segmento. **Al lado y no debajo**: el segmento es una línea de
+   altura de control, y un número en segunda línea lo convertiría en una tarjeta. */
+.segmento-cuantas {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--ab-primary-soft);
+  color: var(--ab-text);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+/*
+ * **Una etapa sin obras se dibuja, y no se pulsa.**
+ *
+ * Se siguen enseñando las cinco porque son el recorrido de un encargo: verlas todas es lo que lo
+ * enseña, y una fila que cambia de contenido según el día no se aprende nunca. Pero deja de ser un
+ * enlace —es un `<span>`— por la regla de siempre: no se ofrece una puerta que no abre.
+ *
+ * `cursor: default` y no `not-allowed`: no es que esté prohibido, es que no hay nada dentro.
+ */
+.segmento-vacio {
+  color: var(--ab-text-muted);
+  cursor: default;
+}
+
+.segmento-vacio .segmento-cuantas {
+  background: var(--ab-track);
+  color: var(--ab-text-muted);
+}
+
+/*
+ * **El avance, dibujado en vez de escrito.**
+ *
+ * La columna decía `0.42`: un número sin unidad que hay que traducir a un porcentaje en la cabeza,
+ * en cada fila. Una barra se compara de un vistazo entre obras, que es exactamente para lo que
+ * sirve una columna de avance en una lista.
+ *
+ * La cifra se queda **además** de la barra: una barra sola no se lee con precisión, y quien
+ * necesita el número exacto lo necesita exacto.
+ */
+.avance-fila {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  /* Sin esto la barra se estira a lo que sobre en la celda, que varía con el nombre de la obra de
+     al lado: dos barras del mismo valor saldrían de anchos distintos y no se podrían comparar. */
+  min-width: 140px;
+}
+
+.avance-fila .avance {
+  flex: 1;
+  margin: 0;
+}
+
+.avance-fila b {
+  flex: none;
+  min-width: 3.2em;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.88rem;
+}
+
 /*
  * **Lo que no se deshace se pinta distinto.** Borrar una cuenta es el único botón del producto que
  * no tiene vuelta atrás, y con el aspecto del botón primario —el mismo violeta que «Guardar»— la
@@ -2636,7 +2768,10 @@ button.peligro:hover {
  * para contestar una pregunta que se hace dos veces. Plegado es una línea, y no necesita ni una
  * línea de JavaScript — que en esta aplicación importa: la CSP prohíbe el inline.
  */
-.que-hace-cada-rol {
+/* El nombre es genérico desde el 2026-09-16: nació para los roles y la segunda pantalla que la
+   necesitó fue la de proyectos —qué es una etapa—. Una clase llamada por su primer uso obliga a
+   escribir `class="que-hace-cada-rol"` encima de una explicación de otra cosa. */
+.explicacion {
   max-width: 44rem;
   margin-bottom: 18px;
   padding: 12px 16px;
@@ -2645,14 +2780,14 @@ button.peligro:hover {
   border-radius: var(--ab-radius);
 }
 
-.que-hace-cada-rol > summary {
+.explicacion > summary {
   color: var(--ab-primary);
   font-size: 0.92rem;
   font-weight: 600;
   cursor: pointer;
 }
 
-.que-hace-cada-rol .detalle {
+.explicacion .detalle {
   margin: 12px 0;
   color: var(--ab-text-secondary);
   font-size: 0.88rem;
