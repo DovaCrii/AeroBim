@@ -622,7 +622,23 @@ export function App() {
     let cancelled = false;
     let desuscribir: (() => void) | null = null;
 
-    BimViewer.create(host, { wasmPath: RUTA_WASM, convertWorker: workerDeConversion() })
+    BimViewer.create(host, {
+      wasmPath: RUTA_WASM,
+      // **El worker de Fragments sale de `BASE_URL` igual que el WASM, y por lo mismo.**
+      //
+      // El primer arreglo de la pantalla negra lo dejó escrito a mano dentro del paquete del
+      // visor —`/wasm/fragments-worker.mjs`— y eso es **exactamente** la trampa que el comentario
+      // de `RUTA_WASM` describe cuatrocientas líneas más arriba: bajo Django la aplicación vive
+      // en `/static/visor/`, así que una ruta absoluta pide la raíz del servidor. Medido en
+      // producción: el archivo estaba en `/static/visor/wasm/fragments-worker.mjs` y el código
+      // pedía `/wasm/…` — **404**.
+      //
+      // O sea que se quitó la descarga a unpkg y se puso en su lugar una ruta que tampoco existe.
+      // El síntoma no cambió —pantalla negra— porque el fallo vuelve a ser silencioso: un worker
+      // que no carga no avisa.
+      fragmentsWorkerUrl: `${RUTA_WASM}fragments-worker.mjs`,
+      convertWorker: workerDeConversion(),
+    })
       .then((instance) => {
         if (cancelled) return;
         viewer.current = instance;

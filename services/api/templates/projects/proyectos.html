@@ -9,17 +9,100 @@
 <p class="subtitulo">
   {% blocktranslate %}The works. Every deliverable, observation and model hangs off one of
   these.{% endblocktranslate %}
-  {% for clave, etiqueta in etapas %}
-    <a href="?etapa={{ clave }}">{{ etiqueta }}</a> ·
-  {% endfor %}
-  <a href="{% url 'projects:proyectos' %}">{% translate "All" %}</a>
-  {% if puede_crear %}
-    · <a href="{% url 'projects:nuevo-proyecto' %}">{% translate "New project" %}</a>
-  {% endif %}
 </p>
 {% endblock %}
 
+{% comment %}
+  **«Nuevo proyecto» sale del párrafo del subtítulo.**
+
+  Estaba ahí dentro, detrás de los cinco filtros de etapa y separado por un `·`, o sea **una
+  acción disfrazada de filtro**: la única cosa de esa línea que *cambia* algo iba escrita igual
+  que las cinco que solo *miran*. Y en una instalación recién hecha era, además, lo único que
+  servía de toda la línea.
+{% endcomment %}
+{% block acciones %}
+{% if puede_crear %}
+<p class="acciones-pagina">
+  <a class="boton primario" href="{% url 'projects:nuevo-proyecto' %}">
+    {% translate "New project" %}
+  </a>
+</p>
+{% endif %}
+{% endblock %}
+
 {% block contenido %}
+
+  {% comment %}
+    ══════════════════════════════════════════════════════════════════════════════════════════
+    **QUÉ ES UNA ETAPA, DICHO DONDE SE FILTRA POR ELLA.**
+
+    Las cinco iban como enlaces sueltos dentro del párrafo del subtítulo y no se explicaban en
+    ninguna parte. El usuario lo dijo entero: «no sé cuál es la idea de anteproyecto, proyecto y
+    toda esa línea; aclarar, simplificar, y que haga algo, porque ahora no sirve y no lleva a
+    nada».
+
+    Las tres quejas eran ciertas y son tres cosas distintas:
+
+    1. **No se entendían.** Son las fases por las que pasa un encargo de ingeniería, en orden, y
+       eso no estaba escrito. Ahora está, plegado: quien ya lo sabe no lo lee.
+    2. **No llevaban a nada.** Con la base vacía los cinco abrían una lista vacía, y había que
+       probarlos uno por uno para descubrirlo. Ahora cada uno trae su cuenta: el filtro contesta
+       **antes** de pulsarlo.
+    3. **No parecían un control.** Cinco enlaces azules separados por puntos se leen como texto.
+       Ahora son un segmentado, con el activo marcado — el mismo control que ya usa la bandeja.
+    ══════════════════════════════════════════════════════════════════════════════════════════
+  {% endcomment %}
+  <details class="explicacion">
+    <summary>{% translate "What a stage is" %}</summary>
+    <p class="detalle">
+      {% blocktranslate %}The phase the commission is in, in order: <b>Concept</b> →
+      <b>Scheme design</b> → <b>Detailed design</b> → <b>Construction</b> → <b>Closed</b>. It is
+      set on the project and changed as the work moves on.{% endblocktranslate %}
+    </p>
+    <p class="detalle" style="margin-bottom: 0">
+      {% blocktranslate %}It changes nothing about what can be uploaded or who can see it: it is
+      the label that says where each work stands, and it is what these buttons
+      filter by.{% endblocktranslate %}
+    </p>
+  </details>
+
+  {% comment %}
+    **El filtro solo si hay algo que filtrar.** Con cero obras, cinco botones a cero son cinco
+    caminos a la misma lista vacía — y el trabajo de esta pantalla ese día es uno solo: crear la
+    primera.
+  {% endcomment %}
+  {% if hay_obras %}
+    <nav class="segmentado filtro-etapas" aria-label="{% translate 'Filter by stage' %}">
+      <a class="segmento{% if not etapa_activa %} segmento-activo{% endif %}"
+         href="{% url 'projects:proyectos' %}"
+         {% if not etapa_activa %}aria-current="page"{% endif %}>
+        {% translate "All" %} <span class="segmento-cuantas">{{ hay_obras }}</span>
+      </a>
+      {% for etapa in etapas %}
+        {% comment %}
+          **Las etapas vacías se dibujan, apagadas, y no se esconden.** Son el recorrido de un
+          encargo: ver las cinco es lo que lo enseña. Una fila que cambia de contenido según el
+          día no se aprende nunca, y además haría saltar de sitio al botón de al lado.
+
+          Sin obras, el enlace deja de serlo —un `<span>`— en vez de quedar como un enlace que
+          lleva a una lista vacía. Es la misma regla que el portal: no se ofrece una puerta que
+          no abre.
+        {% endcomment %}
+        {% if etapa.cuantas %}
+          <a class="segmento{% if etapa.activa %} segmento-activo{% endif %}"
+             href="?etapa={{ etapa.clave }}"
+             {% if etapa.activa %}aria-current="page"{% endif %}>
+            {{ etapa.etiqueta }} <span class="segmento-cuantas">{{ etapa.cuantas }}</span>
+          </a>
+        {% else %}
+          <span class="segmento segmento-vacio">
+            {{ etapa.etiqueta }} <span class="segmento-cuantas">0</span>
+          </span>
+        {% endif %}
+      {% endfor %}
+    </nav>
+  {% endif %}
+
   <table>
     <thead>
       <tr>
@@ -33,26 +116,42 @@
     <tbody>
       {% for proyecto in proyectos %}
         <tr>
-          <td><a href="{% url 'projects:proyecto' proyecto.pk %}">{{ proyecto.codigo }}</a></td>
+          <td><a class="hallazgo-titulo" href="{% url 'projects:proyecto' proyecto.pk %}">{{ proyecto.codigo }}</a></td>
           <td>{{ proyecto.nombre }}</td>
           <td>{{ proyecto.cliente|default:"—" }}</td>
-          <td>{{ proyecto.get_status_display }}</td>
+          <td><span class="pildora">{{ proyecto.get_status_display }}</span></td>
           {% comment %}
             El avance es la suma del peso de cada entregable por el de su revisión vigente: se
             puede auditar entregable por entregable, y no es un número que alguien teclea.
+
+            **Y se dibuja, no se escribe.** Era `0.42` a secas: un número sin unidad que hay que
+            traducir a un porcentaje mentalmente, en cada fila y en todas las filas. La barra se
+            compara de un vistazo entre obras, que es para lo que sirve una columna de avance.
 
             Y va con `{% comment %}`: **esto era un `{# #}` de dos líneas, así que el texto del
             comentario se estaba imprimiendo en la tabla de proyectos.** `{# #}` es de una sola
             línea; si el cierre queda en otra, Django no reconoce el comentario y lo escupe tal cual.
           {% endcomment %}
-          <td>{{ proyecto.avance_fisico|floatformat:"-2" }}</td>
+          <td>
+            <div class="avance-fila">
+              <div class="avance"
+                   role="img"
+                   aria-label="{% blocktranslate with pct=proyecto.avance_pct %}Progress {{ pct }} per cent{% endblocktranslate %}">
+                <span class="avance-relleno" style="width: {{ proyecto.avance_pct }}%"></span>
+              </div>
+              <b>{{ proyecto.avance_pct }}%</b>
+            </div>
+          </td>
         </tr>
       {% empty %}
         <tr>
-          <td colspan="5">
-            {% if puede_crear %}
-              {% blocktranslate %}No project yet. Create the first one to start
-              registering.{% endblocktranslate %}
+          <td colspan="5" class="vacio">
+            <svg class="icono-en-linea" aria-hidden="true"><use href="#i-nada"></use></svg>
+            {% if etapa_activa %}
+              {% translate "No work in this stage. The other stages may have some." %}
+            {% elif puede_crear %}
+              {% blocktranslate %}No project yet. Everything else in AeroBim hangs off one, so
+              this is where it starts.{% endblocktranslate %}
             {% else %}
               {% translate "No project registered yet." %}
             {% endif %}

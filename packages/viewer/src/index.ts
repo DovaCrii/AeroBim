@@ -537,6 +537,17 @@ const DEFAULT_WASM_PATH = "/wasm/";
  *
  * Lo copia `apps/web/scripts/copy-wasm.mjs` al mismo sitio que el WASM de `web-ifc`, y por el mismo
  * motivo: la biblioteca compone la URL al arrancar, así que el empaquetador no puede resolverla.
+ *
+ * ## Y por qué este valor por defecto no sirve bajo Django
+ *
+ * `/wasm/…` es la raíz del servidor, que es donde vive la aplicación **con el servidor de Vite** y
+ * donde la usa `diag.ts`. Detrás de Django la aplicación se sirve bajo `/static/visor/`, así que
+ * esa ruta absoluta pide la raíz y recibe un **404** — y el primer intento de este arreglo lo dejó
+ * así: se quitó la descarga a unpkg y se puso en su lugar una ruta que tampoco existía. Misma
+ * pantalla negra, mismo silencio.
+ *
+ * Por eso `apps/web/src/App.tsx` pasa `fragmentsWorkerUrl` compuesto con `import.meta.env.BASE_URL`,
+ * exactamente igual que `wasmPath`, que ya tenía este problema resuelto y explicado.
  */
 const DEFAULT_FRAGMENTS_WORKER = "/wasm/fragments-worker.mjs";
 

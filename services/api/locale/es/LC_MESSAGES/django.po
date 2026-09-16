@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-15 18:38-0300\n"
+"POT-Creation-Date: 2026-09-16 09:17-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -199,7 +199,7 @@ msgstr "Lo que el mandante exige que traiga cada modelo, comprobado con IDS."
 msgid "Coordination"
 msgstr "Coordinación"
 
-#: .\apps\accounts\modulos.py:140 .\templates\accounts\portal.html:90
+#: .\apps\accounts\modulos.py:140 .\templates\accounts\portal.html:128
 #: .\templates\documents\bandeja.html:4 .\templates\documents\bandeja.html:11
 msgid "Everything pending"
 msgstr "Todo lo pendiente"
@@ -384,7 +384,8 @@ msgstr "mensajes en hilos"
 #, python-format
 msgid ""
 "%(nombre)s cannot be deleted: their work is part of the record. Disable them."
-msgstr "%(nombre)s no se puede borrar: su trabajo es parte del registro. Desactívalo."
+msgstr ""
+"%(nombre)s no se puede borrar: su trabajo es parte del registro. Desactívalo."
 
 #: .\apps\accounts\views.py:806
 #, python-format
@@ -1525,48 +1526,48 @@ msgstr "vista del proyecto"
 msgid "project views"
 msgstr "vistas del proyecto"
 
-#: .\apps\projects\views.py:234
+#: .\apps\projects\views.py:271
 msgid "Mon"
 msgstr "lun"
 
-#: .\apps\projects\views.py:235
+#: .\apps\projects\views.py:272
 msgid "Tue"
 msgstr "mar"
 
-#: .\apps\projects\views.py:236
+#: .\apps\projects\views.py:273
 msgid "Wed"
 msgstr "mié"
 
-#: .\apps\projects\views.py:237
+#: .\apps\projects\views.py:274
 msgid "Thu"
 msgstr "jue"
 
-#: .\apps\projects\views.py:238
+#: .\apps\projects\views.py:275
 msgid "Fri"
 msgstr "vie"
 
-#: .\apps\projects\views.py:239
+#: .\apps\projects\views.py:276
 msgid "Sat"
 msgstr "sáb"
 
-#: .\apps\projects\views.py:240
+#: .\apps\projects\views.py:277
 msgid "Sun"
 msgstr "dom"
 
-#: .\apps\projects\views.py:331
+#: .\apps\projects\views.py:368
 msgid "You cannot create a project for that organisation."
 msgstr "No puedes crear un proyecto para esa organización."
 
-#: .\apps\projects\views.py:336
+#: .\apps\projects\views.py:373
 #, python-format
 msgid "Project %(codigo)s created."
 msgstr "Proyecto %(codigo)s creado."
 
-#: .\apps\projects\views.py:376
+#: .\apps\projects\views.py:413
 msgid "That code is already used in this project."
 msgstr "Ese código ya está usado en este proyecto."
 
-#: .\apps\projects\views.py:387
+#: .\apps\projects\views.py:424
 #, python-format
 msgid "Discipline %(codigo)s created."
 msgstr "Disciplina %(codigo)s creada."
@@ -1805,7 +1806,10 @@ msgid ""
 "        much a part of the record as the revision itself, so AeroBim will "
 "not let it be\n"
 "        erased."
-msgstr "Su trabajo es parte del registro documental. Quién emitió una revisión es tanto parte del registro como la revisión misma, así que AeroBim no deja borrarlo."
+msgstr ""
+"Su trabajo es parte del registro documental. Quién emitió una revisión es "
+"tanto parte del registro como la revisión misma, así que AeroBim no deja "
+"borrarlo."
 
 #: .\templates\accounts\borrar_cuenta.html:45
 msgid "What is in their name:"
@@ -1815,7 +1819,9 @@ msgstr "Lo que está a su nombre:"
 msgid ""
 "What you want here is to disable them: they stop being able to sign in,\n"
 "      and everything stays where it is."
-msgstr "Lo que quieres aquí es desactivarlo: deja de poder entrar, y todo se queda donde está."
+msgstr ""
+"Lo que quieres aquí es desactivarlo: deja de poder entrar, y todo se queda "
+"donde está."
 
 #: .\templates\accounts\borrar_cuenta.html:58
 #: .\templates\accounts\editar_cuenta.html:69
@@ -1844,7 +1850,9 @@ msgid ""
 "This account has not been used for anything: no revision, no transmittal,\n"
 "        no observation, no message. Deleting it removes nothing from the "
 "record."
-msgstr "Esta cuenta no se ha usado para nada: ninguna revisión, ningún transmittal, ninguna observación, ningún mensaje. Borrarla no quita nada del registro."
+msgstr ""
+"Esta cuenta no se ha usado para nada: ninguna revisión, ningún transmittal, "
+"ninguna observación, ningún mensaje. Borrarla no quita nada del registro."
 
 #: .\templates\accounts\borrar_cuenta.html:69
 msgid "It cannot be undone. You would have to create it again."
@@ -1884,7 +1892,9 @@ msgid ""
 "Everything here can be corrected. The username cannot: it is what this\n"
 "      person types to sign in, and what appears next to everything they have "
 "done."
-msgstr "Todo esto se puede corregir. El nombre de usuario no: es lo que esta persona escribe para entrar, y lo que aparece al lado de todo lo que ha hecho."
+msgstr ""
+"Todo esto se puede corregir. El nombre de usuario no: es lo que esta persona "
+"escribe para entrar, y lo que aparece al lado de todo lo que ha hecho."
 
 #: .\templates\accounts\editar_cuenta.html:44
 msgid "Save changes"
@@ -1900,7 +1910,9 @@ msgid ""
 "          in, and everything they uploaded or wrote stays in the record with "
 "their name on\n"
 "          it."
-msgstr "Desactivar es lo que quieres casi siempre: deja de poder entrar, y todo lo que subió o escribió sigue en el registro con su nombre."
+msgstr ""
+"Desactivar es lo que quieres casi siempre: deja de poder entrar, y todo lo "
+"que subió o escribió sigue en el registro con su nombre."
 
 #: .\templates\accounts\editar_cuenta.html:73
 msgid "This account is disabled: they cannot sign in."
@@ -1914,7 +1926,9 @@ msgstr "Dejar que vuelva a entrar"
 msgid ""
 "And if you just created it by mistake and it has not been used for\n"
 "          anything, it can be deleted outright."
-msgstr "Y si la acabas de crear por error y no se ha usado para nada, se puede borrar del todo."
+msgstr ""
+"Y si la acabas de crear por error y no se ha usado para nada, se puede "
+"borrar del todo."
 
 #: .\templates\accounts\editar_cuenta.html:87
 msgid "Delete it instead…"
@@ -2105,7 +2119,7 @@ msgstr ""
 
 #: .\templates\accounts\organizaciones.html:33
 #: .\templates\accounts\usuarios_roles.html:67
-#: .\templates\projects\proyectos.html:27
+#: .\templates\projects\proyectos.html:113
 msgid "Name"
 msgstr "Nombre"
 
@@ -2130,11 +2144,31 @@ msgstr ""
 msgid "My work"
 msgstr "Mi trabajo"
 
-#: .\templates\accounts\portal.html:64
+#: .\templates\accounts\portal.html:44
+msgid "What is assigned to you with a date, and the works you can open."
+msgstr "Lo que tienes asignado con fecha, y las obras que puedes abrir."
+
+#: .\templates\accounts\portal.html:77 .\templates\documents\actividad.html:13
+msgid "overdue"
+msgid_plural "overdue"
+msgstr[0] "vencida"
+msgstr[1] "vencidas"
+
+#: .\templates\accounts\portal.html:82
+msgid "due this week"
+msgstr "vence esta semana"
+
+#: .\templates\accounts\portal.html:87
+msgid "work"
+msgid_plural "works"
+msgstr[0] "obra"
+msgstr[1] "obras"
+
+#: .\templates\accounts\portal.html:102
 msgid "What is on you"
 msgstr "Lo que te toca"
 
-#: .\templates\accounts\portal.html:88
+#: .\templates\accounts\portal.html:126
 #, python-format
 msgid ""
 "And one more due within the\n"
@@ -2143,7 +2177,7 @@ msgid_plural "And %(total)s more due within the month."
 msgstr[0] "Y uno más que vence dentro del mes."
 msgstr[1] "Y %(total)s más que vencen dentro del mes."
 
-#: .\templates\accounts\portal.html:96
+#: .\templates\accounts\portal.html:134
 msgid ""
 "Nothing assigned to you with a due date. What is on the board without a\n"
 "      date does not show up here."
@@ -2151,46 +2185,46 @@ msgstr ""
 "No tienes nada asignado con fecha de vencimiento. Lo que está en el tablero "
 "sin fecha no aparece acá."
 
-#: .\templates\accounts\portal.html:103
+#: .\templates\accounts\portal.html:141
 msgid "Your works"
 msgstr "Tus obras"
 
-#: .\templates\accounts\portal.html:141
+#: .\templates\accounts\portal.html:179 .\templates\projects\proyectos.html:143
 #, python-format
 msgid "Progress %(pct)s per cent"
 msgstr "Avance del %(pct)s por ciento"
 
-#: .\templates\accounts\portal.html:176
+#: .\templates\accounts\portal.html:214
 msgctxt "tarjeta de obra"
 msgid "issued"
 msgstr "emitido"
 
-#: .\templates\accounts\portal.html:184
+#: .\templates\accounts\portal.html:222
 msgctxt "cifra de obra"
 msgid "overdue"
 msgid_plural "overdue"
 msgstr[0] "vencida"
 msgstr[1] "vencidas"
 
-#: .\templates\accounts\portal.html:190
+#: .\templates\accounts\portal.html:228
 msgctxt "cifra de obra"
 msgid "high priority"
 msgid_plural "high priority"
 msgstr[0] "de prioridad alta"
 msgstr[1] "de prioridad alta"
 
-#: .\templates\accounts\portal.html:195
+#: .\templates\accounts\portal.html:233
 msgctxt "cifra de obra"
 msgid "open"
 msgid_plural "open"
 msgstr[0] "abierta"
 msgstr[1] "abiertas"
 
-#: .\templates\accounts\portal.html:222
+#: .\templates\accounts\portal.html:260
 msgid "Where to go next"
 msgstr "Por dónde seguir"
 
-#: .\templates\accounts\portal.html:242
+#: .\templates\accounts\portal.html:290
 msgid "See the whole walkthrough"
 msgstr "Ver el recorrido completo"
 
@@ -2326,14 +2360,17 @@ msgid ""
 "      belong to. The role decides what they can <b>change</b>, never what "
 "they can\n"
 "      <b>see</b>."
-msgstr "Los cuatro abren el visor del modelo y leen el registro de las obras a las que pertenecen. El rol decide qué pueden <b>cambiar</b>, nunca qué pueden <b>ver</b>."
+msgstr ""
+"Los cuatro abren el visor del modelo y leen el registro de las obras a las "
+"que pertenecen. El rol decide qué pueden <b>cambiar</b>, nunca qué pueden "
+"<b>ver</b>."
 
 #: .\templates\accounts\usuarios_roles.html:69
 msgid "Roles"
 msgstr "Roles"
 
 #: .\templates\accounts\usuarios_roles.html:71
-#: .\templates\registration\login.html:97
+#: .\templates\registration\login.html:111
 msgid "Password"
 msgstr "Contraseña"
 
@@ -2393,19 +2430,15 @@ msgid "Sign out"
 msgstr "Salir"
 
 #: .\templates\base.html:111 .\templates\registration\login.html:7
-#: .\templates\registration\login.html:106
+#: .\templates\registration\login.html:120
 msgid "Sign in"
 msgstr "Entrar"
-
-#: .\templates\documents\actividad.html:13
-msgid "overdue"
-msgstr "vencida"
 
 #: .\templates\documents\actividad.html:23
 #: .\templates\documents\bandeja.html:107
 #: .\templates\documents\entregables.html:30
 #: .\templates\projects\proyecto.html:447
-#: .\templates\projects\proyectos.html:30
+#: .\templates\projects\proyectos.html:116
 msgid "Progress"
 msgstr "Avance"
 
@@ -2445,7 +2478,7 @@ msgstr "Solo las mías"
 #: .\templates\documents\actividades.html:13
 #: .\templates\documents\entregables.html:13
 #: .\templates\documents\observaciones.html:31
-#: .\templates\projects\proyectos.html:15
+#: .\templates\projects\proyectos.html:81
 msgid "All"
 msgstr "Todas"
 
@@ -2507,7 +2540,7 @@ msgstr "Entregables a tu cargo"
 #: .\templates\documents\entregables.html:24
 #: .\templates\documents\transmittal.html:70
 #: .\templates\projects\proyecto.html:442
-#: .\templates\projects\proyectos.html:26
+#: .\templates\projects\proyectos.html:112
 msgid "Code"
 msgstr "Código"
 
@@ -3365,7 +3398,7 @@ msgstr ""
 
 #: .\templates\projects\nuevo_proyecto.html:4
 #: .\templates\projects\nuevo_proyecto.html:6
-#: .\templates\projects\proyectos.html:17
+#: .\templates\projects\proyectos.html:27
 msgid "New project"
 msgstr "Nuevo proyecto"
 
@@ -3605,50 +3638,77 @@ msgid ""
 msgstr ""
 "Las obras. Todo entregable, observación y modelo cuelga de una de estas."
 
-#: .\templates\projects\proyectos.html:28
+#: .\templates\projects\proyectos.html:57
+msgid "What a stage is"
+msgstr "Qué es una etapa"
+
+#: .\templates\projects\proyectos.html:59
+msgid ""
+"The phase the commission is in, in order: <b>Concept</b> →\n"
+"      <b>Scheme design</b> → <b>Detailed design</b> → <b>Construction</b> → "
+"<b>Closed</b>. It is\n"
+"      set on the project and changed as the work moves on."
+msgstr "La fase en la que va el encargo, en orden: <b>Anteproyecto</b> → <b>Proyecto básico</b> → <b>Proyecto de detalle</b> → <b>Construcción</b> → <b>Cerrada</b>. Se pone en el proyecto y se cambia según avanza la obra."
+
+#: .\templates\projects\proyectos.html:64
+msgid ""
+"It changes nothing about what can be uploaded or who can see it: it is\n"
+"      the label that says where each work stands, and it is what these "
+"buttons\n"
+"      filter by."
+msgstr "No cambia nada de lo que se puede subir ni de quién lo ve: es la etiqueta que dice en qué punto está cada obra, y es por lo que filtran estos botones."
+
+#: .\templates\projects\proyectos.html:77
+msgid "Filter by stage"
+msgstr "Filtrar por etapa"
+
+#: .\templates\projects\proyectos.html:114
 msgid "Client"
 msgstr "Cliente"
 
-#: .\templates\projects\proyectos.html:29
+#: .\templates\projects\proyectos.html:115
 msgid "Stage"
 msgstr "Etapa"
 
-#: .\templates\projects\proyectos.html:55
-msgid ""
-"No project yet. Create the first one to start\n"
-"              registering."
-msgstr ""
-"Todavía no hay ningún proyecto. Crea el primero para empezar a registrar."
+#: .\templates\projects\proyectos.html:155
+msgid "No work in this stage. The other stages may have some."
+msgstr "Ninguna obra en esta etapa. Puede que las haya en las otras."
 
-#: .\templates\projects\proyectos.html:58
+#: .\templates\projects\proyectos.html:157
+msgid ""
+"No project yet. Everything else in AeroBim hangs off one, so\n"
+"              this is where it starts."
+msgstr "Todavía no hay ningún proyecto. Todo lo demás en AeroBim cuelga de uno, así que aquí es donde empieza."
+
+#: .\templates\projects\proyectos.html:160
 msgid "No project registered yet."
 msgstr "Todavía no hay ningún proyecto registrado."
 
-#: .\templates\registration\login.html:55
+#: .\templates\registration\login.html:69
 msgid "Sign in to your work"
 msgstr "Entra a tu obra"
 
-#: .\templates\registration\login.html:56
+#: .\templates\registration\login.html:70
 msgid "Model, plans and document control."
 msgstr "Modelo, planos y control documental."
 
-#: .\templates\registration\login.html:68
+#: .\templates\registration\login.html:82
 msgid "Invalid username or password. Try again."
 msgstr "Usuario o contraseña inválidos. Inténtalo de nuevo."
 
-#: .\templates\registration\login.html:82
+#: .\templates\registration\login.html:96
 msgid "Email or username"
 msgstr "Correo o usuario"
 
-#: .\templates\registration\login.html:110
+#: .\templates\registration\login.html:124
 msgid "There is no self sign-up: an administrator creates the accounts."
 msgstr "No hay auto-registro: las cuentas las crea un administrador."
 
-#: .\templates\registration\login.html:124
+#: .\templates\registration\login.html:138
 msgid "The model, the drawings and the site <em>on one screen</em>."
 msgstr "El modelo, los planos y la obra <em>en la misma pantalla</em>."
 
-#: .\templates\registration\login.html:126
+#: .\templates\registration\login.html:140
 msgid ""
 "Nothing to install, and the project does not go up to anybody's\n"
 "          cloud: the models open in the browser and the files stay in the "
@@ -3657,11 +3717,11 @@ msgstr ""
 "Sin instalar nada y sin subir la obra a la nube de nadie: los modelos se "
 "abren en el navegador y los archivos se quedan en casa."
 
-#: .\templates\registration\login.html:133
+#: .\templates\registration\login.html:147
 msgid "Open the model from its own record"
 msgstr "Abre el modelo desde su expediente"
 
-#: .\templates\registration\login.html:134
+#: .\templates\registration\login.html:148
 msgid ""
 "The IFC and the DXF already in the register, one click and no hunting for "
 "the file."
@@ -3669,28 +3729,28 @@ msgstr ""
 "El IFC y el DXF que ya están en el registro, con un clic y sin buscar el "
 "archivo."
 
-#: .\templates\registration\login.html:140
+#: .\templates\registration\login.html:154
 msgid "Cross the disciplines and hand out what clashes"
 msgstr "Cruza las disciplinas y reparte lo que choca"
 
-#: .\templates\registration\login.html:141
+#: .\templates\registration\login.html:155
 msgid "Neighbouring conflicts arrive as one problem, not as thirty-five rows."
 msgstr ""
 "Los conflictos vecinos llegan como un problema, no como treinta y cinco "
 "filas."
 
-#: .\templates\registration\login.html:147
+#: .\templates\registration\login.html:161
 msgid "Take it out on paper or as BCF"
 msgstr "Sácalo en papel o en BCF"
 
-#: .\templates\registration\login.html:148
+#: .\templates\registration\login.html:162
 msgid ""
 "A report on the company letterhead, or the file the client's software opens."
 msgstr ""
 "Un informe con el membrete de la casa, o el archivo que abre el software del "
 "mandante."
 
-#: .\templates\registration\login.html:154
+#: .\templates\registration\login.html:168
 msgid ""
 "<b>We built this for the team.</b> Every finding you write down saves\n"
 "          somebody a trip to site, and every model you upload saves half a "

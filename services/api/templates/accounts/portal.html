@@ -25,31 +25,69 @@
   Y la regla del rol no se pierde: sigue siendo verdad y sigue escrita en la ayuda, que es donde se
   explica el producto.
 {% endcomment %}
+{% comment %}
+  **El subtítulo ya no repite las cifras**, desde que están arriba como baldosas.
+
+  Llevaba «Nada vencido y nada que venza esta semana · 2 obras», que es exactamente lo que dicen
+  ahora los tres números de debajo. Decir lo mismo dos veces seguidas, una en texto pequeño y otra
+  en grande, no es redundancia inocente: obliga a leer las dos para comprobar que dicen lo mismo.
+
+  En su lugar va lo que un subtítulo tiene que hacer y esta pantalla no hacía: **decir qué es esta
+  pantalla**. «Mi trabajo» a secas no distingue de «Todo lo pendiente», que está dos filas más
+  abajo en la barra lateral y se parece mucho.
+
+  `cifra_del_dia` se queda en la vista: lo usa el resumen por correo y está probado. Aquí
+  simplemente ya no se pinta.
+{% endcomment %}
 {% block subtitulo %}
-  <p class="subtitulo cifra-del-dia">
-    {% comment %}
-      **El hueco entre las piezas lo pone el CSS, no un espacio en el HTML**, y esto costó un rato
-      entender: la cabecera va dentro de un `{% templatetag openblock %} spaceless
-      {% templatetag closeblock %}` —que es lo que permite que una cabecera sin llenar se esconda—
-      y `spaceless` **quita el blanco entre etiquetas**. Escribiendo un espacio antes del separador
-      salía igual «esta semana·2 obras».
-
-      Así que `.cifra-del-dia` es un `flex` con `gap`. Vale para cualquier cosa que se ponga en la
-      cabecera: ahí dentro, el espaciado que dependa del blanco del HTML no existe.
-
-      Y lo vencido va en rojo y en negrita, solo lo vencido: es lo único de esta línea que pide
-      hacer algo hoy. El resto es contexto.
-    {% endcomment %}
-    {% for pieza in cifra_del_dia %}
-      {% if not forloop.first %}<span aria-hidden="true">·</span>{% endif %}
-      {% if forloop.first and mis_vencidas %}
-        <b class="cifra-arde">{{ pieza }}</b>
-      {% else %}<span>{{ pieza }}</span>{% endif %}
-    {% endfor %}
+  <p class="subtitulo">
+    {% translate "What is assigned to you with a date, and the works you can open." %}
   </p>
 {% endblock %}
 
 {% block contenido %}
+  {% comment %}
+    ══════════════════════════════════════════════════════════════════════════════════════════
+    **LAS TRES CIFRAS DEL DÍA, COMO CIFRAS.**
+
+    Estaban —y siguen— en el subtítulo, como una línea de texto pequeño: «Nada vencido y nada que
+    venza esta semana». El usuario lo dijo dos veces: «Mi trabajo está plano, la visual».
+
+    Y plano era literal: la pantalla que se abre cada mañana no tenía **ni una sola cosa que se
+    lea sin leer**. Lo vencido —que es lo único que puede obligar a cambiar de plan hoy— iba con
+    el mismo tamaño y el mismo peso que la frase que lo acompaña.
+
+    Tres baldosas y no cinco: lo vencido, lo de esta semana y cuántas obras. Es lo que decide si
+    hay que entrar corriendo a algo, y nada más — una fila de seis cifras es un panel de control,
+    y esto es una puerta.
+
+    **El cero se dibuja, y eso es a propósito** aunque en el resto del producto no: «0 vencidas»
+    en una tarjeta de obra es ruido entre nueve tarjetas, pero aquí es **la respuesta**. Quien
+    abre esto por la mañana pregunta «¿hay algo ardiendo?», y un hueco donde debería ir el cero
+    deja la pregunta sin contestar.
+
+    Y el color va **además** del número y de su palabra, nunca en su lugar.
+    ══════════════════════════════════════════════════════════════════════════════════════════
+  {% endcomment %}
+  <div class="datos datos-del-dia">
+    <div class="dato{% if mis_vencidas %} alerta{% else %} bien{% endif %}">
+      <span class="cifra">{{ mis_vencidas }}</span>
+      <span class="rotulo">
+        {% blocktranslate count total=mis_vencidas %}overdue{% plural %}overdue{% endblocktranslate %}
+      </span>
+    </div>
+    <div class="dato">
+      <span class="cifra">{{ mis_de_la_semana }}</span>
+      <span class="rotulo">{% translate "due this week" %}</span>
+    </div>
+    <div class="dato">
+      <span class="cifra">{{ mis_obras_cuantas }}</span>
+      <span class="rotulo">
+        {% blocktranslate count total=mis_obras_cuantas %}work{% plural %}works{% endblocktranslate %}
+      </span>
+    </div>
+  </div>
+
   {% comment %}
     **Lo que te toca va primero, y ese orden es la idea.** Un menú de módulos dice a qué sitios
     puedes entrar; esto dice en qué ibas.
@@ -213,6 +251,15 @@
   {% if pasos %}
     <section class="bloque">
       <h2 class="grupo">{% translate "Where to go next" %}</h2>
+      {% comment %}
+        **Eran tres enlaces subrayados con un párrafo gris debajo**, o sea tres bloques de texto
+        del mismo peso en una columna de texto. Ahora cada uno es una tarjeta: el recorrido se ve
+        como tres pasos y no como una lista de lectura.
+
+        El número **no se repite**: viene dentro del título —«1 · Entra en la obra», de
+        `apps/accounts/ayuda.py`— y añadir un disco al lado diría el mismo dígito dos veces. Es el
+        mismo defecto que ya se arregló quitándole el marcador al `<ol>`, y que el usuario vio.
+      {% endcomment %}
       <ol class="pasos-cortos">
         {% for paso in pasos %}
           {% comment %}
