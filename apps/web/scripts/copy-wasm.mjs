@@ -66,10 +66,7 @@ await copyFile(require.resolve("laz-perf/lib/web/laz-perf.wasm"), join(target, "
 // ruta literal del archivo —`dist/worker.mjs`— la rechaza Node con `ERR_PACKAGE_PATH_NOT_EXPORTED`,
 // y además el directorio real lleva mayúscula (`dist/Worker/`): en Windows daría igual y en la VM
 // no. Dejar que los `exports` resuelvan es lo que hace que esto funcione en las dos.
-await copyFile(
-  require.resolve("@thatopen/fragments/worker"),
-  join(target, "fragments-worker.mjs"),
-);
+await copyFile(require.resolve("@thatopen/fragments/worker"), join(target, "fragments-worker.mjs"));
 
 console.log(
   `WASM copiados a public/wasm/: ${files.join(", ")}, laz-perf.wasm, fragments-worker.mjs`,
