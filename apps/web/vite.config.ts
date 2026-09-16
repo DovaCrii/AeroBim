@@ -103,6 +103,39 @@ export default defineConfig(({ command }) => ({
         find: /^@thatopen\/components$/,
         replacement: enRaiz("@thatopen/components/dist/index.mjs"),
       },
+
+      /**
+       * **`opentype.js` deja de bajarse de un CDN, y esto era la pantalla negra del visor.**
+       *
+       * `three/examples/jsm/loaders/TTFLoader.js` trae la URL escrita dentro:
+       *
+       *     import("https://cdn.jsdelivr.net/npm/opentype.js@1.3.4/+esm")
+       *
+       * y algo de la cadena de arranque de That Open lo importa, así que la petición sale **al
+       * cargar la página**. En producción la CSP se aplica —`script-src 'self'`—, el navegador la
+       * bloquea, el módulo no resuelve y **la aplicación no llega a montarse**: pantalla negra.
+       *
+       * Medido el 2026-09-16 poniendo `CSP_REPORT_ONLY=False` en desarrollo, que es lo que
+       * reproduce producción: `document.body.innerText` **vacío** y un solo error en la consola.
+       *
+       * Antes de medirlo dije que esto no bloqueaba el arranque. No tenía prueba: en desarrollo la
+       * política es solo un informe, así que la descarga **nunca llegaba a bloquearse** y el visor
+       * arrancaba con ella. Es el mismo error de razonamiento que dejó pasar el worker de
+       * Fragments — mirar el sitio donde el fallo no ocurre.
+       *
+       * El alias apunta al paquete de verdad, instalado como dependencia: no se pierde nada, solo
+       * deja de salir de internet. Es la regla de `AGENTS.md` y el motivo por el que existe — una
+       * faena sin internet habría dado la misma pantalla negra.
+       *
+       * **Pasa por `src/opentype-local.ts` y no por el paquete directamente**, porque las dos
+       * variantes no tienen la misma forma: el bundle `+esm` de jsdelivr expone un `default` y el
+       * ESM de npm exporta solo nombres. Apuntando al paquete, el build falla con «Missing
+       * export» — el porqué largo está en ese archivo.
+       */
+      {
+        find: "https://cdn.jsdelivr.net/npm/opentype.js@1.3.4/+esm",
+        replacement: resolve(here, "src/opentype-local.ts"),
+      },
     ],
   },
 
