@@ -6,6 +6,9 @@ app_name = "documents"
 
 urlpatterns = [
     path("", views.MiBandejaView.as_view(), name="bandeja"),
+    # **El repositorio**: todo lo guardado en el servidor, por categoría. Ver `ArchivosView` —
+    # no es otro almacén, es otra forma de mirar el mismo.
+    path("archivos/", views.ArchivosView.as_view(), name="archivos"),
     path("entregables/", views.EntregablesView.as_view(), name="entregables"),
     path("entregables/nuevo/", views.NuevoEntregableView.as_view(), name="nuevo-entregable"),
     path("entregables/<uuid:pk>/", views.ExpedienteView.as_view(), name="expediente"),

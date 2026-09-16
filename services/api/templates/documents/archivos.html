@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block titulo %}{% translate "Files" %} · AeroBim{% endblock %}
+
+{% block titulo_pagina %}<h1>{% translate "Files" %}</h1>{% endblock %}
+
+{% block subtitulo %}
+<p class="subtitulo">
+  {% blocktranslate %}Everything stored on the server. Uploaded once, opened by anyone who has
+  access.{% endblocktranslate %}
+</p>
+{% endblock %}
+
+{% block acciones %}
+{% if puede_subir %}
+<p class="acciones-pagina">
+  {% comment %}
+    **Lleva al camino de siempre y no abre un formulario propio.**
+
+    Todo lo que sale en esta pantalla llegó como revisión de un entregable, con su emisor, su fecha
+    y su código de idoneidad — que es lo que separa un registro documental de una carpeta
+    compartida. Dos puertas al mismo almacén se separan en cuanto una de las dos olvide pedir algo.
+  {% endcomment %}
+  <a class="boton primario" href="{% url 'documents:entregables' %}">
+    {% translate "Upload a file" %}
+  </a>
+</p>
+{% endif %}
+{% endblock %}
+
+{% block contenido %}
+
+  {% comment %}
+    ══════════════════════════════════════════════════════════════════════════════════════════
+    **Las categorías, que son el motivo de que esta pantalla exista.**
+
+    El registro ordena por **a qué entregable pertenece cada archivo**, que es lo correcto para la
+    trazabilidad y lo inútil para buscar: quien busca «el levantamiento» no sabe de qué entregable
+    cuelga — si lo supiera, ya sabría dónde está.
+
+    La categoría sale del **nombre real del archivo**, no de `Entregable.tipo`: ese lo elige una
+    persona al planificar, antes de que el archivo exista, y un entregable marcado «Plano» puede
+    acabar con un IFC dentro. Ver `apps/documents/categorias.py`.
+    ══════════════════════════════════════════════════════════════════════════════════════════
+  {% endcomment %}
+  {% if hay_archivos %}
+    <nav class="segmentado filtro-etapas" aria-label="{% translate 'Filter by kind' %}">
+      <a class="segmento{% if not categoria_activa %} segmento-activo{% endif %}"
+         href="{% url 'documents:archivos' %}"
+         {% if not categoria_activa %}aria-current="page"{% endif %}>
+        {% translate "All" %} <span class="segmento-cuantas">{{ hay_archivos }}</span>
+      </a>
+      {% for categoria in categorias %}
+        {% if categoria.cuantas %}
+          <a class="segmento{% if categoria.activa %} segmento-activo{% endif %}"
+             href="?categoria={{ categoria.clave }}"
+             {% if categoria.activa %}aria-current="page"{% endif %}>
+            {{ categoria.nombre }} <span class="segmento-cuantas">{{ categoria.cuantas }}</span>
+          </a>
+        {% endif %}
+      {% endfor %}
+    </nav>
+  {% endif %}
+
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">{% translate "File" %}</th>
+        <th scope="col">{% translate "Work" %}</th>
+        <th scope="col">{% translate "Revision" %}</th>
+        <th scope="col">{% translate "Issued by" %}</th>
+        <th scope="col"><span class="visualmente-oculto">{% translate "Actions" %}</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for archivo in archivos %}
+        <tr>
+          <td>
+            {% comment %}
+              El icono de su clase delante del nombre: **a 60 filas, el dibujo es lo que se
+              recorre**, no el texto. Es la misma razón por la que el rail lleva los suyos.
+            {% endcomment %}
+            <span class="archivo-nombre">
+              <svg class="icono-en-linea" aria-hidden="true"><use href="#i-{{ archivo.categoria }}"></use></svg>
+              <a class="hallazgo-titulo" href="{% url 'documents:expediente' archivo.entregable.pk %}">
+                {{ archivo.nombre_original|default:archivo.entregable.titulo }}
+              </a>
+            </span>
+            <span class="detalle">{{ archivo.entregable.codigo }} · {{ archivo.entregable.titulo }}</span>
+          </td>
+          <td>{{ archivo.entregable.proyecto.codigo }}</td>
+          <td>
+            <span class="pildora">{{ archivo.correlativo }}</span>
+            <span class="detalle">{{ archivo.idoneidad }}</span>
+          </td>
+          <td>
+            {{ archivo.subida_por.get_full_name|default:archivo.subida_por.username }}
+            <span class="detalle">{{ archivo.emitida_en|date:"Y-m-d" }}</span>
+          </td>
+          <td>
+            <span class="acciones-archivo">
+              {% comment %}
+                **Abrir va primero y descargar segundo, y ese orden importa.** Lo que hace este
+                producto distinto de una carpeta compartida es que el modelo se mira sin bajarlo:
+                poner «Descargar» delante enseñaría a trabajar con copias en el escritorio, que es
+                justo lo que el registro existe para evitar.
+              {% endcomment %}
+              {% comment %}
+                **Dos visores y no uno**, y la plantilla no elige: lo decide `visor_de()` en
+                `abribles.py` y la vista lo deja resuelto en `visor_ruta`. Un PDF en el visor 3D
+                cargaría Three.js y el WASM de `web-ifc` para nada — y además no sabría abrirlo.
+
+                Es el mismo `{% templatetag openblock %} url revision.visor_ruta
+                {% templatetag closeblock %}` del expediente y de la pantalla de la obra: la
+                tercera pantalla que enlaza al visor, y la tercera que no repite la decisión.
+              {% endcomment %}
+              {% if archivo.visor_ruta %}
+                <a href="{% url archivo.visor_ruta %}?revision={{ archivo.pk }}">{% translate "Open" %}</a>
+              {% endif %}
+              <a class="enlace-suave" href="{% url 'documents:descargar-revision' archivo.pk %}">
+                {% translate "Download" %}
+              </a>
+            </span>
+          </td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="5" class="vacio">
+            <svg class="icono-en-linea" aria-hidden="true"><use href="#i-nada"></use></svg>
+            {% if categoria_activa %}
+              {% translate "Nothing of this kind yet. The other kinds may have something." %}
+            {% else %}
+              {% blocktranslate %}Nothing stored yet. A file gets here by being uploaded as a
+              revision of a deliverable — that is what gives it a work, an author and a
+              date.{% endblocktranslate %}
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% include "generic/_paginacion.html" %}
+{% endblock %}

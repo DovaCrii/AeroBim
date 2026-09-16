@@ -107,6 +107,36 @@ CATALOGO: tuple[Modulo, ...] = (
         # en PDF y el rail tiene que seguir diciendo «el modelo».
         rutas_extra=("visor:documento",),
     ),
+    # ══════════════════════════════════════════════════════════════════════════════════════
+    #   **«Archivos» va primero del grupo, y es la entrada que faltaba.**
+    #
+    #   Todo lo que esta pantalla enseña **ya estaba guardado en el servidor** desde el primer
+    #   día: un IFC, un COPC, un DXF o un PDF subidos como revisión viven en
+    #   `/var/lib/aerobim/documentos`, con su sha256, y el visor los abre desde «Del registro».
+    #   Lo que no existía era **un sitio donde verlos todos**.
+    #
+    #   El usuario lo dijo exactamente: «si no queda en el servidor no es solo un visor; debe
+    #   almacenar la nube o el modelo, así ir teniendo un repositorio para ir abriendo,
+    #   linkeando o revisando, pero que se busque del panel lateral, es lo más práctico».
+    #
+    #   Tenía razón en la necesidad y la mitad de la premisa era falsa: **sí queda en el
+    #   servidor**. Lo que no se podía era encontrarlo — para llegar a un archivo había que
+    #   saber de qué entregable colgaba, y eso es justo lo que no sabe quien lo busca.
+    #
+    #   Va **antes** de «Entregables» porque contesta la pregunta más frecuente —«¿dónde está
+    #   el modelo?»— mientras que «Entregables» contesta la de planificación —«¿qué falta por
+    #   entregar?»—, que se hace una vez por semana y no diez veces al día.
+    # ══════════════════════════════════════════════════════════════════════════════════════
+    Modulo(
+        grupo=_("The document register"),
+        titulo=_("Files"),
+        ruta="documents:archivos",
+        permiso="documents.view_revision",
+        descripcion=_(
+            "Everything stored on the server: models, point clouds, drawings and documents."
+        ),
+        icono="i-archivos",
+    ),
     Modulo(
         grupo=_("The document register"),
         titulo=_("Deliverables"),
