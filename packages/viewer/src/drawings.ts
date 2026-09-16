@@ -757,6 +757,22 @@ export class DrawingMaker {
   }
 
   /**
+   * Cuántos segmentos y cuántos textos caben en una lámina.
+   *
+   * **Son los mismos números que `services/api/apps/documents/lamina.py`**, y esa duplicación es
+   * deliberada: el recorte tiene que ocurrir **antes** de mandar —si no, la petición se pasa de
+   * `DATA_UPLOAD_MAX_MEMORY_SIZE` y Django la rechaza sin que la vista llegue a correr— y a la vez
+   * el servidor no puede fiarse de que el cliente recorte, porque el cuerpo lo puede escribir
+   * cualquiera.
+   *
+   * Dos idiomas no comparten una constante, así que lo que impide que se separen es una prueba:
+   * `apps/documents/tests/test_la_lamina_cabe.py` lee **este archivo** y comprueba que los dos
+   * números coinciden. Es el mismo camino que ya sujeta el nombre de la cookie en `csrf.ts`.
+   */
+  static readonly MAXIMO_SEGMENTOS = 60_000;
+  static readonly MAXIMO_TEXTOS = 1_000;
+
+  /**
    * La lámina lista para que el servidor la dibuje en PDF. `F7.5`.
    *
    * **Lo que sale es lo mismo que se escribe en el DXF**, y por eso el PDF y el DXF dibujan el
@@ -768,7 +784,9 @@ export class DrawingMaker {
    * romperse en su siguiente versión. En el DXF sí van, porque el exportador de la librería las
    * conoce. Para el PDF hace falta el mismo camino que las tablas: calcular su trazo nosotros.
    */
-  sheet(id: string): { nombre: string; segmentos: number[][]; textos: unknown[][] } | null {
+  sheet(
+    id: string,
+  ): { nombre: string; segmentos: number[][]; textos: unknown[][]; recortada: boolean } | null {
     const plano = this.planos.get(id);
     if (plano === undefined) return null;
 
@@ -801,7 +819,33 @@ export class DrawingMaker {
       for (const texto of trazo.texts) textos.push([texto.x, texto.z, texto.height, texto.text]);
     }
 
-    return { nombre: plano.info.name, segmentos, textos };
+    // ══════════════════════════════════════════════════════════════════════════════════════
+    //   **Se recorta aquí, y no solo en el servidor.**
+    //
+    //   `apps/documents/lamina.py` ya recortaba a `MAXIMO_SEGMENTOS`… **después de haber
+    //   recibido el cuerpo entero**. Y ahí está el problema: Django rechaza una petición que
+    //   pasa de `DATA_UPLOAD_MAX_MEMORY_SIZE` (8 MB) **antes de que la vista corra**, así que
+    //   el recorte no llegaba a ejecutarse nunca en el caso que lo motivó. La planta de un
+    //   edificio real pasa holgadamente de los 60 000 segmentos, y cada uno son unos 32 bytes
+    //   de JSON.
+    //
+    //   El síntoma es exactamente el que se reportó: **el DXF funciona y el PDF no**. El DXF
+    //   se escribe en el navegador y no viaja; el PDF manda la geometría al servidor. Y el
+    //   error que se ve no explica nada —«El servidor respondió 400»— porque el rechazo de
+    //   Django no es JSON y el cliente no lo puede leer.
+    //
+    //   Recortando aquí, lo que sale cabe siempre. **Y se dice**: `recortada` viaja en la
+    //   lámina para que la pantalla pueda avisar de que el papel no lleva el dibujo entero —un
+    //   plano recortado en silencio es peor que uno que no sale.
+    // ══════════════════════════════════════════════════════════════════════════════════════
+    const { MAXIMO_SEGMENTOS, MAXIMO_TEXTOS } = DrawingMaker;
+    const recortada = segmentos.length > MAXIMO_SEGMENTOS || textos.length > MAXIMO_TEXTOS;
+    return {
+      nombre: plano.info.name,
+      segmentos: segmentos.slice(0, MAXIMO_SEGMENTOS),
+      textos: textos.slice(0, MAXIMO_TEXTOS),
+      recortada,
+    };
   }
 
   /** Cierra un plano generado y libera su geometría. */
