@@ -42,6 +42,10 @@ ESPERADO = [
     ("The works", "Projects", "projects:proyectos", "projects.view_proyecto"),
     ("The works", "Organisations", "core:organizaciones", "core.view_organizacion"),
     ("The model", "BIM viewer", "visor:visor", None),
+    # **«Archivos» va antes que «Entregables», y el orden es la decisión.** Contesta la pregunta
+    # que se hace diez veces al día —«¿dónde está el modelo?»— mientras que «Entregables» contesta
+    # la de planificación, que se hace una vez por semana. Ver `ArchivosView`.
+    ("The document register", "Files", "documents:archivos", "documents.view_revision"),
     ("The document register", "Deliverables", "documents:entregables", "documents.view_entregable"),
     (
         "The document register",

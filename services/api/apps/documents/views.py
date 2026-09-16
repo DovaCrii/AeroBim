@@ -130,6 +130,125 @@ def observacion_visible(request, pk) -> Observacion:
     )
 
 
+class ArchivosView(ModelViewPermissionRequiredMixin, FiltrosEnLaPaginacionMixin, ListView):
+    """**El repositorio: todo lo que está guardado en el servidor, por categoría.**
+
+    ## Por qué existe
+
+    Todo lo que enseña esta pantalla ya estaba guardado desde el primer día. Un IFC, un COPC, un
+    DXF o un PDF subidos como revisión viven en `/var/lib/aerobim/documentos`, con su sha256, y el
+    visor los abre desde «Del registro». Lo que no existía era **un sitio donde verlos todos**.
+
+    El usuario lo dijo entero, y merece quedar escrito porque explica qué hace esta pantalla y qué
+    no: «si no queda en el servidor no es solo un visor; debe almacenar la nube o el modelo, así ir
+    teniendo un repositorio para ir abriendo, linkeando o revisando, pero que se busque del panel
+    lateral, es lo más práctico».
+
+    La necesidad era real y **media premisa era falsa**: sí queda en el servidor. Lo que no se
+    podía era encontrarlo — para llegar a un archivo había que saber de qué entregable colgaba, y
+    eso es precisamente lo que no sabe quien lo busca.
+
+    ## Qué NO es
+
+    **No es un sitio donde soltar archivos sueltos.** Todo lo que sale aquí llegó como revisión de
+    un entregable, con su emisor, su fecha y su código de idoneidad — que es lo que separa un
+    registro documental de una carpeta compartida, y lo que AeroBim existe para sostener. Esta
+    pantalla es **otra forma de mirar lo mismo**, no otro almacén.
+
+    Por eso el botón de subir lleva al camino de siempre en vez de abrir un formulario propio: dos
+    puertas al mismo almacén se separan en cuanto una de las dos olvide pedir algo.
+
+    ## Solo la revisión vigente de cada entregable
+
+    Un entregable con seis revisiones tiene seis archivos guardados, y las cinco viejas **son
+    historia, no repositorio**: quien busca «el modelo de estructura» quiere el vigente. Las
+    anteriores siguen en el expediente del entregable, que es donde se consulta la historia.
+    """
+
+    template_name = "documents/archivos.html"
+    context_object_name = "archivos"
+    model = Revision
+    paginate_by = 60
+
+    def get_queryset(self):
+        from apps.documents.categorias import categoria_de
+
+        # **La misma consulta acotada que alimenta al visor.** `Revision` no lleva el campo
+        # `organizacion` —cuelga de su entregable— así que `scope_queryset_to_organizacion` la
+        # devolvería intacta: `revisiones_visibles` es la que sí acota, y `solo_publicadas` es la
+        # que impide que un mandante vea lo que está en curso.
+        consulta = solo_publicadas(revisiones_visibles(self.request.user), self.request.user)
+        consulta = (
+            consulta.select_related("entregable__proyecto", "entregable__disciplina", "subida_por")
+            # **La precarga no es opcional aqui.** `revision_vigente()` recorre `entregable
+            # .revisiones.all()`, asi que sin esto cada fila abre su propia consulta: sesenta
+            # archivos son sesenta viajes a la base. Es el mismo defecto que ya se midio en el
+            # listado de entregables —71 consultas para veinte filas— y su mismo arreglo.
+            .prefetch_related("entregable__revisiones")
+            .order_by("-emitida_en")
+        )
+
+        # **La vigente de cada entregable, resuelta en Python y no en SQL.** «Vigente» lo decide
+        # `Entregable.revision_vigente`, que ordena por correlativo con su propia regla —no es el
+        # máximo alfabético ni la más reciente—, y reescribir esa regla aquí en un `DISTINCT ON`
+        # sería tenerla en dos sitios: el día que cambie, esta pantalla enseñaría otra cosa que el
+        # expediente. Con las decenas de revisiones de un piloto, la lista cabe holgada en memoria.
+        vigentes = []
+        vistos = set()
+        for revision in consulta:
+            if revision.entregable_id in vistos:
+                continue
+            vigente = revision.entregable.revision_vigente
+            if vigente is None or vigente.pk != revision.pk:
+                continue
+            vistos.add(revision.entregable_id)
+            revision.categoria = categoria_de(revision)
+            # **`visor_ruta` y no el visor a secas**, que es lo que ya usan el expediente y la
+            # pantalla de la obra: la plantilla necesita el **nombre de la ruta** para `{% url %}`,
+            # y elegirlo en el HTML con un `if` obligaría a repetir esa elección en cada pantalla
+            # que enlace al visor. Son tres ya.
+            revision.visor_ruta = RUTA_POR_VISOR.get(visor_de(revision) or "")
+            vigentes.append(revision)
+
+        cual = self.request.GET.get("categoria")
+        if cual:
+            vigentes = [r for r in vigentes if r.categoria == cual]
+        return vigentes
+
+    def get_context_data(self, **kwargs):
+        from apps.documents.categorias import ICONOS, NOMBRES, ORDEN, categoria_de
+
+        contexto = super().get_context_data(**kwargs)
+
+        # Las cuentas se hacen sobre **todas** las vigentes, no sobre la página ni sobre lo
+        # filtrado: un contador que cambia al pulsar el filtro no cuenta nada.
+        todas = solo_publicadas(revisiones_visibles(self.request.user), self.request.user)
+        cuantas: dict[str, int] = {}
+        for revision in todas.select_related("entregable").prefetch_related(
+            "entregable__revisiones"
+        ):
+            vigente = revision.entregable.revision_vigente
+            if vigente is not None and vigente.pk == revision.pk:
+                clave = categoria_de(revision)
+                cuantas[clave] = cuantas.get(clave, 0) + 1
+
+        activa = self.request.GET.get("categoria") or ""
+        contexto["categorias"] = [
+            {
+                "clave": clave,
+                "nombre": NOMBRES[clave],
+                "icono": ICONOS[clave],
+                "cuantas": cuantas.get(clave, 0),
+                "activa": activa == clave,
+            }
+            for clave in ORDEN
+        ]
+        contexto["categoria_activa"] = activa
+        contexto["hay_archivos"] = sum(cuantas.values())
+        contexto["puede_subir"] = self.request.user.has_perm("documents.add_revision")
+        return contexto
+
+
 class EntregablesView(
     ModelViewPermissionRequiredMixin,
     OrganizacionScopedQuerysetMixin,
