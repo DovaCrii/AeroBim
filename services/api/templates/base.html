@@ -44,6 +44,14 @@
       haya ojo a que haya uno que no hace nada. El porqué largo está en `ver-la-clave.js`.
     {% endcomment %}
     <script src="{% static 'js/ver-la-clave.js' %}" defer></script>
+    {% comment %}
+      **La barra de progreso al subir.** Un solo oyente sobre los formularios que se marcan con
+      `data-con-progreso`, así que en las pantallas que no suben nada no cuesta nada.
+
+      Va en la base y no en `subir_revision.html` por lo mismo que los otros dos: la CSP prohíbe el
+      JavaScript en línea y una plantilla no puede añadir un `<script>` a la cabecera.
+    {% endcomment %}
+    <script src="{% static 'js/subida-con-progreso.js' %}" defer></script>
   </head>
   <body>
     <a class="salto" href="#contenido">{% translate "Skip to content" %}</a>

@@ -246,6 +246,12 @@ class ArchivosView(ModelViewPermissionRequiredMixin, FiltrosEnLaPaginacionMixin,
         contexto["categoria_activa"] = activa
         contexto["hay_archivos"] = sum(cuantas.values())
         contexto["puede_subir"] = self.request.user.has_perm("documents.add_revision")
+        # **`change_revision` y no `view_revision`**: compartir hacia fuera no es leer. Con el de
+        # lectura, cualquier cuenta —incluida la del mandante— podría publicar el modelo. Es la
+        # misma regla que ya aplica `EnlacesDeRevisionView`, y se repite aquí porque ofrecer el
+        # enlace y dejar entrar son dos decisiones: ofrecer lo que termina en 403 enseña a probar
+        # puertas.
+        contexto["puede_compartir"] = self.request.user.has_perm("documents.change_revision")
         return contexto
 
 
