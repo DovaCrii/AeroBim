@@ -1875,7 +1875,19 @@ export function App() {
         const cuerpo = (await respuesta.json().catch(() => ({}))) as { error?: string };
         setStatus({
           kind: "error",
-          message: cuerpo.error ?? `El servidor respondió ${respuesta.status}.`,
+          // **Un 400 sin cuerpo JSON no es «el servidor respondió 400».**
+          //
+          // Django rechaza una petición que se pasa de `DATA_UPLOAD_MAX_MEMORY_SIZE` **antes de
+          // que la vista corra**, y lo que devuelve es HTML: `respuesta.json()` falla, `cuerpo
+          // .error` queda indefinido, y lo que se veía era un número. Con la lámina ya recortada
+          // en el navegador esto no debería ocurrir, y si ocurre conviene que diga qué mirar en
+          // vez de mandar a nadie a adivinar.
+          message:
+            cuerpo.error ??
+            (respuesta.status === 400
+              ? "El servidor no aceptó la lámina. Suele ser que el plano es demasiado grande " +
+                "para mandarlo entero; prueba a apagar capas y volver a generarlo."
+              : `El servidor respondió ${respuesta.status}.`),
         });
         return;
       }
@@ -1885,6 +1897,18 @@ export function App() {
       enlace.download = `${hoja.nombre}.pdf`;
       enlace.click();
       URL.revokeObjectURL(enlace.href);
+
+      // **Un plano recortado en silencio es peor que uno que no sale.** Quien lo firma tiene que
+      // saber que el papel no lleva el dibujo entero: el tope existe para que la petición quepa,
+      // no porque el plano no importe.
+      if (hoja.recortada) {
+        setStatus({
+          kind: "error",
+          message:
+            "El PDF salió, pero el plano no cabía entero y se recortó. Apaga capas que no " +
+            "necesites —las aristas ocultas suelen ser la mitad del dibujo— y vuelve a generarlo.",
+        });
+      }
     },
     [origen],
   );
