@@ -13,10 +13,60 @@
 {% endblock %}
 
 {% block contenido %}
-  <form method="post" style="max-width: 560px">
-    {% csrf_token %}
-    {% include "generic/_campos.html" with form=form %}
-    <button type="submit">{% translate "Create" %}</button>
-  </form>
-  <p><a href="{% url 'documents:entregables' %}">{% translate "Back" %}</a></p>
+
+  {% comment %}
+    ══════════════════════════════════════════════════════════════════════════════════════════
+    **SIN DISCIPLINA NO SE PUEDE CREAR UN ENTREGABLE, Y ANTES NO LO DECÍA.**
+
+    Un entregable necesita una disciplina, y las disciplinas cuelgan de un proyecto: en una
+    instalación recién hecha no hay ninguna. El desplegable salía vacío, el formulario no podía
+    validar nunca, y la pantalla no decía ni qué faltaba ni dónde se conseguía.
+
+    Es el mismo callejón que tenía «Cuenta nueva» sin organizaciones, un piso más abajo. Se
+    arregla igual: no se ofrece un formulario que no se va a poder enviar.
+
+    Y la salida **nombra la obra**, porque una disciplina se crea dentro de una: un enlace
+    genérico dejaría a alguien buscando en qué pantalla se hace.
+    ══════════════════════════════════════════════════════════════════════════════════════════
+  {% endcomment %}
+  {% if not hay_disciplinas %}
+    <div class="aviso warning" role="status">
+      <p><b>{% translate "First, a discipline." %}</b></p>
+      {% if hay_proyectos %}
+        <p>
+          {% blocktranslate %}A deliverable belongs to a discipline of a work — architecture,
+          structure, services — and none has been created yet. Open the work and add one; after
+          that, every deliverable you register goes into it.{% endblocktranslate %}
+        </p>
+        <p class="acciones" style="margin-bottom: 0">
+          {% for proyecto in proyectos %}
+            <a class="boton" href="{% url 'projects:proyecto' proyecto.pk %}">
+              {% blocktranslate with codigo=proyecto.codigo %}Open {{ codigo }}{% endblocktranslate %}
+            </a>
+          {% endfor %}
+        </p>
+      {% else %}
+        <p>
+          {% blocktranslate %}There is no work yet. A deliverable hangs off a discipline, and a
+          discipline hangs off a work, so that is where it starts.{% endblocktranslate %}
+        </p>
+        {% if puede_crear_proyecto %}
+          <p class="acciones" style="margin-bottom: 0">
+            <a class="boton" href="{% url 'projects:nuevo-proyecto' %}">
+              {% translate "Create the first work" %}
+            </a>
+          </p>
+        {% endif %}
+      {% endif %}
+    </div>
+  {% else %}
+    <form method="post">
+      {% csrf_token %}
+      {% include "generic/_campos.html" with form=form %}
+      <div class="acciones">
+        <button type="submit">{% translate "Create" %}</button>
+        <a class="enlace-suave" href="{% url 'documents:entregables' %}">{% translate "Back" %}</a>
+      </div>
+    </form>
+  {% endif %}
 {% endblock %}

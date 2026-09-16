@@ -44,13 +44,63 @@ class EntregableForm(PersonasConNombre, forms.ModelForm):
         )
         widgets = {"fecha_planificada": forms.DateInput(attrs={"type": "date"})}
 
-    def __init__(self, *args, proyecto=None, **kwargs):
+    def __init__(self, *args, proyecto=None, autor=None, **kwargs):
         super().__init__(*args, **kwargs)
         # **Las opciones se acotan al proyecto.** Un desplegable con las disciplinas de
         # todos los proyectos no es solo incomodo: deja elegir una que no le pertenece.
         if proyecto is not None:
             self.fields["disciplina"].queryset = proyecto.disciplinas.filter(is_active=True)
             self.fields["paquete"].queryset = proyecto.paquetes.filter(is_active=True)
+            return
+
+        # ══════════════════════════════════════════════════════════════════════════════════
+        #   **Sin proyecto, se acota por quien mira — y antes no se acotaba por nada.**
+        #
+        #   `NuevoEntregableView` construye este formulario **sin `proyecto`**, así que hasta
+        #   hoy el desplegable de disciplina salía con `Disciplina.objects.all()`: **todas las
+        #   disciplinas de todos los proyectos de todas las empresas**.
+        #
+        #   No era solo una fuga de lectura —que ya es una: la lista dice qué obras hay y cómo
+        #   las organiza cada oficina—. La vista hace después:
+        #
+        #       entregable.organizacion = disciplina.proyecto.organizacion
+        #
+        #   o sea que eligiendo una disciplina ajena se **escribe un entregable dentro de la
+        #   empresa de otro**. Es la misma familia de las siete fugas de `PR #23`, y otra vez
+        #   por el mismo motivo: un acotado que depende de que quien llame se acuerde de pasar
+        #   el argumento.
+        #
+        #   Por eso `autor` no es opcional de verdad: sin ninguno de los dos, el formulario se
+        #   queda **vacío** en vez de abierto. Un desplegable vacío se nota; uno que enseña de
+        #   más, no.
+        # ══════════════════════════════════════════════════════════════════════════════════
+        from apps.core.tenancy import scope_queryset_to_organizacion
+        from apps.projects.models import Disciplina, PaqueteWBS, Proyecto
+
+        if autor is None:
+            self.fields["disciplina"].queryset = Disciplina.objects.none()
+            self.fields["paquete"].queryset = PaqueteWBS.objects.none()
+            return
+
+        proyectos = scope_queryset_to_organizacion(Proyecto.objects.all(), autor).filter(
+            is_active=True
+        )
+        self.fields["disciplina"].queryset = (
+            Disciplina.objects.filter(proyecto__in=proyectos, is_active=True)
+            .select_related("proyecto")
+            .order_by("proyecto__codigo", "codigo")
+        )
+        self.fields["paquete"].queryset = PaqueteWBS.objects.filter(
+            proyecto__in=proyectos, is_active=True
+        ).select_related("proyecto")
+
+        # **Con varias obras, el nombre de la disciplina no identifica.** «Estructura» existe en
+        # todas, así que el desplegable saldría con la misma palabra repetida y no habría forma
+        # de saber a qué obra va el entregable — que es lo que esta pantalla decide.
+        self.fields["disciplina"].label_from_instance = lambda d: (
+            f"{d.proyecto.codigo} · {d.codigo} — {d.nombre}"
+        )
+        self.fields["paquete"].label_from_instance = lambda p: f"{p.proyecto.codigo} · {p.codigo}"
 
 
 class RevisionForm(forms.ModelForm):
