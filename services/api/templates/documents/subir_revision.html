@@ -16,10 +16,28 @@
     se construye con el sha256 del contenido, y el nombre original se guarda en la base
     de datos para poder mostrarlo.
   {% endcomment %}
-  <form method="post" enctype="multipart/form-data" style="max-width: 560px">
+  {% comment %}
+    **`data-con-progreso` enciende la barra**, y no hace nada más: si `subida-con-progreso.js` no
+    llega, este formulario se envía como cualquier otro y la subida funciona sin barra. Nada de lo
+    que se añade puede ser la única forma de hacer la cosa.
+
+    Hace falta porque los archivos son de obra: un IFC de 200 MB o un COPC de 130 son minutos por
+    una conexión de oficina, y durante esos minutos la página se quedaba quieta. Lo que hace
+    cualquiera entonces es volver a pulsar — y cada reintento sube el archivo entero otra vez.
+  {% endcomment %}
+  <form method="post"
+        enctype="multipart/form-data"
+        data-con-progreso
+        data-fallo="{% translate 'The upload could not finish. Try again.' %}">
     {% csrf_token %}
     {% include "generic/_campos.html" with form=form %}
-    <button type="submit">{% translate "Upload" %}</button>
+    <div class="acciones">
+      <button type="submit" data-subiendo="{% translate 'Uploading…' %}">
+        {% translate "Upload" %}
+      </button>
+      <a class="enlace-suave" href="{% url 'documents:expediente' entregable.pk %}">
+        {% translate "Back" %}
+      </a>
+    </div>
   </form>
-  <p><a href="{% url 'documents:expediente' entregable.pk %}">{% translate "Back" %}</a></p>
 {% endblock %}

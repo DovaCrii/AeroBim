@@ -3093,6 +3093,58 @@ button.peligro:hover {
   color: var(--ab-text);
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════════════
+ * LA BARRA DE PROGRESO AL SUBIR.
+ *
+ * Los archivos de este producto son de obra: un IFC de 200 MB, un COPC de 130. Eso son **minutos**
+ * por una conexión de oficina, y durante esos minutos la página se quedaba quieta. Lo que hace
+ * cualquiera entonces es volver a pulsar — y cada reintento sube el archivo entero otra vez.
+ *
+ * La caja la crea `static/js/subida-con-progreso.js`; aquí solo están las medidas. El porqué de
+ * que la cree el guion —y no la plantilla— está allí.
+ * ═══════════════════════════════════════════════════════════════════════════════════ */
+.subida {
+  max-width: 34rem;
+  margin-top: 18px;
+}
+
+/*
+ * **La pista se ve aunque el relleno esté a cero**, que es el primer segundo de cada subida. Con la
+ * pista transparente, pulsar «Subir» no cambiaría nada en pantalla hasta que llegara el primer
+ * `progress` — y ese primer segundo es justo cuando alguien decide si volver a pulsar.
+ */
+.subida-barra {
+  height: 8px;
+  overflow: hidden;
+  background: var(--ab-track);
+  border-radius: 999px;
+}
+
+.subida-relleno {
+  display: block;
+  width: 0;
+  height: 100%;
+  background: var(--ab-primary);
+  /* Sin transición, la barra salta de tramo en tramo según llegan los eventos del navegador y se
+     lee como si se atascara. Corta a propósito: 200 ms de retraso sobre una barra que se mira
+     fijamente se notan como lentitud del producto. */
+  transition: width 200ms linear;
+}
+
+.subida-dice {
+  margin: 8px 0 0;
+  color: var(--ab-text-secondary);
+  font-size: 0.88rem;
+  /* Los dígitos con el mismo ancho: sin esto, el porcentaje baila de izquierda a derecha mientras
+     sube y la línea entera parece temblar. */
+  font-variant-numeric: tabular-nums;
+}
+
+.subida-fallo {
+  color: var(--ab-danger);
+  font-weight: 600;
+}
+
 /* El icono dentro de una línea de texto: se alinea con la letra, no con la caja. `em` y no `rem`
    para que siga al tamaño del texto que acompaña. */
 .icono-en-linea {

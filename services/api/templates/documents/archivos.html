@@ -118,6 +118,24 @@
               {% if archivo.visor_ruta %}
                 <a href="{% url archivo.visor_ruta %}?revision={{ archivo.pk }}">{% translate "Open" %}</a>
               {% endif %}
+              {% comment %}
+                **Compartir, desde donde se está mirando.**
+
+                Los enlaces públicos existen desde el PR #26 —solo ver, caducan, se revocan— y
+                hasta hoy solo se llegaba a ellos desde el expediente del entregable: o sea que
+                había que saber de qué entregable colgaba el archivo, que es justo lo que esta
+                pantalla existe para no tener que saber.
+
+                Va **solo si el visor sabe abrirlo**: un enlace a algo que no se puede dibujar
+                manda a alguien de fuera a una pantalla vacía. Y **solo a quien manda sobre el
+                documento** —`change_revision`, no `view_revision`—: compartir hacia fuera no es
+                leer, y con el permiso de lectura el mandante podría publicar el modelo.
+              {% endcomment %}
+              {% if archivo.visor_ruta and puede_compartir %}
+                <a class="enlace-suave" href="{% url 'documents:enlaces' archivo.pk %}">
+                  {% translate "Share" %}
+                </a>
+              {% endif %}
               <a class="enlace-suave" href="{% url 'documents:descargar-revision' archivo.pk %}">
                 {% translate "Download" %}
               </a>
