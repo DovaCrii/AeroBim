@@ -95,6 +95,35 @@
     Lo pendiente sale de `pendientes_por_tramo`, la misma función que alimenta el resumen por
     correo: así la pantalla y el correo **no pueden discrepar** sobre qué está vencido.
   {% endcomment %}
+  {% comment %}
+    **Las dos bandas que convierten el seguimiento en algo que se puede atender.**
+
+    Lo vencido se veía —rojo, negrita, un ⚠— y ahí se acababa: treinta filas rojas no dicen que tres
+    de ellas llevan desde agosto, ni que hay cosas tuyas que nadie ha tocado. El usuario lo dijo
+    así: «queda el seguimiento pero el aviso no es claro; cuál es la acción a tomar».
+
+    Van **arriba del todo y solo cuando aplican**. Una banda permanente es un marco de la página y
+    deja de leerse a la semana.
+  {% endcomment %}
+  {% if mis_muy_vencidas %}
+    <div class="aviso alerta">
+      {% blocktranslate count n=mis_muy_vencidas %}<b>One thing has been overdue for more than a
+      month.</b> It is not going to resolve itself: replan it, hand it over, or close
+      it.{% plural %}<b>{{ n }} things have been overdue for more than a month.</b> They are not
+      going to resolve themselves: replan them, hand them over, or close them.{% endblocktranslate %}
+    </div>
+  {% endif %}
+
+  {% if mis_abiertos_parados %}
+    <div class="aviso">
+      {% blocktranslate count n=mis_abiertos_parados %}<b>One finding you opened has not been
+      touched in a week.</b> Whoever has it may need a nudge.{% plural %}<b>{{ n }} findings you
+      opened have not been touched in a week.</b> Whoever has them may need a
+      nudge.{% endblocktranslate %}
+      <a href="{% url 'documents:observaciones' %}?mias=1">{% translate "See them" %}</a>
+    </div>
+  {% endif %}
+
   {% if mis_pendientes %}
     <section class="bloque">
       <h2 class="grupo">{% translate "What is on you" %}</h2>

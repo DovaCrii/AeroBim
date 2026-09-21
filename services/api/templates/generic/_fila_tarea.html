@@ -53,4 +53,25 @@
       <span class="pildora pildora-prioridad {{ tarea.prioridad }}">{{ tarea.prioridad_texto }}</span>
     {% endif %}
   </span>
+
+  {% comment %}
+    **Qué hacer con esto, y solo cuando está vencido.**
+
+    El seguimiento era reactivo porque mirar y actuar eran dos pantallas: lo atrasado se veía, y
+    para replanificarlo o cerrarlo había que entrar al hallazgo y buscar el formulario dentro.
+
+    Van **solo en lo vencido** a propósito. En una lista de treinta filas al día, dos enlaces por
+    fila son sesenta enlaces: lo que se quiere señalar deja de señalarse. Y no hay ni un endpoint
+    nuevo — llevan a `repartir` y `cerrar`, que ya existían.
+
+    Las acciones vienen ya filtradas por permiso desde `tareas.py`: un botón que termina en 403 no
+    dice si te falta un permiso o si la aplicación está rota.
+  {% endcomment %}
+  {% if tarea.vencida and tarea.acciones %}
+    <span class="tarea-acciones">
+      {% for etiqueta, destino in tarea.acciones %}
+        <a class="accion-de-tarea" href="{{ destino }}">{{ etiqueta }}</a>
+      {% endfor %}
+    </span>
+  {% endif %}
 </li>

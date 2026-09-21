@@ -80,6 +80,9 @@ class Tarea:
     prioridad_texto: str | None
     #: Para el círculo de estado, que necesita saber de qué habla al describirse en voz alta.
     es_observacion: bool
+    #: Qué se puede hacer con esto, ya filtrado por permiso. Ver `_acciones_de`. Vacío si no se
+    #: pasó usuario: ofrecer un botón que termina en 403 es peor que no ofrecerlo.
+    acciones: tuple[tuple[str, str], ...] = ()
 
     @property
     def vencida(self) -> bool:
@@ -128,8 +131,64 @@ class Tarea:
         return "serio" if dias <= 30 else "grave"
 
 
-def como_tarea(item: Observacion | Actividad) -> Tarea:
-    """Traduce un hallazgo o una actividad a la fila que las dos pantallas pintan."""
+def _acciones_de(item, usuario) -> tuple[tuple[str, str], ...]:
+    """Qué se puede hacer con esto **ahora mismo**, como pares `(etiqueta, url)`.
+
+    ## El hueco que cierra
+
+    Lo atrasado se veía y no se podía hacer nada con ello: para replanificar o cerrar había que
+    abrir el hallazgo y buscar el formulario dentro. El usuario lo dijo — *«queda el seguimiento
+    pero el aviso no es claro; cuál es la acción a tomar»*. El seguimiento es **reactivo** mientras
+    mirarlo y actuar sean dos pantallas distintas.
+
+    ## No hay ni un endpoint nuevo, y es deliberado
+
+    `RepartirObservacionView` ya cambia **dueño, fecha y prioridad** de un hallazgo abierto, y
+    `CerrarObservacionView` ya cierra con su resolución. Lo que faltaba no era poder hacerlo: era
+    llegar. Una acción nueva aquí sería una segunda forma de hacer lo mismo, y a la tercera semana
+    una de las dos deja de auditar.
+
+    ## Y se filtran por permiso, que ya costó una vez
+
+    Ofrecer un botón que termina en 403 es peor que no ofrecerlo: la persona no sabe si le falta un
+    permiso o si la aplicación está rota. Pasó este mismo mes con el botón de compartir, que miraba
+    el permiso de la regla y no el de la vista. Aquí se mira **el que exige la vista**.
+    """
+    if usuario is None or not getattr(usuario, "is_authenticated", False):
+        return ()
+
+    from django.urls import reverse
+
+    if isinstance(item, Observacion):
+        acciones = []
+        # Las dos piden `change_observacion`, que es lo que exigen `RepartirObservacionView` y
+        # `CerrarObservacionView` — no un permiso parecido.
+        if usuario.has_perm("documents.change_observacion"):
+            acciones.append(
+                (
+                    _("Replan or hand over"),
+                    reverse("documents:repartir-observacion", args=[item.pk]),
+                )
+            )
+            if item.estado not in (Observacion.CERRADA, Observacion.DESCARTADA):
+                acciones.append(
+                    (_("Close it"), reverse("documents:cerrar-observacion", args=[item.pk]))
+                )
+        return tuple(acciones)
+
+    if usuario.has_perm("documents.change_actividad"):
+        # Una actividad no se reparte ni se cierra con resolución: avanza un paso por su flujo.
+        return ((_("Move it forward"), reverse("documents:actividad", args=[item.pk])),)
+    return ()
+
+
+def como_tarea(item: Observacion | Actividad, usuario=None) -> Tarea:
+    """Traduce un hallazgo o una actividad a la fila que las dos pantallas pintan.
+
+    `usuario` es opcional **y sin él no se ofrece ninguna acción**, que es lo correcto: las acciones
+    dependen de permisos, y una lista de botones calculada sin saber quién mira es una lista de
+    botones que alguien no puede pulsar.
+    """
     if isinstance(item, Observacion):
         return Tarea(
             titulo=item.titulo,
@@ -142,6 +201,7 @@ def como_tarea(item: Observacion | Actividad) -> Tarea:
             prioridad=item.prioridad,
             prioridad_texto=item.get_prioridad_display(),
             es_observacion=True,
+            acciones=_acciones_de(item, usuario),
         )
     return Tarea(
         titulo=item.titulo,
@@ -154,8 +214,9 @@ def como_tarea(item: Observacion | Actividad) -> Tarea:
         prioridad=None,
         prioridad_texto=None,
         es_observacion=False,
+        acciones=_acciones_de(item, usuario),
     )
 
 
-def como_tareas(items) -> list[Tarea]:
-    return [como_tarea(uno) for uno in items]
+def como_tareas(items, usuario=None) -> list[Tarea]:
+    return [como_tarea(uno, usuario) for uno in items]

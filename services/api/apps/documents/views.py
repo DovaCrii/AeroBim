@@ -1879,7 +1879,8 @@ class MiBandejaView(ModelViewPermissionRequiredMixin, TemplateView):
         # prueba tenía una tarea a más de treinta días. Es el mismo defecto que este bloque venía a
         # arreglar, un piso más arriba.
         contexto["tramos_etiquetados"] = [
-            (etiqueta, como_tareas(tramos[nombre]), nombre == "vencido")
+            # Se pasa quién mira: las acciones de una fila dependen de sus permisos.
+            (etiqueta, como_tareas(tramos[nombre], self.request.user), nombre == "vencido")
             for _d, _h, nombre, etiqueta in TRAMOS
         ]
 

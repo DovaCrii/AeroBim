@@ -50,6 +50,12 @@
                           <a href="{{ fila.url }}" style="color:#1F428D;font-weight:600;text-decoration:none">{{ fila.titulo }}</a>
                           <div style="font-size:12px;color:#585756;margin-top:3px">
                             {{ fila.proyecto }} ·
+                            {% comment %}
+                              En el bloque del escalado va **quién lo tiene**, que es el dato que
+                              lo convierte en accionable: sin él, «esto no avanza» obliga a entrar
+                              para saber a quién preguntar.
+                            {% endcomment %}
+                            {% if fila.quien %}{{ fila.quien }} ·{% endif %}
                             {% if fila.atraso %}
                               {% comment %}
                                 Los días de atraso en negrita y en rojo, que es la cifra que no
