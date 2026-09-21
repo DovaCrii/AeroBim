@@ -245,6 +245,15 @@ class ArchivosView(ModelViewPermissionRequiredMixin, FiltrosEnLaPaginacionMixin,
         ]
         contexto["categoria_activa"] = activa
         contexto["hay_archivos"] = sum(cuantas.values())
+
+        # **Partido por obra, y solo si hay más de una.** Con sesenta archivos de cuatro obras
+        # ordenados por fecha, el repositorio deja de servir para lo único que sirve: encontrar
+        # algo. Con una sola obra, un grupo plegable es un clic de más y un título que repite lo
+        # que ya dice la página.
+        from apps.documents.por_obra import por_obra
+
+        grupos = por_obra(contexto["archivos"], lambda r: r.entregable.proyecto)
+        contexto["grupos"] = grupos if len(grupos) > 1 else []
         contexto["puede_subir"] = self.request.user.has_perm("documents.add_revision")
         # ══════════════════════════════════════════════════════════════════════════════════
         #   **El mismo permiso que pide la puerta, y este ya se escribió mal una vez.**
@@ -1682,8 +1691,14 @@ class TransmittalsView(
         )
 
     def get_context_data(self, **kwargs):
+        from apps.documents.por_obra import por_obra
+
         contexto = super().get_context_data(**kwargs)
         contexto["puede_crear"] = self.request.user.has_perm("documents.add_transmittal")
+        # Partido por obra igual que el repositorio, y solo si hay más de una: un transmittal
+        # pertenece a una obra y se busca por obra — «¿qué le mandamos al mandante del 716?».
+        grupos = por_obra(contexto["transmittals"], lambda t: t.proyecto)
+        contexto["grupos"] = grupos if len(grupos) > 1 else []
         return contexto
 
 
