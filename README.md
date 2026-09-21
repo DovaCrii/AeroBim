@@ -122,10 +122,17 @@ La puerta de calidad es **`pwsh services/api/scripts/verify.ps1` más `npm test`
 máquina de quien desarrolla**:
 
 ```powershell
+pwsh scripts/preparar-git.ps1         # una vez tras clonar: reglas de fusión de este clon
 pwsh services/api/scripts/setup.ps1   # dependencias, migraciones y roles
 pwsh services/api/scripts/verify.ps1  # check, pytest, ruff, bandit, pip-audit
 npm test                              # el visor y el dominio
 ```
+
+> **`preparar-git` se corre una vez y no es opcional del todo.** `.gitattributes` se versiona pero
+> `git config` no, así que la regla que impide que el catálogo compilado (`django.mo`, binario) dé
+> conflicto en cada fusión que toque textos **necesita darse de alta en cada copia de trabajo**. Sin
+> ella todo sigue funcionando: solo vuelve el conflicto manual. En Linux y macOS,
+> `bash scripts/preparar-git.sh`.
 
 La regla que ordena esas pruebas está en [AGENTS.md](AGENTS.md): cada capacidad se comprueba contra
 **un oráculo independiente** —Bonsai para el IFC, Solibri o BIMcollab para el BCF, CloudCompare y
