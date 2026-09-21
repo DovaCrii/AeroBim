@@ -103,6 +103,23 @@
     </nav>
   {% endif %}
 
+  {% comment %}
+    **El interruptor de las obras de ensayo.** Aparece solo si hay alguna, y recuerda la elección
+    entre visitas: es una preferencia de trabajo, no una búsqueda.
+  {% endcomment %}
+  {% if cuantas_pruebas %}
+    <p class="detalle filtro-pruebas">
+      {% if sin_pruebas %}
+        {% blocktranslate count n=cuantas_pruebas %}{{ n }} test work is hidden.{% plural %}{{ n }} test works are hidden.{% endblocktranslate %}
+        <a href="?sin_pruebas=0{% if etapa_activa %}&amp;etapa={{ etapa_activa }}{% endif %}">{% translate "Show them" %}</a>
+      {% else %}
+        <a href="?sin_pruebas=1{% if etapa_activa %}&amp;etapa={{ etapa_activa }}{% endif %}">
+          {% blocktranslate count n=cuantas_pruebas %}Hide the test work{% plural %}Hide the {{ n }} test works{% endblocktranslate %}
+        </a>
+      {% endif %}
+    </p>
+  {% endif %}
+
   <table>
     <thead>
       <tr>
@@ -116,7 +133,10 @@
     <tbody>
       {% for proyecto in proyectos %}
         <tr>
-          <td><a class="hallazgo-titulo" href="{% url 'projects:proyecto' proyecto.pk %}">{{ proyecto.codigo }}</a></td>
+          <td>
+            <a class="hallazgo-titulo" href="{% url 'projects:proyecto' proyecto.pk %}">{{ proyecto.codigo }}</a>
+            {% include "generic/_naturaleza.html" %}
+          </td>
           <td>{{ proyecto.nombre }}</td>
           <td>{{ proyecto.cliente|default:"—" }}</td>
           <td><span class="pildora">{{ proyecto.get_status_display }}</span></td>

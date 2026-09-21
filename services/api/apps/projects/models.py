@@ -41,10 +41,27 @@ class Proyecto(StatusFlowMixin, BaseModel):
         ETAPA_CERRADO,
     ]
 
+    # **La naturaleza va en un campo y no en un prefijo del codigo**, y es una decision, no un
+    # detalle. `codigo` es texto libre a proposito —cada mandante impone el suyo— asi que un
+    # `PRB-` acordado de palabra lo respeta quien se acuerda, y nadie puede filtrar por el ni
+    # pintarlo distinto. Con un campo cerrado, una obra de prueba se distingue de un vistazo en
+    # toda la aplicacion y se puede esconder de los listados sin tocar ni un codigo.
+    REAL = "real"
+    PRUEBA = "prueba"
+    DEMO = "demo"
+    NATURALEZAS = [
+        (REAL, _("Live work")),
+        (PRUEBA, _("Test")),
+        (DEMO, _("Demo")),
+    ]
+
     organizacion = models.ForeignKey(
         Organizacion, on_delete=models.PROTECT, related_name="proyectos"
     )
     codigo = models.CharField(max_length=30, verbose_name=_("code"))
+    naturaleza = models.CharField(
+        max_length=10, choices=NATURALEZAS, default=REAL, verbose_name=_("nature")
+    )
     nombre = models.CharField(max_length=200, verbose_name=_("name"))
     cliente = models.CharField(max_length=200, blank=True, verbose_name=_("client"))
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=ETAPA_ANTEPROYECTO)
@@ -81,6 +98,22 @@ class Proyecto(StatusFlowMixin, BaseModel):
         if peso_total == 0:
             return 0.0
         return sum(e.peso * e.avance for e in entregables) / peso_total
+
+    @property
+    def avance_pct(self) -> int:
+        """El mismo avance, en la escala que se pinta: de 0 a 100.
+
+        **Existe porque la que faltaba era esta, no la de arriba.** `avance_fisico` devuelve una
+        fraccion —0,75— y las plantillas ensenan porcentajes, asi que alguien tenia que multiplicar
+        por cien. Eso se hacia **a mano y en una sola vista** (la portada), y la lista de obras
+        pedia `avance_pct` sin que nadie se lo pusiera: en una plantilla de Django un atributo que
+        no existe no es un error, es la cadena vacia. La columna entera salia con `width: %` y un
+        `%` sin numero, **en todas las filas y sin una sola senal**.
+
+        Vive junto a `avance_fisico` para que la proxima pantalla no tenga que acordarse de nada:
+        la fraccion para calcular, el entero para pintar, los dos del mismo sitio.
+        """
+        return round(self.avance_fisico * 100)
 
 
 class Disciplina(BaseModel):

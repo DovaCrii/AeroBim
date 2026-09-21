@@ -64,7 +64,26 @@ class ProyectosView(
         etapa = self.request.GET.get("etapa")
         if etapa:
             consulta = consulta.filter(status=etapa)
+        if self.sin_pruebas:
+            consulta = consulta.exclude(naturaleza__in=(Proyecto.PRUEBA, Proyecto.DEMO))
         return consulta
+
+    @property
+    def sin_pruebas(self) -> bool:
+        """Si se esconden las obras de ensayo, **recordado entre visitas**.
+
+        Va en la sesión y no solo en la URL porque es una preferencia, no una búsqueda: quien
+        trabaja con obras reales quiere que las de prueba no estén **siempre**, y volver a pulsarlo
+        en cada pantalla es exactamente el trabajo que el filtro venía a ahorrar.
+
+        Y por omisión están **visibles**: hoy casi todas las obras del piloto son de ensayo, así que
+        esconderlas de entrada dejaría la lista vacía sin decir por qué — que es el defecto que este
+        mismo bloque acaba de arreglar en la columna de avance.
+        """
+        pedido = self.request.GET.get("sin_pruebas")
+        if pedido is not None:
+            self.request.session["sin_pruebas"] = pedido == "1"
+        return bool(self.request.session.get("sin_pruebas", False))
 
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)
@@ -107,6 +126,13 @@ class ProyectosView(
         ]
         contexto["etapa_activa"] = etapa_activa
         contexto["hay_obras"] = sum(cuantas.values())
+
+        # El interruptor solo se ofrece si hay algo que esconder: un botón que no cambia nada es
+        # una pregunta que el usuario tiene que responder para descubrir que daba igual.
+        contexto["cuantas_pruebas"] = todas.filter(
+            naturaleza__in=(Proyecto.PRUEBA, Proyecto.DEMO)
+        ).count()
+        contexto["sin_pruebas"] = self.sin_pruebas
         return contexto
 
 

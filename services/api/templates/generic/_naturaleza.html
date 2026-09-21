@@ -1,0 +1,16 @@
+{% comment %}
+  **La marca de «esto no es una obra de verdad», en un solo sitio.**
+
+  Toma un `proyecto` del contexto. Se dibuja **solo cuando no es real**: una píldora «Obra real» en
+  todas las filas sería ruido en el 95 % de los casos y dejaría de leerse justo el día que importa.
+  Lo que hay que ver de un vistazo es la excepción, no la norma.
+
+  Va como parcial y no copiado en las tres pantallas porque el criterio —cuándo se dibuja y cómo se
+  llama cada valor— tiene que ser el mismo en la lista, en la ficha y en la portada. Tres copias es
+  como una de ellas se queda sin el valor nuevo.
+{% endcomment %}
+{% if proyecto.naturaleza and proyecto.naturaleza != "real" %}
+  <span class="pildora pildora-naturaleza {{ proyecto.naturaleza }}">
+    {{ proyecto.get_naturaleza_display }}
+  </span>
+{% endif %}

@@ -26,7 +26,16 @@ class ProyectoForm(forms.ModelForm):
 
     class Meta:
         model = Proyecto
-        fields = ("organizacion", "codigo", "nombre", "cliente", "status", "inicio", "termino")
+        fields = (
+            "organizacion",
+            "codigo",
+            "nombre",
+            "cliente",
+            "naturaleza",
+            "status",
+            "inicio",
+            "termino",
+        )
         widgets = {
             "inicio": forms.DateInput(attrs={"type": "date"}),
             "termino": forms.DateInput(attrs={"type": "date"}),
@@ -34,6 +43,13 @@ class ProyectoForm(forms.ModelForm):
 
     def __init__(self, *args, organizaciones=None, **kwargs):
         super().__init__(*args, **kwargs)
+
+        # **La naturaleza no se exige, se presupone.** El modelo ya dice que una obra nace real, y
+        # un envío que no la traiga —una integración, un formulario antiguo— no debería recibir un
+        # 400 por no contestar algo que tiene respuesta por omisión. El desplegable sale con «obra
+        # real» marcada, así que desde el navegador siempre viaja.
+        self.fields["naturaleza"].required = False
+
         if organizaciones is None:
             return
 
@@ -65,6 +81,11 @@ class ProyectoForm(forms.ModelForm):
         # Se normaliza en mayusculas porque **es un identificador, no un texto**: `716-LCD` y
         # `716-lcd` son el mismo proyecto, y la restriccion de unicidad de la base distingue.
         return (self.cleaned_data["codigo"] or "").strip().upper()
+
+    def clean_naturaleza(self):
+        # Vacio significa «la de siempre», no vacio en la base: `naturaleza` es un campo cerrado y
+        # guardarlo en blanco dejaria una obra que no es ni real ni de prueba.
+        return self.cleaned_data.get("naturaleza") or Proyecto.REAL
 
 
 class DisciplinaForm(forms.ModelForm):
