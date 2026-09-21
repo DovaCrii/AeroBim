@@ -210,7 +210,7 @@ class EditarCuentaForm(forms.Form):
     # **De seleccion multiple, y la clave `organizacion` se queda en singular a proposito.** El
     # modelo siempre permitio varias —`Membresia` tiene unicidad **del par** (organizacion,
     # usuario)— y era esta pantalla la que no sabia representarlo. Conservar el nombre del campo es
-    # lo que deja que un envio con un solo valor siga siendo valido: Django lo lee como lista de uno.
+    # lo que deja que un envio con un solo valor siga valiendo: Django lo lee como lista de uno.
     organizacion = forms.ModelMultipleChoiceField(
         label=_("Organisations"),
         queryset=Organizacion.objects.none(),

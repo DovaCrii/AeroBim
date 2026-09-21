@@ -70,7 +70,7 @@ def _cuenta(username, *organizaciones, rol=roles.PROYECTISTA, **extra):
 
 @pytest.fixture
 def quien_administra(db, grupos, jej, consorcio):
-    """Trabaja para dos clientes, que es justo el caso que la multi-pertenencia existe para cubrir."""
+    """Trabaja para dos clientes: el caso que la multi-pertenencia existe para cubrir."""
     usuario = _cuenta("jefa", jej, consorcio, rol=roles.COORDINADOR, email="jefa@jej.cl")
     usuario.user_permissions.add(
         *Permission.objects.filter(
