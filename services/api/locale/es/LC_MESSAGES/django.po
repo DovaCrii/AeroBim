@@ -2,7 +2,11 @@
 #
 # El codigo escribe en ingles y el espanol vive aca, que es la convencion de la familia
 # (ver AGENTS.md). Este archivo se regenera con `makemessages` y se compila con
-# `compilemessages`; el `.mo` es binario y no se confirma.
+# `compilemessages`.
+#
+# **El `.mo` si se confirma**, y el motivo esta en `.gitignore:58`: es binario y pequeno, y su
+# ausencia deja la aplicacion en ingles hasta que alguien se acuerde de compilar. Esta nota decia
+# lo contrario y llevaba tiempo equivocada.
 #
 msgid ""
 msgstr ""
@@ -4114,6 +4118,56 @@ msgid ""
 msgstr ""
 "Dentro de la aplicación, para que nadie tenga que entrar al administrador "
 "técnico a cambiar su propia credencial."
+
+#: .\apps\projects\models.py:52
+msgid "nature"
+msgstr "naturaleza"
+
+#: .\apps\projects\models.py:47
+msgid "Live work"
+msgstr "Obra real"
+
+#: .\apps\projects\models.py:48
+msgid "Test"
+msgstr "Prueba"
+
+#: .\apps\projects\models.py:49
+msgid "Demo"
+msgstr "Demostración"
+
+#: .\templates\projects\proyectos.html:116
+#, python-format
+msgid "%(n)s test work is hidden."
+msgid_plural "%(n)s test works are hidden."
+msgstr[0] "Hay %(n)s obra de prueba escondida."
+msgstr[1] "Hay %(n)s obras de prueba escondidas."
+
+#: .\templates\projects\proyectos.html:117
+msgid "Show them"
+msgstr "Enseñarlas"
+
+#: .\templates\projects\proyectos.html:120
+#, python-format
+msgid "Hide the test work"
+msgid_plural "Hide the %(n)s test works"
+msgstr[0] "Esconder la obra de prueba"
+msgstr[1] "Esconder las %(n)s obras de prueba"
+
+#: .\apps\documents\forms.py:120
+msgid ""
+"Structure: work-originator-volume-level-type-discipline-number (e.g. 716LCD-"
+"JEJ-ZZ-XX-M3-ME-0001). A code from a third party is accepted as is."
+msgstr ""
+"Estructura: obra-originador-volumen-nivel-tipo-disciplina-número (p. ej. "
+"716LCD-JEJ-ZZ-XX-M3-ME-0001). Un código de un tercero se acepta tal cual."
+
+#: .\apps\documents\codificacion.py:77
+msgid "3D model"
+msgstr "Modelo 3D"
+
+#: .\apps\documents\codificacion.py:80
+msgid "Other or not applicable"
+msgstr "Otro o no aplica"
 
 #~ msgid "No organisation created yet."
 #~ msgstr "Todavía no hay ninguna organización."

@@ -2011,6 +2011,34 @@ th.num {
 }
 
 /*
+ * --- La naturaleza de la obra: prueba o demostración ------------------------------------
+ *
+ * **Solo se dibuja cuando la obra NO es real**, así que esta píldora es siempre una advertencia y
+ * por eso va rayada y no lisa. La razón es la que motivó el campo: durante el piloto conviven obras
+ * de ensayo y obras de verdad en la misma lista, y confundirlas significa emitir un transmittal
+ * desde una obra de pruebas — o peor, descartar una real creyendo que era de prueba.
+ *
+ * El rayado hace el trabajo que el color solo no hace: se distingue impreso en blanco y negro, y lo
+ * distingue quien no distingue el ámbar del gris. Es la misma regla que ya rige lo vencido, que va
+ * en rojo **y** en negrita.
+ */
+.pildora-naturaleza {
+  border-radius: var(--ab-radio-sm);
+  color: var(--ab-warn);
+  border-color: color-mix(in srgb, currentcolor 55%, transparent);
+  background: repeating-linear-gradient(
+    -45deg,
+    color-mix(in srgb, currentcolor 16%, transparent) 0 6px,
+    transparent 6px 12px
+  );
+}
+
+/* La demostración no alarma: se enseña a un tercero a propósito, no es un descuido. */
+.pildora-naturaleza.demo {
+  color: var(--ab-text-secondary);
+}
+
+/*
  * --- El estado de un hallazgo, con el color de su paso ---------------------------------
  *
  * **«El estado cerrado o abierta, cambiar color, que sea visible y trazable más claro.»** Iban las
