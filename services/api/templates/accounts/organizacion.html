@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% load i18n personas %}
+
+{% block titulo %}{{ organizacion.nombre }} · AeroBim{% endblock %}
+
+{% block titulo_pagina %}<h1>{{ organizacion.nombre }}</h1>{% endblock %}
+
+{% block subtitulo %}
+<p class="subtitulo">
+  {{ organizacion.slug }} ·
+  {% blocktranslate count n=miembros|length %}{{ n }} person{% plural %}{{ n }} people{% endblocktranslate %}
+  {% if obras %} · {% blocktranslate count n=obras|length %}{{ n }} work{% plural %}{{ n }} works{% endblocktranslate %}{% endif %}
+</p>
+{% endblock %}
+
+{% block contenido %}
+  {% comment %}
+    **Quiénes, y no cuántos.** La lista de organizaciones decía «5 miembros» y ahí se acababa: para
+    saber quién estaba dentro había que ir a «Usuarios y roles» y cruzarlo a mano. Es el dato que
+    hace falta antes de mover a nadie.
+  {% endcomment %}
+  <section class="bloque">
+    <h2 class="grupo">{% translate "Who is in" %}</h2>
+    {% if miembros %}
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">{% translate "Person" %}</th>
+            <th scope="col">{% translate "Email" %}</th>
+            {% if puede_cambiar %}<th scope="col">{% translate "Actions" %}</th>{% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for quien in miembros %}
+            <tr>
+              {# `persona` toma el texto del nombre, no el usuario: pinta la inicial con su color. #}
+              <td>{% persona quien.get_full_name|default:quien.username %}</td>
+              <td>{{ quien.email|default:"—" }}</td>
+              {% if puede_cambiar %}
+                <td>
+                  <form method="post" action="{% url 'core:miembros-de-organizacion' organizacion.pk %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="usuario" value="{{ quien.pk }}">
+                    <input type="hidden" name="accion" value="quitar">
+                    <button type="submit" class="secundario">{% translate "Take out" %}</button>
+                  </form>
+                </td>
+              {% endif %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      {% comment %}
+        Una organización sin nadie dentro no es un caso raro: es lo que queda tras mover al equipo, y
+        es el estado en el que se puede borrar.
+      {% endcomment %}
+      <div class="vacio">
+        <svg class="icono-en-linea" aria-hidden="true"><use href="#i-nada"></use></svg>
+        {% translate "Nobody is in this organisation." %}
+      </div>
+    {% endif %}
+
+    {% if puede_cambiar and fuera %}
+      <form class="accion" method="post" action="{% url 'core:miembros-de-organizacion' organizacion.pk %}">
+        {% csrf_token %}
+        <label class="junto">
+          {% translate "Bring somebody in" %}
+          <select name="usuario">
+            {% for quien in fuera %}
+              <option value="{{ quien.pk }}">{{ quien.get_full_name|default:quien.username }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <button type="submit">{% translate "Add" %}</button>
+      </form>
+    {% endif %}
+  </section>
+
+  {% if obras %}
+    <section class="bloque">
+      <h2 class="grupo">{% translate "Its works" %}</h2>
+      <table>
+        <tbody>
+          {% for obra in obras %}
+            <tr>
+              <td style="width: 160px">
+                <a href="{% url 'projects:proyecto' obra.pk %}">{{ obra.codigo }}</a>
+                {% include "generic/_naturaleza.html" with proyecto=obra %}
+              </td>
+              <td>{{ obra.nombre }}</td>
+              <td style="width: 90px">{{ obra.avance_pct }}%</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+  {% endif %}
+
+  {% comment %}
+    **La zona delicada, con el mismo patrón que la obra y la cuenta.** Es la tercera vez que se
+    repite, y a propósito: una segunda forma de decir «esto es irreversible» es una que se queda
+    atrás.
+  {% endcomment %}
+  {% if puede_borrar %}
+    <section class="zona-delicada" aria-labelledby="titulo-borrar">
+      <h2 id="titulo-borrar">{% translate "If this organisation is no longer used" %}</h2>
+      <p class="detalle">
+        {% blocktranslate %}It can only be deleted when it is empty: no works and nobody inside.
+        The works are moved or archived first, and the people moved to another
+        organisation.{% endblocktranslate %}
+      </p>
+      <p class="accion">
+        <a class="boton secundario" href="{% url 'core:borrar-organizacion' organizacion.pk %}">
+          {% translate "Delete this organisation…" %}
+        </a>
+      </p>
+    </section>
+  {% endif %}
+{% endblock %}

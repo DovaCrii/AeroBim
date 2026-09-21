@@ -32,19 +32,33 @@
         <th scope="col">{% translate "Name" %}</th>
         <th scope="col">{% translate "Slug" %}</th>
         <th scope="col">{% translate "Members" %}</th>
+        <th scope="col">{% translate "Works" %}</th>
       </tr>
     </thead>
     <tbody>
+      {% comment %}
+        **La primera celda es un enlace, y antes no lo era.** La tabla decía cuántos miembros hay y
+        no quiénes, y no llevaba a ninguna parte: para mover a alguien había que ir a «Usuarios y
+        roles» y cruzarlo a mano, y para borrar una organización no había forma.
+
+        Las dos cifras salen anotadas de la consulta, no de `organizacion.miembros.count` en la
+        plantilla — eso era una consulta por fila.
+      {% endcomment %}
       {% for organizacion in organizaciones %}
         <tr>
-          <td>{{ organizacion.nombre }}</td>
+          <td>
+            <a class="hallazgo-titulo" href="{% url 'core:organizacion' organizacion.pk %}">
+              {{ organizacion.nombre }}
+            </a>
+          </td>
           <td>{{ organizacion.slug }}</td>
-          <td>{{ organizacion.miembros.count }}</td>
+          <td>{{ organizacion.cuantos_miembros }}</td>
+          <td>{{ organizacion.cuantas_obras }}</td>
         </tr>
       {% empty %}
         <tr>
           {% translate "No organisation yet. It is the first thing to create: without one there is nowhere to put an account." as nada_noorganisationcre %}
-          <td colspan="3">{% include "generic/_nada.html" with texto=nada_noorganisationcre %}</td>
+          <td colspan="4">{% include "generic/_nada.html" with texto=nada_noorganisationcre %}</td>
         </tr>
       {% endfor %}
     </tbody>
