@@ -10,6 +10,7 @@ from django import forms
 from django.utils.translation import gettext_lazy as _
 
 from apps.core.personas import PersonasConNombre
+from apps.documents import codificacion
 from apps.documents.camara import leer as leer_camara
 from apps.documents.ids import titulo_de_ids
 from apps.documents.models import (
@@ -19,6 +20,7 @@ from apps.documents.models import (
     Observacion,
     RequisitoIds,
     Revision,
+    TipoEntregable,
     Transmittal,
 )
 from apps.documents.storage import (
@@ -30,6 +32,10 @@ from apps.documents.storage import (
 
 
 class EntregableForm(PersonasConNombre, forms.ModelForm):
+    #: Si el código tecleado no sigue la estructura ISO 19650. **Es un aviso, no un error**: se
+    #: guarda igual y la pantalla lo dice. Ver `clean_codigo`.
+    codigo_fuera_de_norma = False
+
     class Meta:
         model = Entregable
         fields = (
@@ -51,6 +57,7 @@ class EntregableForm(PersonasConNombre, forms.ModelForm):
         if proyecto is not None:
             self.fields["disciplina"].queryset = proyecto.disciplinas.filter(is_active=True)
             self.fields["paquete"].queryset = proyecto.paquetes.filter(is_active=True)
+            self._explica_el_codigo(proyecto)
             return
 
         # ══════════════════════════════════════════════════════════════════════════════════
@@ -80,6 +87,7 @@ class EntregableForm(PersonasConNombre, forms.ModelForm):
         if autor is None:
             self.fields["disciplina"].queryset = Disciplina.objects.none()
             self.fields["paquete"].queryset = PaqueteWBS.objects.none()
+            self._explica_el_codigo(None)
             return
 
         proyectos = scope_queryset_to_organizacion(Proyecto.objects.all(), autor).filter(
@@ -101,6 +109,51 @@ class EntregableForm(PersonasConNombre, forms.ModelForm):
             f"{d.proyecto.codigo} · {d.codigo} — {d.nombre}"
         )
         self.fields["paquete"].label_from_instance = lambda p: f"{p.proyecto.codigo} · {p.codigo}"
+        # Sin obra fija no hay número que proponer —la disciplina decide la obra— pero la
+        # estructura se explica igual.
+        self._explica_el_codigo(None)
+
+    def _explica_el_codigo(self, proyecto):
+        """La estructura del código, dicha donde se teclea.
+
+        **Una nomenclatura que solo vive en un documento no la sigue nadie.** El sitio donde hace
+        falta saberla es el campo, no `docs/CODIFICACION.md`.
+        """
+        campo = self.fields["codigo"]
+        campo.help_text = _(
+            "Structure: work-originator-volume-level-type-discipline-number "
+            "(e.g. 716LCD-JEJ-ZZ-XX-M3-ME-0001). A code from a third party is accepted as is."
+        )
+        # **`self.instance.pk` no sirve para saber si es nuevo, y aquí es una trampa.** `BaseModel`
+        # usa `UUIDField(primary_key=True, default=uuid.uuid4)`, así que una instancia **sin
+        # guardar ya trae pk** y la comprobación de siempre es verdadera siempre. `_state.adding`
+        # es la que mira si la fila existe en la base.
+        if proyecto is None or not self.instance._state.adding or self.is_bound:
+            return
+        # Solo al registrar uno nuevo: en una edición el código ya está decidido, y sobrescribirlo
+        # con una propuesta sería cambiar un identificador por el que otros ya preguntan.
+        disciplina = self.fields["disciplina"].queryset.first()
+        if disciplina is not None:
+            campo.initial = codificacion.propuesta(
+                proyecto, self.initial.get("tipo") or TipoEntregable.PLANO, disciplina
+            )
+
+    def clean_codigo(self):
+        """Normaliza, **y avisa sin bloquear** si el código no sigue la estructura.
+
+        Que no bloquee no es dejadez: `Revision.correlativo` lleva escrito desde el primer día el
+        motivo, y vale igual aquí — *«cada mandante impone el suyo, y forzar un formato rechaza
+        documentos válidos»*. Un plano que llega de un tercero con su codificación es un documento
+        válido, y rechazarlo no hace la aplicación más rigurosa: la hace inservible.
+
+        Lo que sí se arregla es la normalización, que **faltaba y era el defecto de verdad**:
+        `Proyecto` y `Disciplina` pasaban su código a mayúsculas y `Entregable` no, siendo el que
+        más códigos tiene. `716-lcd-…` y `716-LCD-…` son el mismo documento y la restricción de
+        unicidad de la base los daba por distintos.
+        """
+        codigo = codificacion.normaliza(self.cleaned_data.get("codigo", ""))
+        self.codigo_fuera_de_norma = bool(codigo) and not codificacion.sigue_la_norma(codigo)
+        return codigo
 
 
 class RevisionForm(forms.ModelForm):

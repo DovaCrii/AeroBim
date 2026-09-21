@@ -47,7 +47,19 @@ models/
 pointclouds/
 
 # Base de datos local
-*.sqlite3
+#
+# **El asterisco final no sobra: SQLite no escribe un solo archivo.** En modo WAL —que es el que
+# usa el servidor de desarrollo— deja al lado un `-wal` con las escrituras aun no volcadas y un
+# `-shm` con la memoria compartida entre procesos. `*.sqlite3` no los coge, porque el nombre
+# **sigue** despues de la extension: `aerobim.sqlite3-wal`.
+#
+# Por eso los dos acabaron versionados en un commit antiguo, y desde entonces aparecian como
+# modificados o borrados cada vez que alguien levantaba el servidor — con lo que `git status`
+# salia sucio en cada rama y una copia de trabajo ajena entraba en cada commit distraido.
+#
+# Son archivos efimeros y de una sola maquina: SQLite los crea al abrir la base y los borra al
+# cerrarla limpiamente. No hay ninguna version de ellos que le sirva a nadie mas.
+*.sqlite3*
 *.db
 
 # Salidas del servicio Django: las genera el despliegue, no el repositorio.

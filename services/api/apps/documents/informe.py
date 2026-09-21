@@ -79,7 +79,8 @@ from __future__ import annotations
 
 import csv
 import io
-from dataclasses import dataclass
+import logging
+from dataclasses import dataclass, replace
 from datetime import date
 
 from django.core.exceptions import ValidationError
@@ -89,6 +90,8 @@ from django.utils.html import escape
 
 from apps.documents.membrete import AZUL, GRIS, MARGEN_MM, sellar
 from apps.documents.models import Observacion
+
+logger = logging.getLogger("aerobim.informe")
 
 #: Los ordenes que se ofrecen, y el criterio de cada uno. La clave es lo que llega por la URL.
 #:
@@ -124,6 +127,26 @@ ESTADOS = {
 #: dice en el propio papel cuando se recorta, porque un informe que calla lo que dejo fuera hace
 #: creer que la obra esta mas limpia de lo que esta.
 MAXIMO_FILAS = 400
+
+#: Tope de comentarios que entran en la celda de un hallazgo.
+#:
+#: **Una fila de tabla no se puede partir entre dos paginas.** `LongTable` corta *entre* filas,
+#: nunca dentro de una, asi que un hallazgo muy discutido —sesenta respuestas en la misma celda—
+#: crece mas que el alto util del marco y reportlab ya no puede colocarlo en ninguna pagina: el
+#: informe entero se cae.
+#:
+#: Doce respuestas son las que caben con holgura en media hoja Carta y, sobre todo, son las que
+#: alguien lee en una reunion. El resto se dice en el papel —«y N respuestas mas»— porque un hilo
+#: cortado en silencio hace creer que la discusion termino ahi.
+MAXIMO_COMENTARIOS_POR_FILA = 12
+
+#: Cuanto de cada respuesta entra en la celda.
+#:
+#: Doce respuestas de dos mil caracteres siguen sin caber, asi que el tope por numero **no basta
+#: por si solo**: lo que hace crecer la fila son las lineas, no las respuestas. Se corta como ya lo
+#: hace el aviso por correo del hilo, y por el mismo motivo: el papel lleva el hilo para poder
+#: seguir la conversacion, no para sustituir a la aplicacion.
+LARGO_DE_COMENTARIO = 280
 
 
 @dataclass(frozen=True)
@@ -303,7 +326,7 @@ def csv_de(proyecto, opciones: Opciones) -> str:
 # --- El PDF -----------------------------------------------------------------------------
 
 
-def _miniatura(observacion: Observacion, alto_mm: float):
+def _miniatura(observacion: Observacion, alto_mm: float, ancho_maximo_mm: float | None = None):
     """La foto del hallazgo como imagen del informe, o `None`.
 
     **Su fallo no puede tumbar el informe.** La imagen vive en el disco del operador y la fila solo
@@ -326,8 +349,21 @@ def _miniatura(observacion: Observacion, alto_mm: float):
         # Se respeta la proporcion de la captura: estirarla mentiria sobre el encuadre.
         imagen = Image(io.BytesIO(datos))
         proporcion = imagen.imageWidth / imagen.imageHeight if imagen.imageHeight else 4 / 3
-        imagen.drawHeight = alto_mm * mm
-        imagen.drawWidth = alto_mm * proporcion * mm
+        alto, ancho = alto_mm, alto_mm * proporcion
+        # ══════════════════════════════════════════════════════════════════════════════════
+        # **El ancho tambien tiene tope, y faltaba.** Solo se fijaba el alto y el ancho salia de
+        # la proporcion, sin mirar la columna: una captura **16:9 —la que produce el visor— da
+        # 32 mm en una columna de 25**, y es la ultima del papel, asi que se comia el margen
+        # derecho. En un PDF eso no avisa: recorta.
+        #
+        # No se vio porque el unico PNG de las pruebas era 8×6 —4:3 justo, el unico caso que
+        # cabia por los pelos—. Se reduce **el alto tambien**, para no deformar el encuadre.
+        # ══════════════════════════════════════════════════════════════════════════════════
+        if ancho_maximo_mm is not None and ancho > ancho_maximo_mm:
+            ancho = ancho_maximo_mm
+            alto = ancho / proporcion if proporcion else alto_mm
+        imagen.drawHeight = alto * mm
+        imagen.drawWidth = ancho * mm
         return imagen
     except Exception:  # noqa: BLE001 — un PNG corrupto no tumba el informe.
         return None
@@ -340,7 +376,9 @@ def pdf_de(proyecto, opciones: Opciones, *, pedido_por=None) -> bytes:
     from reportlab.lib.pagesizes import letter
     from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
     from reportlab.lib.units import mm
+    from reportlab.pdfgen import canvas
     from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
+    from reportlab.platypus.doctemplate import LayoutError
 
     filas = hallazgos(proyecto, opciones)
     resumen = Resumen.de(filas)
@@ -372,8 +410,10 @@ def pdf_de(proyecto, opciones: Opciones, *, pedido_por=None) -> bytes:
 
     hoy = timezone.localdate()
     piezas = [
-        Paragraph(f"Informe de coordinación · {proyecto.codigo}", titulo),
-        Paragraph(f"{proyecto.nombre}", nota),
+        # También escapados: el nombre de una obra lleva `&` con la misma facilidad que el de una
+        # empresa —«Ampliación Planta A&B»— y aquí el estropicio sale en el titular.
+        Paragraph(f"Informe de coordinación · {escape(str(proyecto.codigo))}", titulo),
+        Paragraph(escape(str(proyecto.nombre)), nota),
         Spacer(1, 4 * mm),
         Paragraph(_encabezado(resumen, opciones, hoy, pedido_por), nota),
         Spacer(1, 4 * mm),
@@ -402,40 +442,112 @@ def pdf_de(proyecto, opciones: Opciones, *, pedido_por=None) -> bytes:
             )
         )
 
-    memoria = io.BytesIO()
     ancho_pagina, alto_pagina = letter
-    documento = SimpleDocTemplate(
-        memoria,
-        # **Carta y no A4**, que es lo que declara el formato de la casa: 215,9 × 279,4 mm.
-        pagesize=letter,
-        leftMargin=MARGEN_MM["izquierda"] * mm,
-        rightMargin=MARGEN_MM["derecha"] * mm,
-        topMargin=MARGEN_MM["arriba"] * mm,
-        bottomMargin=MARGEN_MM["abajo"] * mm,
-        title=f"Informe de coordinación {proyecto.codigo}",
-        author="J.E.J. Ingeniería · AeroBim",
-        subject=f"{proyecto.codigo} · {proyecto.nombre}",
-    )
 
-    def membrete(lienzo, doc):
-        """El membrete de la casa en cada pagina, y el pie que dice de donde salio la hoja.
-
-        **Lo dibuja `apps/documents/membrete.py`, en una sola copia.** Se extrajo ahi cuando la
-        lamina de un plano —`F7.5`— empezo a necesitar el mismo membrete: con una copia en cada
-        salida, la segunda se queda atras en el primer cambio y el producto manda dos papeles
-        distintos con el mismo nombre.
-        """
-        sellar(
-            lienzo,
-            ancho_pagina=ancho_pagina,
-            alto_pagina=alto_pagina,
-            titulo=f"{proyecto.codigo} · Informe de coordinación",
-            fecha=hoy,
-            pagina=doc.page,
+    def documento_en(memoria):
+        return SimpleDocTemplate(
+            memoria,
+            # **Carta y no A4**, que es lo que declara el formato de la casa: 215,9 × 279,4 mm.
+            pagesize=letter,
+            leftMargin=MARGEN_MM["izquierda"] * mm,
+            rightMargin=MARGEN_MM["derecha"] * mm,
+            topMargin=MARGEN_MM["arriba"] * mm,
+            bottomMargin=MARGEN_MM["abajo"] * mm,
+            title=f"Informe de coordinación {proyecto.codigo}",
+            author="J.E.J. Ingeniería · AeroBim",
+            subject=f"{proyecto.codigo} · {proyecto.nombre}",
         )
 
-    documento.build(piezas, onFirstPage=membrete, onLaterPages=membrete)
+    # ══════════════════════════════════════════════════════════════════════════════════════
+    # **El membrete se dibuja al final, y no mientras se compone. El motivo es «de N».**
+    #
+    # El pie decía «Página 3» a secas, y eso **no permite saber si falta una hoja** — que es
+    # justo lo que un informe fotocopiado y grapado necesita decir. Para escribir «Página 3 de
+    # 7» hay que saber cuántas son, y eso no se sabe hasta que la última está compuesta.
+    #
+    # Por eso el sellado sale de `onFirstPage`/`onLaterPages` —que corren *durante* la
+    # composición— y pasa a un lienzo que guarda el estado de cada página y las sella todas al
+    # guardar, cuando el total ya es un número. Es el patrón estándar de reportlab para esto, y
+    # **evita componer el documento dos veces**, que era la otra salida.
+    #
+    # Lo que dibuja sigue siendo `membrete.sellar`, en una sola copia compartida con la lámina.
+    # ══════════════════════════════════════════════════════════════════════════════════════
+    class LienzoSellado(canvas.Canvas):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self._paginas: list[dict] = []
+
+        def showPage(self):
+            self._paginas.append(dict(self.__dict__))
+            self._startPage()
+
+        def save(self):
+            total = len(self._paginas)
+            for estado in self._paginas:
+                self.__dict__.update(estado)
+                sellar(
+                    self,
+                    ancho_pagina=ancho_pagina,
+                    alto_pagina=alto_pagina,
+                    # Sin `escape`: la franja se dibuja con `drawRightString`, que pinta texto
+                    # llano. Escapar aquí imprimiría «A&amp;B» en el papel.
+                    titulo=f"{proyecto.codigo} · Informe de coordinación",
+                    fecha=hoy,
+                    pagina=self._pageNumber,
+                    total=total,
+                )
+                super().showPage()
+            super().save()
+
+    # ══════════════════════════════════════════════════════════════════════════════════════
+    # **La red, porque ningún tope es demostrablemente suficiente.**
+    #
+    # Una fila de tabla **no se puede partir entre dos páginas**: `LongTable` corta *entre* filas,
+    # nunca dentro de una. Si una celda crece más que el alto útil del marco, reportlab no puede
+    # colocarla en ninguna página y levanta `LayoutError` — o sea, **la descarga entera se cae**
+    # por culpa de un solo hallazgo muy discutido.
+    #
+    # Los topes de arriba hacen que no pase en la práctica. Esto hace que no pase nunca: si aun
+    # así no cabe, sale el informe **sin los hilos**, que es la parte que crece, y el papel dice
+    # por qué. Un informe recortado y que lo explica es infinitamente mejor que un 500 delante de
+    # quien lo necesita para una reunión.
+    # ══════════════════════════════════════════════════════════════════════════════════════
+    memoria = io.BytesIO()
+    try:
+        documento_en(memoria).build(list(piezas), canvasmaker=LienzoSellado)
+    except LayoutError:
+        if not opciones.comentarios:
+            raise
+        logger.warning("informe_sin_hilos", extra={"item_count": len(utiles)})
+        memoria = io.BytesIO()
+        documento_en(memoria).build(
+            _piezas_sin_hilos(piezas, utiles, opciones, celda, hilo, nota),
+            canvasmaker=LienzoSellado,
+        )
     return memoria.getvalue()
+
+
+def _piezas_sin_hilos(piezas, utiles, opciones, celda, hilo, nota):
+    """Las mismas piezas, con la tabla recompuesta sin comentarios y un aviso que lo dice."""
+    from reportlab.platypus import LongTable, Paragraph
+
+    rehechas = []
+    for pieza in piezas:
+        if isinstance(pieza, LongTable):
+            rehechas.append(
+                Paragraph(
+                    "<b>Los hilos de comentarios se dejaron fuera</b> porque uno de ellos no cabía "
+                    "en una página. El resto del informe está completo; las respuestas están en la "
+                    "aplicación.",
+                    nota,
+                )
+            )
+            rehechas.append(
+                _tabla(utiles, replace(opciones, comentarios=False), celda, hilo),
+            )
+            continue
+        rehechas.append(pieza)
+    return rehechas
 
 
 def _encabezado(resumen: Resumen, opciones: Opciones, hoy: date, pedido_por) -> str:
@@ -484,31 +596,67 @@ def _tabla(filas: list[Observacion], opciones: Opciones, celda, hilo):
 
     datos = [cabecera]
     for una in filas:
-        cuerpo = [f"<b>{una.titulo}</b>"]
+        # ══════════════════════════════════════════════════════════════════════════════════
+        # **Todo lo que escribe una persona pasa por `escape`, y no es por seguridad.**
+        #
+        # `Paragraph` lee su texto como mini-XML. Sin escapar no levanta ninguna excepción —eso
+        # sería lo bueno, porque se vería—: **corrompe el papel en silencio**. Medido:
+        #
+        #   «Muro de A&A Ingeniería»      →  «Muro de A&A; Ingeniería»   (un `;` que nadie puso)
+        #   «Cliente <ACME> y asociados»  →  «Cliente  y asociados»      (la empresa desaparece)
+        #
+        # El informe sale, parece correcto, se lleva a la reunión y dice otra cosa. Y entra por el
+        # importador BCF, que es justo donde más probable es un ampersand.
+        #
+        # El módulo **ya escapaba en un sitio** —la etiqueta del filtro, en `_encabezado`— así que
+        # el riesgo se conocía. Las etiquetas `<b>` de aquí son nuestras, no del usuario.
+        # ══════════════════════════════════════════════════════════════════════════════════
+        cuerpo = [f"<b>{escape(una.titulo)}</b>"]
         if una.descripcion:
-            cuerpo.append(una.descripcion)
+            cuerpo.append(escape(una.descripcion))
         if una.resolucion:
-            cuerpo.append(f"<b>Resolución:</b> {una.resolucion}")
+            cuerpo.append(f"<b>Resolución:</b> {escape(una.resolucion)}")
         bloque = [Paragraph("<br/>".join(cuerpo), celda)]
 
         if opciones.comentarios:
             # **El hilo es la mitad del valor de un hallazgo**: la respuesta del proyectista y el
             # cierre del revisor son lo que explica por qué está donde está.
-            for comentario in una.comentarios.all():
+            #
+            # **Pero se acota, porque una fila no se puede partir.** `LongTable` corta entre filas,
+            # nunca dentro de una: un hallazgo muy discutido mete N párrafos en la misma celda,
+            # pasa el alto útil del marco y reportlab ya no puede colocarlo en ninguna página.
+            hilo_entero = list(una.comentarios.all())
+            for comentario in hilo_entero[:MAXIMO_COMENTARIOS_POR_FILA]:
                 cuando = timezone.localtime(comentario.created_at).strftime("%Y-%m-%d")
+                texto = comentario.texto
+                if len(texto) > LARGO_DE_COMENTARIO:
+                    texto = texto[:LARGO_DE_COMENTARIO].rstrip() + "…"
                 bloque.append(
-                    Paragraph(f"— {comentario.autor} · {cuando}: {comentario.texto}", hilo)
+                    Paragraph(
+                        f"— {escape(str(comentario.autor))} · {cuando}: {escape(texto)}",
+                        hilo,
+                    )
+                )
+            if len(hilo_entero) > MAXIMO_COMENTARIOS_POR_FILA:
+                # Se dice cuántos faltan: un hilo cortado en silencio es peor que uno cortado.
+                bloque.append(
+                    Paragraph(
+                        f"… y {len(hilo_entero) - MAXIMO_COMENTARIOS_POR_FILA} respuestas más "
+                        f"en la aplicación.",
+                        hilo,
+                    )
                 )
 
         fila = [
-            Paragraph(una.get_prioridad_display(), celda),
-            Paragraph(_ancla(una), celda),
+            Paragraph(escape(una.get_prioridad_display()), celda),
+            Paragraph(escape(_ancla(una)), celda),
             bloque,
-            Paragraph(str(una.responsable), celda),
+            Paragraph(escape(str(una.responsable)), celda),
             Paragraph(una.vence.isoformat() if una.vence else "—", celda),
         ]
         if con_foto:
-            fila.append(_miniatura(una, 18) or Paragraph("", celda))
+            # El ancho de la columna, menos el aire de la celda: ver `_miniatura`.
+            fila.append(_miniatura(una, 18, anchos[-1] / mm - 2) or Paragraph("", celda))
         datos.append(fila)
 
     # **`LongTable` y no `Table`**: la segunda calcula el alto de todas las filas a la vez, y con

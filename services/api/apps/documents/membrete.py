@@ -67,7 +67,9 @@ def pieza(clave: str):
     return encontrada if encontrada else None
 
 
-def sellar(lienzo, *, ancho_pagina, alto_pagina, titulo: str, fecha, pagina: int) -> None:
+def sellar(
+    lienzo, *, ancho_pagina, alto_pagina, titulo: str, fecha, pagina: int, total: int | None = None
+) -> None:
     """Dibuja el membrete y el pie en la pagina que el lienzo tenga abierta.
 
     `titulo` es la franja de la derecha, debajo del logo: es **lo que convierte la carta en el
@@ -143,12 +145,16 @@ def sellar(lienzo, *, ancho_pagina, alto_pagina, titulo: str, fecha, pagina: int
     # **El numero de pagina termina antes del arco**, no en el margen derecho: el arco ocupa los
     # 40,7 mm de la esquina, y alineado al margen el texto se metia diez milimetros debajo del azul.
     # Se vio en la primera prueba impresa.
+    # **«Página 3» no permite saber si falta una hoja**, y un informe se fotocopia y se grapa. Con
+    # el total, una hoja suelta se delata sola. `total` es opcional porque la lamina de un plano es
+    # de una sola pagina y ahi «de 1» es ruido.
     _r, ancho_arco, _a = MEMBRETE["arco"]
+    cuantas = f"Página {pagina} de {total}" if total else f"Página {pagina}"
     lienzo.setFillColor(colors.HexColor(GRIS))
     lienzo.setFont("Helvetica", 7)
     lienzo.drawRightString(
         ancho_pagina - (ancho_arco + 4) * mm,
         14 * mm,
-        f"Página {pagina} · sacado de AeroBim el {fecha.isoformat()}",
+        f"{cuantas} · sacado de AeroBim el {fecha.isoformat()}",
     )
     lienzo.restoreState()

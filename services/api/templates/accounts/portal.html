@@ -150,6 +150,7 @@
           <a class="tarjeta obra" href="{% url 'projects:proyecto' proyecto.pk %}">
             <div class="obra-cabeza">
               <span class="obra-codigo">{{ proyecto.codigo }}</span>
+              {% include "generic/_naturaleza.html" %}
               <span class="ficha">{{ proyecto.get_status_display }}</span>
             </div>
             <div class="obra-nombre">{{ proyecto.nombre }}</div>

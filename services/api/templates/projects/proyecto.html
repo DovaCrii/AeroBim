@@ -7,10 +7,24 @@
 
 {% block subtitulo %}
 <p class="subtitulo">
+  {% include "generic/_naturaleza.html" %}
   {{ proyecto.get_status_display }}
   {% if proyecto.cliente %} · {{ proyecto.cliente }}{% endif %}
-  · {% blocktranslate with avance=proyecto.avance_fisico|floatformat:"-2" %}Progress
-  {{ avance }}{% endblocktranslate %}
+  {% comment %}
+    **Una sola escala por pantalla.** Aquí ponía «Progress 0.75» y la tarjeta de doce líneas más
+    abajo «75%» — los dos ciertos, los dos del mismo dato, y quien lee no sabe cuál creer. La
+    fracción es lo que se calcula; el porcentaje es lo que se enseña.
+  {% endcomment %}
+  {% comment %}
+    El `%` va fuera del `blocktranslate`: dentro es un marcador de interpolación y habría que
+    escaparlo, que es una trampa que no gana nada aquí.
+
+    Y va con `{% comment %}`: **esto era un `{# #}` de tres líneas y el texto se estaba imprimiendo
+    en el subtítulo de la obra.** `{# #}` es de una sola línea; si el cierre queda en otra, Django
+    no reconoce el comentario y lo escupe tal cual. La misma trampa está documentada doce metros
+    más allá, en `proyectos.html`, y aun así caí en ella.
+  {% endcomment %}
+  · {% translate "Progress" %} {{ proyecto.avance_pct }}%
   {% if puede_exportar_bcf %}
     · <a href="{% url 'documents:exportar-bcf' proyecto.pk %}">{% translate "Export to BCF 2.1" %}</a>
   {% endif %}

@@ -177,8 +177,9 @@ class PortalView(LoginRequiredMixin, TemplateView):
 
         from apps.documents.models import Observacion
 
-        for proyecto in proyectos:
-            proyecto.avance_pct = round(proyecto.avance_fisico * 100)
+        # `avance_pct` ya no se pone aquí: es propiedad de `Proyecto`, junto a `avance_fisico`.
+        # Mientras se calculaba a mano, esta vista era **la única** que lo hacía, y la lista de
+        # obras —que pide lo mismo— salía con la barra vacía en todas las filas.
 
         if not usuario.has_perm("documents.view_observacion"):
             # Sin permiso de lectura no se cuentan hallazgos: la tarjeta enseña el avance y nada
