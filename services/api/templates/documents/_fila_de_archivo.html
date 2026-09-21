@@ -1,0 +1,69 @@
+{% load i18n %}
+{% comment %}
+  Una fila del repositorio. **Se extrajo cuando el listado se partió por obra**: con la fila escrita
+  dos veces —una en la tabla plana y otra dentro de cada grupo— la segunda se queda atrás en el
+  primer cambio, y el síntoma sería un botón que existe en una obra y no en otra.
+
+  Toma `archivo` y `puede_compartir`.
+{% endcomment %}
+<tr>
+  <td>
+    {% comment %}
+      El icono de su clase delante del nombre: **a 60 filas, el dibujo es lo que se recorre**, no el
+      texto. Es la misma razón por la que el rail lleva los suyos.
+    {% endcomment %}
+    <span class="archivo-nombre">
+      <svg class="icono-en-linea" aria-hidden="true"><use href="#i-{{ archivo.categoria }}"></use></svg>
+      <a class="hallazgo-titulo" href="{% url 'documents:expediente' archivo.entregable.pk %}">
+        {{ archivo.nombre_original|default:archivo.entregable.titulo }}
+      </a>
+    </span>
+    <span class="detalle">{{ archivo.entregable.codigo }} · {{ archivo.entregable.titulo }}</span>
+  </td>
+  <td>{{ archivo.entregable.proyecto.codigo }}</td>
+  <td>
+    <span class="pildora">{{ archivo.correlativo }}</span>
+    <span class="detalle">{{ archivo.idoneidad }}</span>
+  </td>
+  <td>
+    {{ archivo.subida_por.get_full_name|default:archivo.subida_por.username }}
+    <span class="detalle">{{ archivo.emitida_en|date:"Y-m-d" }}</span>
+  </td>
+  <td>
+    <span class="acciones-archivo">
+      {% comment %}
+        **Abrir va primero y descargar segundo, y ese orden importa.** Lo que hace este producto
+        distinto de una carpeta compartida es que el modelo se mira sin bajarlo: poner «Descargar»
+        delante enseñaría a trabajar con copias en el escritorio, que es justo lo que el registro
+        existe para evitar.
+
+        **Dos visores y no uno**, y la plantilla no elige: lo decide `visor_de()` en `abribles.py` y
+        la vista lo deja resuelto en `visor_ruta`. Un PDF en el visor 3D cargaría Three.js y el WASM
+        de `web-ifc` para nada — y además no sabría abrirlo.
+      {% endcomment %}
+      {% if archivo.visor_ruta %}
+        <a href="{% url archivo.visor_ruta %}?revision={{ archivo.pk }}">{% translate "Open" %}</a>
+      {% endif %}
+      {% comment %}
+        **Compartir, desde donde se está mirando.**
+
+        Los enlaces públicos existen desde el PR #26 —solo ver, caducan, se revocan— y hasta hoy
+        solo se llegaba a ellos desde el expediente del entregable: o sea que había que saber de qué
+        entregable colgaba el archivo, que es justo lo que esta pantalla existe para no tener que
+        saber.
+
+        Va **solo si el visor sabe abrirlo**: un enlace a algo que no se puede dibujar manda a
+        alguien de fuera a una pantalla vacía. Y **solo a quien manda sobre el documento** — el
+        permiso que exige la vista, no el que parece. Esa distinción ya costó una vez aquí.
+      {% endcomment %}
+      {% if archivo.visor_ruta and puede_compartir %}
+        <a class="enlace-suave" href="{% url 'documents:enlaces' archivo.pk %}">
+          {% translate "Share" %}
+        </a>
+      {% endif %}
+      <a class="enlace-suave" href="{% url 'documents:descargar-revision' archivo.pk %}">
+        {% translate "Download" %}
+      </a>
+    </span>
+  </td>
+</tr>

@@ -4181,6 +4181,49 @@ msgstr ""
 msgid "Further out"
 msgstr "Más adelante"
 
+#: .\templates\generic\_grupo_de_obra.html:22
+msgid "No work"
+msgstr "Sin obra"
+
+#: .\templates\documents\transmittals.html:29
+msgid "What a transmittal is"
+msgstr "Qué es un transmittal"
+
+#: .\templates\documents\transmittals.html:31
+msgid ""
+"<b>The formal act of handing documents to someone outside.</b> It says\n"
+"      what was sent, which revision of each thing, to whom, when, and "
+"whether they acknowledged\n"
+"      it."
+msgstr ""
+"<b>El acto formal de entregar documentos a alguien de fuera.</b> Dice qué se "
+"mandó, qué revisión de cada cosa, a quién, cuándo, y si acusaron recibo."
+
+#: .\templates\documents\transmittals.html:36
+msgid ""
+"It is the difference between «I sent it to you» and being able to prove\n"
+"      it six months later. If the client says they never got the revision B "
+"of a drawing, this is\n"
+"      what answers — with its date and its list."
+msgstr ""
+"Es la diferencia entre «te lo mandé» y poder demostrarlo seis meses después. "
+"Si el mandante dice que nunca le llegó la revisión B de un plano, esto es lo "
+"que contesta — con su fecha y su lista."
+
+#: .\templates\documents\transmittals.html:41
+msgid ""
+"It does not send the files: it records the delivery and notifies the\n"
+"      recipients. What travels is the register, not a copy in somebody's\n"
+"      inbox."
+msgstr ""
+"No manda los archivos: deja constancia de la entrega y avisa a los "
+"destinatarios. Lo que viaja es el registro, no una copia en el buzón de "
+"alguien."
+
+#: .\templates\documents\transmittals.html:44
+msgid "More words like this one"
+msgstr "Más palabras como ésta"
+
 #: .\templates\accounts\organizacion.html:24
 msgid "Who is in"
 msgstr "Quién está dentro"

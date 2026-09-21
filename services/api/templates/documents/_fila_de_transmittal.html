@@ -1,0 +1,27 @@
+{% load i18n %}
+{% comment %}
+  Una fila de la tabla de transmittals. Toma `transmittal`. Ver `_cabeza_de_transmittals.html`.
+{% endcomment %}
+<tr>
+  <td>
+    <a href="{% url 'documents:transmittal' transmittal.pk %}">{{ transmittal.folio }}</a>
+  </td>
+  <td>{{ transmittal.asunto }}</td>
+  <td>{{ transmittal.emisor }}</td>
+  <td>
+    {% for destinatario in transmittal.destinatarios.all %}
+      {{ destinatario }}{% if not forloop.last %}, {% endif %}
+    {% empty %}
+      —
+    {% endfor %}
+  </td>
+  <td>
+    {% for revision in transmittal.revisiones.all %}
+      {{ revision.entregable.codigo }} rev. {{ revision.correlativo }}<br />
+    {% empty %}
+      —
+    {% endfor %}
+  </td>
+  <td>{{ transmittal.get_status_display }}</td>
+  <td>{{ transmittal.emitido_en|date:"Y-m-d H:i"|default:"—" }}</td>
+</tr>

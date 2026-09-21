@@ -13,55 +13,75 @@
 {% endblock %}
 
 {% block contenido %}
+  {% comment %}
+    **Qué es un transmittal, dicho en la pantalla.**
+
+    El usuario lo pidió así: «mejorar la sección transmittal, indicar para qué sirve bien esa
+    sección». Y tenía razón: es la única palabra del rail que **no se puede deducir** — «Archivos»,
+    «Entregables» y «Observaciones» se entienden solas; ésta es un préstamo del oficio que quien no
+    viene de control documental no ha visto nunca.
+
+    Va plegada y no como párrafo fijo: quien ya lo sabe no lo lee, y es el mismo `<details>` que ya
+    explica «Qué es una etapa» en la lista de obras. La explicación larga vive en el glosario, y
+    esto enlaza allí en vez de repetirla — dos copias de una definición se separan.
+  {% endcomment %}
+  <details class="explicacion">
+    <summary>{% translate "What a transmittal is" %}</summary>
+    <p class="detalle">
+      {% blocktranslate %}<b>The formal act of handing documents to someone outside.</b> It says
+      what was sent, which revision of each thing, to whom, when, and whether they acknowledged
+      it.{% endblocktranslate %}
+    </p>
+    <p class="detalle">
+      {% blocktranslate %}It is the difference between «I sent it to you» and being able to prove
+      it six months later. If the client says they never got the revision B of a drawing, this is
+      what answers — with its date and its list.{% endblocktranslate %}
+    </p>
+    <p class="detalle" style="margin-bottom: 0">
+      {% blocktranslate %}It does not send the files: it records the delivery and notifies the
+      recipients. What travels is the register, not a copy in somebody's
+      inbox.{% endblocktranslate %}
+      <a href="{% url 'accounts:glosario' 'gestion' %}">{% translate "More words like this one" %}</a>
+    </p>
+  </details>
+
   {% if puede_crear %}
-    <p><a href="{% url 'documents:nuevo-transmittal' %}">{% translate "New transmittal" %}</a></p>
+    <p class="accion"><a class="boton" href="{% url 'documents:nuevo-transmittal' %}">{% translate "New transmittal" %}</a></p>
   {% endif %}
 
-  <table>
-    <thead>
-      <tr>
-        <th scope="col">{% translate "Reference" %}</th>
-        <th scope="col">{% translate "Subject" %}</th>
-        <th scope="col">{% translate "Issued by" %}</th>
-        <th scope="col">{% translate "Recipients" %}</th>
-        <th scope="col">{% translate "Revisions" %}</th>
-        <th scope="col">{% translate "State" %}</th>
-        <th scope="col">{% translate "Issued" %}</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for transmittal in transmittals %}
-        <tr>
-          <td>
-            <a href="{% url 'documents:transmittal' transmittal.pk %}">{{ transmittal.folio }}</a>
-          </td>
-          <td>{{ transmittal.asunto }}</td>
-          <td>{{ transmittal.emisor }}</td>
-          <td>
-            {% for destinatario in transmittal.destinatarios.all %}
-              {{ destinatario }}{% if not forloop.last %}, {% endif %}
-            {% empty %}
-              —
+  {% comment %}
+    **Partido por obra igual que el repositorio, y solo si hay más de una.** Un transmittal
+    pertenece a una obra y se busca por obra: «¿qué le mandamos al mandante del 716?».
+  {% endcomment %}
+  {% if grupos %}
+    {% for grupo in grupos %}
+      <details class="grupo-de-obra" open>
+        {% include "generic/_grupo_de_obra.html" %}
+        <table>
+          {% include "documents/_cabeza_de_transmittals.html" %}
+          <tbody>
+            {% for transmittal in grupo.filas %}
+              {% include "documents/_fila_de_transmittal.html" %}
             {% endfor %}
-          </td>
-          <td>
-            {% for revision in transmittal.revisiones.all %}
-              {{ revision.entregable.codigo }} rev. {{ revision.correlativo }}<br />
-            {% empty %}
-              —
-            {% endfor %}
-          </td>
-          <td>{{ transmittal.get_status_display }}</td>
-          <td>{{ transmittal.emitido_en|date:"Y-m-d H:i"|default:"—" }}</td>
-        </tr>
-      {% empty %}
-        <tr>
-          {% translate "Nothing issued yet." as nada_nothingissuedyet %}
-          <td colspan="7">{% include "generic/_nada.html" with texto=nada_nothingissuedyet %}</td>
-        </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+          </tbody>
+        </table>
+      </details>
+    {% endfor %}
+  {% else %}
+    <table>
+      {% include "documents/_cabeza_de_transmittals.html" %}
+      <tbody>
+        {% for transmittal in transmittals %}
+          {% include "documents/_fila_de_transmittal.html" %}
+        {% empty %}
+          <tr>
+            {% translate "Nothing issued yet." as nada_nothingissuedyet %}
+            <td colspan="7">{% include "generic/_nada.html" with texto=nada_nothingissuedyet %}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
 
   {% include "generic/_paginacion.html" %}
 {% endblock %}

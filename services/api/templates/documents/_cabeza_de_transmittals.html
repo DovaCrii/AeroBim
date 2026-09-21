@@ -1,0 +1,18 @@
+{% load i18n %}
+{% comment %}
+  La cabecera de la tabla de transmittals. Extraída al partir el listado por obra: con las siete
+  columnas escritas dos veces —una en la tabla plana y otra dentro de cada grupo— la segunda se
+  queda atrás en el primer cambio, y el síntoma sería una columna que existe en una obra y no en
+  otra.
+{% endcomment %}
+<thead>
+  <tr>
+    <th scope="col">{% translate "Reference" %}</th>
+    <th scope="col">{% translate "Subject" %}</th>
+    <th scope="col">{% translate "Issued by" %}</th>
+    <th scope="col">{% translate "Recipients" %}</th>
+    <th scope="col">{% translate "Revisions" %}</th>
+    <th scope="col">{% translate "State" %}</th>
+    <th scope="col">{% translate "Issued" %}</th>
+  </tr>
+</thead>

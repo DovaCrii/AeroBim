@@ -737,6 +737,55 @@ main {
 }
 
 /*
+ * --- Los registros, partidos por obra -----------------------------------------------------
+ *
+ * **«Que se pueda colapsar la lista y no se llene de todo.»** Con una obra un listado plano es lo
+ * correcto; con cuatro, sesenta archivos ordenados por fecha mezclan cuatro obras y el repositorio
+ * deja de servir para lo único que sirve: encontrar algo.
+ *
+ * Es `<details>` nativo —sin una línea de JavaScript, que aquí no es gratis porque la CSP no
+ * permite `unsafe-inline`— y con el teclado y el lector de pantalla funcionando de fábrica.
+ *
+ * El triángulo de apertura se deja **el del navegador**: dibujarlo a mano obliga a mantener su
+ * estado abierto/cerrado y a acertar con el `::marker` de cada motor, a cambio de nada.
+ */
+.grupo-de-obra {
+  margin-bottom: 18px;
+  border: 1px solid var(--ab-border);
+  border-radius: var(--ab-radius);
+  background: var(--ab-surface);
+  overflow: hidden;
+}
+
+.obra-cabeza-grupo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  background: var(--ab-surface-alt);
+  font-weight: 600;
+}
+
+/* El nombre pesa menos que el código: lo que se recorre con la vista es el código. */
+.obra-nombre-grupo {
+  color: var(--ab-text-secondary);
+  font-weight: 400;
+}
+
+/* La cifra del grupo, al final de la fila y separada del nombre. */
+.obra-cabeza-grupo .segmento-cuantas {
+  margin-left: auto;
+}
+
+/* Dentro del grupo, la tabla no repite el contorno: ya lo pone el `<details>`. */
+.grupo-de-obra table {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+}
+
+/*
  * --- La campana de la barra ---------------------------------------------------------------
  *
  * **El distintivo solo aparece si hay algo**, y esa es la decisión que lo hace servir de algo: un

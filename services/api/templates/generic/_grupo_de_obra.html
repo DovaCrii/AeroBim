@@ -1,0 +1,29 @@
+{% load i18n %}
+{% comment %}
+  **La cabecera de un grupo por obra: solo el `<summary>`.** Toma un `grupo` de
+  `apps/documents/agrupar.py`. El `<details>` lo abre y lo cierra quien lo usa, porque dentro va su
+  propia tabla o su propia lista y cada pantalla tiene la suya:
+
+      {% for grupo in grupos %}
+        <details class="grupo-de-obra" open>
+          {% include "generic/_grupo_de_obra.html" %}
+          … las filas del grupo …
+        </details>
+      {% endfor %}
+
+  **`<details>` nativo y no un acordeón hecho a mano**: se pliega sin una línea de JavaScript —que
+  aquí no es gratis, la CSP no permite `unsafe-inline`— y funciona con el teclado y con el lector de
+  pantalla de fábrica. Es el mismo elemento que ya usan «Qué es una etapa» y la explicación de roles.
+{% endcomment %}
+<summary class="obra-cabeza-grupo">
+  <span class="obra-codigo">{{ grupo.codigo|default:_("No work") }}</span>
+  {% if grupo.naturaleza and grupo.naturaleza != "real" %}
+    {% comment %}
+      La píldora de naturaleza, escrita aquí y no incluida: `_naturaleza.html` espera un `proyecto`
+      completo y el grupo solo lleva los tres datos que su cabecera necesita.
+    {% endcomment %}
+    <span class="pildora pildora-naturaleza {{ grupo.naturaleza }}">{{ grupo.naturaleza }}</span>
+  {% endif %}
+  <span class="obra-nombre-grupo">{{ grupo.nombre }}</span>
+  <span class="segmento-cuantas">{{ grupo.cuantas }}</span>
+</summary>
