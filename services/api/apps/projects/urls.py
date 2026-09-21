@@ -17,4 +17,6 @@ urlpatterns = [
         views.NuevaDisciplinaView.as_view(),
         name="nueva-disciplina",
     ),
+    # **Cuánto correo manda esta obra**, que lo decide quien coordina. La campana no pasa por aquí.
+    path("<uuid:pk>/avisos/", views.AvisosDeObraView.as_view(), name="avisos-de-obra"),
 ]

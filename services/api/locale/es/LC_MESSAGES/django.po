@@ -4177,9 +4177,157 @@ msgstr ""
 "Avance por disciplina, qué está vencido y desde cuándo, y quién tiene trabajo "
 "por delante. Para quien no va a la reunión de coordinación."
 
-#: .\apps\documents\notify.py:43
+#: .\apps\documents\notify.py:48
 msgid "Further out"
 msgstr "Más adelante"
+
+#: .\apps\projects\models.py:320
+msgid "Only when something is overdue"
+msgstr "Solo si hay algo vencido"
+
+#: .\apps\projects\models.py:321
+msgid "Every day"
+msgstr "Todos los días"
+
+#: .\apps\projects\models.py:322
+msgid "Once a week"
+msgstr "Una vez por semana"
+
+#: .\apps\projects\models.py:323
+msgid "Never"
+msgstr "Nunca"
+
+#: .\apps\projects\models.py:334
+msgid "summary email"
+msgstr "correo de resumen"
+
+#: .\apps\projects\models.py:342
+msgid "email when work is assigned"
+msgstr "correo al asignar trabajo"
+
+#: .\apps\projects\models.py:348
+msgid "email on every reply in a thread"
+msgstr "correo por cada respuesta en un hilo"
+
+#: .\apps\projects\models.py:352
+msgid "notice settings"
+msgstr "ajustes de aviso"
+
+#: .\apps\projects\forms.py:129
+msgid "Monday"
+msgstr "Lunes"
+
+#: .\apps\projects\forms.py:130
+msgid "Tuesday"
+msgstr "Martes"
+
+#: .\apps\projects\forms.py:131
+msgid "Wednesday"
+msgstr "Miércoles"
+
+#: .\apps\projects\forms.py:132
+msgid "Thursday"
+msgstr "Jueves"
+
+#: .\apps\projects\forms.py:133
+msgid "Friday"
+msgstr "Viernes"
+
+#: .\apps\projects\forms.py:142
+msgid "Day of the week"
+msgstr "Día de la semana"
+
+#: .\apps\projects\forms.py:143
+msgid "Only used when the summary goes out once a week."
+msgstr "Solo se usa cuando el resumen sale una vez por semana."
+
+#: .\apps\projects\views.py:700
+msgid "Saved. It applies to the email, not to the in-app notices."
+msgstr "Guardado. Vale para el correo, no para los avisos dentro de la aplicación."
+
+#: .\templates\projects\avisos_de_obra.html:8
+msgid "How much email this work sends"
+msgstr "Cuánto correo manda esta obra"
+
+#: .\templates\projects\proyecto.html:584
+msgid "Only email. Notices inside the application are always immediate."
+msgstr "Solo el correo. Los avisos dentro de la aplicación son siempre inmediatos."
+
+#: .\templates\projects\avisos_de_obra.html:20
+msgid ""
+"This only governs <b>email</b>. Notices inside the application are always\n"
+"    immediate and never send a message: turning email off does not leave "
+"anyone uninformed, it\n"
+"    stops filling their inbox."
+msgstr ""
+"Esto gobierna solo el <b>correo</b>. Los avisos dentro de la aplicación son "
+"siempre inmediatos y no mandan ningún mensaje: apagar el correo no deja a "
+"nadie sin enterarse, deja de llenarle el buzón."
+
+#: .\templates\projects\avisos_de_obra.html:44
+msgid "Why the defaults are what they are"
+msgstr "Por qué los valores por omisión son los que son"
+
+#: .\templates\projects\avisos_de_obra.html:46
+msgid ""
+"<b>Summary: only when something is overdue.</b> It is the only option\n"
+"      whose silence means something — no email means nothing is late. A "
+"daily summary that arrives\n"
+"      every morning gets filed unread, and then the day it carries "
+"something, that is filed\n"
+"      too."
+msgstr ""
+"<b>Resumen: solo si hay algo vencido.</b> Es la única opción cuyo silencio "
+"significa algo — sin correo, nada va tarde. Un resumen que llega todas las "
+"mañanas se archiva sin leer, y entonces el día que trae algo, también se "
+"archiva."
+
+#: .\templates\projects\avisos_de_obra.html:52
+msgid ""
+"<b>When work is assigned: on.</b> It is the one that really matters, and\n"
+"      it goes out once per assignment."
+msgstr ""
+"<b>Al asignar trabajo: encendido.</b> Es el que de verdad hace falta, y sale "
+"una sola vez por asignación."
+
+#: .\templates\projects\avisos_de_obra.html:57
+msgid ""
+"<b>On every reply: off.</b> It is the one that generates the most email —\n"
+"      a busy thread can mean several a day — and it is the one the bell "
+"covers best, because\n"
+"      whoever is working on the finding is already inside the application."
+msgstr ""
+"<b>Por cada respuesta: apagado.</b> Es el que más correo genera —un hilo "
+"activo pueden ser varios al día— y es justo el que la campana cubre mejor, "
+"porque quien está trabajando en el hallazgo ya está dentro de la aplicación."
+
+#: .\templates\email\resumen.html:40
+#, python-format
+msgid "%(n)s thing on your plate"
+msgid_plural "%(n)s things on your plate"
+msgstr[0] "%(n)s cosa pendiente"
+msgstr[1] "%(n)s cosas pendientes"
+
+#: .\templates\email\resumen.html:77
+msgid "Open AeroBim"
+msgstr "Abrir AeroBim"
+
+#: .\templates\email\resumen.html:80
+msgid ""
+"Your coordinator decides how often this email goes out. Notices inside the "
+"app are always immediate."
+msgstr ""
+"Tu coordinador decide cada cuánto sale este correo. Los avisos dentro de la "
+"aplicación son siempre inmediatos."
+
+#: .\templates\email\resumen.html:81
+msgid "See them here"
+msgstr "Verlos aquí"
+
+#: .\templates\email\resumen.html:67
+#, python-format
+msgid "due %(cuando)s"
+msgstr "vence el %(cuando)s"
 
 #: .\apps\core\models.py:281
 msgid "Assigned to you"

@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block titulo %}{% translate "Notices" %} · {{ proyecto.codigo }} · AeroBim{% endblock %}
+
+{% block titulo_pagina %}
+  <h1>{% translate "How much email this work sends" %}</h1>
+{% endblock %}
+
+{% block subtitulo %}
+<p class="subtitulo">{{ proyecto.codigo }} · {{ proyecto.nombre }}</p>
+{% endblock %}
+
+{% block contenido %}
+  {% comment %}
+    **Lo primero que dice la pantalla es lo que NO cambia.** Sin esa frase, poner el resumen en
+    «nunca» se lee como apagar los avisos — y entonces nadie lo pone, que es justo lo contrario de
+    lo que este ajuste existe para permitir.
+  {% endcomment %}
+  <div class="aviso">
+    {% blocktranslate %}This only governs <b>email</b>. Notices inside the application are always
+    immediate and never send a message: turning email off does not leave anyone uninformed, it
+    stops filling their inbox.{% endblocktranslate %}
+  </div>
+
+  <section class="bloque">
+    <form method="post">
+      {% csrf_token %}
+      {% include "generic/_campos.html" %}
+      <p class="accion">
+        <button type="submit">{% translate "Save" %}</button>
+        <a class="boton secundario" href="{% url 'projects:proyecto' proyecto.pk %}">
+          {% translate "Cancel" %}
+        </a>
+      </p>
+    </form>
+  </section>
+
+  {% comment %}
+    Por qué cada valor por omisión es el que es. Va escrito en la pantalla y no solo en el código
+    porque quien decide esto no lee el código.
+  {% endcomment %}
+  <details class="explicacion">
+    <summary>{% translate "Why the defaults are what they are" %}</summary>
+    <p class="detalle">
+      {% blocktranslate %}<b>Summary: only when something is overdue.</b> It is the only option
+      whose silence means something — no email means nothing is late. A daily summary that arrives
+      every morning gets filed unread, and then the day it carries something, that is filed
+      too.{% endblocktranslate %}
+    </p>
+    <p class="detalle">
+      {% blocktranslate %}<b>When work is assigned: on.</b> It is the one that really matters, and
+      it goes out once per assignment.{% endblocktranslate %}
+    </p>
+    <p class="detalle" style="margin-bottom: 0">
+      {% blocktranslate %}<b>On every reply: on, but this is the one worth turning off.</b> It is
+      the one that generates the most email — a busy thread can mean several a day — and it is the
+      one the bell covers best, because whoever is working on the finding is already inside the
+      application. It ships on so that nothing changes for anyone who has not decided yet.{% endblocktranslate %}
+    </p>
+  </details>
+{% endblock %}
