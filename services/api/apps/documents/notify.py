@@ -12,7 +12,8 @@ imprimio en el log es peor que no tener avisos**, y esa es la historia de ese mo
 import logging
 
 from django.conf import settings
-from django.core.mail import send_mail
+from django.core.mail import EmailMultiAlternatives, send_mail
+from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
@@ -59,6 +60,23 @@ def enlace(ruta: str) -> str:
 def _destinatario(usuario) -> str | None:
     correo = (usuario.email or "").strip()
     return correo or None
+
+
+def _la_obra_manda_correo(proyecto, cual: str) -> bool:
+    """Si esta obra tiene encendido ese aviso por correo.
+
+    **Se pregunta aquí y no en cada vista** porque el aviso se dispara desde cinco sitios —crear,
+    repartir, la API del visor, el hilo— y un ajuste que hay que recordar consultar es un ajuste que
+    la sexta llamada se salta.
+
+    Con los ajustes de fábrica devuelve lo de siempre: asignación **sí**, respuesta en el hilo
+    **no**. Una obra que nunca los tocó se comporta como antes en lo que importa.
+    """
+    from apps.projects.models import AvisosDeObra
+
+    if proyecto is None:
+        return True
+    return bool(getattr(AvisosDeObra.de(proyecto), cual))
 
 
 def avisar_comentario(comentario) -> list[str]:
@@ -129,7 +147,10 @@ def avisar_comentario(comentario) -> list[str]:
             continue
         destinos[correo.lower()] = None
 
-    if not destinos:
+    # **El correo del hilo va apagado por omisión**, y es el ajuste que más correo evita: una
+    # discusión viva son varios al día, y es justo el que la campana cubre mejor porque quien está
+    # trabajando en el hallazgo ya está dentro. Los avisos de arriba ya se dejaron.
+    if not destinos or not _la_obra_manda_correo(observacion.proyecto, "al_responder"):
         return []
 
     asunto = _("[AeroBim] New reply: %(titulo)s") % {"titulo": observacion.titulo}
@@ -201,6 +222,11 @@ def avisar_asignacion(objeto, *, de_parte_de=None) -> bool:
         de_parte_de=de_parte_de,
         objeto=str(objeto.pk),
     )
+
+    # **Y el correo solo si esta obra lo pide.** La campana de arriba ya salió: apagar esto no deja
+    # a nadie sin enterarse, le deja de llegar al buzón. Ver `AvisosDeObra`.
+    if not _la_obra_manda_correo(objeto.proyecto, "al_asignar"):
+        return False
 
     correo = _destinatario(objeto.responsable)
     if correo is None:
@@ -339,12 +365,60 @@ def pendientes_por_tramo(usuario) -> dict[str, list]:
     return salida
 
 
-def enviar_resumen(usuario) -> int:
-    """Un correo con lo que le queda, o ninguno si no le queda nada.
+def le_toca_resumen(usuario, tramos: dict, hoy) -> bool:
+    """Si a esta persona le toca resumen hoy, **según lo que decidió cada coordinador**.
+
+    ## De dónde sale esta función
+
+    Del encargo, literal: *«el correo que sea cuando el coordinador lo delimite, para no generar
+    spam»*. El comando recorría **todos los usuarios activos sin filtrar** y mandaba todas las
+    mañanas; un remitente que escribe a diario se archiva sin leer, y entonces el día que trae algo
+    tampoco se lee.
+
+    ## Cómo se decide con varias obras
+
+    Le toca si **alguna** de sus obras lo pide. No es la más restrictiva ni un voto: el resumen es
+    uno solo y lleva lo de todas, así que basta con que una obra quiera avisar para que el correo
+    valga la pena. Lo contrario —exigir que todas lo pidan— haría que una obra en `nunca` apagara
+    el aviso de las demás, que no es lo que nadie eligió.
+
+    Quien no tiene ninguna obra entre lo suyo cae en los ajustes de fábrica: **solo si hay
+    vencidos**.
+    """
+    from apps.projects.models import AvisosDeObra, Proyecto
+
+    if all(not v for v in tramos.values()):
+        return False
+
+    hay_vencidos = bool(tramos["vencido"])
+    # **Por la clave ajena y no por el codigo.** La primera version juntaba `str(item.proyecto)` y
+    # buscaba `codigo__in`, y no encontraba nada: el `__str__` de `Proyecto` es «716-LCD · Edificio
+    # corporativo», no el codigo. El sintoma era el peor posible — **la cadencia se ignoraba en
+    # silencio** y todo el mundo seguia recibiendo el resumen, o sea el defecto que este bloque
+    # venia a arreglar. Un identificador no se empareja por como se escribe.
+    claves = {item.proyecto_id for items in tramos.values() for item in items if item.proyecto_id}
+    obras = list(Proyecto.objects.filter(pk__in=claves)) if claves else []
+    if not obras:
+        return AvisosDeObra().manda_resumen_hoy(hoy, hay_vencidos=hay_vencidos)
+
+    return any(
+        AvisosDeObra.de(obra).manda_resumen_hoy(hoy, hay_vencidos=hay_vencidos) for obra in obras
+    )
+
+
+def enviar_resumen(usuario, *, respetar_cadencia: bool = True) -> int:
+    """Un correo con lo que le queda, o ninguno si no le toca.
 
     **No se manda un resumen vacio.** Un correo que dice "no tienes nada" todas las
     mañanas enseña a archivar el remitente sin leerlo, y entonces el dia que si trae algo
     tampoco se lee.
+
+    **Y ahora tampoco se manda si el coordinador no lo pidio.** Ver `le_toca_resumen`.
+    `respetar_cadencia=False` existe para poder mandarlo a mano desde una pantalla —«mandame el
+    mio ahora»— sin desmontar la regla del trabajo programado.
+
+    Sale en HTML **y en texto plano**, las dos versiones del mismo contenido: el texto es lo que ve
+    quien tiene el HTML desactivado, y no puede decir menos que el otro.
     """
     correo = _destinatario(usuario)
     if correo is None:
@@ -356,11 +430,17 @@ def enviar_resumen(usuario) -> int:
         return 0
 
     hoy = timezone.localdate()
+    if respetar_cadencia and not le_toca_resumen(usuario, tramos, hoy):
+        logger.info("resumen_no_tocaba", extra={"recipient": correo, "item_count": total})
+        return 0
+
+    bloques = []
     lineas = [_("What is on your plate in AeroBim."), ""]
     for _d, _h, nombre, etiqueta in TRAMOS:
         items = tramos[nombre]
         if not items:
             continue
+        filas = []
         lineas.append(f"{etiqueta} ({len(items)}):")
         for item in items:
             # **Lo vencido dice cuánto lleva.** Una fecha sola obliga a restar mentalmente, y en
@@ -368,16 +448,38 @@ def enviar_resumen(usuario) -> int:
             atraso = (hoy - item.vence).days
             cuanto = f"  ({atraso} d)" if atraso > 0 else ""
             lineas.append(f"  · {item.vence.isoformat()}  {item.titulo}  [{item.proyecto}]{cuanto}")
+            filas.append(
+                {
+                    "titulo": item.titulo,
+                    "proyecto": str(item.proyecto),
+                    "vence": item.vence,
+                    "atraso": atraso if atraso > 0 else 0,
+                    # **Un enlace por ítem, que es lo que faltaba.** El resumen traía uno solo, a la
+                    # portada: para llegar a lo que el correo nombra había que buscarlo a mano.
+                    "url": enlace(_ruta_de(item)),
+                }
+            )
+        bloques.append({"etiqueta": etiqueta, "urgente": nombre == "vencido", "filas": filas})
         lineas.append("")
     lineas.append(enlace("/"))
 
-    send_mail(
-        _("[AeroBim] %(n)s items on your plate") % {"n": total},
-        "\n".join(lineas),
-        settings.DEFAULT_FROM_EMAIL,
-        [correo],
-        fail_silently=False,
+    asunto = _("[AeroBim] %(n)s items on your plate") % {"n": total}
+    mensaje = EmailMultiAlternatives(
+        asunto, "\n".join(lineas), settings.DEFAULT_FROM_EMAIL, [correo]
     )
+    mensaje.attach_alternative(
+        render_to_string(
+            "email/resumen.html",
+            {
+                "bloques": bloques,
+                "total": total,
+                "portada": enlace("/"),
+                "avisos": enlace("/proyecto/avisos/"),
+            },
+        ),
+        "text/html",
+    )
+    mensaje.send()
     logger.info(
         "resumen_enviado",
         extra={
@@ -387,3 +489,10 @@ def enviar_resumen(usuario) -> int:
         },
     )
     return total
+
+
+def _ruta_de(item) -> str:
+    """A dónde lleva un ítem del resumen."""
+    if isinstance(item, Observacion):
+        return f"/documentos/observaciones/{item.pk}/"
+    return f"/documentos/actividades/{item.pk}/"

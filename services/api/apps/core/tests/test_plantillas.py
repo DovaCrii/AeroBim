@@ -61,11 +61,23 @@ PAGINAS_DEL_VISOR = ("index.html", "documento.html")
 
 
 def _extienden_la_base() -> list[Path]:
+    """Las plantillas de **pantalla**: las que heredan la cabecera del sistema.
+
+    **`email/` queda fuera, y es una exclusión por naturaleza, no una excepción.** El cuerpo de un
+    correo no es una pantalla: no extiende `base.html`, no tiene rail ni cabecera, y no puede
+    tenerlos — un cliente de correo descarta la hoja de estilos y casi todo el CSS moderno, así que
+    esas plantillas van con estilos en línea y tablas. Exigirles un `titulo_pagina` sería exigirles
+    que fueran otra cosa.
+
+    Se excluye **el directorio** y no un archivo suelto para que el segundo correo que se escriba no
+    tenga que acordarse de añadirse a una lista.
+    """
     return sorted(
         p
         for p in PLANTILLAS.rglob("*.html")
         if p.name != "base.html"
         and not p.name.startswith("_")
+        and p.relative_to(PLANTILLAS).parts[0] != "email"
         and p.relative_to(PLANTILLAS).as_posix() not in FUERA_DE_LA_BASE
     )
 

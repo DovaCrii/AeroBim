@@ -14,7 +14,7 @@ import re
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
-from apps.projects.models import Disciplina, Proyecto
+from apps.projects.models import AvisosDeObra, Disciplina, Proyecto
 
 #: `#rrggbb`, en minusculas o mayusculas. Tres digitos —`#abc`— no se acepta a proposito: el
 #: color viaja al visor y a los informes, y media docena de sitios tendrian que saber expandirlo.
@@ -109,3 +109,38 @@ class DisciplinaForm(forms.ModelForm):
         if not COLOR.match(color):
             raise forms.ValidationError(_("The colour must be in #rrggbb form, e.g. #5b3a9e."))
         return color.lower()
+
+
+class AvisosDeObraForm(forms.ModelForm):
+    """Cuánto correo manda esta obra.
+
+    **Sin la casilla del día de la semana suelta.** Solo importa con la cadencia semanal, y un campo
+    que no aplica pero se puede rellenar es una pregunta que alguien contesta creyendo que hace
+    algo. Se ofrece igual porque esconder y mostrar campos pide JavaScript, y aquí la CSP no lo
+    regala: se explica en el texto de ayuda, que es más barato y no se rompe.
+    """
+
+    class Meta:
+        model = AvisosDeObra
+        fields = ("resumen", "dia_de_la_semana", "al_asignar", "al_responder")
+        widgets = {"resumen": forms.RadioSelect}
+
+    DIAS = (
+        (0, _("Monday")),
+        (1, _("Tuesday")),
+        (2, _("Wednesday")),
+        (3, _("Thursday")),
+        (4, _("Friday")),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["dia_de_la_semana"] = forms.TypedChoiceField(
+            choices=self.DIAS,
+            coerce=int,
+            initial=self.instance.dia_de_la_semana,
+            label=_("Day of the week"),
+            help_text=_("Only used when the summary goes out once a week."),
+        )
+        # **Nada de sábado ni domingo.** Un resumen que llega el sábado se lee el lunes junto al del
+        # lunes, y entonces son dos correos para una mañana.

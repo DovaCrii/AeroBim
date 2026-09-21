@@ -564,6 +564,22 @@
     lo único que faltaba era poder ponerlo.
     ══════════════════════════════════════════════════════════════════════════════════════════
   {% endcomment %}
+  {% comment %}
+    **Cuánto correo manda esta obra.** Va antes de la zona delicada y fuera de ella: no es una
+    salida ni algo irreversible, es un ajuste del día a día — y el usuario lo pidió porque el
+    resumen salía a todo el mundo todas las mañanas.
+  {% endcomment %}
+  {% if perms.projects.change_proyecto %}
+    <p class="accion">
+      <a class="boton secundario" href="{% url 'projects:avisos-de-obra' proyecto.pk %}">
+        {% translate "How much email this work sends" %}
+      </a>
+      <span class="detalle">
+        {% translate "Only email. Notices inside the application are always immediate." %}
+      </span>
+    </p>
+  {% endif %}
+
   {% if perms.projects.change_proyecto %}
     <section class="zona-delicada" aria-labelledby="titulo-salidas">
       <h2 id="titulo-salidas">{% translate "When this work is over" %}</h2>

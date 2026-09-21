@@ -1,0 +1,88 @@
+{% load i18n %}{% comment %}
+  **El resumen diario, en HTML. La primera plantilla de correo del repositorio.**
+
+  Hasta hoy todos los avisos se armaban con `"\n".join([...])` y salían en texto plano: una lista
+  donde lo vencido hace tres meses se lee exactamente igual que lo que vence el viernes.
+
+  ## Tres reglas que este archivo tiene que respetar, y el motivo de cada una
+
+  1. **Estilos en línea y tablas, no clases ni `flex`.** No es dejadez ni nostalgia: Outlook de
+     escritorio usa el motor de Word para pintar correo, y descarta la hoja de estilos y casi todo
+     el CSS moderno. Lo que sobrevive en todas partes es una tabla con `style=` en cada celda.
+  2. **Nada de imágenes ni de fuentes externas.** La mitad de los clientes bloquean las imágenes por
+     omisión, así que lo que se dibuje con una imagen no lo ve la mitad de la gente. El color y el
+     peso de la letra sí llegan.
+  3. **El texto plano no puede decir menos que esto.** Van los dos, y son el mismo contenido: quien
+     tiene el HTML desactivado tiene que poder actuar igual.
+
+  Y **el color no es la única señal** de lo vencido, igual que en la aplicación: lleva además el
+  borde izquierdo y la negrita, porque quien no distingue rojos tiene que poder distinguirlo.
+{% endcomment %}<!doctype html>
+<html>
+  <body style="margin:0;padding:0;background:#f4f6f9;font:15px/1.5 -apple-system,Segoe UI,Arial,sans-serif;color:#22272f">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f9;padding:24px 12px">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border-radius:10px;overflow:hidden">
+            <tr>
+              <td style="background:#1F428D;padding:18px 22px;color:#ffffff">
+                <div style="font-size:17px;font-weight:700">AeroBim</div>
+                <div style="font-size:13px;opacity:.85">
+                  {% blocktranslate count n=total %}{{ n }} thing on your plate{% plural %}{{ n }} things on your plate{% endblocktranslate %}
+                </div>
+              </td>
+            </tr>
+
+            {% for bloque in bloques %}
+              <tr>
+                <td style="padding:18px 22px 4px">
+                  <div style="font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:{% if bloque.urgente %}#b3261e{% else %}#585756{% endif %}">
+                    {{ bloque.etiqueta }} ({{ bloque.filas|length }})
+                  </div>
+                </td>
+              </tr>
+              {% for fila in bloque.filas %}
+                <tr>
+                  <td style="padding:0 22px 8px">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td style="padding:10px 12px;background:{% if fila.atraso %}#fdf0ef{% else %}#f7f9fc{% endif %};border-left:3px solid {% if fila.atraso %}#b3261e{% else %}#c8d2e0{% endif %};border-radius:4px">
+                          <a href="{{ fila.url }}" style="color:#1F428D;font-weight:600;text-decoration:none">{{ fila.titulo }}</a>
+                          <div style="font-size:12px;color:#585756;margin-top:3px">
+                            {{ fila.proyecto }} ·
+                            {% if fila.atraso %}
+                              {% comment %}
+                                Los días de atraso en negrita y en rojo, que es la cifra que no
+                                existía: una fecha sola obliga a restar mentalmente, y en una lista
+                                de diez nadie lo hace.
+                              {% endcomment %}
+                              <b style="color:#b3261e">{% blocktranslate count dias=fila.atraso %}{{ dias }} day late{% plural %}{{ dias }} days late{% endblocktranslate %}</b>
+                            {% else %}
+                              {% blocktranslate with cuando=fila.vence|date:"j M" %}due {{ cuando }}{% endblocktranslate %}
+                            {% endif %}
+                          </div>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              {% endfor %}
+            {% endfor %}
+
+            <tr>
+              <td style="padding:14px 22px 22px">
+                <a href="{{ portada }}" style="display:inline-block;padding:9px 16px;background:#1F428D;color:#ffffff;border-radius:6px;text-decoration:none;font-weight:600">
+                  {% translate "Open AeroBim" %}
+                </a>
+                <div style="font-size:12px;color:#585756;margin-top:12px">
+                  {% translate "Your coordinator decides how often this email goes out. Notices inside the app are always immediate." %}
+                  <a href="{{ avisos }}" style="color:#1F428D">{% translate "See them here" %}</a>.
+                </div>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

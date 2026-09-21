@@ -585,3 +585,63 @@ class NuevaDisciplinaView(ModelPermissionRequiredMixin, View):
             request, _("Discipline %(codigo)s created.") % {"codigo": disciplina.codigo}
         )
         return redirect("projects:proyecto", pk=proyecto.pk)
+
+
+class AvisosDeObraView(ModelPermissionRequiredMixin, View):
+    """Cuánto correo manda esta obra. **Lo decide quien coordina, no el sistema.**
+
+    Sale del encargo, literal: *«el correo que sea cuando el coordinador lo delimite, para no
+    generar spam»*. El resumen salía **a todos los usuarios activos, todas las mañanas**, y un
+    remitente que escribe a diario se archiva sin leer — con lo que el día que trae algo tampoco se
+    lee.
+
+    **Pide `change_proyecto` y no un permiso propio**: decidir cuánto correo manda una obra es
+    gobernarla, y quien puede cambiarle la etapa y las fechas puede cambiar esto. Un permiso más
+    sería una casilla más que alguien tiene que acordarse de repartir.
+
+    **Y no toca la campana.** Los avisos dentro de la aplicación siguen siendo inmediatos pase lo
+    que pase aquí: poner el correo en «nunca» no deja a nadie sin enterarse, le deja de llegar al
+    buzón. Esa separación es lo que permite apagarlo sin perder información.
+    """
+
+    model = Proyecto
+    permission_action = "change"
+    template_name = "projects/avisos_de_obra.html"
+
+    def _obra(self, request, pk):
+        return get_object_or_404(
+            scope_queryset_to_organizacion(Proyecto.objects.all(), request.user), pk=pk
+        )
+
+    def get(self, request, *args, **kwargs):
+        from apps.projects.forms import AvisosDeObraForm
+        from apps.projects.models import AvisosDeObra
+
+        proyecto = self._obra(request, kwargs["pk"])
+        ajustes = AvisosDeObra.de(proyecto)
+        return render(
+            request,
+            self.template_name,
+            {"proyecto": proyecto, "form": AvisosDeObraForm(instance=ajustes)},
+        )
+
+    def post(self, request, *args, **kwargs):
+        from apps.projects.forms import AvisosDeObraForm
+        from apps.projects.models import AvisosDeObra
+
+        proyecto = self._obra(request, kwargs["pk"])
+        ajustes = AvisosDeObra.de(proyecto)
+        formulario = AvisosDeObraForm(request.POST, instance=ajustes)
+        if not formulario.is_valid():
+            return render(
+                request, self.template_name, {"proyecto": proyecto, "form": formulario}, status=400
+            )
+
+        # `AvisosDeObra.de` devuelve una instancia **sin guardar** cuando la obra nunca los tocó:
+        # es aquí, al decidir de verdad, donde la fila empieza a existir.
+        ajustes = formulario.save(commit=False)
+        ajustes.proyecto = proyecto
+        ajustes.save()
+        set_audit_context(request, proyecto, action="avisos_de_obra")
+        messages.success(request, _("Saved. It applies to the email, not to the in-app notices."))
+        return redirect("projects:proyecto", pk=proyecto.pk)

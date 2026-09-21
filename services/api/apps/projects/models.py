@@ -294,3 +294,91 @@ class VistaDeProyecto(BaseModel):
 
     def __str__(self):
         return self.nombre
+
+
+class AvisosDeObra(BaseModel):
+    """Cuanto correo manda esta obra. **Lo decide el coordinador, no el sistema.**
+
+    ## De donde sale
+
+    Del encargo, literal: *«el correo que sea cuando el coordinador lo delimite, para no generar
+    spam»*. Hasta hoy el resumen diario salia **a todos los usuarios activos, sin filtrar**, todas
+    las mañanas — y un remitente que escribe todos los dias se archiva sin leer, con lo que el dia
+    que trae algo importante tampoco se lee.
+
+    ## Lo que NO gobierna, y es la mitad del diseño
+
+    **La campana no pasa por aqui.** Los avisos dentro de la aplicacion son inmediatos y no cuestan
+    nada porque no salen de la aplicacion: no pueden hacer spam. Apagar el correo de una obra **no
+    deja a nadie sin enterarse** — deja de llegarle al buzon, y sigue estando en la campana cuando
+    entre.
+
+    Esa separacion es lo que permite poner el correo en `nunca` sin perder informacion, que es
+    exactamente lo que una obra tranquila quiere.
+    """
+
+    NUNCA = "nunca"
+    DIARIO = "diario"
+    SEMANAL = "semanal"
+    SOLO_VENCIDOS = "solo_vencidos"
+    CADENCIAS = [
+        (SOLO_VENCIDOS, _("Only when something is overdue")),
+        (DIARIO, _("Every day")),
+        (SEMANAL, _("Once a week")),
+        (NUNCA, _("Never")),
+    ]
+
+    proyecto = models.OneToOneField(
+        "projects.Proyecto", on_delete=models.CASCADE, related_name="ajustes_de_aviso"
+    )
+    #: **Por omision, solo si hay vencidos.** Es la opcion que no molesta cuando todo va bien y si
+    #: avisa cuando deja de ir bien — o sea, la unica cuyo silencio significa algo.
+    resumen = models.CharField(
+        max_length=20, choices=CADENCIAS, default=SOLO_VENCIDOS, verbose_name=_("summary email")
+    )
+    #: Solo se mira con `semanal`. 0 = lunes, como `date.weekday()`.
+    dia_de_la_semana = models.PositiveSmallIntegerField(default=0)
+    #: **Este si va encendido**: es el aviso que de verdad hace falta, y sale una sola vez por
+    #: asignacion, asi que no puede convertirse en ruido.
+    al_asignar = models.BooleanField(default=True, verbose_name=_("email when work is assigned"))
+    #: **Encendido, aunque sea el que mas correo genera.** La primera version lo dejo apagado por
+    #: omision —es el que mas ruido hace y el que la campana cubre mejor— y eso estaba mal: apagar
+    #: por omision un aviso que hoy funciona es cambiarle el comportamiento a quien no pidio nada.
+    #:
+    #: Lo que se pidio es que **el coordinador lo delimite**, no que lo decida el sistema. Asi que
+    #: hasta que alguien decida, no cambia nada; y quien encuentre que un hilo activo le llena el
+    #: buzon tiene el interruptor a un clic. Es tambien el que mas se agradece apagar, y por eso la
+    #: pantalla lo explica.
+    al_responder = models.BooleanField(
+        default=True, verbose_name=_("email on every reply in a thread")
+    )
+
+    class Meta:
+        verbose_name = _("notice settings")
+        verbose_name_plural = _("notice settings")
+
+    def __str__(self):
+        return f"{self.proyecto.codigo} · {self.get_resumen_display()}"
+
+    @classmethod
+    def de(cls, proyecto) -> "AvisosDeObra":
+        """Los ajustes de una obra, con los de fabrica si nadie los ha tocado.
+
+        **No se crea la fila al leer.** Una obra sin ajustes no es un estado incompleto: es una obra
+        con los valores por omision, y escribir una fila cada vez que alguien mira el correo del dia
+        llenaria la tabla de filas identicas.
+        """
+        try:
+            return cls.objects.get(proyecto=proyecto)
+        except cls.DoesNotExist:
+            return cls(proyecto=proyecto)
+
+    def manda_resumen_hoy(self, hoy, *, hay_vencidos: bool) -> bool:
+        """Si a esta obra le toca resumen hoy."""
+        if self.resumen == self.NUNCA:
+            return False
+        if self.resumen == self.DIARIO:
+            return True
+        if self.resumen == self.SEMANAL:
+            return hoy.weekday() == self.dia_de_la_semana
+        return hay_vencidos

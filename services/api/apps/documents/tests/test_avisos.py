@@ -137,7 +137,12 @@ def test_el_resumen_va_con_lo_que_queda(organizacion, proyecto, revisor, proyect
 
 @pytest.mark.django_db
 def test_lo_cerrado_deja_de_aparecer_en_el_resumen(organizacion, proyecto, revisor, proyectista):
-    obs = observacion(organizacion, proyecto, revisor, proyectista, vence=timezone.localdate())
+    # **Vencida de ayer y no de hoy**, y no es un detalle: desde que el correo lo delimita el
+    # coordinador, la cadencia de fábrica es «solo si hay algo vencido», y lo que vence *hoy*
+    # todavía no lo está. Con la fecha de hoy esta prueba comprobaba el cierre y, sin querer,
+    # también que el resumen saliera siempre — que es justo lo que se cambió.
+    ayer = timezone.localdate() - timezone.timedelta(days=1)
+    obs = observacion(organizacion, proyecto, revisor, proyectista, vence=ayer)
     assert enviar_resumen(proyectista) == 1
 
     mail.outbox.clear()
@@ -152,7 +157,9 @@ def test_el_comando_deja_su_fila_en_jobrun(organizacion, proyecto, revisor, proy
 
     from apps.core.models import JobRun
 
-    observacion(organizacion, proyecto, revisor, proyectista, vence=timezone.localdate())
+    # Vencida, para que la cadencia de fábrica —«solo si hay algo vencido»— deje salir el correo.
+    ayer = timezone.localdate() - timezone.timedelta(days=1)
+    observacion(organizacion, proyecto, revisor, proyectista, vence=ayer)
     call_command("enviar_resumen")
 
     corrida = JobRun.objects.get(command="enviar_resumen")
