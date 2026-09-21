@@ -712,6 +712,48 @@ class InformeCoordinacionView(ModelViewPermissionRequiredMixin, View):
         )
 
 
+class ResumenEjecutivoView(ModelViewPermissionRequiredMixin, View):
+    """El resumen ejecutivo: **una hoja para decidir**, con la misma base de la casa.
+
+    **No es el informe de coordinación con menos cosas.** Contesta otra pregunta. El de coordinación
+    dice *«qué hay»* —una tabla con cada hallazgo, su hilo y su foto, seis o siete folios con una
+    obra de verdad— y es el papel de la reunión técnica. Éste dice *«cómo va y qué decido esta
+    semana»*, que es lo que pregunta quien no va a esa reunión.
+
+    Mismo permiso y mismo acotado que el otro, y por el mismo motivo: **un informe es leer**, así
+    que se lleva lo que quien lo pide ya puede ver en la lista y ni un hallazgo más.
+
+    Sin opciones a propósito: un resumen ejecutivo configurable deja de ser comparable entre dos
+    meses, que es justo para lo que sirve.
+    """
+
+    model = Observacion
+
+    def get(self, request, *args, **kwargs):
+        from apps.core.tenancy import scope_queryset_to_organizacion
+        from apps.documents.ejecutivo import pdf_de
+        from apps.projects.models import Proyecto
+
+        proyecto = (
+            scope_queryset_to_organizacion(Proyecto.objects.all(), request.user)
+            .filter(pk=kwargs["pk"])
+            .first()
+        )
+        if proyecto is None:
+            raise Http404
+
+        set_audit_context(request, proyecto, action="resumen_ejecutivo")
+
+        contenido = pdf_de(proyecto, pedido_por=request.user.get_username())
+        nombre = f"{proyecto.codigo}-resumen-{timezone.localdate().isoformat()}.pdf"
+        return FileResponse(
+            BytesIO(contenido),
+            as_attachment=True,
+            filename=nombre,
+            content_type="application/pdf",
+        )
+
+
 class LaminaPdfView(ModelViewPermissionRequiredMixin, View):
     """La lámina de un plano, en PDF y con el sello de la casa. `F7.5`.
 

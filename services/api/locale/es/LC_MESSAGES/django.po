@@ -4165,6 +4165,18 @@ msgstr ""
 "Estructura: obra-originador-volumen-nivel-tipo-disciplina-número (p. ej. "
 "716LCD-JEJ-ZZ-XX-M3-ME-0001). Un código de un tercero se acepta tal cual."
 
+#: .\templates\projects\proyecto.html:358
+msgid "Executive summary, one page"
+msgstr "Resumen ejecutivo, una hoja"
+
+#: .\templates\projects\proyecto.html:362
+msgid ""
+"Progress by discipline, what is overdue and for how long, and who has work "
+"ahead. For whoever does not come to the coordination meeting."
+msgstr ""
+"Avance por disciplina, qué está vencido y desde cuándo, y quién tiene trabajo "
+"por delante. Para quien no va a la reunión de coordinación."
+
 #: .\apps\documents\codificacion.py:77
 msgid "3D model"
 msgstr "Modelo 3D"
