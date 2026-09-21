@@ -24,3 +24,30 @@
 
 # SVG es texto y su diff vale la pena
 *.svg text
+
+# ══════════════════════════════════════════════════════════════════════════════════════════
+# El catalogo compilado del espanol: **se versiona, y no se fusiona**
+# ══════════════════════════════════════════════════════════════════════════════════════════
+#
+# `django.mo` es binario, asi que git no lo sabe fusionar: **cada vez que dos ramas tocan textos
+# hay que resolverlo a mano** volviendo a compilar. Paso tres veces en una sola sesion.
+#
+# Que se versione es deliberado y no se toca — el motivo esta en `.gitignore`: sin el, un clon
+# recien hecho sale en ingles **sin que nada falle**.
+#
+# Con `merge=catalogo` la fusion se queda con la version de la rama de destino y no levanta
+# conflicto. El `.mo` puede quedar desfasado, y eso lo caza
+# `apps/core/tests/test_traducciones.py::test_el_binario_esta_al_dia_con_el_catalogo_entero`,
+# que compara el binario contra **las ~780 entradas** del `.po`.
+#
+# **El driver hay que registrarlo una vez por clon** —`git config` no se versiona—:
+#
+#     pwsh -File scripts/preparar-git.ps1      (o `bash scripts/preparar-git.sh`)
+#
+# Sin registrarlo, git ignora la regla y vuelve el conflicto de siempre: molesto, nunca peligroso.
+#
+# **Y lo que este driver NO hace, medido:** no recompila desde el `.po`. Se probo, y no puede —
+# git fusiona los archivos por orden alfabetico y `django.mo` va **antes** que `django.po`, asi
+# que cuando el driver corre el `.po` todavia no esta fusionado. Recompilar ahi produciria un
+# `.mo` que no corresponde a ninguno de los dos lados, en silencio. Peor que el conflicto.
+services/api/locale/**/*.mo binary merge=catalogo

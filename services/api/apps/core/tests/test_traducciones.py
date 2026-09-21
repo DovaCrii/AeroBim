@@ -14,6 +14,12 @@ Las cinco:
    y no compila, la pantalla sigue mostrando lo viejo sin que nada falle.
 5. **Una traducción escrita dos veces**, que es la quinta y se añadió el 2026-09-14 después de
    verla en la pantalla. Ver `test_ninguna_traduccion_sale_escrita_dos_veces`.
+
+Y una sexta, del 2026-09-21: **el `.mo` resuelto a mano quedándose con el lado equivocado**. La
+comprobación número 4 de esta lista existía, pero miraba el binario con **seis cadenas escritas a
+mano** — y eso deja pasar una fusión mal resuelta, que desfasa cientos a la vez. Medido: con el
+`.mo` de cuatro fusiones atrás, las seis seguían coincidiendo y **las siete pruebas pasaban**. Ver
+`test_el_binario_esta_al_dia_con_el_catalogo_entero`, que recorre el catálogo completo.
 """
 
 import re
@@ -167,6 +173,100 @@ def test_los_marcadores_de_formato_sobreviven_a_la_traduccion():
         assert sorted(re.findall(r"%\([a-zA-Z_]+\)s", msgid)) == sorted(
             re.findall(r"%\([a-zA-Z_]+\)s", msgstr)
         ), f"Los marcadores no coinciden en «{msgid[:60]}»"
+
+
+def sin_escapes(crudo: str) -> str:
+    r"""El texto tal como lo guarda gettext, no tal como se escribe en el `.po`.
+
+    **Es la diferencia entre comprobar el binario y comprobar nada.** En el archivo, un salto de
+    línea se escribe `\n` —dos caracteres— y gettext guarda la clave con el salto de verdad. La
+    primera versión de esto concatenaba las líneas en crudo, así que **76 entradas «no aparecían»
+    en el binario** y la prueba las daba por desfasadas: todas las que llevan un salto dentro, que
+    son las explicaciones largas de la ayuda y del glosario.
+    """
+    return crudo.replace("\\n", "\n").replace("\\t", "\t").replace('\\"', '"').replace("\\\\", "\\")
+
+
+def entradas_simples():
+    """Las entradas del catálogo que se pueden comprobar una a una contra el binario.
+
+    Quedan fuera **las de plural y las que llevan `msgctxt`**, y no por comodidad: las primeras se
+    piden con `ngettext` y dependen de la regla plural del idioma, y las segundas con `pgettext`.
+    Pedirlas con `gettext` a secas devolvería otra cosa y la prueba fallaría con el catálogo bueno.
+
+    También quedan fuera las obsoletas —las que van comentadas con `#~`—, que ya no se compilan.
+    """
+    texto = PO.read_text(encoding="utf-8")
+    for bloque in texto.split("\n\n"):
+        if "msgid_plural" in bloque or re.search(r"(?m)^msgctxt ", bloque):
+            continue
+        if re.search(r"(?m)^#~", bloque):
+            continue
+        ids = re.search(r'(?m)^msgid ((?:"[^"]*"\n?)+)', bloque)
+        strs = re.search(r'(?m)^msgstr ((?:"[^"]*"\n?)+)', bloque)
+        if ids is None or strs is None:
+            continue
+        msgid = sin_escapes("".join(re.findall(r'"((?:[^"\\]|\\.)*)"', ids.group(1))))
+        msgstr = sin_escapes("".join(re.findall(r'"((?:[^"\\]|\\.)*)"', strs.group(1))))
+        if msgid and msgstr:
+            yield msgid, msgstr
+
+
+def test_el_binario_esta_al_dia_con_el_catalogo_entero():
+    """**El hueco que dejaba pasar un `.mo` mal resuelto.**
+
+    `test_el_binario_devuelve_el_espanol`, aquí abajo, comprueba el binario con **seis** cadenas
+    escritas a mano. Eso basta para cazar un `.po` editado y sin compilar *si el descuido toca una
+    de las seis* — y no basta para lo que de verdad pasa.
+
+    Lo que pasa es esto: `django.mo` es binario, git no lo sabe fusionar, y **cada vez que dos ramas
+    tocan textos hay que resolverlo a mano**. Ocurrió tres veces en una sola sesión. Un `.mo`
+    resuelto quedándose con el lado equivocado deja la interfaz mostrando lo de la otra rama en
+    cientos de cadenas, **sin que nada falle**, y las seis de abajo siguen coincidiendo.
+
+    Esta recorre las ~780 entradas simples del `.po` y exige que el binario devuelva exactamente lo
+    mismo. Es lo que convierte una fusión mal resuelta de silenciosa en ruidosa.
+    """
+    activate("es")
+    try:
+        desfasadas = [
+            f"{msgid[:48]!r} → binario dice {gettext(msgid)[:48]!r}"
+            for msgid, msgstr in entradas_simples()
+            if gettext(msgid) != msgstr
+        ]
+    finally:
+        deactivate()
+
+    assert desfasadas == [], (
+        f"El `.mo` no corresponde al `.po` en {len(desfasadas)} entradas. Es lo que deja una "
+        "fusión mal resuelta o un `.po` editado sin compilar: corre "
+        f"`manage.py compilemessages -i .venv -i staticfiles`. Primeras: {desfasadas[:5]}"
+    )
+
+
+def test_la_regla_de_fusion_del_catalogo_y_su_alta_no_se_separan():
+    """**Media solución es peor que ninguna, y aquí se puede quedar a medias de dos maneras.**
+
+    `.gitattributes` declara `merge=catalogo` para el `.mo`, y el controlador que lo implementa se
+    registra por clon con `scripts/preparar-git.*` — porque `git config` no se versiona.
+
+    Si alguien borra los guiones y deja la regla, git ignora la regla en silencio y vuelve el
+    conflicto de siempre. Si borra la regla y deja los guiones, el alta no sirve para nada. Ninguna
+    de las dos falla por su cuenta: por eso lo comprueba esto.
+    """
+    raiz = Path(settings.BASE_DIR).parents[1]
+    atributos = (raiz / ".gitattributes").read_text(encoding="utf-8")
+
+    assert "merge=catalogo" in atributos, (
+        "Se quitó la regla de fusión del catálogo de `.gitattributes`. Si es a propósito, quita "
+        "también `scripts/preparar-git.*` y esta prueba."
+    )
+    for guion in ("preparar-git.ps1", "preparar-git.sh"):
+        ruta = raiz / "scripts" / guion
+        assert ruta.is_file(), f"Falta `scripts/{guion}`: la regla `merge=catalogo` queda muerta."
+        assert "merge.catalogo.driver" in ruta.read_text(encoding="utf-8"), (
+            f"`scripts/{guion}` ya no registra el controlador que `.gitattributes` da por hecho."
+        )
 
 
 @pytest.mark.parametrize(
