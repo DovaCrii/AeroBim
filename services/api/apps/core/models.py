@@ -339,3 +339,76 @@ class JobRun(BaseModel):
         if self.finished_at is None:
             return None
         return round((self.finished_at - self.started_at).total_seconds(), 2)
+
+
+class Aviso(BaseModel):
+    """Un aviso dentro de la aplicacion. **El canal que no existia.**
+
+    ## Por que hacia falta
+
+    Hasta hoy, asignarle algo a alguien mandaba **un correo de texto plano, y nada mas**: ni
+    campana, ni contador, ni distintivo, ni una sola notificacion dentro de la aplicacion. El
+    usuario lo dijo asi: *«el mensaje es plano y no causa una alerta visible, falta una forma de
+    verlo»*.
+
+    Un correo llega cuando llega y se archiva sin leer; la campana esta donde la persona ya esta
+    trabajando. Son dos canales con dos ritmos, y por eso no se sustituyen: **este es inmediato y no
+    genera un solo correo**, que es lo que permite avisar de todo sin hacer spam.
+
+    ## Por que guarda el titulo y la URL en vez de resolverlos al pintar
+
+    Porque un aviso es **lo que paso**, no un puntero a lo que hay ahora. Si el titulo saliera del
+    objeto, el aviso de «te asignaron *El ducto del eje C*» diria otra cosa el dia que alguien
+    renombre el hallazgo — y lo que hay que poder reconstruir es que te avisaron de aquello.
+
+    El vinculo generico va aparte y es opcional: sirve para no duplicar avisos del mismo objeto y
+    para poder limpiarlos, no para pintar la fila.
+    """
+
+    ASIGNACION = "asignacion"
+    COMENTARIO = "comentario"
+    VENCIMIENTO = "vencimiento"
+    TRANSMITTAL = "transmittal"
+    TIPOS = [
+        (ASIGNACION, _("Assigned to you")),
+        (COMENTARIO, _("New reply")),
+        (VENCIMIENTO, _("Overdue")),
+        (TRANSMITTAL, _("Documents issued")),
+    ]
+
+    destinatario = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="avisos"
+    )
+    tipo = models.CharField(max_length=20, choices=TIPOS)
+    titulo = models.CharField(max_length=250, verbose_name=_("title"))
+    detalle = models.CharField(max_length=300, blank=True)
+    url = models.CharField(max_length=300)
+    #: La obra, para poder agrupar y para que el aviso diga de que obra habla.
+    proyecto = models.CharField(max_length=60, blank=True)
+    #: **Quien lo provoco, para no avisarse a si mismo.** Se guarda por si hace falta explicarlo.
+    de_parte_de = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="avisos_provocados",
+    )
+    #: A que apunta, si apunta a algo. Texto y no una FK generica: `Observacion` y `Actividad` viven
+    #: en otra aplicacion, y una FK desde `core` hacia `documents` invierte la dependencia.
+    objeto = models.CharField(max_length=80, blank=True)
+    leido_en = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = _("notice")
+        verbose_name_plural = _("notices")
+        ordering = ["-created_at"]
+        # **El contador se pinta en cada pagina**, asi que la consulta que lo saca tiene que ser
+        # una sola y con indice: por destinatario y por si esta leido.
+        indexes = [models.Index(fields=["destinatario", "leido_en"])]
+
+    def __str__(self):
+        return f"{self.get_tipo_display()} · {self.titulo[:40]}"
+
+    @property
+    def sin_leer(self) -> bool:
+        return self.leido_en is None

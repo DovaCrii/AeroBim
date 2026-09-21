@@ -155,6 +155,20 @@ class Entregable(BaseModel):
         return AVANCE_POR_IDONEIDAD.get(vigente.idoneidad, 0.0)
 
     @property
+    def avance_pct(self) -> int:
+        """El mismo avance, en la escala que se pinta: de 0 a 100.
+
+        **La misma pareja que ya tiene `Proyecto`, y por el mismo motivo.** La bandeja pintaba
+        `entregable.avance` en crudo bajo una columna que dice «Avance»: salia `1`, `0.95`, `0.55`
+        — mientras todas las demas pantallas dicen `100%`, `95%`, `55%`. Dos escalas para el mismo
+        dato en la misma aplicacion.
+
+        La fraccion es para calcular; el entero es para ensenar. Los dos del modelo, para que la
+        proxima pantalla no tenga que acordarse de multiplicar.
+        """
+        return round(self.avance * 100)
+
+    @property
     def observaciones_abiertas(self):
         """Las que todavia piden trabajo sobre este entregable.
 

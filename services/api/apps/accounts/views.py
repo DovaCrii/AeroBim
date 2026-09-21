@@ -72,7 +72,12 @@ class PortalView(LoginRequiredMixin, TemplateView):
         ]
         # Cuánto queda en total, para poder decir «y N más» sin listar treinta filas en la puerta.
         contexto["mis_pendientes"] = sum(len(v) for v in tramos.values())
-        contexto["mis_mas_alla"] = len(tramos["en_15"]) + len(tramos["en_30"])
+        # **Todo lo que no se pinta arriba, contado por resta y no enumerando tramos.** Iba
+        # `en_15 + en_30`, y el día que apareció un quinto tramo esa suma dejó de cuadrar con el
+        # total: la portada decía «y 3 más» teniendo cinco. Por resta no se puede desincronizar.
+        contexto["mis_mas_alla"] = (
+            contexto["mis_pendientes"] - len(tramos["vencido"]) - len(tramos["en_7"])
+        )
 
         contexto["mis_vencidas"] = len(tramos["vencido"])
         contexto["mis_de_la_semana"] = len(tramos["en_7"])

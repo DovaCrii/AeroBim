@@ -16,7 +16,9 @@ from django.core.mail import send_mail
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
+from apps.core import avisos
 from apps.core.mail import mail_is_delivered
+from apps.core.models import Aviso
 from apps.documents.models import Actividad, Observacion
 
 logger = logging.getLogger("aerobim.jobs")
@@ -24,7 +26,29 @@ logger = logging.getLogger("aerobim.jobs")
 # Los tramos del resumen. Son los de AeroControl y por la misma razon: "vence pronto"
 # no es una sola cosa —lo que vencio ayer y lo que vence en un mes piden reacciones
 # distintas— y un resumen que los mezcla no se lee.
-TRAMOS = ((None, 0, "vencido"), (0, 7, "en_7"), (7, 15, "en_15"), (15, 30, "en_30"))
+#
+# Dos arreglos, y el segundo salio del primero:
+#
+# **1. El ultimo tramo no tenia techo y faltaba.** Iba `(15, 30, "en_30")` y el bucle terminaba sin
+#    encontrar sitio para lo que vence a mas de treinta dias: **desaparecia en silencio** — ni en la
+#    bandeja, ni en el resumen, ni en ninguna cuenta. Una tarea a cuarenta dias no estaba en la
+#    lista de nadie, y nada lo decia. `hasta=None` significa «de aqui en adelante».
+#
+# **2. La etiqueta vive aqui, con el tramo.** Los nombres estaban en esta tupla y sus etiquetas
+#    escritas a mano en otros dos sitios —el resumen por correo y la bandeja—, asi que anadir el
+#    tramo de arriba **rompio los dos**: el correo con un `KeyError` y la bandeja en silencio,
+#    trayendo el item y no pintandolo. Y **la suite entera seguia en verde**, porque ninguna prueba
+#    tenia una tarea a mas de treinta dias. Con la etiqueta al lado, eso ya no se puede separar.
+TRAMOS = (
+    (None, 0, "vencido", _("Overdue")),
+    (0, 7, "en_7", _("Next 7 days")),
+    (7, 15, "en_15", _("Next 15 days")),
+    (15, 30, "en_30", _("Next 30 days")),
+    (30, None, "mas_adelante", _("Further out")),
+)
+
+#: El nombre de cada tramo, en orden. Para quien solo necesita las claves.
+NOMBRES_DE_TRAMO = tuple(nombre for _d, _h, nombre, _e in TRAMOS)
 
 
 def enlace(ruta: str) -> str:
@@ -84,6 +108,18 @@ def avisar_comentario(comentario) -> list[str]:
     for persona in (observacion.autor, observacion.responsable):
         if persona is None or persona.pk == quien_escribe:
             continue
+        # **La campana va antes que el correo y no depende de él.** Quien no tiene dirección se
+        # enteraba de nada; ahora se entera al entrar. `avisar` ya descarta avisarse a uno mismo.
+        avisos.avisar(
+            destinatario=persona,
+            tipo=Aviso.COMENTARIO,
+            titulo=observacion.titulo,
+            detalle=(comentario.texto or "").strip()[:300],
+            url=f"/documentos/observaciones/{observacion.pk}/",
+            proyecto=str(observacion.proyecto or ""),
+            de_parte_de=comentario.autor,
+            objeto=str(observacion.pk),
+        )
         correo = _destinatario(persona)
         if correo is None:
             logger.warning(
@@ -132,21 +168,19 @@ def avisar_comentario(comentario) -> list[str]:
     return list(destinos)
 
 
-def avisar_asignacion(objeto) -> bool:
+def avisar_asignacion(objeto, *, de_parte_de=None) -> bool:
     """Avisa al responsable de una observacion o de una actividad recien asignada.
 
-    Devuelve `True` si se intento enviar. **Un responsable sin correo no es un error
-    silencioso**: se registra, porque es un aviso que nadie va a recibir y el sistema
-    tiene que poder decir cuantos van asi.
-    """
-    correo = _destinatario(objeto.responsable)
-    if correo is None:
-        logger.warning(
-            "aviso_sin_destinatario",
-            extra={"recipient": str(objeto.responsable), "item_count": 1},
-        )
-        return False
+    **Deja el aviso en la campana siempre, y el correo solo si hay direccion.** Son dos canales y
+    no uno con dos salidas: la campana es inmediata, no cuesta nada y no puede hacer spam porque no
+    sale de la aplicacion; el correo depende de una direccion real y —desde el encargo del
+    usuario— de lo que el coordinador decida. Que una persona sin correo se quede sin enterarse
+    era el defecto: ahora se entera al entrar.
 
+    Devuelve `True` si se intento **enviar el correo**, que es lo que miran quienes ya llamaban a
+    esta funcion. **Un responsable sin correo no es un error silencioso**: se registra, porque es un
+    aviso que nadie va a recibir y el sistema tiene que poder decir cuantos van asi.
+    """
     if isinstance(objeto, Observacion):
         asunto = _("[AeroBim] Observation assigned: %(titulo)s") % {"titulo": objeto.titulo}
         ruta = f"/documentos/observaciones/{objeto.pk}/"
@@ -155,6 +189,26 @@ def avisar_asignacion(objeto) -> bool:
         asunto = _("[AeroBim] Activity assigned: %(titulo)s") % {"titulo": objeto.titulo}
         ruta = f"/documentos/actividades/{objeto.pk}/"
         que = _("activity")
+
+    # La campana primero: no depende de que haya correo ni de que el envio salga bien.
+    avisos.avisar(
+        destinatario=objeto.responsable,
+        tipo=Aviso.ASIGNACION,
+        titulo=objeto.titulo,
+        detalle=_("Due: %(v)s") % {"v": objeto.vence.isoformat()} if objeto.vence else "",
+        url=ruta,
+        proyecto=str(objeto.proyecto or ""),
+        de_parte_de=de_parte_de,
+        objeto=str(objeto.pk),
+    )
+
+    correo = _destinatario(objeto.responsable)
+    if correo is None:
+        logger.warning(
+            "aviso_sin_destinatario",
+            extra={"recipient": str(objeto.responsable), "item_count": 1},
+        )
+        return False
 
     vence = objeto.vence.isoformat() if objeto.vence else _("no due date")
     cuerpo = "\n".join(
@@ -249,7 +303,7 @@ def avisar_transmittal(transmittal) -> tuple[int, list[str]]:
 def pendientes_por_tramo(usuario) -> dict[str, list]:
     """Lo que le queda a alguien, repartido en los tramos del resumen."""
     hoy = timezone.localdate()
-    salida: dict[str, list] = {nombre: [] for _d, _h, nombre in TRAMOS}
+    salida: dict[str, list] = {nombre: [] for nombre in NOMBRES_DE_TRAMO}
 
     abiertas = list(
         Observacion.objects.filter(responsable=usuario)
@@ -265,13 +319,23 @@ def pendientes_por_tramo(usuario) -> dict[str, list]:
 
     for item in abiertas:
         dias = (item.vence - hoy).days
-        for desde, hasta, nombre in TRAMOS:
+        for desde, hasta, nombre, _etiqueta in TRAMOS:
             if desde is None and dias < hasta:
                 salida[nombre].append(item)
                 break
-            if desde is not None and desde <= dias < hasta:
+            if desde is not None and hasta is None and dias >= desde:
                 salida[nombre].append(item)
                 break
+            if desde is not None and hasta is not None and desde <= dias < hasta:
+                salida[nombre].append(item)
+                break
+
+    # **Lo mas viejo primero dentro de lo vencido.** Antes salia en el orden en que se
+    # concatenaron las dos consultas —observaciones por fecha de alta, actividades por
+    # vencimiento— asi que un atraso de tres meses podia quedar debajo de uno de ayer. No piden
+    # lo mismo, y el orden es lo unico que lo dice sin leer las fechas una por una.
+    for nombre in salida:
+        salida[nombre].sort(key=lambda item: item.vence)
     return salida
 
 
@@ -291,20 +355,19 @@ def enviar_resumen(usuario) -> int:
     if total == 0:
         return 0
 
-    etiquetas = {
-        "vencido": _("Overdue"),
-        "en_7": _("Next 7 days"),
-        "en_15": _("Next 15 days"),
-        "en_30": _("Next 30 days"),
-    }
+    hoy = timezone.localdate()
     lineas = [_("What is on your plate in AeroBim."), ""]
-    for _d, _h, nombre in TRAMOS:
+    for _d, _h, nombre, etiqueta in TRAMOS:
         items = tramos[nombre]
         if not items:
             continue
-        lineas.append(f"{etiquetas[nombre]} ({len(items)}):")
+        lineas.append(f"{etiqueta} ({len(items)}):")
         for item in items:
-            lineas.append(f"  · {item.vence.isoformat()}  {item.titulo}  [{item.proyecto}]")
+            # **Lo vencido dice cuánto lleva.** Una fecha sola obliga a restar mentalmente, y en
+            # una lista de diez nadie lo hace: se leen todas igual de urgentes o ninguna.
+            atraso = (hoy - item.vence).days
+            cuanto = f"  ({atraso} d)" if atraso > 0 else ""
+            lineas.append(f"  · {item.vence.isoformat()}  {item.titulo}  [{item.proyecto}]{cuanto}")
         lineas.append("")
     lineas.append(enlace("/"))
 

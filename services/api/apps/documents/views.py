@@ -1860,7 +1860,7 @@ class MiBandejaView(ModelViewPermissionRequiredMixin, TemplateView):
     VISTAS = ("lista", "tablero")
 
     def get_context_data(self, **kwargs):
-        from apps.documents.notify import pendientes_por_tramo
+        from apps.documents.notify import TRAMOS, pendientes_por_tramo
         from apps.documents.tareas import COLUMNAS, como_tareas
 
         contexto = super().get_context_data(**kwargs)
@@ -1871,13 +1871,16 @@ class MiBandejaView(ModelViewPermissionRequiredMixin, TemplateView):
         contexto["vistas"] = self.VISTAS
 
         # La etiqueta se arma acá y no en la plantilla: un diccionario recorrido en una
-        # plantilla de Django no puede traducir su clave, y una lista de `if` con los
-        # cuatro nombres es la lista que se separa del código en el primer cambio.
+        # plantilla de Django no puede traducir su clave.
+        #
+        # **Y sale de `TRAMOS`, no escrita a mano.** Estaban los cuatro nombres enumerados aquí, y
+        # el día que se añadió un quinto tramo esta pantalla **dejó de pintarlo en silencio**: la
+        # consulta lo traía y la lista no lo nombraba. Con la suite entera en verde, porque ninguna
+        # prueba tenía una tarea a más de treinta días. Es el mismo defecto que este bloque venía a
+        # arreglar, un piso más arriba.
         contexto["tramos_etiquetados"] = [
-            (_("Overdue"), como_tareas(tramos["vencido"]), True),
-            (_("Next 7 days"), como_tareas(tramos["en_7"]), False),
-            (_("Next 15 days"), como_tareas(tramos["en_15"]), False),
-            (_("Next 30 days"), como_tareas(tramos["en_30"]), False),
+            (etiqueta, como_tareas(tramos[nombre]), nombre == "vencido")
+            for _d, _h, nombre, etiqueta in TRAMOS
         ]
 
         # **El tablero se arma de la misma lista de tareas, no de otra consulta.** Es lo que hace

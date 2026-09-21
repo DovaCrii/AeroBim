@@ -120,8 +120,13 @@
 
       {% if mis_mas_alla %}
         <p class="subtitulo">
-          {% blocktranslate count total=mis_mas_alla %}And one more due within the
-          month.{% plural %}And {{ total }} more due within the month.{% endblocktranslate %}
+          {% comment %}
+            Decía «dentro del mes» y contaba solo dos tramos. Al aparecer uno para lo que vence más
+            allá de treinta días, la frase pasó a ser falsa **y** la cuenta dejó de cuadrar con el
+            total. Ahora dice lo que cuenta: lo que queda, sin prometer plazo.
+          {% endcomment %}
+          {% blocktranslate count total=mis_mas_alla %}And one more further
+          out.{% plural %}And {{ total }} more further out.{% endblocktranslate %}
           <a href="{% url 'documents:bandeja' %}">{% translate "Everything pending" %}</a>
         </p>
       {% endif %}

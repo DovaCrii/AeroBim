@@ -133,8 +133,13 @@ def test_ninguna_plantilla_escupe_un_comentario_a_medias():
 def test_las_plantillas_no_pintan_la_fraccion_a_mano():
     """**El guardian, porque el defecto vuelve escribiendo una plantilla nueva.**
 
-    Lo que se prohibe es `avance_fisico` en una plantilla, entera: es la fraccion, y ninguna
-    pantalla quiere ensenar `0.75`. Quien necesite el porcentaje tiene `avance_pct` al lado.
+    Lo que se prohibe es **cualquier fraccion de avance** en una plantilla: `avance_fisico` del
+    proyecto y `avance` del entregable. Ninguna pantalla quiere ensenar `0.75`, y quien necesite el
+    porcentaje tiene `avance_pct` al lado en los dos modelos.
+
+    **Y el segundo se anadio despues de encontrarlo en pantalla**, no leyendo: la bandeja pintaba
+    `entregable.avance|floatformat` bajo una columna llamada «Avance», o sea «0.55» donde el resto
+    de la aplicacion dice «55%». El guardian solo miraba `avance_fisico` y lo dejo pasar.
 
     **Y se mira la linea completa, no solo `{{ }}`.** La primera version de este guardian buscaba
     `\\{\\{[^}]*avance_fisico` y **paso en verde sobre la plantilla que tenia el defecto**: la ficha
@@ -150,7 +155,8 @@ def test_las_plantillas_no_pintan_la_fraccion_a_mano():
         f"{ruta.relative_to(plantillas)}:{n}"
         for ruta in plantillas.rglob("*.html")
         for n, linea in enumerate(ruta.read_text(encoding="utf-8").splitlines(), 1)
-        if re.search(r"avance_fisico", linea)
+        # `avance_fisico` en cualquier forma, y `.avance` cuando **no** es `.avance_pct`.
+        if re.search(r"avance_fisico|\.avance(?!_pct)\b", linea)
     ]
 
     assert not culpables, (

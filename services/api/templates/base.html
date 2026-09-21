@@ -96,6 +96,22 @@
         ☾
       </button>
       {% if user.is_authenticated %}
+        {% comment %}
+          **La campana, que es el encargo entero de este bloque.** Hasta hoy el único aviso era un
+          correo de texto plano: sin contador, sin distintivo, sin nada dentro de la aplicación. El
+          usuario lo dijo — «el mensaje es plano y no causa una alerta visible».
+
+          **El distintivo rojo sale solo si hay algo sin leer.** Es lo que hacen Autodesk y Trimble
+          y es la única forma de que signifique algo: un punto que está siempre deja de mirarse a
+          la semana. Y el número va **también en el nombre accesible**, no solo pintado: un lector
+          de pantalla tiene que poder decir cuántos hay.
+        {% endcomment %}
+        <a class="campana{% if avisos_sin_leer %} campana-con-algo{% endif %}"
+           href="{% url 'core:avisos' %}"
+           aria-label="{% blocktranslate count n=avisos_sin_leer %}Notices · {{ n }} unread{% plural %}Notices · {{ n }} unread{% endblocktranslate %}">
+          <svg class="icono-en-linea" aria-hidden="true"><use href="#i-campana"></use></svg>
+          {% if avisos_sin_leer %}<span class="campana-cifra" aria-hidden="true">{{ avisos_sin_leer }}</span>{% endif %}
+        </a>
         <span>{{ user.get_username }}</span>
         {% comment %}
           **La ayuda va en la barra y no solo en el portal.** `F11.7`: se busca desde la pantalla en

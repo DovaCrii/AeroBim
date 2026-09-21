@@ -30,10 +30,22 @@
       cargó; «sin fecha» es un dato, y además el que hay que arreglar: sin fecha, esta tarea no está
       en la bandeja de nadie (`pendientes_por_tramo` filtra por `vence`).
     {% endcomment %}
+    {% comment %}
+      **Lo vencido dice cuánto lleva, no solo que lo está.** Antes salía la fecha en rojo y ahí se
+      acababa: un atraso de tres meses y uno de ayer se veían idénticos, y en una lista de treinta
+      no había por dónde empezar. Ahora la fila lleva los días y el grado —`leve`, `serio`,
+      `grave`— que cambia el peso de la letra además del color, porque quien no distingue rojos
+      tiene que poder distinguir esto igual.
+    {% endcomment %}
     {% if tarea.vence %}
-      <span class="tarea-vence{% if tarea.vencida %} tarea-vencida{% endif %}">
-        {{ tarea.vence|date:"j M" }}
-      </span>
+      {% if tarea.vencida %}
+        <span class="tarea-vence tarea-vencida atraso-{{ tarea.gravedad }}"
+              title="{{ tarea.vence|date:'j M Y' }}">
+          {% blocktranslate count dias=tarea.dias_de_atraso %}{{ dias }} day late{% plural %}{{ dias }} days late{% endblocktranslate %}
+        </span>
+      {% else %}
+        <span class="tarea-vence">{{ tarea.vence|date:"j M" }}</span>
+      {% endif %}
     {% else %}
       <span class="tarea-vence tarea-sin-fecha">{% translate "no date" %}</span>
     {% endif %}

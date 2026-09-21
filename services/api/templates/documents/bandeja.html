@@ -115,7 +115,11 @@
               {{ entregable.revision_vigente.correlativo|default:"—" }}
               {{ entregable.revision_vigente.idoneidad|default:"" }}
             </td>
-            <td>{{ entregable.avance|floatformat:"-2" }}</td>
+            {% comment %}
+              Salía «0.55» bajo una columna llamada «Avance», mientras el resto de la aplicación
+              dice «55%». Una escala por dato. Ver `entregables.html`.
+            {% endcomment %}
+            <td>{{ entregable.avance_pct }}%</td>
           </tr>
         {% empty %}
           <tr>
