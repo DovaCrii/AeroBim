@@ -40,7 +40,20 @@ def navegacion(request):
     def calcular():
         return por_grupo(modulos_para(usuario))
 
+    def pendientes():
+        """El número del distintivo de la campana.
+
+        **Va aquí y no en cada vista por el mismo motivo que el rail**: la barra la pinta
+        `base.html` y la extienden treinta y tantas plantillas. Y va perezoso por el mismo motivo
+        que lo de arriba: una descarga de archivo no tiene que pagar una consulta para un contador
+        que nadie va a ver. Es un `count()` con índice por (destinatario, leído).
+        """
+        from apps.core.avisos import cuantos_sin_leer
+
+        return cuantos_sin_leer(usuario)
+
     return {
         "grupos_de_navegacion": SimpleLazyObject(calcular),
         "modulo_activo": SimpleLazyObject(lambda: activo(request)),
+        "avisos_sin_leer": SimpleLazyObject(pendientes),
     }

@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block titulo %}{% translate "Notices" %} · AeroBim{% endblock %}
+
+{% block titulo_pagina %}<h1>{% translate "Notices" %}</h1>{% endblock %}
+
+{% block subtitulo %}
+<p class="subtitulo">
+  {% translate "What happened while you were somewhere else. Opening one marks it read." %}
+</p>
+{% endblock %}
+
+{% block contenido %}
+  {% comment %}
+    **Lo pendiente arriba y lo leído debajo, en la misma página.**
+
+    Separarlos en dos pantallas obligaría a recordar dónde se vio algo, que es justo lo que uno no
+    recuerda cuando busca un aviso de hace tres días. Y lo leído no se esconde: la pregunta «¿me
+    avisaron de esto?» se hace **después** de leerlo.
+
+    Abrir un aviso lo marca leído y lleva al objeto, en un solo clic. Un paso intermedio de
+    «marcar» aparte es como se acumulan cien sin leer y el contador deja de significar nada.
+  {% endcomment %}
+
+  {% if pendientes %}
+    <section class="bloque">
+      <h2 class="grupo">
+        {% blocktranslate count n=pendientes|length %}{{ n }} unread{% plural %}{{ n }} unread{% endblocktranslate %}
+      </h2>
+      <ol class="tareas">
+        {% for aviso in pendientes %}
+          <li class="tarea aviso-sin-leer">
+            <span class="pildora">{{ aviso.get_tipo_display }}</span>
+            <a class="tarea-titulo" href="{% url 'core:abrir-aviso' aviso.pk %}">{{ aviso.titulo }}</a>
+            <span class="tarea-datos">
+              {% if aviso.proyecto %}<span class="ficha">{{ aviso.proyecto }}</span>{% endif %}
+              {% if aviso.detalle %}<span class="detalle">{{ aviso.detalle|truncatechars:90 }}</span>{% endif %}
+              <span class="tarea-vence">{{ aviso.created_at|date:"j M H:i" }}</span>
+            </span>
+          </li>
+        {% endfor %}
+      </ol>
+      <form class="accion" method="post" action="{% url 'core:marcar-avisos-leidos' %}">
+        {% csrf_token %}
+        <button type="submit" class="secundario">{% translate "Mark everything as read" %}</button>
+      </form>
+    </section>
+  {% else %}
+    <div class="vacio">
+      <svg class="icono-en-linea" aria-hidden="true"><use href="#i-listo"></use></svg>
+      {% translate "Nothing unread." %}
+    </div>
+  {% endif %}
+
+  {% if leidos %}
+    <section class="bloque">
+      <h2 class="grupo">{% translate "Already read" %}</h2>
+      <ol class="tareas">
+        {% for aviso in leidos %}
+          <li class="tarea">
+            <span class="pildora">{{ aviso.get_tipo_display }}</span>
+            <a class="tarea-titulo" href="{% url 'core:abrir-aviso' aviso.pk %}">{{ aviso.titulo }}</a>
+            <span class="tarea-datos">
+              {% if aviso.proyecto %}<span class="ficha">{{ aviso.proyecto }}</span>{% endif %}
+              <span class="tarea-vence">{{ aviso.created_at|date:"j M H:i" }}</span>
+            </span>
+          </li>
+        {% endfor %}
+      </ol>
+    </section>
+  {% endif %}
+{% endblock %}

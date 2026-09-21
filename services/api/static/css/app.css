@@ -736,6 +736,75 @@ main {
   font-weight: 600;
 }
 
+/*
+ * --- La campana de la barra ---------------------------------------------------------------
+ *
+ * **El distintivo solo aparece si hay algo**, y esa es la decisión que lo hace servir de algo: un
+ * punto que está siempre deja de mirarse en una semana. Es lo que hacen Autodesk y Trimble — el
+ * distintivo rojo va a quien tiene que actuar, no a quien está en copia.
+ *
+ * La cifra va **pegada al icono y no dentro**: dentro obligaría a un contorno para que se leyera
+ * sobre el trazo, y a partir de dos cifras no cabe.
+ */
+.campana {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px;
+  border-radius: var(--ab-radio-sm);
+}
+
+.campana-cifra {
+  position: absolute;
+  top: -2px;
+  right: -4px;
+  min-width: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--ab-danger);
+  color: var(--ab-sobre-danger);
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+}
+
+/*
+ * --- Los tres grados de atraso -----------------------------------------------------------
+ *
+ * **Con un solo rojo, una tarea de tres meses y una de ayer se ven igual.** El usuario lo dijo:
+ * «queda el seguimiento pero el aviso no es claro». Lo que faltaba no era color, era **orden**: en
+ * una lista de treinta atrasos, todo del mismo tono no dice por dónde empezar.
+ *
+ * | Grado   | Cuánto lleva | Qué se ve                                  |
+ * | ------- | ------------ | ------------------------------------------ |
+ * | `leve`  | 1-7 días     | rojo, sin fondo: está fuera de plazo        |
+ * | `serio` | 8-30 días    | rojo con fondo: ya no es un despiste        |
+ * | `grave` | +30 días     | rojo con fondo y borde: esto no va a salir solo |
+ *
+ * **Y los tres cambian de peso, no solo de color.** Es la misma regla que ya defiende `.tarea-
+ * vencida` doce líneas más arriba: el color solo no lo distingue quien no distingue rojos, y en
+ * una lista impresa en gris no queda nada. El fondo y el borde son la señal redundante.
+ */
+.atraso-leve {
+  font-weight: 600;
+}
+
+.atraso-serio {
+  font-weight: 700;
+  padding: 0 6px;
+  border-radius: var(--ab-radio-sm);
+  background: color-mix(in srgb, var(--ab-danger) 14%, transparent);
+}
+
+.atraso-grave {
+  font-weight: 700;
+  padding: 0 6px;
+  border-radius: var(--ab-radio-sm);
+  background: color-mix(in srgb, var(--ab-danger) 22%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ab-danger) 55%, transparent);
+}
+
 .tarea-sin-fecha {
   color: var(--ab-text-muted);
   font-style: italic;

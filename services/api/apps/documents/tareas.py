@@ -94,6 +94,39 @@ class Tarea:
 
         return self.vence is not None and self.vence < timezone.localdate()
 
+    @property
+    def dias_de_atraso(self) -> int:
+        """Cuantos dias lleva vencida. `0` si no lo esta.
+
+        **La cifra que no estaba en ninguna pantalla.** Lo vencido se pintaba en rojo y en negrita,
+        y ahi se acababa: una tarea de hace tres meses y una de ayer se veian **exactamente igual**.
+        El usuario lo dijo: *«queda el seguimiento pero el aviso no es claro»*.
+        """
+        from django.utils import timezone
+
+        if not self.vencida:
+            return 0
+        return (timezone.localdate() - self.vence).days
+
+    @property
+    def gravedad(self) -> str:
+        """`leve`, `serio` o `grave` — o cadena vacia si no esta vencida.
+
+        **Tres grados y no uno**, porque el color solo no ordena: con todo lo vencido del mismo
+        rojo, una lista de treinta atrasos no dice por donde empezar. Los cortes son 7 y 30 dias,
+        los mismos que ya usan los tramos, para no inventar una segunda escala.
+
+        Se devuelve el nombre y no el color: la hoja de estilo decide como se ve, y ademas cada
+        grado cambia **tambien el peso de la letra**, que es la regla que ya defiende `app.css`
+        para lo vencido — quien no distingue rojos tiene que poder distinguir esto.
+        """
+        dias = self.dias_de_atraso
+        if dias <= 0:
+            return ""
+        if dias <= 7:
+            return "leve"
+        return "serio" if dias <= 30 else "grave"
+
 
 def como_tarea(item: Observacion | Actividad) -> Tarea:
     """Traduce un hallazgo o una actividad a la fila que las dos pantallas pintan."""

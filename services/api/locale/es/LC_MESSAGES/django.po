@@ -4177,6 +4177,78 @@ msgstr ""
 "Avance por disciplina, qué está vencido y desde cuándo, y quién tiene trabajo "
 "por delante. Para quien no va a la reunión de coordinación."
 
+#: .\apps\documents\notify.py:43
+msgid "Further out"
+msgstr "Más adelante"
+
+#: .\apps\core\models.py:281
+msgid "Assigned to you"
+msgstr "Te lo asignaron"
+
+#: .\apps\core\models.py:282
+msgid "New reply"
+msgstr "Nueva respuesta"
+
+#: .\apps\core\models.py:284
+msgid "Documents issued"
+msgstr "Documentos emitidos"
+
+#: .\apps\core\models.py:320
+msgid "notice"
+msgstr "aviso"
+
+#: .\apps\core\models.py:321
+msgid "notices"
+msgstr "avisos"
+
+#: .\templates\core\avisos.html:6
+msgid "Notices"
+msgstr "Avisos"
+
+#: .\templates\core\avisos.html:12
+msgid "What happened while you were somewhere else. Opening one marks it read."
+msgstr "Lo que pasó mientras estabas en otra parte. Abrir uno lo marca como leído."
+
+#: .\templates\core\avisos.html:31
+#, python-format
+msgid "%(n)s unread"
+msgid_plural "%(n)s unread"
+msgstr[0] "%(n)s sin leer"
+msgstr[1] "%(n)s sin leer"
+
+#: .\templates\core\avisos.html:48
+msgid "Mark everything as read"
+msgstr "Marcar todo como leído"
+
+#: .\templates\core\avisos.html:54
+msgid "Nothing unread."
+msgstr "Nada sin leer."
+
+#: .\templates\core\avisos.html:60
+msgid "Already read"
+msgstr "Ya leídos"
+
+#: .\templates\base.html:110
+#, python-format
+msgid "Notices · %(n)s unread"
+msgid_plural "Notices · %(n)s unread"
+msgstr[0] "Avisos · %(n)s sin leer"
+msgstr[1] "Avisos · %(n)s sin leer"
+
+#: .\templates\generic\_fila_tarea.html:41
+#, python-format
+msgid "%(dias)s day late"
+msgid_plural "%(dias)s days late"
+msgstr[0] "%(dias)s día de atraso"
+msgstr[1] "%(dias)s días de atraso"
+
+#: .\templates\accounts\portal.html:128
+#, python-format
+msgid "And one more further out."
+msgid_plural "And %(total)s more further out."
+msgstr[0] "Y una más, más adelante."
+msgstr[1] "Y %(total)s más, más adelante."
+
 #: .\apps\documents\codificacion.py:77
 msgid "3D model"
 msgstr "Modelo 3D"

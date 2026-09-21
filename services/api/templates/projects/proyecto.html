@@ -481,7 +481,8 @@
             {{ entregable.revision_vigente.idoneidad|default:"" }}
           </td>
           <td>{{ entregable.cuantas_abiertas }}</td>
-          <td>{{ entregable.avance|floatformat:"-2" }}</td>
+          {# En porcentaje, como el resto: aquí salía «0.55». Ver `entregables.html`. #}
+          <td>{{ entregable.avance_pct }}%</td>
         </tr>
       {% empty %}
         <tr>

@@ -68,8 +68,15 @@
           <td>{{ entregable.responsable }}</td>
           <td>{{ entregable.revision_vigente.correlativo|default:"—" }}</td>
           <td>{{ entregable.revision_vigente.idoneidad|default:"—" }}</td>
-          {# El avance sale del codigo de idoneidad, no de un numero teclado. #}
-          <td>{{ entregable.avance|floatformat:"-2" }}</td>
+          {% comment %}
+            El avance sale del código de idoneidad, no de un número tecleado.
+
+            **Y va en porcentaje.** Ponía `avance|floatformat` y salía «0.55» bajo una columna que
+            se llama «Avance», mientras el resto de la aplicación dice «55%». Estaba igual en tres
+            pantallas —ésta, la bandeja y la ficha de la obra— y lo encontró el guardián de
+            `test_el_avance_se_pinta.py`, no una mirada.
+          {% endcomment %}
+          <td>{{ entregable.avance_pct }}%</td>
         </tr>
       {% empty %}
         <tr>

@@ -215,11 +215,18 @@ def test_los_entregables_siguen_siendo_una_tabla(client, quien, entregable):
 
 
 @pytest.mark.django_db
-def test_la_lista_sigue_partida_en_los_cuatro_tramos_del_resumen(client, quien):
+def test_la_lista_sigue_partida_en_los_mismos_tramos_del_resumen(client, quien):
     """Es la misma división que usa el correo, y hay una prueba en `notify` que lo exige.
 
-    Cuatro tramos y no dos: lo vencido y lo que vence en un mes piden reacciones distintas.
+    Varios tramos y no dos: lo vencido y lo que vence en un mes piden reacciones distintas.
+
+    **La cuenta sale de `TRAMOS` y ya no es un `4` escrito aquí.** Cuando se añadió el tramo de lo
+    que vence a más de treinta días, esta pantalla dejó de pintarlo —traía el ítem y no lo
+    nombraba— y esta prueba fue **la única** que lo delató, fallando por un número. Atada al origen,
+    delata la desincronización en vez del recuento.
     """
+    from apps.documents.notify import TRAMOS
+
     respuesta = client.get(reverse(RUTA))
 
-    assert len(respuesta.context["tramos_etiquetados"]) == 4
+    assert len(respuesta.context["tramos_etiquetados"]) == len(TRAMOS)
