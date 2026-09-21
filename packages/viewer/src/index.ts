@@ -5189,7 +5189,9 @@ export class BimViewer {
    * que es lo mismo que se escribe en el DXF: así el PDF y el DXF dibujan el mismo plano. Se
    * recorren las capas encendidas, porque el papel tiene que decir lo mismo que la pantalla.
    */
-  sheetOf(id: string): { nombre: string; segmentos: number[][]; textos: unknown[][] } | null {
+  sheetOf(
+    id: string,
+  ): { nombre: string; segmentos: number[][]; textos: unknown[][]; recortada: boolean } | null {
     this.assertAlive();
     return this.drawings.sheet(id);
   }
