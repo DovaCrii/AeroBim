@@ -207,10 +207,15 @@ class EditarCuentaForm(forms.Form):
         label=_("Email"),
         help_text=_("Where the notifications go. A real address, or they will never arrive."),
     )
-    organizacion = forms.ModelChoiceField(
-        label=_("Organisation"),
+    # **De seleccion multiple, y la clave `organizacion` se queda en singular a proposito.** El
+    # modelo siempre permitio varias —`Membresia` tiene unicidad **del par** (organizacion,
+    # usuario)— y era esta pantalla la que no sabia representarlo. Conservar el nombre del campo es
+    # lo que deja que un envio con un solo valor siga valiendo: Django lo lee como lista de uno.
+    organizacion = forms.ModelMultipleChoiceField(
+        label=_("Organisations"),
         queryset=Organizacion.objects.none(),
-        help_text=_("What this person will be able to see. Nothing outside it."),
+        help_text=_("What this person will be able to see. Nothing outside them."),
+        widget=forms.CheckboxSelectMultiple,
     )
     rol = forms.ChoiceField(label=_("Role"), choices=[])
 
@@ -233,9 +238,17 @@ class EditarCuentaForm(forms.Form):
             self.initial.setdefault("nombre", cuenta.first_name)
             self.initial.setdefault("apellido", cuenta.last_name)
             self.initial.setdefault("correo", cuenta.email)
-            actual = cuenta.organizaciones.first()
-            if actual is not None:
-                self.initial.setdefault("organizacion", actual.pk)
+            # **Solo las que quien edita alcanza.** Las demas no se ofrecen ni se marcan: si se
+            # marcaran, el diferencial creeria que las esta gestionando, y guardar sin tocar nada
+            # las dejaria intactas por casualidad y no por decision.
+            self.initial.setdefault(
+                "organizacion",
+                list(
+                    cuenta.organizaciones.filter(
+                        pk__in=self.fields["organizacion"].queryset.values("pk")
+                    ).values_list("pk", flat=True)
+                ),
+            )
             grupo = cuenta.groups.filter(name__in=ASIGNABLES).first()
             if grupo is not None:
                 self.initial.setdefault("rol", grupo.name)
@@ -282,11 +295,32 @@ class EditarCuentaForm(forms.Form):
                 cuenta.groups.add(Group.objects.get(name=rol))
                 cambios.append(str(_("role")))
 
-            organizacion = self.cleaned_data["organizacion"]
-            if not cuenta.organizaciones.filter(pk=organizacion.pk).exists():
-                # Borrar y crear, no `update`: `Membresia` lleva su propia restricción de unicidad
-                # y su `rol` interno, y moverla a mano dejaría el estado a medias si algo falla.
-                Membresia.objects.filter(usuario=cuenta).delete()
-                Membresia.objects.create(organizacion=organizacion, usuario=cuenta)
+            # ══════════════════════════════════════════════════════════════════════════════
+            # **Un diferencial acotado, no un borrar y crear.**
+            #
+            # Esto era `Membresia.objects.filter(usuario=cuenta).delete()` y una sola alta. El
+            # `filter` **no llevaba `organizacion`**, así que se llevaba todas — incluidas las de
+            # empresas que quien edita ni ve, porque el desplegable va acotado a las suyas.
+            #
+            # Y lo que quedaba no se parecía a un error: la persona entra, pasa el login, pasa los
+            # permisos, y **ve todas las listas vacías sin un solo mensaje**. La trampa nº 1 de
+            # `docs/PILOTO.md`, provocada desde la pantalla que corrige un apellido.
+            #
+            # Se gestiona **solo lo que quien edita alcanza**. Lo de fuera no se toca: no se puede
+            # decidir sobre lo que no se puede ver.
+            # ══════════════════════════════════════════════════════════════════════════════
+            alcance = set(self.fields["organizacion"].queryset.values_list("pk", flat=True))
+            elegidas = {organizacion.pk for organizacion in self.cleaned_data["organizacion"]}
+            actuales = set(
+                cuenta.organizaciones.filter(pk__in=alcance).values_list("pk", flat=True)
+            )
+
+            sobran = actuales - elegidas
+            faltan = elegidas - actuales
+            if sobran:
+                Membresia.objects.filter(usuario=cuenta, organizacion__in=sobran).delete()
+            for pk in faltan:
+                Membresia.objects.create(organizacion_id=pk, usuario=cuenta)
+            if sobran or faltan:
                 cambios.append(str(_("organisation")))
         return cambios

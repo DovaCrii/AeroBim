@@ -64,8 +64,12 @@ msgstr "A dónde llegan los avisos. Una dirección real, o no llegarán nunca."
 msgid "Organisation"
 msgstr "Organización"
 
-#: .\apps\accounts\forms.py:114 .\apps\accounts\forms.py:213
+#: .\apps\accounts\forms.py:114
 msgid "What this person will be able to see. Nothing outside it."
+msgstr "Lo que esta persona podrá ver. Nada de fuera."
+
+#: .\apps\accounts\forms.py:216
+msgid "What this person will be able to see. Nothing outside them."
 msgstr "Lo que esta persona podrá ver. Nada de fuera."
 
 #: .\apps\accounts\forms.py:116 .\apps\accounts\forms.py:215
