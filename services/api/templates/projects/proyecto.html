@@ -337,6 +337,26 @@
         {% translate "The PDF is what you print and file. The CSV is the editable half: it opens in a spreadsheet, no need to ask for anything else." %}
       </span>
     </form>
+
+    {% comment %}
+      **El de una hoja va aparte, y no como una opción más del formulario de arriba.**
+
+      No es el informe de coordinación con menos cosas: contesta otra pregunta. El de arriba dice
+      «qué hay» —cada hallazgo, su hilo y su foto, seis o siete folios— y es el papel de la reunión
+      técnica. Éste dice «cómo va y qué decido esta semana», que es lo que pregunta quien no va a esa
+      reunión.
+
+      Y **sin opciones a propósito**: un resumen ejecutivo configurable deja de ser comparable entre
+      dos meses, que es justo para lo que sirve.
+    {% endcomment %}
+    <p class="accion">
+      <a class="boton secundario" href="{% url 'documents:resumen-ejecutivo' proyecto.pk %}">
+        {% translate "Executive summary, one page" %}
+      </a>
+      <span class="detalle">
+        {% translate "Progress by discipline, what is overdue and for how long, and who has work ahead. For whoever does not come to the coordination meeting." %}
+      </span>
+    </p>
     </section>
   {% endif %}
   {% if puede_importar_bcf %}

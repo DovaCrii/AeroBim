@@ -89,6 +89,13 @@ urlpatterns = [
         views.InformeCoordinacionView.as_view(),
         name="informe-coordinacion",
     ),
+    # El de una hoja, para quien no va a la reunión técnica. Sin opciones a propósito: un resumen
+    # ejecutivo configurable deja de ser comparable entre dos meses.
+    path(
+        "proyectos/<uuid:pk>/resumen/",
+        views.ResumenEjecutivoView.as_view(),
+        name="resumen-ejecutivo",
+    ),
     path(
         "proyectos/<uuid:pk>/lamina/",
         views.LaminaPdfView.as_view(),
