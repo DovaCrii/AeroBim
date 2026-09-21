@@ -333,7 +333,12 @@ def usuarios_visibles(quien):
     from apps.core.models import Membresia
     from apps.core.tenancy import organizaciones_visibles
 
-    consulta = get_user_model().objects.prefetch_related("groups").order_by("username")
+    # **`organizaciones` va en la precarga, y no es un adorno.** La pantalla ahora enseña a qué
+    # empresa pertenece cada persona —es el dato que hace falta antes de mover a nadie— y sin esto
+    # sería una consulta por fila, que es como una lista de cuarenta cuentas empieza a tardar.
+    consulta = (
+        get_user_model().objects.prefetch_related("groups", "organizaciones").order_by("username")
+    )
     if quien.is_superuser:
         return consulta
     ids = organizaciones_visibles(quien)
@@ -457,12 +462,14 @@ class OrganizacionesView(ModelViewPermissionRequiredMixin, TemplateView):
     model = Organizacion
 
     def get_context_data(self, **kwargs):
+        from apps.accounts.vistas_organizacion import con_cuantos
         from apps.core.tenancy import organizaciones_de
 
         contexto = super().get_context_data(**kwargs)
-        contexto["organizaciones"] = organizaciones_de(self.request.user).prefetch_related(
-            "miembros"
-        )
+        # **Las cifras se anotan, no se cuentan en la plantilla.** `organizacion.miembros.count`
+        # es una consulta por fila; con tres es invisible y con treinta es lo que hace que la
+        # lista tarde. Y ahora son dos cifras, no una: cuánta gente y cuántas obras.
+        contexto["organizaciones"] = con_cuantos(organizaciones_de(self.request.user))
         # El botón de crear solo para quien puede: enseñarlo a quien recibiría un 403 al pulsarlo
         # es peor que no enseñarlo — promete algo y luego lo niega sin decir por qué.
         contexto["puede_crear"] = self.request.user.has_perm("core.add_organizacion")

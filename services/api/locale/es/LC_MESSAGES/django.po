@@ -4181,6 +4181,130 @@ msgstr ""
 msgid "Further out"
 msgstr "Más adelante"
 
+#: .\templates\accounts\organizacion.html:24
+msgid "Who is in"
+msgstr "Quién está dentro"
+
+#: .\templates\accounts\organizacion.html:29
+msgid "Person"
+msgstr "Persona"
+
+#: .\templates\accounts\organizacion.html:47
+msgid "Take out"
+msgstr "Sacar"
+
+#: .\templates\accounts\organizacion.html:62
+msgid "Nobody is in this organisation."
+msgstr "No hay nadie en esta organización."
+
+#: .\templates\accounts\organizacion.html:70
+msgid "Bring somebody in"
+msgstr "Meter a alguien"
+
+#: .\templates\accounts\organizacion.html:78
+msgid "Add"
+msgstr "Añadir"
+
+#: .\templates\accounts\organizacion.html:85
+msgid "Its works"
+msgstr "Sus obras"
+
+#: .\templates\accounts\organizacion.html:111
+msgid "If this organisation is no longer used"
+msgstr "Si esta organización ya no se usa"
+
+#: .\templates\accounts\organizacion.html:113
+msgid ""
+"It can only be deleted when it is empty: no works and nobody inside.\n"
+"        The works are moved or archived first, and the people moved to "
+"another\n"
+"        organisation."
+msgstr ""
+"Solo se puede borrar cuando está vacía: sin obras y sin nadie dentro. "
+"Primero se mueven o archivan las obras, y se mueve a la gente a otra "
+"organización."
+
+#: .\templates\accounts\organizacion.html:119
+msgid "Delete this organisation…"
+msgstr "Borrar esta organización…"
+
+#: .\templates\accounts\borrar_organizacion.html:26
+msgid "This organisation is not empty. Nothing can be deleted while it holds:"
+msgstr "Esta organización no está vacía. No se puede borrar mientras contenga:"
+
+#: .\templates\accounts\borrar_organizacion.html:32
+msgid ""
+"Archive or move its works first, and move its people to another\n"
+"      organisation. Taking somebody out of their last organisation is "
+"refused on purpose: they would\n"
+"      keep signing in and see everything empty."
+msgstr ""
+"Primero archiva o mueve sus obras, y mueve a su gente a otra organización. "
+"Sacar a alguien de su última organización se rechaza a propósito: seguiría "
+"entrando y vería todo vacío."
+
+#: .\templates\accounts\borrar_organizacion.html:41
+#, python-format
+msgid ""
+"«%(nombre)s» is empty: no works and\n"
+"      nobody inside. Deleting it cannot be undone."
+msgstr ""
+"«%(nombre)s» está vacía: sin obras y sin nadie dentro. Borrarla no se puede "
+"deshacer."
+
+#: .\apps\accounts\vistas_organizacion.py:118
+#, python-format
+msgid ""
+"%(quien)s would be left without any organisation, and would see every list "
+"empty with no explanation. Move them to another one, or deactivate the "
+"account."
+msgstr ""
+"%(quien)s se quedaría sin ninguna organización, y vería todas las listas "
+"vacías sin ninguna explicación. Muévela a otra, o desactiva la cuenta."
+
+#: .\apps\accounts\vistas_organizacion.py:129
+msgid "Removed from this organisation."
+msgstr "Sacada de esta organización."
+
+#: .\apps\accounts\vistas_organizacion.py:134
+msgid "Added to this organisation."
+msgstr "Añadida a esta organización."
+
+#: .\apps\accounts\vistas_organizacion.py:159
+msgid "one work"
+msgstr "una obra"
+
+#: .\apps\accounts\vistas_organizacion.py:159
+#, python-format
+msgid "%(n)s works"
+msgstr "%(n)s obras"
+
+#: .\apps\accounts\vistas_organizacion.py:161
+msgid "one person"
+msgstr "una persona"
+
+#: .\apps\accounts\vistas_organizacion.py:161
+#, python-format
+msgid "%(n)s people"
+msgstr "%(n)s personas"
+
+#: .\apps\accounts\vistas_organizacion.py:180
+msgid "It is not empty any more: nothing was deleted."
+msgstr "Ya no está vacía: no se borró nada."
+
+#: .\apps\accounts\vistas_organizacion.py:187
+#, python-format
+msgid "«%(nombre)s» deleted."
+msgstr "«%(nombre)s» borrada."
+
+#: .\templates\accounts\usuarios_roles.html:80
+msgid "No organisation"
+msgstr "Sin organización"
+
+#: .\templates\accounts\organizaciones.html:36
+msgid "Works"
+msgstr "Obras"
+
 #: .\apps\documents\tareas.py:157
 msgid "Replan or hand over"
 msgstr "Replanificar o pasarlo"

@@ -64,6 +64,7 @@
         <th scope="col">{% translate "Username" %}</th>
         <th scope="col">{% translate "Name" %}</th>
         <th scope="col">{% translate "Email" %}</th>
+        <th scope="col">{% translate "Organisation" %}</th>
         <th scope="col">{% translate "Roles" %}</th>
         <th scope="col">{% translate "Status" %}</th>
         {% if puede_crear %}<th scope="col">{% translate "Password" %}</th>{% endif %}
@@ -76,6 +77,23 @@
           <td>{{ usuario.username }}</td>
           <td>{{ usuario.get_full_name|default:"—" }}</td>
           <td>{{ usuario.email|default:"—" }}</td>
+          {% comment %}
+            **La columna que faltaba para poder mover a nadie.** Esta pantalla no decía a qué
+            empresa pertenece cada persona, así que para decidir un traslado había que abrir la
+            ficha de cada organización y cruzarlo a mano.
+
+            Y «sin organización» se dice, no se deja en blanco: esa persona entra perfectamente y
+            **ve todas las listas vacías sin un solo mensaje** — la trampa número uno de
+            `docs/PILOTO.md`. Un hueco se lee como un dato que falta; esto es un dato que hay que
+            arreglar.
+          {% endcomment %}
+          <td>
+            {% for organizacion in usuario.organizaciones.all %}
+              <a href="{% url 'core:organizacion' organizacion.pk %}">{{ organizacion.nombre }}</a>{% if not forloop.last %}, {% endif %}
+            {% empty %}
+              <span class="distintivo aviso">{% translate "No organisation" %}</span>
+            {% endfor %}
+          </td>
           <td>{{ usuario.roles }}</td>
           <td>
             {% comment %}
