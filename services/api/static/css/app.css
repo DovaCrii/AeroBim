@@ -786,6 +786,34 @@ main {
  * vencida` doce líneas más arriba: el color solo no lo distingue quien no distingue rojos, y en
  * una lista impresa en gris no queda nada. El fondo y el borde son la señal redundante.
  */
+/*
+ * --- Qué hacer con lo atrasado ------------------------------------------------------------
+ *
+ * **Solo aparecen en las filas vencidas**, y ese recorte es la mitad del diseño: en una lista de
+ * treinta filas, dos enlaces por fila son sesenta enlaces, y lo que se quería señalar deja de
+ * señalarse. Aquí el ruido no es un defecto de estilo, es lo que rompe la función.
+ *
+ * Van discretos —sin fondo, sin caja— porque **no compiten con el título de la tarea**: lo que hay
+ * que leer primero es qué es, y solo después qué hacer con ello.
+ */
+.tarea-acciones {
+  display: inline-flex;
+  gap: 10px;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.accion-de-tarea {
+  font-size: 0.8rem;
+  color: var(--ab-text-secondary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.accion-de-tarea:hover {
+  color: var(--ab-primary);
+}
+
 .atraso-leve {
   font-weight: 600;
 }

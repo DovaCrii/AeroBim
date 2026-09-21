@@ -67,8 +67,9 @@ class PortalView(LoginRequiredMixin, TemplateView):
         # y resolverlo en la plantilla obliga a que la portada y la bandeja lo resuelvan cada una
         # a su manera. Ver `apps/documents/tareas.py`.
         contexto["mis_tramos"] = [
-            (_("Overdue"), como_tareas(tramos["vencido"]), True),
-            (_("Next 7 days"), como_tareas(tramos["en_7"]), False),
+            # Se pasa quién mira: las acciones de una fila dependen de sus permisos.
+            (_("Overdue"), como_tareas(tramos["vencido"], usuario), True),
+            (_("Next 7 days"), como_tareas(tramos["en_7"], usuario), False),
         ]
         # Cuánto queda en total, para poder decir «y N más» sin listar treinta filas en la puerta.
         contexto["mis_pendientes"] = sum(len(v) for v in tramos.values())
@@ -81,6 +82,17 @@ class PortalView(LoginRequiredMixin, TemplateView):
 
         contexto["mis_vencidas"] = len(tramos["vencido"])
         contexto["mis_de_la_semana"] = len(tramos["en_7"])
+
+        # **Lo que lleva más de un mes, contado aparte.** Dentro de «vencido» se pierde: treinta
+        # filas rojas no dicen que tres de ellas llevan desde agosto. Se cuenta con el mismo corte
+        # que usa el grado `grave` de la fila, para que la banda y el color no discrepen.
+        contexto["mis_muy_vencidas"] = sum(
+            1 for tarea in contexto["mis_tramos"][0][1] if tarea.gravedad == "grave"
+        )
+        # Y lo que abriste tú y nadie ha tocado, que es el escalado del correo hecho pantalla.
+        from apps.documents.notify import atrasos_que_no_avanzan
+
+        contexto["mis_abiertos_parados"] = len(atrasos_que_no_avanzan(usuario))
 
         # **Las obras con lo que cada una necesita.** Solo si el rol puede leerlas: si no, la
         # sección no existe en vez de aparecer vacía.

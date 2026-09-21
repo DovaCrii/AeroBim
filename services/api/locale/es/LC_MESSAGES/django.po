@@ -4181,6 +4181,53 @@ msgstr ""
 msgid "Further out"
 msgstr "Más adelante"
 
+#: .\apps\documents\tareas.py:157
+msgid "Replan or hand over"
+msgstr "Replanificar o pasarlo"
+
+#: .\apps\documents\tareas.py:168
+msgid "Move it forward"
+msgstr "Moverlo"
+
+#: .\apps\documents\notify.py:438
+msgid "You opened these, and nobody has touched them"
+msgstr "Los abriste tú y nadie los ha tocado"
+
+#: .\templates\accounts\portal.html:100
+#, python-format
+msgid ""
+"<b>One thing has been overdue for more than a\n"
+"      month.</b> It is not going to resolve itself: replan it, hand it over, "
+"or close\n"
+"      it."
+msgid_plural ""
+"<b>%(n)s things have been overdue for more than a month.</b> They are not\n"
+"      going to resolve themselves: replan them, hand them over, or close "
+"them."
+msgstr[0] ""
+"<b>Una cosa lleva más de un mes vencida.</b> No se va a resolver sola: "
+"replanifícala, pásala o ciérrala."
+msgstr[1] ""
+"<b>%(n)s cosas llevan más de un mes vencidas.</b> No se van a resolver "
+"solas: replanifícalas, pásalas o ciérralas."
+
+#: .\templates\accounts\portal.html:108
+#, python-format
+msgid ""
+"<b>One finding you opened has not been\n"
+"      touched in a week.</b> Whoever has it may need a nudge."
+msgid_plural ""
+"<b>%(n)s findings you\n"
+"      opened have not been touched in a week.</b> Whoever has them may need "
+"a\n"
+"      nudge."
+msgstr[0] ""
+"<b>Un hallazgo que abriste lleva una semana sin que nadie lo toque.</b> "
+"Quizá haga falta preguntarle a quien lo tiene."
+msgstr[1] ""
+"<b>%(n)s hallazgos que abriste llevan una semana sin que nadie los toque.</b> "
+"Quizá haga falta preguntarle a quien los tiene."
+
 #: .\apps\projects\models.py:320
 msgid "Only when something is overdue"
 msgstr "Solo si hay algo vencido"

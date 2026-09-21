@@ -10,6 +10,7 @@ imprimio en el log es peor que no tener avisos**, y esa es la historia de ese mo
 """
 
 import logging
+from datetime import timedelta
 
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives, send_mail
@@ -365,7 +366,7 @@ def pendientes_por_tramo(usuario) -> dict[str, list]:
     return salida
 
 
-def le_toca_resumen(usuario, tramos: dict, hoy) -> bool:
+def le_toca_resumen(usuario, tramos: dict, hoy, *, parados=()) -> bool:
     """Si a esta persona le toca resumen hoy, **según lo que decidió cada coordinador**.
 
     ## De dónde sale esta función
@@ -387,10 +388,12 @@ def le_toca_resumen(usuario, tramos: dict, hoy) -> bool:
     """
     from apps.projects.models import AvisosDeObra, Proyecto
 
-    if all(not v for v in tramos.values()):
+    if all(not v for v in tramos.values()) and not parados:
         return False
 
-    hay_vencidos = bool(tramos["vencido"])
+    # Un hallazgo tuyo parado hace una semana **es** algo vencido: cuenta para la cadencia «solo si
+    # hay vencidos», que si no dejaría el escalado sin salir nunca en la configuración de fábrica.
+    hay_vencidos = bool(tramos["vencido"]) or bool(parados)
     # **Por la clave ajena y no por el codigo.** La primera version juntaba `str(item.proyecto)` y
     # buscaba `codigo__in`, y no encontraba nada: el `__str__` de `Proyecto` es «716-LCD · Edificio
     # corporativo», no el codigo. El sintoma era el peor posible — **la cadencia se ignoraba en
@@ -404,6 +407,59 @@ def le_toca_resumen(usuario, tramos: dict, hoy) -> bool:
     return any(
         AvisosDeObra.de(obra).manda_resumen_hoy(hoy, hay_vencidos=hay_vencidos) for obra in obras
     )
+
+
+#: A los cuántos días de vencido y quieto se avisa también a quien lo abrió.
+#:
+#: **Siete, y no uno ni treinta.** Con uno, cualquier hallazgo abierto un viernes escala el lunes y
+#: el escalado deja de significar nada. Con treinta, quien lo abrió se entera cuando ya da igual.
+#: Una semana es el plazo en que una persona razonable espera una respuesta antes de preguntar.
+DIAS_PARA_ESCALAR = 7
+
+
+def atrasos_que_no_avanzan(usuario):
+    """Lo que **esta persona abrió**, está vencido hace más de una semana y **nadie ha tocado**.
+
+    ## Por qué existe
+
+    Era el hueco más grande del seguimiento: el resumen iba **solo al responsable**. Quien abrió un
+    hallazgo —quien detectó el problema y quien lo va a sufrir si no se resuelve— no recibía nada
+    nunca. Si el responsable no entraba, el hallazgo se quedaba quieto y **no se enteraba nadie**.
+
+    Es el escalado mínimo que existe: no va a jefatura, no sube de tono, no manda un segundo correo.
+    Solo hace que quien lo abrió lo sepa, que es quien puede preguntar.
+
+    ## Qué cuenta como «no avanza», y por qué `updated_at`
+
+    Cualquier movimiento real —replanificar, reasignar, cambiar la prioridad, cerrarlo— toca la
+    fila. Un hallazgo que alguien está trabajando tiene `updated_at` de esta semana y **no escala**,
+    que es exactamente lo que se quiere: el escalado es para lo que está parado, no para lo que va
+    lento.
+
+    **Un comentario no lo toca**, y eso es deliberado: responder en el hilo ya avisa por su cuenta
+    a quien lo abrió. Si además impidiera el escalado, tres respuestas sin arreglar nada lo
+    silenciarían para siempre.
+    """
+    hoy = timezone.localdate()
+    limite = hoy - timedelta(days=DIAS_PARA_ESCALAR)
+    quietos_desde = timezone.now() - timedelta(days=DIAS_PARA_ESCALAR)
+
+    from apps.documents.orden import nulos_al_final
+
+    consulta = (
+        Observacion.objects.filter(autor=usuario, vence__lt=limite, updated_at__lt=quietos_desde)
+        .exclude(estado__in=[Observacion.CERRADA, Observacion.DESCARTADA])
+        # **Sin lo que uno se abrió a sí mismo**: ya está en su propia lista, y contarlo dos veces
+        # en el mismo correo se lee como un error del sistema.
+        .exclude(responsable=usuario)
+        .select_related("proyecto")
+    )
+    # **Por `nulos_al_final` aunque aquí no pueda haber nulos.** El `vence__lt` ya los excluye, así
+    # que un `order_by("vence")` daría lo mismo — pero la regla de la casa es que **nadie** ordena
+    # por `vence` a mano, y un guardián la sujeta. Una excepción «porque aquí no aplica» es como la
+    # regla se erosiona: el día que alguien quite el filtro, el orden cambia entre SQLite y
+    # PostgreSQL y no falla nada.
+    return list(nulos_al_final(consulta, ("vence",)))
 
 
 def enviar_resumen(usuario, *, respetar_cadencia: bool = True) -> int:
@@ -426,11 +482,15 @@ def enviar_resumen(usuario, *, respetar_cadencia: bool = True) -> int:
 
     tramos = pendientes_por_tramo(usuario)
     total = sum(len(v) for v in tramos.values())
-    if total == 0:
+    # **Lo que abriste y no avanza cuenta para mandar el correo.** Si no contara, alguien sin nada
+    # a su nombre no recibiría el aviso de que sus hallazgos llevan un mes parados — que es
+    # exactamente el caso de quien coordina y reparte todo.
+    parados = atrasos_que_no_avanzan(usuario)
+    if total == 0 and not parados:
         return 0
 
     hoy = timezone.localdate()
-    if respetar_cadencia and not le_toca_resumen(usuario, tramos, hoy):
+    if respetar_cadencia and not le_toca_resumen(usuario, tramos, hoy, parados=parados):
         logger.info("resumen_no_tocaba", extra={"recipient": correo, "item_count": total})
         return 0
 
@@ -461,9 +521,37 @@ def enviar_resumen(usuario, *, respetar_cadencia: bool = True) -> int:
             )
         bloques.append({"etiqueta": etiqueta, "urgente": nombre == "vencido", "filas": filas})
         lineas.append("")
+
+    # **El escalado, al final y con su propio título.** Va aparte de lo tuyo porque no es tuyo: es
+    # trabajo de otra persona que abriste tú y que lleva parado una semana. Mezclarlo con la lista
+    # de arriba haría creer que hay que hacerlo, y lo que hay que hacer es **preguntar**.
+    if parados:
+        etiqueta = _("You opened these, and nobody has touched them")
+        filas = []
+        lineas.append(f"{etiqueta} ({len(parados)}):")
+        for una in parados:
+            atraso = (hoy - una.vence).days
+            lineas.append(
+                f"  · {una.vence.isoformat()}  {una.titulo}  [{una.proyecto}]  "
+                f"({atraso} d, {una.responsable})"
+            )
+            filas.append(
+                {
+                    "titulo": una.titulo,
+                    "proyecto": str(una.proyecto),
+                    "vence": una.vence,
+                    "atraso": atraso,
+                    "quien": str(una.responsable),
+                    "url": enlace(_ruta_de(una)),
+                }
+            )
+        bloques.append({"etiqueta": etiqueta, "urgente": True, "filas": filas})
+        lineas.append("")
+
     lineas.append(enlace("/"))
 
-    asunto = _("[AeroBim] %(n)s items on your plate") % {"n": total}
+    asunto = _("[AeroBim] %(n)s items on your plate") % {"n": total + len(parados)}
+    total = total + len(parados)
     mensaje = EmailMultiAlternatives(
         asunto, "\n".join(lineas), settings.DEFAULT_FROM_EMAIL, [correo]
     )
