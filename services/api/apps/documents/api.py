@@ -48,6 +48,9 @@ def como_json(revision: Revision, user) -> dict:
         "idoneidad": revision.idoneidad,
         "idoneidadTexto": revision.get_idoneidad_display(),
         "nombre": revision.nombre_original,
+        # **Con qué nombre abrirlo, que no es siempre con el que se subió.** Un DWG se sirve por su
+        # DXF convertido, y el visor elige el lector por la extensión: ver `nombre_para_el_visor`.
+        "nombreParaElVisor": abribles.nombre_para_el_visor(revision),
         "extension": storage.extension_de(revision.nombre_original),
         # Con qué visor se abre, decidido en un solo sitio. Así la página del documento puede
         # decir "esto no es un PDF" en vez de pasarle un IFC a PDFium y mostrar un error suyo.

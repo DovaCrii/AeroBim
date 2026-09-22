@@ -111,3 +111,31 @@ pegamento, que es donde están los errores caros:
 
 Lo último se ejerce con un conversor de mentira —un script que escribe un DXF donde le digan—, que
 recorre el camino entero sin depender de la Open Design Alliance.
+
+## Y si el DWG llega al visor de todos modos
+
+**Esta decisión no valía de nada si soltar un DWG en el visor lo tumbaba**, y eso es lo que pasaba
+hasta el 2026-09-22. El repartidor de archivos del visor mandaba al lector de IFC «todo lo demás», y
+un DWG es de lo demás: `web-ifc` espera texto STEP, recibe binario, y el WebAssembly se cae con
+
+    memory access out of bounds
+
+en rojo, arriba, sin nombrar el archivo ni decir qué hacer. Una limitación decidida y documentada se
+veía como un fallo del producto. El `accept` del selector no protegía: filtra el diálogo, no el
+arrastre.
+
+Había **dos puertas** al mismo sitio, y las dos están cerradas:
+
+1. **Arrastrando un DWG del disco.** `packages/viewer/src/formatos.ts` decide por el nombre, antes de
+   tocar WASM, y lo rechaza diciendo qué es, que se puede subir al registro para que salga su DXF, y
+   que en el CAD es un «Guardar como». Lo desconocido **se sigue intentando como IFC**, a propósito:
+   un IFC puede llegar sin extensión o con otra, y rechazarlo por el nombre sería peor.
+2. **Abriendo desde el registro un DWG ya convertido.** El servidor servía los bytes del DXF con el
+   nombre del entregable —`planta.dwg`—, y el visor elige el lector por la extensión: ese DXF entraba
+   también en `web-ifc`. Ahora la API manda `nombreParaElVisor`
+   (`abribles.nombre_para_el_visor`), que es con qué abrirlo; `nombre` sigue siendo el del
+   entregable, que es lo que se enseña y lo que se descarga del expediente.
+
+Lo sujeta `test_el_dwg_no_llega_al_lector_de_ifc.py`, que **relee `App.tsx`** y comprueba además que
+lo que el servidor sabe convertir esté en la lista que el cliente rechaza — son dos archivos que
+dicen lo mismo en dos idiomas, y eso diverge.

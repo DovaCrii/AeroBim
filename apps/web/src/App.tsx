@@ -1,6 +1,7 @@
 import {
   BimViewer,
   csvDe,
+  queHacerCon,
   type DistanceMode,
   type DrawingView,
   type DrawnMeasurement,
@@ -1066,12 +1067,27 @@ export function App() {
    * **La nube entra por la misma puerta que el modelo, y eso es la decisión.** Darle un botón
    * propio la convertiría en otra aplicación dentro de la aplicación; el trabajo de coordinar es
    * mirar las tres cosas juntas, así que las tres se abren igual.
+   *
+   * ## Y lo que no se puede leer se rechaza **antes** de tocar WASM
+   *
+   * Aquí ponía `return openIfc(file)` para todo lo demás, y «todo lo demás» incluía un DWG. Como
+   * `web-ifc` espera texto STEP y un DWG es binario, el lector recorría memoria ajena y el
+   * WebAssembly se caía con `memory access out of bounds` — que es lo que se vio en la cinta, en
+   * rojo, sin nombrar el archivo ni decir qué hacer. El `accept` del selector no protege de esto:
+   * filtra el diálogo, no el arrastre.
+   *
+   * `queHacerCon` decide por el nombre, sin abrir nada. Lo desconocido **sigue** intentándose como
+   * IFC, que es deliberado: solo se rechaza lo que se sabe que no se puede.
    */
   const openFile = useCallback(
     (file: File) => {
-      const nombre = file.name.toLowerCase();
-      if (nombre.endsWith(".dxf")) return openDxf(file);
-      if (nombre.endsWith(".laz") || nombre.endsWith(".las")) return openCloud(file);
+      const destino = queHacerCon(file.name);
+      if (destino.tipo === "no-se-puede") {
+        setStatus({ kind: "error", message: destino.motivo });
+        return Promise.resolve();
+      }
+      if (destino.tipo === "plano") return openDxf(file);
+      if (destino.tipo === "nube") return openCloud(file);
       return openIfc(file);
     },
     [openDxf, openIfc, openCloud],
@@ -1091,10 +1107,20 @@ export function App() {
    * de estados y el pipeline de Fragments no admite dos modelos a la vez —es el mismo motivo por el
    * que el visor no se destruye para volver a crearse—. Uno detrás de otro es más lento y es lo que
    * funciona.
+   *
+   * **Lo rechazado va al final, y es el mismo motivo de arriba.** Quien suelta el modelo y su plano
+   * de AutoCAD a la vez suelta `modelo.ifc` y `planta.dwg`; si el DWG se atiende primero, su aviso
+   * dura hasta que el IFC lo pisa con «listo», y el resultado es otra vez éxito parcial sin decirlo
+   * — la pantalla quedaría diciendo que todo fue bien con un archivo fuera. Hablando último, el
+   * aviso es lo que queda puesto.
    */
   const openFiles = useCallback(
     async (files: FileList) => {
-      for (const file of Array.from(files)) await openFile(file);
+      const todos = Array.from(files);
+      const legibles = todos.filter((f) => queHacerCon(f.name).tipo !== "no-se-puede");
+      for (const file of [...legibles, ...todos.filter((f) => !legibles.includes(f))]) {
+        await openFile(file);
+      }
     },
     [openFile],
   );
@@ -1137,6 +1163,7 @@ export function App() {
         }
         const datos = (await meta.json()) as {
           nombre: string;
+          nombreParaElVisor: string;
           contenido: string;
           correlativo: string;
           puedeObservar?: boolean;
@@ -1167,9 +1194,12 @@ export function App() {
             });
             return;
           }
-          // El nombre original viaja en los metadatos, y es el que decide el camino: `openFile`
-          // manda un `.dxf` al lector de planos y todo lo demás al de IFC.
-          await openFile(new File([await archivo.blob()], datos.nombre));
+          // **El nombre que decide el camino es el del archivo servido, no el del entregable.**
+          // `openFile` manda un `.dxf` al lector de planos y todo lo demás al de IFC, y un DWG se
+          // sirve por su DXF convertido: con `datos.nombre` —`planta.dwg`— esos bytes de DXF
+          // acababan en `web-ifc`, que espera texto STEP y tumba el WebAssembly. Lo decide el
+          // servidor, que es quien sabe si hubo conversión (`abribles.nombre_para_el_visor`).
+          await openFile(new File([await archivo.blob()], datos.nombreParaElVisor));
         }
 
         // **Después de abrir, no antes**: `openIfc` borra el origen a propósito —un archivo del
@@ -1232,7 +1262,8 @@ export function App() {
             });
             return;
           }
-          await openFile(new File([await archivo.blob()], ficha.nombre));
+          // El del archivo servido, no el del entregable: ver el mismo sitio en `abrirRevision`.
+          await openFile(new File([await archivo.blob()], ficha.nombreParaElVisor));
         }
       } catch (error: unknown) {
         setStatus({ kind: "error", message: describe(error) });

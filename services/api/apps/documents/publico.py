@@ -108,6 +108,9 @@ class FichaCompartidaAPI(VistaCompartida):
                     "para": enlace.para,
                     "expiraEn": enlace.expira_en.isoformat(),
                     "nombre": revision.nombre_original,
+                    # Con qué nombre abrirlo: un DWG se sirve por su DXF convertido y el visor
+                    # elige el lector por la extensión. Ver `abribles.nombre_para_el_visor`.
+                    "nombreParaElVisor": abribles.nombre_para_el_visor(revision),
                     "extension": storage.extension_de(revision.nombre_original),
                     "visor": abribles.visor_de(revision),
                     "correlativo": revision.correlativo,

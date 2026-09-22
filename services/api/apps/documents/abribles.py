@@ -80,6 +80,27 @@ def clave_para_el_visor(revision) -> str:
     return getattr(revision, "clave_dxf", "") or revision.clave_archivo
 
 
+def nombre_para_el_visor(revision) -> str:
+    """El nombre del archivo **que se sirve**, que no siempre es el que subió el proyectista.
+
+    Un DWG se abre por su DXF convertido: `contenido` devuelve bytes de DXF, y hasta ahora los
+    devolvía llamándose `planta.dwg`. **El visor elige el lector por la extensión**, así que ese
+    nombre le mandaba un DXF al lector de IFC — que espera texto STEP, no lo encuentra, y el
+    WebAssembly se cae con `memory access out of bounds` sin decir de qué archivo habla.
+
+    Es el mismo defecto que tenía el arrastre, entrando por la otra puerta: allí era un DWG de
+    verdad, aquí un DXF con nombre de DWG. Los dos acababan en `web-ifc`.
+
+    **El nombre original no se pierde**: sigue en `nombre`, que es lo que se enseña y lo que se
+    descarga del expediente. Esto es solo con qué abrirlo.
+    """
+    nombre = revision.nombre_original or ""
+    suyo = Path(nombre)
+    if suyo.suffix.lower().lstrip(".") in POR_SU_DXF and getattr(revision, "clave_dxf", ""):
+        return f"{suyo.stem}.dxf"
+    return nombre
+
+
 def es_abrible(revision) -> bool:
     """`True` si **algún** visor sabe abrir el archivo de esta revisión.
 

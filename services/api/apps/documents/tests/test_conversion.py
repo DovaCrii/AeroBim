@@ -219,6 +219,28 @@ class TestQueSePuedeAbrir:
         revision = _RevisionFalsa("modelo.ifc")
         assert abribles.clave_para_el_visor(revision) == revision.clave_archivo
 
+    def test_el_dxf_convertido_viaja_con_nombre_de_dxf(self):
+        """**Servir bytes de DXF llamándolos `.dwg` tumbaba el visor.**
+
+        El visor elige el lector por la extensión del nombre. Con el nombre original, esos bytes
+        entraban en `web-ifc` —que espera texto STEP— y el WebAssembly se caía con `memory access
+        out of bounds`, sin decir siquiera de qué archivo hablaba.
+        """
+        from apps.documents import abribles
+
+        revision = _RevisionFalsa("PLANTA-NIVEL-1.dwg", clave_dxf="obra/entregable/def.dxf")
+        assert abribles.nombre_para_el_visor(revision) == "PLANTA-NIVEL-1.dxf"
+
+    def test_pero_el_nombre_del_entregable_no_se_toca(self):
+        """El original es lo que se enseña y lo que se descarga: son dos cosas distintas."""
+        from apps.documents import abribles
+
+        revision = _RevisionFalsa("PLANTA-NIVEL-1.dwg", clave_dxf="obra/entregable/def.dxf")
+        assert revision.nombre_original == "PLANTA-NIVEL-1.dwg"
+        # Y lo que no se convirtió abre con su propio nombre, sin inventar extensiones.
+        assert abribles.nombre_para_el_visor(_RevisionFalsa("modelo.ifc")) == "modelo.ifc"
+        assert abribles.nombre_para_el_visor(_RevisionFalsa("plano.dwg")) == "plano.dwg"
+
 
 class TestDgnSeAcepta:
     def test_las_dos_generaciones_de_dgn_pasan_la_validacion(self):
