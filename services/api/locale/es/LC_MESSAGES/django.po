@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-23 09:44-0300\n"
+"POT-Creation-Date: 2026-09-23 10:08-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -353,65 +353,65 @@ msgid_plural "%(n)s works"
 msgstr[0] "%(n)s obra"
 msgstr[1] "%(n)s obras"
 
-#: .\apps\accounts\views.py:515
+#: .\apps\accounts\views.py:517
 #, python-format
 msgid ""
 "«%(nombre)s» created. Now you can create the accounts of the people in it."
 msgstr ""
 "«%(nombre)s» creada. Ya puedes crear las cuentas de quienes trabajan en ella."
 
-#: .\apps\accounts\views.py:706
+#: .\apps\accounts\views.py:708
 #, python-format
 msgid "%(nombre)s updated: %(cambios)s."
 msgstr "%(nombre)s actualizado: %(cambios)s."
 
-#: .\apps\accounts\views.py:714
+#: .\apps\accounts\views.py:716
 msgid "Nothing changed: it was already like that."
 msgstr "No cambió nada: ya estaba así."
 
-#: .\apps\accounts\views.py:741
+#: .\apps\accounts\views.py:743
 #, python-format
 msgid "%(nombre)s can sign in again."
 msgstr "%(nombre)s ya puede volver a entrar."
 
-#: .\apps\accounts\views.py:745
+#: .\apps\accounts\views.py:747
 #, python-format
 msgid ""
 "%(nombre)s can no longer sign in. Everything they did stays in the record."
 msgstr "%(nombre)s ya no puede entrar. Todo lo que hizo sigue en el registro."
 
-#: .\apps\accounts\views.py:788
+#: .\apps\accounts\views.py:790
 msgid "revisions uploaded"
 msgstr "revisiones subidas"
 
-#: .\apps\accounts\views.py:789
+#: .\apps\accounts\views.py:791
 msgid "deliverables they own"
 msgstr "entregables a su cargo"
 
-#: .\apps\accounts\views.py:790
+#: .\apps\accounts\views.py:792
 msgid "transmittals issued"
 msgstr "transmittals emitidos"
 
-#: .\apps\accounts\views.py:791
+#: .\apps\accounts\views.py:793
 msgid "observations opened"
 msgstr "observaciones abiertas"
 
-#: .\apps\accounts\views.py:792
+#: .\apps\accounts\views.py:794
 msgid "observations they own"
 msgstr "observaciones a su cargo"
 
-#: .\apps\accounts\views.py:793
+#: .\apps\accounts\views.py:795
 msgid "messages in threads"
 msgstr "mensajes en hilos"
 
-#: .\apps\accounts\views.py:824
+#: .\apps\accounts\views.py:826
 #, python-format
 msgid ""
 "%(nombre)s cannot be deleted: their work is part of the record. Disable them."
 msgstr ""
 "%(nombre)s no se puede borrar: su trabajo es parte del registro. Desactívalo."
 
-#: .\apps\accounts\views.py:834
+#: .\apps\accounts\views.py:836
 #, python-format
 msgid "%(nombre)s deleted."
 msgstr "%(nombre)s borrado."
@@ -2023,19 +2023,34 @@ msgstr[1] ""
 "porque un recorrido al que le faltan pasos no explica de dónde viene tu "
 "trabajo."
 
-#: .\templates\accounts\ayuda.html:66 .\templates\accounts\glosario.html:68
+#: .\templates\accounts\ayuda.html:54
+msgid "The three parts of the walkthrough"
+msgstr "Las tres partes del recorrido"
+
+#: .\templates\accounts\ayuda.html:75
+#, python-format
+msgid ""
+"One step in this part is not yours to\n"
+"          do."
+msgid_plural ""
+"%(total)s steps in this part are not yours to\n"
+"          do."
+msgstr[0] "Un paso de esta parte no te toca a ti."
+msgstr[1] "%(total)s pasos de esta parte no te tocan a ti."
+
+#: .\templates\accounts\ayuda.html:103 .\templates\accounts\glosario.html:68
 msgid "Go there"
 msgstr "Ir ahí"
 
-#: .\templates\accounts\ayuda.html:72
+#: .\templates\accounts\ayuda.html:111
 msgid "Two things worth knowing"
 msgstr "Dos cosas que conviene saber"
 
-#: .\templates\accounts\ayuda.html:81
+#: .\templates\accounts\ayuda.html:120
 msgid "A finding is anchored to the element, not to a place"
 msgstr "Un hallazgo se ancla al elemento, no a un sitio"
 
-#: .\templates\accounts\ayuda.html:83
+#: .\templates\accounts\ayuda.html:122
 msgid ""
 "It is pinned to the IFC element's GUID, which survives a new revision of\n"
 "        the model. That is why a finding opened in March is still found in "
@@ -2049,11 +2064,11 @@ msgstr ""
 "en el modelo de junio, y por eso un modelo abierto desde tu disco no puede "
 "llevar notas: no tiene registro donde archivarlas."
 
-#: .\templates\accounts\ayuda.html:90
+#: .\templates\accounts\ayuda.html:129
 msgid "What you can open depends on your role"
 msgstr "Lo que puedes abrir depende de tu rol"
 
-#: .\templates\accounts\ayuda.html:92
+#: .\templates\accounts\ayuda.html:131
 msgid ""
 "The portal only lists what your role can open, and a client sees only\n"
 "        what has been published — not what is still being drafted. If a "
@@ -2064,11 +2079,11 @@ msgstr ""
 "publicado —no lo que está en curso—. Si te falta una pantalla que necesitas, "
 "es un rol que pedir y no un botón que se rompió."
 
-#: .\templates\accounts\ayuda.html:103
+#: .\templates\accounts\ayuda.html:142
 msgid "BIM vocabulary"
 msgstr "Vocabulario BIM"
 
-#: .\templates\accounts\ayuda.html:105
+#: .\templates\accounts\ayuda.html:144
 msgid ""
 "Sixteen words you will hear on any BIM project — CDE, LOD, IFC, clash\n"
 "        detection, 4D, COBie — and, for each one, whether AeroBim does it "
@@ -2079,11 +2094,11 @@ msgstr ""
 "interferencias, 4D, COBie— y, de cada una, si AeroBim lo hace y dónde. La "
 "mitad no las hace: esas dicen qué hay en su lugar."
 
-#: .\templates\accounts\ayuda.html:111
+#: .\templates\accounts\ayuda.html:150
 msgid "Survey vocabulary"
 msgstr "Vocabulario del levantamiento"
 
-#: .\templates\accounts\ayuda.html:113
+#: .\templates\accounts\ayuda.html:152
 msgid ""
 "Point cloud, LiDAR, COPC, DTM and DSM, orthophoto, reference system —\n"
 "        the words the flight crew, the surveyor and the modeller each "
@@ -2099,11 +2114,11 @@ msgstr ""
 "no es la cota de proyecto, precisión no es exactitud, y la fotogrametría no "
 "ve el suelo bajo los árboles."
 
-#: .\templates\accounts\ayuda.html:121
+#: .\templates\accounts\ayuda.html:160
 msgid "Cost and management vocabulary"
 msgstr "Vocabulario de gestión y costos"
 
-#: .\templates\accounts\ayuda.html:123
+#: .\templates\accounts\ayuda.html:162
 msgid ""
 "CAPEX, OPEX, life cycle cost, earned value, KPIs. This is the one that\n"
 "        says no the most: AeroBim is not a cost tool, and it is cheaper to "
@@ -2115,12 +2130,12 @@ msgstr ""
 "leerlo aquí que descubrirlo en la reunión donde se prometió un informe de "
 "costos."
 
-#: .\templates\accounts\ayuda.html:135 .\templates\accounts\privacidad.html:4
+#: .\templates\accounts\ayuda.html:174 .\templates\accounts\privacidad.html:4
 #: .\templates\accounts\privacidad.html:12
 msgid "Cookies and your data"
 msgstr "Cookies y tus datos"
 
-#: .\templates\accounts\ayuda.html:137
+#: .\templates\accounts\ayuda.html:176
 msgid ""
 "Two cookies, both needed for it to work, so there is nothing to accept.\n"
 "        What AeroBim keeps about you and what it does not do — no analytics, "

@@ -3633,7 +3633,15 @@ button.peligro:hover {
   border-radius: var(--ab-radius);
 }
 
-.paso-ayuda h2,
+/*
+ * **`h3` en el paso y `h2` en el término, y no es un descuido.** El recorrido pasó a estar partido
+ * en tres fases y el título de la fase es el `h2`; un paso colgando de ella es un nivel más abajo, y
+ * dejarlo en `h2` rompería el esquema de encabezados para quien navega con lector de pantalla. El
+ * glosario no tiene fases, así que sus términos siguen siendo `h2`.
+ *
+ * Las dos formas comparten la regla porque **se leen igual**, que es el motivo de arriba.
+ */
+.paso-ayuda h3,
 .termino h2 {
   display: flex;
   flex-wrap: wrap;
@@ -3641,6 +3649,66 @@ button.peligro:hover {
   gap: 10px;
   margin: 0 0 8px;
   font-size: var(--ab-texto-base);
+}
+
+/*
+ * **El índice de las tres fases, y el hueco que deja el ancla.**
+ *
+ * Con la cabecera pegada arriba, saltar a `#entregar` deja el título de la fase **debajo** de ella:
+ * se pulsa el índice y parece que no ha pasado nada. `scroll-margin-top` es lo que lo arregla, y es
+ * la clase de detalle que solo se ve probándolo.
+ */
+.indice-del-recorrido {
+  margin: 0 0 var(--ab-esp-5);
+}
+
+.indice-del-recorrido ol {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--ab-esp-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: fase;
+}
+
+.indice-del-recorrido li {
+  counter-increment: fase;
+  padding: var(--ab-esp-3) var(--ab-esp-4);
+  background: var(--ab-surface-2);
+  border-radius: var(--ab-radius);
+  box-shadow: var(--ab-elev-sm);
+}
+
+/* El número de la fase delante del nombre: es lo que dice que van en orden. */
+.indice-del-recorrido a::before {
+  content: counter(fase) " · ";
+  color: var(--ab-text-muted);
+  font-weight: 400;
+}
+
+.indice-del-recorrido a {
+  color: var(--ab-text);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.indice-del-recorrido a:hover {
+  color: var(--ab-primary);
+  text-decoration: underline;
+}
+
+.indice-del-recorrido .detalle {
+  display: block;
+  margin-top: var(--ab-esp-1);
+  font-size: var(--ab-texto-sm);
+  line-height: 1.5;
+  color: var(--ab-text-muted);
+}
+
+.tramo-del-recorrido {
+  scroll-margin-top: var(--ab-esp-5);
+  margin-bottom: var(--ab-esp-5);
 }
 
 /*
