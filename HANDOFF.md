@@ -5,6 +5,47 @@
 
 ## Cómo seguir (leer esto primero)
 
+> ## Estado al 2026-09-23: el plan «que avise, que cuadre y que no sea plano», cerrado
+>
+> **No queda trabajo de código pendiente en el plan.** Lo que falta es tuyo: el **SMTP de Microsoft
+> 365** —último bloqueo de `listo_para_produccion`— y **desplegar `main` a `p340`**.
+>
+> El encargo era de cinco piezas, y las cinco tenían el mismo defecto de fondo: no era funcionalidad
+> que faltara, era funcionalidad que no se veía.
+>
+> | Bloque                        | Qué cerró                                                                                                                                  | PR            |
+> | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------- |
+> | **A** · el número y el código | La columna «Avance» salía **vacía en todas las filas**; `avance_pct` pasa a ser propiedad del modelo. ISO 19650 de 7 campos y `naturaleza` | #42, #43      |
+> | **C** · organizaciones        | Editar una cuenta **borraba todas sus membresías**. Ficha, traslado y borrado con su rastro                                                | #44, #47…#51  |
+> | **E** · el informe            | Un `&` no daba un 500: **corrompía el papel en silencio**. Más el ejecutivo de una hoja                                                    | #45, #46      |
+> | **B** · avisos y atraso       | Campana con contador, tres grados de atraso con su acción, y el correo **con la cadencia que fija el coordinador**                         | #48…#50       |
+> | **D** · registros por obra    | Repositorio y transmittals partidos por obra y plegables                                                                                   | #52           |
+> | **F** · la pasada visual      | `app.css` tenía **cero tokens de tipografía**; se portó la escala que el visor ya tenía                                                    | #53, #55, #57 |
+> | **G** · el visor              | La costura portal↔visor medida entera, y **archivar la lámina sin volver al portal**                                                       | #58, #59      |
+>
+> ### Tres cosas que el código decía y el plan no
+>
+> - **Las 12 secciones del navegador arrancando plegadas no son un defecto**: `ProjectBrowser.tsx`
+>   documenta que lo pediste tú, y la sección que se llena se abre sola. Igual con «la herramienta
+>   activa se pierde de vista»: la `StatusBar` pinta `Modo: …` de forma permanente.
+> - **La barra de «llevas 3 de 9» del plan no se puede construir honestamente.** Medido paso a paso:
+>   solo **tres de los nueve** dejan rastro en la base; los otros seis son lecturas y `GET`. Sobre ese
+>   denominador la barra le diría «1 de 9» a quien lleva siete. Se marca «hecho» solo lo que una fila
+>   demuestra, y hay una prueba que falla si alguien le pone señal a un paso que no la tiene.
+> - **«Por dónde seguir» enseñaba siempre el 1, el 2 y el 3**, porque son los únicos sin permiso: el
+>   día 200 seguía diciendo «Entra en la obra». Ahora arranca donde la persona llegó de verdad.
+>
+> ### Lo que se encontró arreglando lo anterior
+>
+> - **Un DWG soltado en el visor tumbaba el WebAssembly** con `memory access out of bounds`, sin decir
+>   qué archivo ni por qué. Eran **dos puertas**: el arrastre, y abrir del registro un DWG ya
+>   convertido —la API servía bytes de DXF con el nombre `.dwg`, y el visor elige lector por la
+>   extensión—. #54
+> - **Un correlativo repetido daba un 500 y dejaba el archivo en disco**, y con un DWG después de
+>   esperar la conversión entera. #60
+> - **Cinco mensajes de la publicación salían en inglés**: estaban marcados y nunca llegaron al
+>   catálogo, y el guardián que existía solo barría plantillas. #60
+
 > ## Estado al 2026-09-14: lo que el despliegue destapó, y que no era del despliegue
 >
 > Con el ensayo cerrado, la pasada siguiente fue por **lo que solo se rompe con varios procesos y
@@ -1077,6 +1118,35 @@ una ventaja: lo que se aprenda de un lado sirve del otro.
 15. **Al medir, el ajuste necesita la cara como respaldo.** Con solo vértice y arista, un
     clic en el medio de un muro no devuelve punto y medir se vuelve un juego de puntería. El
     orden `POINT, LINE, FACE` da preferencia al vértice sin rechazar la cara.
+
+### Del lado de Django, y las cuatro cuestan lo mismo: fallan en silencio
+
+16. **`self.instance.pk` no dice si un registro es nuevo.** `BaseModel` usa un `UUIDField` con
+    `default=uuid.uuid4`, así que **siempre es verdadero**, también antes del primer `save()`. Lo que
+    lo contesta es `self.instance._state.adding`.
+17. **Un `ModelForm` no valida la unicidad que toca un campo que no tiene.** `_post_clean` **excluye**
+    toda restricción que mencione un campo ausente del formulario. `RevisionForm` no lleva
+    `entregable` —lo pone la vista después de `save(commit=False)`— así que el `UniqueConstraint` de
+    `(entregable, correlativo)` no se comprobaba: el choque salía en el `INSERT`, con el archivo ya en
+    disco y el conversor ya ejecutado. Si hay que validar contra algo que la vista asigna después,
+    **ese algo entra en el formulario por `__init__`**.
+18. **Atrapar un `IntegrityError` deja la transacción rota.** Toda consulta posterior lanza
+    `TransactionManagementError`, así que dibujar el formulario falla al primer `SELECT`. En
+    producción no hay transacción por petición y se cuela; **dentro de una prueba revienta**, o sea
+    que el camino no se puede ni cubrir. Va con `transaction.atomic()` alrededor del `save()`.
+19. **Una cadena marcada para traducir que nunca se extrae no falla: sale en inglés.** `gettext`
+    devuelve el original y no avisa, y las pruebas del catálogo solo miran lo que **está** en él.
+    Pasó con tres botones de `borrar_organizacion.html` y con los cinco motivos de `publicar.py`, los
+    dos en `main`. Lo cierran `test_ninguna_cadena_marcada_se_queda_fuera_del_catalogo` (plantillas) y
+    `test_tampoco_las_del_codigo_python`. Y `makemessages` **adivina** al extraer: marca `fuzzy` con
+    una traducción vecina que suele estar mal, y `gettext` ignora toda entrada `fuzzy`.
+
+### Y una del flujo de trabajo
+
+20. **Una PR apilada no se reapunta a `main` sola.** GitHub la reapunta **solo si la rama base se
+    borra** al fusionar. `gh pr merge 55 && gh pr merge 56` dio dos ✓ y la segunda se fusionó en la
+    rama de la primera, que ya no llevaba a ningún sitio: `main` se quedó sin ese trabajo y nada lo
+    dijo. O van sobre `main` desde el principio, o se fusiona con `--delete-branch`.
 
 ## Decisiones y archivos que hacen falta
 

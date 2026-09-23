@@ -14,6 +14,19 @@
 
 ## Por dónde se empieza
 
+> **Al 2026-09-23: lo que queda no lo cierra el código.** Las doce fases y el plan posterior —«que
+> avise, que cuadre y que no sea plano», cerrado con las PRs #42 a #60— no dejan trabajo de código
+> pendiente. Lo que falta:
+>
+> | Qué                                  | Quién                                                  |
+> | ------------------------------------ | ------------------------------------------------------ |
+> | **SMTP de Microsoft 365**            | El usuario — último bloqueo de `listo_para_produccion` |
+> | **Desplegar `main` a `p340`**        | El usuario, con [docs/DEPLOY.md](docs/DEPLOY.md)       |
+> | Las cinco filas de la tabla de abajo | El usuario, decidiendo o mirando un archivo de obra    |
+>
+> El estado de esos bloques, con lo que destaparon por el camino, está en
+> [HANDOFF.md](HANDOFF.md).
+
 **Diez de las doce fases con trabajo están cerradas**, y lo que queda se cuenta en una línea cada
 cosa. Actualizado el 2026-09-07.
 
