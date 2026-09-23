@@ -18,6 +18,7 @@ export function DrawingsPanel({
   onToggleHidden,
   onExport,
   onLaminaPdf,
+  onPublicar,
   onAddTable,
   cuadroCargado,
   onAddDimensions,
@@ -41,6 +42,15 @@ export function DrawingsPanel({
   readonly onExport: (id: string) => void;
   /** Descarga la lámina en PDF, dibujada por el servidor. `F7.5`. */
   readonly onLaminaPdf: (id: string) => void;
+  /**
+   * Archiva la lámina como revisión de un entregable de la obra. `G.4`.
+   *
+   * **Opcional, y por eso no hay botón cuando falta**: un modelo abierto del disco no tiene obra, y
+   * por tanto no tiene registro donde archivar. Enseñar el botón y explicarlo al pulsarlo sería
+   * ofrecer una puerta que no lleva a ningún sitio; es la misma regla que el portal aplica a los
+   * módulos que un rol no puede abrir.
+   */
+  readonly onPublicar?: (id: string) => void;
   /** Lleva las cotas medidas sobre el modelo a esa lámina. `F7.3`. */
   readonly onAddDimensions: (id: string) => void;
   /** Cuántas mediciones de distancia hay encendidas hoy. */
@@ -256,6 +266,23 @@ export function DrawingsPanel({
               >
                 Exportar a PDF (Carta)
               </button>
+
+              {/* **Y archivarlo, que es lo que no se podía.** `G.4`: hasta ahora había que
+                  descargar el PDF, volver al portal, buscar el entregable y subirlo del disco —seis
+                  pasos para mover un archivo que el servidor acababa de fabricar—.
+
+                  Solo sale con obra: sin ella no hay registro donde archivar, igual que el PDF no
+                  tiene membrete que sellar. */}
+              {onPublicar !== undefined && (
+                <button
+                  type="button"
+                  onClick={() => onPublicar(plano.id)}
+                  className="mt-1 w-full rounded-sm bg-action px-2 py-1 text-nota font-medium text-sobre-accion hover:bg-action-hover"
+                  title="Archiva la lámina como una revisión de un entregable de esta obra"
+                >
+                  Archivar en el registro
+                </button>
+              )}
             </li>
           );
         })}
