@@ -31,12 +31,13 @@ from apps.core.audit import set_audit_context
 from apps.core.tenancy import scope_queryset_to_organizacion
 from apps.core.views import (
     ChangeModelPermissions,
+    DondePublicarPermissions,
     PersonalStatePermissions,
     ViewModelPermissions,
 )
 from apps.documents import abribles, rangos, storage
 from apps.documents.abribles import VISOR_MODELO, abre_en, visor_de
-from apps.documents.models import MarcaDeCoordinacion, Observacion, Revision
+from apps.documents.models import Entregable, MarcaDeCoordinacion, Observacion, Revision
 from apps.documents.views import revisiones_visibles
 
 
@@ -605,6 +606,140 @@ class DescartarObservacionAPI(APIView):
 
         set_audit_context(request, observacion, action="descartar_observacion")
         return Response({"estado": observacion.estado, "yaEstaba": False})
+
+
+class DondePublicarAPI(APIView):
+    """Los entregables de esta obra en los que esta persona puede publicar una lámina. `G.4`.
+
+    **Publicar necesita elegir dónde, y el visor no tiene esa lista.** Sabe de qué revisión vino
+    —eso llega en sus metadatos— pero una planta generada del modelo **no es una revisión de ese
+    modelo**: es otro documento, normalmente de otra disciplina. Sin este endpoint, el único destino
+    posible sería el equivocado.
+
+    Va acotada por organización a través del proyecto, y pide las dos cosas: ver entregables y poder
+    crear revisiones. El porqué está en `DondePublicarPermissions`.
+    """
+
+    permission_classes = [DondePublicarPermissions]
+    queryset = Entregable.objects.none()
+
+    #: Cuántos se devuelven. Una obra grande tiene cientos y esto llena un desplegable, no una
+    #: pantalla de gestión: el tope es el mismo criterio que ya usa `RevisionesAbriblesAPI`.
+    MAXIMO = 200
+
+    def get(self, request, *args, **kwargs):
+        from rest_framework.response import Response
+
+        from apps.projects.models import Proyecto
+
+        proyecto = (
+            scope_queryset_to_organizacion(Proyecto.objects.all(), request.user)
+            .filter(pk=kwargs["pk"])
+            .first()
+        )
+        if proyecto is None:
+            raise Http404
+
+        entregables = (
+            Entregable.objects.filter(proyecto=proyecto)
+            .select_related("disciplina")
+            .order_by("disciplina__codigo", "codigo")[: self.MAXIMO]
+        )
+        return Response(
+            {
+                "entregables": [
+                    {
+                        "id": str(uno.pk),
+                        "codigo": uno.codigo,
+                        "titulo": uno.titulo,
+                        "disciplina": uno.disciplina.codigo,
+                    }
+                    for uno in entregables
+                ]
+            }
+        )
+
+
+class PublicarLaminaAPI(APIView):
+    """Archiva la lámina del visor como una revisión nueva. `G.4`.
+
+    **Es la vuelta que faltaba.** Hasta ahora, dejar archivada una planta del modelo era: generarla,
+    descargar el PDF, volver al portal, buscar el entregable, abrir el formulario de subir y elegir
+    el archivo del disco. Seis pasos para mover un archivo que el servidor acababa de fabricar.
+
+    **El navegador no manda ningún archivo**: manda la misma geometría que ya manda a
+    `LaminaPdfView` y el servidor compone el papel. Eso no es solo ahorro — significa que **los
+    bytes que se archivan los escribe el servidor**, así que no hay nada que validar de nadie. Una
+    subida binaria desde el visor habría abierto la primera superficie de carga de archivos de la
+    API, que es una decisión mucho mayor que la que esto necesitaba.
+
+    `add_revision` por el mapa de DRF, que aquí sí acierta: esto **crea** una revisión. Y va acotado
+    por organización a través del entregable, porque una `Revision` no lleva el campo.
+    """
+
+    permission_classes = [ViewModelPermissions]
+    queryset = Revision.objects.none()
+
+    def post(self, request, *args, **kwargs):
+        from rest_framework.response import Response
+
+        from apps.documents import publicar as publicacion
+        from apps.documents.lamina import Lamina, pdf_de
+
+        entregable = (
+            scope_queryset_to_organizacion(Entregable.objects.all(), request.user)
+            .select_related("proyecto")
+            .filter(pk=kwargs["pk"])
+            .first()
+        )
+        if entregable is None:
+            raise Http404
+
+        datos = request.data if isinstance(request.data, dict) else {}
+        hoja = datos.get("hoja")
+        if not isinstance(hoja, dict):
+            return Response({"error": _("The sheet did not arrive."), "codigo": "sin-hoja"}, 400)
+
+        correlativo = str(datos.get("correlativo") or "").strip().upper()
+        idoneidad = str(datos.get("idoneidad") or "")
+        rechazo = publicacion.revisa(
+            entregable=entregable, correlativo=correlativo, idoneidad=idoneidad
+        )
+        if rechazo is not None:
+            return Response({"error": rechazo.motivo, "codigo": rechazo.codigo}, status=400)
+
+        vista = str(hoja.get("nombre") or _("Drawing"))[:60]
+        lamina = Lamina.desde(hoja, titulo=f"{entregable.codigo} · {vista}")
+        if not lamina.segmentos and not lamina.textos:
+            return Response(
+                {"error": _("The sheet arrived with nothing to draw."), "codigo": "hoja-vacia"},
+                status=400,
+            )
+
+        revision = publicacion.publicar(
+            entregable=entregable,
+            correlativo=correlativo,
+            idoneidad=idoneidad,
+            contenido=pdf_de(lamina, pedido_por=request.user.get_username()),
+            vista=vista,
+            por=request.user,
+        )
+        set_audit_context(
+            request,
+            revision,
+            action="publicar_lamina",
+            metadata={"vista": vista, "recortada": lamina.recortada},
+        )
+        return Response(
+            {
+                "id": str(revision.pk),
+                "correlativo": revision.correlativo,
+                "nombre": revision.nombre_original,
+                "entregable": entregable.codigo,
+                "recortada": lamina.recortada,
+            },
+            status=201,
+        )
 
 
 class RevisionContenidoAPI(APIView):

@@ -277,7 +277,8 @@ PASOS: tuple[Paso, ...] = (
         que_hacer=(
             "En el visor, «Planos generados»: planta, frontal o lateral de lo que esté encendido. "
             "Se puede acotar con las mediciones, ponerle un cuadro del modelo, y sale en DXF para "
-            "el CAD o en PDF con el membrete."
+            "el CAD o en PDF con el membrete. Y se archiva en el registro sin salir del visor, "
+            "como una revisión más del entregable que elijas."
         ),
         ruta="visor:visor",
         permiso=None,

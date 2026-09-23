@@ -49,6 +49,7 @@ import { CuadrosPanel } from "./components/CuadrosPanel.js";
 import { NotaFlotante } from "./components/NotaFlotante.js";
 import { Origen } from "./components/Origen.js";
 import { PlansPanel } from "./components/PlansPanel.js";
+import { PublicarLamina } from "./components/PublicarLamina.js";
 import { ProjectBrowser } from "./components/ProjectBrowser.js";
 import { PuertaDeEntrada } from "./components/PuertaDeEntrada.js";
 import { Resizer } from "./components/Resizer.js";
@@ -1865,6 +1866,16 @@ export function App() {
   >({});
 
   /**
+   * La lámina que se está archivando en el registro, o `null`. `G.4`.
+   *
+   * **Se guarda la hoja y no el identificador del plano.** `sheetOf` proyecta y recorta cada vez que
+   * se llama, así que pedírsela al abrir el cuadro y otra vez al enviar podría archivar un dibujo
+   * distinto del que se vio —basta con que alguien apague una capa mientras rellena el correlativo—.
+   * Lo que se enseña y lo que se archiva tienen que ser los mismos bytes.
+   */
+  const [publicando, setPublicando] = useState<ReturnType<BimViewer["sheetOf"]> | null>(null);
+
+  /**
    * Descarga la lámina en PDF, dibujada por el servidor. `F7.5`.
    *
    * **El navegador manda la geometría ya proyectada y el servidor compone el papel.** Proyectar
@@ -1943,6 +1954,18 @@ export function App() {
     },
     [origen],
   );
+
+  /**
+   * Abre el cuadro de archivar esta lámina en el registro. `G.4`.
+   *
+   * Solo pide la hoja: quién decide el entregable, el correlativo y la idoneidad es el cuadro, y
+   * quien la manda es él. Aquí solo se congela **qué** se va a archivar.
+   */
+  const onPublicarLamina = useCallback((planoId: string) => {
+    const hoja = viewer.current?.sheetOf(planoId);
+    if (hoja === null || hoja === undefined) return;
+    setPublicando(hoja);
+  }, []);
 
   /**
    * Los hallazgos del modelo, para poder señalarlos en un plano. `F7.3`.
@@ -2589,6 +2612,17 @@ export function App() {
             />
           )}
 
+          {/* **Archivar la lámina, encima del modelo.** `G.4`. Va con la hoja ya congelada: ver
+              `publicando`, que guarda la hoja y no el identificador del plano para que lo que se
+              archiva sean los mismos bytes que se vieron. */}
+          {publicando !== null && origen?.proyectoId !== undefined && (
+            <PublicarLamina
+              proyectoId={origen.proyectoId}
+              hoja={publicando}
+              onCerrar={() => setPublicando(null)}
+            />
+          )}
+
           {/* **El cuadro, encima del modelo y no en el panel.** Un cuadro de perfiles de acero
               trae veinticuatro columnas y el panel de la derecha mide unos 320 px: ahí dentro no es
               una tabla, es una lista de celdas cortadas. Mismo reparto que la nota flotante. */}
@@ -2738,6 +2772,7 @@ export function App() {
                   void viewer.current?.setDrawingHiddenVisible(id, visible)
                 }
                 onExport={onExportDrawing}
+                {...(origen?.proyectoId !== undefined ? { onPublicar: onPublicarLamina } : {})}
                 onClose={(id) => {
                   setDrawings((actuales) => actuales.filter((uno) => uno.id !== id));
                   void viewer.current?.removeDrawing(id);

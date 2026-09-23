@@ -119,6 +119,33 @@ class ChangeModelPermissions(ViewModelPermissions):
     }
 
 
+class DondePublicarPermissions(ViewModelPermissions):
+    """Para la lista que existe **para escribir en ella**: pide leer y pide escribir.
+
+    «Los entregables donde puedes publicar» es una lectura —y por tanto pide su `view_entregable`,
+    que es la regla de la casa para toda superficie de lectura— pero **no es una lectura
+    cualquiera**: es el desplegable de un formulario de publicar. A quien no puede publicar no le
+    sirve de nada, y enseñárselo es ofrecerle una puerta que termina en 403.
+
+    Así que pide las dos cosas. Con solo `view_entregable` la lista saldría y el botón fallaría
+    después; con solo `add_revision` se estaría entregando el catálogo de entregables a un rol que
+    no puede leerlo, que es exactamente el hueco que `ViewModelPermissions` existe para tapar.
+
+    El segundo permiso va escrito entero y no derivado del `queryset`: **son dos modelos
+    distintos** —se leen entregables, se crean revisiones— y `DjangoModelPermissions` solo sabe
+    derivar del suyo.
+    """
+
+    #: El permiso de escritura que además hace falta. Va aquí y no en la vista para que se lea al
+    #: lado del de lectura: son la misma decisión.
+    permiso_de_escritura = "documents.add_revision"
+
+    def has_permission(self, request, view):
+        return super().has_permission(request, view) and request.user.has_perm(
+            self.permiso_de_escritura
+        )
+
+
 class PersonalStatePermissions(ViewModelPermissions):
     """Para un `POST` que solo escribe **lo que esta persona ha visto**, no el dato compartido.
 

@@ -39,6 +39,19 @@ urlpatterns = [
         api.MarcarCoordinacionVistaAPI.as_view(),
         name="proyecto-coordinacion-vista",
     ),
+    # **Publicar la lámina sin salir del visor.** Van separadas —dónde se puede, y publicar— porque
+    # son dos preguntas: la primera llena el desplegable y la segunda escribe. Y la primera cuelga
+    # del proyecto y la segunda del entregable, que es justo lo que se acaba de elegir.
+    path(
+        "proyectos/<uuid:pk>/donde-publicar/",
+        api.DondePublicarAPI.as_view(),
+        name="proyecto-donde-publicar",
+    ),
+    path(
+        "entregables/<uuid:pk>/publicar-lamina/",
+        api.PublicarLaminaAPI.as_view(),
+        name="publicar-lamina",
+    ),
     # **Descartar sin salir del visor.** Es lo que hace que una corrida de interferencias sirva dos
     # veces: triar decenas de conflictos abriendo la ficha de cada uno en otra pestaña no lo hace
     # nadie, y a la corrida siguiente vuelven todos.
