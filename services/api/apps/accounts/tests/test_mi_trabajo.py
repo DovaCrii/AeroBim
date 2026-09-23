@@ -169,10 +169,14 @@ def test_las_doce_tarjetas_de_modulo_ya_no_estan(client, coordina):
 
 @pytest.mark.django_db
 def test_salen_tres_pasos_del_recorrido(client, coordina):
+    """**Contaba `<li>` de toda la página**, y el portal tiene listas de sobra: la cuenta llegaba a
+    tres sin que la tarjeta pintara un solo paso. Ahora se cuentan los que llevan su propia clase de
+    estado, que es lo que solo existe dentro de esta tarjeta.
+    """
     html = client.get("/").content.decode("utf-8")
 
     assert "pasos-cortos" in html
-    assert html.count("<li>") >= 3
+    assert html.count('<li class="paso-') == 3
 
 
 @pytest.mark.django_db
@@ -189,9 +193,9 @@ def test_no_se_ofrece_un_paso_que_esta_persona_no_puede_hacer(client, db, organi
     client.force_login(get_user_model().objects.get(pk=usuario.pk))
 
     respuesta = client.get("/")
-    pasos = respuesta.context["pasos"]
+    pasos = respuesta.context["arranque"].pasos
 
-    assert all(uno.puedes for uno in pasos)
+    assert all(uno.paso.puedes for uno in pasos)
 
 
 # --- El título de la pantalla ---------------------------------------------------------

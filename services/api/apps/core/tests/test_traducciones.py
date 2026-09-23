@@ -293,6 +293,50 @@ def test_el_binario_devuelve_el_espanol(fuente, esperado):
         deactivate()
 
 
+#: Cadenas marcadas para traducir que **no van al catálogo a propósito**, con su motivo.
+#:
+#: Se añade una entrada con su razón, no se borra la prueba.
+FUERA_DEL_CATALOGO: dict[str, str] = {}
+
+
+def test_ninguna_cadena_marcada_se_queda_fuera_del_catalogo():
+    """**La séptima forma, y la que dejó tres botones en inglés en producción.**
+
+    Las seis comprobaciones de arriba miran lo que **está** en el catálogo: que no sea `fuzzy`, que
+    esté traducido, que el binario cuadre. Ninguna mira lo que **falta**, y una cadena que nunca se
+    extrajo no aparece por ningún lado — simplemente sale en inglés, con toda la naturalidad del
+    mundo, porque `gettext` devuelve el original cuando no encuentra la entrada.
+
+    Medido el 2026-09-23: `templates/accounts/borrar_organizacion.html` llevaba `Delete`,
+    `Delete it` y `Delete «%(nombre)s»` marcadas y **ninguna de las tres estaba en el catálogo**. La
+    pantalla de borrar una organización decía «Delete it» en un producto en español, y las siete
+    pruebas de este archivo pasaban en verde: no había nada que mirar.
+
+    Se comprueba solo el `{% translate "…" %}` de una línea, que es la forma mayoritaria y la que se
+    escribe sin pensar. Un `blocktranslate` de varias líneas es más difícil de barrer y también más
+    difícil de olvidar, porque nadie escribe uno por accidente.
+    """
+    plantillas = Path(settings.BASE_DIR) / "templates"
+    del_catalogo = {msgid for _bloque, msgid, _msgstr in bloques()}
+
+    # **La comilla de cierre tiene que ser la misma que la de apertura.** Con `["']` a los dos
+    # lados, `{% translate "the file's own data could not be read" %}` se corta en el apóstrofo y
+    # denuncia `the file` — una cadena que no existe, en una plantilla que está bien.
+    marcadas = re.compile(r"""\{%\s*(?:translate|trans)\s+(["'])((?:(?!\1).)*)\1""")
+
+    faltan: dict[str, str] = {}
+    for archivo in plantillas.rglob("*.html"):
+        for encontrada in marcadas.finditer(archivo.read_text(encoding="utf-8")):
+            cadena = encontrada.group(2)
+            if cadena not in del_catalogo and cadena not in FUERA_DEL_CATALOGO:
+                faltan.setdefault(cadena, str(archivo.relative_to(plantillas)))
+
+    assert faltan == {}, (
+        f"marcadas para traducir y sin entrada en el catálogo, así que salen en inglés: {faltan}. "
+        "Corre `manage.py makemessages -l es`, traduce lo nuevo y `compilemessages`."
+    )
+
+
 @pytest.mark.django_db
 def test_la_pantalla_sale_en_espanol(client):
     """De punta a punta: la página de ingreso, que es lo primero que alguien ve."""
