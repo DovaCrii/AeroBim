@@ -640,11 +640,16 @@ class DondePublicarAPI(APIView):
         if proyecto is None:
             raise Http404
 
-        entregables = (
-            Entregable.objects.filter(proyecto=proyecto)
-            .select_related("disciplina")
-            .order_by("disciplina__codigo", "codigo")[: self.MAXIMO]
-        )
+        de_la_obra = Entregable.objects.filter(proyecto=proyecto)
+        # **Se cuenta antes de recortar.** Sin la cuenta, una obra de trescientos entregables
+        # enseñaría doscientos y el que falta parecería no existir: quien lo busca concluye que el
+        # entregable no está creado, no que la lista está cortada. Es el mismo defecto que ya costó
+        # una pasada en las tarjetas de obra de la portada.
+        cuantos = de_la_obra.count()
+        entregables = de_la_obra.select_related("disciplina").order_by(
+            "disciplina__codigo", "codigo"
+        )[: self.MAXIMO]
+
         return Response(
             {
                 "entregables": [
@@ -655,7 +660,9 @@ class DondePublicarAPI(APIView):
                         "disciplina": uno.disciplina.codigo,
                     }
                     for uno in entregables
-                ]
+                ],
+                "cuantos": cuantos,
+                "recortada": cuantos > self.MAXIMO,
             }
         )
 
