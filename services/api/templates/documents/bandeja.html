@@ -11,10 +11,14 @@
 {% block titulo_pagina %}<h1>{% translate "Everything pending" %}</h1>{% endblock %}
 
 {% block subtitulo %}
+  {% comment %}
+    **Decía «es el mismo reparto que usa el resumen diario»**, que es verdad y no le sirve a nadie:
+    es una frase sobre cómo está hecho el sistema, no sobre el trabajo de quien la lee. Ahora dice
+    qué hay aquí y qué hacer primero.
+  {% endcomment %}
   <p class="subtitulo">
-    {% blocktranslate %}What is assigned to you, by how soon it is due. It is the same split the
-    daily digest uses: what is overdue and what is due in a month need different
-    reactions.{% endblocktranslate %}
+    {% blocktranslate %}Everything assigned to you, with the overdue first. Start at the top: the
+    older something is, the more it is holding someone up.{% endblocktranslate %}
   </p>
 {% endblock %}
 
@@ -71,20 +75,59 @@
       {% endfor %}
     </div>
   {% else %}
-    {% for etiqueta, tareas, urgente in tramos_etiquetados %}
-      <section class="bloque">
-        <h2 class="tramo{% if urgente %} tramo-arde{% endif %}">
-          {% if urgente %}<span aria-hidden="true">⚠</span> {% endif %}{{ etiqueta }}
-        </h2>
+    {% comment %}
+      **El resumen arriba, y es lo que se lee primero.**
+
+      La lista empezaba directamente por el primer tramo, así que para saber cuánto había que bajar
+      entera. Ahora arriba va una fila con la cifra de cada tramo —lo vencido en rojo— y cada una
+      lleva a su sección. Es la respuesta a «¿cómo voy?» sin leer ninguna tarea.
+
+      Los tramos a cero **se quedan en el resumen y salen de la lista**, y las dos cosas a propósito.
+      Antes cada tramo vacío pintaba una caja entera con «Nada.»: con cuatro vacíos eran cuatro cajas
+      grandes diciendo lo mismo, y lo que sí había quedaba debajo. En el resumen el cero sigue
+      diciendo que ese tramo se miró y está limpio.
+    {% endcomment %}
+    {% if total_pendiente %}
+      <nav class="resumen-de-tramos" aria-label="{% translate 'How much there is in each band' %}">
+        {% for clave, etiqueta, tareas, urgente in tramos_con_clave %}
+          {% if tareas %}
+            <a href="#tramo-{{ clave }}"
+               class="resumen-tramo{% if urgente %} resumen-tramo-arde{% endif %}">
+              <span class="resumen-tramo-cifra">{{ tareas|length }}</span>
+              <span class="resumen-tramo-nombre">{{ etiqueta }}</span>
+            </a>
+          {% else %}
+            <span class="resumen-tramo resumen-tramo-cero">
+              <span class="resumen-tramo-cifra">0</span>
+              <span class="resumen-tramo-nombre">{{ etiqueta }}</span>
+            </span>
+          {% endif %}
+        {% endfor %}
+      </nav>
+
+      {% for clave, etiqueta, tareas, urgente in tramos_con_clave %}
         {% if tareas %}
-          <ol class="tareas">
-            {% for tarea in tareas %}{% include "generic/_fila_tarea.html" %}{% endfor %}
-          </ol>
-        {% else %}
-          <div class="vacio"><svg class="icono-en-linea" aria-hidden="true"><use href="#i-nada"></use></svg>{% translate "Nothing." %}</div>
+          <section class="bloque" id="tramo-{{ clave }}">
+            <h2 class="tramo{% if urgente %} tramo-arde{% endif %}">
+              {% if urgente %}<span aria-hidden="true">⚠</span> {% endif %}{{ etiqueta }}
+              <span class="tramo-cifra">{{ tareas|length }}</span>
+            </h2>
+            <ol class="tareas">
+              {% for tarea in tareas %}{% include "generic/_fila_tarea.html" %}{% endfor %}
+            </ol>
+          </section>
         {% endif %}
-      </section>
-    {% endfor %}
+      {% endfor %}
+    {% else %}
+      {% comment %}
+        **Un solo vacío para todo.** Con nada pendiente, cinco tramos vacíos eran cinco cajas; esto es
+        una frase, y dice lo que eso significa para quien la lee.
+      {% endcomment %}
+      <div class="vacio vacio-grande">
+        <svg class="icono-en-linea" aria-hidden="true"><use href="#i-nada"></use></svg>
+        {% translate "You have nothing pending. When someone assigns you a finding or an activity, it appears here and on the bell." %}
+      </div>
+    {% endif %}
   {% endif %}
 
   {% comment %}
@@ -112,8 +155,18 @@
             </td>
             <td>{{ entregable.titulo }}</td>
             <td>
-              {{ entregable.revision_vigente.correlativo|default:"—" }}
-              {{ entregable.revision_vigente.idoneidad|default:"" }}
+              {% comment %}
+                Decía «00 S0»: el correlativo y la sigla ISO pegados. Ahora la sigla lleva su nombre,
+                que es lo que dice si la revisión está en borrador o publicada.
+              {% endcomment %}
+              {% with vigente=entregable.revision_vigente %}
+                {% if vigente %}
+                  <span class="pildora">{{ vigente.correlativo }}</span>
+                  <span class="detalle">{{ vigente.get_idoneidad_display }}</span>
+                {% else %}
+                  <span class="detalle">{% translate "Nothing issued yet" %}</span>
+                {% endif %}
+              {% endwith %}
             </td>
             {% comment %}
               Salía «0.55» bajo una columna llamada «Avance», mientras el resto de la aplicación

@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block titulo %}{% translate "Team follow-up" %} · AeroBim{% endblock %}
+
+{% block titulo_pagina %}<h1>{% translate "Team follow-up" %}</h1>{% endblock %}
+
+{% block subtitulo %}
+  <p class="subtitulo">
+    {% blocktranslate %}Who is behind, and with what. Talk first to whoever has the most overdue:
+    the oldest item on each card is the one holding the work up.{% endblocktranslate %}
+  </p>
+{% endblock %}
+
+{% block contenido %}
+  {% comment %}
+    **La pantalla de quien reparte.** La bandeja contesta «¿qué tengo yo?»; esta contesta «¿quién va
+    atrasado?», que es la pregunta de la reunión semanal y hasta hoy no tenía pantalla. El porqué
+    de cada decisión está en `apps/documents/seguimiento.py`.
+
+    **No avisa a nadie**: se mira, no escribe. Los avisos a cada persona ya existen —la campana y
+    el resumen con la cadencia que fija cada obra— y un segundo emisor sería el spam que el encargo
+    pidió evitar.
+  {% endcomment %}
+
+  {% if obras|length > 1 %}
+    {% comment %}
+      Un formulario `GET` con su botón y no un desplegable que se envía solo: la CSP prohíbe el
+      JavaScript en línea, y un `<select>` que no envía nada no filtra. Y así el filtro queda en la
+      URL y se puede guardar.
+    {% endcomment %}
+    <form method="get" class="accion barra-filtros">
+      <label>
+        {% translate "Work" %}
+        <select name="obra">
+          <option value="">{% translate "All works" %}</option>
+          {% for una in obras %}
+            <option value="{{ una.pk }}"{% if obra and una.pk == obra.pk %} selected{% endif %}>
+              {{ una.codigo }} · {{ una.nombre }}
+            </option>
+          {% endfor %}
+        </select>
+      </label>
+      <button type="submit" class="boton secundario chico">{% translate "Filter" %}</button>
+    </form>
+  {% endif %}
+
+  {% if seguimiento.personas %}
+    <div class="resumen-de-tramos">
+      <span class="resumen-tramo{% if seguimiento.total_vencidas %} resumen-tramo-arde{% else %} resumen-tramo-cero{% endif %}">
+        <span class="resumen-tramo-cifra">{{ seguimiento.total_vencidas }}</span>
+        <span class="resumen-tramo-nombre">{% translate "overdue in the team" %}</span>
+      </span>
+      <span class="resumen-tramo{% if not seguimiento.con_vencidas %} resumen-tramo-cero{% endif %}">
+        <span class="resumen-tramo-cifra">{{ seguimiento.con_vencidas }}</span>
+        <span class="resumen-tramo-nombre">{% translate "people with overdue items" %}</span>
+      </span>
+      {% if seguimiento.peor_atraso %}
+        <span class="resumen-tramo">
+          <span class="resumen-tramo-cifra">{{ seguimiento.peor_atraso }}</span>
+          <span class="resumen-tramo-nombre">{% translate "days, the oldest one" %}</span>
+        </span>
+      {% endif %}
+    </div>
+
+    <div class="seguimiento">
+      {% for persona in seguimiento.personas %}
+        <section class="bloque persona-seguimiento{% if persona.vencidas %} persona-atrasada{% endif %}">
+          <h2 class="tramo">
+            {{ persona.usuario.get_full_name|default:persona.usuario.username }}
+            {% if persona.vencidas %}
+              <span class="tramo-cifra tramo-cifra-arde">
+                {% blocktranslate count n=persona.vencidas|length %}{{ n }} overdue{% plural %}{{ n }} overdue{% endblocktranslate %}
+              </span>
+            {% endif %}
+            {% if persona.esta_semana %}
+              <span class="tramo-cifra">
+                {% blocktranslate count n=persona.esta_semana %}{{ n }} this week{% plural %}{{ n }} this week{% endblocktranslate %}
+              </span>
+            {% endif %}
+          </h2>
+
+          {% if persona.vencidas %}
+            <ol class="lista-de-atrasos">
+              {% for una in persona.vencidas %}
+                <li>
+                  {% if una.es_observacion %}
+                    <a href="{% url 'documents:observacion' una.item.pk %}">{{ una.item.titulo }}</a>
+                  {% else %}
+                    <a href="{% url 'documents:actividad' una.item.pk %}">{{ una.item.titulo }}</a>
+                  {% endif %}
+                  <span class="detalle">
+                    {{ una.item.proyecto.codigo }}
+                    · {% if una.es_observacion %}{% translate "finding" %}{% else %}{% translate "activity" %}{% endif %}
+                  </span>
+                  {% comment %}
+                    Los días y no la fecha: «vence 2026-08-09» obliga a restar, y en una lista de diez
+                    nadie lo hace. Con **las mismas clases y el mismo texto** que la fila de tarea de
+                    la bandeja, y el grado de la misma función, así que el mismo atraso se ve igual
+                    en las dos pantallas.
+                  {% endcomment %}
+                  <span class="tarea-vence tarea-vencida atraso-{{ una.gravedad }}">
+                    {% blocktranslate count dias=una.dias %}{{ dias }} day late{% plural %}{{ dias }} days late{% endblocktranslate %}
+                  </span>
+                </li>
+              {% endfor %}
+            </ol>
+          {% else %}
+            <p class="detalle">{% translate "Nothing overdue. What is due this week is still on time." %}</p>
+          {% endif %}
+        </section>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="vacio vacio-grande">
+      <svg class="icono-en-linea" aria-hidden="true"><use href="#i-nada"></use></svg>
+      {% translate "Nobody in the team is behind, and nothing is due this week." %}
+    </div>
+  {% endif %}
+{% endblock %}

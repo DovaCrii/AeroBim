@@ -23,13 +23,19 @@
   <td>{{ archivo.entregable.proyecto.codigo }}</td>
   <td>
     <span class="pildora">{{ archivo.correlativo }}</span>
-    <span class="detalle">{{ archivo.idoneidad }}</span>
+    {% comment %}
+      **El nombre de la idoneidad y no solo su código.** Decía «S0» a secas, y eso es la sigla de
+      ISO 19650: quien no la tiene memorizada no sabe si su archivo está en borrador o publicado, que
+      es justo lo que la columna existe para contestar. El texto sale de las opciones del modelo, así
+      que no puede decir una cosa aquí y otra en el expediente.
+    {% endcomment %}
+    <span class="detalle">{{ archivo.get_idoneidad_display }}</span>
   </td>
   <td>
     {{ archivo.subida_por.get_full_name|default:archivo.subida_por.username }}
     <span class="detalle">{{ archivo.emitida_en|date:"Y-m-d" }}</span>
   </td>
-  <td>
+  <td class="celda-acciones">
     <span class="acciones-archivo">
       {% comment %}
         **Abrir va primero y descargar segundo, y ese orden importa.** Lo que hace este producto
@@ -41,8 +47,16 @@
         la vista lo deja resuelto en `visor_ruta`. Un PDF en el visor 3D cargaría Three.js y el WASM
         de `web-ifc` para nada — y además no sabría abrirlo.
       {% endcomment %}
+      {% comment %}
+        **Botones y no tres enlaces subrayados en fila.** Salían «Abrir Compartir Descargar» pegados
+        en una columna de 93 px, y tres subrayados seguidos se leen como una sola frase: no se
+        distinguía dónde acababa uno. Abrir va lleno porque es la acción del producto; las otras dos
+        en contorno.
+      {% endcomment %}
       {% if archivo.visor_ruta %}
-        <a href="{% url archivo.visor_ruta %}?revision={{ archivo.pk }}">{% translate "Open" %}</a>
+        <a class="boton chico" href="{% url archivo.visor_ruta %}?revision={{ archivo.pk }}">
+          {% translate "Open" %}
+        </a>
       {% endif %}
       {% comment %}
         **Compartir, desde donde se está mirando.**
@@ -57,11 +71,11 @@
         permiso que exige la vista, no el que parece. Esa distinción ya costó una vez aquí.
       {% endcomment %}
       {% if archivo.visor_ruta and puede_compartir %}
-        <a class="enlace-suave" href="{% url 'documents:enlaces' archivo.pk %}">
+        <a class="boton secundario chico" href="{% url 'documents:enlaces' archivo.pk %}">
           {% translate "Share" %}
         </a>
       {% endif %}
-      <a class="enlace-suave" href="{% url 'documents:descargar-revision' archivo.pk %}">
+      <a class="boton secundario chico" href="{% url 'documents:descargar-revision' archivo.pk %}">
         {% translate "Download" %}
       </a>
     </span>

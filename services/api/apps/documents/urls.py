@@ -6,6 +6,9 @@ app_name = "documents"
 
 urlpatterns = [
     path("", views.MiBandejaView.as_view(), name="bandeja"),
+    # **Lo atrasado de todo el equipo, por persona.** La bandeja de arriba es la de cada uno; esta
+    # es la de quien reparte. Ver `seguimiento.py`.
+    path("seguimiento/", views.SeguimientoView.as_view(), name="seguimiento"),
     # **El repositorio**: todo lo guardado en el servidor, por categoría. Ver `ArchivosView` —
     # no es otro almacén, es otra forma de mirar el mismo.
     path("archivos/", views.ArchivosView.as_view(), name="archivos"),

@@ -123,12 +123,21 @@ class Tarea:
         grado cambia **tambien el peso de la letra**, que es la regla que ya defiende `app.css`
         para lo vencido — quien no distingue rojos tiene que poder distinguir esto.
         """
-        dias = self.dias_de_atraso
-        if dias <= 0:
-            return ""
-        if dias <= 7:
-            return "leve"
-        return "serio" if dias <= 30 else "grave"
+        return gravedad_de(self.dias_de_atraso)
+
+
+def gravedad_de(dias: int) -> str:
+    """El grado de un atraso de tantos días. Ver `Tarea.gravedad`.
+
+    **Fuera de la clase para que el seguimiento del equipo use los mismos cortes.** Escritos otra
+    vez en su plantilla, un cambio de siete a diez días movería el color de la bandeja y no el del
+    seguimiento, y el mismo hallazgo se vería «serio» en una pantalla y «leve» en la otra.
+    """
+    if dias <= 0:
+        return ""
+    if dias <= 7:
+        return "leve"
+    return "serio" if dias <= 30 else "grave"
 
 
 def _acciones_de(item, usuario) -> tuple[tuple[str, str], ...]:

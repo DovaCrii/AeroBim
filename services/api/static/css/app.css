@@ -329,6 +329,12 @@
 
 body {
   margin: 0;
+  /* **Una columna que llena la ventana**, para que el marco de abajo pueda estirarse hasta el
+     borde inferior en una página corta. Sin esto, el cuerpo medía lo que medía su contenido —899 px
+     en una ventana de 1000, medido en Archivos— y la columna del rail se cortaba ahí. */
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
   background: var(--ab-bg);
   color: var(--ab-text);
   font:
@@ -419,15 +425,37 @@ a:hover {
  * rail. El rail se queda quieto con `position: sticky`, que hace lo mismo sin sacarlo del flujo.
  */
 .marco {
+  /* El ancho de la columna del rail, en un solo sitio: lo usan la rejilla y el fondo de abajo, y
+     cambia con el ancho de la ventana. Dos números que se escriben por separado se separan. */
+  --columna-del-rail: var(--ab-sidebar-width);
   display: grid;
-  grid-template-columns: var(--ab-sidebar-width) 1fr;
+  grid-template-columns: var(--columna-del-rail) 1fr;
   align-items: start;
+  flex: 1;
+  /*
+   * **La columna del rail la pinta el marco, no el rail** (2026-09-23).
+   *
+   * El rail es `sticky` con `align-self: start`, así que mide lo que su contenido —y así tiene que
+   * ser, o dejaría de quedarse quieto al bajar—. Su fondo se acababa ahí, y en una página más alta
+   * que el menú, debajo se veía el fondo de la página: una barra lateral **cortada** a media
+   * pantalla, que es lo que el usuario vio en todas sus capturas. Medido en Archivos: el rail
+   * acababa en 899 px y la ventana en 1000.
+   *
+   * Así que el marco pinta la columna entera —superficie y borde— hasta el final, y el rail se
+   * apoya encima con los mismos dos colores: no se nota la costura.
+   */
+  background:
+    linear-gradient(var(--ab-border), var(--ab-border)) calc(var(--columna-del-rail) - 1px) 0 / 1px
+      100% no-repeat,
+    linear-gradient(var(--ab-surface), var(--ab-surface)) 0 0 / var(--columna-del-rail) 100%
+      no-repeat;
 }
 
 /* Sin sesión no hay rail: **una columna de 248 px de nada** al lado del formulario de entrada
    sería peor que no tenerla. La clase la pone `base.html`. */
 .marco-sin-rail {
   grid-template-columns: 1fr;
+  background: none;
 }
 
 .rail {
@@ -584,7 +612,8 @@ a:hover {
  * 1200 px y no a 900. */
 @media (max-width: 1100px) {
   .marco {
-    grid-template-columns: var(--ab-rail-plegado) 1fr;
+    /* Cambia la variable y no la rejilla: así el fondo pintado sigue al rail plegado solo. */
+    --columna-del-rail: var(--ab-rail-plegado);
   }
 
   .rail-rotulo,
@@ -626,6 +655,9 @@ a:hover {
   .marco,
   .marco-sin-rail {
     grid-template-columns: 1fr;
+    /* Aquí el rail es una tira arriba y no una columna: pintar una columna a la izquierda
+       dejaría una franja de color debajo de todo el contenido. */
+    background: none;
   }
 
   .rail {
@@ -1039,15 +1071,150 @@ main {
 }
 
 /* El rótulo de cada tramo dentro de un bloque: «Vencido», «Próximos 7 días». */
+/*
+ * **El título del tramo iba a 13 px en gris**, o sea que lo que marca dónde empieza «Vencido» era
+ * lo más pequeño de su sección — el mismo defecto que ya tuvo el rótulo de `.bloque`. Sube a título
+ * y lleva su cifra al lado, para que el número se lea sin contar filas.
+ */
 .tramo {
-  margin: 14px 0 6px;
-  font-size: var(--ab-texto-xs);
-  font-weight: 600;
-  color: var(--ab-text-secondary);
+  display: flex;
+  align-items: center;
+  gap: var(--ab-esp-2);
+  margin: 0 0 var(--ab-esp-3);
+  font-size: var(--ab-texto-base);
+  font-weight: 700;
+  color: var(--ab-text);
 }
 
 .tramo-arde {
   color: var(--ab-danger);
+}
+
+.tramo-cifra {
+  padding: 0 var(--ab-esp-2);
+  font-size: var(--ab-texto-xs);
+  font-weight: 600;
+  color: var(--ab-text-secondary);
+  background: var(--ab-surface-alt);
+  border-radius: 999px;
+}
+
+/*
+ * **El resumen de la bandeja: «¿cómo voy?» sin leer ninguna tarea** (2026-09-23).
+ *
+ * Una baldosa por tramo con su cifra grande, y cada una lleva a su sección. Lo vencido lleva el
+ * rojo en el borde **y en la cifra**, no solo en un color de fondo: quien no distinga el rojo lee
+ * igual el número y el nombre del tramo.
+ *
+ * Los tramos a cero se quedan, apagados: dicen que ese tramo se miró y está limpio, y quitarlos
+ * haría que «no hay nada esta semana» y «esta pantalla no enseña la semana» se vieran igual.
+ */
+.resumen-de-tramos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ab-esp-3);
+  margin: 0 0 var(--ab-esp-5);
+}
+
+.resumen-tramo {
+  display: flex;
+  flex-direction: column;
+  min-width: 132px;
+  padding: var(--ab-esp-3) var(--ab-esp-4);
+  color: var(--ab-text);
+  text-decoration: none;
+  background: var(--ab-surface-2);
+  border: 1px solid var(--ab-border);
+  border-radius: var(--ab-radius);
+  box-shadow: var(--ab-elev-sm);
+}
+
+a.resumen-tramo:hover {
+  border-color: var(--ab-primary);
+}
+
+.resumen-tramo-cifra {
+  font-size: var(--ab-texto-lg);
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.resumen-tramo-nombre {
+  font-size: var(--ab-texto-xs);
+  color: var(--ab-text-secondary);
+}
+
+.resumen-tramo-arde {
+  border-color: var(--ab-danger);
+}
+
+.resumen-tramo-arde .resumen-tramo-cifra {
+  color: var(--ab-danger);
+}
+
+/*
+ * **El seguimiento del equipo: una tarjeta por persona, en dos columnas** (2026-09-23).
+ *
+ * Dos columnas porque son fichas cortas —un nombre y unos pocos atrasos— y en un monitor de 1900 px
+ * una sola columna dejaría media pantalla vacía, que es lo que el usuario criticó de «Cómo se usa».
+ * Con `auto-fill` y un mínimo de 420 px, en una pantalla estrecha vuelven a ser una.
+ */
+.seguimiento {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+  gap: var(--ab-esp-4);
+  align-items: start;
+}
+
+.seguimiento .bloque {
+  margin-bottom: 0;
+}
+
+/* Quien va atrasado lleva el filo rojo a la izquierda: se ve en la rejilla sin leer las cifras. */
+.persona-atrasada {
+  border-left: 3px solid var(--ab-danger);
+}
+
+.tramo-cifra-arde {
+  color: var(--ab-danger);
+}
+
+.lista-de-atrasos {
+  display: grid;
+  gap: var(--ab-esp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lista-de-atrasos li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px var(--ab-esp-3);
+  align-items: baseline;
+  padding: var(--ab-esp-2) 0;
+  border-top: 1px solid var(--ab-border);
+}
+
+.lista-de-atrasos li:first-child {
+  border-top: 0;
+}
+
+/* Los días a la derecha, en su columna: es lo que se compara de un vistazo entre filas. */
+.lista-de-atrasos .tarea-vence {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+}
+
+/* A cero: sin sombra y en el gris de lo secundario, que es lo que dice «limpio» sin gritar. */
+.resumen-tramo-cero {
+  box-shadow: none;
+  background: transparent;
+}
+
+.resumen-tramo-cero .resumen-tramo-cifra {
+  color: var(--ab-text-muted);
 }
 
 /* --- La inicial de una persona ---------------------------------------------------- */
@@ -2028,6 +2195,14 @@ tbody tr:last-child td {
   background: var(--ab-surface);
   border: 1px dashed var(--ab-border);
   border-radius: var(--ab-radius);
+}
+
+/* El único vacío de una pantalla entera: más aire y la letra de lectura, porque es lo único que
+   hay que leer ahí. */
+.vacio-grande {
+  padding: var(--ab-esp-5);
+  font-size: var(--ab-texto-sm);
+  color: var(--ab-text-secondary);
 }
 
 /* El icono se alinea con la primera línea, no con el centro del bloque: con dos líneas de texto,
@@ -3234,6 +3409,38 @@ button.peligro:hover {
 
 /* La salida no compite con la acción: no es un botón, es un enlace en gris que se aclara al pasar
    por encima. Un segundo botón al lado de «Crear la cuenta» haría dudar cuál de los dos crea. */
+/*
+ * **El botón de una fila de tabla** (2026-09-23).
+ *
+ * Una acción por fila no puede tener la altura de la del pie de un formulario —34 px por fila de
+ * sesenta hace la tabla el doble de alta— pero tampoco puede ser un enlace suelto: en Archivos eran
+ * tres subrayados pegados, «Abrir Compartir Descargar», y se leían como una frase. 28 px de alto
+ * pasa de sobra el mínimo de 24 × 24 de WCAG 2.5.8.
+ */
+.boton.chico {
+  min-height: 28px;
+  padding: 3px 10px;
+  font-size: var(--ab-texto-xs);
+}
+
+/*
+ * **La columna de acciones mide lo que lleva, ni un píxel más.** `width: 1%` con `nowrap` es la
+ * forma de pedirle a una tabla automática que encoja esa columna hasta su contenido. Sin esto el
+ * reparto lo decidía el nombre del archivo, que se llevaba el 63 % del ancho mientras las tres
+ * acciones se apiñaban en 93 px — medido en Archivos a 1600 px.
+ */
+.celda-acciones {
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.acciones-archivo {
+  display: inline-flex;
+  gap: var(--ab-esp-2);
+  align-items: center;
+}
+
 .enlace-suave {
   color: var(--ab-text-muted);
   font-size: var(--ab-texto-sm);
