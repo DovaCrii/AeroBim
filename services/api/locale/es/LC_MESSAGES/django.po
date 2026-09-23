@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-23 12:59-0300\n"
+"POT-Creation-Date: 2026-09-23 16:30-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -578,16 +578,16 @@ msgstr "Ese no es un GUID de IFC válido."
 msgid "An observation is not dismissed without saying why."
 msgstr "Una observación no se descarta sin decir por qué."
 
-#: .\apps\documents\api.py:701
+#: .\apps\documents\api.py:708
 msgid "The sheet did not arrive."
 msgstr "La lámina no llegó."
 
-#: .\apps\documents\api.py:711 .\apps\documents\codificacion.py:67
+#: .\apps\documents\api.py:718 .\apps\documents\codificacion.py:67
 #: .\apps\documents\models.py:68 .\apps\documents\views.py:838
 msgid "Drawing"
 msgstr "Plano"
 
-#: .\apps\documents\api.py:715 .\apps\documents\views.py:841
+#: .\apps\documents\api.py:722 .\apps\documents\views.py:841
 msgid "The sheet arrived with nothing to draw."
 msgstr "La lámina llegó sin nada que dibujar."
 
@@ -1163,6 +1163,14 @@ msgstr "marca de coordinación"
 msgid "coordination marks"
 msgstr "marcas de coordinación"
 
+#: .\apps\documents\models.py:945
+msgid "digest sent"
+msgstr "resumen enviado"
+
+#: .\apps\documents\models.py:946
+msgid "digests sent"
+msgstr "resúmenes enviados"
+
 #: .\apps\documents\notify.py:47
 msgid "Next 15 days"
 msgstr "Próximos 15 días"
@@ -1230,15 +1238,15 @@ msgstr "Documentos (%(n)s):"
 msgid "[AeroBim] Transmittal %(folio)s: %(asunto)s"
 msgstr "[AeroBim] Transmittal %(folio)s: %(asunto)s"
 
-#: .\apps\documents\notify.py:498
+#: .\apps\documents\notify.py:518
 msgid "What is on your plate in AeroBim."
 msgstr "Lo que tienes pendiente en AeroBim."
 
-#: .\apps\documents\notify.py:529
+#: .\apps\documents\notify.py:549
 msgid "You opened these, and nobody has touched them"
 msgstr "Los abriste tú y nadie los ha tocado"
 
-#: .\apps\documents\notify.py:553
+#: .\apps\documents\notify.py:573
 #, python-format
 msgid "[AeroBim] %(n)s items on your plate"
 msgstr "[AeroBim] %(n)s pendientes"

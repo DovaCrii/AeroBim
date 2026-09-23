@@ -899,6 +899,61 @@ class MarcaDeCoordinacion(BaseModel):
         return f"{self.usuario} · {self.proyecto} · {self.visto_en:%Y-%m-%d %H:%M}"
 
 
+class ResumenEnviado(models.Model):
+    """Que a esta persona **ya se le mandó el resumen hoy**.
+
+    ## Por qué existe una tabla para esto
+
+    El encargo fue literal: *«el correo que sea cuando el coordinador lo delimite, para no generar
+    spam»*. La cadencia por obra —`AvisosDeObra`— contesta *cada cuánto*; esto contesta otra cosa,
+    y hace falta igual: **que una segunda corrida del mismo día no vuelva a escribir a nadie**.
+
+    No es un caso raro. Es lo que va a pasar **el día que se configure el SMTP**: se enciende, se
+    quiere ver que funciona, y `enviar_resumen` se corre a mano — con el timer de las 07:30 ya
+    disparado. Dos correos idénticos la primera mañana, que es justo la que decide si alguien deja
+    de leer al remitente.
+
+    ## Y por qué no basta con mirar `JobRun`
+
+    `JobRun` dice que la corrida ocurrió, no **a quién se le escribió**. Dos corridas del mismo día
+    pueden tocar a personas distintas —una obra pasa a «solo vencidos» y alguien entra en el
+    reparto— así que la pregunta se contesta por persona o no se contesta.
+
+    ## La restricción es la que frena, no el `if`
+
+    Dos procesos que preguntan a la vez obtienen los dos «no se le ha mandado». Lo que impide el
+    correo doble es que la segunda inserción **no pueda existir**: `get_or_create` sobre la
+    restricción única devuelve `created=False` y ahí se para.
+
+    ## Lo que crece
+
+    Una fila por persona y día: con veinte personas son unas 7.300 al año, o sea nada. No lleva
+    purga a propósito — añadir un comando de limpieza para esto sería más máquina que dato. Si
+    algún día molesta, es una línea en `aerobim-mantenimiento`.
+    """
+
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="resumenes_enviados"
+    )
+    #: **La fecha local de la obra, no `auto_now_add`.** Con la VM en UTC, un `DateTimeField`
+    #: convertido a fecha cambia de día a las 21:00 de Santiago: el resumen de las 07:30 y una
+    #: corrida a mano de las 22:00 caerían en días distintos y el freno no frenaría.
+    fecha = models.DateField()
+    creado = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = _("digest sent")
+        verbose_name_plural = _("digests sent")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["usuario", "fecha"], name="un_resumen_por_persona_y_dia"
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.usuario} · {self.fecha.isoformat()}"
+
+
 # **`EnlaceCompartido` vive en `compartir.py` y se importa aquí, que es lo que hace que Django lo
 # registre.** Django encuentra un modelo cuando su módulo se importa, y nada importaría ese archivo
 # al arrancar.
