@@ -1,0 +1,61 @@
+{% load i18n %}
+{% comment %}
+  **La tarjeta de arranque: por dónde seguir, con estado.**
+
+  Se incluye desde dos sitios de `portal.html` —arriba para quien está empezando, al final para el
+  resto— y por eso vive aquí: el mismo marcado en dos `{% if %}` se habría separado a la tercera
+  edición.
+
+  **Lo que este archivo no pinta, y es deliberado:** una barra de «llevas 3 de 9». Seis de los nueve
+  pasos no dejan rastro en la base —mirar, medir, descargar e importar son lecturas y `GET`— así que
+  esa barra le diría «1 de 9» a quien lleva siete. El porqué, medido paso a paso, está en
+  `apps/accounts/arranque.py`. Aquí se marca «hecho» solo lo que una fila demuestra, y la posición
+  —«paso 4 de 9»— da la orientación que la barra iba a dar.
+{% endcomment %}
+{% if arranque.pasos %}
+  <section class="bloque arranque">
+    <h2 class="grupo">{% translate "Where to go next" %}</h2>
+
+    <ol class="pasos-cortos">
+      {% for uno in arranque.pasos %}
+        {% comment %}
+          `uno.paso` es un `PasoResuelto`, que envuelve al `Paso` con su URL y con si le toca. De ahí
+          el `uno.paso.paso`: la envoltura no copia los campos del original, y copiarlos sería tener
+          los mismos textos en dos sitios.
+        {% endcomment %}
+        <li class="paso-{{ uno.estado }}">
+          <p class="paso-sitio">
+            {% comment %}
+              **El sitio va sobre el recorrido entero, no sobre los suyos.** Para quien coordina el
+              primero que puede hacer es el `1`; para quien solo revisa puede ser el `4`, y llamarlo
+              «paso 1» haría que dos personas no pudieran hablar del mismo paso.
+            {% endcomment %}
+            {% blocktranslate with n=uno.numero total=arranque.total %}Step {{ n }} of {{ total }}{% endblocktranslate %}
+            {% if uno.esta_hecho %}
+              {% comment %}
+                **No se reutiliza el «Done» del catálogo**, aunque diga lo mismo en inglés: su
+                traducción es «Hecha», en femenino, porque nació de una tarea. Sobre un paso se
+                leería mal, y un `msgid` compartido no puede tener dos géneros.
+              {% endcomment %}
+              <span class="paso-marca" title="{% translate 'You have already done this' %}">
+                {% translate "Already done" %}
+              </span>
+            {% elif uno.es_siguiente %}
+              <span class="paso-marca">{% translate "Next" %}</span>
+            {% endif %}
+          </p>
+          {% if uno.paso.url %}
+            <a href="{{ uno.paso.url }}">{{ uno.paso.paso.titulo }}</a>
+          {% else %}
+            <span>{{ uno.paso.paso.titulo }}</span>
+          {% endif %}
+          <span class="detalle">{{ uno.paso.paso.para_que }}</span>
+        </li>
+      {% endfor %}
+    </ol>
+
+    <p class="subtitulo">
+      <a href="{% url 'accounts:ayuda' %}">{% translate "See the whole walkthrough" %}</a>
+    </p>
+  </section>
+{% endif %}

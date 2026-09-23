@@ -1172,6 +1172,69 @@ main {
 }
 
 /*
+ * **El estado del paso: hecho, siguiente, pendiente.**
+ *
+ * Los tres se veían idénticos, así que nada decía cuál es el que toca ahora — que es la única
+ * pregunta que esta tarjeta existe para contestar.
+ *
+ * **La diferencia no es solo el color**, que es la regla que esta hoja ya defiende más arriba: el
+ * siguiente se eleva y engorda su filo, el hecho se apaga y pierde el suyo, y los dos dicen con
+ * palabras lo que son —«Next», «Done»— en la línea del sitio. Quien no distinga los colores lee
+ * exactamente lo mismo.
+ *
+ * Y «hecho» solo se pinta cuando hay una fila en la base que lo demuestra: solo tres de los nueve
+ * pasos dejan rastro, y el resto no lleva marca ninguna. El porqué está en `arranque.py`.
+ */
+.paso-sitio {
+  display: flex;
+  gap: var(--ab-esp-2);
+  align-items: baseline;
+  margin: 0 0 var(--ab-esp-1);
+  font-size: var(--ab-texto-micro);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ab-text-muted);
+}
+
+.paso-marca {
+  padding: 0 var(--ab-esp-2);
+  font-weight: 700;
+  color: var(--ab-primary);
+  background: var(--ab-primary-soft);
+  /* La forma de píldora que ya usan los diez distintivos de la hoja. Medido: el violeta sobre su
+     fondo suave da 5,37:1 en claro y 4,82:1 en oscuro, o sea que el rótulo se lee en los dos. */
+  border-radius: 999px;
+}
+
+/* El que toca ahora: despegado del plano y con el filo del doble de grueso. */
+.pasos-cortos > li.paso-siguiente {
+  background: var(--ab-surface-2);
+  border-top-width: 6px;
+  box-shadow: var(--ab-elev-sm);
+}
+
+/*
+ * El hecho se aparta sin desaparecer: pierde el filo de color y baja de peso, pero **sigue
+ * legible**. Apagarlo del todo escondería el recorrido que la persona ya hizo, que es justo lo que
+ * da sentido al que viene ahora.
+ */
+.pasos-cortos > li.paso-hecho {
+  border-top-color: var(--ab-border);
+}
+
+.pasos-cortos > li.paso-hecho > a,
+.pasos-cortos > li.paso-hecho > span {
+  color: var(--ab-text-secondary);
+  font-weight: 500;
+}
+
+.pasos-cortos > li.paso-hecho .paso-marca {
+  color: var(--ab-text-secondary);
+  background: none;
+  padding: 0;
+}
+
+/*
  * **Las tres cifras del día, en la puerta.**
  *
  * `.datos` ya existe y lo usa el tablero de una obra; esto solo ajusta el tamaño para que tres

@@ -54,6 +54,16 @@ class Paso:
     permiso: str | None
     #: Quien lo hace normalmente, para el paso que no te toca. Se dice en vez de callar.
     de_quien: str
+    #: Que rastro deja en la base haber hecho este paso, o `None` si no deja ninguno.
+    #:
+    #: **La mayoria no deja ninguno, y por eso este campo existe.** Mirar un modelo, medir, sacar el
+    #: papel o exportar un BCF son lecturas y descargas: pasan en el navegador o son `GET`, y la
+    #: auditoria solo anota lo que muta. Solo tres pasos escriben algo que se pueda comprobar
+    #: despues, y la tarjeta de arranque **solo marca «hecho» esos tres** — ver `arranque.py`.
+    #:
+    #: El nombre casa con una columna de `_lo_que_ha_hecho`. Va aqui, al lado del paso, para que
+    #: anadir un paso obligue a pensar si se puede comprobar en vez de suponerlo desde otro archivo.
+    senal: str | None = None
 
 
 #: El recorrido, **en el orden en que se trabaja de verdad** y no por modulos.
@@ -126,6 +136,8 @@ PASOS: tuple[Paso, ...] = (
         ruta=None,
         permiso="documents.add_observacion",
         de_quien="quien coordina o revisa",
+        # Queda una `Observacion` con esta persona de `autor`. Es el rastro mas limpio de los tres.
+        senal="nota",
     ),
     Paso(
         titulo="5 · Cruza los modelos",
@@ -141,6 +153,9 @@ PASOS: tuple[Paso, ...] = (
         ruta=None,
         permiso="documents.add_observacion",
         de_quien="quien coordina",
+        # Lo que nace de una corrida lleva el GUID del otro elemento en `interferencia_con`, y lo
+        # que escribe una persona a mano lo lleva vacio. Distingue las dos cosas sin tabla nueva.
+        senal="cruce",
     ),
     Paso(
         titulo="6 · Reparte y sigue",
@@ -157,6 +172,9 @@ PASOS: tuple[Paso, ...] = (
         ruta="documents:observaciones",
         permiso="documents.view_observacion",
         de_quien="todos: cada uno contesta lo suyo",
+        # **Repartir es escribirla para que la conteste otro.** Una nota que uno se asigna a si
+        # mismo es un recordatorio, y contarla diria que ya coordino a alguien cuando no lo hizo.
+        senal="reparto",
     ),
     Paso(
         titulo="7 · Saca el papel",

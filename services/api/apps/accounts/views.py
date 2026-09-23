@@ -162,7 +162,7 @@ class PortalView(LoginRequiredMixin, TemplateView):
         return piezas
 
     def _por_donde_seguir(self, contexto, usuario) -> None:
-        """Los tres primeros pasos del recorrido que **esta persona puede hacer**.
+        """Los tres primeros pasos del recorrido que **esta persona puede hacer**, con su estado.
 
         Sustituye a las doce tarjetas de módulo, que con la barra lateral al lado eran decir dos
         veces lo mismo. Un paso dice qué se consigue y a dónde ir; una tarjeta decía el nombre de la
@@ -171,12 +171,15 @@ class PortalView(LoginRequiredMixin, TemplateView):
         **Se filtran los que no le tocan, y aquí sí.** La pantalla de ayuda los enseña todos —los
         ajenos incluidos— porque explica el producto entero, y eso es correcto ahí. En la puerta no:
         para el mandante, «sube una revisión» no es un camino, es una puerta cerrada.
-        """
-        from apps.accounts.ayuda import pasos_para
 
-        # `PasoResuelto` ya trae la URL resuelta y si le toca, así que aquí solo se filtra y se
-        # corta. Es `frozen`, y está bien que lo sea: la puerta no tiene nada que añadirle.
-        contexto["pasos"] = [uno for uno in pasos_para(usuario) if uno.puedes][:3]
+        El estado —hecho, siguiente, pendiente— y por qué solo tres de los nueve pasos se pueden
+        marcar como hechos están en `apps/accounts/arranque.py`.
+        """
+        from apps.accounts.arranque import arranque_para
+
+        # `cuantas_obras` ya está contado para las tarjetas de obra: pasárselo evita repetir la
+        # consulta solo para saber si esta persona está empezando.
+        contexto["arranque"] = arranque_para(usuario, cuantas_obras=contexto["mis_obras_cuantas"])
 
     def _cifras_de_obra(self, proyectos: list, usuario) -> None:
         """Le cuelga a cada obra **lo que hace que su tarjeta sirva**: avance y lo que arde.

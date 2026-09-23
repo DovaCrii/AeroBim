@@ -124,6 +124,14 @@
     </div>
   {% endif %}
 
+  {% comment %}
+    **Arriba solo para quien está empezando**, y está medido, no supuesto: sin ninguna obra, o
+    pudiendo anotar y sin haber anotado nunca (`apps/accounts/arranque.py`). Ponerla arriba para
+    todos empujaría «Tus obras» hacia abajo **cada día** —que es la superficie de trabajo de
+    verdad— para ayudar una vez a quien entra. Para el resto sigue al final, como estaba.
+  {% endcomment %}
+  {% if arranque.destacado %}{% include "accounts/_arranque.html" %}{% endif %}
+
   {% if mis_pendientes %}
     <section class="bloque">
       <h2 class="grupo">{% translate "What is on you" %}</h2>
@@ -283,38 +291,5 @@
     Se enseñan los tres primeros que esta persona **puede** hacer, no los tres primeros: para el
     mandante, los pasos de subir una revisión no son un camino, son una puerta cerrada.
   {% endcomment %}
-  {% if pasos %}
-    <section class="bloque">
-      <h2 class="grupo">{% translate "Where to go next" %}</h2>
-      {% comment %}
-        **Eran tres enlaces subrayados con un párrafo gris debajo**, o sea tres bloques de texto
-        del mismo peso en una columna de texto. Ahora cada uno es una tarjeta: el recorrido se ve
-        como tres pasos y no como una lista de lectura.
-
-        El número **no se repite**: viene dentro del título —«1 · Entra en la obra», de
-        `apps/accounts/ayuda.py`— y añadir un disco al lado diría el mismo dígito dos veces. Es el
-        mismo defecto que ya se arregló quitándole el marcador al `<ol>`, y que el usuario vio.
-      {% endcomment %}
-      <ol class="pasos-cortos">
-        {% for paso in pasos %}
-          {% comment %}
-            `paso` es un `PasoResuelto`, que envuelve al `Paso` con su URL y con si le toca. De ahí
-            el `paso.paso`: la envoltura no copia los campos del original, y copiarlos sería tener
-            los mismos textos en dos sitios.
-          {% endcomment %}
-          <li>
-            {% if paso.url %}
-              <a href="{{ paso.url }}">{{ paso.paso.titulo }}</a>
-            {% else %}
-              <span>{{ paso.paso.titulo }}</span>
-            {% endif %}
-            <span class="detalle">{{ paso.paso.para_que }}</span>
-          </li>
-        {% endfor %}
-      </ol>
-      <p class="subtitulo">
-        <a href="{% url 'accounts:ayuda' %}">{% translate "See the whole walkthrough" %}</a>
-      </p>
-    </section>
-  {% endif %}
+  {% if not arranque.destacado %}{% include "accounts/_arranque.html" %}{% endif %}
 {% endblock %}
