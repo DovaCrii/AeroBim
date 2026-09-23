@@ -14,6 +14,7 @@ from io import BytesIO
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
+from django.db import IntegrityError, transaction
 from django.http import FileResponse, Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse
@@ -476,7 +477,10 @@ class SubirRevisionView(ModelPermissionRequiredMixin, View):
         from django.shortcuts import render
 
         entregable = self._entregable()
-        form = RevisionForm(request.POST, request.FILES)
+        # **El entregable entra en el formulario para validar, no para guardar.** Sin él,
+        # `clean_correlativo` no puede saber si el correlativo está tomado, y el choque no aparecía
+        # hasta el `INSERT` —con el archivo ya en disco y el conversor ya ejecutado—.
+        form = RevisionForm(request.POST, request.FILES, entregable=entregable)
         if not form.is_valid():
             return render(
                 request, self.template_name, {"entregable": entregable, "form": form}, status=400
@@ -538,7 +542,32 @@ class SubirRevisionView(ModelPermissionRequiredMixin, View):
                 storage.guardar(clave_dxf, dxf)
                 revision.clave_dxf = clave_dxf
 
-        revision.save()
+        try:
+            # **El `atomic` no es decoración: sin él esto no se puede ni probar.**
+            #
+            # Un `IntegrityError` deja la transacción en curso marcada como rota, y toda consulta
+            # posterior lanza `TransactionManagementError` — o sea que atraparlo y dibujar el
+            # formulario falla al primer `SELECT` de la plantilla. En producción no hay transacción
+            # por petición y se colaba; dentro de una prueba, que sí la tiene, revienta.
+            #
+            # Con el bloque, el fallo solo deshace su punto de retorno y lo de fuera sigue vivo.
+            with transaction.atomic():
+                revision.save()
+        except IntegrityError:
+            # **La carrera que el formulario no puede cerrar.** `clean_correlativo` mira la base y
+            # dos subidas simultáneas del mismo correlativo pasan las dos esa mirada; la única
+            # comprobación que no se puede adelantar es la de la propia base.
+            #
+            # No deja nada roto: la clave del archivo es su `sha256`, así que lo que quedó en disco
+            # es un blob sin fila que la subida siguiente de los mismos bytes reutiliza. Lo que
+            # cambia es que quien sube ve su formulario con el motivo, y no una página de error.
+            form.add_error(
+                "correlativo",
+                _("Somebody else just uploaded that correlative. Use another one."),
+            )
+            return render(
+                request, self.template_name, {"entregable": entregable, "form": form}, status=409
+            )
 
         set_audit_context(request, revision, action="subir_revision")
         messages.success(

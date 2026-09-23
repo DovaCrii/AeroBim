@@ -337,6 +337,84 @@ def test_ninguna_cadena_marcada_se_queda_fuera_del_catalogo():
     )
 
 
+#: Una llamada a traducir con su cadena literal, **incluidas las partidas en varias líneas**.
+#:
+#: `_("una frase larga " "partida en dos")` es una sola cadena para Python y para `gettext`, pero
+#: dos literales en el archivo: quedarse con el primero denuncia una cadena que no existe. Se
+#: capturan todos los literales seguidos y se pegan, que es lo que hace el intérprete.
+_LLAMADA = re.compile(r"""\b(?:_|n?gettext(?:_lazy)?)\(\s*((?:(?:"[^"]*"|'[^']*')\s*)+)""")
+_LITERAL = re.compile(r"""(?:"([^"]*)"|'([^']*)')""")
+
+
+def _cadenas_marcadas(codigo: str) -> list[str]:
+    """Las cadenas marcadas para traducir en este archivo de Python.
+
+    **Es un barrido, no un analizador**, y el límite está dicho: una cadena montada con una variable
+    o con un `f""` no aparece aquí — pero tampoco la ve `makemessages`, así que no hay nada que
+    perder. Lo que sí se cubre es la forma con la que se escribe casi todo.
+    """
+    cadenas: list[str] = []
+    for llamada in _LLAMADA.finditer(codigo):
+        trozos = [a or b for a, b in _LITERAL.findall(llamada.group(1))]
+        entera = "".join(trozos)
+        if entera:
+            cadenas.append(entera)
+    return cadenas
+
+
+def _todos_los_msgid() -> set[str]:
+    """Todo lo que el catálogo nombra, **plurales incluidos**.
+
+    `bloques()` empareja `msgid` con `msgstr`, y una entrada de plural no tiene `msgstr`: tiene
+    `msgstr[0]` y `msgstr[1]`. O sea que se la salta entera, y usarla aquí denunciaría los quince
+    `ngettext` del repositorio como si faltaran. Aquí lo que importa es **qué nombra el catálogo**,
+    no cómo se traduce: eso ya lo miran las otras pruebas.
+    """
+    texto = PO.read_text(encoding="utf-8")
+    encontrados: set[str] = set()
+    for bloque in texto.split("\n\n"):
+        for clave in ("msgid", "msgid_plural"):
+            hallado = re.search(rf'^{clave} ((?:"[^"]*"\n?)+)', bloque, re.M)
+            if hallado is not None:
+                entera = "".join(re.findall(r'"([^"]*)"', hallado.group(1)))
+                if entera:
+                    encontrados.add(entera)
+    return encontrados
+
+
+def test_tampoco_las_del_codigo_python():
+    """**La otra mitad, y por donde se coló la siguiente tanda.**
+
+    La prueba de arriba barre las plantillas, que es donde está la mayoría del texto. Pero un
+    mensaje de error de un formulario o de una API vive en Python, y se cuela igual: medido el
+    2026-09-23, los cinco motivos de rechazo de `publicar.py` se habían fusionado a `main` sin una
+    sola entrada en el catálogo. Un visor en español contestando «That suitability code does not
+    exist.» — y las ocho pruebas de este archivo en verde, porque no había nada que mirar.
+
+    Se buscan las llamadas de una línea con la cadena literal dentro, que es como se escriben casi
+    todas. Una cadena partida en varias líneas la caza `makemessages` igual, pero aquí no: es el
+    límite de barrer con una expresión regular en vez de con un analizador, y vale la pena decirlo
+    en vez de fingir que cubre todo.
+    """
+    apps = Path(settings.BASE_DIR) / "apps"
+    del_catalogo = _todos_los_msgid()
+
+    faltan: dict[str, str] = {}
+    for archivo in apps.rglob("*.py"):
+        if "/tests/" in archivo.as_posix() or "/migrations/" in archivo.as_posix():
+            # Las migraciones llevan copias congeladas de `verbose_name` que ya no se usan, y una
+            # prueba no le enseña nada a nadie en su idioma.
+            continue
+        for cadena in _cadenas_marcadas(archivo.read_text(encoding="utf-8")):
+            if cadena not in del_catalogo and cadena not in FUERA_DEL_CATALOGO:
+                faltan.setdefault(cadena, str(archivo.relative_to(apps)))
+
+    assert faltan == {}, (
+        f"marcadas en el código y sin entrada en el catálogo, así que salen en inglés: {faltan}. "
+        "Corre `manage.py makemessages -l es`, traduce lo nuevo y `compilemessages`."
+    )
+
+
 @pytest.mark.django_db
 def test_la_pantalla_sale_en_espanol(client):
     """De punta a punta: la página de ingreso, que es lo primero que alguien ve."""

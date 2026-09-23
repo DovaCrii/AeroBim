@@ -168,6 +168,49 @@ class RevisionForm(forms.ModelForm):
         model = Revision
         fields = ("correlativo", "idoneidad")
 
+    def __init__(self, *args, entregable=None, **kwargs):
+        """`entregable` hace falta **para validar**, no para guardar.
+
+        Lo asigna la vista despues de `save(commit=False)`, y por eso no es un campo del formulario.
+        Pero sin el aqui, el `UniqueConstraint` de `(entregable, correlativo)` **no se puede
+        comprobar**: Django excluye de `_post_clean` toda restriccion que toque un campo ausente del
+        formulario, asi que el choque no aparecia hasta el `INSERT`. Ver `clean_correlativo`.
+        """
+        super().__init__(*args, **kwargs)
+        self.entregable = entregable
+
+    def clean_correlativo(self):
+        """**El correlativo se normaliza y se comprueba antes de tocar el disco.**
+
+        Dos defectos, y los dos salian a la cara de quien sube:
+
+        1. **Un correlativo repetido daba un 500 con el archivo ya guardado.** La vista escribia el
+           archivo —y para un DWG llamaba ademas al conversor, hasta cinco minutos— y solo despues
+           llamaba a `revision.save()`, donde el `UniqueConstraint` reventaba con un
+           `IntegrityError`. Quien subia veia una pagina de error, y en el disco quedaba un archivo
+           que ninguna fila nombraba.
+        2. **`p01` y `P01` convivian.** El codigo de un proyecto y el de una disciplina ya se
+           normalizan con `.strip().upper()`; el correlativo no, asi que el mismo expediente podia
+           acabar con dos revisiones que se leen igual.
+
+        La comparacion es **insensible a mayusculas** a proposito: la restriccion de la base no lo
+        es, pero lo que importa no es lo que la base admita sino que nadie vea dos revisiones con el
+        mismo nombre. Asi se caza tambien el `p01` que se subio antes de que esto existiera.
+        """
+        correlativo = (self.cleaned_data["correlativo"] or "").strip().upper()
+        if not correlativo or self.entregable is None:
+            return correlativo
+
+        ya = Revision.objects.filter(entregable=self.entregable, correlativo__iexact=correlativo)
+        if self.instance.pk is not None:
+            ya = ya.exclude(pk=self.instance.pk)
+        if ya.exists():
+            raise forms.ValidationError(
+                _("This deliverable already has a revision «%(rev)s».")
+                % {"rev": ya.first().correlativo}
+            )
+        return correlativo
+
     def clean_archivo(self):
         """Valida **sin traer el archivo a memoria**.
 

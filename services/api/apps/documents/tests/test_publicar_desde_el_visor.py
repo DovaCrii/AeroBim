@@ -144,6 +144,37 @@ def test_la_lista_trae_los_de_la_obra(client, proyecto, entregable, publicador):
 
     assert [uno["codigo"] for uno in datos["entregables"]] == [entregable.codigo]
     assert datos["entregables"][0]["disciplina"] == "AR"
+    assert datos["cuantos"] == 1
+    assert datos["recortada"] is False
+
+
+@pytest.mark.django_db
+def test_si_la_lista_se_corta_lo_dice(client, proyecto, disciplina, publicador, monkeypatch):
+    """**Un desplegable cortado en silencio hace que alguien cree el entregable dos veces.**
+
+    Quien no encuentra el suyo concluye que no está creado, no que la lista está recortada. Se
+    cuenta antes de cortar, que es la misma lección que ya costó una pasada en las tarjetas de obra.
+    """
+    from apps.documents.api import DondePublicarAPI
+
+    monkeypatch.setattr(DondePublicarAPI, "MAXIMO", 1)
+    for numero in range(2):
+        Entregable.objects.create(
+            organizacion=proyecto.organizacion,
+            proyecto=proyecto,
+            disciplina=disciplina,
+            codigo=f"716-LCD-AR-P-90{numero}",
+            titulo=f"Otro {numero}",
+            responsable=publicador,
+            peso=1,
+        )
+    client.force_login(publicador)
+
+    datos = client.get(reverse("documents_api:proyecto-donde-publicar", args=[proyecto.pk])).json()
+
+    assert len(datos["entregables"]) == 1
+    assert datos["cuantos"] == 2
+    assert datos["recortada"] is True
 
 
 # --- Que se archive de verdad --------------------------------------------------------

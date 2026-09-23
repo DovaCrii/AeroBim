@@ -71,6 +71,13 @@ export function PublicarLamina({
   readonly onCerrar: () => void;
 }) {
   const [destinos, setDestinos] = useState<readonly Destino[]>([]);
+  /**
+   * Si la obra tiene más entregables de los que caben en la lista.
+   *
+   * **Se dice, no se calla.** Quien no encuentre el suyo en un desplegable cortado concluye que no
+   * está creado, y va a crearlo otra vez.
+   */
+  const [recortada, setRecortada] = useState(false);
   const [entregableId, setEntregableId] = useState("");
   const [correlativo, setCorrelativo] = useState("");
   const [idoneidad, setIdoneidad] = useState<string>(IDONEIDADES[0].valor);
@@ -99,9 +106,14 @@ export function PublicarLamina({
           setEstado({ kind: "error", mensaje: `El registro respondió ${respuesta.status}.` });
           return;
         }
-        const datos = (await respuesta.json()) as { entregables: readonly Destino[] };
+        const datos = (await respuesta.json()) as {
+          entregables: readonly Destino[];
+          cuantos: number;
+          recortada: boolean;
+        };
         if (!vigente) return;
         setDestinos(datos.entregables);
+        setRecortada(datos.recortada === true);
         setEntregableId(datos.entregables[0]?.id ?? "");
         setEstado({ kind: "eligiendo" });
       } catch {
@@ -140,7 +152,18 @@ export function PublicarLamina({
       if (!respuesta.ok) {
         setEstado({
           kind: "error",
-          mensaje: cuerpo.error ?? `El registro respondió ${respuesta.status}.`,
+          // **Un 400 sin cuerpo JSON no es «el registro respondió 400».**
+          //
+          // Django rechaza una petición que se pasa de `DATA_UPLOAD_MAX_MEMORY_SIZE` **antes de que
+          // la vista corra**, y devuelve HTML: `respuesta.json()` falla, `cuerpo.error` queda
+          // indefinido y lo que se vería es un número. Es la misma lección que `onLaminaPdf` ya
+          // había aprendido, y la mandaba aquí un plano grande: la petición es la misma geometría.
+          mensaje:
+            cuerpo.error ??
+            (respuesta.status === 400
+              ? "El registro no aceptó la lámina. Suele ser que el plano es demasiado grande " +
+                "para mandarlo entero; prueba a apagar capas y volver a generarlo."
+              : `El registro respondió ${respuesta.status}.`),
         });
         return;
       }
@@ -221,6 +244,12 @@ export function PublicarLamina({
                 </option>
               ))}
             </select>
+            {recortada && (
+              <span className="mt-0.5 block text-nota text-warn">
+                La obra tiene más entregables de los que caben en esta lista. Si el tuyo no sale,
+                archívalo desde su expediente.
+              </span>
+            )}
           </label>
 
           <label className="block">
