@@ -4,10 +4,28 @@
  * **Los tokens del visor. `F9.1`.**
  *
  * La tabla normativa —qué color es cada papel, y con qué ratio de contraste— vive en
- * `docs/DESIGN_SYSTEM.md`. Este archivo es su **implementación** para el visor, y de momento la
- * única: el portal (`services/api/static/css/app.css`) sigue con sus propios `--ab-*` hasta que
- * estos se prueben en pantalla. Mientras eso pase, los mismos hexadecimales viven en dos archivos,
- * y es una duplicación con fecha de caducidad, no una decisión.
+ * `docs/DESIGN_SYSTEM.md`. Este archivo es su **implementación** para el visor; el portal
+ * (`services/api/static/css/app.css`) tiene la suya, con sus propios `--ab-*`.
+ *
+ * **Y desde el bloque F, la duplicación está medida en vez de solo anotada.** Aquí decía que los
+ * mismos hexadecimales viven en dos archivos y que era «una duplicación con fecha de caducidad»,
+ * y lo único que lo sujetaba eran dos: la tinta y el violeta de marca. El portal no tenía escala
+ * tipográfica con la que comparar el resto.
+ *
+ * Ahora la tiene, y `test_sistema_de_diseno.py` comprueba las dos listas:
+ *
+ * - **Nueve tokens que valen lo mismo por diseño** —los seis escalones de texto, la tinta, el
+ *   violeta y el radio del contenedor— y que fallan el gate si se separan un dígito.
+ * - **Cinco superficies del tema claro**, que es la costura que un usuario cruza de verdad al
+ *   abrir un modelo desde el registro.
+ * - **Y un inventario de lo que no coincide, con su motivo**: el borde, porque aquí son dos tokens
+ *   —`--color-borde` separa bloques y `--color-borde-campo` contornea un control— y allí es uno; y
+ *   el texto apagado, porque el portal lo mide contra más superficies y lo necesita más oscuro.
+ *   Una divergencia nueva sin razón anotada falla el gate.
+ *
+ * **El tema oscuro sigue sin unificar**, y está dicho aquí para que no parezca un olvido: las siete
+ * parejas difieren, varias por dos dígitos —`#eef1f6` contra `#eef2f8`—, y unificarlas obliga a
+ * volver a medir las diecisiete restricciones de contraste del portal. Es una decisión aparte.
  *
  * **Van literales y no como `var(--ab-*)`.** El modificador de opacidad de Tailwind —`bg-brand/25`,
  * que usa el botón encendido de la cinta— necesita un color resuelto dentro de `@theme`; con una
