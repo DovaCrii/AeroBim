@@ -146,7 +146,7 @@ function ModelRow({
             del panel y estaba escondido tras un clic que nadie tenía por qué dar. */}
         {sinCargar > 0 && (
           <span
-            className="shrink-0 rounded-sm bg-warn/20 px-1 text-micro text-warn tabular-nums"
+            className="shrink-0 rounded-sm bg-warn/20 px-1 text-nota text-warn tabular-nums"
             title={`${sinCargar} elementos que el archivo declara y no se cargaron. Despliega la fila para ver de qué clases.`}
           >
             ⚠ {sinCargar}

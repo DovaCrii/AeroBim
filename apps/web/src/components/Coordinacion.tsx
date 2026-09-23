@@ -349,7 +349,7 @@ export function Coordinacion({
             type="button"
             onClick={() => void marcarVisto()}
             title="Deja de marcar como nuevas las que están en la lista ahora"
-            className="ml-auto rounded-sm px-1.5 py-0.5 text-micro text-fg-3 underline transition-colors duration-[--duracion-corta] ease-[--ease-ab] hover:bg-surface-3 hover:text-fg-2"
+            className="ml-auto rounded-sm px-1.5 py-0.5 text-nota text-fg-3 underline transition-colors duration-[--duracion-corta] ease-[--ease-ab] hover:bg-surface-3 hover:text-fg-2"
           >
             ya lo vi
           </button>
@@ -402,7 +402,7 @@ export function Coordinacion({
                   {/* **De dónde viene la fila**, con palabra y no solo con color. Un choque lo
                       encontró una máquina y una nota la escribió alguien: no se leen igual. */}
                   {observacion.esInterferencia && (
-                    <span className="shrink-0 rounded-xs bg-warn/20 px-1 text-micro text-warn">
+                    <span className="shrink-0 rounded-xs bg-warn/20 px-1 text-nota text-warn">
                       choque
                     </span>
                   )}

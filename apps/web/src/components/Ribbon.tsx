@@ -1045,7 +1045,11 @@ function Boton({
       </span>
       <span
         className={[
-          "text-micro leading-tight",
+          // **12 px y no 11** (2026-09-23). Los treinta rótulos de la cinta iban en el escalón más
+          // pequeño de la escala, y es lo que más se usa de la pantalla: el usuario lo miró en
+          // oscuro y no lo leía. Revit y BricsCAD rotulan su cinta a 12 px. `text-micro` se queda
+          // para los rótulos de grupo, que van en mayúsculas con espaciado y se leen más grandes.
+          "text-nota leading-tight",
           grande ? "w-full text-center break-words" : "whitespace-nowrap",
         ].join(" ")}
       >

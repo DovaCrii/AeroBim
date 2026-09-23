@@ -105,7 +105,7 @@ export function DrawingsPanel({
           <button
             type="button"
             onClick={onCancel}
-            className="shrink-0 rounded-sm border border-borde px-1.5 py-0.5 text-micro text-fg-2 hover:bg-surface-3 hover:text-fg"
+            className="shrink-0 rounded-sm border border-borde px-1.5 py-0.5 text-nota text-fg-2 hover:bg-surface-3 hover:text-fg"
             title="Deja de esperar la proyección y devuelve la aplicación"
           >
             Dejar de esperar
@@ -150,13 +150,13 @@ export function DrawingsPanel({
                 </button>
               </div>
 
-              <p className="pt-0.5 text-micro text-fg-3">
+              <p className="pt-0.5 text-nota text-fg-3">
                 {plano.sizeM[0].toFixed(1)} × {plano.sizeM[1].toFixed(1)} m ·{" "}
                 {plano.segments.toLocaleString("es-CL")} trazos ·{" "}
                 {(plano.elapsedMs / 1000).toFixed(1)} s en generarse
               </p>
 
-              <label className="flex items-center gap-2 pt-1 text-micro text-fg-2">
+              <label className="flex items-center gap-2 pt-1 text-nota text-fg-2">
                 <input
                   type="checkbox"
                   onChange={(e) => onToggleHidden(plano.id, e.target.checked)}
@@ -188,7 +188,7 @@ export function DrawingsPanel({
                   lo que está a nivel no tiene pendiente que anotar. Un «hecho» dejaría a alguien
                   buscando en el DXF una cota que no está. */}
               {anotado[plano.id] !== undefined && (
-                <p className="pt-0.5 text-micro text-fg-3">
+                <p className="pt-0.5 text-nota text-fg-3">
                   {anotado[plano.id]!.cotas +
                     anotado[plano.id]!.angulos +
                     anotado[plano.id]!.pendientes ===
@@ -224,7 +224,7 @@ export function DrawingsPanel({
                   estaba encendido y un hallazgo de la estructura no cabe en un plano de
                   arquitectura. */}
               {llamadasPuestas[plano.id] !== undefined && (
-                <p className="pt-0.5 text-micro text-fg-3">
+                <p className="pt-0.5 text-nota text-fg-3">
                   {llamadasPuestas[plano.id] === 0
                     ? "Ningún hallazgo tiene su elemento dibujado en esta vista."
                     : `${llamadasPuestas[plano.id]} señalados en la lámina.`}
