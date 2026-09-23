@@ -260,6 +260,72 @@ Lo que hay que cambiar sí o sí:
 > lleva comillas, espacios, `#` ni `$`.** La `SECRET_KEY` de `token_urlsafe` es segura por
 > construcción; una contraseña de SMTP puede no serlo.
 
+### El correo, con Microsoft 365
+
+**Es el último bloqueo de `listo_para_produccion`**, y hasta que esté, el correo no sale de la
+máquina: con el backend de consola la aplicación dice «enviado» y lo imprime en el log. La campana
+del portal **funciona igual sin esto** —es una fila en la base, no un correo—, así que lo que falta
+sin SMTP es el resumen y el aviso a quien no está mirando la pantalla.
+
+**De las tres formas de salir por Microsoft 365, la que sirve aquí es la primera**, y las otras dos
+se descartan por un motivo concreto:
+
+| Forma                         | Por qué sí o por qué no                                                                                                                                 |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **SMTP AUTH** (envío cliente) | `smtp.office365.com:587` con STARTTLS y una casilla que autentica. **Es la que se usa**: llega a destinatarios externos y no depende de la IP de origen |
+| _Direct Send_                 | Sin autenticar, contra `<tenant>.mail.protection.outlook.com`. **Solo entrega a buzones del propio tenant**: un mandante externo no recibiría nada      |
+| _Relay_ con conector          | Autoriza por IP pública fija. `p340` sale por el tailnet y no presenta una IP estable que registrar                                                     |
+
+Lo que va al `.env` —**sin comillas, espacios, `#` ni `$`**, que es la regla de este archivo:
+
+| Variable              | Valor                                                                               |
+| --------------------- | ----------------------------------------------------------------------------------- |
+| `EMAIL_BACKEND`       | `django.core.mail.backends.smtp.EmailBackend`                                       |
+| `EMAIL_HOST`          | `smtp.office365.com`                                                                |
+| `EMAIL_PORT`          | `587`                                                                               |
+| `EMAIL_USE_TLS`       | `True` — STARTTLS. **No existe `EMAIL_USE_SSL` en estos ajustes**, y es a propósito |
+| `EMAIL_HOST_USER`     | La dirección completa de la casilla que envía                                       |
+| `EMAIL_HOST_PASSWORD` | Su contraseña de aplicación. Ver abajo                                              |
+| `DEFAULT_FROM_EMAIL`  | La misma casilla, o una sobre la que tenga «Enviar como»                            |
+
+> **La contraseña de aplicación son dieciséis letras y por eso vale; una contraseña normal a menudo
+> no.** Este `.env` lo leen dos parsers —`python-decouple` y systemd— y ninguno admite `$` ni `#` a
+> mitad de línea. Una contraseña con cualquiera de los dos deja el servicio arrancando con un valor
+> truncado, y el error que se ve después es «autenticación fallida», que manda a mirar donde no es.
+
+#### Los tres noes de Microsoft, y cómo se distingue cada uno
+
+Son tres puertas distintas y **fallan con mensajes distintos**, así que conviene leerlos en vez de
+probar a ciegas:
+
+| Lo que contesta el servidor                                            | Qué falta                                                                                                                                                                              |
+| ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `535 5.7.139 … SmtpClientAuthentication is disabled for the tenant`    | **SMTP AUTH está apagado.** Viene apagado de fábrica desde 2020. Se enciende por casilla desde Exchange Online: `Set-CASMailbox <casilla> -SmtpClientAuthenticationDisabled $false`    |
+| `535 5.7.139 … basic authentication is disabled`                       | **La MFA o los valores predeterminados de seguridad** bloquean la contraseña normal. Hace falta una **contraseña de aplicación**, y para poder crearla el tenant tiene que permitirlas |
+| `550 5.7.60 … Client does not have permissions to send as this sender` | **`DEFAULT_FROM_EMAIL` no es la casilla que autenticó** ni tiene «Enviar como» sobre ella                                                                                              |
+
+Lo que hay que pedirle a quien administra el tenant es, en una línea: _una casilla de servicio con
+SMTP AUTH habilitado y una contraseña de aplicación, que pueda enviar como ella misma._
+
+#### Comprobarlo sin esperar a mañana
+
+```bash
+cd /opt/aerobim/services/api
+sudo -u aerobim .venv/bin/python manage.py listo_para_produccion
+```
+
+La fila del correo pasa de `✗ no sale de la máquina` a `✓` en cuanto el backend entrega. Y para ver
+a quién le tocaría el resumen sin escribirle a nadie:
+
+```bash
+cd /opt/aerobim/services/api
+sudo -u aerobim .venv/bin/python manage.py enviar_resumen --dry-run
+```
+
+> **Y una consecuencia del tailnet que conviene decir por escrito a quien reciba el resumen**: los
+> enlaces salen de `SITE_BASE_URL`, que es un nombre del tailnet. En un teléfono sin Tailscale el
+> correo llega y **los enlaces no abren**. No es un fallo del correo.
+
 **4. La base de datos y los estáticos.**
 
 ```bash
