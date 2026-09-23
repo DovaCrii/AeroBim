@@ -392,20 +392,123 @@ def test_los_cinco_acentos_no_se_parecen_entre_si(css):
 # --- 3. La costura con el visor, medida ---------------------------------------------
 
 
-def test_la_marca_es_el_mismo_hexadecimal_en_las_dos_mitades():
-    """**Es la costura, y es comprobable.**
+# **La comprobación de la marca se fue abajo**, a `IGUALES`. Miraba dos hexadecimales —la tinta y el
+# violeta— y esos dos siguen ahí, ahora con los otros siete que también son el mismo valor por
+# diseño y que nada sujetaba. Tenerla aquí además sería afirmar dos veces lo mismo.
 
-    `app.css` dice en un comentario que `--ab-navy` es `--color-ink` y `--ab-violet` es
-    `--color-brand`. Un comentario no impide que uno de los dos cambie: esto sí. Sin la prueba, la
-    marca se separa un dígito cada vez que alguien retoca un tema, y nadie lo nota hasta que se ven
-    las dos pantallas juntas.
+
+# --- La costura entera, y no dos hexadecimales ---------------------------------------
+
+#: Los tokens que **son el mismo valor a los dos lados**, medido el 2026-09-23.
+#:
+#: `index.css` lleva escrito desde su primer día que «los mismos hexadecimales viven en dos
+#: archivos, y es una duplicación con fecha de caducidad». La comprobación que había cubría
+#: **dos**: la tinta y el violeta de marca. El resto se copió a mano y nada impedía que se
+#: separase un dígito cada vez que alguien retocaba un tema — que es exactamente lo que pasó en el
+#: tema oscuro, y está inventariado abajo.
+#:
+#: La escala tipográfica entera entra aquí porque el portal la implementó en el bloque F: hasta
+#: entonces no había nada que comparar. Es el motivo de que este gate se pueda ampliar ahora.
+IGUALES: tuple[tuple[str, str], ...] = (
+    # La escala tipográfica: seis escalones, los mismos seis valores.
+    ("--ab-texto-micro", "--text-micro"),
+    ("--ab-texto-nota", "--text-nota"),
+    ("--ab-texto-xs", "--text-xs"),
+    ("--ab-texto-sm", "--text-sm"),
+    ("--ab-texto-base", "--text-base"),
+    ("--ab-texto-lg", "--text-lg"),
+    # La marca, que es lo que ya se comprobaba.
+    ("--ab-navy", "--color-ink"),
+    ("--ab-violet", "--color-brand"),
+    # El radio del contenedor. `index.css` dice de él «el radio del portal, para que la costura no
+    # se note» — una intención escrita que hasta ahora nada sujetaba.
+    ("--ab-radius", "--radius-lg"),
+)
+
+#: Lo mismo, pero solo en **tema claro**: son colores, y cada mitad tiene su bloque.
+IGUALES_EN_CLARO: tuple[tuple[str, str], ...] = (
+    ("--ab-surface", "--color-surface"),
+    ("--ab-surface-2", "--color-surface-2"),
+    ("--ab-bg", "--color-shell"),
+    ("--ab-text", "--color-fg"),
+    ("--ab-text-secondary", "--color-fg-2"),
+)
+
+#: Lo que **no** coincide, con su motivo. Se añade una fila con su razón, no se borra la prueba.
+#:
+#: Distinguir esto de lo de arriba es la mitad del valor: sin la lista, «están distintos» no dice si
+#: es una decisión o una deriva, y en este archivo hay de las dos cosas.
+DISTINTOS_A_PROPOSITO: dict[tuple[str, str], str] = {
+    # El visor parte el borde en dos tokens —`--color-borde` separa bloques, `--color-borde-campo`
+    # contornea un control y llega a 4,1:1— y el portal tiene uno solo, que por tanto carga con el
+    # papel exigente. Unificarlos pide decidir antes si el portal quiere también dos.
+    ("--ab-border", "--color-borde"): "el visor parte el borde en dos tokens y el portal tiene uno",
+    # El apagado del portal es más oscuro porque tiene que llegar a 4,5:1 sobre más superficies: hay
+    # diecisiete restricciones simultáneas midiéndolo, y el visor no tiene ese sistema.
+    ("--ab-text-muted", "--color-fg-3"): "el portal lo mide contra más superficies y lo necesita "
+    "más oscuro",
+}
+
+
+@pytest.mark.parametrize(("del_portal", "del_visor"), IGUALES)
+def test_los_tokens_compartidos_valen_lo_mismo_en_las_dos_mitades(del_portal, del_visor, claro):
+    """**La costura, medida entera.**
+
+    Un comentario que dice «estos dos son el mismo color» no impide que uno de los dos cambie. Sin
+    esta prueba se separan un dígito cada vez que alguien retoca un tema, y nadie lo nota hasta que
+    se ven las dos pantallas juntas — que es cuando ya hay dos productos.
     """
-    visor = _sin_comentarios(CSS_DEL_VISOR.read_text(encoding="utf-8"))
-    del_visor = _tokens(visor)
-    portal = _tokens(_bloque(_sin_comentarios(CSS.read_text(encoding="utf-8")), ":root"))
+    del_tema = _tokens(
+        _bloque(_sin_comentarios(CSS_DEL_VISOR.read_text(encoding="utf-8")), "@theme")
+    )
 
-    assert portal["--ab-navy"] == del_visor["--color-ink"]
-    assert portal["--ab-violet"] == del_visor["--color-brand"]
+    assert del_visor in del_tema, f"`{del_visor}` ya no existe en el visor"
+    assert claro[del_portal] == del_tema[del_visor], (
+        f"`{del_portal}` y `{del_visor}` son el mismo valor por diseño y se han separado"
+    )
+
+
+@pytest.mark.parametrize(("del_portal", "del_visor"), IGUALES_EN_CLARO)
+def test_las_superficies_claras_son_las_mismas_en_las_dos_mitades(del_portal, del_visor, claro):
+    """**Es la costura que un usuario cruza de verdad**: del registro al visor, con un clic.
+
+    En claro las dos mitades ya pintan los mismos planos. Que se separen no da ningún error: se ve
+    como un parpadeo de color al abrir el modelo, y eso nadie lo reporta — se nota y se olvida.
+    """
+    del_claro = _claro_del_visor()
+
+    assert del_visor in del_claro, f"`{del_visor}` ya no se declara en el tema claro del visor"
+    assert claro[del_portal] == del_claro[del_visor], (
+        f"`{del_portal}` y `{del_visor}` pintan el mismo plano y se han separado"
+    )
+
+
+def _claro_del_visor() -> dict[str, str]:
+    """Los tokens del tema claro del visor, que vive en su propio bloque."""
+    texto = _sin_comentarios(CSS_DEL_VISOR.read_text(encoding="utf-8"))
+    encontrado = re.search(r'\[data-theme="light"\][^{]*\{(.*?)\n\}', texto, re.DOTALL)
+    assert encontrado is not None, "no se encontró el bloque del tema claro del visor"
+    return _tokens(encontrado.group(1))
+
+
+def test_lo_que_no_coincide_esta_inventariado_con_su_motivo(claro):
+    """**«Están distintos» no dice si es una decisión o una deriva**, y aquí hay de las dos.
+
+    Esta prueba no exige que se unifiquen —dos de las parejas tienen motivo y está escrito— sino que
+    **no aparezca una tercera en silencio**. Una divergencia nueva sin razón anotada es deriva, y la
+    deriva es lo que convierte una costura en dos productos.
+    """
+    del_claro = _claro_del_visor()
+
+    sin_motivo = [
+        (p, v)
+        for (p, v) in DISTINTOS_A_PROPOSITO
+        if p in claro and v in del_claro and claro[p] == del_claro[v]
+    ]
+    assert sin_motivo == [], (
+        f"estas parejas ya coinciden: {sin_motivo}. Pásalas a `IGUALES_EN_CLARO` y quítales la "
+        "excusa, o el inventario deja de decir la verdad."
+    )
 
 
 def test_la_pista_de_avance_deja_ver_el_relleno(claro, oscuro):
