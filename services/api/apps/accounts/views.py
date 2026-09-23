@@ -239,12 +239,14 @@ class AyudaView(LoginRequiredMixin, TemplateView):
     template_name = "accounts/ayuda.html"
 
     def get_context_data(self, **kwargs):
-        from apps.accounts.ayuda import pasos_para
+        from apps.accounts.ayuda import por_fases
 
         contexto = super().get_context_data(**kwargs)
-        contexto["pasos"] = pasos_para(self.request.user)
+        # **Partido en sus tres tramos**, que es lo que convierte nueve `<li>` seguidos en algo por
+        # donde se puede entrar a la mitad. Sigue sin filtrarse nada: lo ajeno va marcado.
+        contexto["tramos"] = por_fases(self.request.user)
         # Cuántos no le tocan, para poder decirlo arriba en vez de que se descubra bajando.
-        contexto["ajenos"] = sum(1 for uno in contexto["pasos"] if not uno.puedes)
+        contexto["ajenos"] = sum(tramo.cuantos_ajenos for tramo in contexto["tramos"])
         return contexto
 
 

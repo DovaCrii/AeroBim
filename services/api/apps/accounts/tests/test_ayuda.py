@@ -21,12 +21,14 @@ filtra, y eso es deliberado — una explicación a la que le faltan tres pasos n
 llegan a alguien las observaciones que tiene que contestar.
 """
 
+import re
+
 import pytest
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.urls import NoReverseMatch, reverse
 
-from apps.accounts.ayuda import PASOS, pasos_para
+from apps.accounts.ayuda import FASES, PASOS, pasos_para, por_fases
 from apps.accounts.modulos import CATALOGO
 
 
@@ -95,6 +97,107 @@ def test_cada_paso_dice_para_que_sirve_y_que_hacer():
         assert len(str(paso.para_que)) > 60, paso.titulo
         assert len(str(paso.que_hacer)) > 40, paso.titulo
         assert str(paso.de_quien), paso.titulo
+
+
+# --- Las tres fases ------------------------------------------------------------------
+
+
+def test_cada_paso_cae_en_una_fase_que_existe():
+    """Una fase inventada dibujaría un tramo huérfano que nadie ve, porque no está en el índice."""
+    anclas = {fase.ancla for fase in FASES}
+
+    for paso in PASOS:
+        assert paso.fase in anclas, f"el paso «{paso.titulo}» dice estar en «{paso.fase}»"
+
+
+def test_cada_fase_dice_de_que_va_y_su_ancla_sirve_de_url():
+    """El índice existe para poder **saltarse** una parte con conocimiento, no solo para navegar.
+
+    Y el ancla viaja en la URL: con un acento o un espacio, el enlace que alguien comparta llega
+    roto o escapado a otro navegador.
+    """
+    for fase in FASES:
+        assert len(str(fase.de_que_va)) > 60, fase.titulo
+        assert re.fullmatch(r"[a-z0-9-]+", fase.ancla), f"«{fase.ancla}» no vale como ancla"
+
+    assert len({fase.ancla for fase in FASES}) == len(FASES), "dos fases comparten ancla"
+
+
+def test_ninguna_fase_se_queda_vacia():
+    """Un tramo sin pasos sale como un título y un hueco, y el índice lleva a la nada."""
+    de_cada = {fase.ancla: 0 for fase in FASES}
+    for paso in PASOS:
+        de_cada[paso.fase] += 1
+
+    assert all(de_cada.values()), f"fases vacías: {[a for a, n in de_cada.items() if not n]}"
+
+
+def test_las_fases_son_tramos_seguidos_del_recorrido():
+    """**Y esto es lo que de verdad puede romperse sin dar error.**
+
+    Los pasos llevan su número en el título —«4 · Deja una nota»— y se dibujan dentro de su fase. Si
+    una fase se llevara el 2 y el 7, el tramo saldría numerado «2, 7» y el recorrido dejaría de
+    leerse como un recorrido: lo que promete el número es que van seguidos.
+
+    Se comprueba sobre `PASOS`, o sea sobre la definición, no sobre lo que una persona concreta ve:
+    filtrar por permisos sí deja huecos, y eso es correcto y es otra cosa.
+    """
+    for fase in FASES:
+        suyos = [n for n, paso in enumerate(PASOS, start=1) if paso.fase == fase.ancla]
+
+        assert suyos == list(range(suyos[0], suyos[-1] + 1)), (
+            f"la fase «{fase.titulo}» se lleva los pasos {suyos}, que no van seguidos"
+        )
+
+
+def test_las_fases_cubren_el_recorrido_en_orden():
+    """El índice va arriba y promete el orden en que se trabaja: 1-2-3, luego 4-5-6, luego 7-8-9."""
+    en_orden = [
+        n for fase in FASES for n, paso in enumerate(PASOS, start=1) if paso.fase == fase.ancla
+    ]
+
+    assert en_orden == list(range(1, len(PASOS) + 1))
+
+
+@pytest.mark.django_db
+def test_al_partir_en_fases_no_se_pierde_ningun_paso(proyectista):
+    """La partición es una partición: ni se cae ninguno ni se repite."""
+    tramos = por_fases(proyectista)
+    repartidos = [uno for tramo in tramos for uno in tramo.pasos]
+
+    assert len(repartidos) == len(PASOS)
+    assert [uno.paso for uno in repartidos] == list(PASOS)
+
+
+@pytest.mark.django_db
+def test_cada_tramo_dice_cuantos_no_te_tocan(proyectista):
+    """**Con el aviso solo arriba hay que recorrer los nueve para saber cuáles son.**
+
+    Dicho en el tramo, se sabe de un vistazo si esa sección entera interesa.
+    """
+    tramos = por_fases(proyectista)
+
+    # **La suma por tramos es la cuenta de arriba.** Si las dos se separan, la cabecera dice «dos de
+    # estos pasos no son tuyos» y abajo no hay dos marcados: la pantalla se contradice a sí misma.
+    assert sum(tramo.cuantos_ajenos for tramo in tramos) == sum(
+        1 for uno in pasos_para(proyectista) if not uno.puedes
+    )
+    # Y cada tramo cuenta **los suyos**, no los de la pantalla.
+    for tramo in tramos:
+        assert tramo.cuantos_ajenos == sum(1 for uno in tramo.pasos if not uno.puedes)
+
+
+@pytest.mark.django_db
+def test_con_todos_los_permisos_ningun_tramo_marca_nada(proyectista):
+    """La otra mitad: una cuenta que siempre sale pasaría igual de verde que una bien hecha."""
+    quien = dar(
+        proyectista,
+        "projects.view_proyecto",
+        "documents.add_observacion",
+        "documents.view_observacion",
+    )
+
+    assert [tramo.cuantos_ajenos for tramo in por_fases(quien)] == [0, 0, 0]
 
 
 # --- El contrato de la pantalla ------------------------------------------------------
