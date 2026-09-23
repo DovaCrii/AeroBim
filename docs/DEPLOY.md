@@ -322,6 +322,12 @@ cd /opt/aerobim/services/api
 sudo -u aerobim .venv/bin/python manage.py enviar_resumen --dry-run
 ```
 
+> **Y correrlo de verdad para comprobarlo tampoco duplica.** Hay un freno de **un resumen por
+> persona y día**: si el timer de las 07:30 ya escribió, una corrida a mano no vuelve a hacerlo. Es
+> justo este momento el que lo motivó — se enciende el SMTP, se quiere ver que funciona, y sin el
+> freno la gente recibe dos correos idénticos la primera mañana. **Si el envío falla, el día no se
+> quema**: se arregla la configuración y se vuelve a correr.
+
 > **Y una consecuencia del tailnet que conviene decir por escrito a quien reciba el resumen**: los
 > enlaces salen de `SITE_BASE_URL`, que es un nombre del tailnet. En un teléfono sin Tailscale el
 > correo llega y **los enlaces no abren**. No es un fallo del correo.

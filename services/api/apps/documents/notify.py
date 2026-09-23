@@ -21,7 +21,7 @@ from django.utils.translation import gettext as _
 from apps.core import avisos
 from apps.core.mail import mail_is_delivered
 from apps.core.models import Aviso
-from apps.documents.models import Actividad, Observacion
+from apps.documents.models import Actividad, Observacion, ResumenEnviado
 
 logger = logging.getLogger("aerobim.jobs")
 
@@ -462,7 +462,7 @@ def atrasos_que_no_avanzan(usuario):
     return list(nulos_al_final(consulta, ("vence",)))
 
 
-def enviar_resumen(usuario, *, respetar_cadencia: bool = True) -> int:
+def enviar_resumen(usuario, *, respetar_cadencia: bool = True, una_vez_al_dia: bool = True) -> int:
     """Un correo con lo que le queda, o ninguno si no le toca.
 
     **No se manda un resumen vacio.** Un correo que dice "no tienes nada" todas las
@@ -472,6 +472,11 @@ def enviar_resumen(usuario, *, respetar_cadencia: bool = True) -> int:
     **Y ahora tampoco se manda si el coordinador no lo pidio.** Ver `le_toca_resumen`.
     `respetar_cadencia=False` existe para poder mandarlo a mano desde una pantalla —«mandame el
     mio ahora»— sin desmontar la regla del trabajo programado.
+
+    **Ni dos veces el mismo día**, que es otra pregunta y hace falta igual: la cadencia dice *cada
+    cuánto*, el freno dice *no otra vez hoy*. Ver `ResumenEnviado`. `una_vez_al_dia=False` es para
+    ese mismo «mándame el mío ahora»: quien lo pide es el propio destinatario, y negárselo porque
+    el trabajo programado ya escribió sería tratar su petición como spam.
 
     Sale en HTML **y en texto plano**, las dos versiones del mismo contenido: el texto es lo que ve
     quien tiene el HTML desactivado, y no puede decir menos que el otro.
@@ -493,6 +498,21 @@ def enviar_resumen(usuario, *, respetar_cadencia: bool = True) -> int:
     if respetar_cadencia and not le_toca_resumen(usuario, tramos, hoy, parados=parados):
         logger.info("resumen_no_tocaba", extra={"recipient": correo, "item_count": total})
         return 0
+
+    # **El turno se reclama antes de escribir, y por eso frena.**
+    #
+    # Preguntar «¿ya se le mandó?» y mandar después deja el hueco por el que pasan dos corridas
+    # simultáneas: las dos leen que no, y las dos escriben. Lo que lo impide es que la segunda fila
+    # **no pueda existir** — ver la restricción única de `ResumenEnviado`.
+    #
+    # Y esto no es un caso raro: es lo que va a pasar el día que se configure el SMTP, cuando
+    # alguien corra el comando a mano para ver si funciona con el timer ya disparado.
+    turno = None
+    if una_vez_al_dia:
+        turno, primero = ResumenEnviado.objects.get_or_create(usuario=usuario, fecha=hoy)
+        if not primero:
+            logger.info("resumen_ya_enviado_hoy", extra={"recipient": correo})
+            return 0
 
     bloques = []
     lineas = [_("What is on your plate in AeroBim."), ""]
@@ -567,7 +587,16 @@ def enviar_resumen(usuario, *, respetar_cadencia: bool = True) -> int:
         ),
         "text/html",
     )
-    mensaje.send()
+    try:
+        mensaje.send()
+    except Exception:
+        # **Un envío que falla no puede quemar el día.** El turno se reclamó antes —que es lo que
+        # frena el correo doble— pero si el SMTP rechaza, mantenerlo dejaría a esta persona sin
+        # resumen hasta mañana. Y el momento en que el SMTP rechaza es precisamente el de
+        # configurarlo: se arregla y se vuelve a correr, que es lo que uno espera poder hacer.
+        if turno is not None:
+            turno.delete()
+        raise
     logger.info(
         "resumen_enviado",
         extra={
