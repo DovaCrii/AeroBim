@@ -128,6 +128,96 @@
   /* El área de toque mínima, medida en `F9.4` sobre la cinta del visor. Aquí es lo que fija la
    * altura de cada fila del rail: una lista de doce enlaces es justo donde se falla al pulsar. */
   --ab-touch-min: 44px;
+
+  /* ══════════════════════════════════════════════════════════════════════════════════════
+   * LA ESCALA TIPOGRÁFICA, LA DE ESPACIADO Y LA DE ELEVACIÓN
+   *
+   * **«Que la aplicación no sea plana.»** El usuario lo dijo tres veces, y la medida le da la
+   * razón de una forma que no se ve leyendo el archivo:
+   *
+   * | Eje                  | El visor (`index.css`) | Este archivo, antes de esto        |
+   * | -------------------- | ---------------------- | ---------------------------------- |
+   * | Escala tipográfica   | **6 tokens**           | **0.** 86 declaraciones, 23 valores |
+   * | Unidad de espaciado  | **sí**                 | **ninguna.** 42 `padding`, 21 `gap` |
+   * | Elevación            | **3**, revertida en claro | **2**, y solo en `.tarjeta`     |
+   * | Superficies          | **4** planos           | **3**                              |
+   * | Movimiento           | **4 tokens**           | ninguno; 120–140 ms a mano         |
+   *
+   * De los 23 tamaños, **once caían entre 0,82 y 0,95 rem** — nueve escalones dentro de dos
+   * píxeles. Eso no produce jerarquía: produce ruido de un solo peso, que es exactamente lo que
+   * se ve como «plano».
+   *
+   * **Y no se diseña nada nuevo: se porta.** `docs/DESIGN_SYSTEM.md` norma estos ejes desde su
+   * primer día y el visor los implementó enteros en `F9.x`; este archivo se quedó atrás. Los
+   * valores son **los mismos**, con los mismos nombres traducidos, y eso es lo que hace que la
+   * costura portal → visor deje de notarse.
+   * ══════════════════════════════════════════════════════════════════════════════════════ */
+
+  /* Seis escalones, en `rem` sobre la raíz de 16 px — los mismos píxeles que en el visor. */
+  --ab-texto-micro: 0.6875rem; /* 11 px — rótulo de grupo, en mayúsculas */
+  --ab-texto-nota: 0.75rem; /* 12 px — la nota al pie de una sección */
+  --ab-texto-xs: 0.8125rem; /* 13 px — cuerpo de tabla, filas de lista */
+  --ab-texto-sm: 0.9375rem; /* 15 px — cualquier texto que se lea seguido */
+  --ab-texto-base: 1.0625rem; /* 17 px — título de tarjeta y de sección */
+  --ab-texto-lg: 1.5rem; /* 24 px — el título de una pantalla */
+  /* Y un séptimo, que el visor no tiene porque no tiene cifras de tablero.
+   *
+   * **No es un escalón de lectura: es una cifra.** `.dato .cifra` es el «7» de «7 observaciones
+   * abiertas», y existe para leerse de un vistazo desde más lejos que el texto. Colapsarla al
+   * título aplanaría justo lo que no puede estar plano — que es el encargo entero. */
+  --ab-texto-cifra: 1.75rem; /* 28 px — la cifra de una baldosa de tablero */
+
+  /* El ritmo. `DESIGN_SYSTEM.md:183` norma 4·8·12·16·24·32·48 y nadie lo implementó. */
+  --ab-esp-1: 4px;
+  --ab-esp-2: 8px;
+  --ab-esp-3: 12px;
+  --ab-esp-4: 16px;
+  --ab-esp-5: 24px;
+
+  /* El plano elevado que faltaba. `--ab-surface-alt` se queda: lo usan las filas alternas.
+   *
+   * **Y no hay un tercero, aunque `DESIGN_SYSTEM.md` norme cuatro planos.** Se añadió y se midió:
+   * para que el texto apagado llegara a 4,5:1 encima de él en el tema oscuro había que oscurecerlo
+   * hasta **1,03:1 contra el plano 2** — o sea, hasta ser invisible. Es la misma trampa que ya
+   * costó una pasada con `--ab-primary-soft`, que era el fondo de las píldoras de conteo y estaba
+   * a 1,03:1.
+   *
+   * Con un token que no se usa en ninguna regla, enviarlo solo añadiría una superficie donde
+   * escribir texto que no se lee. El día que haga falta un tercer plano, se paga resolviendo las
+   * restricciones a la vez —como se hizo con las diecisiete del contraste—, no metiendo un valor.
+   *
+   * **Lo que separa en el tema claro no es el tono, es la sombra**: está medido arriba, 1,17:1 la
+   * sombra contra 1,07:1 la superficie. Por eso `.bloque` y `.dato` llevan elevación. */
+  --ab-surface-2: #f8fafc; /* elevado: baldosa de tablero, cabecera de tabla */
+
+  /* Tres niveles de elevación en vez de dos, con los nombres del visor.
+   *
+   * **`--ab-shadow` y `--ab-shadow-alto` se conservan** porque los usan tres reglas y una prueba:
+   * renombrarlos sería un cambio mecánico con riesgo a cambio de nada. Éstos son los que faltaban. */
+  --ab-elev-sm: 0 1px 2px rgb(18 34 59 / 8%); /* apenas despegado: una fila, un campo */
+
+  /* El movimiento, que aquí no existía: los 120–140 ms estaban escritos a mano en cuatro sitios. */
+  --ab-ease: cubic-bezier(0.2, 0, 0, 1);
+  --ab-rapido: 120ms;
+  --ab-medio: 200ms;
+}
+
+/* **Y si alguien pidió menos movimiento, se le hace caso.** El visor lo respeta desde `F9.x` y el
+ * portal no lo hacía: sus transiciones corrían igual con `prefers-reduced-motion` puesto. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --ab-rapido: 0ms;
+    --ab-medio: 0ms;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* **Aquí había tres tokens que nadie usaba**: `--ab-control-height: 42px`, `--ab-sidebar-width:
@@ -221,6 +311,16 @@
   /* Y la elevada, que antes no existía en oscuro: la del hover estaba escrita a mano con el azul
      del tema claro, así que sobre esta superficie no se veía. */
   --ab-shadow-alto: 0 14px 34px rgb(0 0 0 / 50%);
+
+  /* El plano elevado, en oscuro. **Sube en vez de bajar**: en un tema oscuro la luz viene de
+     arriba, así que lo que está más cerca es más claro — al revés que en el claro.
+     Medido: 1,22:1 sobre la superficie, y el texto apagado encima a 4,78:1. */
+  --ab-surface-2: #2d3644;
+
+  /* Y las sombras, más opacas. **En oscuro la sombra casi no separa** —1,08:1 contra 1,17:1 del
+     tema claro, medido arriba— así que aquí quien dibuja el contorno sigue siendo `--ab-border`.
+     Éstas existen para lo que flota de verdad sobre la página, no para contornear una tarjeta. */
+  --ab-elev-sm: 0 1px 2px rgb(0 0 0 / 30%);
 }
 
 * {
@@ -350,7 +450,7 @@ a:hover {
   border-left: 3px solid var(--acento);
   /* 11 px es el mínimo del sistema, y aquí es el sitio donde tiene sentido: es un rótulo de
      agrupamiento, no algo que haya que leer seguido. */
-  font-size: 11px;
+  font-size: var(--ab-texto-micro);
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -375,7 +475,7 @@ a:hover {
   border-radius: var(--ab-radio-sm);
   color: var(--ab-text-secondary);
   text-decoration: none;
-  font-size: 0.92rem;
+  font-size: var(--ab-texto-sm);
 }
 
 .rail-item:hover {
@@ -531,7 +631,7 @@ a:hover {
   .rail {
     position: static;
     display: flex;
-    gap: 4px;
+    gap: var(--ab-esp-1);
     max-height: none;
     padding: 8px 12px;
     overflow-x: auto;
@@ -541,7 +641,7 @@ a:hover {
 
   .rail-lista {
     display: flex;
-    gap: 4px;
+    gap: var(--ab-esp-1);
   }
 
   .rail-item {
@@ -642,8 +742,59 @@ main {
  * no lleva prioridad, así que esa columna salía vacía en la mitad de las filas — y una celda vacía
  * se lee como un dato que falta, no como uno que no existe.
  */
+/*
+ * --- `.bloque`: el contenedor que no contenía nada -----------------------------------------
+ *
+ * **Su regla entera eran tres líneas: `margin-bottom: 32px`.** Es el envoltorio de cada sección de
+ * «Mi trabajo» —lo pendiente, tus obras, por dónde seguir— así que las tres secciones de la portada
+ * eran **texto suelto separado por 32 px**, sin fondo, sin borde y sin padding.
+ *
+ * Y su título `.grupo` es el elemento más débil de la pantalla: 12 px, gris apagado, en mayúsculas.
+ * O sea que lo que marca dónde empieza cada sección era lo que menos se veía. El usuario lo dijo
+ * dos veces y está citado en `portal.html`: «Mi trabajo está plano, la visual».
+ *
+ * Ahora contiene: superficie, borde y aire. **Y se despega menos que una tarjeta** —`--ab-elev-sm`
+ * y no `--ab-shadow`— porque una sección no flota sobre la página: la organiza. Lo que flota son
+ * las tarjetas que van dentro, y por eso hay dos niveles y no uno.
+ */
 .bloque {
-  margin-bottom: 32px;
+  margin-bottom: var(--ab-esp-5);
+  padding: var(--ab-esp-4) var(--ab-esp-4) var(--ab-esp-2);
+  background: var(--ab-surface);
+  border: 1px solid var(--ab-border);
+  border-radius: var(--ab-radius);
+  box-shadow: var(--ab-elev-sm);
+}
+
+/* El título de la sección deja de ser lo más débil de la pantalla: sube un escalón y pierde el
+ * gris apagado. Sigue en mayúsculas con tracking —es un rótulo, no un encabezado— pero ahora se
+ * ve. Y el margen de arriba se va: dentro del bloque ya hay padding, y sumarlos deja un hueco. */
+.bloque > .grupo:first-child {
+  margin-top: 0;
+  font-size: var(--ab-texto-xs);
+  color: var(--ab-text-secondary);
+}
+
+/*
+ * --- Y dentro del bloque, lo que ya no tiene que contornearse -------------------------------
+ *
+ * **Éste era el defecto de fondo, y no es que faltara adorno: es que todo pesaba igual.** Medido:
+ * `.tarjeta`, `.dato`, `table`, `.tareas` y `.linea-tiempo` compartían **la misma receta exacta**
+ * —`--ab-surface` + `1px solid --ab-border` + radio 12— así que un dato de resumen, una tabla de
+ * sesenta filas y un módulo navegable se dibujaban idénticos. Entre `.tarjeta` y `.dato` había 2 px
+ * de diferencia de padding: nadie percibe eso.
+ *
+ * Ahora hay dos planos y no uno. El bloque es la sección; lo que va **dentro** se apoya en él y no
+ * repite su contorno — un borde dentro de otro borde a 4 px de distancia es lo que hace que una
+ * pantalla se lea como una rejilla de cajas.
+ */
+.bloque > table,
+.bloque > .tareas,
+.bloque > .linea-tiempo {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .tareas {
@@ -722,7 +873,7 @@ main {
   justify-content: flex-end;
   gap: 8px;
   flex: none;
-  font-size: 0.85rem;
+  font-size: var(--ab-texto-xs);
   color: var(--ab-text-secondary);
 }
 
@@ -799,7 +950,7 @@ main {
   position: relative;
   display: inline-flex;
   align-items: center;
-  padding: 4px;
+  padding: var(--ab-esp-1);
   border-radius: var(--ab-radio-sm);
 }
 
@@ -812,7 +963,7 @@ main {
   border-radius: 999px;
   background: var(--ab-danger);
   color: var(--ab-sobre-danger);
-  font-size: 0.68rem;
+  font-size: var(--ab-texto-micro);
   font-weight: 700;
   line-height: 16px;
   text-align: center;
@@ -853,7 +1004,7 @@ main {
 }
 
 .accion-de-tarea {
-  font-size: 0.8rem;
+  font-size: var(--ab-texto-xs);
   color: var(--ab-text-secondary);
   text-decoration: underline;
   text-underline-offset: 2px;
@@ -890,7 +1041,7 @@ main {
 /* El rótulo de cada tramo dentro de un bloque: «Vencido», «Próximos 7 días». */
 .tramo {
   margin: 14px 0 6px;
-  font-size: 0.85rem;
+  font-size: var(--ab-texto-xs);
   font-weight: 600;
   color: var(--ab-text-secondary);
 }
@@ -939,7 +1090,7 @@ main {
   border-radius: 50%;
   background: var(--acento);
   color: var(--acento-fg);
-  font-size: 11px;
+  font-size: var(--ab-texto-micro);
   font-weight: 700;
 }
 
@@ -1015,7 +1166,7 @@ main {
 .pasos-cortos .detalle {
   display: block;
   margin-top: 6px;
-  font-size: 0.88rem;
+  font-size: var(--ab-texto-sm);
   line-height: 1.5;
   color: var(--ab-text-muted);
 }
@@ -1143,19 +1294,19 @@ body.puerta {
 
 .puerta h1 {
   margin: 0 0 4px;
-  font-size: 1.35rem;
+  font-size: var(--ab-texto-lg);
 }
 
 .puerta p.sub {
   margin: 0 0 22px;
   color: var(--ab-text-secondary);
-  font-size: 0.92rem;
+  font-size: var(--ab-texto-sm);
 }
 
 .puerta label {
   display: block;
-  margin-bottom: 4px;
-  font-size: 0.88rem;
+  margin-bottom: var(--ab-esp-1);
+  font-size: var(--ab-texto-sm);
   font-weight: 600;
 }
 
@@ -1192,13 +1343,13 @@ body.puerta {
   border: 1px solid var(--ab-danger);
   border-radius: var(--ab-radio-md);
   color: var(--ab-danger);
-  font-size: 0.9rem;
+  font-size: var(--ab-texto-sm);
 }
 
 .puerta .pie {
   margin: 20px 0 0;
   color: var(--ab-text-secondary);
-  font-size: 0.82rem;
+  font-size: var(--ab-texto-xs);
 }
 
 .presenta h2 {
@@ -1240,7 +1391,7 @@ body.puerta {
   grid-template-columns: 26px minmax(0, 1fr);
   align-items: start;
   gap: 12px;
-  font-size: 0.94rem;
+  font-size: var(--ab-texto-sm);
 }
 
 .presenta li b {
@@ -1249,7 +1400,7 @@ body.puerta {
 
 .presenta li span {
   color: var(--ab-text-secondary);
-  font-size: 0.88rem;
+  font-size: var(--ab-texto-sm);
 }
 
 .presenta .punto {
@@ -1260,7 +1411,7 @@ body.puerta {
   border-radius: var(--ab-radio-sm);
   background: var(--ab-primary-soft);
   color: var(--ab-primary);
-  font-size: 0.82rem;
+  font-size: var(--ab-texto-xs);
   font-weight: 700;
 }
 
@@ -1270,7 +1421,7 @@ body.puerta {
   padding-top: 18px;
   border-top: 1px solid var(--ab-border);
   color: var(--ab-text-secondary);
-  font-size: 0.86rem;
+  font-size: var(--ab-texto-xs);
   max-width: 46ch;
 }
 
@@ -1304,7 +1455,7 @@ body.puerta {
   padding: 0 14px;
   color: var(--ab-text-secondary);
   text-decoration: none;
-  font-size: 0.9rem;
+  font-size: var(--ab-texto-sm);
   white-space: nowrap;
 }
 
@@ -1339,7 +1490,7 @@ body.puerta {
   margin-left: 8px;
   color: var(--ab-text-muted);
   text-decoration: none;
-  font-size: 0.85rem;
+  font-size: var(--ab-texto-xs);
 }
 
 .accion-fila:hover {
@@ -1357,7 +1508,7 @@ body.puerta {
   padding: 14px 10px 6px;
   background: var(--ab-surface-alt);
   text-align: left;
-  font-size: 0.8rem;
+  font-size: var(--ab-texto-xs);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -1390,7 +1541,7 @@ body.puerta {
   padding: 0 16px;
   color: var(--ab-text-secondary);
   text-decoration: none;
-  font-size: 0.92rem;
+  font-size: var(--ab-texto-sm);
 }
 
 .vista + .vista {
@@ -1438,7 +1589,7 @@ body.puerta {
   justify-content: space-between;
   gap: 8px;
   margin: 0 0 10px;
-  font-size: 0.85rem;
+  font-size: var(--ab-texto-xs);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -1486,7 +1637,7 @@ body.puerta {
   margin: 0;
   padding: 8px 4px;
   color: var(--ab-text-muted);
-  font-size: 0.88rem;
+  font-size: var(--ab-texto-sm);
 }
 
 /* Por debajo de 900 px las tres columnas no caben: se apilan. Un tablero de tres columnas de
@@ -1509,7 +1660,7 @@ body.puerta {
   display: flex;
   flex-wrap: wrap;
   gap: 0 8px;
-  font-size: 0.95rem;
+  font-size: var(--ab-texto-sm);
 }
 
 @media (max-width: 700px) {
@@ -1527,7 +1678,7 @@ body.puerta {
 }
 
 h1 {
-  font-size: 1.5rem;
+  font-size: var(--ab-texto-lg);
   margin: 0 0 4px;
 }
 
@@ -1538,7 +1689,7 @@ h1 {
 
 .grupo {
   margin: 28px 0 8px;
-  font-size: 0.78rem;
+  font-size: var(--ab-texto-nota);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1591,7 +1742,7 @@ h1 {
   background: var(--ab-violet);
   transform: scaleY(0);
   transform-origin: top;
-  transition: transform 140ms ease;
+  transition: transform var(--ab-rapido) var(--ab-ease);
 }
 
 /* `a.tarjeta` y no `.tarjeta`: una tarjeta sin enlace —el módulo que no se puede abrir— no debe
@@ -1618,7 +1769,7 @@ a.tarjeta:focus-visible {
   align-items: center;
   gap: 8px;
   font-weight: 650;
-  margin-bottom: 4px;
+  margin-bottom: var(--ab-esp-1);
 }
 
 /*
@@ -1628,7 +1779,7 @@ a.tarjeta:focus-visible {
  */
 .detalle {
   color: var(--ab-text-muted);
-  font-size: 0.9rem;
+  font-size: var(--ab-texto-sm);
 }
 
 /*
@@ -1660,7 +1811,7 @@ form.accion label.junto {
   gap: 6px;
   margin: 0;
   color: var(--ab-text-secondary);
-  font-size: 0.9rem;
+  font-size: var(--ab-texto-sm);
   font-weight: 400;
 }
 
@@ -1727,12 +1878,14 @@ table {
   overflow: hidden;
 }
 
+/* El aire de la celda sube al ritmo de la escala. **Nueve píxeles no era una decisión**: era un
+ * número escrito a mano, uno de los 42 valores distintos de `padding` que había. */
 th,
 td {
-  padding: 9px 12px;
+  padding: var(--ab-esp-3) var(--ab-esp-3);
   text-align: left;
   border-bottom: 1px solid var(--ab-border);
-  font-size: 0.92rem;
+  font-size: var(--ab-texto-sm);
 }
 
 th {
@@ -1782,7 +1935,7 @@ tbody tr:last-child td {
   align-items: center;
   gap: 16px;
   margin-top: 14px;
-  font-size: 0.9rem;
+  font-size: var(--ab-texto-sm);
 }
 
 .paginacion .inactivo {
@@ -1859,12 +2012,16 @@ td.vacio {
   margin-bottom: 8px;
 }
 
+/* Una baldosa de tablero **es un objeto, no una celda**: se apoya un plano por encima de la página
+ * y lleva su propia elevación. Es lo que la separa de una fila de tabla, que antes se dibujaba
+ * exactamente igual. */
 .dato {
-  padding: 14px 16px;
-  background: var(--ab-surface);
+  padding: var(--ab-esp-3) var(--ab-esp-4);
+  background: var(--ab-surface-2);
   border: 1px solid var(--ab-border);
   border-left: 3px solid var(--ab-primary);
   border-radius: var(--ab-radius);
+  box-shadow: var(--ab-elev-sm);
 }
 
 /* El acento de la izquierda dice de qué habla el número sin gastar una palabra. */
@@ -1877,7 +2034,7 @@ td.vacio {
 }
 
 .dato .cifra {
-  font-size: 1.7rem;
+  font-size: var(--ab-texto-cifra);
   font-weight: 700;
   line-height: 1.1;
   /* Tabulares: en una fila de cuatro cifras, las proporcionales las descuadran. */
@@ -1886,7 +2043,7 @@ td.vacio {
 
 .dato .rotulo {
   color: var(--ab-text-muted);
-  font-size: 0.82rem;
+  font-size: var(--ab-texto-xs);
   margin-top: 2px;
 }
 
@@ -1911,7 +2068,7 @@ td.vacio {
 .linea-tiempo .escala span {
   position: absolute;
   transform: translateX(-50%);
-  font-size: 0.7rem;
+  font-size: var(--ab-texto-micro);
   color: var(--ab-text-muted);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -1930,7 +2087,7 @@ td.vacio {
 }
 
 .linea-tiempo .nombre {
-  font-size: 0.8rem;
+  font-size: var(--ab-texto-xs);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1989,7 +2146,7 @@ td.vacio {
   height: 78px;
   vertical-align: top;
   border-right: 1px solid var(--ab-border);
-  font-size: 0.8rem;
+  font-size: var(--ab-texto-xs);
 }
 
 .calendario td:last-child {
@@ -2018,7 +2175,7 @@ td.vacio {
   border-radius: var(--ab-radio-xs);
   background: var(--ab-primary-soft);
   color: var(--ab-text);
-  font-size: 0.72rem;
+  font-size: var(--ab-texto-micro);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2044,7 +2201,7 @@ td.vacio {
   align-items: center;
   gap: 10px;
   padding: 4px 0;
-  font-size: 0.85rem;
+  font-size: var(--ab-texto-xs);
 }
 
 .barras .pista {
@@ -2082,7 +2239,7 @@ td.vacio {
 thead th {
   background: var(--ab-surface-alt);
   color: var(--ab-text-secondary);
-  font-size: 0.78rem;
+  font-size: var(--ab-texto-nota);
   letter-spacing: 0.03em;
   text-transform: uppercase;
   border-bottom: 2px solid var(--ab-border);
@@ -2107,7 +2264,7 @@ th.num {
   display: inline-block;
   padding: 1px 8px;
   border-radius: 999px;
-  font-size: 0.76rem;
+  font-size: var(--ab-texto-nota);
   font-weight: 600;
   border: 1px solid currentcolor;
 }
@@ -2252,7 +2409,7 @@ th.num {
   height: 22px;
   padding: 0 7px;
   border-radius: var(--ab-radio-sm);
-  font-size: 0.74rem;
+  font-size: var(--ab-texto-nota);
   font-weight: 700;
   letter-spacing: 0.04em;
   line-height: 1;
@@ -2277,7 +2434,7 @@ th.num {
   display: inline-block;
   padding: 2px 10px;
   border-radius: 999px;
-  font-size: 0.76rem;
+  font-size: var(--ab-texto-nota);
   font-weight: 600;
   line-height: 1.4;
   white-space: nowrap;
@@ -2468,14 +2625,14 @@ a.tarjeta:hover::before {
 }
 
 .obra-codigo {
-  font-size: 1.06rem;
+  font-size: var(--ab-texto-base);
   font-weight: 700;
   letter-spacing: 0.01em;
 }
 
 .obra-nombre {
   color: var(--ab-text-secondary);
-  font-size: 0.92rem;
+  font-size: var(--ab-texto-sm);
   margin-bottom: 12px;
 }
 
@@ -2487,7 +2644,7 @@ a.tarjeta:hover::before {
 .obra-organizacion {
   margin: -8px 0 12px;
   color: var(--ab-text-muted);
-  font-size: 0.82rem;
+  font-size: var(--ab-texto-xs);
 }
 
 .avance {
@@ -2507,12 +2664,12 @@ a.tarjeta:hover::before {
 .avance-cifra {
   margin-top: 6px;
   color: var(--ab-text-muted);
-  font-size: 0.8rem;
+  font-size: var(--ab-texto-xs);
 }
 
 .avance-cifra b {
   color: var(--ab-text);
-  font-size: 0.92rem;
+  font-size: var(--ab-texto-sm);
 }
 
 .obra-cifras {
@@ -2530,17 +2687,17 @@ a.tarjeta:hover::before {
 .cifra {
   display: inline-flex;
   align-items: baseline;
-  gap: 4px;
+  gap: var(--ab-esp-1);
   padding: 3px 9px;
   border: 1px solid var(--ab-border);
   border-radius: 999px;
   color: var(--ab-text-secondary);
-  font-size: 0.78rem;
+  font-size: var(--ab-texto-nota);
 }
 
 .cifra b {
   color: var(--ab-text);
-  font-size: 0.92rem;
+  font-size: var(--ab-texto-sm);
   font-weight: 700;
 }
 
@@ -2741,7 +2898,7 @@ input[type="file"]::file-selector-button:hover {
 
 .campo > label {
   color: var(--ab-text);
-  font-size: 0.9rem;
+  font-size: var(--ab-texto-sm);
   font-weight: 600;
 }
 
@@ -2752,7 +2909,7 @@ input[type="file"]::file-selector-button:hover {
 .campo-opcional {
   margin-left: 6px;
   color: var(--ab-text-muted);
-  font-size: 0.78rem;
+  font-size: var(--ab-texto-nota);
   font-weight: 400;
   text-transform: lowercase;
 }
@@ -2767,7 +2924,7 @@ input[type="file"]::file-selector-button:hover {
 .campo-ayuda {
   margin: 0;
   color: var(--ab-text-muted);
-  font-size: 0.85rem;
+  font-size: var(--ab-texto-xs);
   line-height: 1.45;
 }
 
@@ -2785,7 +2942,7 @@ input[type="file"]::file-selector-button:hover {
   gap: 6px;
   margin: 0;
   color: var(--ab-danger);
-  font-size: 0.85rem;
+  font-size: var(--ab-texto-xs);
   font-weight: 500;
 }
 
@@ -2824,7 +2981,7 @@ input[type="file"]::file-selector-button:hover {
   border-radius: 999px;
   background: var(--ab-primary-soft);
   color: var(--ab-text);
-  font-size: 0.78rem;
+  font-size: var(--ab-texto-nota);
   font-weight: 700;
 }
 
@@ -2876,7 +3033,7 @@ input[type="file"]::file-selector-button:hover {
   min-width: 3.2em;
   text-align: right;
   font-variant-numeric: tabular-nums;
-  font-size: 0.88rem;
+  font-size: var(--ab-texto-sm);
 }
 
 /*
@@ -2912,13 +3069,13 @@ button.peligro:hover {
 
 .zona-delicada h2 {
   margin-top: 0;
-  font-size: 1rem;
+  font-size: var(--ab-texto-base);
 }
 
 .zona-delicada .detalle {
   margin: 0 0 12px;
   color: var(--ab-text-muted);
-  font-size: 0.88rem;
+  font-size: var(--ab-texto-sm);
   line-height: 1.5;
 }
 
@@ -2956,7 +3113,7 @@ button.peligro:hover {
 
 .explicacion > summary {
   color: var(--ab-primary);
-  font-size: 0.92rem;
+  font-size: var(--ab-texto-sm);
   font-weight: 600;
   cursor: pointer;
 }
@@ -2964,7 +3121,7 @@ button.peligro:hover {
 .explicacion .detalle {
   margin: 12px 0;
   color: var(--ab-text-secondary);
-  font-size: 0.88rem;
+  font-size: var(--ab-texto-sm);
   line-height: 1.5;
 }
 
@@ -2979,7 +3136,7 @@ button.peligro:hover {
 
 .roles-explicados dt {
   color: var(--ab-text);
-  font-size: 0.88rem;
+  font-size: var(--ab-texto-sm);
   font-weight: 600;
   white-space: nowrap;
 }
@@ -2987,7 +3144,7 @@ button.peligro:hover {
 .roles-explicados dd {
   margin: 0;
   color: var(--ab-text-muted);
-  font-size: 0.88rem;
+  font-size: var(--ab-texto-sm);
   line-height: 1.45;
 }
 
@@ -3009,14 +3166,14 @@ button.peligro:hover {
   flex-wrap: wrap;
   align-items: center;
   gap: 20px;
-  margin-top: 4px;
+  margin-top: var(--ab-esp-1);
 }
 
 /* La salida no compite con la acción: no es un botón, es un enlace en gris que se aclara al pasar
    por encima. Un segundo botón al lado de «Crear la cuenta» haría dudar cuál de los dos crea. */
 .enlace-suave {
   color: var(--ab-text-muted);
-  font-size: 0.9rem;
+  font-size: var(--ab-texto-sm);
 }
 
 .enlace-suave:hover {
@@ -3054,7 +3211,7 @@ button.peligro:hover {
 
 .receta b {
   color: var(--ab-text);
-  font-size: 0.94rem;
+  font-size: var(--ab-texto-sm);
   font-weight: 600;
 }
 
@@ -3064,7 +3221,7 @@ button.peligro:hover {
   gap: 6px;
   margin-top: 3px;
   color: var(--ab-text-muted);
-  font-size: 0.86rem;
+  font-size: var(--ab-texto-xs);
   line-height: 1.45;
 }
 
@@ -3081,7 +3238,7 @@ button.peligro:hover {
   border-radius: 50%;
   background: var(--ab-primary);
   color: var(--ab-sobre-primary);
-  font-size: 0.78rem;
+  font-size: var(--ab-texto-nota);
   font-weight: 700;
 }
 
@@ -3143,7 +3300,7 @@ button.peligro:hover {
 
 .credenciales dt {
   color: var(--ab-text-muted);
-  font-size: 0.85rem;
+  font-size: var(--ab-texto-xs);
 }
 
 .credenciales dd {
@@ -3153,7 +3310,7 @@ button.peligro:hover {
 @media (max-width: 420px) {
   .credenciales {
     grid-template-columns: 1fr;
-    gap: 4px;
+    gap: var(--ab-esp-1);
   }
 
   .credenciales dd {
@@ -3177,7 +3334,7 @@ button.peligro:hover {
   border-radius: var(--ab-radio-sm);
   color: var(--ab-text);
   font-family: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, monospace;
-  font-size: 1rem;
+  font-size: var(--ab-texto-base);
   letter-spacing: 0.04em;
   user-select: all;
 }
@@ -3302,13 +3459,13 @@ button.peligro:hover {
   /* Sin transición, la barra salta de tramo en tramo según llegan los eventos del navegador y se
      lee como si se atascara. Corta a propósito: 200 ms de retraso sobre una barra que se mira
      fijamente se notan como lentitud del producto. */
-  transition: width 200ms linear;
+  transition: width var(--ab-medio) linear;
 }
 
 .subida-dice {
   margin: 8px 0 0;
   color: var(--ab-text-secondary);
-  font-size: 0.88rem;
+  font-size: var(--ab-texto-sm);
   /* Los dígitos con el mismo ancho: sin esto, el porcentaje baila de izquierda a derecha mientras
      sube y la línea entera parece temblar. */
   font-variant-numeric: tabular-nums;
@@ -3344,7 +3501,7 @@ button.peligro:hover {
   gap: 8px;
   margin-bottom: 14px;
   color: var(--ab-text-muted);
-  font-size: 0.84rem;
+  font-size: var(--ab-texto-xs);
 }
 
 .migas [aria-current="page"] {
@@ -3420,7 +3577,7 @@ button.peligro:hover {
   align-items: center;
   gap: 10px;
   margin: 0 0 8px;
-  font-size: 1.02rem;
+  font-size: var(--ab-texto-base);
 }
 
 /*
@@ -3431,7 +3588,7 @@ button.peligro:hover {
 .termino-nombre {
   margin: 0 0 8px;
   color: var(--ab-text-muted);
-  font-size: 0.86rem;
+  font-size: var(--ab-texto-xs);
 }
 
 .paso-ajeno,
@@ -3460,7 +3617,7 @@ button.peligro:hover {
 .en-aerobim {
   margin: 0 0 12px;
   color: var(--ab-text-secondary);
-  font-size: 0.94rem;
+  font-size: var(--ab-texto-sm);
 }
 
 .termino .en-aerobim {
@@ -3498,7 +3655,7 @@ button.peligro:hover {
 
 .herramienta h2 {
   margin: 0 0 12px;
-  font-size: 0.74rem;
+  font-size: var(--ab-texto-nota);
   font-weight: 700;
   letter-spacing: 0.09em;
   text-transform: uppercase;
@@ -3512,7 +3669,7 @@ button.peligro:hover {
 
 /* Y la explicación va al final, separada de los botones que explica. */
 .herramienta form.accion .detalle {
-  margin-top: 4px;
+  margin-top: var(--ab-esp-1);
 }
 
 /* --- Una cabecera de columna que ordena ------------------------------------------- */
@@ -3525,7 +3682,7 @@ button.peligro:hover {
 .orden {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--ab-esp-1);
   color: inherit;
   font: inherit;
   text-decoration: none;
@@ -3563,7 +3720,7 @@ button.peligro:hover {
 /* Lo que no es el dato principal de la fila: la antigüedad cuando no hay vencimiento. */
 .tenue {
   color: var(--ab-text-muted);
-  font-size: 0.86rem;
+  font-size: var(--ab-texto-xs);
 }
 
 /* --- La revisión de un BCF antes de importarlo ------------------------------------ */
@@ -3622,14 +3779,14 @@ button.peligro:hover {
 }
 
 .tema-titulo {
-  font-size: 1rem;
+  font-size: var(--ab-texto-base);
   font-weight: 650;
 }
 
 .tema-detalle {
   margin: 4px 0 0;
   color: var(--ab-text-secondary);
-  font-size: 0.88rem;
+  font-size: var(--ab-texto-sm);
 }
 
 /* Lo que entra nuevo se marca en verde: es lo que se venía a ver. */
@@ -3663,7 +3820,7 @@ button.peligro:hover {
   border: 1px solid var(--ab-border);
   border-radius: 999px;
   color: var(--ab-text-secondary);
-  font-size: 0.76rem;
+  font-size: var(--ab-texto-nota);
   line-height: 1.5;
   white-space: nowrap;
 }
@@ -3689,7 +3846,7 @@ button.peligro:hover {
   list-style: none;
   margin: 0 0 18px;
   padding: 0;
-  font-size: 0.85rem;
+  font-size: var(--ab-texto-xs);
 }
 
 .paso {
@@ -3821,7 +3978,7 @@ button.peligro:hover {
   border: 1px solid var(--ab-border);
   border-left: 3px solid var(--ab-primary);
   border-radius: var(--ab-radius);
-  font-size: 1.02rem;
+  font-size: var(--ab-texto-base);
 }
 
 /* --- El hilo, como conversación y no como tabla ----------------------------------- */
@@ -3858,9 +4015,9 @@ button.peligro:hover {
   flex-wrap: wrap;
   gap: 8px;
   align-items: baseline;
-  margin-bottom: 4px;
+  margin-bottom: var(--ab-esp-1);
   font-weight: 650;
-  font-size: 0.9rem;
+  font-size: var(--ab-texto-sm);
 }
 
 /*
@@ -3899,7 +4056,7 @@ button.peligro:hover {
   margin-top: 10px;
   color: var(--ab-text-muted);
   font-weight: 600;
-  font-size: 0.84rem;
+  font-size: var(--ab-texto-xs);
 }
 
 /* --- Un campo con su rótulo encima ------------------------------------------------ */
@@ -3917,7 +4074,7 @@ button.peligro:hover {
   display: block;
   margin-bottom: 6px;
   font-weight: 650;
-  font-size: 0.9rem;
+  font-size: var(--ab-texto-sm);
 }
 
 .bloque-campo textarea,
@@ -3956,7 +4113,7 @@ button.peligro:hover {
 
 .lado-bloque h2 {
   margin: 0 0 10px;
-  font-size: 0.74rem;
+  font-size: var(--ab-texto-nota);
   font-weight: 700;
   letter-spacing: 0.09em;
   text-transform: uppercase;
@@ -3969,7 +4126,7 @@ button.peligro:hover {
 
 .lado-bloque .detalle {
   margin: 10px 0 0;
-  font-size: 0.82rem;
+  font-size: var(--ab-texto-xs);
 }
 
 .lado-bloque textarea {
@@ -3997,19 +4154,19 @@ button.peligro:hover {
 
 .datos-lado dt {
   color: var(--ab-text-muted);
-  font-size: 0.82rem;
+  font-size: var(--ab-texto-xs);
 }
 
 .datos-lado dd {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: var(--ab-texto-sm);
   min-width: 0;
 }
 
 /* El GUID entero no cabe en 190 px, y cortarlo a la mitad no identifica nada: se parte. */
 .guid {
   display: inline-block;
-  font-size: 0.76rem;
+  font-size: var(--ab-texto-nota);
   overflow-wrap: anywhere;
   color: var(--ab-text-secondary);
 }
@@ -4023,7 +4180,7 @@ button.peligro:hover {
   border-radius: var(--ab-radio-md);
   padding: 4px 10px;
   font: inherit;
-  font-size: 0.85rem;
+  font-size: var(--ab-texto-xs);
   cursor: pointer;
 }
 
