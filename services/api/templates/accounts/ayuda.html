@@ -41,31 +41,68 @@
     </div>
   {% endif %}
 
-  <ol class="recorrido">
-    {% for uno in pasos %}
-      <li class="paso-ayuda {% if not uno.puedes %}paso-ajeno{% endif %}">
-        <h2>
-          {{ uno.paso.titulo }}
-          {% if not uno.puedes %}
-            {% comment %}
-              Se dice **de quién es** y no solo que no es tuyo: eso es lo que se puede accionar.
+  {% comment %}
+    **El índice, que es la mitad del cambio.** Con los nueve pasos seguidos en un solo `<ol>`, quien
+    entra no sabe dónde acaba lo que necesita hoy y empieza lo que necesitará en tres semanas: o la
+    lee entera o no la lee, y normalmente no la lee.
 
-              Y va como literal en español, sin `blocktranslate`, igual que el resto del texto del
-              recorrido: `de_quien` ya viene en español desde `ayuda.py`, así que marcarlo dejaría
-              una entrada de catálogo traducida a sí misma — que es justo lo que caza
-              `test_ninguna_traduccion_repite_el_original`.
-            {% endcomment %}
-            <span class="ficha">lo hace {{ uno.paso.de_quien }}</span>
-          {% endif %}
-        </h2>
-        <p class="para-que">{{ uno.paso.para_que }}</p>
-        <p class="que-hacer">{{ uno.paso.que_hacer }}</p>
-        {% if uno.url and uno.puedes %}
-          <a class="boton secundario" href="{{ uno.url }}">{% translate "Go there" %}</a>
-        {% endif %}
-      </li>
-    {% endfor %}
-  </ol>
+    Va con anclas y no con pestañas a propósito: una ancla funciona sin JavaScript —que es lo que la
+    CSP agradece—, se puede compartir por enlace, y deja la página imprimible de una pieza.
+  {% endcomment %}
+  <nav class="indice-del-recorrido" aria-label="{% translate 'The three parts of the walkthrough' %}">
+    <ol>
+      {% for tramo in tramos %}
+        <li>
+          <a href="#{{ tramo.fase.ancla }}">{{ tramo.fase.titulo }}</a>
+          <span class="detalle">{{ tramo.fase.de_que_va }}</span>
+        </li>
+      {% endfor %}
+    </ol>
+  </nav>
+
+  {% for tramo in tramos %}
+    <section class="tramo-del-recorrido" id="{{ tramo.fase.ancla }}">
+      <h2 class="grupo">{{ tramo.fase.titulo }}</h2>
+      {% if tramo.cuantos_ajenos %}
+        {% comment %}
+          **Dicho por tramo y no solo arriba.** Con el aviso únicamente en la cabecera, quien lee
+          «dos de estos pasos no son tuyos» tiene que recorrer los nueve para saber cuáles.
+        {% endcomment %}
+        <p class="subtitulo">
+          {% blocktranslate count total=tramo.cuantos_ajenos %}One step in this part is not yours to
+          do.{% plural %}{{ total }} steps in this part are not yours to
+          do.{% endblocktranslate %}
+        </p>
+      {% endif %}
+
+      <ol class="recorrido">
+        {% for uno in tramo.pasos %}
+          <li class="paso-ayuda {% if not uno.puedes %}paso-ajeno{% endif %}">
+            <h3>
+              {{ uno.paso.titulo }}
+              {% if not uno.puedes %}
+                {% comment %}
+                  Se dice **de quién es** y no solo que no es tuyo: eso es lo que se puede
+                  accionar.
+
+                  Y va como literal en español, sin `blocktranslate`, igual que el resto del texto
+                  del recorrido: `de_quien` ya viene en español desde `ayuda.py`, así que marcarlo
+                  dejaría una entrada de catálogo traducida a sí misma — que es justo lo que caza
+                  `test_ninguna_traduccion_repite_el_original`.
+                {% endcomment %}
+                <span class="ficha">lo hace {{ uno.paso.de_quien }}</span>
+              {% endif %}
+            </h3>
+            <p class="para-que">{{ uno.paso.para_que }}</p>
+            <p class="que-hacer">{{ uno.paso.que_hacer }}</p>
+            {% if uno.url and uno.puedes %}
+              <a class="boton secundario" href="{{ uno.url }}">{% translate "Go there" %}</a>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ol>
+    </section>
+  {% endfor %}
 
   <p class="grupo">{% translate "Two things worth knowing" %}</p>
   <div class="tarjetas">
