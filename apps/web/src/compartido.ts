@@ -34,6 +34,14 @@ export interface FichaCompartida {
   readonly para: string;
   readonly expiraEn: string;
   readonly nombre: string;
+  /**
+   * El nombre del archivo **que sirve `contenido`**, que no siempre es `nombre`.
+   *
+   * Un DWG se abre por su DXF convertido: los bytes son de DXF y el nombre original dice `.dwg`.
+   * Como el visor elige el lector por la extensión, abrirlo por `nombre` mandaría ese DXF al lector
+   * de IFC y el WebAssembly se caería sin decir de qué archivo habla.
+   */
+  readonly nombreParaElVisor: string;
   readonly visor: string | null;
   readonly correlativo: string;
   readonly idoneidad: string;

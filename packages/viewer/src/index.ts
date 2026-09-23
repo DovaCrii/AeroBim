@@ -101,6 +101,8 @@ export {
   PUNTOS_DEL_PRIMER_PINTADO,
   RUTA_WASM_LAZ,
 } from "./nubes.js";
+export type { Destino } from "./formatos.js";
+export { extensionDe, queHacerCon } from "./formatos.js";
 export type { MallaDeFragments, MedicionDeDesviacion } from "./desviacion.js";
 export {
   MAXIMO_PUNTOS,
