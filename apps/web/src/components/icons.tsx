@@ -80,6 +80,24 @@ export function IconViews(props: IconProps) {
   );
 }
 
+/**
+ * Guardar la vista de ahora: el mismo cubo de `IconViews` **con un más**.
+ *
+ * Los dos viven en el mismo grupo de la cinta y son el par obvio —guardar una, y ver las
+ * guardadas—, así que comparten el cuerpo a propósito: lo que los distingue es el signo, que es la
+ * diferencia real entre los dos mandatos. Dibujarle otro cuerpo haría creer que hablan de cosas
+ * distintas.
+ */
+export function IconGuardarVista(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M12 3 20 7.5v5M12 3 4 7.5v9L12 21l3-1.7" />
+      <path d="M12 3v9M4 7.5l8 4.5 8-4.5" />
+      <path d="M18 15v6M15 18h6" />
+    </Svg>
+  );
+}
+
 /** Vista isométrica: el cubo con dos caras a la vista. */
 export function IconViewIso(props: IconProps) {
   return (

@@ -26,12 +26,15 @@ import {
   IconFrameSelection,
   IconGhost,
   IconGrid,
+  IconGuardarVista,
+  IconNota,
   IconOrbit,
   IconOrthographic,
   IconPan,
   IconPerpendicular,
   IconPerspective,
   IconPlan2D,
+  IconPlanoSalida,
   IconRegistro,
   IconSectionHorizontal,
   IconSectionLongitudinal,
@@ -44,6 +47,7 @@ import {
   IconUnisolate,
   IconViewFront,
   IconViewIso,
+  IconViews,
   IconViewSide,
   IconViewTop,
 } from "./icons.js";
@@ -100,6 +104,13 @@ export function Ribbon({
   gridAxisCount,
   gridVisible,
   onGridVisible,
+  puedeGuardarVista,
+  cuantasVistas,
+  onGuardarVista,
+  onVerVistas,
+  puedeObservar,
+  onGenerarPlano,
+  onObservarDesdeLaCinta,
   planSnap,
   onPlanSnap,
   measurementCount,
@@ -186,6 +197,26 @@ export function Ribbon({
   readonly gridAxisCount: number;
   readonly gridVisible: boolean;
   readonly onGridVisible: (visible: boolean) => void;
+  /** `false` sin modelo abierto: no hay vista que guardar. Es la misma puerta que usa el panel. */
+  readonly puedeGuardarVista: boolean;
+  /** Cuántas hay guardadas, para decirlo en el tooltip en vez de mandar a mirar. */
+  readonly cuantasVistas: number;
+  /**
+   * Lleva a la sección «Vistas guardadas» del navegador **con el campo del nombre enfocado**.
+   *
+   * No guarda por su cuenta, y es la decisión: una vista necesita nombre, y un botón de cinta no
+   * puede pedir texto sin inventar un cuadro que esta interfaz no tiene en ningún otro sitio. Lo
+   * que hace es dejar el cursor donde se escribe.
+   */
+  readonly onGuardarVista: () => void;
+  /** Lleva a esa misma sección, para aplicar una de las guardadas. */
+  readonly onVerVistas: () => void;
+  /** `true` con algo seleccionado sobre lo que se pueda anclar una nota. */
+  readonly puedeObservar: boolean;
+  /** Proyecta la **planta** de lo que está encendido. El panel ofrece además frontal y lateral. */
+  readonly onGenerarPlano: () => void;
+  /** Abre la nota sobre lo seleccionado. Se llama así para no chocar con el `observar` del panel. */
+  readonly onObservarDesdeLaCinta: () => void;
   /** `true` si medir se engancha a los trazos del plano. */
   readonly planSnap: boolean;
   readonly onPlanSnap: (enabled: boolean) => void;
@@ -389,8 +420,14 @@ export function Ribbon({
 
                 {/* **El modo 2D no es una vista más**: apaga los modelos y deja el plano solo, en
                 planta y en ortográfica. Va aquí, junto al encuadre, porque es lo primero que se
-                busca cuando se viene a revisar un CAD y no el modelo. */}
-                <Grupo label="Trabajo">
+                busca cuando se viene a revisar un CAD y no el modelo.
+
+                **El grupo se llamaba «Trabajo», que es un cajón** (`F1.13`): no decía qué contenía,
+                y era el único nombre abstracto entre Encuadre, Vistas, Proyección, Navegación y
+                Aspecto. «Referencias» es lo que de verdad comparten los dos botones y es el término
+                de obra: un plano CAD de referencia y los ejes de **replanteo** — que es justo la
+                palabra que ya usaba el propio tooltip de Ejes. */}
+                <Grupo label="Referencias">
                   <Boton
                     icon={<IconPlan2D />}
                     label="Modo 2D"
@@ -449,6 +486,41 @@ export function Ribbon({
                     hint="Alzado desde el costado"
                     disabled={!enabled}
                     onClick={() => onView("side")}
+                  />
+                </Grupo>
+
+                {/* **Grupo aparte y no dentro de «Vistas», a propósito** (`F1.13`).
+
+                Ahí arriba «vista» significa Iso, Planta, Frontal y Lateral: direcciones fijas de
+                cámara. Aquí significa otra cosa —una cámara guardada con lo apagado y los cortes
+                puestos— y mezclar los dos sentidos a dos centímetros es el defecto que esta cinta
+                ya pagó una vez, cuando tenía **dos botones llamados «Planta»**.
+
+                Y los dos abren la misma sección del navegador porque **guardar necesita un
+                nombre**, y un nombre se escribe: el botón lleva hasta donde se escribe, con el
+                campo enfocado. Un botón de cinta no puede pedir texto sin inventar un cuadro que
+                esta interfaz no tiene en ningún otro sitio. */}
+                <Grupo label="Vistas guardadas">
+                  <Boton
+                    icon={<IconGuardarVista />}
+                    label="Guardar vista"
+                    hint={
+                      puedeGuardarVista
+                        ? "Guarda la cámara, lo que está apagado y los cortes puestos. Se abre el panel para ponerle nombre"
+                        : "Abre un modelo primero"
+                    }
+                    disabled={!puedeGuardarVista}
+                    onClick={onGuardarVista}
+                  />
+                  <Boton
+                    icon={<IconViews />}
+                    label="Las guardadas"
+                    hint={
+                      cuantasVistas > 0
+                        ? `Las ${cuantasVistas} vistas guardadas en este navegador`
+                        : "Todavía no hay ninguna vista guardada"
+                    }
+                    onClick={onVerVistas}
                   />
                 </Grupo>
 
@@ -781,6 +853,46 @@ export function Ribbon({
                     destacado={hasHidden}
                     disabled={!enabled}
                     onClick={onShowAll}
+                  />
+                </Grupo>
+
+                {/* **Lo que se saca de lo que se está mirando** (`F1.13`).
+
+                Los dos eran mandatos que solo salían de un panel o de una ficha, así que quien no
+                abría el panel no sabía que existían. Suben aquí **porque su destino no es ambiguo**:
+                generar proyecta la escena entera, y observar cuelga de lo seleccionado, igual que
+                «Encuadre → Selección».
+
+                **Calzar un plano y cortar a su altura se quedan abajo, y es deliberado**: con tres
+                planos cargados, «cortar a su altura» en la cinta no dice a qué altura. Un mandato
+                que actúa sobre algo que no señalaste es como se corta por donde no era.
+
+                **«Generar plano» saca la planta**, y el tooltip lo dice con todas las letras en vez
+                de dejarlo en la sorpresa. Tres botones aquí —planta, frontal, lateral— repetirían
+                los nombres del grupo «Vistas» de la otra pestaña, que es el defecto que esta cinta
+                ya pagó; el panel sigue ofreciendo las tres. */}
+                <Grupo label="Documentar">
+                  <Boton
+                    icon={<IconPlanoSalida />}
+                    label="Generar plano"
+                    hint={
+                      enabled
+                        ? "Proyecta la planta de lo que está encendido. El panel «Planos generados» ofrece además el frontal y el lateral"
+                        : "Abre un modelo primero"
+                    }
+                    disabled={!enabled}
+                    onClick={onGenerarPlano}
+                  />
+                  <Boton
+                    icon={<IconNota />}
+                    label="Observar"
+                    hint={
+                      puedeObservar
+                        ? "Deja una nota anclada al elemento seleccionado"
+                        : "Selecciona un elemento primero"
+                    }
+                    disabled={!puedeObservar}
+                    onClick={onObservarDesdeLaCinta}
                   />
                 </Grupo>
               </>

@@ -198,7 +198,12 @@ export function ProjectBrowser({
    * Solo **abre**: nunca pliega lo que ya estaba abierto, porque quien pide una sección quiere
    * llegar a ella, no reorganizarle el panel a nadie.
    */
-  readonly pedida?: { readonly clave: string; readonly sello: number } | null;
+  readonly pedida?: {
+    readonly clave: string;
+    readonly sello: number;
+    /** Si además hay que dejar el cursor dentro. Lo pide «Guardar vista» de la cinta. */
+    readonly enfocar?: boolean;
+  } | null;
   /**
    * `true` para dibujar el rail: los doce iconos en 44 px, sin rótulos ni listas.
    *
@@ -422,6 +427,9 @@ export function ProjectBrowser({
           onGuardar={onSaveView}
           onAplicar={onApplyView}
           onBorrar={onDeleteView}
+          // **El sello y no un booleano**, por lo mismo que `pedida`: pulsar «Guardar vista» dos
+          // veces tiene que enfocar las dos, y con un `true` el valor no cambiaría la segunda.
+          enfocarSello={pedida?.clave === "vistas" && pedida.enfocar === true ? pedida.sello : null}
         />
       ),
     },
@@ -670,14 +678,29 @@ function Vistas({
   onGuardar,
   onAplicar,
   onBorrar,
+  enfocarSello = null,
 }: {
   readonly vistas: readonly SavedView[];
   readonly puedeGuardar: boolean;
   readonly onGuardar: (name: string) => void;
   readonly onAplicar: (view: SavedView) => void;
   readonly onBorrar: (id: string) => void;
+  /**
+   * Cambia cada vez que «Guardar vista» de la cinta pide dejar el cursor aquí, o `null`.
+   *
+   * La sección puede estar recién desplegada cuando llega, así que el campo se enfoca después de
+   * pintarse y no en el mismo turno.
+   */
+  readonly enfocarSello?: number | null;
 }) {
   const [nombre, setNombre] = useState("");
+  const campo = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (enfocarSello === null || enfocarSello === undefined) return;
+    const cuadro = requestAnimationFrame(() => campo.current?.focus());
+    return () => cancelAnimationFrame(cuadro);
+  }, [enfocarSello]);
 
   const guardar = () => {
     const limpio = nombre.trim();
@@ -696,6 +719,7 @@ function Vistas({
         }}
       >
         <input
+          ref={campo}
           type="text"
           value={nombre}
           onChange={(evento) => setNombre(evento.target.value)}
