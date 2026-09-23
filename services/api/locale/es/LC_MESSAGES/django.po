@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-23 18:00-0300\n"
+"POT-Creation-Date: 2026-09-23 18:18-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -2071,11 +2071,11 @@ msgstr[1] ""
 "porque un recorrido al que le faltan pasos no explica de dónde viene tu "
 "trabajo."
 
-#: .\templates\accounts\ayuda.html:54
+#: .\templates\accounts\ayuda.html:60
 msgid "The three parts of the walkthrough"
 msgstr "Las tres partes del recorrido"
 
-#: .\templates\accounts\ayuda.html:75
+#: .\templates\accounts\ayuda.html:90
 #, python-format
 msgid ""
 "One step in this part is not yours to\n"
@@ -2086,19 +2086,23 @@ msgid_plural ""
 msgstr[0] "Un paso de esta parte no te toca a ti."
 msgstr[1] "%(total)s pasos de esta parte no te tocan a ti."
 
-#: .\templates\accounts\ayuda.html:103 .\templates\accounts\glosario.html:68
+#: .\templates\accounts\ayuda.html:122
+msgid "How"
+msgstr "Cómo"
+
+#: .\templates\accounts\ayuda.html:126 .\templates\accounts\glosario.html:68
 msgid "Go there"
 msgstr "Ir ahí"
 
-#: .\templates\accounts\ayuda.html:111
+#: .\templates\accounts\ayuda.html:134
 msgid "Two things worth knowing"
 msgstr "Dos cosas que conviene saber"
 
-#: .\templates\accounts\ayuda.html:120
+#: .\templates\accounts\ayuda.html:143
 msgid "A finding is anchored to the element, not to a place"
 msgstr "Un hallazgo se ancla al elemento, no a un sitio"
 
-#: .\templates\accounts\ayuda.html:122
+#: .\templates\accounts\ayuda.html:145
 msgid ""
 "It is pinned to the IFC element's GUID, which survives a new revision of\n"
 "        the model. That is why a finding opened in March is still found in "
@@ -2112,11 +2116,11 @@ msgstr ""
 "en el modelo de junio, y por eso un modelo abierto desde tu disco no puede "
 "llevar notas: no tiene registro donde archivarlas."
 
-#: .\templates\accounts\ayuda.html:129
+#: .\templates\accounts\ayuda.html:152
 msgid "What you can open depends on your role"
 msgstr "Lo que puedes abrir depende de tu rol"
 
-#: .\templates\accounts\ayuda.html:131
+#: .\templates\accounts\ayuda.html:154
 msgid ""
 "The portal only lists what your role can open, and a client sees only\n"
 "        what has been published — not what is still being drafted. If a "
@@ -2127,11 +2131,11 @@ msgstr ""
 "publicado —no lo que está en curso—. Si te falta una pantalla que necesitas, "
 "es un rol que pedir y no un botón que se rompió."
 
-#: .\templates\accounts\ayuda.html:142
+#: .\templates\accounts\ayuda.html:165
 msgid "BIM vocabulary"
 msgstr "Vocabulario BIM"
 
-#: .\templates\accounts\ayuda.html:144
+#: .\templates\accounts\ayuda.html:167
 msgid ""
 "Sixteen words you will hear on any BIM project — CDE, LOD, IFC, clash\n"
 "        detection, 4D, COBie — and, for each one, whether AeroBim does it "
@@ -2142,11 +2146,11 @@ msgstr ""
 "interferencias, 4D, COBie— y, de cada una, si AeroBim lo hace y dónde. La "
 "mitad no las hace: esas dicen qué hay en su lugar."
 
-#: .\templates\accounts\ayuda.html:150
+#: .\templates\accounts\ayuda.html:173
 msgid "Survey vocabulary"
 msgstr "Vocabulario del levantamiento"
 
-#: .\templates\accounts\ayuda.html:152
+#: .\templates\accounts\ayuda.html:175
 msgid ""
 "Point cloud, LiDAR, COPC, DTM and DSM, orthophoto, reference system —\n"
 "        the words the flight crew, the surveyor and the modeller each "
@@ -2162,11 +2166,11 @@ msgstr ""
 "no es la cota de proyecto, precisión no es exactitud, y la fotogrametría no "
 "ve el suelo bajo los árboles."
 
-#: .\templates\accounts\ayuda.html:160
+#: .\templates\accounts\ayuda.html:183
 msgid "Cost and management vocabulary"
 msgstr "Vocabulario de gestión y costos"
 
-#: .\templates\accounts\ayuda.html:162
+#: .\templates\accounts\ayuda.html:185
 msgid ""
 "CAPEX, OPEX, life cycle cost, earned value, KPIs. This is the one that\n"
 "        says no the most: AeroBim is not a cost tool, and it is cheaper to "
@@ -2178,12 +2182,12 @@ msgstr ""
 "leerlo aquí que descubrirlo en la reunión donde se prometió un informe de "
 "costos."
 
-#: .\templates\accounts\ayuda.html:174 .\templates\accounts\privacidad.html:4
+#: .\templates\accounts\ayuda.html:197 .\templates\accounts\privacidad.html:4
 #: .\templates\accounts\privacidad.html:12
 msgid "Cookies and your data"
 msgstr "Cookies y tus datos"
 
-#: .\templates\accounts\ayuda.html:176
+#: .\templates\accounts\ayuda.html:199
 msgid ""
 "Two cookies, both needed for it to work, so there is nothing to accept.\n"
 "        What AeroBim keeps about you and what it does not do — no analytics, "
@@ -3168,7 +3172,9 @@ msgstr ""
 msgid ""
 "Everything assigned to you, with the overdue first. Start at the top: the\n"
 "    older something is, the more it is holding someone up."
-msgstr "Todo lo que tienes asignado, con lo vencido primero. Empieza por arriba: cuanto más viejo es algo, más está frenando a alguien."
+msgstr ""
+"Todo lo que tienes asignado, con lo vencido primero. Empieza por arriba: "
+"cuanto más viejo es algo, más está frenando a alguien."
 
 #: .\templates\documents\bandeja.html:45
 msgid "How to see it"
@@ -3190,7 +3196,9 @@ msgstr "Cuánto hay en cada tramo"
 msgid ""
 "You have nothing pending. When someone assigns you a finding or an activity, "
 "it appears here and on the bell."
-msgstr "No tienes nada pendiente. Cuando alguien te asigne un hallazgo o una actividad, aparecerá aquí y en la campana."
+msgstr ""
+"No tienes nada pendiente. Cuando alguien te asigne un hallazgo o una "
+"actividad, aparecerá aquí y en la campana."
 
 #: .\templates\documents\bandeja.html:146
 msgid "Deliverables you own"
@@ -4001,7 +4009,9 @@ msgstr ""
 msgid ""
 "Who is behind, and with what. Talk first to whoever has the most overdue:\n"
 "    the oldest item on each card is the one holding the work up."
-msgstr "Quién va atrasado, y con qué. Habla primero con quien tenga más vencido: lo más viejo de cada tarjeta es lo que está frenando el trabajo."
+msgstr ""
+"Quién va atrasado, y con qué. Habla primero con quien tenga más vencido: lo "
+"más viejo de cada tarjeta es lo que está frenando el trabajo."
 
 #: .\templates\documents\seguimiento.html:38
 msgid "All works"
