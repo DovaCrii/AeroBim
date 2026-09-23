@@ -561,6 +561,14 @@ export function App() {
   const [seccionPedida, setSeccionPedida] = useState<{
     readonly clave: string;
     readonly sello: number;
+    /**
+     * Si además hay que dejar el cursor dentro de la sección.
+     *
+     * Lo pide «Guardar vista» de la cinta: una vista necesita nombre, y el nombre se escribe en el
+     * panel. Llevar hasta el campo y no enfocarlo deja a alguien mirando un formulario preguntándose
+     * si el botón hizo algo.
+     */
+    readonly enfocar: boolean;
   } | null>(null);
 
   /**
@@ -570,9 +578,13 @@ export function App() {
    * dentro de un panel escondido no lleva a ninguna parte, y es exactamente lo que pasaba al pulsar
    * «Del registro» en la puerta de entrada con el navegador cerrado — nada visible ocurría.
    */
-  const irASeccion = useCallback((clave: string) => {
+  const irASeccion = useCallback((clave: string, opciones?: { readonly enfocar?: boolean }) => {
     setNavegadorPlegado(false);
-    setSeccionPedida((actual) => ({ clave, sello: (actual?.sello ?? 0) + 1 }));
+    setSeccionPedida((actual) => ({
+      clave,
+      sello: (actual?.sello ?? 0) + 1,
+      enfocar: opciones?.enfocar === true,
+    }));
   }, []);
   /**
    * `true` con la cinta plegada.
@@ -2460,6 +2472,15 @@ export function App() {
           setGridVisible(visible);
           void viewer.current?.setGridVisible(visible);
         }}
+        // `F1.13`, los tres nombres. El porqué de cada grupo está en `Ribbon.tsx`, al lado del
+        // marcado: aquí solo se cablea.
+        puedeGuardarVista={models.length > 0}
+        cuantasVistas={views.length}
+        onGuardarVista={() => irASeccion("vistas", { enfocar: true })}
+        onVerVistas={() => irASeccion("vistas")}
+        puedeObservar={sePuedeAnotar || sePuedeAnotarLaNube}
+        onGenerarPlano={() => void onGenerateDrawing("plan")}
+        onObservarDesdeLaCinta={() => setNotaAbierta(true)}
         planSnap={planSnap}
         onPlanSnap={(activo) => {
           setPlanSnap(activo);
