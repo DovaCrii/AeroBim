@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-23 16:30-0300\n"
+"POT-Creation-Date: 2026-09-23 18:00-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -219,8 +219,8 @@ msgstr "Requisitos de información"
 msgid "What the client demands every model carry, checked against IDS."
 msgstr "Lo que el mandante exige que traiga cada modelo, comprobado con IDS."
 
-#: .\apps\accounts\modulos.py:165 .\apps\accounts\modulos.py:177
-#: .\apps\accounts\modulos.py:185
+#: .\apps\accounts\modulos.py:165 .\apps\accounts\modulos.py:181
+#: .\apps\accounts\modulos.py:189 .\apps\accounts\modulos.py:197
 msgid "Coordination"
 msgstr "Coordinación"
 
@@ -233,33 +233,42 @@ msgstr "Todo lo pendiente"
 msgid "Yours alone, soonest due first: what you have to answer."
 msgstr "Solo lo tuyo, y lo que antes vence primero: lo que te toca contestar."
 
-#: .\apps\accounts\modulos.py:178 .\templates\documents\expediente.html:273
+#: .\apps\accounts\modulos.py:182 .\templates\documents\seguimiento.html:4
+#: .\templates\documents\seguimiento.html:6
+msgid "Team follow-up"
+msgstr "Seguimiento del equipo"
+
+#: .\apps\accounts\modulos.py:185
+msgid "Who in the team is behind, and with what: the oldest first."
+msgstr "Quién del equipo va atrasado y con qué: lo más viejo primero."
+
+#: .\apps\accounts\modulos.py:190 .\templates\documents\expediente.html:273
 #: .\templates\documents\observacion.html:30
 #: .\templates\documents\observaciones.html:4
 #: .\templates\documents\observaciones.html:6
 msgid "Observations"
 msgstr "Observaciones"
 
-#: .\apps\accounts\modulos.py:181
+#: .\apps\accounts\modulos.py:193
 msgid "Everything to be resolved, with an owner and a due date."
 msgstr "Todo lo que hay que resolver, con responsable y fecha de vencimiento."
 
-#: .\apps\accounts\modulos.py:186 .\templates\documents\actividades.html:4
+#: .\apps\accounts\modulos.py:198 .\templates\documents\actividades.html:4
 #: .\templates\documents\actividades.html:6
 #: .\templates\documents\expediente.html:303
 msgid "Activities"
 msgstr "Actividades"
 
-#: .\apps\accounts\modulos.py:189
+#: .\apps\accounts\modulos.py:201
 msgid "Planned work: who does what, and by when."
 msgstr "Trabajo planificado: quién hace qué, y para cuándo."
 
-#: .\apps\accounts\modulos.py:193 .\apps\accounts\modulos.py:201
-#: .\apps\accounts\modulos.py:209
+#: .\apps\accounts\modulos.py:205 .\apps\accounts\modulos.py:213
+#: .\apps\accounts\modulos.py:221
 msgid "Administration"
 msgstr "Administración"
 
-#: .\apps\accounts\modulos.py:194 .\templates\accounts\borrar_cuenta.html:8
+#: .\apps\accounts\modulos.py:206 .\templates\accounts\borrar_cuenta.html:8
 #: .\templates\accounts\editar_cuenta.html:8
 #: .\templates\accounts\nueva_cuenta.html:8
 #: .\templates\accounts\usuarios_roles.html:4
@@ -267,25 +276,25 @@ msgstr "Administración"
 msgid "Users and roles"
 msgstr "Usuarios y roles"
 
-#: .\apps\accounts\modulos.py:197
+#: .\apps\accounts\modulos.py:209
 msgid "Who holds which role, and what that role can open. Read-only."
 msgstr "Quién tiene qué rol y qué puede abrir ese rol. Solo lectura."
 
-#: .\apps\accounts\modulos.py:202 .\templates\accounts\auditoria.html:4
+#: .\apps\accounts\modulos.py:214 .\templates\accounts\auditoria.html:4
 #: .\templates\accounts\auditoria.html:6
 msgid "Audit trail"
 msgstr "Auditoría"
 
-#: .\apps\accounts\modulos.py:205
+#: .\apps\accounts\modulos.py:217
 msgid "Every change, in order and impossible to erase."
 msgstr "Cada cambio, en orden y sin poder borrarse."
 
-#: .\apps\accounts\modulos.py:210 .\templates\accounts\trabajos.html:4
+#: .\apps\accounts\modulos.py:222 .\templates\accounts\trabajos.html:4
 #: .\templates\accounts\trabajos.html:6
 msgid "Scheduled jobs"
 msgstr "Trabajos programados"
 
-#: .\apps\accounts\modulos.py:213
+#: .\apps\accounts\modulos.py:225
 msgid "Whether last night's warnings and backup actually ran."
 msgstr "Si los avisos y el respaldo de anoche corrieron de verdad."
 
@@ -328,14 +337,14 @@ msgstr "Vencido"
 msgid "Next 7 days"
 msgstr "Próximos 7 días"
 
-#: .\apps\accounts\views.py:150
+#: .\apps\accounts\views.py:150 .\templates\documents\seguimiento.html:75
 #, python-format
 msgid "%(n)s overdue"
 msgid_plural "%(n)s overdue"
 msgstr[0] "%(n)s vencida"
 msgstr[1] "%(n)s vencidas"
 
-#: .\apps\accounts\views.py:153
+#: .\apps\accounts\views.py:153 .\templates\documents\seguimiento.html:80
 #, python-format
 msgid "%(n)s this week"
 msgid_plural "%(n)s this week"
@@ -583,11 +592,11 @@ msgid "The sheet did not arrive."
 msgstr "La lámina no llegó."
 
 #: .\apps\documents\api.py:718 .\apps\documents\codificacion.py:67
-#: .\apps\documents\models.py:68 .\apps\documents\views.py:838
+#: .\apps\documents\models.py:68 .\apps\documents\views.py:839
 msgid "Drawing"
 msgstr "Plano"
 
-#: .\apps\documents\api.py:722 .\apps\documents\views.py:841
+#: .\apps\documents\api.py:722 .\apps\documents\views.py:842
 msgid "The sheet arrived with nothing to draw."
 msgstr "La lámina llegó sin nada que dibujar."
 
@@ -767,6 +776,7 @@ msgstr "enlaces compartidos"
 
 #: .\apps\documents\empezar.py:46 .\templates\documents\archivos.html:96
 #: .\templates\documents\archivos.html:115
+#: .\templates\documents\seguimiento.html:36
 msgid "Work"
 msgstr "Obra"
 
@@ -805,7 +815,7 @@ msgstr ""
 "Cómo se llama este entregable en el registro. Por ejemplo: 716-EST-MOD-01."
 
 #: .\apps\documents\empezar.py:68 .\templates\documents\actividades.html:45
-#: .\templates\documents\bandeja.html:105
+#: .\templates\documents\bandeja.html:151
 #: .\templates\documents\entregables.html:55
 #: .\templates\documents\expediente.html:280
 #: .\templates\documents\expediente.html:307
@@ -1045,7 +1055,7 @@ msgid "transmittals"
 msgstr "transmittals"
 
 #: .\apps\documents\models.py:394
-#: .\templates\documents\_fila_de_archivo.html:47
+#: .\templates\documents\_fila_de_archivo.html:62
 #: .\templates\documents\enlaces.html:69 .\templates\projects\proyecto.html:483
 msgid "Open"
 msgstr "Abrir"
@@ -1124,6 +1134,7 @@ msgid "Done"
 msgstr "Hecha"
 
 #: .\apps\documents\models.py:734 .\apps\documents\notify.py:213
+#: .\templates\documents\seguimiento.html:96
 msgid "activity"
 msgstr "actividad"
 
@@ -1238,15 +1249,15 @@ msgstr "Documentos (%(n)s):"
 msgid "[AeroBim] Transmittal %(folio)s: %(asunto)s"
 msgstr "[AeroBim] Transmittal %(folio)s: %(asunto)s"
 
-#: .\apps\documents\notify.py:518
+#: .\apps\documents\notify.py:516
 msgid "What is on your plate in AeroBim."
 msgstr "Lo que tienes pendiente en AeroBim."
 
-#: .\apps\documents\notify.py:549
+#: .\apps\documents\notify.py:547
 msgid "You opened these, and nobody has touched them"
 msgstr "Los abriste tú y nadie los ha tocado"
 
-#: .\apps\documents\notify.py:573
+#: .\apps\documents\notify.py:571
 #, python-format
 msgid "[AeroBim] %(n)s items on your plate"
 msgstr "[AeroBim] %(n)s pendientes"
@@ -1369,130 +1380,130 @@ msgstr "Un archivo «%(ext)s» tiene que ser texto."
 msgid "To do"
 msgstr "Por hacer"
 
-#: .\apps\documents\tareas.py:169
+#: .\apps\documents\tareas.py:178
 msgid "Replan or hand over"
 msgstr "Replanificar o pasarlo"
 
-#: .\apps\documents\tareas.py:175 .\templates\documents\observacion.html:283
+#: .\apps\documents\tareas.py:184 .\templates\documents\observacion.html:283
 msgid "Close it"
 msgstr "Cerrarlo"
 
-#: .\apps\documents\tareas.py:181
+#: .\apps\documents\tareas.py:190
 msgid "Move it forward"
 msgstr "Moverlo"
 
-#: .\apps\documents\views.py:331
+#: .\apps\documents\views.py:332
 #, python-format
 msgid "«%(codigo)s» created. Now the file."
 msgstr "«%(codigo)s» creado. Ahora el archivo."
 
-#: .\apps\documents\views.py:422
+#: .\apps\documents\views.py:423
 msgid "There is no revision yet: nothing has been issued."
 msgstr "Todavía no hay ninguna revisión: no se ha emitido nada."
 
-#: .\apps\documents\views.py:428 .\templates\documents\expediente.html:42
+#: .\apps\documents\views.py:429 .\templates\documents\expediente.html:42
 #: .\templates\documents\subir_revision.html:4
 #: .\templates\documents\subir_revision.html:6
 msgid "Upload a revision"
 msgstr "Subir una revisión"
 
-#: .\apps\documents\views.py:434
+#: .\apps\documents\views.py:435
 msgid "The current revision is not published (no A or B code yet)."
 msgstr "La revisión vigente no está publicada (todavía sin código A ni B)."
 
-#: .\apps\documents\views.py:443
+#: .\apps\documents\views.py:444
 #, python-format
 msgid "%(n)s open observations."
 msgstr "%(n)s observaciones abiertas."
 
-#: .\apps\documents\views.py:445 .\templates\accounts\portal.html:126
+#: .\apps\documents\views.py:446 .\templates\accounts\portal.html:126
 msgid "See them"
 msgstr "Verlas"
 
-#: .\apps\documents\views.py:449
+#: .\apps\documents\views.py:450
 msgid "No planned date."
 msgstr "Sin fecha planificada."
 
-#: .\apps\documents\views.py:566
+#: .\apps\documents\views.py:567
 msgid "Somebody else just uploaded that correlative. Use another one."
 msgstr "Alguien acaba de subir ese correlativo. Usa otro."
 
-#: .\apps\documents\views.py:575
+#: .\apps\documents\views.py:576
 #, python-format
 msgid "Revision %(rev)s uploaded (%(kb)s KB)."
 msgstr "Revisión %(rev)s subida (%(kb)s KB)."
 
-#: .\apps\documents\views.py:659
+#: .\apps\documents\views.py:660
 msgid "This project has no observations to export."
 msgstr "Este proyecto no tiene observaciones que exportar."
 
-#: .\apps\documents\views.py:832 .\apps\documents\views.py:834
+#: .\apps\documents\views.py:833 .\apps\documents\views.py:835
 msgid "The sheet did not arrive as JSON."
 msgstr "La lámina no llegó como JSON."
 
-#: .\apps\documents\views.py:910
+#: .\apps\documents\views.py:911
 msgid "The BCF was left without importing anything."
 msgstr "Se dejó el BCF sin importar nada."
 
-#: .\apps\documents\views.py:918
+#: .\apps\documents\views.py:919
 msgid "Choose a BCF file to import."
 msgstr "Elige un archivo BCF para importar."
 
-#: .\apps\documents\views.py:985 .\apps\documents\views.py:993
+#: .\apps\documents\views.py:986 .\apps\documents\views.py:994
 msgid "That BCF is no longer available. Upload it again."
 msgstr "Ese BCF ya no está disponible. Vuelve a subirlo."
 
-#: .\apps\documents\views.py:1050
+#: .\apps\documents\views.py:1051
 msgid "Coverage can only be measured on an IFC model."
 msgstr "La cobertura solo se puede medir sobre un modelo IFC."
 
-#: .\apps\documents\views.py:1100
+#: .\apps\documents\views.py:1101
 #, python-format
 msgid "Information requirement of %(codigo)s"
 msgstr "Requisito de información de %(codigo)s"
 
-#: .\apps\documents\views.py:1135
+#: .\apps\documents\views.py:1136
 msgid "Starting IDS generated. Review it before agreeing it with the client."
 msgstr "IDS de partida generado. Revísalo antes de acordarlo con el mandante."
 
-#: .\apps\documents\views.py:1200
+#: .\apps\documents\views.py:1201
 msgid "Untitled"
 msgstr "Sin título"
 
-#: .\apps\documents\views.py:1208
+#: .\apps\documents\views.py:1209
 msgid "Information requirement uploaded."
 msgstr "Requisito de información subido."
 
-#: .\apps\documents\views.py:1228
+#: .\apps\documents\views.py:1229
 msgid "Only an IFC can be validated against an IDS."
 msgstr "Contra un IDS solo se puede validar un IFC."
 
-#: .\apps\documents\views.py:1236
+#: .\apps\documents\views.py:1237
 msgid "This project has no information requirement yet: upload an IDS first."
 msgstr ""
 "Este proyecto todavía no tiene requisito de información: primero hay que "
 "subir un IDS."
 
-#: .\apps\documents\views.py:1260
+#: .\apps\documents\views.py:1261
 #, python-format
 msgid "Validated against %(total)s requirements: %(ok)s comply."
 msgstr "Validado contra %(total)s requisitos: %(ok)s cumplen."
 
-#: .\apps\documents\views.py:1356 .\templates\documents\observaciones.html:92
+#: .\apps\documents\views.py:1357 .\templates\documents\observaciones.html:92
 #: .\templates\projects\proyecto.html:194
 msgid "Priority"
 msgstr "Prioridad"
 
-#: .\apps\documents\views.py:1357 .\templates\projects\proyecto.html:195
+#: .\apps\documents\views.py:1358 .\templates\projects\proyecto.html:195
 msgid "Finding"
 msgstr "Hallazgo"
 
-#: .\apps\documents\views.py:1358 .\templates\documents\observacion.html:212
+#: .\apps\documents\views.py:1359 .\templates\documents\observacion.html:212
 #: .\templates\projects\proyecto.html:196
 msgid "On"
 msgstr "Sobre"
 
-#: .\apps\documents\views.py:1359 .\templates\documents\actividades.html:47
+#: .\apps\documents\views.py:1360 .\templates\documents\actividades.html:47
 #: .\templates\documents\entregables.html:57
 #: .\templates\documents\expediente.html:281
 #: .\templates\documents\expediente.html:308
@@ -1501,7 +1512,7 @@ msgstr "Sobre"
 msgid "Owner"
 msgstr "Responsable"
 
-#: .\apps\documents\views.py:1360 .\templates\documents\actividades.html:48
+#: .\apps\documents\views.py:1361 .\templates\documents\actividades.html:48
 #: .\templates\documents\expediente.html:282
 #: .\templates\documents\expediente.html:309
 #: .\templates\documents\observacion.html:196
@@ -1509,7 +1520,7 @@ msgstr "Responsable"
 msgid "Due"
 msgstr "Vence"
 
-#: .\apps\documents\views.py:1361
+#: .\apps\documents\views.py:1362
 #: .\templates\documents\_cabeza_de_transmittals.html:15
 #: .\templates\documents\actividades.html:49
 #: .\templates\documents\expediente.html:283
@@ -1519,101 +1530,101 @@ msgstr "Vence"
 msgid "State"
 msgstr "Estado"
 
-#: .\apps\documents\views.py:1482
+#: .\apps\documents\views.py:1483
 msgid "Your reply was saved, but the notification could not be sent."
 msgstr "Tu respuesta se guardó, pero el aviso no se pudo enviar."
 
-#: .\apps\documents\views.py:1488
+#: .\apps\documents\views.py:1489
 msgid "Reply saved. Nobody was notified: there is no other email on this one."
 msgstr ""
 "Respuesta guardada. No se avisó a nadie: no hay otro correo en este hallazgo."
 
-#: .\apps\documents\views.py:1491
+#: .\apps\documents\views.py:1492
 msgid "The comment cannot be empty."
 msgstr "El comentario no puede estar vacío."
 
-#: .\apps\documents\views.py:1519
+#: .\apps\documents\views.py:1520
 msgid "The image could not be saved. Try again."
 msgstr "No se pudo guardar la imagen. Vuelve a intentarlo."
 
-#: .\apps\documents\views.py:1604
+#: .\apps\documents\views.py:1605
 msgid "Those tags do not belong to this project."
 msgstr "Esas etiquetas no son de este proyecto."
 
-#: .\apps\documents\views.py:1609
+#: .\apps\documents\views.py:1610
 msgid "Tags saved."
 msgstr "Etiquetas guardadas."
 
-#: .\apps\documents\views.py:1661
+#: .\apps\documents\views.py:1662
 #, python-format
 msgid "Assigned to %(quien)s."
 msgstr "Repartido a %(quien)s."
 
-#: .\apps\documents\views.py:1664
+#: .\apps\documents\views.py:1665
 msgid "Observation updated."
 msgstr "Hallazgo repartido."
 
-#: .\apps\documents\views.py:1676
+#: .\apps\documents\views.py:1677
 msgid "An observation is not closed without saying how."
 msgstr "Una observación no se cierra sin decir cómo se resolvió."
 
-#: .\apps\documents\views.py:1681
+#: .\apps\documents\views.py:1682
 msgid "Observation closed."
 msgstr "Observación cerrada."
 
-#: .\apps\documents\views.py:1772
+#: .\apps\documents\views.py:1773
 msgid "Add at least one revision."
 msgstr "Agregar al menos una revisión."
 
-#: .\apps\documents\views.py:1774
+#: .\apps\documents\views.py:1775
 msgid "Add at least one recipient."
 msgstr "Agregar al menos un destinatario."
 
-#: .\apps\documents\views.py:1819
+#: .\apps\documents\views.py:1820
 msgid "Draft transmittal created. Review the cover and issue it."
 msgstr "Transmittal creado en borrador. Revisa la carátula y emítelo."
 
-#: .\apps\documents\views.py:1849
+#: .\apps\documents\views.py:1850
 #, python-format
 msgid "Transmittal %(folio)s issued, %(n)s recipients notified."
 msgstr "Transmittal %(folio)s emitido, %(n)s destinatarios avisados."
 
-#: .\apps\documents\views.py:1858
+#: .\apps\documents\views.py:1859
 #, python-format
 msgid "No email address for %(quienes)s: they were not notified."
 msgstr "Sin dirección de correo para %(quienes)s: no se les avisó."
 
-#: .\apps\documents\views.py:1881
+#: .\apps\documents\views.py:1882
 msgid "Receipt acknowledged."
 msgstr "Recibo acusado."
 
-#: .\apps\documents\views.py:1955
+#: .\apps\documents\views.py:2031
 #, python-format
 msgid "Saved, but %(quien)s has no email address: nobody was notified."
 msgstr "Se guardó, pero %(quien)s no tiene correo: no se avisó a nadie."
 
-#: .\apps\documents\views.py:2048
+#: .\apps\documents\views.py:2124
 msgid "Observation opened and the owner notified."
 msgstr "Observación abierta, y se avisó al responsable."
 
-#: .\apps\documents\views.py:2107
+#: .\apps\documents\views.py:2183
 msgid "That is not the next step for this activity."
 msgstr "Ese no es el paso siguiente de esta actividad."
 
-#: .\apps\documents\views.py:2115
+#: .\apps\documents\views.py:2191
 #, python-format
 msgid "Activity moved to %(estado)s."
 msgstr "Actividad movida a %(estado)s."
 
-#: .\apps\documents\views.py:2140
+#: .\apps\documents\views.py:2216
 msgid "Pick the deliverable the activity belongs to."
 msgstr "Elige el entregable al que pertenece la actividad."
 
-#: .\apps\documents\views.py:2146
+#: .\apps\documents\views.py:2222
 msgid "Activity created and the owner notified."
 msgstr "Actividad creada, y se avisó al responsable."
 
-#: .\apps\documents\views.py:2203
+#: .\apps\documents\views.py:2279
 #, python-format
 msgid ""
 "This project has %(models)s current models: %(pairs)s comparisons, about "
@@ -1626,33 +1637,33 @@ msgstr ""
 "corrida a medias deja hallazgos sin decirlo. Córrela desde el servidor con "
 "`manage.py detectar_interferencias`, que no tiene límite de tiempo."
 
-#: .\apps\documents\views.py:2226
+#: .\apps\documents\views.py:2302
 msgid "There is only one model in this project: nothing to compare it against."
 msgstr "Esta obra tiene un solo modelo: no hay nada contra qué compararlo."
 
-#: .\apps\documents\views.py:2231
+#: .\apps\documents\views.py:2307
 #, python-format
 msgid "Checked %(resumen)s. Nothing new."
 msgstr "Revisado %(resumen)s. Nada nuevo."
 
-#: .\apps\documents\views.py:2236
+#: .\apps\documents\views.py:2312
 #, python-format
 msgid "Checked %(resumen)s. The new ones are in the open observations below."
 msgstr ""
 "Revisado %(resumen)s. Los nuevos están abajo, entre las observaciones "
 "abiertas."
 
-#: .\apps\documents\views.py:2245
+#: .\apps\documents\views.py:2321
 #, python-format
 msgid "Left out, their file is not on disk: %(cuales)s"
 msgstr "Quedaron fuera, su archivo no está en el disco: %(cuales)s"
 
-#: .\apps\documents\views.py:2285
+#: .\apps\documents\views.py:2361
 #, python-format
 msgid "Revision %(rev)s is now %(cod)s."
 msgstr "La revisión %(rev)s queda en %(cod)s."
 
-#: .\apps\documents\views.py:2351
+#: .\apps\documents\views.py:2427
 msgid "Deliverable created."
 msgstr "Entregable creado."
 
@@ -3038,16 +3049,16 @@ msgstr "Destinatarios"
 msgid "Revisions"
 msgstr "Revisiones"
 
-#: .\templates\documents\_fila_de_archivo.html:64
+#: .\templates\documents\_fila_de_archivo.html:80
 msgid "Share"
 msgstr "Compartir"
 
-#: .\templates\documents\_fila_de_archivo.html:68
+#: .\templates\documents\_fila_de_archivo.html:84
 msgid "Download"
 msgstr "Descargar"
 
 #: .\templates\documents\actividad.html:23
-#: .\templates\documents\bandeja.html:107
+#: .\templates\documents\bandeja.html:153
 #: .\templates\documents\entregables.html:60
 #: .\templates\projects\proyecto.html:29 .\templates\projects\proyecto.html:484
 #: .\templates\projects\proyectos.html:134
@@ -3090,6 +3101,7 @@ msgstr "Nueva actividad"
 #: .\templates\documents\actividades.html:29
 #: .\templates\documents\entregables.html:38
 #: .\templates\documents\observaciones.html:129
+#: .\templates\documents\seguimiento.html:46
 msgid "Filter"
 msgstr "Filtrar"
 
@@ -3108,7 +3120,7 @@ msgid "Only mine"
 msgstr "Solo las mías"
 
 #: .\templates\documents\actividades.html:71
-#: .\templates\documents\bandeja.html:70
+#: .\templates\documents\bandeja.html:75
 #: .\templates\documents\observaciones.html:265
 msgid "Nothing here."
 msgstr "Nada por acá."
@@ -3152,38 +3164,39 @@ msgstr ""
 "Todavía no hay nada guardado. Un archivo llega aquí subiéndolo como revisión "
 "de un entregable: eso es lo que le da una obra, un autor y una fecha."
 
-#: .\templates\documents\bandeja.html:15
+#: .\templates\documents\bandeja.html:21
 msgid ""
-"What is assigned to you, by how soon it is due. It is the same split the\n"
-"    daily digest uses: what is overdue and what is due in a month need "
-"different\n"
-"    reactions."
-msgstr ""
-"Lo que tienes asignado, ordenado por lo pronto que vence. Es el mismo "
-"reparto que usa el resumen diario: lo que venció y lo que vence en un mes "
-"piden reacciones distintas."
+"Everything assigned to you, with the overdue first. Start at the top: the\n"
+"    older something is, the more it is holding someone up."
+msgstr "Todo lo que tienes asignado, con lo vencido primero. Empieza por arriba: cuanto más viejo es algo, más está frenando a alguien."
 
-#: .\templates\documents\bandeja.html:40
+#: .\templates\documents\bandeja.html:45
 msgid "How to see it"
 msgstr "Cómo verlo"
 
-#: .\templates\documents\bandeja.html:44
+#: .\templates\documents\bandeja.html:49
 msgid "List"
 msgstr "Lista"
 
-#: .\templates\documents\bandeja.html:49
+#: .\templates\documents\bandeja.html:54
 msgid "Board"
 msgstr "Tablero"
 
-#: .\templates\documents\bandeja.html:86
-msgid "Nothing."
-msgstr "Nada."
+#: .\templates\documents\bandeja.html:95
+msgid "How much there is in each band"
+msgstr "Cuánto hay en cada tramo"
 
-#: .\templates\documents\bandeja.html:100
+#: .\templates\documents\bandeja.html:133
+msgid ""
+"You have nothing pending. When someone assigns you a finding or an activity, "
+"it appears here and on the bell."
+msgstr "No tienes nada pendiente. Cuando alguien te asigne un hallazgo o una actividad, aparecerá aquí y en la campana."
+
+#: .\templates\documents\bandeja.html:146
 msgid "Deliverables you own"
 msgstr "Entregables a tu cargo"
 
-#: .\templates\documents\bandeja.html:104
+#: .\templates\documents\bandeja.html:150
 #: .\templates\documents\entregables.html:54
 #: .\templates\documents\transmittal.html:70
 #: .\templates\projects\borrar_proyecto.html:70
@@ -3192,13 +3205,18 @@ msgstr "Entregables a tu cargo"
 msgid "Code"
 msgstr "Código"
 
-#: .\templates\documents\bandeja.html:106
+#: .\templates\documents\bandeja.html:152
 #: .\templates\documents\entregables.html:58
 #: .\templates\projects\proyecto.html:482
 msgid "Current revision"
 msgstr "Revisión vigente"
 
-#: .\templates\documents\bandeja.html:130
+#: .\templates\documents\bandeja.html:174
+#: .\templates\projects\proyecto.html:167
+msgid "Nothing issued yet"
+msgstr "Todavía no se ha emitido nada"
+
+#: .\templates\documents\bandeja.html:187
 msgid "You do not own any deliverable."
 msgstr "No tienes ningún entregable a tu cargo."
 
@@ -3979,6 +3997,48 @@ msgid "No requirement yet: nothing is being verified against the model."
 msgstr ""
 "Todavía no hay requisito: no se está verificando nada contra el modelo."
 
+#: .\templates\documents\seguimiento.html:10
+msgid ""
+"Who is behind, and with what. Talk first to whoever has the most overdue:\n"
+"    the oldest item on each card is the one holding the work up."
+msgstr "Quién va atrasado, y con qué. Habla primero con quien tenga más vencido: lo más viejo de cada tarjeta es lo que está frenando el trabajo."
+
+#: .\templates\documents\seguimiento.html:38
+msgid "All works"
+msgstr "Todas las obras"
+
+#: .\templates\documents\seguimiento.html:54
+msgid "overdue in the team"
+msgstr "vencidas en el equipo"
+
+#: .\templates\documents\seguimiento.html:58
+msgid "people with overdue items"
+msgstr "personas con atrasos"
+
+#: .\templates\documents\seguimiento.html:63
+msgid "days, the oldest one"
+msgstr "días, el más viejo"
+
+#: .\templates\documents\seguimiento.html:96
+msgid "finding"
+msgstr "hallazgo"
+
+#: .\templates\documents\seguimiento.html:106 .\templates\email\resumen.html:67
+#: .\templates\generic\_fila_tarea.html:46
+#, python-format
+msgid "%(dias)s day late"
+msgid_plural "%(dias)s days late"
+msgstr[0] "%(dias)s día de atraso"
+msgstr[1] "%(dias)s días de atraso"
+
+#: .\templates\documents\seguimiento.html:112
+msgid "Nothing overdue. What is due this week is still on time."
+msgstr "Nada vencido. Lo de esta semana todavía está a tiempo."
+
+#: .\templates\documents\seguimiento.html:120
+msgid "Nobody in the team is behind, and nothing is due this week."
+msgstr "Nadie del equipo va atrasado, y nada vence esta semana."
+
 #: .\templates\documents\subir_revision.html:33
 msgid "The upload could not finish. Try again."
 msgstr "No se pudo terminar la subida. Vuelve a intentarlo."
@@ -4089,13 +4149,6 @@ msgid "%(n)s thing on your plate"
 msgid_plural "%(n)s things on your plate"
 msgstr[0] "%(n)s cosa pendiente"
 msgstr[1] "%(n)s cosas pendientes"
-
-#: .\templates\email\resumen.html:67 .\templates\generic\_fila_tarea.html:46
-#, python-format
-msgid "%(dias)s day late"
-msgid_plural "%(dias)s days late"
-msgstr[0] "%(dias)s día de atraso"
-msgstr[1] "%(dias)s días de atraso"
 
 #: .\templates\email\resumen.html:69
 #, python-format
@@ -4345,10 +4398,6 @@ msgstr "Avance por disciplina"
 #: .\templates\projects\proyecto.html:154
 msgid "No discipline"
 msgstr "Sin disciplina"
-
-#: .\templates\projects\proyecto.html:167
-msgid "Nothing issued yet"
-msgstr "Todavía no se ha emitido nada"
 
 #: .\templates\projects\proyecto.html:169
 #, python-format

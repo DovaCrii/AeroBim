@@ -329,19 +329,17 @@ def avisar_transmittal(transmittal) -> tuple[int, list[str]]:
 
 def pendientes_por_tramo(usuario) -> dict[str, list]:
     """Lo que le queda a alguien, repartido en los tramos del resumen."""
+    from apps.documents.seguimiento import abiertos_con_fecha
+
     hoy = timezone.localdate()
     salida: dict[str, list] = {nombre: [] for nombre in NOMBRES_DE_TRAMO}
 
-    abiertas = list(
-        Observacion.objects.filter(responsable=usuario)
-        .exclude(estado__in=[Observacion.CERRADA, Observacion.DESCARTADA])
-        .exclude(vence=None)
-        .select_related("proyecto")
-    ) + list(
-        Actividad.objects.filter(responsable=usuario)
-        .exclude(status__in=[Actividad.HECHA, Actividad.ANULADA])
-        .exclude(vence=None)
-        .select_related("proyecto")
+    # **«Abierto» se define en un solo sitio**, que comparten esta bandeja y el seguimiento del
+    # equipo. Con dos `exclude` escritos por separado, un estado nuevo cerraría la tarea en una
+    # pantalla y la dejaría abierta en la otra.
+    abiertas = abiertos_con_fecha(
+        Observacion.objects.filter(responsable=usuario),
+        Actividad.objects.filter(responsable=usuario),
     )
 
     for item in abiertas:

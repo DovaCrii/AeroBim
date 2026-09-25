@@ -173,6 +173,18 @@ CATALOGO: tuple[Modulo, ...] = (
         descripcion=_("Yours alone, soonest due first: what you have to answer."),
         icono="i-bandeja",
     ),
+    # **La de quien reparte, justo debajo de la de cada uno** (2026-09-23). Son la misma pregunta
+    # —¿qué está atrasado?— a dos escalas, y ponerlas juntas es lo que hace que se entienda cuál es
+    # cuál. Pide `change_observacion` y no `view_`: la vista pide los dos, y el de lectura lo tiene
+    # hasta el mandante — ver `SeguimientoView`.
+    Modulo(
+        grupo=_("Coordination"),
+        titulo=_("Team follow-up"),
+        ruta="documents:seguimiento",
+        permiso="documents.change_observacion",
+        descripcion=_("Who in the team is behind, and with what: the oldest first."),
+        icono="i-seguimiento",
+    ),
     Modulo(
         grupo=_("Coordination"),
         titulo=_("Observations"),

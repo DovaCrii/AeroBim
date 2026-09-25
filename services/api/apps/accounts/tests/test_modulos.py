@@ -63,6 +63,10 @@ ESPERADO = [
     # llamarse «Mi trabajo» y dos entradas «mías» son dos sitios donde buscar lo mismo. Esta lista
     # se actualiza cuando el cambio es deliberado; el resto del tiempo es la que avisa.
     ("Coordination", "Everything pending", "documents:bandeja", "documents.view_observacion"),
+    # **Añadido a propósito el 2026-09-23**: lo atrasado de todo el equipo, para quien reparte.
+    # Pide `change_` y no `view_` porque el de lectura lo tiene hasta el mandante — ver
+    # `SeguimientoView`.
+    ("Coordination", "Team follow-up", "documents:seguimiento", "documents.change_observacion"),
     ("Coordination", "Observations", "documents:observaciones", "documents.view_observacion"),
     ("Coordination", "Activities", "documents:actividades", "documents.view_actividad"),
     ("Administration", "Users and roles", "accounts:usuarios-roles", "auth.view_user"),
