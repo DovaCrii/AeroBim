@@ -450,6 +450,8 @@ def atrasos_que_no_avanzan(usuario):
         # **Sin lo que uno se abrió a sí mismo**: ya está en su propia lista, y contarlo dos veces
         # en el mismo correo se lee como un error del sistema.
         .exclude(responsable=usuario)
+        # Una obra archivada no escala: nadie la está trabajando, y ese es justo el motivo.
+        .exclude(proyecto__is_active=False)
         .select_related("proyecto")
     )
     # **Por `nulos_al_final` aunque aquí no pueda haber nulos.** El `vence__lt` ya los excluye, así
