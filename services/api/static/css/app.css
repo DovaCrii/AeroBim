@@ -4143,52 +4143,195 @@ form.en-linea {
   color: var(--ab-text);
 }
 
-/* --- Las herramientas de una sección, en cajas ------------------------------------ */
+/* --- Sacar y recibir: el informe, la hoja y el BCF --------------------------------- */
 
 /*
- * **Dos herramientas independientes se dibujan como dos.** Debajo de la tabla de hallazgos hay dos
- * —sacar el informe y meter un BCF que llega— y estaban como cinco filas de controles seguidas, sin
- * nada que dijera dónde acaba una y empieza la otra: dos selectores, tres casillas, dos botones,
- * una explicación, un selector de archivo, otro botón y otra explicación.
+ * **Tres tarjetas con una acción principal cada una** (2026-09-25). Sustituyen a las dos cajas
+ * `.herramienta`, que enseñaban doce controles a la vez y cuatro botones rellenos compitiendo: el
+ * usuario pidió que «no genere ruido visual y no sea plano».
  *
- * El usuario lo dijo así: «está mal distribuido, muy junto y poco entendible el flujo, sobre todo
- * en las observaciones abiertas y lo que está abajo».
- *
- * Van **una al lado de la otra** y no apiladas, porque apiladas la pantalla dice que la segunda
- * viene después de la primera, y no es así: son dos cosas que se hacen en momentos distintos.
+ * - **No plano**: la tarjeta se levanta con la sombra de la casa y lleva su icono en una baldosa,
+ *   como las del portal. Es lo que la separa de las tablas de arriba y de abajo, que son consulta.
+ * - **Sin ruido**: el cuerpo de cada una es una frase y sus botones; las opciones del informe van
+ *   plegadas (`.opciones-salida`), y solo el PDF de la reunión va relleno.
+ * - Las acciones van **al pie** en las tres (`margin-top: auto`), así que en una fila los botones
+ *   quedan a la misma altura y la fila se lee como una fila.
  */
-.herramientas {
+.sacar-y-recibir {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
-  gap: 14px;
-  margin: 18px 0 8px;
-  align-items: start;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--ab-esp-4);
+  margin: 0 0 var(--ab-esp-5);
 }
 
-.herramienta {
-  padding: 14px 16px;
+.salida {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ab-esp-3);
+  padding: var(--ab-esp-4);
   background: var(--ab-surface);
   border: 1px solid var(--ab-border);
   border-radius: var(--ab-radius);
+  box-shadow: var(--ab-shadow);
 }
 
-.herramienta h2 {
-  margin: 0 0 12px;
+.salida-cabeza {
+  display: flex;
+  gap: var(--ab-esp-3);
+  align-items: flex-start;
+}
+
+.salida-cabeza h2 {
+  margin: 0 0 var(--ab-esp-1);
+  font-size: var(--ab-texto-base);
+}
+
+.salida-cabeza .detalle {
+  margin: 0;
+}
+
+/* El icono en su baldosa, con el violeta de la casa: el mismo gesto que las tarjetas del portal. */
+.salida-icono {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  padding: 8px;
+  color: var(--ab-primary);
+  background: var(--ab-primary-soft);
+  border-radius: var(--ab-radio-sm);
+}
+
+.salida-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ab-esp-2);
+  margin-top: auto;
+}
+
+/* En el informe las acciones están dentro del formulario: sin esto su `margin-top: auto` no llega
+   al pie de la tarjeta y la fila queda con los botones a tres alturas distintas. Medido. */
+.salida > form {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--ab-esp-3);
+  margin: 0;
+}
+
+/*
+ * Las opciones del informe, plegadas, con lo de por omisión en el propio rótulo. `<details>` es el
+ * plegable nativo: sin JavaScript —la CSP lo agradece— y accesible de fábrica. Cerrado no quita los
+ * campos del envío, así que lo de por omisión viaja igual.
+ */
+.opciones-salida {
+  border-top: 1px solid var(--ab-border);
+  padding-top: var(--ab-esp-2);
+}
+
+.opciones-salida summary {
+  cursor: pointer;
+  font-size: var(--ab-texto-xs);
+  font-weight: 600;
+  color: var(--ab-text);
+}
+
+.opciones-salida summary .detalle {
+  display: block;
+  margin: 2px 0 0;
+  font-weight: 400;
+}
+
+.opciones-salida[open] summary {
+  margin-bottom: var(--ab-esp-3);
+}
+
+/* Rótulo encima de su campo y en rejilla: tres selectores en columna leen mejor que en una frase. */
+.opciones-rejilla {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--ab-esp-2) var(--ab-esp-3);
+}
+
+.opciones-rejilla label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  font-size: var(--ab-texto-nota);
+  font-weight: 600;
+  color: var(--ab-text-secondary);
+}
+
+.opciones-casillas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ab-esp-1) var(--ab-esp-4);
+  margin-top: var(--ab-esp-3);
+}
+
+.opciones-casillas label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: var(--ab-texto-xs);
+  font-weight: 400;
+  color: var(--ab-text-secondary);
+}
+
+/* La ida y la vuelta del BCF, numeradas: son dos momentos del mismo intercambio. */
+.salida-pasos {
+  display: grid;
+  gap: var(--ab-esp-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: salida;
+}
+
+.salida-pasos li {
+  counter-increment: salida;
+  display: grid;
+  gap: var(--ab-esp-1);
+}
+
+.salida-paso-nombre {
   font-size: var(--ab-texto-nota);
   font-weight: 700;
-  letter-spacing: 0.09em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--ab-text-muted);
+  color: var(--ab-text-secondary);
 }
 
-/* Dentro de la caja el formulario ya no necesita su margen: lo pone la caja. */
-.herramienta form.accion {
-  margin-bottom: 0;
+.salida-paso-nombre::before {
+  content: counter(salida) " · ";
+  color: var(--ab-primary);
 }
 
-/* Y la explicación va al final, separada de los botones que explica. */
-.herramienta form.accion .detalle {
-  margin-top: var(--ab-esp-1);
+.salida-pasos .boton {
+  justify-self: start;
+}
+
+.salida-pasos .detalle {
+  margin: 0;
+}
+
+/*
+ * El archivo y su botón en una línea, **y el campo a todo lo que quede**. Con su ancho de fábrica el
+ * navegador recortaba su propio texto por el medio —«No se ha seleccio…o ningún archivo», en la
+ * captura del usuario—, que se lee como un fallo y no como un campo vacío.
+ */
+.salida-subida {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ab-esp-2);
+  align-items: center;
+  margin: 0;
+}
+
+.salida-subida input[type="file"] {
+  flex: 1 1 220px;
+  min-width: 0;
 }
 
 /* --- Una cabecera de columna que ordena ------------------------------------------- */
