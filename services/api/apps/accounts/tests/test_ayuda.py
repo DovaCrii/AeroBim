@@ -200,6 +200,44 @@ def test_con_todos_los_permisos_ningun_tramo_marca_nada(proyectista):
     assert [tramo.cuantos_ajenos for tramo in por_fases(quien)] == [0, 0, 0]
 
 
+def test_el_paso_ajeno_se_apaga_con_el_nivel_de_titulo_que_de_verdad_lleva():
+    """**El defecto que dejó el cambio a fases, y que nadie vio.**
+
+    Al partir el recorrido en fases, el título del paso bajó de `h2` a `h3` —la fase pasó a ser el
+    `h2`— y la regla que apaga el título de un paso ajeno se quedó en `.paso-ajeno h2`. Sin error:
+    el paso que no te toca seguía con su franja apagada, y el título a pleno tono, diciendo lo
+    contrario. Lo encontró la pasada visual del 2026-09-23.
+
+    Esto lee el nivel de título que la plantilla pone de verdad y exige que la hoja lo apague.
+    """
+    from pathlib import Path
+
+    from django.conf import settings
+
+    plantilla = (Path(settings.BASE_DIR) / "templates" / "accounts" / "ayuda.html").read_text(
+        encoding="utf-8"
+    )
+    hoja = (Path(settings.BASE_DIR) / "static" / "css" / "app.css").read_text(encoding="utf-8")
+
+    nivel = re.search(r'class="paso-ayuda[^"]*">\s*<(h\d)>', plantilla)
+    assert nivel is not None, "no se encontró el título del paso en ayuda.html"
+    assert f".paso-ajeno {nivel.group(1)}" in hoja, (
+        f"el paso lleva `<{nivel.group(1)}>` y la hoja no apaga ese nivel en un paso ajeno"
+    )
+
+
+@pytest.mark.django_db
+def test_cada_fase_dice_de_que_va_en_la_propia_fase(client, proyectista):
+    """La descripción iba solo en el índice de arriba, a una pantalla de la fase que describe."""
+    client.force_login(proyectista)
+    html = client.get(reverse("accounts:ayuda")).content.decode()
+
+    for fase in FASES:
+        seccion = html.split(f'id="{fase.ancla}"', 1)
+        assert len(seccion) == 2, f"falta la sección de «{fase.titulo}»"
+        assert str(fase.de_que_va) in seccion[1].split("</section>", 1)[0]
+
+
 # --- El contrato de la pantalla ------------------------------------------------------
 
 

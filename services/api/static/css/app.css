@@ -3869,10 +3869,12 @@ button.peligro:hover {
   margin: 0 0 var(--ab-esp-5);
 }
 
+/* **Una línea de saltos**, no tres baldosas con su párrafo: la descripción de cada fase va ahora en
+   la propia fase, y dicha dos veces a una pantalla de distancia la de arriba era la que se saltaba. */
 .indice-del-recorrido ol {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: var(--ab-esp-3);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ab-esp-2);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -3881,10 +3883,17 @@ button.peligro:hover {
 
 .indice-del-recorrido li {
   counter-increment: fase;
-  padding: var(--ab-esp-3) var(--ab-esp-4);
+}
+
+.indice-del-recorrido a {
+  display: inline-block;
+  padding: var(--ab-esp-1) var(--ab-esp-3);
+  color: var(--ab-text);
+  font-weight: 600;
+  text-decoration: none;
   background: var(--ab-surface-2);
-  border-radius: var(--ab-radius);
-  box-shadow: var(--ab-elev-sm);
+  border: 1px solid var(--ab-border);
+  border-radius: 999px;
 }
 
 /* El número de la fase delante del nombre: es lo que dice que van en orden. */
@@ -3894,28 +3903,89 @@ button.peligro:hover {
   font-weight: 400;
 }
 
-.indice-del-recorrido a {
-  color: var(--ab-text);
-  font-weight: 600;
-  text-decoration: none;
-}
-
 .indice-del-recorrido a:hover {
+  border-color: var(--ab-primary);
   color: var(--ab-primary);
-  text-decoration: underline;
-}
-
-.indice-del-recorrido .detalle {
-  display: block;
-  margin-top: var(--ab-esp-1);
-  font-size: var(--ab-texto-sm);
-  line-height: 1.5;
-  color: var(--ab-text-muted);
 }
 
 .tramo-del-recorrido {
   scroll-margin-top: var(--ab-esp-5);
   margin-bottom: var(--ab-esp-5);
+}
+
+/*
+ * **La cabecera de la fase pesa como título, no como rótulo** (2026-09-23).
+ *
+ * Iba en `.grupo` —el rótulo pequeño en mayúsculas que separa bloques—, así que la fase, que es lo
+ * que ordena la página, pesaba menos que el título de cualquiera de sus pasos. Ahora lleva su número
+ * en un disco y de qué va debajo.
+ */
+.fase-cabeza {
+  margin: 0 0 var(--ab-esp-4);
+}
+
+.fase-cabeza h2 {
+  display: flex;
+  align-items: center;
+  gap: var(--ab-esp-3);
+  margin: 0 0 var(--ab-esp-1);
+  font-size: var(--ab-texto-lg);
+}
+
+.fase-numero {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  font-size: var(--ab-texto-base);
+  color: var(--ab-sobre-primary);
+  background: var(--ab-primary);
+  border-radius: 999px;
+}
+
+.fase-cabeza .subtitulo {
+  margin: 0;
+}
+
+/*
+ * **Los tres pasos de una fase, en fila** (2026-09-23).
+ *
+ * Iban en una columna de 78 caracteres, y en un monitor de 1900 px eso dejaba **media pantalla
+ * vacía** a la derecha —el usuario lo señaló en su captura—, con los nueve pasos uno debajo de otro
+ * y cinco pantallas de desplazamiento. En fila, cada fase es un vistazo: sus tres pasos, lado a
+ * lado, y el recorrido entero cabe en dos pantallas.
+ *
+ * **Solo dentro de las fases.** El glosario usa el mismo `.recorrido` y sus fichas tienen otra
+ * longitud; se queda en columna, que es donde se lee una definición.
+ */
+.tramo-del-recorrido .recorrido {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--ab-esp-4);
+  max-width: none;
+}
+
+/* Las tres tarjetas de una fila miden lo mismo, y el botón va abajo en las tres: así «Ir ahí» queda
+   en la misma línea y la fila se lee como una fila. */
+.tramo-del-recorrido .paso-ayuda {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0;
+}
+
+.tramo-del-recorrido .paso-ayuda .boton {
+  align-self: flex-start;
+  margin-top: auto;
+}
+
+.que-hacer-rotulo {
+  display: block;
+  margin-bottom: 2px;
+  font-size: var(--ab-texto-micro);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ab-text-muted);
 }
 
 /*
@@ -3934,7 +4004,9 @@ button.peligro:hover {
   border-left-color: var(--ab-border);
 }
 
-.paso-ajeno h2,
+/* **`h3` y no `h2` en el paso**, desde que el recorrido va en fases: con `h2` aquí, el título de un
+   paso ajeno dejó de apagarse sin que nada fallara — lo encontró la pasada del 2026-09-23. */
+.paso-ajeno h3,
 .paso-ajeno .que-hacer,
 .termino-ausente h2 {
   color: var(--ab-text-secondary);

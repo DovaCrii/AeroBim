@@ -49,20 +49,33 @@
     Va con anclas y no con pestañas a propósito: una ancla funciona sin JavaScript —que es lo que la
     CSP agradece—, se puede compartir por enlace, y deja la página imprimible de una pieza.
   {% endcomment %}
+  {% comment %}
+    **Una línea de saltos y no tres baldosas** (2026-09-23). Las baldosas repetían la descripción de
+    cada fase, que ahora va en la propia fase, justo encima de sus pasos: dicha dos veces a una
+    pantalla de distancia, la de arriba era un párrafo que se saltaba.
+  {% endcomment %}
   <nav class="indice-del-recorrido" aria-label="{% translate 'The three parts of the walkthrough' %}">
     <ol>
       {% for tramo in tramos %}
-        <li>
-          <a href="#{{ tramo.fase.ancla }}">{{ tramo.fase.titulo }}</a>
-          <span class="detalle">{{ tramo.fase.de_que_va }}</span>
-        </li>
+        <li><a href="#{{ tramo.fase.ancla }}">{{ tramo.fase.titulo }}</a></li>
       {% endfor %}
     </ol>
   </nav>
 
   {% for tramo in tramos %}
     <section class="tramo-del-recorrido" id="{{ tramo.fase.ancla }}">
-      <h2 class="grupo">{{ tramo.fase.titulo }}</h2>
+      {% comment %}
+        **La fase es lo que ordena la página, y ahora se ve como tal.** Iba en `.grupo` —el rótulo
+        pequeño en mayúsculas que separa bloques—, o sea que el título de la fase pesaba menos que el
+        de cualquiera de sus pasos. Sube a título con su número, y de qué va justo debajo.
+      {% endcomment %}
+      <header class="fase-cabeza">
+        <h2>
+          <span class="fase-numero" aria-hidden="true">{{ forloop.counter }}</span>
+          {{ tramo.fase.titulo }}
+        </h2>
+        <p class="subtitulo">{{ tramo.fase.de_que_va }}</p>
+      </header>
       {% if tramo.cuantos_ajenos %}
         {% comment %}
           **Dicho por tramo y no solo arriba.** Con el aviso únicamente en la cabecera, quien lee
@@ -94,9 +107,16 @@
               {% endif %}
             </h3>
             <p class="para-que">{{ uno.paso.para_que }}</p>
-            <p class="que-hacer">{{ uno.paso.que_hacer }}</p>
+            {% comment %}
+              **«Cómo» con su rótulo**: el qué hacer iba en el mismo cuerpo que el para qué, solo más
+              gris, y es lo que se viene a buscar. El rótulo lo separa sin hacerlo más grande.
+            {% endcomment %}
+            <p class="que-hacer">
+              <span class="que-hacer-rotulo">{% translate "How" %}</span>
+              {{ uno.paso.que_hacer }}
+            </p>
             {% if uno.url and uno.puedes %}
-              <a class="boton secundario" href="{{ uno.url }}">{% translate "Go there" %}</a>
+              <a class="boton secundario chico" href="{{ uno.url }}">{% translate "Go there" %}</a>
             {% endif %}
           </li>
         {% endfor %}
