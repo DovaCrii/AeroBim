@@ -112,7 +112,13 @@ class RevisionesAbriblesAPI(ListAPIView):
     def get(self, request, *args, **kwargs):
         from rest_framework.response import Response
 
-        consulta = revisiones_visibles(request.user).filter(es_vigente=True)
+        # Sin las obras archivadas, como el resto de los listados. Abrir una por su clave —desde el
+        # expediente— sigue funcionando: eso lo resuelven las vistas de detalle de abajo.
+        consulta = (
+            revisiones_visibles(request.user)
+            .filter(es_vigente=True)
+            .exclude(entregable__proyecto__is_active=False)
+        )
         # El orden manda dentro de cada grupo, así que se pide acá y no se reordena en el visor.
         consulta = consulta.order_by("entregable__proyecto__codigo", "entregable__codigo")
 

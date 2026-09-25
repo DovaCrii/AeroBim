@@ -46,16 +46,33 @@ def abiertos_con_fecha(observaciones, actividades) -> list:
 
     Recibe los conjuntos ya acotados por quien llama —por responsable, por organización— para que
     el alcance lo decida la vista y la definición de abierto no.
+
+    **Y lo de una obra archivada no está abierto para nadie.** Archivar prometía «la saca de las
+    listas y se lleva todo lo suyo», y solo cumplía la primera mitad: la obra desaparecía de
+    `/proyectos` y sus observaciones seguían vencidas en la bandeja, en el seguimiento y en el
+    correo de cada mañana. Lo encontró el usuario archivando una obra de prueba. Va aquí porque
+    este es el único sitio por el que pasan las cuatro superficies.
     """
     return list(
-        observaciones.exclude(estado__in=[Observacion.CERRADA, Observacion.DESCARTADA])
+        sin_obras_archivadas(observaciones)
+        .exclude(estado__in=[Observacion.CERRADA, Observacion.DESCARTADA])
         .exclude(vence=None)
         .select_related("proyecto", "responsable")
     ) + list(
-        actividades.exclude(status__in=[Actividad.HECHA, Actividad.ANULADA])
+        sin_obras_archivadas(actividades)
+        .exclude(status__in=[Actividad.HECHA, Actividad.ANULADA])
         .exclude(vence=None)
         .select_related("proyecto", "responsable")
     )
+
+
+def sin_obras_archivadas(consulta, ruta: str = "proyecto"):
+    """Quita lo que cuelga de una obra archivada.
+
+    Con nombre propio y no como un `exclude` suelto porque es **la misma regla** en todas las
+    superficies de lo pendiente, y escrita a mano en cada una es la que se olvida en la siguiente.
+    """
+    return consulta.exclude(**{f"{ruta}__is_active": False})
 
 
 @dataclass

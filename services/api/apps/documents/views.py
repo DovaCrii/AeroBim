@@ -172,6 +172,18 @@ class ArchivosView(ModelViewPermissionRequiredMixin, FiltrosEnLaPaginacionMixin,
     model = Revision
     paginate_by = 60
 
+    def vigentes_de_obras_abiertas(self):
+        """Lo que el usuario puede ver, **sin las obras archivadas**.
+
+        Una sola consulta para la lista y para sus contadores: con el filtro escrito solo en la
+        lista, el contador de «Modelos» diría 12 y la pestaña enseñaría 9. Y va aquí y no en
+        `revisiones_visibles`, que también alimenta al visor: abrir una revisión de una obra
+        archivada desde su expediente tiene que seguir funcionando — el registro se conserva.
+        """
+        return solo_publicadas(revisiones_visibles(self.request.user), self.request.user).exclude(
+            entregable__proyecto__is_active=False
+        )
+
     def get_queryset(self):
         from apps.documents.categorias import categoria_de
 
@@ -179,7 +191,7 @@ class ArchivosView(ModelViewPermissionRequiredMixin, FiltrosEnLaPaginacionMixin,
         # `organizacion` —cuelga de su entregable— así que `scope_queryset_to_organizacion` la
         # devolvería intacta: `revisiones_visibles` es la que sí acota, y `solo_publicadas` es la
         # que impide que un mandante vea lo que está en curso.
-        consulta = solo_publicadas(revisiones_visibles(self.request.user), self.request.user)
+        consulta = self.vigentes_de_obras_abiertas()
         consulta = (
             consulta.select_related("entregable__proyecto", "entregable__disciplina", "subida_por")
             # **La precarga no es opcional aqui.** `revision_vigente()` recorre `entregable
@@ -224,7 +236,7 @@ class ArchivosView(ModelViewPermissionRequiredMixin, FiltrosEnLaPaginacionMixin,
 
         # Las cuentas se hacen sobre **todas** las vigentes, no sobre la página ni sobre lo
         # filtrado: un contador que cambia al pulsar el filtro no cuenta nada.
-        todas = solo_publicadas(revisiones_visibles(self.request.user), self.request.user)
+        todas = self.vigentes_de_obras_abiertas()
         cuantas: dict[str, int] = {}
         for revision in todas.select_related("entregable").prefetch_related(
             "entregable__revisiones"
@@ -352,6 +364,7 @@ class EntregablesView(
             super()
             .get_queryset()
             .filter(is_active=True)
+            .exclude(proyecto__is_active=False)
             .select_related("proyecto", "disciplina", "responsable")
             .prefetch_related("revisiones")
         )
@@ -1287,6 +1300,8 @@ class ObservacionesView(
             # chips. Medido: 56 consultas antes, 7 después, con 50 observaciones etiquetadas.
             .prefetch_related("etiquetas")
             .annotate(**anotaciones())
+            # Lo de una obra archivada sale de los registros: se consulta desde la propia obra.
+            .exclude(proyecto__is_active=False)
         )
         if self.request.GET.get("mias") == "1":
             consulta = consulta.filter(responsable=self.request.user)
@@ -1319,7 +1334,7 @@ class ObservacionesView(
         # en Solibri y no muestra nada, que se lee como que la exportación falló.
         contexto["proyectos_exportables"] = (
             scope_queryset_to_organizacion(Proyecto.objects.all(), self.request.user)
-            .filter(observaciones__isnull=False)
+            .filter(is_active=True, observaciones__isnull=False)
             .distinct()
             .order_by("codigo")
         )
@@ -1392,7 +1407,7 @@ class ObservacionesView(
         contexto["estados"] = Observacion.STATUS_CHOICES
         contexto["obras"] = list(
             scope_queryset_to_organizacion(Proyecto.objects.all(), self.request.user)
-            .filter(observaciones__isnull=False)
+            .filter(is_active=True, observaciones__isnull=False)
             .distinct()
             .order_by("codigo")
             .values_list("codigo", flat=True)
@@ -1695,7 +1710,12 @@ class ActividadesView(
     paginate_by = 50
 
     def get_queryset(self):
-        consulta = super().get_queryset().select_related("proyecto", "responsable", "entregable")
+        consulta = (
+            super()
+            .get_queryset()
+            .select_related("proyecto", "responsable", "entregable")
+            .exclude(proyecto__is_active=False)
+        )
         if self.request.GET.get("mias") == "1":
             consulta = consulta.filter(responsable=self.request.user)
         return consulta
@@ -1718,6 +1738,7 @@ class TransmittalsView(
             .get_queryset()
             .select_related("proyecto", "emisor")
             .prefetch_related("destinatarios", "revisiones__entregable")
+            .exclude(proyecto__is_active=False)
         )
 
     def get_context_data(self, **kwargs):

@@ -54,6 +54,13 @@ class Fase:
     titulo: str
     #: Una linea que diga de que va la fase. Es lo que permite saltarsela con conocimiento.
     de_que_va: str
+    #: **El color del grupo del rail donde ocurre la fase** (`.acento-N`, indice de `_rail.html`).
+    #:
+    #: No es un color elegido para esta pagina: es el que ya lleva esa parte de la aplicacion en el
+    #: menu de la izquierda. Asi el color dice algo —«esto pasa en el modelo», «esto pasa en
+    #: coordinacion»— y quien vuelve al rail despues de leer esto encuentra el mismo color donde
+    #: tiene que ir. Un color propio por fase seria un cuarto sistema de colores que aprender.
+    acento: int
 
 
 #: Los tres tramos, **en el orden del recorrido**. El indice de arriba sale de aqui.
@@ -65,6 +72,7 @@ FASES: tuple[Fase, ...] = (
             "Lo del primer día: entrar en la obra, abrir el modelo que ya está publicado y moverse "
             "por él. Mirar y medir no necesitan ningún permiso."
         ),
+        acento=1,  # «El modelo»
     ),
     Fase(
         ancla="anotar-y-coordinar",
@@ -73,6 +81,7 @@ FASES: tuple[Fase, ...] = (
             "Donde está el trabajo de verdad: dejar el hallazgo anclado al elemento, cruzar las "
             "disciplinas y repartir lo que sale."
         ),
+        acento=3,  # «Coordinación»
     ),
     Fase(
         ancla="entregar",
@@ -81,6 +90,7 @@ FASES: tuple[Fase, ...] = (
             "Sacar la coordinación fuera de AeroBim: el papel para la reunión, el BCF para el "
             "software del mandante y los planos para el CAD."
         ),
+        acento=2,  # «El registro documental»
     ),
 )
 
