@@ -243,8 +243,10 @@ PASOS: tuple[Paso, ...] = (
             "el membrete de la casa, y el CSV es la mitad editable: abre en una hoja de cálculo."
         ),
         que_hacer=(
-            "En la pantalla de la obra, debajo de «Observaciones abiertas»: elige qué estado, en "
-            "qué orden y con qué etiqueta, y «Informe en PDF» o «Tabla en CSV»."
+            "En la pantalla de la obra, en «Sacar y recibir», debajo de las observaciones: "
+            "«Descargar el PDF» o «Tabla en CSV». Para cambiar qué estado, en qué orden o con qué "
+            "etiqueta, "
+            "abre «Qué incluir»; al lado está el resumen ejecutivo de una hoja."
         ),
         ruta=None,
         permiso="documents.view_observacion",
@@ -259,9 +261,9 @@ PASOS: tuple[Paso, ...] = (
             "se suman al hilo sin pisar nada."
         ),
         que_hacer=(
-            "«Exportar a BCF 2.1» está arriba en la pantalla de la obra. Para lo que devuelve el "
-            "mandante, «Importar una respuesta BCF»: primero enseña qué trae y solo escribe al "
-            "confirmar."
+            "En la pantalla de la obra, «Sacar y recibir» → «Ida y vuelta con el mandante»: "
+            "«Exportar a BCF 2.1» para mandar, y para lo que devuelve, elige el archivo y «Ver lo "
+            "que trae»: primero enseña qué entra y solo escribe al confirmar."
         ),
         ruta=None,
         permiso="documents.add_observacion",

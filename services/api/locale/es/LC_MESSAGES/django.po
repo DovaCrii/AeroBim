@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-23 18:18-0300\n"
+"POT-Creation-Date: 2026-09-25 10:55-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -191,7 +191,7 @@ msgstr ""
 
 #: .\apps\accounts\modulos.py:142 .\templates\documents\entregables.html:4
 #: .\templates\documents\entregables.html:6
-#: .\templates\projects\proyecto.html:475
+#: .\templates\projects\proyecto.html:516
 msgid "Deliverables"
 msgstr "Entregables"
 
@@ -210,8 +210,8 @@ msgstr "Qué se emitió, a quién y en qué fecha."
 
 #: .\apps\accounts\modulos.py:158 .\templates\documents\requisitos_ids.html:4
 #: .\templates\documents\requisitos_ids.html:6
-#: .\templates\projects\proyecto.html:546
-#: .\templates\projects\proyecto.html:559
+#: .\templates\projects\proyecto.html:587
+#: .\templates\projects\proyecto.html:600
 msgid "Information requirements"
 msgstr "Requisitos de información"
 
@@ -785,7 +785,7 @@ msgid "Which work this file belongs to."
 msgstr "A qué obra pertenece este archivo."
 
 #: .\apps\documents\empezar.py:52 .\templates\documents\entregables.html:56
-#: .\templates\projects\proyecto.html:481
+#: .\templates\projects\proyecto.html:522
 msgid "Discipline"
 msgstr "Disciplina"
 
@@ -796,7 +796,7 @@ msgstr "Déjala vacía y escribe una nueva abajo si la que necesitas no está."
 
 #: .\apps\documents\empezar.py:58 .\templates\projects\nueva_disciplina.html:4
 #: .\templates\projects\nueva_disciplina.html:6
-#: .\templates\projects\proyecto.html:518
+#: .\templates\projects\proyecto.html:559
 msgid "New discipline"
 msgstr "Nueva disciplina"
 
@@ -821,7 +821,7 @@ msgstr ""
 #: .\templates\documents\expediente.html:307
 #: .\templates\documents\requisitos_ids.html:24
 #: .\templates\documents\transmittal.html:71
-#: .\templates\projects\proyecto.html:480
+#: .\templates\projects\proyecto.html:521
 msgid "Title"
 msgstr "Título"
 
@@ -983,7 +983,7 @@ msgstr "código"
 #: .\apps\documents\models.py:721 .\apps\projects\models.py:207
 #: .\templates\documents\actividad.html:11
 #: .\templates\documents\expediente.html:11
-#: .\templates\projects\proyecto.html:314
+#: .\templates\projects\proyecto.html:329
 msgid "owner"
 msgstr "responsable"
 
@@ -1056,7 +1056,7 @@ msgstr "transmittals"
 
 #: .\apps\documents\models.py:394
 #: .\templates\documents\_fila_de_archivo.html:62
-#: .\templates\documents\enlaces.html:69 .\templates\projects\proyecto.html:483
+#: .\templates\documents\enlaces.html:69 .\templates\projects\proyecto.html:524
 msgid "Open"
 msgstr "Abrir"
 
@@ -1490,16 +1490,16 @@ msgid "Validated against %(total)s requirements: %(ok)s comply."
 msgstr "Validado contra %(total)s requisitos: %(ok)s cumplen."
 
 #: .\apps\documents\views.py:1357 .\templates\documents\observaciones.html:92
-#: .\templates\projects\proyecto.html:194
+#: .\templates\projects\proyecto.html:197
 msgid "Priority"
 msgstr "Prioridad"
 
-#: .\apps\documents\views.py:1358 .\templates\projects\proyecto.html:195
+#: .\apps\documents\views.py:1358 .\templates\projects\proyecto.html:198
 msgid "Finding"
 msgstr "Hallazgo"
 
 #: .\apps\documents\views.py:1359 .\templates\documents\observacion.html:212
-#: .\templates\projects\proyecto.html:196
+#: .\templates\projects\proyecto.html:199
 msgid "On"
 msgstr "Sobre"
 
@@ -1508,7 +1508,7 @@ msgstr "Sobre"
 #: .\templates\documents\expediente.html:281
 #: .\templates\documents\expediente.html:308
 #: .\templates\documents\observacion.html:192
-#: .\templates\projects\proyecto.html:197
+#: .\templates\projects\proyecto.html:200
 msgid "Owner"
 msgstr "Responsable"
 
@@ -1516,7 +1516,7 @@ msgstr "Responsable"
 #: .\templates\documents\expediente.html:282
 #: .\templates\documents\expediente.html:309
 #: .\templates\documents\observacion.html:196
-#: .\templates\projects\proyecto.html:198
+#: .\templates\projects\proyecto.html:201
 msgid "Due"
 msgstr "Vence"
 
@@ -2396,7 +2396,7 @@ msgstr ""
 "borrar del todo."
 
 #: .\templates\accounts\editar_cuenta.html:87
-#: .\templates\projects\proyecto.html:629
+#: .\templates\projects\proyecto.html:670
 msgid "Delete it instead…"
 msgstr "Borrarla en vez de eso…"
 
@@ -3064,7 +3064,7 @@ msgstr "Descargar"
 #: .\templates\documents\actividad.html:23
 #: .\templates\documents\bandeja.html:153
 #: .\templates\documents\entregables.html:60
-#: .\templates\projects\proyecto.html:29 .\templates\projects\proyecto.html:484
+#: .\templates\projects\proyecto.html:29 .\templates\projects\proyecto.html:525
 #: .\templates\projects\proyectos.html:134
 msgid "Progress"
 msgstr "Avance"
@@ -3208,19 +3208,19 @@ msgstr "Entregables a tu cargo"
 #: .\templates\documents\entregables.html:54
 #: .\templates\documents\transmittal.html:70
 #: .\templates\projects\borrar_proyecto.html:70
-#: .\templates\projects\proyecto.html:479
+#: .\templates\projects\proyecto.html:520
 #: .\templates\projects\proyectos.html:130
 msgid "Code"
 msgstr "Código"
 
 #: .\templates\documents\bandeja.html:152
 #: .\templates\documents\entregables.html:58
-#: .\templates\projects\proyecto.html:482
+#: .\templates\projects\proyecto.html:523
 msgid "Current revision"
 msgstr "Revisión vigente"
 
 #: .\templates\documents\bandeja.html:174
-#: .\templates\projects\proyecto.html:167
+#: .\templates\projects\proyecto.html:170
 msgid "Nothing issued yet"
 msgstr "Todavía no se ha emitido nada"
 
@@ -3573,7 +3573,7 @@ msgid "New deliverable"
 msgstr "Nuevo entregable"
 
 #: .\templates\documents\entregables.html:85
-#: .\templates\projects\proyecto.html:507
+#: .\templates\projects\proyecto.html:548
 msgid "No deliverable registered yet."
 msgstr "Todavía no hay ningún entregable registrado."
 
@@ -3881,7 +3881,7 @@ msgstr "De quién y para cuándo"
 
 #: .\templates\documents\observacion.html:201
 #: .\templates\documents\observaciones.html:245
-#: .\templates\projects\proyecto.html:240
+#: .\templates\projects\proyecto.html:243
 msgctxt "tarjeta de obra"
 msgid "overdue"
 msgstr "vencida"
@@ -3952,7 +3952,7 @@ msgid "Only open"
 msgstr "Solo abiertas"
 
 #: .\templates\documents\observaciones.html:57
-#: .\templates\projects\proyecto.html:31
+#: .\templates\projects\proyecto.html:404
 msgid "Export to BCF 2.1"
 msgstr "Exportar a BCF 2.1"
 
@@ -3976,7 +3976,7 @@ msgid "Answer"
 msgstr "Responder"
 
 #: .\templates\documents\observaciones.html:253
-#: .\templates\projects\proyecto.html:248
+#: .\templates\projects\proyecto.html:251
 #, python-format
 msgid "opened %(cuando)s ago"
 msgstr "abierta hace %(cuando)s"
@@ -4231,7 +4231,7 @@ msgid "How it works"
 msgstr "Cómo se usa"
 
 #: .\templates\projects\avisos_de_obra.html:7
-#: .\templates\projects\proyecto.html:592
+#: .\templates\projects\proyecto.html:633
 msgid "How much email this work sends"
 msgstr "Cuánto correo manda esta obra"
 
@@ -4318,7 +4318,7 @@ msgstr ""
 "dentro se queda donde está."
 
 #: .\templates\projects\borrar_proyecto.html:55
-#: .\templates\projects\proyecto.html:611
+#: .\templates\projects\proyecto.html:652
 msgid "Archive this work"
 msgstr "Archivar esta obra"
 
@@ -4360,32 +4360,32 @@ msgstr ""
 "El código es lo que se leerá en cada plano y en cada transmittal, así que se "
 "guarda en mayúsculas y no puede repetirse dentro de la organización."
 
-#: .\templates\projects\proyecto.html:52
+#: .\templates\projects\proyecto.html:55
 msgid "Physical progress"
 msgstr "Avance físico"
 
-#: .\templates\projects\proyecto.html:57
+#: .\templates\projects\proyecto.html:60
 #, python-format
 msgid "Open observations · %(altas)s high"
 msgstr "Observaciones abiertas · %(altas)s altas"
 
-#: .\templates\projects\proyecto.html:62
+#: .\templates\projects\proyecto.html:65
 msgid "Past their due date"
 msgstr "Vencidas"
 
-#: .\templates\projects\proyecto.html:66
+#: .\templates\projects\proyecto.html:69
 msgid "Deliverables with nothing issued"
 msgstr "Entregables sin nada emitido"
 
-#: .\templates\projects\proyecto.html:71
+#: .\templates\projects\proyecto.html:74
 msgid "Timeline"
 msgstr "Línea de tiempo"
 
-#: .\templates\projects\proyecto.html:101
+#: .\templates\projects\proyecto.html:104
 msgid "Today"
 msgstr "Hoy"
 
-#: .\templates\projects\proyecto.html:107
+#: .\templates\projects\proyecto.html:110
 msgid ""
 "No deliverable has a planned date, so there is nothing to place on the\n"
 "          timeline."
@@ -4393,7 +4393,7 @@ msgstr ""
 "Ningún entregable tiene fecha planificada, así que no hay nada que situar en "
 "la línea de tiempo."
 
-#: .\templates\projects\proyecto.html:114
+#: .\templates\projects\proyecto.html:117
 msgid ""
 "The project has no dates and neither do its deliverables: there is no\n"
 "      interval to draw. Give the project a start and an end."
@@ -4401,15 +4401,15 @@ msgstr ""
 "El proyecto no tiene fechas y sus entregables tampoco: no hay intervalo que "
 "dibujar. Ponle un inicio y un término al proyecto."
 
-#: .\templates\projects\proyecto.html:147
+#: .\templates\projects\proyecto.html:150
 msgid "Progress by discipline"
 msgstr "Avance por disciplina"
 
-#: .\templates\projects\proyecto.html:154
+#: .\templates\projects\proyecto.html:157
 msgid "No discipline"
 msgstr "Sin disciplina"
 
-#: .\templates\projects\proyecto.html:169
+#: .\templates\projects\proyecto.html:172
 #, python-format
 msgid ""
 "One deliverable has no revision: nothing\n"
@@ -4423,123 +4423,151 @@ msgstr[1] ""
 "%(total)s entregables no tienen ninguna revisión: no se ha emitido nada de "
 "ellos."
 
-#: .\templates\projects\proyecto.html:190
+#: .\templates\projects\proyecto.html:193
 msgid "Open observations"
 msgstr "Observaciones abiertas"
 
-#: .\templates\projects\proyecto.html:255
+#: .\templates\projects\proyecto.html:258
 msgid "Nothing open."
 msgstr "Nada abierto."
 
-#: .\templates\projects\proyecto.html:285
-msgid "Take the report out"
-msgstr "Sacar el informe"
+#: .\templates\projects\proyecto.html:290
+msgid "Take out and bring in"
+msgstr "Sacar y recibir"
 
-#: .\templates\projects\proyecto.html:303
+#: .\templates\projects\proyecto.html:297
+msgid "Coordination report"
+msgstr "Informe de coordinación"
+
+#: .\templates\projects\proyecto.html:299
+msgid ""
+"The paper for the meeting: every finding with its picture. The CSV is the "
+"same list, editable in a spreadsheet."
+msgstr "El papel de la reunión: cada hallazgo con su imagen. El CSV es la misma lista, editable en una hoja de cálculo."
+
+#: .\templates\projects\proyecto.html:313
+msgid "What to include"
+msgstr "Qué incluir"
+
+#: .\templates\projects\proyecto.html:314
+msgid "by default: what is open, by priority, with thumbnails"
+msgstr "por omisión: lo abierto, por prioridad, con miniaturas"
+
+#: .\templates\projects\proyecto.html:318
 msgid "Print"
 msgstr "Imprimir"
 
-#: .\templates\projects\proyecto.html:305
+#: .\templates\projects\proyecto.html:320
 msgid "what is open"
 msgstr "lo que está abierto"
 
-#: .\templates\projects\proyecto.html:306
+#: .\templates\projects\proyecto.html:321
 msgid "what is closed"
 msgstr "lo que está cerrado"
 
-#: .\templates\projects\proyecto.html:307
+#: .\templates\projects\proyecto.html:322
 msgid "everything"
 msgstr "todo"
 
-#: .\templates\projects\proyecto.html:311
+#: .\templates\projects\proyecto.html:326
 msgid "ordered by"
 msgstr "ordenado por"
 
-#: .\templates\projects\proyecto.html:313
+#: .\templates\projects\proyecto.html:328
 msgid "priority"
 msgstr "prioridad"
 
-#: .\templates\projects\proyecto.html:315
+#: .\templates\projects\proyecto.html:330
 msgid "due date"
 msgstr "fecha de vencimiento"
 
-#: .\templates\projects\proyecto.html:316
+#: .\templates\projects\proyecto.html:331
 msgid "age"
 msgstr "antigüedad"
 
-#: .\templates\projects\proyecto.html:330
+#: .\templates\projects\proyecto.html:341
 msgid "tagged"
 msgstr "etiquetadas con"
 
-#: .\templates\projects\proyecto.html:332
+#: .\templates\projects\proyecto.html:343
 msgid "any tag"
 msgstr "cualquier etiqueta"
 
-#: .\templates\projects\proyecto.html:339
+#: .\templates\projects\proyecto.html:352
 msgid "only mine"
 msgstr "solo lo mío"
 
-#: .\templates\projects\proyecto.html:340
+#: .\templates\projects\proyecto.html:353
 msgid "with the comment thread"
 msgstr "con el hilo de comentarios"
 
-#: .\templates\projects\proyecto.html:341
+#: .\templates\projects\proyecto.html:354
 msgid "with thumbnails"
 msgstr "con miniaturas"
 
-#: .\templates\projects\proyecto.html:342
-msgid "Report in PDF"
-msgstr "Informe en PDF"
+#: .\templates\projects\proyecto.html:358
+msgid "Download the PDF"
+msgstr "Descargar el PDF"
 
-#: .\templates\projects\proyecto.html:343
+#: .\templates\projects\proyecto.html:359
 msgid "Table in CSV"
 msgstr "Tabla en CSV"
 
-#: .\templates\projects\proyecto.html:345
+#: .\templates\projects\proyecto.html:374
+msgid "Executive summary"
+msgstr "Resumen ejecutivo"
+
+#: .\templates\projects\proyecto.html:376
 msgid ""
-"The PDF is what you print and file. The CSV is the editable half: it opens "
-"in a spreadsheet, no need to ask for anything else."
-msgstr ""
-"El PDF es lo que se imprime y se archiva. El CSV es la mitad editable: abre "
-"en una hoja de cálculo, sin tener que pedir nada más."
+"One page for whoever does not come to the meeting: progress by discipline, "
+"what is overdue and for how long, and who has work ahead."
+msgstr "Una hoja para quien no va a la reunión: avance por disciplina, qué está vencido y desde cuándo, y quién tiene trabajo por delante."
 
-#: .\templates\projects\proyecto.html:363
-msgid "Executive summary, one page"
-msgstr "Resumen ejecutivo, una hoja"
+#: .\templates\projects\proyecto.html:382
+msgid "Download the page"
+msgstr "Descargar la hoja"
 
-#: .\templates\projects\proyecto.html:366
+#: .\templates\projects\proyecto.html:393
+msgid "Back and forth with the client (BCF)"
+msgstr "Ida y vuelta con el mandante (BCF)"
+
+#: .\templates\projects\proyecto.html:395
 msgid ""
-"Progress by discipline, what is overdue and for how long, and who has work "
-"ahead. For whoever does not come to the coordination meeting."
-msgstr ""
-"Avance por disciplina, qué está vencido y desde cuándo, y quién tiene "
-"trabajo por delante. Para quien no va a la reunión de coordinación."
+"The findings go out to their software — Solibri, Navisworks — and their "
+"answer comes back into the same threads."
+msgstr "Los hallazgos salen a su software —Solibri, Navisworks— y su respuesta vuelve a los mismos hilos."
 
-#: .\templates\projects\proyecto.html:373
-msgid "Bring an answer in"
-msgstr "Meter una respuesta"
+#: .\templates\projects\proyecto.html:402
+msgid "Send"
+msgstr "Mandar"
 
-#: .\templates\projects\proyecto.html:389
-msgid "Import a BCF answer"
-msgstr "Importar una respuesta BCF"
+#: .\templates\projects\proyecto.html:410
+msgid "Receive their answer"
+msgstr "Recibir su respuesta"
 
-#: .\templates\projects\proyecto.html:391
+#: .\templates\projects\proyecto.html:425
+msgid "The BCF file the client sent back"
+msgstr "El archivo BCF que devolvió el mandante"
+
+#: .\templates\projects\proyecto.html:426
+msgid "See what it brings"
+msgstr "Ver lo que trae"
+
+#: .\templates\projects\proyecto.html:429
 msgid ""
-"What the client sends back: new topics come in as observations, and answers "
-"to ours are added to their thread without overwriting anything."
-msgstr ""
-"Lo que devuelve el mandante: los temas nuevos entran como observaciones, y "
-"las respuestas a las nuestras se suman a su hilo sin pisar nada."
+"Nothing is written until you confirm: new topics come in as observations, "
+"and answers to ours are added to their thread."
+msgstr "No se escribe nada hasta que confirmes: los temas nuevos entran como observaciones, y las respuestas a las nuestras se suman a su hilo."
 
-#: .\templates\projects\proyecto.html:399
+#: .\templates\projects\proyecto.html:440
 msgid "Models and drawings you can open"
 msgstr "Modelos y planos que puedes abrir"
 
-#: .\templates\projects\proyecto.html:415
+#: .\templates\projects\proyecto.html:456
 msgid "Check interferences"
 msgstr "Revisar interferencias"
 
-#: .\templates\projects\proyecto.html:417
+#: .\templates\projects\proyecto.html:458
 #, python-format
 msgid ""
 "Crosses the %(cuantos)s current\n"
@@ -4550,7 +4578,7 @@ msgstr ""
 "Cruza los %(cuantos)s modelos vigentes todos contra todos. Tarda unos 20 "
 "segundos por par, así que la pantalla se queda quieta hasta que termina."
 
-#: .\templates\projects\proyecto.html:469
+#: .\templates\projects\proyecto.html:510
 msgid ""
 "No model or drawing published yet. An IFC or a DXF uploaded as a revision\n"
 "      opens here."
@@ -4558,15 +4586,15 @@ msgstr ""
 "Todavía no hay ningún modelo ni plano publicado. Un IFC o un DXF subido como "
 "revisión se abre acá."
 
-#: .\templates\projects\proyecto.html:505
+#: .\templates\projects\proyecto.html:546
 msgid "Register the first deliverable"
 msgstr "Registrar el primer entregable"
 
-#: .\templates\projects\proyecto.html:516
+#: .\templates\projects\proyecto.html:557
 msgid "Disciplines"
 msgstr "Disciplinas"
 
-#: .\templates\projects\proyecto.html:538
+#: .\templates\projects\proyecto.html:579
 msgid ""
 "No discipline yet. A deliverable needs one to be\n"
 "            registered."
@@ -4574,7 +4602,7 @@ msgstr ""
 "Todavía no hay ninguna disciplina. Un entregable necesita una para poder "
 "registrarse."
 
-#: .\templates\projects\proyecto.html:557
+#: .\templates\projects\proyecto.html:598
 msgid ""
 "No IDS loaded: nothing is being checked against the client's\n"
 "            requirement."
@@ -4582,16 +4610,16 @@ msgstr ""
 "Ningún IDS cargado: no se está comprobando nada contra el requisito del "
 "mandante."
 
-#: .\templates\projects\proyecto.html:595
+#: .\templates\projects\proyecto.html:636
 msgid "Only email. Notices inside the application are always immediate."
 msgstr ""
 "Solo el correo. Los avisos dentro de la aplicación son siempre inmediatos."
 
-#: .\templates\projects\proyecto.html:602
+#: .\templates\projects\proyecto.html:643
 msgid "When this work is over"
 msgstr "Cuando esta obra termine"
 
-#: .\templates\projects\proyecto.html:606
+#: .\templates\projects\proyecto.html:647
 msgid ""
 "Archiving takes it out of the lists and keeps everything inside:\n"
 "          deliverables, revisions and observations stay exactly as they are."
@@ -4599,15 +4627,15 @@ msgstr ""
 "Archivarla la saca de las listas y conserva todo lo de dentro: entregables, "
 "revisiones y observaciones se quedan tal cual."
 
-#: .\templates\projects\proyecto.html:615
+#: .\templates\projects\proyecto.html:656
 msgid "This work is archived: it does not show up in the lists."
 msgstr "Esta obra está archivada: no aparece en las listas."
 
-#: .\templates\projects\proyecto.html:619
+#: .\templates\projects\proyecto.html:660
 msgid "Open it again"
 msgstr "Volver a abrirla"
 
-#: .\templates\projects\proyecto.html:625
+#: .\templates\projects\proyecto.html:666
 msgid ""
 "And if you created it to try things out and it has nothing in it, it\n"
 "          can be deleted outright."
