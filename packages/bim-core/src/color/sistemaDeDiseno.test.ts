@@ -470,6 +470,23 @@ describe("contraste del texto", () => {
   });
 });
 
+describe("el tamaño de la letra", () => {
+  it("11 px solo para rótulos en mayúsculas: lo que se lee va a 12 como mínimo", () => {
+    // **Medido el 2026-09-23, en oscuro y con un modelo cargado**: los treinta rótulos de la cinta
+    // iban a 11 px, y dieciséis textos de lectura de los paneles también — varios de ellos
+    // explicaciones, como el motivo de las unidades de un plano, en el gris más apagado. El usuario
+    // dijo que no se leía, y los ratios pasaban: el defecto era el tamaño, no el color.
+    //
+    // `text-micro` sirve para lo que va en mayúsculas con espaciado —el rótulo de un grupo, la
+    // cabecera de una sección—, que se lee más grande de lo que mide. Para una frase no.
+    const malos = CODIGO.split("\n")
+      // `(?<![-\w])` deja fuera la declaración del propio token, `--text-micro:`, en `index.css`.
+      .filter((linea) => /(?<![-\w])text-micro\b/.test(linea) && !/\buppercase\b/.test(linea))
+      .map((linea) => linea.trim().slice(0, 90));
+    expect(malos).toEqual([]);
+  });
+});
+
 describe("los suelos de lo que no es texto", () => {
   it("el contorno de campo pasa 3:1, que es lo que pide WCAG 1.4.11", () => {
     expect(
@@ -477,12 +494,31 @@ describe("los suelos de lo que no es texto", () => {
     ).toBeGreaterThanOrEqual(AA_NO_TEXTO);
   });
 
-  it("lo deshabilitado no pasa AA a propósito, pero se lee", () => {
-    // Declara que no se puede usar; si además no se lee, nadie sabe qué dice el botón que no puede
-    // pulsar. Por eso tiene suelo propio y no exención.
-    const ratio = contrastRatio(T["apagado-fg"] as string, T["surface"] as string);
-    expect(ratio).toBeGreaterThanOrEqual(AA_NO_TEXTO);
-    expect(ratio).toBeLessThan(AA_TEXTO);
+  it.each([
+    ["oscuro", T],
+    ["claro", CLARO],
+  ])("lo deshabilitado se lee con AA en tema %s, y sigue viéndose apagado", (_tema, tema) => {
+    // **Esta prueba decía lo contrario hasta el 2026-09-23**: exigía que lo deshabilitado quedara
+    // por debajo de AA, para que se distinguiera de lo activo. El usuario miró la cinta en oscuro y
+    // «Modo 2D» y «Ejes» apagados se leían como un borrón. Un botón que no se puede pulsar hay que
+    // poder leerlo, o nadie sabe que existe ni por qué no responde.
+    //
+    // Así que el suelo sube a AA —sobre el panel **y** sobre el relleno del propio control
+    // deshabilitado, que es la segunda superficie donde cae— y la distinción pasa a medirse contra
+    // lo activo: un botón activo va en `fg-2`, y apagado tiene que dar bastante menos.
+    //
+    // En los dos temas: la primera versión del claro daba 2,99:1 porque su valor salió de la tabla
+    // sin medir, y una regla que solo se prueba en un tema deja el otro al azar.
+    expect(
+      contrastRatio(tema["apagado-fg"] as string, tema["surface"] as string),
+    ).toBeGreaterThanOrEqual(AA_TEXTO);
+    expect(
+      contrastRatio(tema["apagado-fg"] as string, tema["apagado"] as string),
+    ).toBeGreaterThanOrEqual(AA_TEXTO);
+    expect(
+      contrastRatio(tema["apagado-fg"] as string, tema["surface"] as string) /
+        contrastRatio(tema["fg-2"] as string, tema["surface"] as string),
+    ).toBeLessThan(0.8);
   });
 
   it("la marca no sirve para texto, y por eso hay un acento aparte", () => {

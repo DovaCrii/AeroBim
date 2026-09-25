@@ -55,7 +55,12 @@ export function ViewCube({
     >
       <svg
         viewBox="0 0 120 128"
-        className="h-28 w-28 overflow-visible"
+        // **`h-36` y no `h-28`, y es por la letra** (2026-09-23). Ojo con las cuentas: el visor usa
+        // `--spacing: 0.275rem`, no el 0.25 de Tailwind, así que `h-28` son 123 px y `h-36` 158 —
+        // medido en el navegador, no deducido de la clase—. El `viewBox` mide 128 de alto: a 123 px
+        // las caras rotulaban a **8,7 px reales**, y el usuario lo miró en oscuro y no lo leía. A
+        // 158 el dibujo va al 123 %.
+        className="h-36 w-36 overflow-visible"
         role="group"
         aria-label="Cubo de vistas"
       >
@@ -156,9 +161,12 @@ function Cara({
         // ancho que su cara**, y dejaba dos píxeles hasta «LATERAL», que se leían como una sola
         // palabra. Tumbarlo no lo arregla: `skewY` desplaza en vertical y no estrecha nada.
         //
-        // A 9 unidades del `viewBox` cabe con margen. Y va aquí y no en una clase porque esto es un
-        // dibujo: la escala de texto de la interfaz manda en la interfaz, no dentro de un icono.
-        fontSize={9}
+        // A 10 unidades y con el dibujo al 123 % son **12,3 px en pantalla**, frente a los 8,7 de
+        // antes. Y sigue cabiendo, medido: «FRONTAL» ocupa 54 px de los 59 de su cara, así que no
+        // vuelve el defecto de 11 unidades —el texto más ancho que la cara, pegado a «LATERAL»—. Va
+        // aquí y no en una clase porque esto es un dibujo: la escala de texto de la interfaz manda
+        // en la interfaz, no dentro de un icono.
+        fontSize={10}
         className="pointer-events-none fill-sobre-lienzo tracking-wide uppercase"
       >
         {etiqueta}
