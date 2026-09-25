@@ -28,6 +28,15 @@
   {% if puede_exportar_bcf %}
     · <a href="{% url 'documents:exportar-bcf' proyecto.pk %}">{% translate "Export to BCF 2.1" %}</a>
   {% endif %}
+  {% comment %}
+    **La salida se anuncia arriba y se hace abajo.** Archivar y borrar están al pie a propósito —ver
+    la zona delicada—, pero al pie de una ficha de seiscientas líneas no los encontró el usuario
+    que los buscaba: «cómo los puedo ir archivando o borrando». Un enlace aquí no cambia nada de la
+    decisión; solo dice que existe y dónde.
+  {% endcomment %}
+  {% if perms.projects.change_proyecto and proyecto.is_active %}
+    · <a href="#titulo-salidas">{% translate "Archive or delete" %}</a>
+  {% endif %}
 </p>
 {% endblock %}
 
@@ -41,6 +50,24 @@
     **Ninguno de estos gráficos usa una librería**: la rejilla del mes la genera el módulo
     `calendar` de Python y las barras se posicionan con porcentajes que calcula `tablero.py`.
   {% endcomment %}
+
+  {% comment %}
+    **Archivada, se dice lo primero.** La ficha sigue abriéndose por su enlace, y sin esto se ve
+    igual que una obra en curso: alguien sube una revisión a una obra que no sale en ninguna lista
+    y no entiende por qué nadie la encuentra.
+  {% endcomment %}
+  {% if not proyecto.is_active %}
+    <div class="aviso">
+      {% blocktranslate %}This work is archived: it does not show up in the lists, and nothing in it
+      counts as anyone's pending work. Everything inside is kept.{% endblocktranslate %}
+      {% if perms.projects.change_proyecto %}
+        <form method="post" action="{% url 'projects:archivar-proyecto' proyecto.pk %}" class="en-linea">
+          {% csrf_token %}
+          <button type="submit" class="secundario chico">{% translate "Open it again" %}</button>
+        </form>
+      {% endif %}
+    </div>
+  {% endif %}
 
   {# --- Lo que se mira en tres segundos --------------------------------------------- #}
   <div class="datos">
@@ -586,7 +613,8 @@
 
       {% if proyecto.is_active %}
         <p class="detalle">
-          {% blocktranslate %}Archiving takes it out of the lists and keeps everything inside:
+          {% blocktranslate %}Archiving takes it out of the lists and out of everyone's pending
+          work — the inbox, the team follow-up and the morning email — and keeps everything inside:
           deliverables, revisions and observations stay exactly as they are.{% endblocktranslate %}
         </p>
         <form method="post" action="{% url 'projects:archivar-proyecto' proyecto.pk %}">

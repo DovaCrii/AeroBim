@@ -57,19 +57,29 @@
   <nav class="indice-del-recorrido" aria-label="{% translate 'The three parts of the walkthrough' %}">
     <ol>
       {% for tramo in tramos %}
-        <li><a href="#{{ tramo.fase.ancla }}">{{ tramo.fase.titulo }}</a></li>
+        <li class="acento-{{ tramo.fase.acento }}"><a href="#{{ tramo.fase.ancla }}">{{ tramo.fase.titulo }}</a></li>
       {% endfor %}
     </ol>
   </nav>
 
   {% for tramo in tramos %}
-    <section class="tramo-del-recorrido" id="{{ tramo.fase.ancla }}">
+    {% comment %}
+      **Cada fase es un bloque con su color, y el color es el de su sitio en el rail** (2026-09-25).
+      Con las tres fases dibujadas igual —mismas tarjetas, misma franja violeta— el usuario no
+      distinguía «qué sección corresponde a otra y cuál es el proceso». Ahora cada fase va en su
+      propio marco, teñido con el acento del grupo del menú donde ocurre, y entre una y otra hay una
+      flecha: el proceso se lee de arriba abajo sin leer los títulos.
+    {% endcomment %}
+    <section class="tramo-del-recorrido acento-{{ tramo.fase.acento }}" id="{{ tramo.fase.ancla }}">
       {% comment %}
         **La fase es lo que ordena la página, y ahora se ve como tal.** Iba en `.grupo` —el rótulo
         pequeño en mayúsculas que separa bloques—, o sea que el título de la fase pesaba menos que el
         de cualquiera de sus pasos. Sube a título con su número, y de qué va justo debajo.
       {% endcomment %}
       <header class="fase-cabeza">
+        <p class="fase-de">
+          {% blocktranslate with n=forloop.counter total=tramos|length %}Part {{ n }} of {{ total }}{% endblocktranslate %}
+        </p>
         <h2>
           <span class="fase-numero" aria-hidden="true">{{ forloop.counter }}</span>
           {{ tramo.fase.titulo }}
@@ -124,7 +134,19 @@
     </section>
   {% endfor %}
 
-  <p class="grupo">{% translate "Two things worth knowing" %}</p>
+  {% comment %}
+    **Lo de consulta, dibujado como consulta.** Iba con el mismo rótulo pequeño y las mismas
+    tarjetas que el proceso, así que se leía como una cuarta fase. Ahora es otra cosa a la vista:
+    sin color, sin número, en un marco discontinuo, y con un título que dice que no son pasos.
+  {% endcomment %}
+  <section class="para-consultar" aria-labelledby="titulo-consulta">
+  <header class="consulta-cabeza">
+    <h2 id="titulo-consulta">{% translate "For reference" %}</h2>
+    <p class="subtitulo">
+      {% blocktranslate %}Not steps of the walkthrough: the rules that explain why AeroBim behaves
+      as it does, and the vocabulary, for when the question comes up.{% endblocktranslate %}
+    </p>
+  </header>
   <div class="tarjetas">
     {% comment %}
       Las dos reglas del producto que explican **por qué** se comporta como se comporta, y que sin
@@ -192,4 +214,5 @@
       </div>
     </a>
   </div>
+  </section>
 {% endblock %}

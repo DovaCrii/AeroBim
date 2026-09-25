@@ -55,8 +55,22 @@ class ProyectosView(
     context_object_name = "proyectos"
     paginate_by = 50
 
+    @property
+    def archivadas(self) -> bool:
+        """Si se mira el archivo en vez de las obras en curso.
+
+        **Hacía falta para poder deshacer.** Archivar redirigía a esta lista, y la obra no volvía a
+        salir en ninguna: «se puede deshacer» era cierto solo para quien guardó el enlace.
+        """
+        return self.request.GET.get("archivadas") == "1"
+
     def get_queryset(self):
-        consulta = super().get_queryset().filter(is_active=True).select_related("organizacion")
+        consulta = (
+            super()
+            .get_queryset()
+            .filter(is_active=not self.archivadas)
+            .select_related("organizacion")
+        )
         # **El avance se calcula por proyecto y precarga sus entregables**: `avance_fisico` mira
         # la revision vigente de cada uno, y sin esto una lista de veinte proyectos son cientos
         # de consultas. La precarga ya esta escrita como parte del calculo en el modelo.
@@ -133,6 +147,12 @@ class ProyectosView(
             naturaleza__in=(Proyecto.PRUEBA, Proyecto.DEMO)
         ).count()
         contexto["sin_pruebas"] = self.sin_pruebas
+        contexto["archivadas"] = self.archivadas
+        contexto["cuantas_archivadas"] = (
+            scope_queryset_to_organizacion(Proyecto.objects.all(), self.request.user)
+            .filter(is_active=False)
+            .count()
+        )
         return contexto
 
 

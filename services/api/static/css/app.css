@@ -3417,10 +3417,18 @@ button.peligro:hover {
  * tres subrayados pegados, «Abrir Compartir Descargar», y se leían como una frase. 28 px de alto
  * pasa de sobra el mínimo de 24 × 24 de WCAG 2.5.8.
  */
-.boton.chico {
+.boton.chico,
+button.chico {
   min-height: 28px;
   padding: 3px 10px;
   font-size: var(--ab-texto-xs);
+}
+
+/* Un formulario de un solo botón dentro de una frase: el aviso de la obra archivada. */
+form.en-linea {
+  display: inline-block;
+  margin: 0 0 0 10px;
+  vertical-align: middle;
 }
 
 /*
@@ -3904,13 +3912,114 @@ button.peligro:hover {
 }
 
 .indice-del-recorrido a:hover {
-  border-color: var(--ab-primary);
-  color: var(--ab-primary);
+  border-color: var(--acento, var(--ab-primary));
+  color: var(--ab-text);
 }
 
+/* Cada salto lleva el color de su fase: el índice es la leyenda de los tres marcos de abajo. */
+.indice-del-recorrido a {
+  border-left: 4px solid var(--acento, var(--ab-border));
+}
+
+.indice-del-recorrido a::before {
+  color: var(--acento, var(--ab-text-muted));
+  font-weight: 700;
+}
+
+/*
+ * **Cada fase, un marco con su color** (2026-09-25).
+ *
+ * Las tres fases iban dibujadas igual —mismas tarjetas, misma franja violeta— y seguidas del bloque
+ * de consulta con las mismas tarjetas: el usuario no distinguía «qué sección corresponde a otra y
+ * cuál es el proceso». Ahora cada fase es un marco con el acento del grupo del rail donde ocurre
+ * (`Fase.acento` en `ayuda.py`): borde superior lleno, fondo apenas teñido y franja de sus pasos del
+ * mismo color. **El tinte es del 7 %** y no más: por encima, el texto de las tarjetas empieza a
+ * leerse sobre un color y no sobre la superficie, y el contraste medido deja de valer.
+ *
+ * Y entre una fase y la siguiente, una flecha: es lo que dice que esto es un proceso y no tres
+ * bloques sueltos. Va con `:has(+ …)` para que la última fase no apunte al bloque de consulta.
+ */
 .tramo-del-recorrido {
+  position: relative;
   scroll-margin-top: var(--ab-esp-5);
-  margin-bottom: var(--ab-esp-5);
+  margin-bottom: 52px;
+  padding: var(--ab-esp-5);
+  background: color-mix(in srgb, var(--acento, var(--ab-primary)) 7%, var(--ab-bg));
+  border: 1px solid color-mix(in srgb, var(--acento, var(--ab-primary)) 40%, var(--ab-border));
+  border-top: 4px solid var(--acento, var(--ab-primary));
+  border-radius: var(--ab-radius);
+}
+
+.tramo-del-recorrido:has(+ .tramo-del-recorrido)::after {
+  content: "↓";
+  position: absolute;
+  left: 50%;
+  bottom: -44px;
+  transform: translateX(-50%);
+  font-size: var(--ab-texto-lg);
+  line-height: 1;
+  color: var(--ab-text-muted);
+}
+
+.tramo-del-recorrido .paso-ayuda {
+  border-left-color: var(--acento, var(--ab-primary));
+}
+
+/* Y el paso que no te toca sigue apagado dentro de su fase: sin esto, la regla de arriba —más
+   específica— le devolvía el color y «no es tuyo» dejaba de verse. */
+.tramo-del-recorrido .paso-ajeno {
+  border-left-color: var(--ab-border);
+}
+
+/* «Fase 1 de 3», encima del título: el lugar en el proceso. **El color va en la marca, no en la
+   letra**: escrito en el verde de coordinación sobre el fondo teñido daba 4,45:1 en claro —medido—,
+   y a 11 px eso no llega. La tinta de texto llega en los dos temas y la marca sigue diciendo cuál. */
+.fase-de {
+  margin: 0 0 var(--ab-esp-1);
+  padding-left: var(--ab-esp-2);
+  font-size: var(--ab-texto-micro);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ab-text-secondary);
+  border-left: 3px solid var(--acento, var(--ab-primary));
+}
+
+/*
+ * **Lo de consulta, sin nada del proceso.** Sin color, sin número, sin sombra y en un marco
+ * discontinuo: se ve que es otra clase de cosa antes de leer el título. Las tarjetas pierden la
+ * elevación —aquí no son módulos que se abren a diario, son lecturas— y conservan el borde de
+ * al pasar, que es lo que dice que son enlaces.
+ */
+.para-consultar {
+  margin-top: var(--ab-esp-5);
+  padding: var(--ab-esp-5);
+  border: 1px dashed var(--ab-border-control);
+  border-radius: var(--ab-radius);
+}
+
+.consulta-cabeza {
+  margin: 0 0 var(--ab-esp-4);
+}
+
+.consulta-cabeza h2 {
+  margin: 0 0 var(--ab-esp-1);
+  font-size: var(--ab-texto-lg);
+}
+
+.consulta-cabeza .subtitulo {
+  margin: 0;
+}
+
+.para-consultar .tarjeta {
+  background: transparent;
+  box-shadow: none;
+}
+
+/* Sin el filo de color de arriba: aquí el color es de las fases, y una raya violeta en cada lectura
+   la hacía parecer una cuarta. */
+.para-consultar .tarjeta::after {
+  content: none;
 }
 
 /*
@@ -3938,8 +4047,8 @@ button.peligro:hover {
   width: 32px;
   height: 32px;
   font-size: var(--ab-texto-base);
-  color: var(--ab-sobre-primary);
-  background: var(--ab-primary);
+  color: var(--acento-fg, var(--ab-sobre-primary));
+  background: var(--acento, var(--ab-primary));
   border-radius: 999px;
 }
 
