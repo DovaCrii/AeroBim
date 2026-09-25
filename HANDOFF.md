@@ -1143,10 +1143,16 @@ una ventaja: lo que se aprenda de un lado sirve del otro.
 
 ### Y una del flujo de trabajo
 
-20. **Una PR apilada no se reapunta a `main` sola.** GitHub la reapunta **solo si la rama base se
-    borra** al fusionar. `gh pr merge 55 && gh pr merge 56` dio dos ✓ y la segunda se fusionó en la
-    rama de la primera, que ya no llevaba a ningún sitio: `main` se quedó sin ese trabajo y nada lo
-    dijo. O van sobre `main` desde el principio, o se fusiona con `--delete-branch`.
+20. **Una PR apilada no se reapunta a `main` sola, y borrar la base puede cerrarla.** Dos formas de
+    perder trabajo, las dos vividas:
+    - `gh pr merge 55 && gh pr merge 56` dio dos ✓ y la segunda se fusionó en la rama de la
+      primera, que ya no llevaba a ningún sitio: `main` se quedó sin ese trabajo y nada lo dijo.
+    - Con #64 ya fusionada, borrar su rama después **cerró** #65 en vez de reapuntarla: hubo que
+      rehacerla como #68. GitHub solo reapunta si el borrado va **en el mismo acto** de fusionar.
+
+    Regla: **toda PR va contra `main`** desde el principio, aunque arrastre los commits de otra
+    mientras esa no entra. Si ya hay una apilada, `gh pr edit N --base main` **antes** de borrar
+    nada.
 
 ## Decisiones y archivos que hacen falta
 

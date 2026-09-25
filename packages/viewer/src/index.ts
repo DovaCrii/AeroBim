@@ -710,7 +710,13 @@ function encenderSombras(world: World): void {
     renderizador.shadowMap.enabled = true;
     // Bordes suaves. Con el mapa duro por defecto, la sombra de una viga sale como una escalera
     // de píxeles y se lee como un defecto de dibujo, no como una sombra.
-    renderizador.shadowMap.type = THREE.PCFSoftShadowMap;
+    //
+    // **`PCFShadowMap` y no `PCFSoftShadowMap`**, que era lo que había. Three.js lo retiró en la
+    // versión que usamos (0.185): lo convierte en `PCFShadowMap` por su cuenta y lo avisa en la
+    // consola en cada carga, porque ahora el suavizado lo hace el propio `PCF`. El resultado en
+    // pantalla es el mismo; lo que sobraba era pedir el nombre viejo y ensuciar la consola, que es
+    // donde se busca cuando algo falla de verdad.
+    renderizador.shadowMap.type = THREE.PCFShadowMap;
   }
 
   world.scene.three.traverse((objeto) => {

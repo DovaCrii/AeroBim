@@ -578,8 +578,12 @@ export function ProjectBrowser({
      *
      * Convive con el reparto del alto porque las plegadas son `shrink-0` —no pueden encogerse, así
      * que desbordan y aparece la barra— mientras la abierta sigue tomando lo que sobra.
+     *
+     * **Y por ese mismo `overflow` el anillo de foco va hacia dentro.** Las cabeceras ocupan todo
+     * el ancho, así que con el desplazamiento general hacia fuera el contenedor recortaba los dos
+     * lados del anillo: con teclado quedaban dos rayas sueltas y no un marco.
      */
-    <div className="flex h-full min-h-0 flex-col overflow-y-auto">
+    <div className="flex h-full min-h-0 flex-col overflow-y-auto [&_:focus-visible]:-outline-offset-2">
       {GRUPOS.map((grupo) => {
         const suyas = SECCIONES.filter((una) => una.grupo === grupo);
         /**
