@@ -522,6 +522,17 @@ export function App() {
   /** Capas de plano apagadas, como `plano:capa`. */
   const [hiddenPlanLayers, setHiddenPlanLayers] = useState<ReadonlySet<string>>(new Set());
   /**
+   * Las capas que **el propio CAD** trae apagadas, con la misma clave que `hiddenPlanLayers`.
+   *
+   * Arrancan apagadas también aquí, y está bien: el plano se ve como en AutoCAD. Lo que no puede
+   * pasar es que cuenten como algo que ocultó quien mira. Sin distinguirlas, la barra de estado
+   * decía «Hay elementos ocultos» **en cuanto se abría el plano** —medido con `ACAD-Piso 5_Base.dxf`,
+   * que trae «0-AREA UTIL» apagada—, y un aviso que salta siempre enseña a no leerlo.
+   */
+  const [capasApagadasDeOrigen, setCapasApagadasDeOrigen] = useState<ReadonlySet<string>>(
+    new Set(),
+  );
+  /**
    * La última vista normalizada aplicada, para que el cubo diga hacia dónde se mira.
    *
    * Se borra en cuanto alguien orbita a mano: seguir marcando "Planta" con la cámara en cualquier
@@ -706,11 +717,10 @@ export function App() {
       // la lista miente. Se pueden encender una por una — la geometría está cargada.
       const apagadas = plano.layers.filter((capa) => capa.off);
       if (apagadas.length > 0) {
-        setHiddenPlanLayers((actual) => {
-          const siguiente = new Set(actual);
-          for (const capa of apagadas) siguiente.add(`${plano.id}:${capa.name}`);
-          return siguiente;
-        });
+        const claves = apagadas.map((capa) => `${plano.id}:${capa.name}`);
+        setHiddenPlanLayers((actual) => new Set([...actual, ...claves]));
+        // Y se anotan aparte **como del plano, no de quien lo mira**: ver `hasHidden`.
+        setCapasApagadasDeOrigen((actual) => new Set([...actual, ...claves]));
       }
       setStatus({ kind: "ready" });
       requestAnimationFrame(() => instance.framePlan(plano.id, "top"));
@@ -1650,6 +1660,15 @@ export function App() {
       siguiente.delete(id);
       return siguiente;
     });
+    // **Y sus capas, que se quedaban.** Se borraba el plano de `hiddenPlans` pero no sus capas de
+    // `hiddenPlanLayers`, así que un plano que se cerraba con una capa apagada —y basta con que el
+    // CAD la trajera apagada— dejaba la barra diciendo «Hay elementos ocultos» **para siempre**, sin
+    // nada oculto y sin plano que encender. Medido el 2026-09-25 con `ACAD-Piso 5_Base.dxf`.
+    const prefijo = `${id}:`;
+    const sinSusCapas = (actual: ReadonlySet<string>) =>
+      new Set([...actual].filter((clave) => !clave.startsWith(prefijo)));
+    setHiddenPlanLayers(sinSusCapas);
+    setCapasApagadasDeOrigen(sinSusCapas);
     void viewer.current?.removePlan(id);
   }, []);
 
@@ -2104,7 +2123,10 @@ export function App() {
     hiddenModels.size > 0 ||
     hiddenElements.size > 0 ||
     hiddenPlans.size > 0 ||
-    hiddenPlanLayers.size > 0 ||
+    // **Solo lo que apagó quien mira.** Una capa que el CAD ya traía apagada es cómo está dibujado
+    // el plano, no algo que haya que deshacer. Si esa capa se enciende y se vuelve a apagar, queda
+    // como el autor la dejó y tampoco cuenta.
+    [...hiddenPlanLayers].some((clave) => !capasApagadasDeOrigen.has(clave)) ||
     visibilidadDeObservacion;
 
   /**
@@ -2579,8 +2601,18 @@ export function App() {
             suelta era `BUTTON` y `closest("canvas")` daba `null`. Y ahí es donde uno suelta, porque
             es lo único que se ve. Colgado del contenedor, cualquier sitio del centro sirve —
             también el cubo de vistas y las tarjetas flotantes, que tienen sus propios eventos. */}
+        {/* **El modelo nunca baja de la mitad del ancho** (2026-09-25).
+
+            El mínimo era 240 px, y eso solo protegía de que el lienzo desapareciera: en una ventana
+            de 1024 px los dos paneles seguían a 346 cada uno y el modelo se quedaba con **323 px**,
+            un tercio de la pantalla — medido. Los paneles ya sabían ceder (`shrink`), pero nada les
+            pedía hacerlo, porque 323 ya pasaba de 240.
+
+            Con la mitad como suelo, a 1024 ceden a unos 256 cada uno —por encima de los 240 que
+            necesita un nombre— y a 1600 o más no se nota: ahí el modelo ya pasa de la mitad. El
+            ancho que cada uno arrastró se conserva: solo se encoge mientras la ventana no da. */}
         <div
-          className="relative flex min-h-0 min-w-[240px] flex-1 shrink-0"
+          className="relative flex min-h-0 min-w-[max(240px,50%)] flex-1 shrink-0"
           onDragOver={(event) => {
             event.preventDefault();
             setDragging(true);

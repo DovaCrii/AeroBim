@@ -355,14 +355,20 @@ export function Ribbon({
         </div>
       </div>
 
-      {/* **`vacio` gana al pliegue, y esto es un arreglo medido, no una preferencia mía.** Con la
+      {/* **El anillo de foco, hacia dentro.** Con el `outline-offset: 2px` general, el contenedor
+          —que desplaza en horizontal y por eso recorta— se comía el borde de arriba de los once
+          botones grandes: con teclado no se sabía bien cuál estaba enfocado. Medido, no supuesto.
+
+          **`vacio` gana al pliegue, y esto es un arreglo medido, no una preferencia mía.** Con la
           cinta plegada de ayer —se recuerda en el navegador— el grupo «Empezar» quedaba en el DOM
           con 46 px de cinta y `altoGrupo: 0`: la única fila de la cinta ofrecía tres pestañas
           apagadas y nada más. El pliegue existe para **dejarle el lienzo al modelo**, y sin modelo
           no protege nada. Se recupera intacto en cuanto haya algo abierto. */}
       <div
         className={
-          collapsed && !vacio ? "hidden" : "flex items-stretch overflow-x-auto px-1 py-0.5"
+          collapsed && !vacio
+            ? "hidden"
+            : "flex items-stretch overflow-x-auto px-1 py-0.5 [&_:focus-visible]:-outline-offset-2"
         }
       >
         {/* **Con la escena vacía la cinta no son treinta y seis botones grises.**

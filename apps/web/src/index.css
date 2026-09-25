@@ -376,10 +376,17 @@ body {
  *
  * Va en `:focus-visible` y no en `:focus` a propósito: así no aparece al hacer clic con el ratón,
  * que es lo que hace que la gente lo quite.
+ *
+ * **Y va en `@layer base`, no suelta.** Una regla sin capa gana a toda `@layer utilities` sin
+ * importar la especificidad, así que ninguna clase podía corregirla donde hacía falta: en la cinta y
+ * en el navegador, que desplazan y por eso recortan, el anillo hacia fuera perdía uno o dos lados en
+ * 27 de 54 controles. Ahí se pide hacia dentro con `[&_:focus-visible]:-outline-offset-2`.
  */
-:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
 }
 
 /* Las cifras en columna, donde toque. */
