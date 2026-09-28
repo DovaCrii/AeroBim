@@ -755,6 +755,23 @@ class PublicarLaminaAPI(APIView):
         )
 
 
+#: El tipo con que se sirven **los formatos de texto**, y es lo que decide si viajan comprimidos.
+#:
+#: nginx comprime por tipo (`gzip_types` en `deploy/nginx-aerobim.conf`), y todo salía como
+#: `application/octet-stream`, que no se comprime —casi siempre es binario y comprimirlo es gastar
+#: CPU para nada—. Un IFC es texto STEP y comprime cinco o diez veces: un modelo de metro de 800 MB
+#: son ~100 por la red. Lo binario —el COPC, el PDF— sigue como estaba: ya viene comprimido.
+TIPOS_DE_TEXTO = {
+    "ifc": "application/x-step",
+    "dxf": "image/vnd.dxf",
+}
+
+
+def tipo_para_el_visor(clave: str) -> str:
+    """El tipo MIME de lo que se sirve al visor: el de texto si lo es, y si no, binario."""
+    return TIPOS_DE_TEXTO.get(storage.extension_de(clave), "application/octet-stream")
+
+
 class RevisionContenidoAPI(APIView):
     """Los bytes, **en línea y no como descarga**.
 
@@ -786,7 +803,7 @@ class RevisionContenidoAPI(APIView):
         try:
             ruta = storage.ruta_de(clave)
             respuesta = rangos.respuesta_de_archivo(
-                ruta, request.headers.get("Range"), tipo="application/octet-stream"
+                ruta, request.headers.get("Range"), tipo=tipo_para_el_visor(clave)
             )
         except (OSError, storage.CargaRechazada) as error:
             # El registro dice que hay archivo y el disco dice que no. Es un 404 honesto: lo

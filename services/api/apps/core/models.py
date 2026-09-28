@@ -369,11 +369,15 @@ class Aviso(BaseModel):
     COMENTARIO = "comentario"
     VENCIMIENTO = "vencimiento"
     TRANSMITTAL = "transmittal"
+    #: El final de una revisión de interferencias lanzada en segundo plano: la pantalla ya no está
+    #: esperando, así que la campana es la única forma de enterarse de que terminó.
+    INTERFERENCIAS = "interferencias"
     TIPOS = [
         (ASIGNACION, _("Assigned to you")),
         (COMENTARIO, _("New reply")),
         (VENCIMIENTO, _("Overdue")),
         (TRANSMITTAL, _("Documents issued")),
+        (INTERFERENCIAS, _("Clash review")),
     ]
 
     destinatario = models.ForeignKey(

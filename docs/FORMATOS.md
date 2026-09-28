@@ -11,13 +11,32 @@ pasárselo a quien entrega archivos** sin tener que explicarlo cada vez.
 **AeroBim lee IFC, DXF y COPC.** No lee DWG ni DGN, y no es una carencia pendiente: es una decisión
 que se sostiene en licencias y en lo que un formato de intercambio tiene que garantizar.
 
-| Para qué               | Formato            | Estado |
-| ---------------------- | ------------------ | ------ |
-| Modelo 3D              | **IFC** 2x3 / 4    | ✅ lee |
-| Plano 2D de referencia | **DXF**            | ✅ lee |
-| Levantamiento          | **COPC** (LAZ 1.4) | ✅ lee |
-| Modelo 3D de Autodesk  | DWG                | ❌ no  |
-| Modelo o plano Bentley | DGN                | ❌ no  |
+| Para qué               | Formato                 | Estado                             |
+| ---------------------- | ----------------------- | ---------------------------------- |
+| Modelo 3D              | **IFC** 2x3 / 4         | ✅ lee                             |
+| Modelo 3D comprimido   | **IFC-ZIP** (`.ifczip`) | ✅ lee — se desempaqueta al entrar |
+| Plano 2D de referencia | **DXF**                 | ✅ lee                             |
+| Levantamiento          | **COPC** (LAZ 1.4)      | ✅ lee                             |
+| Modelo 3D de Autodesk  | DWG                     | ❌ no                              |
+| Modelo o plano Bentley | DGN                     | ❌ no                              |
+
+## Modelos grandes: el IFC comprimido (2026-09-28)
+
+Por un proyecto de metro. Un modelo de estación o de un tramo de túnel pasa de los **200 MB** que
+admite una subida, y un IFC es texto: comprime entre cinco y diez veces (`Piso 5.ifc`: 1 555 KB →
+315 KB). El formato para eso es el **IFC-ZIP** de buildingSMART —un `.zip` con **un solo** `.ifc`
+dentro, con extensión `.ifczip`—, y lo exportan Revit, Tekla, ArchiCAD y Civil 3D.
+
+- **Al registro**: se sube el `.ifczip` y **se archiva el IFC de dentro**, con su huella y su tamaño.
+  El tope de 200 MB se mide sobre lo comprimido; lo descomprimido admite hasta **2 GB**
+  (`AEROBIM_IFCZIP_MAXIMO_MB`), que es lo que un navegador llega a abrir: `web-ifc` es WebAssembly
+  de 32 bits. Todo lo de después —visor, interferencias, IDS, informe— ve un IFC normal.
+- **Al visor, desde el disco**: se suelta o se elige el `.ifczip` y el navegador lo descomprime.
+- **Y al abrirlo del registro viaja comprimido**: nginx comprime el IFC al servirlo. Ver
+  `docs/DEPLOY.md`, «Actualizar».
+
+Si un modelo **descomprimido** pasa de 2 GB, no hay formato que lo arregle: hay que partirlo por
+especialidad y por tramo, que es además como se coordina un metro.
 
 ## Por qué no DWG
 

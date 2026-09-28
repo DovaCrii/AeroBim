@@ -2,6 +2,8 @@ import {
   BimViewer,
   csvDe,
   queHacerCon,
+  esZip,
+  ifcDelZip,
   type DistanceMode,
   type DrawingView,
   type DrawnMeasurement,
@@ -740,7 +742,11 @@ export function App() {
     // del primero apuntaría a un GUID que ese archivo no contiene.
     setOrigen(null);
     try {
-      const bytes = new Uint8Array(await file.arrayBuffer());
+      let bytes = new Uint8Array(await file.arrayBuffer());
+      // **Un `.ifczip` se abre por el IFC que trae.** Se decide por la firma y no por el nombre:
+      // lo desconocido se intenta como IFC (`formatos.ts`), y un zip llegaba así a `web-ifc`, que
+      // se caía con `memory access out of bounds` sin decir de qué archivo hablaba.
+      if (esZip(bytes)) bytes = await ifcDelZip(bytes);
       const loaded = await instance.loadIfc(bytes, file.name, (stage) => {
         setStatus({ kind: "loading", name: file.name, stage });
       });
@@ -2439,7 +2445,8 @@ export function App() {
                 ref={entradaDeArchivo}
                 type="file"
                 // La nube entra por la misma puerta que el modelo y el plano: `F12.1`.
-                accept=".ifc,.dxf,.laz,.las"
+                // Y el IFC comprimido: sin él en la lista, el diálogo lo escondía.
+                accept=".ifc,.ifczip,.dxf,.laz,.las"
                 // **Varios de una vez, igual que soltándolos**: el modelo y su levantamiento se
                 // eligen juntos, y las dos puertas tienen que hacer lo mismo o una miente.
                 multiple

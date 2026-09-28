@@ -234,7 +234,35 @@ class RevisionForm(forms.ModelForm):
         self.extension = extension
         self.sha256 = sha
         self.tamano = subido.size
+        self.desempaquetado = None
+
+        # **Un `.ifczip` es el sobre, no el entregable** (`ifczip.py`): lo que se archiva es el IFC
+        # de dentro, con **su** huella y **su** tamaño. La vista guarda el temporal en vez del
+        # archivo subido, y `nombre_para_archivar` le dice con qué nombre.
+        if extension == "ifczip":
+            from apps.documents.ifczip import desempaquetar
+
+            try:
+                dentro = desempaquetar(subido)
+            except CargaRechazada as rechazo:
+                raise forms.ValidationError(str(rechazo)) from rechazo
+            self.desempaquetado = dentro
+            self.extension = "ifc"
+            self.sha256 = dentro.sha256
+            self.tamano = dentro.tamano
         return subido
+
+    @property
+    def nombre_para_archivar(self) -> str:
+        """El nombre que queda en la revisión: el del IFC si venía comprimido, o el subido."""
+        if getattr(self, "desempaquetado", None) is not None:
+            return self.desempaquetado.nombre
+        return self.cleaned_data["archivo"].name
+
+    def descartar_temporal(self) -> None:
+        """Borra el IFC desempaquetado si lo hubo. **Se llama pase lo que pase** en la vista."""
+        if getattr(self, "desempaquetado", None) is not None:
+            self.desempaquetado.descartar()
 
 
 class ObservacionForm(PersonasConNombre, forms.ModelForm):
@@ -369,6 +397,10 @@ class RepartoForm(PersonasConNombre, forms.ModelForm):
         # `vence` si admite nulo (`models.py:451`), y la ficha ya sabe decir «sin fecha · abierta
         # hace N»: un hallazgo puede estar repartido y todavia sin plazo.
         self.fields["vence"].required = False
+        # **Y sin la opcion vacia.** Django solo la quita sola si el valor inicial va en el campo, y
+        # aqui llega de la instancia: el desplegable abria con «---------», que ofrece como opcion
+        # justo lo que la linea de arriba explica que no existe.
+        self.fields["responsable"].empty_label = None
 
 
 class CierreForm(forms.Form):
