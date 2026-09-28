@@ -718,19 +718,53 @@ es restaurar el volcado — por eso el respaldo previo no es opcional. El proced
 
 > **Los despliegues no se hacen el día de una sesión del piloto** (`docs/PILOTO.md`).
 
+### Lo que el guion no toca: el sitio de nginx
+
+`desplegar.sh` actualiza código, base, roles y estáticos, **no** `/etc/nginx`. Un cambio en
+`deploy/nginx-aerobim.conf` hay que llevarlo a mano, y en `p340` más todavía: su sitio está adaptado
+—escucha en `:10000`— y copiar el versionado encima lo rompería.
+
+**La compresión de los modelos (2026-09-28)** es uno de esos cambios. Sin ella un IFC de 800 MB viaja
+entero cada vez que alguien lo abre. Se añaden estas líneas **dentro del bloque `server`** del sitio
+de AeroBim, al lado de `server_tokens off;`:
+
+```nginx
+gzip              on;
+gzip_proxied      any;
+gzip_comp_level   4;
+gzip_min_length   1024;
+gzip_vary         on;
+gzip_types        application/x-step image/vnd.dxf text/css application/javascript
+                  application/json image/svg+xml text/plain;
+```
+
+Y se comprueba antes de recargar, porque un error de sintaxis en nginx tumba **también a los
+vecinos** de la máquina:
+
+```bash
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+Para verlo funcionando, en el navegador (F12 → Red) al abrir un modelo del registro: la respuesta de
+`/contenido/` tiene que traer `Content-Encoding: gzip`.
+
 ## Lo que todavía no está
 
-- **La detección de interferencias se corre a mano, y por eso está medida.** Cruzar los dos
-  modelos reales de la organización tarda **20 s**, así que no entra en una petición:
+- **La detección de interferencias de una obra grande va en segundo plano** (2026-09-28). Son
+  **20 s por par** de modelos, y los pares crecen al cuadrado: seis modelos son quince pares, cinco
+  minutos. Hasta tres modelos, «Revisar interferencias» espera en la pantalla; con más, **lanza
+  `revisar_obra` aparte** y avisa en la campana al terminar —o al fallar—. Una corrida por obra a la
+  vez. Se puede correr también a mano:
 
   ```bash
-  uv run python manage.py detectar_interferencias <revision-a> <revision-b> \
-      --clase-a IfcWall --clase-b IfcMember --autor <usuario> --dry-run
+  cd /opt/aerobim/services/api && sudo -u aerobim env DJANGO_SETTINGS_MODULE=config.settings.prod \
+      .venv/bin/python manage.py revisar_obra <uuid-de-la-obra> --autor <usuario>
   ```
 
-  Con `--dry-run` cuenta lo que abriría sin escribir nada. Cada conflicto se abre como una
-  observación con su viewpoint, y **volver a correrlo no duplica**: lo ya descartado no vuelve.
-  Deja su fila en `JobRun`, que es donde se ve una corrida que murió a mitad.
+  **Un despliegue a mitad de corrida la mata** —el reinicio del servicio se lleva sus procesos—, y
+  su fila queda en `running` en «Trabajos programados». A las seis horas deja de bloquear el botón
+  y se puede lanzar de nuevo; volver a correrla no duplica nada. `detectar_interferencias` sigue
+  existiendo para cruzar **un par** concreto con clases y tolerancia a elección.
 
 - **Trabajos en segundo plano (`F3.4`) — medido, y hoy no hace falta.** Sobre el IFC real de
   32,7 MB: extraer metadatos 1,4 s, medir cobertura 1,5 s, validar un IDS 0,7 s. El `timeout`

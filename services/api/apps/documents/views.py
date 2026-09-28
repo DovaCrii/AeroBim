@@ -488,13 +488,23 @@ class SubirRevisionView(ModelPermissionRequiredMixin, View):
         )
 
     def post(self, request, *args, **kwargs):
-        from django.shortcuts import render
-
         entregable = self._entregable()
         # **El entregable entra en el formulario para validar, no para guardar.** Sin él,
         # `clean_correlativo` no puede saber si el correlativo está tomado, y el choque no aparecía
         # hasta el `INSERT` —con el archivo ya en disco y el conversor ya ejecutado—.
         form = RevisionForm(request.POST, request.FILES, entregable=entregable)
+        # **El temporal de un `.ifczip` se borra pase lo que pase**: con el formulario inválido
+        # —un correlativo repetido se valida *antes*, pero el archivo se desempaqueta igual—, con
+        # el guardado bien hecho y con un `IntegrityError` a mitad. Un giga de temporal
+        # por cada intento fallido llena el disco sin avisar.
+        try:
+            return self._subir(request, entregable, form)
+        finally:
+            form.descartar_temporal()
+
+    def _subir(self, request, entregable, form):
+        from django.shortcuts import render
+
         if not form.is_valid():
             return render(
                 request, self.template_name, {"entregable": entregable, "form": form}, status=400
@@ -510,14 +520,19 @@ class SubirRevisionView(ModelPermissionRequiredMixin, View):
         # `storage.guardar(clave, form.contenido)` con los 200 MB en memoria; ahora va por tramos y
         # de una sola pieza —temporal más `os.replace`—, porque la clave lleva el `sha256` y un
         # archivo truncado con el nombre del completo no lo detecta nadie nunca.
-        storage.guardar_subida(clave, form.cleaned_data["archivo"])
+        if form.desempaquetado is not None:
+            # Lo que se archiva de un `.ifczip` es el IFC de dentro: ver `ifczip.py`.
+            with form.desempaquetado.ruta.open("rb") as dentro:
+                storage.guardar_subida(clave, dentro)
+        else:
+            storage.guardar_subida(clave, form.cleaned_data["archivo"])
 
         revision = form.save(commit=False)
         revision.entregable = entregable
         revision.subida_por = request.user
         revision.clave_archivo = clave
         # El nombre que traía se guarda **en la base de datos**, no en el disco.
-        revision.nombre_original = form.cleaned_data["archivo"].name[:250]
+        revision.nombre_original = form.nombre_para_archivar[:250]
         revision.tamano_bytes = form.tamano
         revision.sha256 = form.sha256
         # **Lo que el IFC declara se lee al subirlo** (`F3.3`), y solo si es un IFC. Medido: 1,1 s
