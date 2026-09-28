@@ -230,14 +230,22 @@
           nota abierta desde el visor quedaba a nombre de su autor para siempre — o sea fuera de la
           bandeja de quien tiene que arreglarla.
         {% endcomment %}
+        {% comment %}
+          **Plegado, porque lo que reparte ya está a la vista justo encima** (2026-09-28). Abierto
+          eran 348 px de tres campos repitiendo los tres datos de arriba, y empujaban «Cerrarlo» a
+          1 300 px, fuera de la pantalla. Se abre cuando hay que cambiar algo, que no es cada vez que
+          se entra.
+        {% endcomment %}
         {% if puede_cerrar %}
-          <form class="reparto" method="post"
-                action="{% url 'documents:repartir-observacion' observacion.pk %}">
-            {% csrf_token %}
-            <h3>{% translate "Hand it over" %}</h3>
-            {% include "generic/_campos.html" with form=form_reparto %}
-            <button type="submit" class="boton secundario">{% translate "Save" %}</button>
-          </form>
+          <details class="lado-plegable">
+            <summary>{% translate "Hand it over: owner, due date, priority" %}</summary>
+            <form class="reparto" method="post"
+                  action="{% url 'documents:repartir-observacion' observacion.pk %}">
+              {% csrf_token %}
+              {% include "generic/_campos.html" with form=form_reparto %}
+              <button type="submit" class="boton secundario">{% translate "Save" %}</button>
+            </form>
+          </details>
         {% endif %}
       </section>
 
@@ -257,7 +265,8 @@
             {% endcomment %}
             <form method="post" action="{% url 'documents:etiquetar-observacion' observacion.pk %}">
               {% csrf_token %}
-              {{ form_etiquetas.etiquetas }}
+              {# Como fichas que se envuelven, no un renglón por etiqueta: diez eran 375 px. #}
+              <div class="casillas-en-fichas">{{ form_etiquetas.etiquetas }}</div>
               <button type="submit" class="secundario">{% translate "Save tags" %}</button>
             </form>
             <p class="detalle">

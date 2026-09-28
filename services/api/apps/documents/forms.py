@@ -397,6 +397,10 @@ class RepartoForm(PersonasConNombre, forms.ModelForm):
         # `vence` si admite nulo (`models.py:451`), y la ficha ya sabe decir «sin fecha · abierta
         # hace N»: un hallazgo puede estar repartido y todavia sin plazo.
         self.fields["vence"].required = False
+        # **Y sin la opcion vacia.** Django solo la quita sola si el valor inicial va en el campo, y
+        # aqui llega de la instancia: el desplegable abria con «---------», que ofrece como opcion
+        # justo lo que la linea de arriba explica que no existe.
+        self.fields["responsable"].empty_label = None
 
 
 class CierreForm(forms.Form):
