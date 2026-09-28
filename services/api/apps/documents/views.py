@@ -2275,7 +2275,9 @@ class RevisarInterferenciasView(ModelPermissionRequiredMixin, View):
         from apps.documents.interferencias import GrupoVacio
         from apps.documents.revisar import (
             cabe_en_una_peticion,
+            corrida_en_curso,
             cuantos_pares,
+            lanzar_en_segundo_plano,
             modelos_vigentes,
             revisar_proyecto,
             segundos_estimados,
@@ -2290,20 +2292,53 @@ class RevisarInterferenciasView(ModelPermissionRequiredMixin, View):
         if proyecto is None:
             raise Http404
 
-        # **Se mide antes de empezar.** Contar los modelos vigentes es una consulta; la alternativa
-        # era descubrirlo a los dos minutos con un `SIGKILL` y media corrida escrita.
-        pares = cuantos_pares(len(modelos_vigentes(proyecto)))
-        if not cabe_en_una_peticion(pares):
-            messages.warning(
+        # **Una a la vez por obra.** Dos corridas simultáneas sobre los mismos modelos abrirían el
+        # mismo problema dos veces: cada una comprueba «¿ya existe?» antes de que la otra escriba.
+        en_curso = corrida_en_curso(proyecto)
+        if en_curso is not None:
+            messages.info(
                 request,
                 _(
-                    "This project has %(models)s current models: %(pairs)s comparisons, about "
-                    "%(minutes)s minutes. That does not fit in one request, so it was not started "
-                    "— a half-finished run leaves findings without saying so. Run it from the "
-                    "server with `manage.py detectar_interferencias`, which has no time limit."
+                    "A clash review of this project is already running, since %(hora)s. The bell "
+                    "will tell you when it finishes."
+                )
+                % {"hora": timezone.localtime(en_curso.started_at).strftime("%H:%M")},
+            )
+            return redirect("projects:proyecto", pk=proyecto.pk)
+
+        # **Se mide antes de empezar.** Contar los modelos vigentes es una consulta; la alternativa
+        # era descubrirlo a los dos minutos con un `SIGKILL` y media corrida escrita.
+        cuantos = len(modelos_vigentes(proyecto))
+        pares = cuantos_pares(cuantos)
+        if not cabe_en_una_peticion(pares):
+            # **Lo que no cabe se lanza aparte, en vez de negarse** (2026-09-28). Antes se negaba y
+            # mandaba a `detectar_interferencias`, que cruza **un par** de revisiones por sus UUID:
+            # con los modelos de un metro eran quince comandos a mano, o sea que no se hacía.
+            #
+            # **Y con un cerrojo de dos minutos**, porque la fila de `JobRun` la crea el proceso al
+            # arrancar, un par de segundos después: sin esto, un doble clic lanzaba dos. `add` es
+            # atómico en la caché compartida —la misma que ya sujeta el límite del token—.
+            from django.core.cache import cache
+
+            if not cache.add(f"revisar_obra:{proyecto.pk}", request.user.pk, timeout=120):
+                messages.info(
+                    request,
+                    _(
+                        "A clash review of this project was just started. The bell will tell "
+                        "you when it finishes."
+                    ),
+                )
+                return redirect("projects:proyecto", pk=proyecto.pk)
+            lanzar_en_segundo_plano(proyecto, request.user)
+            messages.success(
+                request,
+                _(
+                    "Started in the background: %(models)s current models, %(pairs)s comparisons, "
+                    "about %(minutes)s minutes. You can keep working; the bell will tell you when "
+                    "it finishes, and the new findings will be in the open observations."
                 )
                 % {
-                    "models": len(modelos_vigentes(proyecto)),
+                    "models": cuantos,
                     "pairs": pares,
                     "minutes": max(1, round(segundos_estimados(pares) / 60)),
                 },

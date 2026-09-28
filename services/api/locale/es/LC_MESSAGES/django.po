@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-09-25 11:03-0300\n"
+"POT-Creation-Date: 2026-09-28 10:07-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -328,7 +328,7 @@ msgstr "Lee los entregables publicados, los descarga y comenta."
 msgid "Not a role: notification group for the executive summary."
 msgstr "No es un rol: grupo de notificación para el resumen ejecutivo."
 
-#: .\apps\accounts\views.py:71 .\apps\core\models.py:375
+#: .\apps\accounts\views.py:71 .\apps\core\models.py:378
 #: .\apps\documents\notify.py:45
 msgid "Overdue"
 msgstr "Vencido"
@@ -536,29 +536,33 @@ msgstr "corrida de trabajo"
 msgid "job runs"
 msgstr "corridas de trabajo"
 
-#: .\apps\core\models.py:373
+#: .\apps\core\models.py:376
 msgid "Assigned to you"
 msgstr "Te lo asignaron"
 
-#: .\apps\core\models.py:374
+#: .\apps\core\models.py:377
 msgid "New reply"
 msgstr "Nueva respuesta"
 
-#: .\apps\core\models.py:376
+#: .\apps\core\models.py:379
 msgid "Documents issued"
 msgstr "Documentos emitidos"
 
-#: .\apps\core\models.py:383 .\apps\documents\models.py:98
+#: .\apps\core\models.py:380
+msgid "Clash review"
+msgstr "Revisión de interferencias"
+
+#: .\apps\core\models.py:387 .\apps\documents\models.py:98
 #: .\apps\documents\models.py:451 .\apps\documents\models.py:715
 #: .\apps\documents\models.py:779
 msgid "title"
 msgstr "título"
 
-#: .\apps\core\models.py:402
+#: .\apps\core\models.py:406
 msgid "notice"
 msgstr "aviso"
 
-#: .\apps\core\models.py:403
+#: .\apps\core\models.py:407
 msgid "notices"
 msgstr "avisos"
 
@@ -930,6 +934,16 @@ msgid "All revisions in one transmittal must belong to the same project."
 msgstr ""
 "Todas las revisiones de un transmittal tienen que ser del mismo proyecto."
 
+#: .\apps\documents\management\commands\revisar_obra.py:57
+#, python-format
+msgid "The clash review of %(obra)s failed"
+msgstr "La revisión de interferencias de %(obra)s falló"
+
+#: .\apps\documents\management\commands\revisar_obra.py:67
+#, python-format
+msgid "Clash review of %(obra)s finished"
+msgstr "Terminó la revisión de interferencias de %(obra)s"
+
 #: .\apps\documents\models.py:36
 msgid "S0 · Work in progress"
 msgstr "S0 · Trabajo en curso"
@@ -1290,54 +1304,54 @@ msgstr "Este enlace no está disponible ahora mismo"
 msgid "Ask whoever sent it to you to try again later."
 msgstr "Pídele a quien te lo envió que lo intente más tarde."
 
-#: .\apps\documents\revisar.py:148
+#: .\apps\documents\revisar.py:155
 #, python-format
 msgid "%(n)d interference"
 msgid_plural "%(n)d interferences"
 msgstr[0] "%(n)d interferencia"
 msgstr[1] "%(n)d interferencias"
 
-#: .\apps\documents\revisar.py:151
+#: .\apps\documents\revisar.py:158
 #, python-format
 msgid "%(n)d problem"
 msgid_plural "%(n)d problems"
 msgstr[0] "%(n)d problema"
 msgstr[1] "%(n)d problemas"
 
-#: .\apps\documents\revisar.py:154
+#: .\apps\documents\revisar.py:161
 #, python-format
 msgid "%(n)d pair"
 msgid_plural "%(n)d pairs"
 msgstr[0] "%(n)d par"
 msgstr[1] "%(n)d pares"
 
-#: .\apps\documents\revisar.py:155
+#: .\apps\documents\revisar.py:162
 #, python-format
 msgid "%(interferencias)s in %(problemas)s"
 msgstr "%(interferencias)s en %(problemas)s"
 
-#: .\apps\documents\revisar.py:157
+#: .\apps\documents\revisar.py:164
 #, python-format
 msgid "%(n)d new"
 msgid_plural "%(n)d new"
 msgstr[0] "%(n)d nuevo"
 msgstr[1] "%(n)d nuevos"
 
-#: .\apps\documents\revisar.py:163
+#: .\apps\documents\revisar.py:170
 #, python-format
 msgid "%(n)d already there"
 msgid_plural "%(n)d already there"
 msgstr[0] "%(n)d que ya estaba"
 msgstr[1] "%(n)d que ya estaban"
 
-#: .\apps\documents\revisar.py:168
+#: .\apps\documents\revisar.py:175
 #, python-format
 msgid "%(n)d without GUID"
 msgid_plural "%(n)d without GUID"
 msgstr[0] "%(n)d sin GUID"
 msgstr[1] "%(n)d sin GUID"
 
-#: .\apps\documents\revisar.py:174
+#: .\apps\documents\revisar.py:181
 #, python-format
 msgid "%(n)d model with no file"
 msgid_plural "%(n)d models with no file"
@@ -1624,46 +1638,54 @@ msgstr "Elige el entregable al que pertenece la actividad."
 msgid "Activity created and the owner notified."
 msgstr "Actividad creada, y se avisó al responsable."
 
-#: .\apps\documents\views.py:2300
+#: .\apps\documents\views.py:2302
 #, python-format
 msgid ""
-"This project has %(models)s current models: %(pairs)s comparisons, about "
-"%(minutes)s minutes. That does not fit in one request, so it was not started "
-"— a half-finished run leaves findings without saying so. Run it from the "
-"server with `manage.py detectar_interferencias`, which has no time limit."
-msgstr ""
-"Esta obra tiene %(models)s modelos vigentes: %(pairs)s comparaciones, unos "
-"%(minutes)s minutos. Eso no cabe en una petición, así que no se empezó — una "
-"corrida a medias deja hallazgos sin decirlo. Córrela desde el servidor con "
-"`manage.py detectar_interferencias`, que no tiene límite de tiempo."
+"A clash review of this project is already running, since %(hora)s. The bell "
+"will tell you when it finishes."
+msgstr "Ya hay una revisión de interferencias de esta obra en curso, desde las %(hora)s. La campana te avisará cuando termine."
 
-#: .\apps\documents\views.py:2323
+#: .\apps\documents\views.py:2327
+msgid ""
+"A clash review of this project was just started. The bell will tell you when "
+"it finishes."
+msgstr "Se acaba de lanzar una revisión de interferencias de esta obra. La campana te avisará cuando termine."
+
+#: .\apps\documents\views.py:2336
+#, python-format
+msgid ""
+"Started in the background: %(models)s current models, %(pairs)s comparisons, "
+"about %(minutes)s minutes. You can keep working; the bell will tell you when "
+"it finishes, and the new findings will be in the open observations."
+msgstr "Lanzada en segundo plano: %(models)s modelos vigentes, %(pairs)s comparaciones, unos %(minutes)s minutos. Puedes seguir trabajando; la campana te avisará cuando termine, y los hallazgos nuevos estarán en las observaciones abiertas."
+
+#: .\apps\documents\views.py:2358
 msgid "There is only one model in this project: nothing to compare it against."
 msgstr "Esta obra tiene un solo modelo: no hay nada contra qué compararlo."
 
-#: .\apps\documents\views.py:2328
+#: .\apps\documents\views.py:2363
 #, python-format
 msgid "Checked %(resumen)s. Nothing new."
 msgstr "Revisado %(resumen)s. Nada nuevo."
 
-#: .\apps\documents\views.py:2333
+#: .\apps\documents\views.py:2368
 #, python-format
 msgid "Checked %(resumen)s. The new ones are in the open observations below."
 msgstr ""
 "Revisado %(resumen)s. Los nuevos están abajo, entre las observaciones "
 "abiertas."
 
-#: .\apps\documents\views.py:2342
+#: .\apps\documents\views.py:2377
 #, python-format
 msgid "Left out, their file is not on disk: %(cuales)s"
 msgstr "Quedaron fuera, su archivo no está en el disco: %(cuales)s"
 
-#: .\apps\documents\views.py:2382
+#: .\apps\documents\views.py:2417
 #, python-format
 msgid "Revision %(rev)s is now %(cod)s."
 msgstr "La revisión %(rev)s queda en %(cod)s."
 
-#: .\apps\documents\views.py:2448
+#: .\apps\documents\views.py:2483
 msgid "Deliverable created."
 msgstr "Entregable creado."
 
@@ -4472,7 +4494,9 @@ msgstr "Informe de coordinación"
 msgid ""
 "The paper for the meeting: every finding with its picture. The CSV is the "
 "same list, editable in a spreadsheet."
-msgstr "El papel de la reunión: cada hallazgo con su imagen. El CSV es la misma lista, editable en una hoja de cálculo."
+msgstr ""
+"El papel de la reunión: cada hallazgo con su imagen. El CSV es la misma "
+"lista, editable en una hoja de cálculo."
 
 #: .\templates\projects\proyecto.html:342
 msgid "What to include"
@@ -4550,7 +4574,9 @@ msgstr "Resumen ejecutivo"
 msgid ""
 "One page for whoever does not come to the meeting: progress by discipline, "
 "what is overdue and for how long, and who has work ahead."
-msgstr "Una hoja para quien no va a la reunión: avance por disciplina, qué está vencido y desde cuándo, y quién tiene trabajo por delante."
+msgstr ""
+"Una hoja para quien no va a la reunión: avance por disciplina, qué está "
+"vencido y desde cuándo, y quién tiene trabajo por delante."
 
 #: .\templates\projects\proyecto.html:411
 msgid "Download the page"
@@ -4564,7 +4590,9 @@ msgstr "Ida y vuelta con el mandante (BCF)"
 msgid ""
 "The findings go out to their software — Solibri, Navisworks — and their "
 "answer comes back into the same threads."
-msgstr "Los hallazgos salen a su software —Solibri, Navisworks— y su respuesta vuelve a los mismos hilos."
+msgstr ""
+"Los hallazgos salen a su software —Solibri, Navisworks— y su respuesta "
+"vuelve a los mismos hilos."
 
 #: .\templates\projects\proyecto.html:431
 msgid "Send"
@@ -4586,7 +4614,9 @@ msgstr "Ver lo que trae"
 msgid ""
 "Nothing is written until you confirm: new topics come in as observations, "
 "and answers to ours are added to their thread."
-msgstr "No se escribe nada hasta que confirmes: los temas nuevos entran como observaciones, y las respuestas a las nuestras se suman a su hilo."
+msgstr ""
+"No se escribe nada hasta que confirmes: los temas nuevos entran como "
+"observaciones, y las respuestas a las nuestras se suman a su hilo."
 
 #: .\templates\projects\proyecto.html:469
 msgid "Models and drawings you can open"
