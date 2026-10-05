@@ -1076,6 +1076,129 @@ export async function planos(container: HTMLElement, ifcUrl: string, log: Log): 
 }
 
 /**
+ * **El perfil de un eje**, de punta a punta (2026-10-05).
+ *
+ * Cruza el modelo con un eje en L —dos tramos, para que el PK tenga que continuar en el codo—,
+ * genera el longitudinal y sus transversales, exporta el DXF y lo lee de vuelta con el lector propio.
+ *
+ * **El oráculo son números que se conocen de antes de proyectar:**
+ *
+ * - el eje mide `L` metros, así que la geometría del longitudinal tiene que ocupar el PK de 0 a `L`
+ *   y ni un centímetro más —el recorte al largo del tramo—;
+ * - la altura de lo dibujado tiene que caer dentro de la del modelo, más la cota base que Fragments
+ *   quitó al recentrar;
+ * - cada transversal cae dentro de ±la mitad del ancho que se le pidió;
+ * - y la tabla de referencias lleva un PK por cada vértice y cada estación.
+ *
+ * Contar segmentos no dice nada de esto: un perfil espejado o desplazado tiene los mismos.
+ *
+ * Uso: `/diag.html?modo=perfil&ifc=/samples/Piso%205.ifc`
+ */
+export async function perfil(container: HTMLElement, ifcUrl: string, log: Log): Promise<void> {
+  const viewer = await BimViewer.create(container);
+  const bytes = new Uint8Array(await (await fetch(ifcUrl)).arrayBuffer());
+  await viewer.loadIfc(bytes, ifcUrl);
+  await viewer.frameAll();
+
+  const limites = await viewer.sceneBounds();
+  if (limites === null) {
+    log("**sin modelo**");
+    return;
+  }
+  const [x0, y0, z0] = limites.min;
+  const [x1, y1, z1] = limites.max;
+  log(
+    `modelo en la escena: x ${x0.toFixed(2)}…${x1.toFixed(2)} · y ${y0.toFixed(2)}…${y1.toFixed(2)} · ` +
+      `z ${z0.toFixed(2)}…${z1.toFixed(2)}`,
+  );
+
+  // Una L por el medio del modelo: primero a lo largo de x, luego hacia z.
+  const margen = 0.1;
+  const ax = x0 + (x1 - x0) * margen;
+  const bx = x1 - (x1 - x0) * margen;
+  const az = z0 + (z1 - z0) * 0.3;
+  const bz = z1 - (z1 - z0) * margen;
+  const eje = {
+    sistema: "escena" as const,
+    verticesM: [
+      [ax, az],
+      [bx, az],
+      [bx, bz],
+    ] as [number, number][],
+  };
+  const largoEsperado = bx - ax + (bz - az);
+  log(`eje en L: ${largoEsperado.toFixed(2)} m (PK final esperado)`);
+
+  const anchoTransversalM = Math.max(4, (z1 - z0) * 0.8);
+  let planos;
+  try {
+    planos = await viewer.createProfile(eje, {
+      anchoM: 1,
+      pasoDeEstacionesM: largoEsperado / 3,
+      anchoTransversalM,
+      espesorTransversalM: 1,
+      onProgress: (mensaje, avance) => {
+        if (avance === undefined || avance === 1) log(`  ${mensaje}`);
+      },
+    });
+  } catch (fallo: unknown) {
+    log(`cortada: ${fallo instanceof Error ? fallo.message : String(fallo)}`);
+    log(
+      "  En este panel es lo esperado si no compone fotogramas: `EdgeProjector` lee la escena dibujada.",
+    );
+    return;
+  }
+  if (planos.length === 0) {
+    log("**no se genero ningun perfil** — la franja no toco ningun elemento");
+    return;
+  }
+
+  const papel = { widthMm: 420, heightMm: 297, margin: 10 };
+  for (const plano of planos) {
+    log(
+      `\n${plano.name}: ${plano.segments} segmentos visibles, ${plano.hiddenSegments} ocultos · ` +
+        `${plano.sizeM.map((m) => m.toFixed(2)).join(" x ")} m · ${Math.round(plano.elapsedMs)} ms`,
+    );
+    const dxf = viewer.exportDrawingDxf(plano.id, papel);
+    if (dxf === null) {
+      log("  **el exportador devolvio null**");
+      continue;
+    }
+    const leido = parseDxf(dxf);
+    log(`  DXF: ${Math.round(dxf.length / 1024)} KB · ${leido.texts.length} textos`);
+
+    // El DXF sale en milímetros de papel, a la escala que cupo: las medidas del dibujo se leen del
+    // plano mismo (`sizeM`, en metros), que es lo que no depende del papel.
+    const [ancho, alto] = plano.sizeM;
+    if (plano.name === "Perfil longitudinal") {
+      const cabe = Math.abs(ancho - largoEsperado) < 0.05;
+      log(
+        `  ancho del dibujo ${ancho.toFixed(2)} m frente a ${largoEsperado.toFixed(2)} m de eje: ` +
+          `${cabe ? "coincide (bien)" : "NO COINCIDE (mal)"}`,
+      );
+      log(
+        `  alto del dibujo ${alto.toFixed(2)} m frente a ${(y1 - y0).toFixed(2)} m del modelo: ` +
+          `${alto <= y1 - y0 + 0.05 ? "cabe (bien)" : "SE PASA (mal)"}`,
+      );
+      log(
+        `  tabla de referencias: ${leido.texts.some((t) => t.text.includes("PK")) ? "si (bien)" : "NO (mal)"}`,
+      );
+    } else {
+      log(
+        `  ancho ${ancho.toFixed(2)} m frente a los ${anchoTransversalM.toFixed(2)} m pedidos: ` +
+          `${ancho <= anchoTransversalM + 0.05 ? "cabe (bien)" : "SE PASA (mal)"}`,
+      );
+      // La tabla de referencias es del longitudinal. Que una transversal la lleve es la fuga que
+      // este modo destapó: el exportador recorría los dibujos de todos.
+      log(
+        `  sin la tabla de otro plano: ` +
+          `${leido.texts.length === 0 ? "si (bien)" : `NO (mal) — lleva ${leido.texts.length} textos`}`,
+      );
+    }
+  }
+}
+
+/**
  * **Acotar un plano generado**, que es el botón de `F7.3` que nunca se había pulsado.
  *
  * Lo que estaba comprobado de `F7.3` era el camino de datos hasta el DXF, con `?modo=dxf` y sobre un

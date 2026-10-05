@@ -12,9 +12,11 @@
  */
 
 import * as OBC from "@thatopen/components";
+import { rangoDeS, recortarSegmentos, sDe, type EjeDePerfil, type Franja } from "@aerobim/bim-core";
 import * as THREE from "three";
 import {
   CuadrosEnPlano,
+  exportando,
   type MedidasDeTabla,
   registrarExportador,
   type TablaDeCuadro,
@@ -25,8 +27,16 @@ import {
 export interface GeneratedDrawing {
   readonly id: string;
   readonly name: string;
-  /** Desde dónde se proyectó. */
-  readonly view: DrawingView;
+  /**
+   * Desde dónde se proyectó, o `"profile"` si es un perfil: ni una vista estándar ni una dirección
+   * fija, sino la de cada franja de su eje.
+   */
+  readonly view: DrawingView | "profile";
+  /**
+   * El eje del que sale, si es un perfil. Es lo que permite **volver a su ubicación en el modelo**:
+   * un perfil está desarrollado sobre el papel, pero nace de un trazado en la escena.
+   */
+  readonly eje?: EjeDePerfil;
   /** Cuántos segmentos tiene el dibujo visible, que es el tamaño real del plano. */
   readonly segments: number;
   /** Cuántos segmentos quedaron ocultos por el propio modelo. */
@@ -216,7 +226,7 @@ export class DrawingMaker {
    * textos ya situados, y `trazarTabla` los calcula de la tabla y sus medidas. Ir a buscarlos
    * dentro de los grupos que dibuja la librería sería leer sus entrañas.
    */
-  private readonly tablas: { tabla: TablaDeCuadro; medidas: MedidasDeTabla }[] = [];
+  private readonly tablas: { id: string; tabla: TablaDeCuadro; medidas: MedidasDeTabla }[] = [];
 
   constructor(private readonly components: OBC.Components) {}
 
@@ -473,7 +483,7 @@ export class DrawingMaker {
     };
 
     this.cuadros.add(plano.drawing, { tabla, medidas });
-    this.tablas.push({ tabla, medidas });
+    this.tablas.push({ id, tabla, medidas });
 
     // **Y el viewport crece para incluirla.** `top`/`bottom` van en coordenadas de papel —la Y del
     // papel es `−Z`, ver el comentario de `create`— así que la tabla, que cae por debajo del dibujo
@@ -484,6 +494,103 @@ export class DrawingMaker {
     plano.viewport.right = Math.max(plano.viewport.right, medidas.x + trazo.width + margen);
     plano.viewport.bottom = Math.min(plano.viewport.bottom, -(medidas.z + trazo.height) - margen);
     return true;
+  }
+
+  /**
+   * Cuelga lo proyectado en un dibujo ya orientado y lo registra como plano generado.
+   *
+   * **Es la parte común de las vistas y de los perfiles** (2026-10-05): las capas con su nombre del
+   * DXF, el viewport que encuadra, y el mapa de grupos. Quien llama pone la geometría **ya en
+   * coordenadas del dibujo** —X y Z son el papel— porque la manera de llegar ahí es lo único que
+   * cambia: una vista estándar gira la proyección; un perfil la coloca por PK y cota.
+   */
+  private montar(
+    drawing: OBC.TechnicalDrawing,
+    visible: THREE.BufferGeometry,
+    aristasOcultas: THREE.BufferGeometry,
+    datos: {
+      readonly id: string;
+      readonly nombre: string;
+      readonly view: GeneratedDrawing["view"];
+      readonly empezado: number;
+      readonly grupos: PlanoGenerado["grupos"];
+    },
+  ): GeneratedDrawing {
+    // **Las capas se crean antes de colgar nada** — `F7.2`. `addProjectionLines` avisa y cae a la
+    // capa `0` si el nombre no existe, así que sin esto el DXF volvería a salir con todo junto.
+    drawing.layers.create(CAPAS.visibles, {
+      material: new THREE.LineBasicMaterial({ color: 0xe8e8ef }),
+    });
+    drawing.layers.create(CAPAS.ocultas, {
+      // Discontinua y más apagada: en un plano las aristas ocultas se leen como referencia, no como
+      // el trazo del dibujo. `LineDashedMaterial` es un `LineBasicMaterial`, así que la capa lo toma.
+      material: new THREE.LineDashedMaterial({ color: 0x8fa2c8, dashSize: 0.2, gapSize: 0.1 }),
+      visible: false,
+    });
+
+    // Y se cuelgan **por la API de capas** y no a mano: es ella la que asigna la capa del DXF y la
+    // capa 1 de Three.js —la que dibujan las cámaras del plano—, que antes se ponía aquí a pulso.
+    const lineas = new THREE.LineSegments(visible);
+    lineas.name = CAPAS.visibles;
+    drawing.addProjectionLines(lineas, CAPAS.visibles);
+
+    const lineasOcultas = new THREE.LineSegments(aristasOcultas);
+    lineasOcultas.name = CAPAS.ocultas;
+    drawing.addProjectionLines(lineasOcultas, CAPAS.ocultas);
+    // El patrón de guiones necesita las distancias calculadas, y hay que hacerlo **después** de que
+    // la capa le ponga su material: sin esto la línea discontinua se dibuja continua.
+    lineasOcultas.computeLineDistances();
+
+    // El viewport encuadra lo dibujado: sin márgenes el plano sale pegado al borde del papel.
+    const caja = new THREE.Box3().setFromBufferAttribute(
+      visible.getAttribute("position") as THREE.BufferAttribute,
+    );
+    const margen = Math.max(0.5, Math.max(caja.max.x - caja.min.x, caja.max.z - caja.min.z) * 0.03);
+
+    // **`top` y `bottom` son coordenadas de papel, no coordenadas Z**, y confundirlas costaba la
+    // mitad del plano.
+    //
+    // La librería define la Y del papel como **−Z**: su `DrawingViewport.bbox` se construye como
+    // `Z ∈ [-top, -bottom]` y su eje Y local está documentado como «world −Z». Pasando las Z tal
+    // cual, como se hacía aquí, la caja de recorte quedaba **al otro lado del dibujo**: para un
+    // plano con z de 0 a 6 aceptaba `z ≤ margen` y tiraba todo lo demás.
+    //
+    // Medido con `diag.html?modo=dxf` sobre un rectángulo de 10 × 6 m con diagonal: salían **4 de 5
+    // segmentos**, el borde superior desaparecía entero y la diagonal se cortaba justo donde cruza
+    // el borde de la caja. Con las coordenadas de papel salen los cinco.
+    //
+    // **Y no lo veía nadie**: la comprobación de `F7.4` miraba la extensión del DXF —que la marca el
+    // recuadro del viewport, no el dibujo— y el número de trazos. La extensión cuadraba con el
+    // plano recortado igual que con el entero. Ahora se comparan **las coordenadas**.
+    const viewport = drawing.viewports.create({
+      left: caja.min.x - margen,
+      right: caja.max.x + margen,
+      top: -caja.min.z + margen,
+      bottom: -caja.max.z - margen,
+    });
+
+    const info: GeneratedDrawing = {
+      id: datos.id,
+      name: datos.nombre,
+      view: datos.view,
+      segments: contarSegmentos(visible),
+      hiddenSegments: contarSegmentos(aristasOcultas),
+      sizeM: [caja.max.x - caja.min.x, caja.max.z - caja.min.z],
+      elapsedMs: performance.now() - datos.empezado,
+    };
+
+    // **El mapa de grupos se guarda ahora o se pierde**: lo devuelve la proyección y no hay forma
+    // de reconstruirlo después. Es lo que permite señalar un hallazgo en el plano — `addCallouts`.
+    this.planos.set(datos.id, {
+      info,
+      drawing,
+      viewport,
+      caja,
+      grupos: datos.grupos,
+      posiciones: (visible.getAttribute("position") as THREE.BufferAttribute) ?? null,
+      deGrupo: (visible.getAttribute("group") as THREE.BufferAttribute) ?? null,
+    });
+    return info;
   }
 
   /**
@@ -542,81 +649,100 @@ export class DrawingMaker {
     proyeccion.visible.applyMatrix4(aLocal);
     proyeccion.hidden.applyMatrix4(aLocal);
 
-    // **Las capas se crean antes de colgar nada** — `F7.2`. `addProjectionLines` avisa y cae a la
-    // capa `0` si el nombre no existe, así que sin esto el DXF volvería a salir con todo junto.
-    drawing.layers.create(CAPAS.visibles, {
-      material: new THREE.LineBasicMaterial({ color: 0xe8e8ef }),
-    });
-    drawing.layers.create(CAPAS.ocultas, {
-      // Discontinua y más apagada: en un plano las aristas ocultas se leen como referencia, no como
-      // el trazo del dibujo. `LineDashedMaterial` es un `LineBasicMaterial`, así que la capa lo toma.
-      material: new THREE.LineDashedMaterial({ color: 0x8fa2c8, dashSize: 0.2, gapSize: 0.1 }),
-      visible: false,
-    });
-
-    // Y se cuelgan **por la API de capas** y no a mano: es ella la que asigna la capa del DXF y la
-    // capa 1 de Three.js —la que dibujan las cámaras del plano—, que antes se ponía aquí a pulso.
-    const lineas = new THREE.LineSegments(proyeccion.visible);
-    lineas.name = CAPAS.visibles;
-    drawing.addProjectionLines(lineas, CAPAS.visibles);
-
-    const ocultas = new THREE.LineSegments(proyeccion.hidden);
-    ocultas.name = CAPAS.ocultas;
-    drawing.addProjectionLines(ocultas, CAPAS.ocultas);
-    // El patrón de guiones necesita las distancias calculadas, y hay que hacerlo **después** de que
-    // la capa le ponga su material: sin esto la línea discontinua se dibuja continua.
-    ocultas.computeLineDistances();
-
-    // El viewport encuadra lo dibujado: sin márgenes el plano sale pegado al borde del papel.
-    const caja = new THREE.Box3().setFromBufferAttribute(
-      proyeccion.visible.getAttribute("position") as THREE.BufferAttribute,
-    );
-    const margen = Math.max(0.5, Math.max(caja.max.x - caja.min.x, caja.max.z - caja.min.z) * 0.03);
-
-    // **`top` y `bottom` son coordenadas de papel, no coordenadas Z**, y confundirlas costaba la
-    // mitad del plano.
-    //
-    // La librería define la Y del papel como **−Z**: su `DrawingViewport.bbox` se construye como
-    // `Z ∈ [-top, -bottom]` y su eje Y local está documentado como «world −Z». Pasando las Z tal
-    // cual, como se hacía aquí, la caja de recorte quedaba **al otro lado del dibujo**: para un
-    // plano con z de 0 a 6 aceptaba `z ≤ margen` y tiraba todo lo demás.
-    //
-    // Medido con `diag.html?modo=dxf` sobre un rectángulo de 10 × 6 m con diagonal: salían **4 de 5
-    // segmentos**, el borde superior desaparecía entero y la diagonal se cortaba justo donde cruza
-    // el borde de la caja. Con las coordenadas de papel salen los cinco.
-    //
-    // **Y no lo veía nadie**: la comprobación de `F7.4` miraba la extensión del DXF —que la marca el
-    // recuadro del viewport, no el dibujo— y el número de trazos. La extensión cuadraba con el
-    // plano recortado igual que con el entero. Ahora se comparan **las coordenadas**.
-    const viewport = drawing.viewports.create({
-      left: caja.min.x - margen,
-      right: caja.max.x + margen,
-      top: -caja.min.z + margen,
-      bottom: -caja.max.z - margen,
-    });
-
-    const info: GeneratedDrawing = {
+    return this.montar(drawing, proyeccion.visible, proyeccion.hidden, {
       id,
-      name: NOMBRES[view],
+      nombre: NOMBRES[view],
       view,
-      segments: visibles,
-      hiddenSegments: contarSegmentos(proyeccion.hidden),
-      sizeM: [caja.max.x - caja.min.x, caja.max.z - caja.min.z],
-      elapsedMs: performance.now() - empezado,
+      empezado,
+      grupos: proyeccion.groups ?? null,
+    });
+  }
+
+  /**
+   * Un perfil: lo que cae en una o varias franjas, mirado de lado y colocado por **PK y cota**.
+   * (2026-10-05)
+   *
+   * ## Por qué no es `create` con otra dirección
+   *
+   * `orientTo()` solo garantiza el sentido correcto —que el +X caiga a la derecha, sin espejo— para
+   * los seis ejes estándar, y la franja de un tramo mira hacia donde mira el trazado. Así que aquí no
+   * se orienta el contenedor por la dirección de cada franja: se proyecta con `EdgeProjector`, que sí
+   * acepta cualquier dirección, y **las coordenadas del papel se calculan**: la horizontal es
+   * `s` —el PK, o el desplazamiento lateral en una transversal— y la vertical es la cota. El
+   * contenedor queda orientado como un alzado frontal estándar, que es lo que el DXF y la lámina
+   * esperan: leen X y Z, y la Z del papel es la cota cambiada de signo.
+   *
+   * ## Qué es y qué no es
+   *
+   * Es la **proyección de la franja**: todo elemento cuya caja toca el ancho elegido, visto de lado y
+   * recortado al largo del tramo. **No es un corte exacto de la geometría** —las aristas son las
+   * del elemento entero, no la intersección con un plano—, y la interfaz lo dice así. Con un ancho
+   * pequeño se acerca a un corte; con uno grande, a un alzado del tramo.
+   *
+   * `origenM` es el desplazamiento que Fragments quitó al recentrar el modelo: sin sumarlo, la cota
+   * del perfil sería la de una escena recentrada y no la del IFC, y alguien mediría contra otro cero.
+   */
+  async createProfile(
+    world: OBC.World,
+    partes: readonly ParteDePerfil[],
+    opciones: {
+      readonly nombre: string;
+      readonly eje?: EjeDePerfil;
+      /** El desplazamiento de la escena respecto al IFC, en ejes de la escena. */
+      readonly origenM?: readonly [number, number, number];
+      readonly onProgress?: (mensaje: string, avance?: number) => void;
+    },
+  ): Promise<GeneratedDrawing | null> {
+    const empezado = performance.now();
+    const projector = this.components.get(OBC.EdgeProjector);
+    const cotaBaseM = opciones.origenM?.[1] ?? 0;
+
+    let ultimoAvance = performance.now();
+    const conLatido = (mensaje: string, avance?: number) => {
+      ultimoAvance = performance.now();
+      opciones.onProgress?.(mensaje, avance);
     };
 
-    // **El mapa de grupos se guarda ahora o se pierde**: lo devuelve la proyección y no hay forma
-    // de reconstruirlo después. Es lo que permite señalar un hallazgo en el plano — `addCallouts`.
-    this.planos.set(id, {
-      info,
-      drawing,
-      viewport,
-      caja,
-      grupos: proyeccion.groups ?? null,
-      posiciones: (proyeccion.visible.getAttribute("position") as THREE.BufferAttribute) ?? null,
-      deGrupo: (proyeccion.visible.getAttribute("group") as THREE.BufferAttribute) ?? null,
+    const visibles: number[] = [];
+    const ocultas: number[] = [];
+    for (const parte of partes) {
+      if (Object.keys(parte.modelIdMap).length === 0) continue;
+      // Se mira a lo largo de `miraHaciaM`: la misma convención que `VISTAS`, un vector hacia donde
+      // mira la proyección, aquí siempre horizontal.
+      projector.projectionDirection.set(parte.franja.miraHaciaM[0], 0, parte.franja.miraHaciaM[1]);
+      ultimoAvance = performance.now();
+      const proyeccion = await conCorte(
+        projector.get(parte.modelIdMap, world, { onProgress: conLatido }),
+        () => performance.now() - ultimoAvance,
+        `La proyección de aristas no respondió en ${SIN_AVANCE_MS / 1000} s y se dio por colgada. ` +
+          `Suele ser que el navegador no está dibujando la escena.`,
+      );
+      const [sMin, sMax] = rangoDeS(parte.franja);
+      llevarAlPerfil(proyeccion.visible, parte.franja, cotaBaseM, sMin, sMax, visibles);
+      llevarAlPerfil(proyeccion.hidden, parte.franja, cotaBaseM, sMin, sMax, ocultas);
+    }
+    if (visibles.length === 0) return null;
+
+    const drawing = this.components.get(OBC.TechnicalDrawings).create(world);
+    const id = `plano-generado-${this.siguiente++}`;
+    drawing.three.visible = false;
+    // Un alzado frontal estándar: la matriz que devuelve no se usa, porque la geometría no sale de la
+    // proyección en coordenadas del mundo sino calculada ya en las del papel.
+    orientarYTraerAlPapel(drawing, "front");
+
+    const info = this.montar(drawing, geometriaDePerfil(visibles), geometriaDePerfil(ocultas), {
+      id,
+      nombre: opciones.nombre,
+      view: "profile",
+      empezado,
+      grupos: null,
     });
-    return info;
+    // `eje` viaja en la ficha para poder volver a su ubicación en el modelo.
+    const conEje: GeneratedDrawing =
+      opciones.eje === undefined ? info : { ...info, eje: opciones.eje };
+    const guardado = this.planos.get(id);
+    if (guardado !== undefined) this.planos.set(id, { ...guardado, info: conEje });
+    return conEje;
   }
 
   /**
@@ -748,12 +874,14 @@ export class DrawingMaker {
       if (escala !== null) plano.viewport.drawingScale = escala;
     }
 
-    return this.components
-      .get(OBC.DxfManager)
-      .exporter.export(
-        [{ drawing: plano.drawing, viewports: [{ viewport: plano.viewport }] }],
-        paper,
-      );
+    return exportando(plano.drawing, () =>
+      this.components
+        .get(OBC.DxfManager)
+        .exporter.export(
+          [{ drawing: plano.drawing, viewports: [{ viewport: plano.viewport }] }],
+          paper,
+        ),
+    );
   }
 
   /**
@@ -814,7 +942,9 @@ export class DrawingMaker {
     });
 
     const textos: unknown[][] = [];
-    for (const puesta of this.tablas) {
+    // Las tablas **de este plano**: con la lista entera, la lámina de cada plano llevaba las tablas
+    // de todos los demás (2026-10-05) — la misma fuga que tenía el DXF.
+    for (const puesta of this.tablas.filter((una) => una.id === id)) {
       const trazo = trazarTabla(puesta.tabla, puesta.medidas);
       for (const texto of trazo.texts) textos.push([texto.x, texto.z, texto.height, texto.text]);
     }
@@ -863,6 +993,10 @@ export class DrawingMaker {
     });
     this.components.get(OBC.TechnicalDrawings).list.delete(plano.drawing.uuid);
     this.planos.delete(id);
+    // Sus tablas se van con él: si no, `sheet` y el exportador siguen creyendo que existen.
+    for (let i = this.tablas.length - 1; i >= 0; i -= 1) {
+      if (this.tablas[i]!.id === id) this.tablas.splice(i, 1);
+    }
   }
 
   /** Los planos generados, en el orden en que se hicieron. */
@@ -896,6 +1030,63 @@ function aEspacioDelDibujo(
   const local = drawing.three.worldToLocal(new THREE.Vector3(punto[0], punto[1], punto[2]));
   local.y = 0;
   return local;
+}
+
+/** Lo que hace falta de cada franja de un perfil: la franja, y los elementos que la tocan. */
+export interface ParteDePerfil {
+  readonly franja: Franja;
+  /** Los elementos visibles cuya caja toca la franja, por modelo. */
+  readonly modelIdMap: OBC.ModelIdMap;
+}
+
+/**
+ * Lleva una proyección a las coordenadas del perfil: `[s, cota, s, cota, …]`, recortado a la franja.
+ *
+ * **La altura es la `y` de la escena más `cotaBaseM`**, que es lo que Fragments quitó al recentrar.
+ * Se acumula con un bucle y no con `push(...lista)`: un perfil de un modelo grande son millones de
+ * números y el operador de propagación revienta la pila de llamadas mucho antes.
+ */
+function llevarAlPerfil(
+  geometria: THREE.BufferGeometry,
+  franja: Franja,
+  cotaBaseM: number,
+  sMin: number,
+  sMax: number,
+  salida: number[],
+): void {
+  const posiciones = geometria.getAttribute("position");
+  if (posiciones === undefined) return;
+  const pares: number[] = [];
+  for (let i = 0; i + 1 < posiciones.count; i += 2) {
+    const ay = posiciones.getY(i);
+    const by = posiciones.getY(i + 1);
+    pares.push(
+      sDe(franja, [posiciones.getX(i), ay, posiciones.getZ(i)]),
+      ay + cotaBaseM,
+      sDe(franja, [posiciones.getX(i + 1), by, posiciones.getZ(i + 1)]),
+      by + cotaBaseM,
+    );
+  }
+  for (const valor of recortarSegmentos(pares, sMin, sMax)) salida.push(valor);
+}
+
+/**
+ * La geometría de un perfil en las coordenadas del dibujo: `X = s`, `Z = −cota`, `Y = 0`.
+ *
+ * La Z del papel es la cota **cambiada de signo** —ver el comentario de `create`: «la Y del papel es
+ * −Z»— y la Y local es la normal del dibujo, que se deja en cero: el exportador lee X y Z.
+ */
+function geometriaDePerfil(pares: readonly number[]): THREE.BufferGeometry {
+  const posiciones = new Float32Array((pares.length / 4) * 6);
+  for (let i = 0, j = 0; i + 3 < pares.length; i += 4, j += 6) {
+    posiciones[j] = pares[i]!;
+    posiciones[j + 2] = -pares[i + 1]!;
+    posiciones[j + 3] = pares[i + 2]!;
+    posiciones[j + 5] = -pares[i + 3]!;
+  }
+  const geometria = new THREE.BufferGeometry();
+  geometria.setAttribute("position", new THREE.BufferAttribute(posiciones, 3));
+  return geometria;
 }
 
 /** Cuántos segmentos tiene una geometría de líneas: dos vértices, un segmento. */

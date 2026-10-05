@@ -15,6 +15,27 @@ export {
 } from "./identity/ifcGuid.js";
 
 export {
+  cajaTocaFranja,
+  estacionesCada,
+  franjaDeTramo,
+  franjaTransversal,
+  largoDelEjeM,
+  pkEn,
+  puntoEn,
+  rangoDeS,
+  recortarSegmentos,
+  sDe,
+  tramosDelEje,
+  type CajaDeEscenaM,
+  type EjeDePerfil,
+  type Franja,
+  type PosicionEnElEje,
+  type PuntoDeEscenaM,
+  type PuntoEnPlantaM,
+  type TramoDeEje,
+} from "./perfiles/eje.js";
+
+export {
   AA_NO_TEXTO,
   AA_TEXTO,
   contrastRatio,

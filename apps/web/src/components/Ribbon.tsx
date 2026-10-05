@@ -36,6 +36,7 @@ import {
   IconPlan2D,
   IconPlanoSalida,
   IconRegistro,
+  IconPerfil,
   IconSectionHorizontal,
   IconSectionLongitudinal,
   IconSectionTransversal,
@@ -133,6 +134,8 @@ export function Ribbon({
   onClearMeasurements,
   onSection,
   onClearSections,
+  trazandoPerfil,
+  onCrearPerfil,
   onShowAll,
   onTogglePanel,
   panelIzquierdo,
@@ -243,6 +246,10 @@ export function Ribbon({
   readonly onClearMeasurements: () => void;
   readonly onSection: (axis: SectionAxis) => void;
   readonly onClearSections: () => void;
+  /** Si se está marcando el eje de un perfil. */
+  readonly trazandoPerfil: boolean;
+  /** Empieza o cancela el trazado del eje de un perfil. */
+  readonly onCrearPerfil: () => void;
   readonly onShowAll: () => void;
   readonly onTogglePanel: (lado: "izquierda" | "derecha") => void;
   readonly panelIzquierdo: boolean;
@@ -798,6 +805,23 @@ export function Ribbon({
                     }
                     disabled={!hasModels}
                     onClick={() => onSection("transversal")}
+                  />
+                  {/* **Crear perfil, junto a los cortes y no aparte**: es la pregunta siguiente a un
+                      corte —«¿y a lo largo de todo el trazado?»—. Los tres de arriba son cortes
+                      rápidos por el centro del modelo; este marca un eje con tantos vértices como
+                      curvas y saca un plano desarrollado por PK. Es un **interruptor**: pulsado
+                      vuelve a cancelar el trazado. */}
+                  <Boton
+                    icon={<IconPerfil />}
+                    label="Crear perfil"
+                    hint={
+                      hasModels
+                        ? "Marca un eje con clics y saca el perfil a lo largo de él, con su PK"
+                        : "Abre un modelo primero"
+                    }
+                    active={trazandoPerfil}
+                    disabled={!hasModels}
+                    onClick={onCrearPerfil}
                   />
                   <Boton
                     icon={<IconTrash />}

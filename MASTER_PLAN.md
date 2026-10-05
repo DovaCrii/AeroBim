@@ -5198,6 +5198,51 @@ original) + 13 de la nube en el expediente.
 
 ---
 
+## FASE 13 — Perfiles y espacios de trabajo (2026-10-05)
+
+Nace de coordinar **un proyecto de metro con datos reales**: un trazado lineal, largo y con curvas,
+donde un corte recto por el centro del modelo no dice nada del PK. El encargo —«reestructuración del
+visor y crecimiento BIM»— se revisó contra el código antes de ejecutarse, y esa revisión recortó
+lo que ya estaba decidido con medidas (`Highlighter`, `BCFTopics`, `Hider`, `Classifier`) y reordenó
+lo demás: **primero los perfiles, que ya sirven al metro; los dos espacios y el estado observable
+después**, cuando se sepa qué necesitan.
+
+| Fila    | Qué                                                                                      | Estado       |
+| ------- | ---------------------------------------------------------------------------------------- | ------------ |
+| `F13.1` | **Perfil IFC sobre una polilínea**, desarrollado por PK, con transversales y su tabla    | ✅ ver abajo |
+| `F13.2` | Perfil de la **nube**: puntos de la franja, sin superficie de terreno inferida           | ⬜           |
+| `F13.3` | Los dos espacios, **Modelo 3D** y **Planos y perfiles**, con `ViewerSnapshot` observable | ⬜           |
+| `F13.4` | «Comparar 2D–3D» sin recargar nada                                                       | ⬜           |
+| `F13.5` | `ClipStyler` para el relleno y las aristas de un corte, si conserva lo que ya funciona   | ⬜           |
+
+### `F13.1`: el perfil IFC
+
+**Es la proyección de la franja, y no un corte exacto de la geometría.** Cada franja mira los
+elementos **visibles** cuya caja toca su ancho, de lado, y los recorta al largo del tramo. Las
+aristas son las del elemento entero, no su intersección con un plano: con un ancho pequeño se acerca
+a un corte, con uno grande a un alzado. La interfaz lo dice **antes** de pulsar.
+
+- **Polilínea y no recta A–B.** En un tramo curvo una recta corta en diagonal y la distancia no es el
+  PK. El perfil se **desarrolla**: cada tramo se mira de lado y se coloca en su PK. El dominio
+  (`bim-core/src/perfiles/eje.ts`) es aritmética plana con respuestas calculables a mano: una L de
+  3 + 4 m da PK 7. Un eje declara `sistema: "escena"` y el tipo no admite otro.
+- **`orientTo()` no vale para una dirección cualquiera**: solo garantiza el sentido sin espejo para
+  los seis ejes estándar. Se proyecta con `EdgeProjector`, que acepta cualquier dirección, y **las
+  coordenadas del papel se calculan**: horizontal = PK (o desplazamiento lateral), vertical = cota.
+  Por eso el DXF y la lámina PDF salen sin tocar nada más: leen X y Z.
+- **La cota es la del IFC.** Fragments recentra el modelo y guarda el desplazamiento
+  (`fragments.core.baseCoordinates`); sin sumarlo, la cota sería la de una escena recentrada.
+- **Medido sobre `Piso 5.ifc`, con un eje en L de 31,04 m:** el longitudinal mide **31,04 × 2,98 m**
+  —el largo exacto del eje, y la altura exacta del modelo—, tarda 2,3 s, y las cuatro transversales
+  caben en el ancho pedido. Lo comprueba `diag.html?modo=perfil`, que exporta el DXF y lo lee de vuelta.
+- **Y destapó una fuga que ya existía**: el exportador de tablas recorría los dibujos de **todos** los
+  planos, así que la tabla de uno se escribía en el DXF de cualquier otro; `sheet()` hacía lo mismo
+  en el PDF. Nadie lo veía porque solo había una tabla a la vez. Arreglada y sujeta por el
+  diagnóstico: las transversales salen con 0 textos.
+- **Lo que no hace, dicho:** no infiere una línea de terreno, no usa `IfcAlignment` y no calcula
+  desviaciones. La regla 6 de `AGENTS.md` sigue en pie: es una vista de lectura, como los planos de
+  la Fase 7.
+
 ## La competencia abierta, y qué se le puede mirar
 
 **El usuario trajo la lista el 2026-09-02** —Bonsai, That Open Engine, OpenProject BIM y FreeCAD—

@@ -249,6 +249,24 @@ export class CuadrosEnPlano extends OBC.AnnotationSystem<DescriptorDeTabla> {
   }
 }
 
+/** El dibujo que `exportando` está escribiendo ahora mismo, o `null` si no hay exportación en curso. */
+let dibujoEnExportacion: OBC.TechnicalDrawing | null = null;
+
+/**
+ * Ejecuta una exportación diciéndole al exportador de tablas **de qué dibujo es**.
+ *
+ * Se restituye siempre —`finally`—: una exportación que revienta no puede dejar puesto el dibujo
+ * anterior, porque la siguiente escribiría las tablas de un plano que no es el suyo.
+ */
+export function exportando<T>(dibujo: OBC.TechnicalDrawing, exportacion: () => T): T {
+  dibujoEnExportacion = dibujo;
+  try {
+    return exportacion();
+  } finally {
+    dibujoEnExportacion = null;
+  }
+}
+
 /**
  * Enseña al exportador de DXF a escribir las tablas, **con su texto**.
  *
@@ -257,7 +275,14 @@ export class CuadrosEnPlano extends OBC.AnnotationSystem<DescriptorDeTabla> {
  */
 export function registrarExportador(components: OBC.Components): void {
   components.get(OBC.DxfManager).exporter.registerSystemExporter(CuadrosEnPlano, (sistema, ctx) => {
-    const dibujos = [...components.get(OBC.TechnicalDrawings).list.values()];
+    // **Solo el dibujo que se está exportando** (2026-10-05). Recorrer `TechnicalDrawings.list`
+    // entero escribía las tablas de todos los planos en el DXF de cada uno: el contexto del
+    // exportador no dice cuál se está escribiendo, y mientras hubo una sola tabla a la vez nadie lo
+    // vio. Con un perfil y sus transversales, cada transversal salía con la tabla del longitudinal.
+    const dibujos =
+      dibujoEnExportacion !== null
+        ? [dibujoEnExportacion]
+        : [...components.get(OBC.TechnicalDrawings).list.values()];
     for (const [, puesta] of sistema.get(dibujos)) {
       const trazo = trazarTabla(puesta.item.tabla, puesta.item.medidas);
 

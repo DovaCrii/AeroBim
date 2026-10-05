@@ -98,6 +98,21 @@ export function IconGuardarVista(props: IconProps) {
   );
 }
 
+/**
+ * Crear perfil: un trazado quebrado con sus vértices, sobre la línea base de la que sale el perfil.
+ * Es el eje (arriba) y su desarrollo (abajo): lo que distingue un perfil de un corte recto.
+ */
+export function IconPerfil(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M3 19h18" />
+      <path d="M4 12 9 6l5 4 6-5" />
+      <path d="M9 6v13M14 10v9M20 5v14" strokeDasharray="2 2" />
+      <path d="M4 12h.01M9 6h.01M14 10h.01M20 5h.01" strokeWidth={3} />
+    </Svg>
+  );
+}
+
 /** Vista isométrica: el cubo con dos caras a la vista. */
 export function IconViewIso(props: IconProps) {
   return (
