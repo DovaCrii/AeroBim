@@ -20,10 +20,7 @@ import {
   IconCursor,
   IconDistance,
   IconEdge,
-  IconEye,
-  IconEyeOff,
   IconFirstPerson,
-  IconIsolate,
   IconFrameAll,
   IconFrameSelection,
   IconGhost,
@@ -47,7 +44,6 @@ import {
   IconSnapVertex,
   IconSolid,
   IconTrash,
-  IconUnisolate,
   IconViewFront,
   IconViewIso,
   IconViews,
@@ -98,9 +94,6 @@ export function Ribbon({
   distanceMode,
   hasSections,
   hasSelection,
-  selectionVisible,
-  isolated,
-  hasHidden,
   hasPlans,
   modo2D,
   comparando,
@@ -121,9 +114,6 @@ export function Ribbon({
   measurementCount,
   measureInProgress,
   onTab,
-  onToggleSelectionVisible,
-  onIsolateSelection,
-  onUndoIsolate,
   onFrameAll,
   onView,
   onFrameSelection,
@@ -142,7 +132,6 @@ export function Ribbon({
   gruposOcultos = [],
   titulosDePestana = {},
   onCrearPerfil,
-  onShowAll,
   onTogglePanel,
   panelIzquierdo,
   panelDerecho,
@@ -191,12 +180,6 @@ export function Ribbon({
   readonly distanceMode: DistanceMode;
   readonly hasSections: boolean;
   readonly hasSelection: boolean;
-  /** `false` cuando el elemento seleccionado está apagado. */
-  readonly selectionVisible: boolean;
-  /** `true` mientras se mira algo aislado, con el resto del modelo apagado por eso. */
-  readonly isolated: boolean;
-  /** `true` si hay algo fuera de la vista, aislado o apagado a mano. */
-  readonly hasHidden: boolean;
   /** `true` con al menos un plano 2D cargado. */
   readonly hasPlans: boolean;
   /** `true` en modo 2D: el plano solo, en planta y ortográfica, con los modelos apagados. */
@@ -237,10 +220,6 @@ export function Ribbon({
   /** `true` con una medición empezada y sin cerrar: hay algo que cancelar. */
   readonly measureInProgress: boolean;
   readonly onTab: (tab: RibbonTab) => void;
-  readonly onToggleSelectionVisible: () => void;
-  readonly onIsolateSelection: () => void;
-  /** Sale del último aislamiento y devuelve el modelo a como estaba antes de aislar. */
-  readonly onUndoIsolate: () => void;
   readonly onFrameAll: () => void;
   readonly onView: (view: StandardView) => void;
   readonly onFrameSelection: () => void;
@@ -264,7 +243,6 @@ export function Ribbon({
   readonly trazandoPerfil: boolean;
   /** Empieza o cancela el trazado del eje de un perfil. */
   readonly onCrearPerfil: () => void;
-  readonly onShowAll: () => void;
   readonly onTogglePanel: (lado: "izquierda" | "derecha") => void;
   readonly panelIzquierdo: boolean;
   readonly panelDerecho: boolean;
@@ -851,59 +829,10 @@ export function Ribbon({
                     />
                   </Grupo>
 
-                  <Grupo label="Visibilidad">
-                    <Boton
-                      icon={selectionVisible ? <IconEyeOff /> : <IconEye />}
-                      label={selectionVisible ? "Apagar" : "Encender"}
-                      hint={
-                        hasSelection
-                          ? "Apaga o enciende el elemento seleccionado. También en su ficha"
-                          : "Selecciona un elemento primero"
-                      }
-                      disabled={!hasSelection}
-                      onClick={onToggleSelectionVisible}
-                    />
-                    <Boton
-                      icon={<IconIsolate />}
-                      label="Aislar"
-                      hint={
-                        hasSelection
-                          ? "Deja solo el elemento seleccionado a la vista"
-                          : "Selecciona un elemento primero"
-                      }
-                      disabled={!hasSelection}
-                      onClick={onIsolateSelection}
-                    />
-                    {/* Salir y "Ver todo" no son lo mismo, y por eso son dos botones: salir deshace el
-                  aislamiento y devuelve lo de antes —lo apagado a mano sigue apagado—, mientras que
-                  "Ver todo" enciende el modelo entero. */}
-                    <Boton
-                      icon={<IconUnisolate />}
-                      label="Salir"
-                      hint={
-                        isolated
-                          ? "Sale del aislamiento y vuelve a como estaba el modelo antes de aislar"
-                          : "No hay ningún aislamiento del que salir"
-                      }
-                      destacado={isolated}
-                      disabled={!isolated}
-                      onClick={onUndoIsolate}
-                    />
-                    {/* **Mismo mandato, mismo icono.** Acá era un árbol —que es el icono de la
-                  estructura del modelo— y en la barra de estado un ojo. Dos dibujos para el mismo
-                  botón obligan a leerlos, que es justo lo que un icono viene a evitar. */}
-                    <Boton
-                      icon={<IconEye />}
-                      label="Ver todo"
-                      hint="Enciende todo el modelo, incluido lo que se apagó a mano"
-                      // La vuelta segura de la pestaña Modelo: apagar y aislar dejan el modelo en un
-                      // estado del que hay que poder salir de un clic.
-                      tamano="grande"
-                      destacado={hasHidden}
-                      disabled={!enabled}
-                      onClick={onShowAll}
-                    />
-                  </Grupo>
+                  {/* **«Visibilidad» ya no está en la cinta**: subió a la barra flotante sobre el visor
+                      (`BarraDelVisor`), a un clic del modelo y sin depender de que la cinta esté
+                      abierta. Se movió y no se copió: la ficha de la selección y la barra de estado
+                      conservan su atajo. */}
 
                   {/* **Lo que se saca de lo que se está mirando** (`F1.13`).
 

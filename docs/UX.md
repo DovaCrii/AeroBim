@@ -276,6 +276,15 @@ devuelve.
 > **Comparar** (pestaña Vista, grupo Referencias) es lo que sustituye a «mirar los dos a la vez»:
 > superpone el plano y el modelo en planta y, al salir, deja la vista exactamente como estaba.
 
+> **La barra flotante sobre el visor (2026-10-05).** «Visibilidad» (apagar, aislar, salir, ver todo) y
+> «Selección» (encuadrar) **salieron de la cinta** y viven en una barra translúcida abajo, en el centro del
+> lienzo, en los dos espacios. Es una idea tomada de la barra inferior de That Open Platform: son las
+> acciones que se repiten todo el día sobre el modelo, y con la cinta plegada para dejarle el lienzo se
+> perdían justo ellas. **Se movió, no se copió**: estaban ya en la cinta, en la ficha de la selección y en la
+> barra de estado, y una cuarta copia habría empeorado lo que se quería arreglar. «Ver todo» sigue siendo la
+> vuelta segura —ahora a la vista del modelo y no en una pestaña—. Contraste medido: 9,07 y 6,22 en oscuro,
+> 6,79 y 5,05 en claro.
+
 | Trabajo                 | Cómo se hace                                                      |
 | ----------------------- | ----------------------------------------------------------------- |
 | Revisar el plano        | **Modo 2D**: el CAD solo, en planta y ortográfica                 |
