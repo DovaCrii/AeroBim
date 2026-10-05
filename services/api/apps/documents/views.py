@@ -1829,7 +1829,18 @@ class NuevoTransmittalView(ModelPermissionRequiredMixin, View):
         return TransmittalForm(
             datos,
             revisiones=revisiones_visibles(request.user),
-            destinatarios=get_user_model().objects.filter(is_active=True).order_by("username"),
+            # **Solo quien comparte organización con quien arma el transmittal.** Antes eran todos
+            # los usuarios activos de todas las organizaciones: el formulario enseñaba el directorio
+            # de otra empresa y aceptaba dirigirle un transmittal, con su aviso por correo. El
+            # permiso dice qué se puede hacer, no sobre qué; con las personas pasa lo mismo que
+            # con los documentos. Una cuenta sin membresía no pertenece a nadie: no entra.
+            destinatarios=get_user_model()
+            .objects.filter(
+                is_active=True,
+                membresia__organizacion__in=organizaciones_visibles(request.user),
+            )
+            .distinct()
+            .order_by("username"),
         )
 
     def get(self, request, *args, **kwargs):
