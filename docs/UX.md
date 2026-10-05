@@ -309,6 +309,13 @@ devuelve.
 > en esa vertical**. Es la banda de datos de las láminas de perfil de topografía; los tramos son de la caja
 > envolvente del elemento, y la banda lo dice.
 
+> **Paneles laterales contextuales (2026-10-05).** La ficha de propiedades **ya no ocupa una columna
+> fija**: flota sobre el lienzo, como una tarjeta del alto de su contenido, **solo mientras hay algo
+> seleccionado**, y «Propiedades» en la barra la fija o la suelta. El navegador **esconde las secciones que
+> no aplican a lo abierto** —sin nube, la nube y el calce; sin obra del registro, la coordinación y las vistas
+> del proyecto—. Medido en 1600 × 1000: el lienzo pasa del 56 % al 78 % del ancho y el navegador de 14
+> cabeceras a 10. Revierte la fila «Izquierda» de la tabla de reparto de arriba: la ficha ya no es una columna.
+
 | Trabajo                 | Cómo se hace                                                      |
 | ----------------------- | ----------------------------------------------------------------- |
 | Revisar el plano        | **Modo 2D**: el CAD solo, en planta y ortográfica                 |

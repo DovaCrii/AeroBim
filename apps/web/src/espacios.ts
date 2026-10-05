@@ -125,3 +125,31 @@ export function espacioPedido(busqueda: string): Espacio {
 export function espacioDeUnArchivo(nombre: string): Espacio | null {
   return nombre.toLowerCase().endsWith(".dxf") ? "planos" : null;
 }
+
+/** Lo que hay abierto, que decide qué secciones del navegador tienen algo que decir. */
+export interface ContextoDeSecciones {
+  /** Hay una nube de puntos abierta. */
+  readonly hayNube: boolean;
+  /** Lo abierto viene de una obra del registro. */
+  readonly hayProyecto: boolean;
+}
+
+/**
+ * Las secciones del navegador que **no aplican a lo que hay abierto** (2026-10-05).
+ *
+ * El navegador tenía 14 cabeceras con un solo modelo abierto, y tres de ellas decían «vacío»: una
+ * sección para una nube que no existe, un calce que necesita esa nube, y las notas de una obra cuando el
+ * archivo vino del disco. **Una sección que no puede tener contenido no es una herramienta, es ruido.**
+ * Aparecen solas cuando hay algo a lo que aplicarlas, y por eso esto no oculta nada que se pueda necesitar:
+ *
+ * - **Nube y calce** necesitan una nube. Abrirla no depende de esta sección: está el botón «Abrir» de la
+ *   barra y soltar el archivo en cualquier parte del lienzo.
+ * - **Coordinación y vistas del proyecto** son de una obra del registro: de un archivo del disco no hay
+ *   obra, y la sección solo diría «abre un modelo del registro».
+ */
+export function seccionesQueNoAplican(contexto: ContextoDeSecciones): readonly string[] {
+  const fuera: string[] = [];
+  if (!contexto.hayNube) fuera.push("nubes", "calce");
+  if (!contexto.hayProyecto) fuera.push("coordinacion", "vistas-proyecto");
+  return fuera;
+}

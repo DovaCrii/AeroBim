@@ -9,6 +9,7 @@ import {
   espacioParaVerSeccion,
   espacioPedido,
   seccionVisible,
+  seccionesQueNoAplican,
 } from "./espacios.js";
 
 describe("los dos espacios", () => {
@@ -107,5 +108,45 @@ describe("el espacio de un archivo que se abre", () => {
     expect(espacioDeUnArchivo("Piso 5.ifc")).toBeNull();
     expect(espacioDeUnArchivo("camino.copc.laz")).toBeNull();
     expect(espacioDeUnArchivo("dxf")).toBeNull();
+  });
+});
+
+describe("las secciones que no aplican a lo abierto", () => {
+  it("sin nube no hay sección de nube ni de calce", () => {
+    const fuera = seccionesQueNoAplican({ hayNube: false, hayProyecto: true });
+    expect(fuera).toContain("nubes");
+    expect(fuera).toContain("calce");
+  });
+
+  it("con nube aparecen las dos", () => {
+    const fuera = seccionesQueNoAplican({ hayNube: true, hayProyecto: true });
+    expect(fuera).not.toContain("nubes");
+    expect(fuera).not.toContain("calce");
+  });
+
+  it("sin obra del registro no hay coordinación ni vistas del proyecto", () => {
+    const fuera = seccionesQueNoAplican({ hayNube: true, hayProyecto: false });
+    expect(fuera).toEqual(["coordinacion", "vistas-proyecto"]);
+  });
+
+  it("con todo abierto no se esconde nada, y un archivo del disco sin nube esconde cuatro", () => {
+    expect(seccionesQueNoAplican({ hayNube: true, hayProyecto: true })).toEqual([]);
+    expect(seccionesQueNoAplican({ hayNube: false, hayProyecto: false })).toHaveLength(4);
+  });
+
+  it("nunca esconde lo que se necesita siempre: el modelo, la estructura y las mediciones", () => {
+    const todas = seccionesQueNoAplican({ hayNube: false, hayProyecto: false });
+    for (const siempre of [
+      "registro",
+      "modelos",
+      "planos",
+      "estructura",
+      "cuadros",
+      "generados",
+      "vistas",
+      "cotas",
+    ]) {
+      expect(todas).not.toContain(siempre);
+    }
   });
 });

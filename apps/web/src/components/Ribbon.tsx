@@ -317,7 +317,7 @@ export function Ribbon({
           <PanelToggle
             label="Propiedades"
             side="izquierda"
-            modo="ocultar"
+            modo="fijar"
             open={panelIzquierdo}
             onClick={() => onTogglePanel("izquierda")}
           />
@@ -1078,24 +1078,37 @@ function PanelToggle({
    *
    * Son dos cosas distintas y el rótulo tiene que distinguirlas, porque prometen espacio distinto:
    * Propiedades se va del todo —sin selección no enseña nada— y el navegador se queda en 44 px.
+   *
+   * `"fijar"` es el de Propiedades desde el 2026-10-05: sin fijar, la ficha **sale sola, flotando**,
+   * cuando se selecciona algo, y el botón la ancla a una columna.
    */
-  readonly modo: "ocultar" | "plegar";
+  readonly modo: "ocultar" | "plegar" | "fijar";
   readonly onClick: () => void;
 }) {
   const verbo = open
     ? modo === "plegar"
       ? "Plegar a iconos"
-      : "Ocultar"
+      : modo === "fijar"
+        ? "Soltar"
+        : "Ocultar"
     : modo === "plegar"
       ? "Desplegar"
-      : "Mostrar";
+      : modo === "fijar"
+        ? "Fijar"
+        : "Mostrar";
 
   return (
     <button
       type="button"
       onClick={onClick}
       aria-pressed={open}
-      title={`${verbo} el panel de ${label.toLowerCase()} (${side})`}
+      title={
+        modo === "fijar"
+          ? open
+            ? `Soltar el panel de ${label.toLowerCase()}: volverá a salir flotando, solo al seleccionar`
+            : `Fijar el panel de ${label.toLowerCase()} a la ${side}. Sin fijar, sale solo, flotando, al seleccionar algo`
+          : `${verbo} el panel de ${label.toLowerCase()} (${side})`
+      }
       className={[
         // Eran los más pequeños de la pantalla: 27 px de alto. Suben a 32, que es lo que cabe en
         // esta fila sin empujarla — y con `min-w-11` el ancho ya llega al objetivo.
