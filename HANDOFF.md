@@ -4,7 +4,7 @@
 > [`docs/historial/`](docs/historial/) y en `git log`. La fuente de verdad del trabajo pendiente es
 > [`MASTER_PLAN.md`](MASTER_PLAN.md) (léelo por filas: `node scripts/claude/plan-fila.mjs <código>`).
 
-**Estado al:** 2026-10-05 · **`main` en:** `eccf703` · **Último PR fusionado:** #78
+**Estado al:** 2026-10-05 · **`main` en:** `84d3e00` · **Último PR fusionado:** #80
 
 ## Reparto del trabajo
 
@@ -35,8 +35,10 @@
 | `F13.7`               | Medir el perfil de nube con la **nube real de 127 MB** y decidir el techo (hoy 40 000) | Un archivo de obra      |
 | `F13.8`               | Recorrido de clics del perfil **con nube** y contraste del selector en tema claro      | El agente               |
 
-La **Fase 14** (proceso de agentes y base de código, `F14.1`–`F14.7`) está **planificada** en el PR #79,
-sin fusionar. `F14.1` es la que cierra este mismo cambio.
+La **Fase 14** (proceso de agentes y base de código, `F14.1`–`F14.7`) está en el plan desde #79.
+`F14.1` (el kit) se aplicó en #80 y queda 🔶: **faltan las cifras de `/context` antes y después**, que
+solo se miden en una sesión interactiva. `F14.2` (la revisión de solo lectura) es lo siguiente, y
+empieza con el piloto en marcha.
 
 ## Lo que es tuyo (bloqueos que el código no cierra)
 
@@ -51,7 +53,7 @@ sin fusionar. `F14.1` es la que cierra este mismo cambio.
 - El **piloto** ([`docs/PILOTO.md`](docs/PILOTO.md)): las cinco etapas, de la 0 a la 4, siguen sin
   empezar. La Etapa 1 (registro documental) no necesita el IFC.
 
-## Última tanda (#72 a #78)
+## Última tanda (#72 a #80)
 
 - #76 dependencias sin avisos (`pypdf`, `urllib3`): `pip-audit` limpio.
 - #72 el tablero del plan al día · #73 la ficha del hallazgo.
@@ -60,6 +62,8 @@ sin fusionar. `F14.1` es la que cierra este mismo cambio.
 - #75 perfil IFC sobre una polilínea, con PK y transversales · #77 perfil de la nube (puntos, nunca
   una línea de terreno).
 - #78 los dos espacios de trabajo y Comparar; `docs/ARCHITECTURE.md` reescrito contra el código.
+- #79 la Fase 14 en el plan · #80 el kit de proceso (`CLAUDE.md`, `.claude/`, `scripts/claude/`) y este
+  `HANDOFF` corto.
 
 ## Trampas vigentes (las que más costaron)
 
