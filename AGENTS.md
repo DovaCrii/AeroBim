@@ -16,8 +16,10 @@ La fidelidad al modelo prevalece sobre todo lo demás: un visor que muestra una
 propiedad distinta a la que trae el IFC, o que sitúa un elemento donde no está, es
 peor que no tener visor — alguien tomará una decisión de obra con ese dato.
 
-> **Si existe `HANDOFF.md` en la raíz, léelo antes que nada.** Dice el punto exacto
-> de retome. `MASTER_PLAN.md` es la fuente de verdad de qué sigue.
+> **Si existe `HANDOFF.md` en la raíz, léelo antes que nada.** Es corto (≤120 líneas) y dice el
+> punto exacto de retome; su historia está en `docs/historial/`. `MASTER_PLAN.md` es la fuente de
+> verdad de qué sigue, pero **no se lee entero** (más de 5.000 líneas): para una fila,
+> `node scripts/claude/plan-fila.mjs F2.4 [--seccion]`; para lo abierto, `--abiertas`.
 
 ## Decisiones ya tomadas (no reabrir sin que el usuario lo pida)
 
@@ -201,3 +203,8 @@ entregable roto.
 - Alcance del MVP y lo explícitamente excluido: `docs/MVP.md`.
 - Proyectos de referencia, licencias y qué se toma de cada uno: `docs/REFERENCES.md`.
 - Contrato con AeroPlanner: `docs/INTEGRATION_AEROPLANNER.md`.
+- Verificación con salida corta: `node scripts/claude/verificar.mjs [todo|web|api]`. Resume la
+  puerta de calidad (`verify.ps1`, `npm test` y el CI); no la sustituye.
+- Configuración de Claude Code: `CLAUDE.md` (importa este archivo) y `.claude/` (permisos, reglas
+  por ruta y skills `/verificar`, `/cerrar-tarea`, `/abrir-pr`, `/triar-hallazgo`,
+  `/refactor-seguro`).

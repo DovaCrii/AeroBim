@@ -80,8 +80,12 @@ obsidian/
 .idea/
 .DS_Store
 Thumbs.db
-# Configuracion local de agentes: la ruta del servidor de desarrollo es propia de cada equipo.
-.claude/
+# Configuracion de agentes: se versiona la compartida (permisos, reglas, skills); lo local de cada
+# equipo (p. ej. la ruta del servidor de desarrollo, launch.json) y lo temporal siguen fuera.
+.claude/*
+!.claude/settings.json
+!.claude/rules/
+!.claude/skills/
 
 # Registros
 *.log
