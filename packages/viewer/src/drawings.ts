@@ -12,7 +12,14 @@
  */
 
 import * as OBC from "@thatopen/components";
-import { rangoDeS, recortarSegmentos, sDe, type EjeDePerfil, type Franja } from "@aerobim/bim-core";
+import {
+  rangoDeS,
+  recortarSegmentos,
+  sDe,
+  type CruceDePerfil,
+  type EjeDePerfil,
+  type Franja,
+} from "@aerobim/bim-core";
 import * as THREE from "three";
 import { vistaDeFrenteDeLaLamina } from "./perfiles.js";
 import {
@@ -35,6 +42,11 @@ export interface GeneratedDrawing {
   readonly view: DrawingView | "profile";
   /** Cuántos puntos de nube lleva el perfil, si lleva alguno. */
   readonly puntosDeNube?: number;
+  /**
+   * Qué elementos cruza el perfil longitudinal y en qué tramo de PK y de cota: la banda de datos que
+   * se lee bajo el dibujo. Por caja envolvente, no por geometría.
+   */
+  readonly cruces?: readonly CruceDePerfil[];
   /**
    * Algo que quien lo mire tiene que saber: que la nube es una muestra, o por qué no se superpuso.
    * Va en la ficha y no en un aviso suelto porque **tiene que viajar con el plano**.
@@ -726,6 +738,8 @@ export class DrawingMaker {
       readonly origenM?: readonly [number, number, number];
       /** Lo que hay que saber del plano; viaja en su ficha. */
       readonly nota?: string;
+      /** Qué elementos cruza el perfil, para la banda de datos bajo el dibujo. */
+      readonly cruces?: readonly CruceDePerfil[];
       readonly onProgress?: (mensaje: string, avance?: number) => void;
     },
   ): Promise<GeneratedDrawing | null> {
@@ -790,6 +804,7 @@ export class DrawingMaker {
       ...info,
       ...(opciones.eje === undefined ? {} : { eje: opciones.eje }),
       ...(opciones.nota === undefined ? {} : { nota: opciones.nota }),
+      ...(opciones.cruces === undefined ? {} : { cruces: opciones.cruces }),
     };
     const guardado = this.planos.get(id);
     if (guardado !== undefined) this.planos.set(id, { ...guardado, info: conEje });
@@ -858,6 +873,33 @@ export class DrawingMaker {
   vistaDeFrente(id: string): "top" | "front" | "side" | null {
     const vista = this.planos.get(id)?.info.view;
     return vista === undefined ? null : vistaDeFrenteDeLaLamina(vista);
+  }
+
+  /**
+   * Dónde cae, **en el papel de un perfil**, un rayo que sale de la cámara: su PK y su cota.
+   *
+   * El dibujo es un plano con `X = s` y `Z = −cota` en sus coordenadas locales, y lo orienta el
+   * contenedor, así que el rayo se corta con **ese** plano —cuya normal es la `Y` local— y el punto se
+   * lleva a lo local. Devuelve `null` si el rayo no lo toca o el plano no existe.
+   */
+  puntoDePapel(
+    id: string,
+    rayo: THREE.Ray,
+  ): { readonly pkM: number; readonly cotaM: number } | null {
+    const plano = this.planos.get(id);
+    if (plano === undefined) return null;
+    const contenedor = plano.drawing.three;
+    contenedor.updateMatrixWorld(true);
+    const m = contenedor.matrixWorld;
+    const normal = new THREE.Vector3(0, 1, 0).transformDirection(m);
+    const origen = new THREE.Vector3().setFromMatrixPosition(m);
+    const golpe = rayo.intersectPlane(
+      new THREE.Plane().setFromNormalAndCoplanarPoint(normal, origen),
+      new THREE.Vector3(),
+    );
+    if (golpe === null) return null;
+    const local = golpe.applyMatrix4(m.clone().invert());
+    return { pkM: local.x, cotaM: -local.z };
   }
 
   boxOf(id: string): THREE.Box3 | null {

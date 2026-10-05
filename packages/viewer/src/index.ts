@@ -13,6 +13,8 @@
 import {
   angleAtDeg,
   cajaTocaFranja,
+  intervaloDeCaja,
+  type CruceDePerfil,
   camaraBcfDesdeEscena,
   estacionesCada,
   franjaDeTramo,
@@ -79,6 +81,7 @@ import {
   type ParteDePerfil,
 } from "./drawings.js";
 import { tablaDePk, textoDePk } from "./perfiles.js";
+export { textoDePk } from "./perfiles.js";
 import { GridOverlay } from "./grid.js";
 import { masCercanoAlCursor, verticeDelGolpe } from "./senalar.js";
 
@@ -5225,6 +5228,82 @@ export class BimViewer {
   }
 
   /**
+   * Los elementos que cruzan unas franjas, con su clase, su nombre, su GUID y lo que ocupan de cada una.
+   *
+   * El tramo sale de la caja del elemento (ver `intervaloDeCaja`), así que es el del **envolvente**. Un
+   * elemento que atraviesa dos tramos de un eje con curva da **un cruce por tramo**: la banda los une.
+   * Las clases y los nombres se piden por modelo y por tandas: un perfil ancho sobre un modelo grande
+   * son miles de elementos, y una consulta por elemento sería lo más lento de todo el perfil.
+   */
+  private async crucesDeLasFranjas(
+    elementos: readonly { modelId: string; localId: number; caja: CajaDeEscenaM }[],
+    franjas: readonly Parameters<typeof cajaTocaFranja>[0][],
+    cotaBaseM: number,
+  ): Promise<CruceDePerfil[]> {
+    const brutos: {
+      modelId: string;
+      localId: number;
+      desdeM: number;
+      hastaM: number;
+      cotaMinM: number;
+      cotaMaxM: number;
+    }[] = [];
+    for (const franja of franjas) {
+      for (const e of elementos) {
+        if (!cajaTocaFranja(franja, e.caja)) continue;
+        const intervalo = intervaloDeCaja(franja, e.caja, cotaBaseM);
+        if (intervalo !== null)
+          brutos.push({ modelId: e.modelId, localId: e.localId, ...intervalo });
+      }
+    }
+
+    const datos = new Map<
+      string,
+      { categoria: string; nombre: string | null; guid: string | null }
+    >();
+    const porModelo = new Map<string, Set<number>>();
+    for (const b of brutos)
+      (porModelo.get(b.modelId) ?? porModelo.set(b.modelId, new Set()).get(b.modelId)!).add(
+        b.localId,
+      );
+    for (const [modelId, ids] of porModelo) {
+      const model = this.fragments.list.get(modelId);
+      if (model === undefined) continue;
+      const lista = [...ids];
+      for (let i = 0; i < lista.length; i += 1000) {
+        const tanda = await model.getItemsData(lista.slice(i, i + 1000), {
+          attributesDefault: false,
+          attributes: ["Name", "GlobalId"],
+        });
+        for (const dato of tanda) {
+          const idCampo = dato["_localId"];
+          if (idCampo === undefined || !esAtributo(idCampo)) continue;
+          const id = idCampo.value;
+          if (typeof id !== "number") continue;
+          datos.set(`${modelId}:${id}`, {
+            categoria: categoriaDe(dato) ?? "IFCDESCONOCIDA",
+            nombre: nombreDe(dato),
+            guid: guidDe(dato),
+          });
+        }
+      }
+    }
+
+    return brutos.map((b) => {
+      const d = datos.get(`${b.modelId}:${b.localId}`);
+      return {
+        categoria: d?.categoria ?? "IFCDESCONOCIDA",
+        nombre: d?.nombre ?? null,
+        guid: d?.guid ?? null,
+        desdeM: b.desdeM,
+        hastaM: b.hastaM,
+        cotaMinM: b.cotaMinM,
+        cotaMaxM: b.cotaMaxM,
+      };
+    });
+  }
+
+  /**
    * Crea el perfil de un eje: el **longitudinal** —todos sus tramos, desarrollados por PK— y, si se
    * piden, una **transversal** por estación. (2026-10-05)
    *
@@ -5328,10 +5407,20 @@ export class BimViewer {
       notas.push("Ningún punto de la nube cae en la franja: ensánchala, o revisa el calce.");
     }
 
+    // **Qué cruza**, para la banda de datos bajo el dibujo: una vez por franja, con lo que cada elemento
+    // ocupa de ella.
+    opciones.onProgress?.("Leyendo qué elementos cruza el perfil…");
+    const cruces = await this.crucesDeLasFranjas(
+      elementos,
+      partes.map((parte) => parte.franja),
+      origenM[1],
+    );
+
     const longitudinal = await this.drawings.createProfile(this.world, partes, {
       nombre: "Perfil longitudinal",
       eje,
       origenM,
+      cruces,
       ...(notas.length === 0 ? {} : { nota: notas.join(" ") }),
       ...avance,
     });
@@ -5686,6 +5775,28 @@ export class BimViewer {
     this.assertAlive();
     this.drawings.setHiddenVisible(id, visible);
     await this.refresh();
+  }
+
+  /**
+   * Qué punto de **un plano generado** hay bajo un punto de la pantalla: su PK y su cota.
+   *
+   * Es lo que permite que el visor 2D diga «aquí, PK 0+120 a cota 561,3 m, cruza un muro» mientras se
+   * pasa el cursor por el perfil. Devuelve `null` si el rayo no toca la lámina.
+   */
+  pointOnDrawing(
+    clientX: number,
+    clientY: number,
+    id: string,
+  ): { readonly pkM: number; readonly cotaM: number } | null {
+    this.assertAlive();
+    const caja = this.container.getBoundingClientRect();
+    const ndc = new THREE.Vector2(
+      ((clientX - caja.left) / caja.width) * 2 - 1,
+      -((clientY - caja.top) / caja.height) * 2 + 1,
+    );
+    const rayo = new THREE.Raycaster();
+    rayo.setFromCamera(ndc, this.camera.three);
+    return this.drawings.puntoDePapel(id, rayo.ray);
   }
 
   /**
