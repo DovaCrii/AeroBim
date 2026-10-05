@@ -5308,7 +5308,7 @@ muestra, y cambiar no reconvierte nada (`apps/web/src/espacios.ts`, con pruebas)
 > está (`F13.5`–`F13.8`). Se abre porque **el usuario lo pidió**, y ninguna fila de la 14 depende de
 > las de la 13 ni al revés.
 
-Dos objetivos y una restricción: **gastar menos contexto por sesión** (el `HANDOFF.md` ya pesa 1 214
+Dos objetivos y una restricción: **gastar menos contexto por sesión** (el `HANDOFF.md` ya pesa 1 253
 líneas), **que lo concentrado se pueda leer** (archivos de miles de líneas que ni una persona ni un
 agente abren cómodos) y **no cambiar el comportamiento del producto**. Estructura sí, comportamiento
 no, siempre con red de seguridad y en PR pequeños.
@@ -5321,7 +5321,7 @@ no, siempre con red de seguridad y en PR pequeños.
 | `F14.4` | **R2 · sacar `diag.ts` del camino de la aplicación** (3 481 líneas)                                                                                                                                   | ⬜               | `dist` no lo contiene (**ya hoy**: la lista blanca de `limpiar-dist.mjs` deja fuera `diag.html`); ninguna importación desde `src/` (**0 hoy**); **y todos los modos de `diag.html?modo=…` siguen corriendo en desarrollo**, porque son el oráculo de navegador de decenas de filas ✅. Mover no es borrar                                                               | El agente: PR, CI verde y fusión                                             |
 | `F14.5` | **R3 · guardia de complejidad** en ruff (`C901`) con un umbral que **hoy pase**                                                                                                                       | ⬜               | Medido el 2026-10-05: con `max-complexity = 10` fallan **6** funciones y con **15**, **0**. Se activa en 15. `ruff check .` en verde, y una función de prueba de complejidad >15 **hace fallar el gate** (se prueba y se revierte)                                                                                                                                      | El agente: PR, CI verde y fusión                                             |
 | `F14.6` | **R4 · humo e2e con Playwright y axe-core**: login, abrir una obra, abrir el visor con un IFC sintético del repositorio                                                                               | ⬜               | Corre en el CI y pasa; el IFC es `muro-minimo.ifc` (sintético, ya versionado) subido por el selector de archivos —**las muestras no van al build**—; axe sin violaciones serias en portal y visor, en claro y en oscuro; **sin descargar nada de un CDN en ejecución** (regla 10 de `AGENTS.md`). **Prerrequisito de `F14.7`**                                          | El agente: PR, CI verde y fusión                                             |
-| `F14.7` | **Etapa 3 · `App.tsx`** (3 205 líneas, `App()` desde la 328), **`packages/viewer/src/index.ts`** (5 955) y **`bim-core/plans/dxf.ts`** (1 911, solo si el piloto apunta ahí)                          | ⬜ **BLOQUEADA** | **Desbloqueo: `F14.6` en verde y el piloto arrancado.** Cada paso contrastado **en el navegador con el mismo IFC y su oráculo** (`AGENTS.md`, «Verificación»), con `F14.6` en verde antes y después. Mismo comportamiento                                                                                                                                               | El agente, paso a paso; **no se hace de golpe**                              |
+| `F14.7` | **Etapa 3 · `App.tsx`** (3 314 líneas, `App()` desde la 338), **`packages/viewer/src/index.ts`** (5 955) y **`bim-core/plans/dxf.ts`** (1 911, solo si el piloto apunta ahí)                          | ⬜ **BLOQUEADA** | **Desbloqueo: `F14.6` en verde y el piloto arrancado.** Cada paso contrastado **en el navegador con el mismo IFC y su oráculo** (`AGENTS.md`, «Verificación»), con `F14.6` en verde antes y después. Mismo comportamiento                                                                                                                                               | El agente, paso a paso; **no se hace de golpe**                              |
 
 ### El orden, y por qué
 
@@ -5332,7 +5332,7 @@ no, siempre con red de seguridad y en PR pequeños.
    porque es lo único que se pisaría con trabajo en curso. El `HANDOFF.md` nuevo resume **desde el #72
    hasta lo último**: el anterior cerraba en el #71.
 3. **`F14.2`, en paralelo con el piloto.** La Fase 2 empieza **solo con `F14.1` fusionada y el piloto en
-   marcha**: la Etapa 1 de `docs/PILOTO.md` —«Registro documental», que su tabla llama «la etapa 0»— no
+   marcha**: las etapas 0 (Preparación) y 1 (Registro documental) de `docs/PILOTO.md`; la Etapa 1 no
    necesita el IFC.
 4. **`F14.3` a `F14.6`.** `F14.3` va **primero** y es **el más sensible a conflictos**: se hace cuando
    **ninguna rama abierta toque `views.py` ni `api.py`** (se revisa con `git branch -r` y
@@ -5354,18 +5354,18 @@ El kit los tomó sobre el PR #73; el repositorio **creció** desde entonces (el 
 el IFC comprimido) y los números cambiaron. **Estos son los vigentes**, y la fila `F14.x` que los usa
 dice cuál:
 
-| Hallazgo                                               | El kit decía    | Medido hoy (`main`, `eccf703`)                                              |
-| ------------------------------------------------------ | --------------- | --------------------------------------------------------------------------- |
-| `documents/views.py`                                   | 2 449 · 38      | **2 499 líneas · 38 clases de vista**                                       |
-| `packages/viewer/src/index.ts`                         | 5 627           | **5 955** (126 métodos de la clase, aprox.)                                 |
-| `apps/web/src/App.tsx`                                 | ~3 013          | **3 205** · `App()` desde la línea 328                                      |
-| `apps/web/src/diag.ts`                                 | 3 208           | **3 481**                                                                   |
-| `packages/bim-core/src/plans/dxf.ts`                   | 1 911           | **1 911** (sin cambio)                                                      |
-| `documents/models.py` · `accounts/views.py` · `api.py` | 965 · 855 · 803 | **965 · 855 · 820**                                                         |
-| TODO / FIXME / HACK / XXX                              | 21              | **21** (sin cambio)                                                         |
-| Reglas de ruff                                         | sin `C901`      | `E, F, W, I, UP, B, DJ` — **sin `C901`**; con umbral 10 fallan 6, con 15, 0 |
-| Pruebas                                                | 1 033 + 523     | **1 675 API** (CI, +2 omitidas) y **646 TS**; sigue sin e2e ni visuales     |
-| `HANDOFF.md`                                           | ~93 KB          | **1 214 líneas**                                                            |
+| Hallazgo                                               | El kit decía    | Medido hoy (`main`, `eccf703`, tras fusionar #78)                                               |
+| ------------------------------------------------------ | --------------- | ----------------------------------------------------------------------------------------------- |
+| `documents/views.py`                                   | 2 449 · 38      | **2 499 líneas · 38 clases de vista**                                                           |
+| `packages/viewer/src/index.ts`                         | 5 627           | **5 955** (126 métodos de la clase, aprox.)                                                     |
+| `apps/web/src/App.tsx`                                 | ~3 013          | **3 314** · `App()` desde la línea 338                                                          |
+| `apps/web/src/diag.ts`                                 | 3 208           | **3 481**                                                                                       |
+| `packages/bim-core/src/plans/dxf.ts`                   | 1 911           | **1 911** (sin cambio)                                                                          |
+| `documents/models.py` · `accounts/views.py` · `api.py` | 965 · 855 · 803 | **965 · 855 · 820**                                                                             |
+| TODO / FIXME / HACK / XXX                              | 21              | **21** (sin cambio)                                                                             |
+| Reglas de ruff                                         | sin `C901`      | `E, F, W, I, UP, B, DJ` — **sin `C901`**; con umbral 10 fallan 6, con 15, 0                     |
+| Pruebas                                                | 1 033 + 523     | **1 675 API** (CI, +2 omitidas) y **631 TS** (`npm test`: 528 + 103); sigue sin e2e ni visuales |
+| `HANDOFF.md`                                           | ~93 KB          | **1 253 líneas**                                                                                |
 
 ### Choques detectados entre el kit y `AGENTS.md` o el repo
 
@@ -5385,8 +5385,9 @@ dice cuál:
 4. **La carpeta del kit está dentro del repositorio** (`claude-info/`, sin versionar), y el kit exige
    estar **fuera**. Hay que moverla o excluirla antes de copiar nada, para que ningún `git add` la
    arrastre. Los dos documentos aparecen además duplicados dentro y fuera de `aerobim-claude-kit/`.
-5. **«Etapas 0 y 1 del piloto»**: `docs/PILOTO.md` numera 1–4 y su tabla llama a la Etapa 1 «la etapa 0».
-   Se entiende como la de **Registro documental**, la única que no necesita el IFC. Hay que confirmarlo.
+5. **«Etapas 0 y 1 del piloto»** son la **Etapa 0 · Preparación** y la **Etapa 1 · Registro documental**
+   de `docs/PILOTO.md`, que numera de la 0 a la 4. La Etapa 1 no necesita el IFC. (Una primera lectura
+   de este plan dijo que el piloto numeraba 1–4: era un error y está corregido.)
 6. **El `HANDOFF` de la plantilla es un borrador** que dice «del #71 al #73»; el repositorio va por el
    #78. Se rehace desde `git log`, no se copia.
 7. **R4 y las muestras**: el build deja fuera `samples/` a propósito (regla de `AGENTS.md` sobre
