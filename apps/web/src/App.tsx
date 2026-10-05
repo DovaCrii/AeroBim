@@ -53,6 +53,16 @@ import { NotaFlotante } from "./components/NotaFlotante.js";
 import { Origen } from "./components/Origen.js";
 import { PlansPanel } from "./components/PlansPanel.js";
 import { PerfilFlotante, type ParametrosDePerfil } from "./components/PerfilFlotante.js";
+import { SelectorDeEspacio } from "./components/SelectorDeEspacio.js";
+import {
+  GRUPOS_OCULTOS,
+  SECCIONES_OCULTAS,
+  TITULOS_DE_PESTANA,
+  espacioDeUnArchivo,
+  espacioPedido,
+  espacioParaVerSeccion,
+  type Espacio,
+} from "./espacios.js";
 import { PublicarLamina } from "./components/PublicarLamina.js";
 import { ProjectBrowser } from "./components/ProjectBrowser.js";
 import { PuertaDeEntrada } from "./components/PuertaDeEntrada.js";
@@ -490,12 +500,21 @@ export function App() {
   const [planSnap, setPlanSnap] = useState(true);
   /** `true` en modo 2D: los modelos apagados, la cámara en planta y proyección ortográfica. */
   const [modo2D, setModo2D] = useState(false);
+  /** Hay una comparación 2D–3D en curso: ver `onComparar`. */
+  const [comparando, setComparando] = useState(false);
   /**
    * Lo que había antes de entrar al modo 2D, para poder devolverlo al salir.
    *
    * Va en un `ref` y no en el estado a propósito: nada de la pantalla depende de esto mientras el
    * modo está puesto, y solo se lee una vez, al salir.
    */
+  /** Lo que `onComparar` guardó al entrar, para restaurarlo al salir. */
+  const antesDeComparar = useRef<{
+    readonly vista: SavedView;
+    readonly style: RenderStyle;
+    readonly modelosApagados: ReadonlySet<string>;
+    readonly planosApagados: ReadonlySet<string>;
+  } | null>(null);
   const antesDel2D = useRef<{
     readonly modelosApagados: ReadonlySet<string>;
     readonly projection: Projection;
@@ -561,6 +580,13 @@ export function App() {
    * navegador del proyecto a la derecha, barra de estado al pie y el modelo en el centro.
    */
   const [tab, setTab] = useState<RibbonTab>("vista");
+  /**
+   * El espacio de trabajo. **Solo cambia qué se muestra**: el motor, la escena, la selección y los
+   * cortes son los mismos, y por eso cambiar no reconvierte nada. Ver `espacios.ts`.
+   */
+  const [espacio, setEspacio] = useState<Espacio>(() =>
+    espacioPedido(globalThis.location?.search ?? ""),
+  );
   /** Las vistas guardadas. Se leen del navegador al arrancar y se escriben al cambiar. */
   const [views, setViews] = useState<readonly SavedView[]>(leerVistas);
   const [panelIzquierdo, setPanelIzquierdo] = useState(true);
@@ -604,6 +630,9 @@ export function App() {
    * «Del registro» en la puerta de entrada con el navegador cerrado — nada visible ocurría.
    */
   const irASeccion = useCallback((clave: string, opciones?: { readonly enfocar?: boolean }) => {
+    // Si la sección no existe en el espacio actual, se va al que la tiene: pedirla donde no se ve
+    // «no hacía nada», que es el defecto que esta función existe para evitar.
+    setEspacio((actual) => espacioParaVerSeccion(actual, clave));
     setNavegadorPlegado(false);
     setSeccionPedida((actual) => ({
       clave,
@@ -726,6 +755,9 @@ export function App() {
       const texto = await file.text();
       const plano = await instance.loadPlan(texto, file.name);
       setPlans((actuales) => [...actuales, plano]);
+      // Un DXF es un plano: se abre en el espacio donde se ve.
+      const destino = espacioDeUnArchivo(file.name);
+      if (destino !== null) setEspacio(destino);
       // **Las capas que el CAD tiene apagadas arrancan apagadas acá también**, y con el ojo cerrado
       // en la lista: si el plano se ve como en AutoCAD pero la lista dice que todo está encendido,
       // la lista miente. Se pueden encender una por una — la geometría está cargada.
@@ -1791,6 +1823,71 @@ export function App() {
   );
 
   /**
+   * **Comparar el plano con el modelo**, y dejarlo todo como estaba al salir.
+   *
+   * El Modo 2D apaga los modelos; ésta es la otra mitad: los dos a la vez, en planta y ortográfica,
+   * con el modelo en alambre para que las líneas del plano se lean a través. Es lo que se hace para
+   * responder «¿esto que dice el plano está modelado?».
+   *
+   * **Salir restaura, no reinicia.** Antes de entrar se guarda la vista entera —cámara, qué modelos
+   * estaban encendidos, cortes— con el mismo mecanismo que las vistas guardadas, más lo que ese
+   * mecanismo no cubre: los planos apagados, el estilo y la proyección que muestra la cinta. El
+   * mismo error ya se pagó con el Modo 2D: un interruptor que no deshace lo suyo obliga a rehacer a
+   * mano lo que la persona ya había decidido.
+   */
+  const onComparar = useCallback(
+    async (activar: boolean) => {
+      const instance = viewer.current;
+      if (instance === null) return;
+
+      if (activar) {
+        const vista = await instance.captureView("antes de comparar");
+        antesDeComparar.current = {
+          vista,
+          style,
+          modelosApagados: hiddenModels,
+          planosApagados: hiddenPlans,
+        };
+        setComparando(true);
+        // Los dos a la vista: comparar con la mitad apagada no compara nada.
+        setHiddenModels(new Set());
+        for (const modelo of models) void instance.setModelVisible(modelo.id, true);
+        setHiddenPlans(new Set());
+        for (const plan of plans) void instance.setPlanVisible(plan.id, true);
+        instance.setPostproductionEnabled(false);
+        setStyle("wireframe");
+        void instance.setRenderStyle("wireframe");
+        setProjection("Orthographic");
+        void instance.setProjection("Orthographic");
+        setNavigation("Plan");
+        instance.setNavigationMode("Plan");
+        setStandardView("top");
+        void instance.frameAll("top");
+        return;
+      }
+
+      const previo = antesDeComparar.current;
+      antesDeComparar.current = null;
+      setComparando(false);
+      instance.setPostproductionEnabled(true);
+      if (previo === null) return;
+      setStyle(previo.style);
+      void instance.setRenderStyle(previo.style);
+      setHiddenPlans(previo.planosApagados);
+      for (const plan of plans) {
+        void instance.setPlanVisible(plan.id, !previo.planosApagados.has(plan.id));
+      }
+      setHiddenModels(previo.modelosApagados);
+      for (const modelo of models) {
+        void instance.setModelVisible(modelo.id, !previo.modelosApagados.has(modelo.id));
+      }
+      // La vista devuelve cámara, proyección y cortes.
+      onApplyView(previo.vista);
+    },
+    [models, plans, hiddenModels, hiddenPlans, style, onApplyView],
+  );
+
+  /**
    * Genera un plano desde el modelo y lo añade a la lista.
    *
    * **Lo que entra en el plano es lo que está encendido**, así que no hay diálogo de selección:
@@ -2522,6 +2619,11 @@ export function App() {
         }
         actions={
           <>
+            <SelectorDeEspacio
+              espacio={espacio}
+              onCambiar={setEspacio}
+              cuantosPlanos={plans.length + drawings.length}
+            />
             <StatusBadge status={status} />
             {/* **El interruptor de tema, junto a Abrir.** Es donde está en el portal —la barra de
                 arriba, a la derecha— así que quien cruza de una mitad a la otra lo busca en el
@@ -2598,6 +2700,8 @@ export function App() {
         hasHidden={hasHidden}
         hasPlans={plans.length > 0}
         modo2D={modo2D}
+        comparando={comparando}
+        onComparar={(activar) => void onComparar(activar)}
         onModo2D={onModo2D}
         gridAxisCount={models.reduce((total, modelo) => total + modelo.gridAxes.length, 0)}
         gridVisible={gridVisible}
@@ -2622,6 +2726,8 @@ export function App() {
         measurementCount={measurementCount}
         measureInProgress={measureMode !== null && measurePoints > 0}
         onTab={setTab}
+        gruposOcultos={GRUPOS_OCULTOS[espacio]}
+        titulosDePestana={TITULOS_DE_PESTANA[espacio]}
         onToggleSelectionVisible={onToggleSelectionVisible}
         onIsolateSelection={onIsolateSelection}
         onUndoIsolate={onUndoIsolate}
@@ -2889,7 +2995,10 @@ export function App() {
             // del registro, las observaciones de la obra y sus vistas guardadas. Sin ocultarlas,
             // las tres contestarían 401 y quien viene de fuera vería tres secciones rotas en vez
             // de un modelo. Ver `compartido.ts`.
-            ocultas={compartido !== null ? ["registro", "coordinacion", "vistas-proyecto"] : []}
+            ocultas={[
+              ...(compartido !== null ? ["registro", "coordinacion", "vistas-proyecto"] : []),
+              ...SECCIONES_OCULTAS[espacio],
+            ]}
             registro={
               <Selector
                 onAbrir={(revisionId) => void abrirRevision(revisionId)}
