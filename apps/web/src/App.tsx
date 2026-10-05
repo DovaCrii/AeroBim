@@ -55,6 +55,7 @@ import { SelectorDeEspacio } from "./components/SelectorDeEspacio.js";
 import {
   GRUPOS_OCULTOS,
   SECCIONES_OCULTAS,
+  TITULOS_DE_PESTANA,
   espacioDeUnArchivo,
   espacioPedido,
   espacioParaVerSeccion,
@@ -2717,6 +2718,7 @@ export function App() {
         measureInProgress={measureMode !== null && measurePoints > 0}
         onTab={setTab}
         gruposOcultos={GRUPOS_OCULTOS[espacio]}
+        titulosDePestana={TITULOS_DE_PESTANA[espacio]}
         onToggleSelectionVisible={onToggleSelectionVisible}
         onIsolateSelection={onIsolateSelection}
         onUndoIsolate={onUndoIsolate}

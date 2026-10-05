@@ -51,9 +51,38 @@ export const SECCIONES_OCULTAS: Record<Espacio, readonly string[]> = {
  * estorban y prometen algo que ahí no se hace.
  */
 export const GRUPOS_OCULTOS: Record<Espacio, readonly string[]> = {
-  modelo: [],
-  planos: ["Cortes", "Vistas guardadas"],
+  modelo: [
+    // Lo que se saca para entregar es del otro espacio: generar un plano y trazar un eje son trabajo
+    // de papel, y el eje de un metro se traza en planta.
+    "Documentar",
+    // «Modo 2D» y «Comparar» son del plano. No se ocultan como grupo —«Referencias» conserva los
+    // ejes, que el 3D sí usa— sino cada uno por su rótulo.
+    botonDe("Modo 2D"),
+    botonDe("Comparar"),
+  ],
+  planos: [
+    "Cortes",
+    "Vistas guardadas",
+    // Observar cuelga de un elemento seleccionado, y ese espacio no muestra el árbol donde se elige.
+    "Coordinar",
+  ],
 };
+
+/**
+ * Cómo se llama cada pestaña de la cinta en cada espacio, cuando no es su nombre de siempre.
+ *
+ * La pestaña `modelo` en el espacio de planos no tiene modelo: lleva la visibilidad y lo que se
+ * documenta. Llamarla «Modelo» ahí dice lo contrario de lo que contiene.
+ */
+export const TITULOS_DE_PESTANA: Record<Espacio, Readonly<Record<string, string>>> = {
+  modelo: {},
+  planos: { modelo: "Documentar" },
+};
+
+/** Cómo se nombra, en `GRUPOS_OCULTOS`, un botón suelto de la cinta y no un grupo entero. */
+export function botonDe(rotulo: string): string {
+  return `boton:${rotulo}`;
+}
 
 /** El otro espacio. */
 export function elOtro(espacio: Espacio): Espacio {

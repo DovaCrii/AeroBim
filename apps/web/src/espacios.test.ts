@@ -3,6 +3,7 @@ import {
   ESPACIOS,
   GRUPOS_OCULTOS,
   SECCIONES_OCULTAS,
+  botonDe,
   elOtro,
   espacioDeUnArchivo,
   espacioParaVerSeccion,
@@ -38,9 +39,26 @@ describe("los dos espacios", () => {
     expect(seccionVisible("modelo", "nubes")).toBe(true);
   });
 
-  it("los cortes son del 3D", () => {
-    expect(GRUPOS_OCULTOS.modelo).toEqual([]);
+  it("los cortes y observar son del 3D", () => {
     expect(GRUPOS_OCULTOS.planos).toContain("Cortes");
+    expect(GRUPOS_OCULTOS.planos).toContain("Coordinar");
+  });
+
+  it("documentar —generar un plano, trazar un eje— es del espacio de planos", () => {
+    expect(GRUPOS_OCULTOS.modelo).toContain("Documentar");
+    expect(GRUPOS_OCULTOS.planos).not.toContain("Documentar");
+  });
+
+  it("Modo 2D y Comparar se ocultan en el 3D por su botón y no por el grupo, que conserva los ejes", () => {
+    expect(GRUPOS_OCULTOS.modelo).toContain(botonDe("Modo 2D"));
+    expect(GRUPOS_OCULTOS.modelo).toContain(botonDe("Comparar"));
+    expect(GRUPOS_OCULTOS.modelo).not.toContain("Referencias");
+    expect(GRUPOS_OCULTOS.planos).not.toContain(botonDe("Comparar"));
+  });
+
+  it("ningún grupo ni botón queda oculto en los dos espacios: no desaparece una herramienta", () => {
+    const enLosDos = GRUPOS_OCULTOS.modelo.filter((g) => GRUPOS_OCULTOS.planos.includes(g));
+    expect(enLosDos).toEqual([]);
   });
 });
 

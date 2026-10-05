@@ -1,4 +1,5 @@
 import { createContext, useContext } from "react";
+import { botonDe } from "../espacios.js";
 import type {
   DistanceMode,
   MeasureMode,
@@ -139,6 +140,7 @@ export function Ribbon({
   onClearSections,
   trazandoPerfil,
   gruposOcultos = [],
+  titulosDePestana = {},
   onCrearPerfil,
   onShowAll,
   onTogglePanel,
@@ -256,6 +258,8 @@ export function Ribbon({
   readonly onClearSections: () => void;
   /** Los grupos de la cinta que el espacio de trabajo actual no muestra, por su rótulo. */
   readonly gruposOcultos?: readonly string[];
+  /** El nombre de una pestaña en este espacio, si no es el de siempre. */
+  readonly titulosDePestana?: Readonly<Record<string, string>>;
   /** Si se está marcando el eje de un perfil. */
   readonly trazandoPerfil: boolean;
   /** Empieza o cancela el trazado del eje de un perfil. */
@@ -272,6 +276,7 @@ export function Ribbon({
   /** Estado y acciones de archivo, a la derecha: es la barra de la aplicación, no otra fila. */
   readonly actions?: React.ReactNode;
 }) {
+  const tituloDe = (cual: RibbonTab) => titulosDePestana[cual] ?? TITULOS_PESTAÑA[cual];
   return (
     <div className="shrink-0 border-b border-borde bg-surface">
       {/* **Una sola fila arriba**: marca, pestañas y acciones. Antes eran dos —la cabecera de la
@@ -301,10 +306,10 @@ export function Ribbon({
             aria-pressed={vacio ? undefined : tab === cual && !collapsed}
             title={
               vacio
-                ? `${TITULOS_PESTAÑA[cual]} — abre un modelo, un plano o un levantamiento para usarla`
+                ? `${tituloDe(cual)} — abre un modelo, un plano o un levantamiento para usarla`
                 : cual === tab
-                  ? `${TITULOS_PESTAÑA[cual]} — clic para ${collapsed ? "desplegar" : "plegar"} la cinta`
-                  : TITULOS_PESTAÑA[cual]
+                  ? `${tituloDe(cual)} — clic para ${collapsed ? "desplegar" : "plegar"} la cinta`
+                  : tituloDe(cual)
             }
             className={[
               // Las pestañas medían 33 px de alto. A 36 sin tocar el texto: la fila la marca el
@@ -317,7 +322,7 @@ export function Ribbon({
                   : "border-transparent text-fg-2 hover:text-fg",
             ].join(" ")}
           >
-            {TITULOS_PESTAÑA[cual]}
+            {tituloDe(cual)}
           </button>
         ))}
 
@@ -837,23 +842,6 @@ export function Ribbon({
                       disabled={!hasModels}
                       onClick={() => onSection("transversal")}
                     />
-                    {/* **Crear perfil, junto a los cortes y no aparte**: es la pregunta siguiente a un
-                      corte —«¿y a lo largo de todo el trazado?»—. Los tres de arriba son cortes
-                      rápidos por el centro del modelo; este marca un eje con tantos vértices como
-                      curvas y saca un plano desarrollado por PK. Es un **interruptor**: pulsado
-                      vuelve a cancelar el trazado. */}
-                    <Boton
-                      icon={<IconPerfil />}
-                      label="Crear perfil"
-                      hint={
-                        hasModels
-                          ? "Marca un eje con clics y saca el perfil a lo largo de él, con su PK"
-                          : "Abre un modelo primero"
-                      }
-                      active={trazandoPerfil}
-                      disabled={!hasModels}
-                      onClick={onCrearPerfil}
-                    />
                     <Boton
                       icon={<IconTrash />}
                       label="Quitar"
@@ -944,6 +932,28 @@ export function Ribbon({
                       disabled={!enabled}
                       onClick={onGenerarPlano}
                     />
+                    {/* **Crear perfil vive en «Documentar», con el espacio de planos y no con los cortes.** Un
+                      eje de metro se traza **en planta**, y lo que sale es un plano para entregar: es
+                      trabajo de papel. Los cortes del 3D son rápidos por el centro del modelo; éste
+                      marca un eje con tantos vértices como curvas y saca un plano desarrollado por
+                      PK. Es un **interruptor**: pulsado vuelve a cancelar el trazado. */}
+                    <Boton
+                      icon={<IconPerfil />}
+                      label="Crear perfil"
+                      hint={
+                        hasModels
+                          ? "Marca un eje con clics y saca el perfil a lo largo de él, con su PK"
+                          : "Abre un modelo primero"
+                      }
+                      active={trazandoPerfil}
+                      disabled={!hasModels}
+                      onClick={onCrearPerfil}
+                    />
+                  </Grupo>
+
+                  {/* **Observar es de coordinación y se queda en el 3D**: cuelga de un elemento
+                      seleccionado, y el espacio de planos no muestra el árbol donde se elige. */}
+                  <Grupo label="Coordinar">
                     <Boton
                       icon={<IconNota />}
                       label="Observar"
@@ -1062,6 +1072,10 @@ function Boton({
    */
   readonly tamano?: "grande" | "pequeno";
 }) {
+  // Un botón suelto que el espacio no muestra: va por su rótulo con prefijo (ver `espacios.ts`).
+  const ocultos = useContext(GruposOcultosContexto);
+  if (ocultos.includes(botonDe(label))) return null;
+
   const encendido = active === true || destacado;
   const grande = tamano === "grande";
 
