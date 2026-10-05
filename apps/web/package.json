@@ -9,7 +9,8 @@
     "prebuild": "node scripts/copy-wasm.mjs",
     "build": "tsc -b && vite build",
     "postbuild": "node scripts/limpiar-dist.mjs",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run"
   },
   "dependencies": {
     "@aerobim/bim-core": "*",
