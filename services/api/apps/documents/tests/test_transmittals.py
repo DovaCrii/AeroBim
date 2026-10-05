@@ -165,6 +165,57 @@ def test_las_revisiones_del_desplegable_se_acotan_a_la_organizacion(
 
 
 @pytest.mark.django_db
+def test_los_destinatarios_se_acotan_a_la_organizacion_de_quien_arma_el_transmittal(
+    client, coordinador, organizacion, revision
+):
+    """**El permiso dice qué se puede hacer, no sobre qué** —también con las personas—.
+
+    Hallazgo de la revisión de solo lectura del 2026-10-05: el formulario ofrecía como
+    destinatarios a **todos los usuarios activos de todas las organizaciones**. Quien tuviera
+    `add_transmittal` veía el directorio de otra empresa y podía dirigirle un transmittal —con su
+    aviso por correo— sin que esa persona tuviera nada que ver con la obra. Lo dicen las dos
+    mitades: no se **ofrece** y, pidiéndolo a mano, no se **acepta**.
+    """
+    modelo = get_user_model()
+    ajena = Organizacion.objects.create(nombre="Ajena", slug="ajena")
+    de_otra = modelo.objects.create_user(
+        username="persona-de-otra-empresa", password="una-clave-larga-99", email="otra@ajena.cl"
+    )
+    Membresia.objects.create(organizacion=ajena, usuario=de_otra)
+    colega = modelo.objects.create_user(
+        username="colega-de-la-obra", password="una-clave-larga-99", email="colega@ejemplo.cl"
+    )
+    Membresia.objects.create(organizacion=organizacion, usuario=colega)
+    # Existe, está activa y no pertenece a ninguna organización: tampoco es de quien lo arma.
+    modelo.objects.create_user(username="sin-membresia", password="una-clave-larga-99")
+
+    client.force_login(dar(coordinador, "documents.add_transmittal", "documents.change_revision"))
+    ofrecidos = (
+        client.get(reverse("documents:nuevo-transmittal"))
+        .context["form"]
+        .fields["destinatarios"]
+        .queryset
+    )
+    assert colega in ofrecidos
+    assert de_otra not in ofrecidos
+    assert modelo.objects.get(username="sin-membresia") not in ofrecidos
+
+    # Y pidiéndolo a mano, que es lo que haría quien no mira el formulario: no entra.
+    respuesta = client.post(
+        reverse("documents:nuevo-transmittal"),
+        {
+            "folio": "T-AJENO",
+            "asunto": "Dirigido a otra empresa",
+            "revisiones": [revision.pk],
+            "destinatarios": [de_otra.pk],
+        },
+    )
+    assert respuesta.status_code == 400
+    assert respuesta.context["form"].errors["destinatarios"]
+    assert Transmittal.objects.filter(folio="T-AJENO").count() == 0
+
+
+@pytest.mark.django_db
 def test_armar_el_borrador_deduce_el_proyecto_de_las_revisiones(
     client, coordinador, revision, revisor
 ):
