@@ -2,7 +2,7 @@
 
 > **Resumen de estado, no bitácora.** ≤120 líneas. La historia detallada vive en
 > [`docs/historial/`](docs/historial/) y en `git log`. La fuente de verdad del trabajo pendiente es
-> [`MASTER_PLAN.md`](MASTER_PLAN.md) (léelo por filas: `node scripts/claude/plan-fila.mjs <código>`).
+> [`MASTER_PLAN.md`](MASTER_PLAN.md) (tablero de ~500 líneas desde el 2026-10-05; las fases cerradas están en `docs/historial/plan/`; `/siguiente` dice qué toca).
 
 **Estado al:** 2026-10-05 · **`main` en:** `84d3e00` · **Último PR fusionado:** #80
 
