@@ -68,6 +68,10 @@ if (siguiente) {
     console.error("No encuentro «## Lo que queda, por fase» en MASTER_PLAN.md");
     process.exit(2);
   }
+  if (lineas.length > 700)
+    console.log(
+      `⚠ MASTER_PLAN.md tiene ${lineas.length} líneas (tope ~700): archiva las fases cerradas a docs/historial/plan/ (ver /siguiente) antes de seguir.\n`,
+    );
   const quedan = lineas.slice(inicio, inicio + 8).find((l) => /\*\*Quedan [^*]+\*\*/.test(l));
   if (quedan) console.log(quedan.match(/\*\*Quedan [^*]+\*\*/)[0], "(según el plan)\n");
   const grupos = new Map();

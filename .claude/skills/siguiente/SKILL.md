@@ -33,6 +33,12 @@ Pasos 3 y 4 con el código dado.
    abiertas, su fila en «Lo que queda, por fase».
 3. Actualiza «Quedan N filas abiertas» y `HANDOFF.md`.
 
+## Regla de fondo: lo cerrado no se queda en el tablero
+
+El tablero solo lleva lo **abierto, lo decidido y lo vivo**. Una fila ✅ conserva una línea en su
+tabla de fase; su narrativa (el cómo, las medidas, los tropiezos) va al PR o a `docs/historial/`.
+`--siguiente` avisa si el plan pasa de 700 líneas.
+
 ## Reglas
 
 - Nunca se marca ✅ sin el oráculo cumplido. Cifras medidas, con fecha.
