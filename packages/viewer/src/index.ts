@@ -103,6 +103,7 @@ export {
 } from "./nubes.js";
 export type { Destino } from "./formatos.js";
 export { extensionDe, queHacerCon } from "./formatos.js";
+export { esZip, ifcDelZip, IFCZIP_MAXIMO_BYTES } from "./ifczip.js";
 export type { MallaDeFragments, MedicionDeDesviacion } from "./desviacion.js";
 export {
   MAXIMO_PUNTOS,

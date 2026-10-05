@@ -42,6 +42,13 @@ gestion, que no tiene `timeout` porque no es una peticion. Negarse antes es mejo
 sacar el trabajo de la peticion son **30 s sobre un archivo real**; seis pares son 120. El dia que
 una obra tenga cuatro modelos vigentes de verdad, la respuesta ya no es subir el tope.
 
+**Ese dia llego el 2026-09-28**: un proyecto de metro, con una especialidad por modelo. Y el camino
+que daba el mensaje estaba roto: `detectar_interferencias` cruza **un par de revisiones** por sus
+UUID, no una obra, asi que seis modelos eran quince comandos a mano. Ahora lo que no cabe se lanza
+en segundo plano —{@link lanzar_en_segundo_plano}, el comando `revisar_obra`— y avisa en la campana
+al terminar. Lo que cabe sigue esperando en la peticion, que es lo mejor cuando se puede: el
+resultado aparece en la misma pantalla.
+
 Cada corrida deja su fila en `JobRun`: un trabajo que muere a mitad **no da error**, y la fila es la
 unica forma de notarlo.
 """
@@ -309,6 +316,89 @@ def _abrir(revision: Revision, autor, cumulo: Cumulo, otra: Revision) -> Observa
     )
 
 
+#: A partir de cuántas horas una corrida en segundo plano que sigue en `running` se da por muerta.
+#:
+#: Es el mismo umbral de `trabajos_colgados`, y hace falta aquí por lo contrario: sin él, un proceso
+#: que murió a mitad —un reinicio del servicio durante el despliegue lo mata— dejaría la obra
+#: «con una revisión en curso» para siempre, y el botón no volvería a dejar lanzar otra.
+HORAS_PARA_DARLA_POR_MUERTA = 6
+
+
+def nombre_de_corrida(proyecto) -> str:
+    """Con qué nombre queda en `JobRun` la corrida de una obra lanzada desde la pantalla.
+
+    **Con la obra dentro**, que es lo que permite contestar «¿hay una en curso para *esta* obra?»
+    con una consulta, sin campos nuevos en el historial.
+    """
+    return f"revisar_obra {proyecto.pk}"
+
+
+def corrida_en_curso(proyecto):
+    """La corrida en segundo plano que sigue abierta para esta obra, o `None`."""
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from apps.core.models import JobRun
+
+    desde = timezone.now() - timedelta(hours=HORAS_PARA_DARLA_POR_MUERTA)
+    return (
+        JobRun.objects.filter(
+            command=nombre_de_corrida(proyecto),
+            result=JobRun.RESULT_RUNNING,
+            started_at__gte=desde,
+        )
+        .order_by("-started_at")
+        .first()
+    )
+
+
+def lanzar_en_segundo_plano(proyecto, autor) -> None:
+    """Arranca `revisar_obra` **como un proceso aparte**, fuera de la petición y de su `timeout`.
+
+    ## Por qué un proceso y no una cola
+
+    El docstring del módulo ya lo dejó escrito: una cola trae una forma nueva de fallar callada —un
+    trabajo encolado que nadie procesa no da error—, y eso sigue siendo cierto. Un proceso lanzado
+    aquí **empieza ahora o falla ahora**, delante de quien pulsó el botón, y deja su fila en
+    `JobRun` en cuanto arranca. No hay ningún trabajador que se pueda olvidar de encender.
+
+    **Y en su propia sesión** (`start_new_session`): así la petición termina y el proceso sigue,
+    en vez de morir con el worker que lo lanzó cuando gunicorn lo recicle.
+
+    Lo que sí lo mata es reiniciar el servicio —un despliegue a mitad de corrida—: la fila queda en
+    `running`, `trabajos_colgados` la delata, y a las `HORAS_PARA_DARLA_POR_MUERTA` el botón deja
+    lanzar otra.
+    """
+    # `nosec B404`: bandit avisa de que importar `subprocess` tiene implicaciones, y las tiene. El
+    # unico uso es la llamada de abajo, que lleva su propio motivo. Mismo criterio que en
+    # `conversion.py`: un aviso que no se puede quitar se aprende a ignorar, y tapa al siguiente.
+    import subprocess  # nosec B404
+    import sys
+
+    from django.conf import settings
+
+    # `nosec B603`: no hay shell y la lista de argumentos es fija. Lo unico que entra es el UUID de
+    # la obra y la clave del usuario, que salen de objetos ya cargados de la base —no de la
+    # peticion— y viajan como elementos de la lista, nunca concatenados en una cadena.
+    subprocess.Popen(  # nosec B603 # noqa: S603
+        [
+            sys.executable,
+            str(settings.BASE_DIR / "manage.py"),
+            "revisar_obra",
+            str(proyecto.pk),
+            "--autor",
+            str(autor.pk),
+        ],
+        cwd=str(settings.BASE_DIR),
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        start_new_session=True,
+        close_fds=True,
+    )
+
+
 def revisar_proyecto(
     proyecto,
     autor,
@@ -318,6 +408,7 @@ def revisar_proyecto(
     seco: bool = False,
     selector: str = SELECTOR_POR_DEFECTO,
     radio_m: float = RADIO_POR_DEFECTO_M,
+    corrida_como: str = "revisar_interferencias",
 ) -> Resultado:
     """Cruza todos los modelos vigentes de la obra y abre lo que encuentre.
 
@@ -339,7 +430,7 @@ def revisar_proyecto(
             # a nada. Se dice cual y se sigue con los demas, en vez de tumbar la corrida entera.
             resultado.sin_archivo.append(revision.entregable.codigo)
 
-    with record_job_run("revisar_interferencias") as corrida:
+    with record_job_run(corrida_como) as corrida:
         for a, b in combinations(utiles, 2):
             resultado.pares += 1
             encontradas = detectar(

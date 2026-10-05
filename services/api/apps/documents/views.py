@@ -488,13 +488,23 @@ class SubirRevisionView(ModelPermissionRequiredMixin, View):
         )
 
     def post(self, request, *args, **kwargs):
-        from django.shortcuts import render
-
         entregable = self._entregable()
         # **El entregable entra en el formulario para validar, no para guardar.** Sin él,
         # `clean_correlativo` no puede saber si el correlativo está tomado, y el choque no aparecía
         # hasta el `INSERT` —con el archivo ya en disco y el conversor ya ejecutado—.
         form = RevisionForm(request.POST, request.FILES, entregable=entregable)
+        # **El temporal de un `.ifczip` se borra pase lo que pase**: con el formulario inválido
+        # —un correlativo repetido se valida *antes*, pero el archivo se desempaqueta igual—, con
+        # el guardado bien hecho y con un `IntegrityError` a mitad. Un giga de temporal
+        # por cada intento fallido llena el disco sin avisar.
+        try:
+            return self._subir(request, entregable, form)
+        finally:
+            form.descartar_temporal()
+
+    def _subir(self, request, entregable, form):
+        from django.shortcuts import render
+
         if not form.is_valid():
             return render(
                 request, self.template_name, {"entregable": entregable, "form": form}, status=400
@@ -510,14 +520,19 @@ class SubirRevisionView(ModelPermissionRequiredMixin, View):
         # `storage.guardar(clave, form.contenido)` con los 200 MB en memoria; ahora va por tramos y
         # de una sola pieza —temporal más `os.replace`—, porque la clave lleva el `sha256` y un
         # archivo truncado con el nombre del completo no lo detecta nadie nunca.
-        storage.guardar_subida(clave, form.cleaned_data["archivo"])
+        if form.desempaquetado is not None:
+            # Lo que se archiva de un `.ifczip` es el IFC de dentro: ver `ifczip.py`.
+            with form.desempaquetado.ruta.open("rb") as dentro:
+                storage.guardar_subida(clave, dentro)
+        else:
+            storage.guardar_subida(clave, form.cleaned_data["archivo"])
 
         revision = form.save(commit=False)
         revision.entregable = entregable
         revision.subida_por = request.user
         revision.clave_archivo = clave
         # El nombre que traía se guarda **en la base de datos**, no en el disco.
-        revision.nombre_original = form.cleaned_data["archivo"].name[:250]
+        revision.nombre_original = form.nombre_para_archivar[:250]
         revision.tamano_bytes = form.tamano
         revision.sha256 = form.sha256
         # **Lo que el IFC declara se lee al subirlo** (`F3.3`), y solo si es un IFC. Medido: 1,1 s
@@ -2275,7 +2290,9 @@ class RevisarInterferenciasView(ModelPermissionRequiredMixin, View):
         from apps.documents.interferencias import GrupoVacio
         from apps.documents.revisar import (
             cabe_en_una_peticion,
+            corrida_en_curso,
             cuantos_pares,
+            lanzar_en_segundo_plano,
             modelos_vigentes,
             revisar_proyecto,
             segundos_estimados,
@@ -2290,20 +2307,53 @@ class RevisarInterferenciasView(ModelPermissionRequiredMixin, View):
         if proyecto is None:
             raise Http404
 
-        # **Se mide antes de empezar.** Contar los modelos vigentes es una consulta; la alternativa
-        # era descubrirlo a los dos minutos con un `SIGKILL` y media corrida escrita.
-        pares = cuantos_pares(len(modelos_vigentes(proyecto)))
-        if not cabe_en_una_peticion(pares):
-            messages.warning(
+        # **Una a la vez por obra.** Dos corridas simultáneas sobre los mismos modelos abrirían el
+        # mismo problema dos veces: cada una comprueba «¿ya existe?» antes de que la otra escriba.
+        en_curso = corrida_en_curso(proyecto)
+        if en_curso is not None:
+            messages.info(
                 request,
                 _(
-                    "This project has %(models)s current models: %(pairs)s comparisons, about "
-                    "%(minutes)s minutes. That does not fit in one request, so it was not started "
-                    "— a half-finished run leaves findings without saying so. Run it from the "
-                    "server with `manage.py detectar_interferencias`, which has no time limit."
+                    "A clash review of this project is already running, since %(hora)s. The bell "
+                    "will tell you when it finishes."
+                )
+                % {"hora": timezone.localtime(en_curso.started_at).strftime("%H:%M")},
+            )
+            return redirect("projects:proyecto", pk=proyecto.pk)
+
+        # **Se mide antes de empezar.** Contar los modelos vigentes es una consulta; la alternativa
+        # era descubrirlo a los dos minutos con un `SIGKILL` y media corrida escrita.
+        cuantos = len(modelos_vigentes(proyecto))
+        pares = cuantos_pares(cuantos)
+        if not cabe_en_una_peticion(pares):
+            # **Lo que no cabe se lanza aparte, en vez de negarse** (2026-09-28). Antes se negaba y
+            # mandaba a `detectar_interferencias`, que cruza **un par** de revisiones por sus UUID:
+            # con los modelos de un metro eran quince comandos a mano, o sea que no se hacía.
+            #
+            # **Y con un cerrojo de dos minutos**, porque la fila de `JobRun` la crea el proceso al
+            # arrancar, un par de segundos después: sin esto, un doble clic lanzaba dos. `add` es
+            # atómico en la caché compartida —la misma que ya sujeta el límite del token—.
+            from django.core.cache import cache
+
+            if not cache.add(f"revisar_obra:{proyecto.pk}", request.user.pk, timeout=120):
+                messages.info(
+                    request,
+                    _(
+                        "A clash review of this project was just started. The bell will tell "
+                        "you when it finishes."
+                    ),
+                )
+                return redirect("projects:proyecto", pk=proyecto.pk)
+            lanzar_en_segundo_plano(proyecto, request.user)
+            messages.success(
+                request,
+                _(
+                    "Started in the background: %(models)s current models, %(pairs)s comparisons, "
+                    "about %(minutes)s minutes. You can keep working; the bell will tell you when "
+                    "it finishes, and the new findings will be in the open observations."
                 )
                 % {
-                    "models": len(modelos_vigentes(proyecto)),
+                    "models": cuantos,
                     "pairs": pares,
                     "minutes": max(1, round(segundos_estimados(pares) / 60)),
                 },

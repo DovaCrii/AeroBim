@@ -59,6 +59,9 @@ FIRMAS: dict[str, tuple[bytes, ...]] = {
     "xlsx": (b"PK\x03\x04", b"PK\x05\x06"),
     "pptx": (b"PK\x03\x04", b"PK\x05\x06"),
     "zip": (b"PK\x03\x04", b"PK\x05\x06"),
+    # **El IFC comprimido de buildingSMART**: un zip con un `.ifc` dentro. Entra con su firma de zip
+    # y se desempaqueta al llegar —ver `ifczip.py`—, así que al almacén llega el IFC.
+    "ifczip": (b"PK\x03\x04",),
     "dwg": (b"AC10", b"AC1"),
     # **DGN de Bentley, en sus dos generaciones y por eso dos firmas.**
     #
