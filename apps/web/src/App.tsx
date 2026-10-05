@@ -76,7 +76,7 @@ import { Plan2DCard, PropertiesPanel, PuntoDeNubeCard } from "./components/Prope
 import { Ribbon, type RibbonTab } from "./components/Ribbon.js";
 import { SpatialTree } from "./components/SpatialTree.js";
 import { StatusBar } from "./components/StatusBar.js";
-import { ViewCube } from "./components/ViewCube.js";
+import { SelectorDeVista } from "./components/SelectorDeVista.js";
 import { VistasCompartidas } from "./components/VistasCompartidas.js";
 import { IconArrowLeft } from "./components/icons.js";
 
@@ -2730,10 +2730,6 @@ export function App() {
           setStandardView("iso");
           void viewer.current?.frameAll();
         }}
-        onView={(view: StandardView) => {
-          setStandardView(view);
-          void viewer.current?.frameAll(view);
-        }}
         onFrameSelection={() => void viewer.current?.frameSelection()}
         onProjection={onProjection}
         onNavigation={onNavigation}
@@ -2931,10 +2927,10 @@ export function App() {
             />
           )}
 
-          <ViewCube
-            view={standardView}
-            disabled={models.length === 0 && plans.length === 0 && nube === null}
-            onView={(view) => {
+          <SelectorDeVista
+            vista={standardView}
+            desactivado={models.length === 0 && plans.length === 0 && nube === null}
+            onVista={(view) => {
               setStandardView(view);
               void viewer.current?.frameAll(view);
             }}
