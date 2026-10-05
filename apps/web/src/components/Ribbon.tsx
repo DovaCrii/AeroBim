@@ -1,3 +1,4 @@
+import { createContext, useContext } from "react";
 import type {
   DistanceMode,
   MeasureMode,
@@ -101,6 +102,8 @@ export function Ribbon({
   hasHidden,
   hasPlans,
   modo2D,
+  comparando,
+  onComparar,
   onModo2D,
   gridAxisCount,
   gridVisible,
@@ -135,6 +138,7 @@ export function Ribbon({
   onSection,
   onClearSections,
   trazandoPerfil,
+  gruposOcultos = [],
   onCrearPerfil,
   onShowAll,
   onTogglePanel,
@@ -196,6 +200,10 @@ export function Ribbon({
   /** `true` en modo 2D: el plano solo, en planta y ortográfica, con los modelos apagados. */
   readonly modo2D: boolean;
   readonly onModo2D: (activar: boolean) => void;
+  /** Hay una comparación 2D–3D en curso. */
+  readonly comparando: boolean;
+  /** Entra o sale de la comparación del plano con el modelo. */
+  readonly onComparar: (activar: boolean) => void;
   /** Cuántos ejes de replanteo trae el modelo. Cero deshabilita el botón. */
   readonly gridAxisCount: number;
   readonly gridVisible: boolean;
@@ -246,6 +254,8 @@ export function Ribbon({
   readonly onClearMeasurements: () => void;
   readonly onSection: (axis: SectionAxis) => void;
   readonly onClearSections: () => void;
+  /** Los grupos de la cinta que el espacio de trabajo actual no muestra, por su rótulo. */
+  readonly gruposOcultos?: readonly string[];
   /** Si se está marcando el eje de un perfil. */
   readonly trazandoPerfil: boolean;
   /** Empieza o cancela el trazado del eje de un perfil. */
@@ -371,14 +381,15 @@ export function Ribbon({
           con 46 px de cinta y `altoGrupo: 0`: la única fila de la cinta ofrecía tres pestañas
           apagadas y nada más. El pliegue existe para **dejarle el lienzo al modelo**, y sin modelo
           no protege nada. Se recupera intacto en cuanto haya algo abierto. */}
-      <div
-        className={
-          collapsed && !vacio
-            ? "hidden"
-            : "flex items-stretch overflow-x-auto px-1 py-0.5 [&_:focus-visible]:-outline-offset-2"
-        }
-      >
-        {/* **Con la escena vacía la cinta no son treinta y seis botones grises.**
+      <GruposOcultosContexto.Provider value={gruposOcultos}>
+        <div
+          className={
+            collapsed && !vacio
+              ? "hidden"
+              : "flex items-stretch overflow-x-auto px-1 py-0.5 [&_:focus-visible]:-outline-offset-2"
+          }
+        >
+          {/* **Con la escena vacía la cinta no son treinta y seis botones grises.**
 
             Y no era un problema de color: `--color-apagado-fg` está a 3,6:1 a propósito —la norma
             exime lo inactivo, y el gate lo fija para que nadie lo suba— así que aclararlo habría
@@ -387,51 +398,51 @@ export function Ribbon({
             imposibles y ninguna posible.
 
             Es lo que hace Revit sin documento abierto, y por el mismo motivo. */}
-        {vacio ? (
-          <Grupo label="Empezar">
-            <Boton
-              icon={<IconRegistro />}
-              label="Del registro"
-              hint="Elige una revisión del expediente. Llega con su obra y su código"
-              tamano="grande"
-              onClick={onDelRegistro}
-            />
-            <Boton
-              icon={<IconAbrirDelDisco />}
-              label="Del disco"
-              hint="Abre un IFC, un DXF o un levantamiento .copc.laz de este equipo"
-              tamano="grande"
-              onClick={onAbrirDelDisco}
-            />
-          </Grupo>
-        ) : (
-          <>
-            {tab === "vista" && (
-              <>
-                <Grupo label="Encuadre">
-                  <Boton
-                    icon={<IconFrameAll />}
-                    label="Todo"
-                    hint="Vuelve a la vista general del modelo"
-                    // La vuelta segura de la pestaña Vista: se pierde la cámara y esto la recupera.
-                    tamano="grande"
-                    disabled={!enabled}
-                    onClick={onFrameAll}
-                  />
-                  <Boton
-                    icon={<IconFrameSelection />}
-                    label="Selección"
-                    hint={
-                      hasSelection
-                        ? "Acerca al elemento seleccionado. También con doble clic"
-                        : "Selecciona un elemento primero"
-                    }
-                    disabled={!enabled || !hasSelection}
-                    onClick={onFrameSelection}
-                  />
-                </Grupo>
+          {vacio ? (
+            <Grupo label="Empezar">
+              <Boton
+                icon={<IconRegistro />}
+                label="Del registro"
+                hint="Elige una revisión del expediente. Llega con su obra y su código"
+                tamano="grande"
+                onClick={onDelRegistro}
+              />
+              <Boton
+                icon={<IconAbrirDelDisco />}
+                label="Del disco"
+                hint="Abre un IFC, un DXF o un levantamiento .copc.laz de este equipo"
+                tamano="grande"
+                onClick={onAbrirDelDisco}
+              />
+            </Grupo>
+          ) : (
+            <>
+              {tab === "vista" && (
+                <>
+                  <Grupo label="Encuadre">
+                    <Boton
+                      icon={<IconFrameAll />}
+                      label="Todo"
+                      hint="Vuelve a la vista general del modelo"
+                      // La vuelta segura de la pestaña Vista: se pierde la cámara y esto la recupera.
+                      tamano="grande"
+                      disabled={!enabled}
+                      onClick={onFrameAll}
+                    />
+                    <Boton
+                      icon={<IconFrameSelection />}
+                      label="Selección"
+                      hint={
+                        hasSelection
+                          ? "Acerca al elemento seleccionado. También con doble clic"
+                          : "Selecciona un elemento primero"
+                      }
+                      disabled={!enabled || !hasSelection}
+                      onClick={onFrameSelection}
+                    />
+                  </Grupo>
 
-                {/* **El modo 2D no es una vista más**: apaga los modelos y deja el plano solo, en
+                  {/* **El modo 2D no es una vista más**: apaga los modelos y deja el plano solo, en
                 planta y en ortográfica. Va aquí, junto al encuadre, porque es lo primero que se
                 busca cuando se viene a revisar un CAD y no el modelo.
 
@@ -440,69 +451,87 @@ export function Ribbon({
                 Aspecto. «Referencias» es lo que de verdad comparten los dos botones y es el término
                 de obra: un plano CAD de referencia y los ejes de **replanteo** — que es justo la
                 palabra que ya usaba el propio tooltip de Ejes. */}
-                <Grupo label="Referencias">
-                  <Boton
-                    icon={<IconPlan2D />}
-                    label="Modo 2D"
-                    hint={
-                      hasPlans
-                        ? "Deja el plano solo, en planta y ortográfica. Vuelve a pulsarlo para recuperar el modelo"
-                        : "No hay ningún plano 2D cargado"
-                    }
-                    // Abre un modo de trabajo entero: el plano solo, sin modelo.
-                    tamano="grande"
-                    active={modo2D}
-                    disabled={!hasPlans}
-                    onClick={() => onModo2D(!modo2D)}
-                  />
-                  {/* Los ejes del modelo: con lo que se habla en obra, y el ancla para calzar un plano
+                  <Grupo label="Referencias">
+                    <Boton
+                      icon={<IconPlan2D />}
+                      label="Modo 2D"
+                      hint={
+                        hasPlans
+                          ? "Deja el plano solo, en planta y ortográfica. Vuelve a pulsarlo para recuperar el modelo"
+                          : "No hay ningún plano 2D cargado"
+                      }
+                      // Abre un modo de trabajo entero: el plano solo, sin modelo.
+                      tamano="grande"
+                      active={modo2D}
+                      disabled={!hasPlans}
+                      onClick={() => onModo2D(!modo2D)}
+                    />
+                    {/* **Comparar es lo contrario del Modo 2D**: el plano y el modelo a la vez, en
+                        planta, con el modelo en alambre para que el plano se lea a través. Es la pregunta
+                        que trae a quien revisa —¿lo que dice el plano está modelado?— y al salir
+                        devuelve la vista tal como estaba. */}
+                    <Boton
+                      icon={<IconGhost />}
+                      label="Comparar"
+                      hint={
+                        modo2D
+                          ? "Sal del Modo 2D para comparar el plano con el modelo"
+                          : hasPlans && hasModels
+                            ? "Superpone el plano y el modelo, en planta. Vuelve a pulsarlo para dejar la vista como estaba"
+                            : "Hace falta un plano 2D y un modelo abiertos"
+                      }
+                      active={comparando}
+                      disabled={modo2D || !hasPlans || !hasModels}
+                      onClick={() => onComparar(!comparando)}
+                    />
+                    {/* Los ejes del modelo: con lo que se habla en obra, y el ancla para calzar un plano
                   CAD —que trae su propia capa de ejes— sobre el IFC. */}
-                  <Boton
-                    icon={<IconGrid />}
-                    label="Ejes"
-                    hint={
-                      gridAxisCount > 0
-                        ? `Los ${gridAxisCount} ejes de replanteo del modelo, con su burbuja`
-                        : "El modelo no trae ejes de replanteo"
-                    }
-                    active={gridVisible && gridAxisCount > 0}
-                    disabled={gridAxisCount === 0}
-                    onClick={() => onGridVisible(!gridVisible)}
-                  />
-                </Grupo>
+                    <Boton
+                      icon={<IconGrid />}
+                      label="Ejes"
+                      hint={
+                        gridAxisCount > 0
+                          ? `Los ${gridAxisCount} ejes de replanteo del modelo, con su burbuja`
+                          : "El modelo no trae ejes de replanteo"
+                      }
+                      active={gridVisible && gridAxisCount > 0}
+                      disabled={gridAxisCount === 0}
+                      onClick={() => onGridVisible(!gridVisible)}
+                    />
+                  </Grupo>
 
-                <Grupo label="Vistas">
-                  <Boton
-                    icon={<IconViewIso />}
-                    label="Isométrica"
-                    hint="La vista general, en tres cuartos"
-                    disabled={!enabled}
-                    onClick={() => onView("iso")}
-                  />
-                  <Boton
-                    icon={<IconViewTop />}
-                    label="Planta"
-                    hint="Desde arriba, en vertical"
-                    disabled={!enabled}
-                    onClick={() => onView("top")}
-                  />
-                  <Boton
-                    icon={<IconViewFront />}
-                    label="Frontal"
-                    hint="Alzado de frente"
-                    disabled={!enabled}
-                    onClick={() => onView("front")}
-                  />
-                  <Boton
-                    icon={<IconViewSide />}
-                    label="Lateral"
-                    hint="Alzado desde el costado"
-                    disabled={!enabled}
-                    onClick={() => onView("side")}
-                  />
-                </Grupo>
+                  <Grupo label="Vistas">
+                    <Boton
+                      icon={<IconViewIso />}
+                      label="Isométrica"
+                      hint="La vista general, en tres cuartos"
+                      disabled={!enabled}
+                      onClick={() => onView("iso")}
+                    />
+                    <Boton
+                      icon={<IconViewTop />}
+                      label="Planta"
+                      hint="Desde arriba, en vertical"
+                      disabled={!enabled}
+                      onClick={() => onView("top")}
+                    />
+                    <Boton
+                      icon={<IconViewFront />}
+                      label="Frontal"
+                      hint="Alzado de frente"
+                      disabled={!enabled}
+                      onClick={() => onView("front")}
+                    />
+                    <Boton
+                      icon={<IconViewSide />}
+                      label="Lateral"
+                      hint="Alzado desde el costado"
+                      disabled={!enabled}
+                      onClick={() => onView("side")}
+                    />
+                  </Grupo>
 
-                {/* **Grupo aparte y no dentro de «Vistas», a propósito** (`F1.13`).
+                  {/* **Grupo aparte y no dentro de «Vistas», a propósito** (`F1.13`).
 
                 Ahí arriba «vista» significa Iso, Planta, Frontal y Lateral: direcciones fijas de
                 cámara. Aquí significa otra cosa —una cámara guardada con lo apagado y los cortes
@@ -513,380 +542,382 @@ export function Ribbon({
                 nombre**, y un nombre se escribe: el botón lleva hasta donde se escribe, con el
                 campo enfocado. Un botón de cinta no puede pedir texto sin inventar un cuadro que
                 esta interfaz no tiene en ningún otro sitio. */}
-                <Grupo label="Vistas guardadas">
-                  <Boton
-                    icon={<IconGuardarVista />}
-                    label="Guardar vista"
-                    hint={
-                      puedeGuardarVista
-                        ? "Guarda la cámara, lo que está apagado y los cortes puestos. Se abre el panel para ponerle nombre"
-                        : "Abre un modelo primero"
-                    }
-                    disabled={!puedeGuardarVista}
-                    onClick={onGuardarVista}
-                  />
-                  <Boton
-                    icon={<IconViews />}
-                    label="Las guardadas"
-                    hint={
-                      cuantasVistas > 0
-                        ? `Las ${cuantasVistas} vistas guardadas en este navegador`
-                        : "Todavía no hay ninguna vista guardada"
-                    }
-                    onClick={onVerVistas}
-                  />
-                </Grupo>
+                  <Grupo label="Vistas guardadas">
+                    <Boton
+                      icon={<IconGuardarVista />}
+                      label="Guardar vista"
+                      hint={
+                        puedeGuardarVista
+                          ? "Guarda la cámara, lo que está apagado y los cortes puestos. Se abre el panel para ponerle nombre"
+                          : "Abre un modelo primero"
+                      }
+                      disabled={!puedeGuardarVista}
+                      onClick={onGuardarVista}
+                    />
+                    <Boton
+                      icon={<IconViews />}
+                      label="Las guardadas"
+                      hint={
+                        cuantasVistas > 0
+                          ? `Las ${cuantasVistas} vistas guardadas en este navegador`
+                          : "Todavía no hay ninguna vista guardada"
+                      }
+                      onClick={onVerVistas}
+                    />
+                  </Grupo>
 
-                <Grupo label="Proyección">
-                  <Boton
-                    icon={<IconPerspective />}
-                    label="Perspectiva"
-                    hint="Con fuga, como lo ve el ojo"
-                    active={projection === "Perspective"}
-                    disabled={!enabled}
-                    onClick={() => onProjection("Perspective")}
-                  />
-                  <Boton
-                    icon={<IconOrthographic />}
-                    label="Ortográfica"
-                    hint="Sin fuga, como un plano"
-                    active={projection === "Orthographic"}
-                    disabled={!enabled}
-                    onClick={() => onProjection("Orthographic")}
-                  />
-                </Grupo>
+                  <Grupo label="Proyección">
+                    <Boton
+                      icon={<IconPerspective />}
+                      label="Perspectiva"
+                      hint="Con fuga, como lo ve el ojo"
+                      active={projection === "Perspective"}
+                      disabled={!enabled}
+                      onClick={() => onProjection("Perspective")}
+                    />
+                    <Boton
+                      icon={<IconOrthographic />}
+                      label="Ortográfica"
+                      hint="Sin fuga, como un plano"
+                      active={projection === "Orthographic"}
+                      disabled={!enabled}
+                      onClick={() => onProjection("Orthographic")}
+                    />
+                  </Grupo>
 
-                <Grupo label="Navegación">
-                  <Boton
-                    icon={<IconOrbit />}
-                    label="Órbita"
-                    hint="Girar alrededor del modelo"
-                    // La vuelta segura de la navegación: es el modo de partida, y de los otros dos
-                    // —desplazar, interior— se sale volviendo aquí.
-                    tamano="grande"
-                    active={navigation === "Orbit"}
-                    disabled={!enabled}
-                    onClick={() => onNavigation("Orbit")}
-                  />
-                  <Boton
-                    icon={<IconPan />}
-                    label="Desplazar"
-                    hint="Mover sobre el modelo, sin girar"
-                    active={navigation === "Plan"}
-                    disabled={!enabled}
-                    onClick={() => onNavigation("Plan")}
-                  />
-                  <Boton
-                    icon={<IconFirstPerson />}
-                    label="Interior"
-                    hint="Recorrer por dentro, en primera persona"
-                    active={navigation === "FirstPerson"}
-                    disabled={!enabled}
-                    onClick={() => onNavigation("FirstPerson")}
-                  />
-                </Grupo>
+                  <Grupo label="Navegación">
+                    <Boton
+                      icon={<IconOrbit />}
+                      label="Órbita"
+                      hint="Girar alrededor del modelo"
+                      // La vuelta segura de la navegación: es el modo de partida, y de los otros dos
+                      // —desplazar, interior— se sale volviendo aquí.
+                      tamano="grande"
+                      active={navigation === "Orbit"}
+                      disabled={!enabled}
+                      onClick={() => onNavigation("Orbit")}
+                    />
+                    <Boton
+                      icon={<IconPan />}
+                      label="Desplazar"
+                      hint="Mover sobre el modelo, sin girar"
+                      active={navigation === "Plan"}
+                      disabled={!enabled}
+                      onClick={() => onNavigation("Plan")}
+                    />
+                    <Boton
+                      icon={<IconFirstPerson />}
+                      label="Interior"
+                      hint="Recorrer por dentro, en primera persona"
+                      active={navigation === "FirstPerson"}
+                      disabled={!enabled}
+                      onClick={() => onNavigation("FirstPerson")}
+                    />
+                  </Grupo>
 
-                {/* El aspecto pinta fragmentos: con un plano solo no hay a qué aplicárselo. */}
-                <Grupo label="Aspecto">
-                  <Boton
-                    icon={<IconSolid />}
-                    label="Sólido"
-                    hint={hasModels ? "Con sombras y aristas" : "Abre un modelo primero"}
-                    active={style === "solid"}
-                    disabled={!hasModels}
-                    onClick={() => onStyle("solid")}
-                  />
-                  <Boton
-                    icon={<IconGhost />}
-                    label="Fantasma"
-                    hint={
-                      hasModels
-                        ? "Translúcido, para ver lo que hay detrás"
-                        : "Abre un modelo primero"
-                    }
-                    active={style === "wireframe"}
-                    disabled={!hasModels}
-                    onClick={() => onStyle("wireframe")}
-                  />
-                </Grupo>
-              </>
-            )}
+                  {/* El aspecto pinta fragmentos: con un plano solo no hay a qué aplicárselo. */}
+                  <Grupo label="Aspecto">
+                    <Boton
+                      icon={<IconSolid />}
+                      label="Sólido"
+                      hint={hasModels ? "Con sombras y aristas" : "Abre un modelo primero"}
+                      active={style === "solid"}
+                      disabled={!hasModels}
+                      onClick={() => onStyle("solid")}
+                    />
+                    <Boton
+                      icon={<IconGhost />}
+                      label="Fantasma"
+                      hint={
+                        hasModels
+                          ? "Translúcido, para ver lo que hay detrás"
+                          : "Abre un modelo primero"
+                      }
+                      active={style === "wireframe"}
+                      disabled={!hasModels}
+                      onClick={() => onStyle("wireframe")}
+                    />
+                  </Grupo>
+                </>
+              )}
 
-            {tab === "medir" && (
-              <>
-                <Grupo label="Modo">
-                  <Boton
-                    icon={<IconCursor />}
-                    label="Seleccionar"
-                    hint="El clic abre la ficha del elemento"
-                    // La vuelta segura de toda la pestaña: es el modo del que se sale a medir y al
-                    // que se vuelve para dejar de medir.
-                    tamano="grande"
-                    active={measureMode === null}
-                    disabled={!enabled}
-                    onClick={() => onMeasureMode(null)}
-                  />
-                  <Boton
-                    icon={<IconDistance />}
-                    label="Distancia"
-                    hint="Clic en dos puntos: directa, en planta y desnivel"
-                    // Es lo que se viene a hacer a esta pestaña. Ángulo y área existen; distancia
-                    // es la que se usa treinta veces en una revisión.
-                    tamano="grande"
-                    active={measureMode === "distance"}
-                    disabled={!enabled}
-                    onClick={() => onMeasureMode("distance")}
-                  />
-                  <Boton
-                    icon={<IconAngle />}
-                    label="Ángulo"
-                    hint="Tres puntos; el segundo es el vértice"
-                    active={measureMode === "angle"}
-                    disabled={!enabled}
-                    onClick={() => onMeasureMode("angle")}
-                  />
-                  <Boton
-                    icon={<IconArea />}
-                    label="Área"
-                    hint="Un contorno de tres puntos o más"
-                    active={measureMode === "area"}
-                    disabled={!enabled}
-                    onClick={() => onMeasureMode("area")}
-                  />
-                  {/* La perpendicular arranca de **una cara** y un plano 2D no tiene caras: es la
+              {tab === "medir" && (
+                <>
+                  <Grupo label="Modo">
+                    <Boton
+                      icon={<IconCursor />}
+                      label="Seleccionar"
+                      hint="El clic abre la ficha del elemento"
+                      // La vuelta segura de toda la pestaña: es el modo del que se sale a medir y al
+                      // que se vuelve para dejar de medir.
+                      tamano="grande"
+                      active={measureMode === null}
+                      disabled={!enabled}
+                      onClick={() => onMeasureMode(null)}
+                    />
+                    <Boton
+                      icon={<IconDistance />}
+                      label="Distancia"
+                      hint="Clic en dos puntos: directa, en planta y desnivel"
+                      // Es lo que se viene a hacer a esta pestaña. Ángulo y área existen; distancia
+                      // es la que se usa treinta veces en una revisión.
+                      tamano="grande"
+                      active={measureMode === "distance"}
+                      disabled={!enabled}
+                      onClick={() => onMeasureMode("distance")}
+                    />
+                    <Boton
+                      icon={<IconAngle />}
+                      label="Ángulo"
+                      hint="Tres puntos; el segundo es el vértice"
+                      active={measureMode === "angle"}
+                      disabled={!enabled}
+                      onClick={() => onMeasureMode("angle")}
+                    />
+                    <Boton
+                      icon={<IconArea />}
+                      label="Área"
+                      hint="Un contorno de tres puntos o más"
+                      active={measureMode === "area"}
+                      disabled={!enabled}
+                      onClick={() => onMeasureMode("area")}
+                    />
+                    {/* La perpendicular arranca de **una cara** y un plano 2D no tiene caras: es la
                   única de las cuatro que necesita un modelo. */}
-                  <Boton
-                    icon={<IconPerpendicular />}
-                    label="Perpendicular"
-                    hint={
-                      hasModels
-                        ? "Primero una cara de referencia, luego el punto: da la distancia en ángulo recto"
-                        : "Necesita una cara del modelo: abre un IFC primero"
-                    }
-                    active={measureMode === "perpendicular"}
-                    disabled={!hasModels}
-                    onClick={() => onMeasureMode("perpendicular")}
-                  />
-                </Grupo>
+                    <Boton
+                      icon={<IconPerpendicular />}
+                      label="Perpendicular"
+                      hint={
+                        hasModels
+                          ? "Primero una cara de referencia, luego el punto: da la distancia en ángulo recto"
+                          : "Necesita una cara del modelo: abre un IFC primero"
+                      }
+                      active={measureMode === "perpendicular"}
+                      disabled={!hasModels}
+                      onClick={() => onMeasureMode("perpendicular")}
+                    />
+                  </Grupo>
 
-                <Grupo label="Ajuste del cursor">
-                  {/* Estos dos ajustan **al modelo**; el del plano es el tercero y se apaga aparte. */}
-                  <Boton
-                    icon={<IconSnapVertex />}
-                    label="A vértices"
-                    hint={
-                      hasModels
-                        ? "Se ajusta al vértice o la arista más cercana: dos personas miden lo mismo"
-                        : "Es el ajuste al modelo: abre un IFC primero"
-                    }
-                    active={snapMode === "vertex"}
-                    disabled={!hasModels}
-                    onClick={() => onSnapMode("vertex")}
-                  />
-                  <Boton
-                    icon={<IconSnapFree />}
-                    label="Libre"
-                    hint={
-                      hasModels
-                        ? "Punto libre sobre la cara, para medir en medio de un paño"
-                        : "Es el ajuste al modelo: abre un IFC primero"
-                    }
-                    active={snapMode === "face"}
-                    disabled={!hasModels}
-                    onClick={() => onSnapMode("face")}
-                  />
-                  {/* El ajuste del modelo y el del plano son dos cosas distintas y se apagan por
+                  <Grupo label="Ajuste del cursor">
+                    {/* Estos dos ajustan **al modelo**; el del plano es el tercero y se apaga aparte. */}
+                    <Boton
+                      icon={<IconSnapVertex />}
+                      label="A vértices"
+                      hint={
+                        hasModels
+                          ? "Se ajusta al vértice o la arista más cercana: dos personas miden lo mismo"
+                          : "Es el ajuste al modelo: abre un IFC primero"
+                      }
+                      active={snapMode === "vertex"}
+                      disabled={!hasModels}
+                      onClick={() => onSnapMode("vertex")}
+                    />
+                    <Boton
+                      icon={<IconSnapFree />}
+                      label="Libre"
+                      hint={
+                        hasModels
+                          ? "Punto libre sobre la cara, para medir en medio de un paño"
+                          : "Es el ajuste al modelo: abre un IFC primero"
+                      }
+                      active={snapMode === "face"}
+                      disabled={!hasModels}
+                      onClick={() => onSnapMode("face")}
+                    />
+                    {/* El ajuste del modelo y el del plano son dos cosas distintas y se apagan por
                   separado: midiendo el modelo con un plano debajo, engancharse al CAD sin querer
                   falsea la medida. */}
-                  <Boton
-                    icon={<IconSnapPlan />}
-                    label="Al plano"
-                    hint={
-                      hasPlans
-                        ? "Se engancha a los extremos y puntos medios de los trazos del plano 2D"
-                        : "No hay ningún plano 2D cargado"
-                    }
-                    active={planSnap}
-                    disabled={!hasPlans}
-                    onClick={() => onPlanSnap(!planSnap)}
-                  />
-                </Grupo>
+                    <Boton
+                      icon={<IconSnapPlan />}
+                      label="Al plano"
+                      hint={
+                        hasPlans
+                          ? "Se engancha a los extremos y puntos medios de los trazos del plano 2D"
+                          : "No hay ningún plano 2D cargado"
+                      }
+                      active={planSnap}
+                      disabled={!hasPlans}
+                      onClick={() => onPlanSnap(!planSnap)}
+                    />
+                  </Grupo>
 
-                <Grupo label="Qué mide la distancia">
-                  <Boton
-                    icon={<IconDistance />}
-                    label="Dos puntos"
-                    hint="Los dos puntos que se elijan"
-                    active={distanceMode === "points"}
-                    disabled={!enabled}
-                    onClick={() => onDistanceMode("points")}
-                  />
-                  <Boton
-                    icon={<IconEdge />}
-                    label="Arista"
-                    hint="El largo de una arista completa, con un solo clic"
-                    active={distanceMode === "edge"}
-                    disabled={!enabled}
-                    onClick={() => onDistanceMode("edge")}
-                  />
-                </Grupo>
+                  <Grupo label="Qué mide la distancia">
+                    <Boton
+                      icon={<IconDistance />}
+                      label="Dos puntos"
+                      hint="Los dos puntos que se elijan"
+                      active={distanceMode === "points"}
+                      disabled={!enabled}
+                      onClick={() => onDistanceMode("points")}
+                    />
+                    <Boton
+                      icon={<IconEdge />}
+                      label="Arista"
+                      hint="El largo de una arista completa, con un solo clic"
+                      active={distanceMode === "edge"}
+                      disabled={!enabled}
+                      onClick={() => onDistanceMode("edge")}
+                    />
+                  </Grupo>
 
-                <Grupo label="Cotas">
-                  {/* "Cerrar" a secas, con una ✕ al lado, se lee como cerrar algo —el panel, la
+                  <Grupo label="Cotas">
+                    {/* "Cerrar" a secas, con una ✕ al lado, se lee como cerrar algo —el panel, la
                   aplicación—. Lo que cierra es **el contorno**, y el nombre lo dice ahora. */}
-                  <Boton
-                    icon={<IconArea />}
-                    label="Cerrar contorno"
-                    hint="Cierra el contorno del área. También con Enter"
-                    disabled={measureMode !== "area"}
-                    onClick={onFinishMeasurement}
-                  />
-                  {/* **La salida de una medida a medias.** `cancelMeasurement` estaba implementada y
+                    <Boton
+                      icon={<IconArea />}
+                      label="Cerrar contorno"
+                      hint="Cierra el contorno del área. También con Enter"
+                      disabled={measureMode !== "area"}
+                      onClick={onFinishMeasurement}
+                    />
+                    {/* **La salida de una medida a medias.** `cancelMeasurement` estaba implementada y
                   comprobada en `diag.html`, y no la llamaba nadie desde la interfaz: con dos
                   vértices de un área puestos, la única forma de salirse era pulsar "Seleccionar"
                   —que la descarta de rebote— y volver a entrar a medir. */}
-                  <Boton
-                    icon={<IconClose />}
-                    label="Cancelar"
-                    hint={
-                      measureInProgress
-                        ? "Descarta la medida a medias, sin tocar las ya tomadas. También con Esc"
-                        : "No hay ninguna medida empezada"
-                    }
-                    disabled={!measureInProgress}
-                    onClick={onCancelMeasurement}
-                  />
-                  <Boton
-                    icon={<IconTrash />}
-                    label="Borrar todas"
-                    hint={
-                      measurementCount > 0
-                        ? `Borra las ${measurementCount} cotas dibujadas`
-                        : "No hay ninguna dibujada"
-                    }
-                    disabled={measurementCount === 0}
-                    onClick={onClearMeasurements}
-                  />
-                </Grupo>
-              </>
-            )}
+                    <Boton
+                      icon={<IconClose />}
+                      label="Cancelar"
+                      hint={
+                        measureInProgress
+                          ? "Descarta la medida a medias, sin tocar las ya tomadas. También con Esc"
+                          : "No hay ninguna medida empezada"
+                      }
+                      disabled={!measureInProgress}
+                      onClick={onCancelMeasurement}
+                    />
+                    <Boton
+                      icon={<IconTrash />}
+                      label="Borrar todas"
+                      hint={
+                        measurementCount > 0
+                          ? `Borra las ${measurementCount} cotas dibujadas`
+                          : "No hay ninguna dibujada"
+                      }
+                      disabled={measurementCount === 0}
+                      onClick={onClearMeasurements}
+                    />
+                  </Grupo>
+                </>
+              )}
 
-            {tab === "modelo" && (
-              <>
-                {/* **Los cortes se calculan desde la caja de los modelos**: `addSection` se va sin
+              {tab === "modelo" && (
+                <>
+                  {/* **Los cortes se calculan desde la caja de los modelos**: `addSection` se va sin
                 hacer nada si no hay ninguno, así que con un plano solo el botón no puede quedar
                 encendido prometiendo un corte que no va a ocurrir. */}
-                <Grupo label="Cortes">
-                  <Boton
-                    icon={<IconSectionHorizontal />}
-                    label="Horizontal"
-                    hint={
-                      hasModels
-                        ? "La planta, sin la cubierta encima. El plano se arrastra después"
-                        : "Abre un modelo primero"
-                    }
-                    // De los tres cortes, el horizontal es el que se pide siempre: es la planta.
-                    tamano="grande"
-                    disabled={!hasModels}
-                    onClick={() => onSection("horizontal")}
-                  />
-                  <Boton
-                    icon={<IconSectionLongitudinal />}
-                    label="Longitudinal"
-                    hint={hasModels ? "Corte vertical por el lado largo" : "Abre un modelo primero"}
-                    disabled={!hasModels}
-                    onClick={() => onSection("longitudinal")}
-                  />
-                  <Boton
-                    icon={<IconSectionTransversal />}
-                    label="Transversal"
-                    hint={
-                      hasModels ? "Corte vertical cruzando el modelo" : "Abre un modelo primero"
-                    }
-                    disabled={!hasModels}
-                    onClick={() => onSection("transversal")}
-                  />
-                  {/* **Crear perfil, junto a los cortes y no aparte**: es la pregunta siguiente a un
+                  <Grupo label="Cortes">
+                    <Boton
+                      icon={<IconSectionHorizontal />}
+                      label="Horizontal"
+                      hint={
+                        hasModels
+                          ? "La planta, sin la cubierta encima. El plano se arrastra después"
+                          : "Abre un modelo primero"
+                      }
+                      // De los tres cortes, el horizontal es el que se pide siempre: es la planta.
+                      tamano="grande"
+                      disabled={!hasModels}
+                      onClick={() => onSection("horizontal")}
+                    />
+                    <Boton
+                      icon={<IconSectionLongitudinal />}
+                      label="Longitudinal"
+                      hint={
+                        hasModels ? "Corte vertical por el lado largo" : "Abre un modelo primero"
+                      }
+                      disabled={!hasModels}
+                      onClick={() => onSection("longitudinal")}
+                    />
+                    <Boton
+                      icon={<IconSectionTransversal />}
+                      label="Transversal"
+                      hint={
+                        hasModels ? "Corte vertical cruzando el modelo" : "Abre un modelo primero"
+                      }
+                      disabled={!hasModels}
+                      onClick={() => onSection("transversal")}
+                    />
+                    {/* **Crear perfil, junto a los cortes y no aparte**: es la pregunta siguiente a un
                       corte —«¿y a lo largo de todo el trazado?»—. Los tres de arriba son cortes
                       rápidos por el centro del modelo; este marca un eje con tantos vértices como
                       curvas y saca un plano desarrollado por PK. Es un **interruptor**: pulsado
                       vuelve a cancelar el trazado. */}
-                  <Boton
-                    icon={<IconPerfil />}
-                    label="Crear perfil"
-                    hint={
-                      hasModels
-                        ? "Marca un eje con clics y saca el perfil a lo largo de él, con su PK"
-                        : "Abre un modelo primero"
-                    }
-                    active={trazandoPerfil}
-                    disabled={!hasModels}
-                    onClick={onCrearPerfil}
-                  />
-                  <Boton
-                    icon={<IconTrash />}
-                    label="Quitar"
-                    hint={hasSections ? "Quita todos los cortes" : "No hay ninguno puesto"}
-                    disabled={!hasSections}
-                    onClick={onClearSections}
-                  />
-                </Grupo>
+                    <Boton
+                      icon={<IconPerfil />}
+                      label="Crear perfil"
+                      hint={
+                        hasModels
+                          ? "Marca un eje con clics y saca el perfil a lo largo de él, con su PK"
+                          : "Abre un modelo primero"
+                      }
+                      active={trazandoPerfil}
+                      disabled={!hasModels}
+                      onClick={onCrearPerfil}
+                    />
+                    <Boton
+                      icon={<IconTrash />}
+                      label="Quitar"
+                      hint={hasSections ? "Quita todos los cortes" : "No hay ninguno puesto"}
+                      disabled={!hasSections}
+                      onClick={onClearSections}
+                    />
+                  </Grupo>
 
-                <Grupo label="Visibilidad">
-                  <Boton
-                    icon={selectionVisible ? <IconEyeOff /> : <IconEye />}
-                    label={selectionVisible ? "Apagar" : "Encender"}
-                    hint={
-                      hasSelection
-                        ? "Apaga o enciende el elemento seleccionado. También en su ficha"
-                        : "Selecciona un elemento primero"
-                    }
-                    disabled={!hasSelection}
-                    onClick={onToggleSelectionVisible}
-                  />
-                  <Boton
-                    icon={<IconIsolate />}
-                    label="Aislar"
-                    hint={
-                      hasSelection
-                        ? "Deja solo el elemento seleccionado a la vista"
-                        : "Selecciona un elemento primero"
-                    }
-                    disabled={!hasSelection}
-                    onClick={onIsolateSelection}
-                  />
-                  {/* Salir y "Ver todo" no son lo mismo, y por eso son dos botones: salir deshace el
+                  <Grupo label="Visibilidad">
+                    <Boton
+                      icon={selectionVisible ? <IconEyeOff /> : <IconEye />}
+                      label={selectionVisible ? "Apagar" : "Encender"}
+                      hint={
+                        hasSelection
+                          ? "Apaga o enciende el elemento seleccionado. También en su ficha"
+                          : "Selecciona un elemento primero"
+                      }
+                      disabled={!hasSelection}
+                      onClick={onToggleSelectionVisible}
+                    />
+                    <Boton
+                      icon={<IconIsolate />}
+                      label="Aislar"
+                      hint={
+                        hasSelection
+                          ? "Deja solo el elemento seleccionado a la vista"
+                          : "Selecciona un elemento primero"
+                      }
+                      disabled={!hasSelection}
+                      onClick={onIsolateSelection}
+                    />
+                    {/* Salir y "Ver todo" no son lo mismo, y por eso son dos botones: salir deshace el
                   aislamiento y devuelve lo de antes —lo apagado a mano sigue apagado—, mientras que
                   "Ver todo" enciende el modelo entero. */}
-                  <Boton
-                    icon={<IconUnisolate />}
-                    label="Salir"
-                    hint={
-                      isolated
-                        ? "Sale del aislamiento y vuelve a como estaba el modelo antes de aislar"
-                        : "No hay ningún aislamiento del que salir"
-                    }
-                    destacado={isolated}
-                    disabled={!isolated}
-                    onClick={onUndoIsolate}
-                  />
-                  {/* **Mismo mandato, mismo icono.** Acá era un árbol —que es el icono de la
+                    <Boton
+                      icon={<IconUnisolate />}
+                      label="Salir"
+                      hint={
+                        isolated
+                          ? "Sale del aislamiento y vuelve a como estaba el modelo antes de aislar"
+                          : "No hay ningún aislamiento del que salir"
+                      }
+                      destacado={isolated}
+                      disabled={!isolated}
+                      onClick={onUndoIsolate}
+                    />
+                    {/* **Mismo mandato, mismo icono.** Acá era un árbol —que es el icono de la
                   estructura del modelo— y en la barra de estado un ojo. Dos dibujos para el mismo
                   botón obligan a leerlos, que es justo lo que un icono viene a evitar. */}
-                  <Boton
-                    icon={<IconEye />}
-                    label="Ver todo"
-                    hint="Enciende todo el modelo, incluido lo que se apagó a mano"
-                    // La vuelta segura de la pestaña Modelo: apagar y aislar dejan el modelo en un
-                    // estado del que hay que poder salir de un clic.
-                    tamano="grande"
-                    destacado={hasHidden}
-                    disabled={!enabled}
-                    onClick={onShowAll}
-                  />
-                </Grupo>
+                    <Boton
+                      icon={<IconEye />}
+                      label="Ver todo"
+                      hint="Enciende todo el modelo, incluido lo que se apagó a mano"
+                      // La vuelta segura de la pestaña Modelo: apagar y aislar dejan el modelo en un
+                      // estado del que hay que poder salir de un clic.
+                      tamano="grande"
+                      destacado={hasHidden}
+                      disabled={!enabled}
+                      onClick={onShowAll}
+                    />
+                  </Grupo>
 
-                {/* **Lo que se saca de lo que se está mirando** (`F1.13`).
+                  {/* **Lo que se saca de lo que se está mirando** (`F1.13`).
 
                 Los dos eran mandatos que solo salían de un panel o de una ficha, así que quien no
                 abría el panel no sabía que existían. Suben aquí **porque su destino no es ambiguo**:
@@ -901,35 +932,36 @@ export function Ribbon({
                 de dejarlo en la sorpresa. Tres botones aquí —planta, frontal, lateral— repetirían
                 los nombres del grupo «Vistas» de la otra pestaña, que es el defecto que esta cinta
                 ya pagó; el panel sigue ofreciendo las tres. */}
-                <Grupo label="Documentar">
-                  <Boton
-                    icon={<IconPlanoSalida />}
-                    label="Generar plano"
-                    hint={
-                      enabled
-                        ? "Proyecta la planta de lo que está encendido. El panel «Planos generados» ofrece además el frontal y el lateral"
-                        : "Abre un modelo primero"
-                    }
-                    disabled={!enabled}
-                    onClick={onGenerarPlano}
-                  />
-                  <Boton
-                    icon={<IconNota />}
-                    label="Observar"
-                    hint={
-                      puedeObservar
-                        ? "Deja una nota anclada al elemento seleccionado"
-                        : "Selecciona un elemento primero"
-                    }
-                    disabled={!puedeObservar}
-                    onClick={onObservarDesdeLaCinta}
-                  />
-                </Grupo>
-              </>
-            )}
-          </>
-        )}
-      </div>
+                  <Grupo label="Documentar">
+                    <Boton
+                      icon={<IconPlanoSalida />}
+                      label="Generar plano"
+                      hint={
+                        enabled
+                          ? "Proyecta la planta de lo que está encendido. El panel «Planos generados» ofrece además el frontal y el lateral"
+                          : "Abre un modelo primero"
+                      }
+                      disabled={!enabled}
+                      onClick={onGenerarPlano}
+                    />
+                    <Boton
+                      icon={<IconNota />}
+                      label="Observar"
+                      hint={
+                        puedeObservar
+                          ? "Deja una nota anclada al elemento seleccionado"
+                          : "Selecciona un elemento primero"
+                      }
+                      disabled={!puedeObservar}
+                      onClick={onObservarDesdeLaCinta}
+                    />
+                  </Grupo>
+                </>
+              )}
+            </>
+          )}
+        </div>
+      </GruposOcultosContexto.Provider>
     </div>
   );
 }
@@ -940,6 +972,8 @@ export function Ribbon({
  * El rótulo abajo es la convención de Revit y de la cinta de Office, y hace un trabajo concreto:
  * dice de qué es el grupo sin gastar una línea de texto por botón.
  */
+const GruposOcultosContexto = createContext<readonly string[]>([]);
+
 function Grupo({
   label,
   children,
@@ -947,6 +981,10 @@ function Grupo({
   readonly label: string;
   readonly children: React.ReactNode;
 }) {
+  // Un grupo que el espacio no muestra no se pinta: el contexto evita escribir la condición en
+  // cada uno de los `<Grupo>`.
+  const ocultos = useContext(GruposOcultosContexto);
+  if (ocultos.includes(label)) return null;
   return (
     <section
       aria-label={label}

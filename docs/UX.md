@@ -265,6 +265,17 @@ cámara en planta y la proyección en ortográfica —que es como se mira un pla
 para recuperar el modelo. **No cierra nada**: los modelos quedan apagados y "Ver todo" también los
 devuelve.
 
+> **Revisado el 2026-10-05, a petición del usuario, para un proyecto lineal (un metro).** La
+> conclusión de arriba sigue en pie en lo esencial —es **un solo visor y un solo motor**; cruzar el
+> plano con el modelo no se hace con dos ventanas—, pero ya no es «una sola columna para todo».
+> Aparecieron dos modos de trabajo enteros: **revisar el modelo** y **sacar, leer y entregar perfiles
+> y planos**. Con las doce secciones juntas, el segundo quedaba enterrado entre cosas que no usa. Se
+> añaden dos **espacios**, _Modelo 3D_ y _Planos y perfiles_, que **solo cambian qué se muestra**
+> —secciones del navegador y grupos de la cinta—: la escena, la selección y los cortes son los
+> mismos y cambiar de espacio no reconvierte nada. Las reglas viven en `apps/web/src/espacios.ts`.
+> **Comparar** (pestaña Vista, grupo Referencias) es lo que sustituye a «mirar los dos a la vez»:
+> superpone el plano y el modelo en planta y, al salir, deja la vista exactamente como estaba.
+
 | Trabajo                 | Cómo se hace                                                      |
 | ----------------------- | ----------------------------------------------------------------- |
 | Revisar el plano        | **Modo 2D**: el CAD solo, en planta y ortográfica                 |
