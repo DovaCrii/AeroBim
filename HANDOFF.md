@@ -5,6 +5,50 @@
 
 ## Cómo seguir (leer esto primero)
 
+> ## Estado al 2026-10-05: perfiles y dos espacios de trabajo (Fase 13), para un metro
+>
+> Nace de coordinar **un proyecto de metro con datos reales**. Está construido y verificado en el
+> navegador, **con datos de muestra**; lo que falta es de quien tiene los archivos de obra.
+>
+> **Qué hay** (`MASTER_PLAN.md`, Fase 13): el **perfil IFC** sobre una polilínea con PK y transversales
+> (`F13.1`), el **perfil de la nube** —puntos, nunca una línea de terreno— (`F13.2`), los **dos
+> espacios** _Modelo 3D_ y _Planos y perfiles_ con el reparto de herramientas (`F13.3`) y **Comparar**
+> el plano con el modelo (`F13.4`). El reparto está en `apps/web/src/espacios.ts` y su porqué en
+> `docs/UX.md`; la arquitectura, reescrita contra el código, en `docs/ARCHITECTURE.md`.
+>
+> **PRs abiertos, y el orden en que conviene fusionarlos** (ninguno se fusiona sin permiso explícito):
+>
+> | PR  | Qué                                                                                                                                                       |
+> | --- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+> | #76 | Dependencias sin avisos (`pypdf`, `urllib3`): `pip-audit` limpio                                                                                          |
+> | #72 | Documentación del tablero al día                                                                                                                          |
+> | #73 | La ficha del hallazgo                                                                                                                                     |
+> | #74 | Interferencias sin tope, **IFC comprimido** (`.ifczip`), gzip, aviso de nube legible                                                                      |
+> | #75 | Perfil IFC (`F13.1`)                                                                                                                                      |
+> | #77 | Perfil de la nube (`F13.2`), **apilado sobre #75**                                                                                                        |
+> | #78 | Dos espacios, Comparar y la documentación (`F13.3`/`F13.4`), **apilado sobre #77**; `ARCHITECTURE.md` habla del `.ifczip` de #74, así que **#74 primero** |
+>
+> **Lo que sigue pendiente, y no es código** (filas `F13.6`–`F13.8`):
+>
+> - **El oráculo externo del perfil**: la misma sección abierta en **Bonsai** (el IFC) y en
+>   **CloudCompare** (la nube) con el archivo de obra. Sin eso, el perfil está medido contra el propio
+>   código y no contra otra herramienta. **No se marca ✅ sin eso.**
+> - **Medir con la nube real de 127 MB** y decidir el techo de puntos (hoy 40 000; el DXF pesa ~5 MB
+>   con 39 000 marcas).
+> - Recorrido de clics completo del perfil **con nube** y el contraste del selector de espacio en
+>   tema claro.
+> - Del despliegue, como antes: **SMTP de Microsoft 365**, **ODA** para los DWG, las líneas de
+>   compresión de nginx **a mano** (`docs/DEPLOY.md`, «Lo que el guion no toca») y **desplegar a `p340`**
+>   —respaldo primero—. Lo hace quien tiene el servidor.
+>
+> **Dos trampas nuevas, ya pagadas:**
+>
+> - **El techo de puntos de una consulta se aplica a lo que se acepta, no a lo que el nodo trae.** La
+>   primera versión dejaba el perfil de nube vacío con la nube llena, porque la raíz del octree tiene
+>   más puntos que cualquier techo. Lo destapó el diagnóstico, no una prueba unitaria.
+> - **`npm run build` no comprueba tipos.** Un import olvidado pasa el build y tumba la aplicación en
+>   el navegador. `npx tsc --noEmit -p apps/web` y mirar la consola antes de dar algo por bueno.
+
 > ## Estado al 2026-09-23: el plan «que avise, que cuadre y que no sea plano», cerrado
 >
 > **No queda trabajo de código pendiente en el plan.** Lo que falta es tuyo: el **SMTP de Microsoft

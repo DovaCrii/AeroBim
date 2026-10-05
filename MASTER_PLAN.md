@@ -5207,13 +5207,16 @@ lo que ya estaba decidido con medidas (`Highlighter`, `BCFTopics`, `Hider`, `Cla
 lo demás: **primero los perfiles, que ya sirven al metro; los dos espacios y el estado observable
 después**, cuando se sepa qué necesitan.
 
-| Fila    | Qué                                                                                      | Estado       |
-| ------- | ---------------------------------------------------------------------------------------- | ------------ |
-| `F13.1` | **Perfil IFC sobre una polilínea**, desarrollado por PK, con transversales y su tabla    | ✅ ver abajo |
-| `F13.2` | Perfil de la **nube**: puntos de la franja, sin superficie de terreno inferida           | ⬜           |
-| `F13.3` | Los dos espacios, **Modelo 3D** y **Planos y perfiles**, con `ViewerSnapshot` observable | ⬜           |
-| `F13.4` | «Comparar 2D–3D» sin recargar nada                                                       | ⬜           |
-| `F13.5` | `ClipStyler` para el relleno y las aristas de un corte, si conserva lo que ya funciona   | ⬜           |
+| Fila    | Qué                                                                                                                     | Estado                                           |
+| ------- | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| `F13.1` | **Perfil IFC sobre una polilínea**, desarrollado por PK, con transversales y su tabla                                   | ✅ ver abajo                                     |
+| `F13.2` | Perfil de la **nube**: puntos de la franja, sin superficie de terreno inferida                                          | ✅ construido · ⬜ oráculo (`F13.6`)             |
+| `F13.3` | Los dos espacios, **Modelo 3D** y **Planos y perfiles**, y el reparto de herramientas                                   | ✅ ver abajo (sin `ViewerSnapshot`, a propósito) |
+| `F13.4` | «Comparar» el plano con el modelo, restaurando la vista al salir                                                        | ✅ ver abajo                                     |
+| `F13.5` | `ClipStyler` para el relleno y las aristas de un corte, si conserva lo que ya funciona                                  | ⬜ sin ensayar                                   |
+| `F13.6` | **Oráculos externos** del perfil: la misma sección en **Bonsai** (IFC) y **CloudCompare** (nube) con el archivo de obra | ⬜ **lo corre quien tiene el archivo**           |
+| `F13.7` | Medir el perfil de nube con la **nube real de 127 MB** (hoy solo la de muestra) y decidir el techo de puntos            | ⬜ pendiente de los datos del metro              |
+| `F13.8` | Recorrido de clics completo del perfil con **nube** y contraste del selector de espacio en tema claro                   | ⬜                                               |
 
 ### `F13.1`: el perfil IFC
 
@@ -5242,6 +5245,47 @@ a un corte, con uno grande a un alzado. La interfaz lo dice **antes** de pulsar.
 - **Lo que no hace, dicho:** no infiere una línea de terreno, no usa `IfcAlignment` y no calcula
   desviaciones. La regla 6 de `AGENTS.md` sigue en pie: es una vista de lectura, como los planos de
   la Fase 7.
+
+### `F13.2`: el perfil de la nube
+
+Los puntos de la nube que caen en la franja de cada tramo, como `(PK, cota)`, en la capa `AB-NUBE` del
+DXF y de la lámina. **Son puntos y nunca una línea de terreno** —inferirla sería procesar—.
+
+- **Sin cámara.** `nodosDeLaFranja` (`bim-core/src/nubes/franja.ts`) devuelve los nodos del octree que
+  tocan la franja, lo menos profundo primero, sin frustum ni presupuesto de pantalla: el mismo eje da
+  el mismo perfil con cualquier posición de cámara. Los tres sistemas (archivo, locales de la nube,
+  escena) se cruzan **llevando a la escena las cajas de los nodos**, no invirtiendo la franja.
+- **El techo cuenta puntos aceptados, no los del nodo.** La primera versión lo aplicaba al nodo entero
+  y **dejaba el perfil vacío con una nube llena**: la raíz tiene más puntos que cualquier techo. Lo
+  descubrió el diagnóstico. Ahora el último nodo se adelgaza (`cupoDeUnNodo`) y la ficha dice que es una
+  muestra.
+- **Sin calce no se superpone.** Con un modelo a la vista, una nube sin calzar queda fuera y la ficha
+  del plano dice por qué: sus cotas no serían comparables con las del IFC. Sin modelo, se dibuja sola.
+- **Medido** (`diag.html?modo=perfilnube`, nube de muestra, eje por su diagonal): 38 952 puntos, los
+  mismos con la cámara movida; el DXF lleva 38 952 marcas en `AB-NUBE`; cota del dibujo de 17 m, la de
+  la cabecera; 3,3 s. **Sin oráculo externo todavía** (`F13.6`).
+
+### `F13.3` y `F13.4`: dos espacios, y comparar
+
+**Modelo 3D** y **Planos y perfiles** son dos formas de usar **un solo motor**: solo cambia qué se
+muestra, y cambiar no reconvierte nada (`apps/web/src/espacios.ts`, con pruebas).
+
+| Se ve en              | Navegador                                                    | Cinta                                                                                                        |
+| --------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| **Modelo 3D**         | Todo salvo los planos 2D y los generados                     | Cortes, Coordinar (Observar); **sin** Documentar, Modo 2D ni Comparar                                        |
+| **Planos y perfiles** | Registro, modelos abiertos, planos 2D, generados, mediciones | Documentar (Generar plano, **Crear perfil**), Modo 2D, Comparar; **sin** Cortes, Coordinar, Vistas guardadas |
+
+- **Crear perfil está en el espacio de planos** y no en los cortes del 3D: un eje de metro se traza en
+  planta y lo que sale es un plano para entregar.
+- Abrir un DXF —también por `?revision=`— o generar un perfil lleva solo a _Planos y perfiles_;
+  `?espacio=planos` abre ese espacio.
+- **Comparar** superpone el plano y el modelo (ortográfica en planta, modelo en «Fantasma») y **al salir
+  restaura** cámara, cortes, modelos y planos apagados, proyección, navegación y estilo.
+- **No se hizo el `ViewerSnapshot`** del plan original: el estado sigue en `App.tsx`, una vez, y los
+  espacios solo filtran. Se introduce cuando algo lo necesite de verdad.
+- Revisa la decisión de «una sola ventana» de `docs/UX.md`; allí queda la constancia.
+- Verificado en el navegador con `Piso 5.ifc` y `ACAD-Piso 5_Base.dxf`: el recorrido «Documentar → Crear
+  perfil → dos clics → generar» da un perfil de 5,8 × 3,0 m y 1 846 trazos en 0,8 s.
 
 ## La competencia abierta, y qué se le puede mirar
 
