@@ -54,6 +54,7 @@ import { CuadrosPanel } from "./components/CuadrosPanel.js";
 import { NotaFlotante } from "./components/NotaFlotante.js";
 import { Origen } from "./components/Origen.js";
 import { PlansPanel } from "./components/PlansPanel.js";
+import { BandaDeCruces } from "./components/BandaDeCruces.js";
 import { BarraDeLamina } from "./components/BarraDeLamina.js";
 import { BarraDelVisor } from "./components/BarraDelVisor.js";
 import { PerfilFlotante, type ParametrosDePerfil } from "./components/PerfilFlotante.js";
@@ -510,6 +511,11 @@ export function App() {
   const [comparando, setComparando] = useState(false);
   /** La lámina que se está viendo **sola** en el visor 2D, o `null`: ver `onVerLamina`. */
   const [laminaEnVisor, setLaminaEnVisor] = useState<string | null>(null);
+  /** Dónde está el cursor sobre el perfil que se ve en el visor 2D: su PK y su cota. */
+  const [cursorDePerfil, setCursorDePerfil] = useState<{
+    readonly pkM: number;
+    readonly cotaM: number;
+  } | null>(null);
   /**
    * Lo que había antes de entrar al modo 2D, para poder devolverlo al salir.
    *
@@ -2687,6 +2693,44 @@ export function App() {
     [models, trees],
   );
 
+  // **El cursor sobre un perfil dice dónde está y qué cruza.** Solo con un perfil abierto en el visor 2D, y
+  // **con un fotograma de espera**: el puntero se mueve decenas de veces por segundo y cada llamada
+  // lanza un rayo; una por fotograma basta para que la banda siga al cursor sin trabar la cámara.
+  const laminaActual = drawings.find((una) => una.id === laminaEnVisor) ?? null;
+  const conCruces = laminaActual !== null && (laminaActual.cruces?.length ?? 0) > 0;
+  useEffect(() => {
+    const lienzo = canvasHost.current;
+    if (!conCruces || laminaEnVisor === null || lienzo === null) {
+      setCursorDePerfil(null);
+      return;
+    }
+    let pendiente = false;
+    let ultimo: { x: number; y: number } | null = null;
+    const alMover = (evento: PointerEvent) => {
+      ultimo = { x: evento.clientX, y: evento.clientY };
+      if (pendiente) return;
+      pendiente = true;
+      requestAnimationFrame(() => {
+        pendiente = false;
+        if (ultimo === null) return;
+        setCursorDePerfil(
+          viewer.current?.pointOnDrawing(ultimo.x, ultimo.y, laminaEnVisor) ?? null,
+        );
+      });
+    };
+    const alSalir = () => {
+      ultimo = null;
+      setCursorDePerfil(null);
+    };
+    lienzo.addEventListener("pointermove", alMover);
+    lienzo.addEventListener("pointerleave", alSalir);
+    return () => {
+      lienzo.removeEventListener("pointermove", alMover);
+      lienzo.removeEventListener("pointerleave", alSalir);
+      setCursorDePerfil(null);
+    };
+  }, [conCruces, laminaEnVisor]);
+
   return (
     <div className="flex h-full w-full flex-col">
       <Ribbon
@@ -3129,6 +3173,18 @@ export function App() {
           {/* **La tabla de temas, acoplada bajo el lienzo** y solo en el espacio del modelo con una
             obra del registro abierta: los temas son de su obra, y en Planos y perfiles no hay
             árbol ni elementos que seleccionar. Sin obra no se pinta: no hay a qué preguntarle. */}
+          {/* **La banda de cruces**, bajo el perfil que se ve en el visor 2D: qué cruza el trazado. */}
+          {laminaActual !== null && conCruces && (
+            <BandaDeCruces
+              cruces={laminaActual.cruces ?? []}
+              largoM={
+                laminaActual.eje !== undefined
+                  ? largoDelEjeM(laminaActual.eje)
+                  : Math.max(...(laminaActual.cruces ?? []).map((c) => c.hastaM), 1)
+              }
+              cursor={cursorDePerfil}
+            />
+          )}
           {espacio === "modelo" && temasAbiertos && origen?.proyectoId !== undefined && (
             <TablaDeTemas
               estado={estadoDeTemas}

@@ -23,6 +23,16 @@ export {
 } from "./identity/ifcGuid.js";
 
 export {
+  crucesEn,
+  filasDeBanda,
+  intervaloDeCaja,
+  nombreDeClase,
+  pasoDeGraduacion,
+  type CruceDePerfil,
+  type FilaDeBanda,
+} from "./perfiles/cruces.js";
+
+export {
   cajaTocaFranja,
   estacionesCada,
   franjaDeTramo,

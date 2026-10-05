@@ -303,6 +303,12 @@ devuelve.
 > para nada más. Mientras se está en él no hay barra de visibilidad ni selector de vista: actúan sobre el
 > modelo, que no está.
 
+> **La banda de cruces (2026-10-05).** Con un perfil abierto en el visor 2D, bajo el dibujo va una **banda que
+> dice qué cruza el trazado**: una fila por clase de elemento, con una barra por los tramos de PK donde hay algo
+> de ella, sobre una regla de PK. Al pasar el cursor por el perfil dice **PK y cota, qué hay justo ahí y qué hay
+> en esa vertical**. Es la banda de datos de las láminas de perfil de topografía; los tramos son de la caja
+> envolvente del elemento, y la banda lo dice.
+
 | Trabajo                 | Cómo se hace                                                      |
 | ----------------------- | ----------------------------------------------------------------- |
 | Revisar el plano        | **Modo 2D**: el CAD solo, en planta y ortográfica                 |

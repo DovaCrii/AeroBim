@@ -161,9 +161,9 @@ y systemd), las vistas que se pueden pasar a otra persona (`F3.12`), la visibili
 
 ## Lo que queda, por fase
 
-**Quedan diecinueve filas abiertas.** Nueve son las de siempre —las cierra el usuario, un archivo de obra o
-una decisión— y eran todo lo que quedaba hasta el 2026-09-28. Desde el 2026-10-05 se suman tres de la
-Fase 13 (`F13.5`–`F13.7`; `F13.6` y `F13.7` piden archivos de obra; `F13.8` se cerró el mismo día) y **siete de la Fase 14, que las cierra el
+**Quedan veinte filas abiertas.** Nueve son las de siempre —las cierra el usuario, un archivo de obra o
+una decisión— y eran todo lo que quedaba hasta el 2026-09-28. Desde el 2026-10-05 se suman cuatro de la
+Fase 13 (`F13.5`–`F13.7` y `F13.11`; `F13.6` y `F13.7` piden archivos de obra; `F13.8`, `F13.9` y `F13.10` se cerraron el mismo día) y **siete de la Fase 14, que las cierra el
 agente cuando se ejecute y hoy solo están planificadas**. `⬜` no empezada · `🔶` `◐` medida a medias ·
 `❓` medida y esperando algo.
 
@@ -172,16 +172,16 @@ agente cuando se ejecute y hoy solo están planificadas**. `⬜` no empezada · 
 > decía ⬜ sobre código que existe desde hace días»— y se repitió aquí. Corregido el 2026-09-09
 > contando las filas una por una contra el estado de cada fase, que es lo único que no se desactualiza.
 
-| Fase                         | Filas abiertas                                                                                       | Quién la cierra                |
-| ---------------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------ |
-| **4 — Coordinación**         | `F4.5` ◐ — falta el trazo libre, y depende de mirar un BCF exportado                                 | El usuario, mirando            |
-| **2 — Nubes de puntos**      | `F2.4` 🔶 — la medida funciona y **cuadra con un corrimiento conocido**; falta el IFC de la pasarela | Un archivo de obra             |
-| **12 — La interfaz**         | `F12.2` 🔶 — el par de archivos ya está en el repositorio; queda **señalar tres pares con un ratón** | El usuario, pinchando          |
-| **2 — Nubes de puntos**      | `F2.6` ⬜ — el gaussian splatting                                                                    | Pospuesta por decisión         |
-| **6 — Geo + BIM**            | `F6.1` a `F6.5` ⬜ — Cesium, ortofoto y terreno, situar el IFC, 3D Tiles, y recibir de AeroPlanner   | Pospuesta por decisión         |
-| **13 — Perfiles**            | `F13.5` ⬜ `ClipStyler`, sin ensayar · `F13.6` ⬜ oráculos externos · `F13.7` ⬜ la nube real        | El agente / un archivo de obra |
-| **14 — Proceso y código**    | `F14.1` 🔶 · `F14.2`–`F14.7` ⬜ — el kit, la revisión, `R1`–`R4` y la Etapa 3 (**bloqueada**)        | El agente                      |
-| **0, 3, 5, 7, 8, 9, 10, 11** | Ninguna: las ocho fases enteras                                                                      | —                              |
+| Fase                         | Filas abiertas                                                                                                                  | Quién la cierra                |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| **4 — Coordinación**         | `F4.5` ◐ — falta el trazo libre, y depende de mirar un BCF exportado                                                            | El usuario, mirando            |
+| **2 — Nubes de puntos**      | `F2.4` 🔶 — la medida funciona y **cuadra con un corrimiento conocido**; falta el IFC de la pasarela                            | Un archivo de obra             |
+| **12 — La interfaz**         | `F12.2` 🔶 — el par de archivos ya está en el repositorio; queda **señalar tres pares con un ratón**                            | El usuario, pinchando          |
+| **2 — Nubes de puntos**      | `F2.6` ⬜ — el gaussian splatting                                                                                               | Pospuesta por decisión         |
+| **6 — Geo + BIM**            | `F6.1` a `F6.5` ⬜ — Cesium, ortofoto y terreno, situar el IFC, 3D Tiles, y recibir de AeroPlanner                              | Pospuesta por decisión         |
+| **13 — Perfiles**            | `F13.5` ⬜ `ClipStyler`, sin ensayar · `F13.6` ⬜ oráculos externos · `F13.7` ⬜ la nube real · `F13.11` ⬜ la malla del perfil | El agente / un archivo de obra |
+| **14 — Proceso y código**    | `F14.1` 🔶 · `F14.2`–`F14.7` ⬜ — el kit, la revisión, `R1`–`R4` y la Etapa 3 (**bloqueada**)                                   | El agente                      |
+| **0, 3, 5, 7, 8, 9, 10, 11** | Ninguna: las ocho fases enteras                                                                                                 | —                              |
 
 ### Hasta dónde llega este bloque, revisado el 2026-09-03
 
@@ -5217,17 +5217,19 @@ lo que ya estaba decidido con medidas (`Highlighter`, `BCFTopics`, `Hider`, `Cla
 lo demás: **primero los perfiles, que ya sirven al metro; los dos espacios y el estado observable
 después**, cuando se sepa qué necesitan.
 
-| Fila    | Qué                                                                                                                              | Estado                                           |
-| ------- | -------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| `F13.1` | **Perfil IFC sobre una polilínea**, desarrollado por PK, con transversales y su tabla                                            | ✅ ver abajo                                     |
-| `F13.2` | Perfil de la **nube**: puntos de la franja, sin superficie de terreno inferida                                                   | ✅ construido · ⬜ oráculo (`F13.6`)             |
-| `F13.3` | Los dos espacios, **Modelo 3D** y **Planos y perfiles**, y el reparto de herramientas                                            | ✅ ver abajo (sin `ViewerSnapshot`, a propósito) |
-| `F13.4` | «Comparar» el plano con el modelo, restaurando la vista al salir                                                                 | ✅ ver abajo                                     |
-| `F13.5` | `ClipStyler` para el relleno y las aristas de un corte, si conserva lo que ya funciona                                           | ⬜ sin ensayar                                   |
-| `F13.6` | **Oráculos externos** del perfil: la misma sección en **Bonsai** (IFC) y **CloudCompare** (nube) con el archivo de obra          | ⬜ **lo corre quien tiene el archivo**           |
-| `F13.7` | Medir el perfil de nube con la **nube real de 127 MB** (hoy solo la de muestra) y decidir el techo de puntos                     | ⬜ pendiente de los datos del metro              |
-| `F13.8` | Recorrido de clics completo del perfil con **nube** y contraste del selector de espacio en tema claro                            | ✅ 2026-10-05                                    |
-| `F13.9` | **Visor 2D de láminas**: un plano o un perfil generado se abre **solo**, sin el modelo debajo, y se vuelve al modelo como estaba | ✅ 2026-10-05                                    |
+| Fila     | Qué                                                                                                                                            | Estado                                                 |
+| -------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| `F13.1`  | **Perfil IFC sobre una polilínea**, desarrollado por PK, con transversales y su tabla                                                          | ✅ ver abajo                                           |
+| `F13.2`  | Perfil de la **nube**: puntos de la franja, sin superficie de terreno inferida                                                                 | ✅ construido · ⬜ oráculo (`F13.6`)                   |
+| `F13.3`  | Los dos espacios, **Modelo 3D** y **Planos y perfiles**, y el reparto de herramientas                                                          | ✅ ver abajo (sin `ViewerSnapshot`, a propósito)       |
+| `F13.4`  | «Comparar» el plano con el modelo, restaurando la vista al salir                                                                               | ✅ ver abajo                                           |
+| `F13.5`  | `ClipStyler` para el relleno y las aristas de un corte, si conserva lo que ya funciona                                                         | ⬜ sin ensayar                                         |
+| `F13.6`  | **Oráculos externos** del perfil: la misma sección en **Bonsai** (IFC) y **CloudCompare** (nube) con el archivo de obra                        | ⬜ **lo corre quien tiene el archivo**                 |
+| `F13.7`  | Medir el perfil de nube con la **nube real de 127 MB** (hoy solo la de muestra) y decidir el techo de puntos                                   | ⬜ pendiente de los datos del metro                    |
+| `F13.8`  | Recorrido de clics completo del perfil con **nube** y contraste del selector de espacio en tema claro                                          | ✅ 2026-10-05                                          |
+| `F13.9`  | **Visor 2D de láminas**: un plano o un perfil generado se abre **solo**, sin el modelo debajo, y se vuelve al modelo como estaba               | ✅ 2026-10-05                                          |
+| `F13.10` | **La banda de cruces del perfil**: qué elementos cruza el trazado, por PK y por cota, y qué hay bajo el cursor                                 | ✅ 2026-10-05 · ⬜ lámina con malla y regla (`F13.11`) |
+| `F13.11` | **La lámina de perfil con su malla**: eje de cotas, regla de PK y cuadrícula **dentro del dibujo**, para que salgan también en el DXF y el PDF | ⬜                                                     |
 
 ### `F13.1`: el perfil IFC
 
@@ -5428,6 +5430,30 @@ visor 2D, no sé si eso ya está listo». **No lo estaba.**
   «Crear perfil» desde el visor 2D. Consola sin errores.
 - **Sin hacer:** medir el contraste de la barra por separado (usa las mismas piezas y tintas que las otras dos),
   y ver un perfil **con nube** en el visor 2D.
+
+### `F13.10`: la banda de cruces
+
+Pedido por el usuario el 2026-10-05 con dos láminas de perfil de topografía de ejemplo: «el perfil ahora es
+más bien un corte como caja; no existe verlo como un visor directo 2D, con abajo lo que cruza en ese
+momento». El visor 2D de láminas (`F13.9`) resolvió lo primero; esto, lo segundo.
+
+- **Qué cruza.** Al generar un perfil se guarda, por cada elemento que toca la franja, su clase, nombre y
+  GUID, **el tramo de PK que ocupa y su cota**. Es dominio puro en `bim-core/src/perfiles/cruces.ts`
+  (`intervaloDeCaja`, `crucesEn`, `filasDeBanda`, `nombreDeClase`, `pasoDeGraduacion`), con 19 pruebas y
+  **mutación**: siete reglas rotas a propósito, y una **sobrevivió** —mirar solo dos esquinas de la caja— hasta
+  que se añadió un caso con el eje a lo largo de `z`.
+- **La banda**, bajo el perfil en el visor 2D: una fila por clase, con la barra de los tramos de PK donde hay
+  algo de ella, sobre una regla de PK con paso de topógrafo (1-2-5).
+- **El cursor.** Al pasarlo por el dibujo, la banda dice **PK y cota, qué hay justo ahí y qué hay en esa
+  vertical**, y una línea recorre las barras. El punto sale de cortar el rayo de la cámara con el plano de la
+  lámina (`pointOnDrawing`).
+- **Medido:** con `Piso 5.ifc` y un eje de 9,2 m, **61 cruces** (53 elementos genéricos, 5 de mobiliario, 3
+  puertas); la cota del cursor es coherente —del tablero de una mesa a las ruedas de su silla hay **0,71 m**—.
+- **Lo que se afirma y lo que no:** los tramos son de la **caja envolvente**, no de la geometría; un elemento
+  diagonal puede figurar en un tramo que no ocupa del todo. La banda lo dice en su pie.
+- **Falta (`F13.11`):** las láminas de ejemplo traen **la malla dentro del dibujo** —eje de cotas con su
+  graduación, abscisado y cuadrícula—. Hoy el perfil dibuja la geometría y una tabla de PK; la regla vive
+  solo en la banda HTML, así que **no sale en el DXF ni en el PDF**.
 
 ## La competencia abierta, y qué se le puede mirar
 
