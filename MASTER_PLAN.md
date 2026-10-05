@@ -62,16 +62,16 @@ agente cuando se ejecute y hoy solo están planificadas**. `⬜` no empezada · 
 > decía ⬜ sobre código que existe desde hace días»— y se repitió aquí. Corregido el 2026-09-09
 > contando las filas una por una contra el estado de cada fase, que es lo único que no se desactualiza.
 
-| Fase                         | Filas abiertas                                                                                                                  | Quién la cierra                |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
-| **4 — Coordinación**         | `F4.5` ◐ — falta el trazo libre, y depende de mirar un BCF exportado                                                            | El usuario, mirando            |
-| **2 — Nubes de puntos**      | `F2.4` 🔶 — la medida funciona y **cuadra con un corrimiento conocido**; falta el IFC de la pasarela                            | Un archivo de obra             |
-| **12 — La interfaz**         | `F12.2` 🔶 — el par de archivos ya está en el repositorio; queda **señalar tres pares con un ratón**                            | El usuario, pinchando          |
-| **2 — Nubes de puntos**      | `F2.6` ⬜ — el gaussian splatting                                                                                               | Pospuesta por decisión         |
-| **6 — Geo + BIM**            | `F6.1` a `F6.5` ⬜ — Cesium, ortofoto y terreno, situar el IFC, 3D Tiles, y recibir de AeroPlanner                              | Pospuesta por decisión         |
-| **13 — Perfiles**            | `F13.5` ⬜ `ClipStyler`, sin ensayar · `F13.6` ⬜ oráculos externos · `F13.7` ⬜ la nube real · `F13.11` ⬜ la malla del perfil | El agente / un archivo de obra |
-| **14 — Proceso y código**    | `F14.1` 🔶 · `F14.2`–`F14.7` ⬜ — el kit, la revisión, `R1`–`R4` y la Etapa 3 (**bloqueada**)                                   | El agente                      |
-| **0, 3, 5, 7, 8, 9, 10, 11** | Ninguna: las ocho fases enteras                                                                                                 | —                              |
+| Fase                         | Filas abiertas                                                                                                                                   | Quién la cierra                |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------ |
+| **4 — Coordinación**         | `F4.5` ◐ — falta el trazo libre, y depende de mirar un BCF exportado                                                                             | El usuario, mirando            |
+| **2 — Nubes de puntos**      | `F2.4` 🔶 — la medida funciona y **cuadra con un corrimiento conocido**; falta el IFC de la pasarela                                             | Un archivo de obra             |
+| **12 — La interfaz**         | `F12.2` 🔶 — el par de archivos ya está en el repositorio; queda **señalar tres pares con un ratón**                                             | El usuario, pinchando          |
+| **2 — Nubes de puntos**      | `F2.6` ⬜ — el gaussian splatting                                                                                                                | Pospuesta por decisión         |
+| **6 — Geo + BIM**            | `F6.1` a `F6.5` ⬜ — Cesium, ortofoto y terreno, situar el IFC, 3D Tiles, y recibir de AeroPlanner                                               | Pospuesta por decisión         |
+| **13 — Perfiles**            | `F13.5` ⬜ `ClipStyler`, sin ensayar · `F13.6` ⬜ oráculos externos · `F13.7` ⬜ la nube real · `F13.11` 🔶 falta el rótulo numérico de la malla | El agente / un archivo de obra |
+| **14 — Proceso y código**    | `F14.1` 🔶 · `F14.2`–`F14.7` ⬜ — el kit, la revisión, `R1`–`R4` y la Etapa 3 (**bloqueada**)                                                    | El agente                      |
+| **0, 3, 5, 7, 8, 9, 10, 11** | Ninguna: las ocho fases enteras                                                                                                                  | —                              |
 
 ## Las decisiones que solo el usuario puede tomar
 
@@ -184,7 +184,7 @@ después**, cuando se sepa qué necesitan.
 | `F13.7`  | Medir el perfil de nube con la **nube real de 127 MB** (hoy solo la de muestra) y decidir el techo de puntos                                   | ⬜ pendiente de los datos del metro                    |
 | `F13.8`  | Recorrido de clics completo del perfil con **nube** y contraste del selector de espacio en tema claro                                          | ✅ 2026-10-05                                          |
 | `F13.9`  | **Visor 2D de láminas**: un plano o un perfil generado se abre **solo**, sin el modelo debajo, y se vuelve al modelo como estaba               | ✅ 2026-10-05                                          |
-| `F13.10` | **La banda de cruces del perfil**: qué elementos cruza el trazado, por PK y por cota, y qué hay bajo el cursor                                 | ✅ 2026-10-05 · ⬜ lámina con malla y regla (`F13.11`) |
+| `F13.10` | **La banda de cruces del perfil**: qué elementos cruza el trazado, por PK y por cota, y qué hay bajo el cursor                                 | ✅ 2026-10-05 · 🔶 lámina con malla y regla (`F13.11`) |
 | `F13.11` | **La lámina de perfil con su malla**: eje de cotas, regla de PK y cuadrícula **dentro del dibujo**, para que salgan también en el DXF y el PDF | ⬜                                                     |
 | `F13.12` | **Paneles laterales contextuales**: la ficha de propiedades flota solo al seleccionar, y el navegador esconde lo que no aplica a lo abierto    | ✅ 2026-10-05                                          |
 
