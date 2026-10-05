@@ -54,6 +54,7 @@ import { CuadrosPanel } from "./components/CuadrosPanel.js";
 import { NotaFlotante } from "./components/NotaFlotante.js";
 import { Origen } from "./components/Origen.js";
 import { PlansPanel } from "./components/PlansPanel.js";
+import { BarraDeLamina } from "./components/BarraDeLamina.js";
 import { BarraDelVisor } from "./components/BarraDelVisor.js";
 import { PerfilFlotante, type ParametrosDePerfil } from "./components/PerfilFlotante.js";
 import { SelectorDeEspacio } from "./components/SelectorDeEspacio.js";
@@ -507,6 +508,8 @@ export function App() {
   const [modo2D, setModo2D] = useState(false);
   /** Hay una comparación 2D–3D en curso: ver `onComparar`. */
   const [comparando, setComparando] = useState(false);
+  /** La lámina que se está viendo **sola** en el visor 2D, o `null`: ver `onVerLamina`. */
+  const [laminaEnVisor, setLaminaEnVisor] = useState<string | null>(null);
   /**
    * Lo que había antes de entrar al modo 2D, para poder devolverlo al salir.
    *
@@ -514,6 +517,15 @@ export function App() {
    * modo está puesto, y solo se lee una vez, al salir.
    */
   /** Lo que `onComparar` guardó al entrar, para restaurarlo al salir. */
+  /** Lo que `onVerLamina` guardó al entrar, para restaurarlo al salir. */
+  const antesDeLamina = useRef<{
+    readonly vista: SavedView;
+    readonly style: RenderStyle;
+    readonly modelosApagados: ReadonlySet<string>;
+    readonly planosApagados: ReadonlySet<string>;
+    readonly laminasApagadas: ReadonlySet<string>;
+    readonly espacio: Espacio;
+  } | null>(null);
   const antesDeComparar = useRef<{
     readonly vista: SavedView;
     readonly style: RenderStyle;
@@ -1893,6 +1905,102 @@ export function App() {
   );
 
   /**
+   * **El visor 2D de láminas**: mirar un plano o un perfil generado **solo** (2026-10-05).
+   *
+   * Un plano generado se dibuja en el plano de proyección, o sea **encima del modelo**, y nacía apagado
+   * porque encendido se veía una maraña de líneas sobre la geometría. Con el ojo se podía superponer,
+   * pero no había dónde **verlo**: ni un perfil —que está desarrollado por PK y cota, y no se parece a
+   * nada del modelo— ni una planta de 21 000 trazos se leen con la escena debajo.
+   *
+   * Esto lo deja solo: apaga los modelos, los planos de referencia, la nube y las demás láminas, pone
+   * la cámara en planta y ortográfica y encuadra la lámina. **Salir restaura**, como `onComparar`:
+   * antes de entrar se guarda la vista entera y lo que ella no cubre —qué estaba encendido, el estilo—.
+   *
+   * `todas` es la lista de láminas **a la que se acaba de añadir la nueva**: llamar a esto justo
+   * después de generar leería la lista vieja del estado de React, que aún no la lleva.
+   */
+  const onVerLamina = useCallback(
+    async (id: string, todas: readonly GeneratedDrawing[] = drawings) => {
+      const instance = viewer.current;
+      if (instance === null) return;
+
+      if (antesDeLamina.current === null) {
+        const vista = await instance.captureView("antes de ver una lámina");
+        antesDeLamina.current = {
+          vista,
+          style,
+          modelosApagados: hiddenModels,
+          planosApagados: hiddenPlans,
+          // **Lo recién generado cuenta como apagado en el 3D**: nace apagado porque cae encima del
+          // modelo, y si no se anotara aquí saldría encendido al volver —la maraña de líneas que
+          // el visor 2D existe para evitar—. Lo que ya estaba encendido sigue encendido.
+          laminasApagadas: new Set([
+            ...hiddenDrawings,
+            ...todas
+              .filter((una) => !drawings.some((previa) => previa.id === una.id))
+              .map((una) => una.id),
+          ]),
+          espacio,
+        };
+        // Todo lo que no es la lámina se apaga **sin soltarlo**: al salir vuelve tal cual estaba.
+        setHiddenModels(new Set(models.map((modelo) => modelo.id)));
+        for (const modelo of models) await instance.setModelVisible(modelo.id, false);
+        setHiddenPlans(new Set(plans.map((plan) => plan.id)));
+        for (const plan of plans) await instance.setPlanVisible(plan.id, false);
+        instance.setPointCloudVisible(false);
+        instance.clearProfileAxis();
+        setPerfilTrazado(null);
+        // La postproducción es para leer un modelo; sobre un dibujo de líneas lava los colores.
+        instance.setPostproductionEnabled(false);
+        setProjection("Orthographic");
+        void instance.setProjection("Orthographic");
+        setNavigation("Plan");
+        instance.setNavigationMode("Plan");
+        setStandardView("top");
+      }
+
+      setEspacio("planos");
+      // Las demás láminas se apagan y **esta se enciende, y al encenderse se encuadra**.
+      setHiddenDrawings(new Set(todas.filter((una) => una.id !== id).map((una) => una.id)));
+      for (const una of todas) if (una.id !== id) await instance.setDrawingVisible(una.id, false);
+      await instance.setDrawingVisible(id, true);
+      setLaminaEnVisor(id);
+    },
+    [drawings, models, plans, style, hiddenModels, hiddenPlans, hiddenDrawings, espacio],
+  );
+
+  /** Sale del visor 2D y deja todo como estaba antes de entrar. */
+  const onSalirDeLamina = useCallback(async () => {
+    const instance = viewer.current;
+    const previo = antesDeLamina.current;
+    if (instance === null || previo === null) return;
+    antesDeLamina.current = null;
+    setLaminaEnVisor(null);
+
+    instance.setPostproductionEnabled(true);
+    instance.setPointCloudVisible(true);
+    // Los modelos **se esperan**: lo que se genere justo después proyecta lo que esté encendido.
+    setHiddenModels(previo.modelosApagados);
+    for (const modelo of models) {
+      await instance.setModelVisible(modelo.id, !previo.modelosApagados.has(modelo.id));
+    }
+    setHiddenPlans(previo.planosApagados);
+    for (const plan of plans) {
+      await instance.setPlanVisible(plan.id, !previo.planosApagados.has(plan.id));
+    }
+    // Las láminas primero y la cámara **al final**: encender una la encuadra, y la que vale es la de
+    // antes de entrar.
+    setHiddenDrawings(previo.laminasApagadas);
+    for (const una of drawings) {
+      await instance.setDrawingVisible(una.id, !previo.laminasApagadas.has(una.id));
+    }
+    setStyle(previo.style);
+    void instance.setRenderStyle(previo.style);
+    setEspacio(previo.espacio);
+    onApplyView(previo.vista);
+  }, [models, plans, drawings, onApplyView]);
+
+  /**
    * Genera un plano desde el modelo y lo añade a la lista.
    *
    * **Lo que entra en el plano es lo que está encendido**, así que no hay diálogo de selección:
@@ -1903,6 +2011,9 @@ export function App() {
       const instance = viewer.current;
       if (instance === null) return;
 
+      // Proyectar lo que está encendido exige que el modelo esté encendido: si se está en el visor 2D,
+      // se sale primero.
+      if (antesDeLamina.current !== null) await onSalirDeLamina();
       setGenerating("Proyectando las aristas del modelo…");
       try {
         const plano = await instance.createDrawing(view, (mensaje, avance) => {
@@ -1921,17 +2032,17 @@ export function App() {
           });
           return;
         }
-        // Nace apagado en la vista 3D —el dibujo cae encima del modelo—, así que la lista arranca
-        // marcándolo como tal: encenderlo es un clic en su ojo.
+        // **Se abre solo, en el visor 2D**: nace apagado en la vista 3D —el dibujo cae encima del
+        // modelo— y generarlo para no verlo no sirve de nada.
         setDrawings((actuales) => [...actuales, plano]);
-        setHiddenDrawings((actual) => new Set(actual).add(plano.id));
+        await onVerLamina(plano.id, [...drawings, plano]);
       } catch (error: unknown) {
         setStatus({ kind: "error", message: describe(error) });
       } finally {
         setGenerating(null);
       }
     },
-    [modo2D],
+    [modo2D, drawings, onSalirDeLamina, onVerLamina],
   );
 
   /**
@@ -1945,6 +2056,8 @@ export function App() {
       const instance = viewer.current;
       if (instance === null || perfilTrazado === null || perfilTrazado.length < 2) return;
 
+      // Igual que con un plano: el modelo tiene que estar encendido para proyectarlo.
+      if (antesDeLamina.current !== null) await onSalirDeLamina();
       setGenerating("Proyectando las aristas de la franja…");
       try {
         const planos = await instance.createProfile(
@@ -1972,22 +2085,20 @@ export function App() {
           });
           return;
         }
-        // Nacen apagados en la vista 3D, como el resto de los planos generados.
+        // **Se abre solo, en el visor 2D**, el longitudinal primero; las transversales quedan a un clic
+        // en la barra de láminas.
         setDrawings((actuales) => [...actuales, ...planos]);
-        setHiddenDrawings((actual) => {
-          const siguiente = new Set(actual);
-          for (const plano of planos) siguiente.add(plano.id);
-          return siguiente;
-        });
         setPerfilTrazado(null);
         irASeccion("generados");
+        const primero = planos[0];
+        if (primero !== undefined) await onVerLamina(primero.id, [...drawings, ...planos]);
       } catch (error: unknown) {
         setStatus({ kind: "error", message: describe(error) });
       } finally {
         setGenerating(null);
       }
     },
-    [perfilTrazado],
+    [perfilTrazado, drawings, onSalirDeLamina, onVerLamina],
   );
 
   /**
@@ -2722,6 +2833,7 @@ export function App() {
         hasPlans={plans.length > 0}
         modo2D={modo2D}
         comparando={comparando}
+        laminaAbierta={laminaEnVisor !== null}
         onComparar={(activar) => void onComparar(activar)}
         onModo2D={onModo2D}
         gridAxisCount={models.reduce((total, modelo) => total + modelo.gridAxes.length, 0)}
@@ -2769,7 +2881,11 @@ export function App() {
         hayProyecto={(origen?.proyectoId ?? null) !== null}
         temasAbiertos={temasAbiertos}
         onTemas={() => setTemasAbiertos((abierta) => !abierta)}
-        onCrearPerfil={() => setPerfilTrazado((actual) => (actual === null ? [] : null))}
+        onCrearPerfil={() => {
+          // El eje se marca sobre el modelo: en el visor 2D no está, así que se sale primero.
+          if (antesDeLamina.current !== null) void onSalirDeLamina();
+          setPerfilTrazado((actual) => (actual === null ? [] : null));
+        }}
         onTogglePanel={(lado) => {
           if (lado === "izquierda") setPanelIzquierdo((actual) => !actual);
           else setNavegadorPlegado((actual) => !actual);
@@ -2914,7 +3030,22 @@ export function App() {
 
             {/* **La barra de visibilidad y selección**, sobre el visor y en los dos espacios. Sin modelo
               no hay nada que apagar ni aislar, así que no se pinta. */}
-            {models.length > 0 && (
+            {laminaEnVisor !== null && (
+              <BarraDeLamina
+                laminas={drawings.map((una) => ({
+                  id: una.id,
+                  nombre: una.name,
+                  anchoM: una.sizeM[0],
+                  altoM: una.sizeM[1],
+                  esPerfil: una.view === "profile",
+                }))}
+                actual={laminaEnVisor}
+                onVer={(id) => void onVerLamina(id)}
+                onSalir={() => void onSalirDeLamina()}
+              />
+            )}
+
+            {models.length > 0 && laminaEnVisor === null && (
               <BarraDelVisor
                 tieneSeleccion={selected !== null}
                 seleccionVisible={selectionVisible}
@@ -2954,14 +3085,16 @@ export function App() {
               />
             )}
 
-            <SelectorDeVista
-              vista={standardView}
-              desactivado={models.length === 0 && plans.length === 0 && nube === null}
-              onVista={(view) => {
-                setStandardView(view);
-                void viewer.current?.frameAll(view);
-              }}
-            />
+            {laminaEnVisor === null && (
+              <SelectorDeVista
+                vista={standardView}
+                desactivado={models.length === 0 && plans.length === 0 && nube === null}
+                onVista={(view) => {
+                  setStandardView(view);
+                  void viewer.current?.frameAll(view);
+                }}
+              />
+            )}
 
             {/*
              * **El recuadro de la suelta va en la marca y a opacidad entera**, y las dos cosas son
@@ -3104,11 +3237,20 @@ export function App() {
                 onToggleHidden={(id, visible) =>
                   void viewer.current?.setDrawingHiddenVisible(id, visible)
                 }
+                laminaEnVisor={laminaEnVisor}
+                onVerEnVisor2D={(id) => void onVerLamina(id)}
                 onExport={onExportDrawing}
                 {...(origen?.proyectoId !== undefined ? { onPublicar: onPublicarLamina } : {})}
                 onClose={(id) => {
-                  setDrawings((actuales) => actuales.filter((uno) => uno.id !== id));
+                  const quedan = drawings.filter((uno) => uno.id !== id);
+                  setDrawings(quedan);
                   void viewer.current?.removeDrawing(id);
+                  // Si era la que se estaba viendo, se pasa a otra; sin otra, se sale del visor 2D.
+                  if (laminaEnVisor === id) {
+                    const otra = quedan[0];
+                    if (otra !== undefined) void onVerLamina(otra.id, quedan);
+                    else void onSalirDeLamina();
+                  }
                 }}
               />
             }

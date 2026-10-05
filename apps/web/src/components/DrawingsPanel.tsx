@@ -16,6 +16,8 @@ export function DrawingsPanel({
   onCancel,
   onToggle,
   onToggleHidden,
+  laminaEnVisor,
+  onVerEnVisor2D,
   onExport,
   onLaminaPdf,
   onPublicar,
@@ -40,6 +42,10 @@ export function DrawingsPanel({
   readonly onCancel: () => void;
   readonly onToggle: (id: string, visible: boolean) => void;
   readonly onToggleHidden: (id: string, visible: boolean) => void;
+  /** La lámina que se está viendo ahora en el visor 2D, o `null` si no hay ninguna. */
+  readonly laminaEnVisor: string | null;
+  /** Abre la lámina **sola** en el visor 2D: sin el modelo debajo. */
+  readonly onVerEnVisor2D: (id: string) => void;
   readonly onExport: (id: string) => void;
   /** Descarga la lámina en PDF, dibujada por el servidor. `F7.5`. */
   readonly onLaminaPdf: (id: string) => void;
@@ -137,8 +143,12 @@ export function DrawingsPanel({
                   type="button"
                   onClick={() => onToggle(plano.id, !visible)}
                   className={visible ? "text-accent" : "text-fg-3 hover:text-fg-2"}
-                  title={visible ? "Apagar este plano" : "Encender este plano"}
-                  aria-label={visible ? "Apagar este plano" : "Encender este plano"}
+                  title={
+                    visible
+                      ? "Quita este plano de encima del modelo 3D"
+                      : "Superpone este plano al modelo 3D. Para verlo solo, usa «Ver en el visor 2D»"
+                  }
+                  aria-label={visible ? "Quitar de encima del modelo" : "Superponer al modelo"}
                   aria-pressed={visible}
                 >
                   {visible ? <IconEye className="h-4 w-4" /> : <IconEyeOff className="h-4 w-4" />}
@@ -156,6 +166,23 @@ export function DrawingsPanel({
                   <IconX className="h-3.5 w-3.5" />
                 </button>
               </div>
+
+              {/* **El botón principal de la ficha**: un plano o un perfil se mira solo. El ojo de
+                  arriba lo superpone al modelo, que sirve para ubicarlo y para nada más. */}
+              <button
+                type="button"
+                onClick={() => onVerEnVisor2D(plano.id)}
+                disabled={laminaEnVisor === plano.id}
+                className={[
+                  "mt-1 w-full rounded-sm px-2 py-1 text-nota font-medium",
+                  laminaEnVisor === plano.id
+                    ? "border border-accent text-accent"
+                    : "bg-action text-sobre-accion hover:bg-action-hover",
+                ].join(" ")}
+                title="Abre esta lámina sola, en planta y ortográfica, sin el modelo debajo"
+              >
+                {laminaEnVisor === plano.id ? "Viéndola en el visor 2D" : "Ver en el visor 2D"}
+              </button>
 
               <p className="pt-0.5 text-nota text-fg-3">
                 {plano.sizeM[0].toFixed(1)} × {plano.sizeM[1].toFixed(1)} m ·{" "}

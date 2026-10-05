@@ -5217,16 +5217,17 @@ lo que ya estaba decidido con medidas (`Highlighter`, `BCFTopics`, `Hider`, `Cla
 lo demás: **primero los perfiles, que ya sirven al metro; los dos espacios y el estado observable
 después**, cuando se sepa qué necesitan.
 
-| Fila    | Qué                                                                                                                     | Estado                                           |
-| ------- | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| `F13.1` | **Perfil IFC sobre una polilínea**, desarrollado por PK, con transversales y su tabla                                   | ✅ ver abajo                                     |
-| `F13.2` | Perfil de la **nube**: puntos de la franja, sin superficie de terreno inferida                                          | ✅ construido · ⬜ oráculo (`F13.6`)             |
-| `F13.3` | Los dos espacios, **Modelo 3D** y **Planos y perfiles**, y el reparto de herramientas                                   | ✅ ver abajo (sin `ViewerSnapshot`, a propósito) |
-| `F13.4` | «Comparar» el plano con el modelo, restaurando la vista al salir                                                        | ✅ ver abajo                                     |
-| `F13.5` | `ClipStyler` para el relleno y las aristas de un corte, si conserva lo que ya funciona                                  | ⬜ sin ensayar                                   |
-| `F13.6` | **Oráculos externos** del perfil: la misma sección en **Bonsai** (IFC) y **CloudCompare** (nube) con el archivo de obra | ⬜ **lo corre quien tiene el archivo**           |
-| `F13.7` | Medir el perfil de nube con la **nube real de 127 MB** (hoy solo la de muestra) y decidir el techo de puntos            | ⬜ pendiente de los datos del metro              |
-| `F13.8` | Recorrido de clics completo del perfil con **nube** y contraste del selector de espacio en tema claro                   | ✅ 2026-10-05                                    |
+| Fila    | Qué                                                                                                                              | Estado                                           |
+| ------- | -------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| `F13.1` | **Perfil IFC sobre una polilínea**, desarrollado por PK, con transversales y su tabla                                            | ✅ ver abajo                                     |
+| `F13.2` | Perfil de la **nube**: puntos de la franja, sin superficie de terreno inferida                                                   | ✅ construido · ⬜ oráculo (`F13.6`)             |
+| `F13.3` | Los dos espacios, **Modelo 3D** y **Planos y perfiles**, y el reparto de herramientas                                            | ✅ ver abajo (sin `ViewerSnapshot`, a propósito) |
+| `F13.4` | «Comparar» el plano con el modelo, restaurando la vista al salir                                                                 | ✅ ver abajo                                     |
+| `F13.5` | `ClipStyler` para el relleno y las aristas de un corte, si conserva lo que ya funciona                                           | ⬜ sin ensayar                                   |
+| `F13.6` | **Oráculos externos** del perfil: la misma sección en **Bonsai** (IFC) y **CloudCompare** (nube) con el archivo de obra          | ⬜ **lo corre quien tiene el archivo**           |
+| `F13.7` | Medir el perfil de nube con la **nube real de 127 MB** (hoy solo la de muestra) y decidir el techo de puntos                     | ⬜ pendiente de los datos del metro              |
+| `F13.8` | Recorrido de clics completo del perfil con **nube** y contraste del selector de espacio en tema claro                            | ✅ 2026-10-05                                    |
+| `F13.9` | **Visor 2D de láminas**: un plano o un perfil generado se abre **solo**, sin el modelo debajo, y se vuelve al modelo como estaba | ✅ 2026-10-05                                    |
 
 ### `F13.1`: el perfil IFC
 
@@ -5403,6 +5404,30 @@ dice cuál:
    aceptable en el CI, pero la regla 10 (nada de CDN **en ejecución**) hay que vigilarla en la prueba.
 8. **Playwright (Apache-2.0) y axe-core (MPL-2.0)** son dependencias de desarrollo: caben en la tabla de
    licencias de `AGENTS.md`, pero **hay que registrarlas en `docs/REFERENCES.md`** al añadirlas.
+
+### `F13.9`: el visor 2D de láminas
+
+Un plano o un perfil generado se dibuja **encima del modelo** y nacía apagado: encendido, se veía una
+maraña de líneas sobre la geometría, y no había dónde **verlo solo**. Pedido por el usuario el 2026-10-05
+mirando la versión desplegada: «cómo visualizar … los planos al generarlos, separarlos y tirarlos al
+visor 2D, no sé si eso ya está listo». **No lo estaba.**
+
+- **Se abre solo al generarlo** —la planta, o el longitudinal de un perfil— en _Planos y perfiles_: apaga los
+  modelos, los planos de referencia, la nube y las demás láminas, pone la cámara ortográfica y encuadra la
+  lámina. La ficha de cada lámina lleva «Ver en el visor 2D»; el ojo pasa a significar «superponer al modelo».
+- **La barra del visor 2D**: «Volver al modelo» y **pestañas para pasar de una lámina a otra** (un perfil trae
+  sus transversales). **Volver restaura**: cámara, qué estaba encendido —lo recién generado vuelve **apagado**
+  en el 3D—, estilo y espacio. Generar otra lámina, o «Crear perfil», sale primero al modelo: proyectar
+  exige el modelo encendido.
+- **Y destapó un defecto que ya existía:** el perfil se orienta como un alzado frontal, o sea **de pie**, y al
+  encenderlo la cámara lo encuadraba siempre **desde arriba**: se veía **de canto, una sola línea**. En #75
+  solo se había verificado el DXF y la ficha; **nunca se vio un perfil en pantalla**. Lo mismo valía para los
+  alzados frontal y lateral. Ahora cada lámina se encuadra de frente según su orientación.
+- Verificado en el navegador con `Piso 5.ifc`: la planta (21 484 trazos) y un perfil con cuatro transversales
+  se ven solos; cambiar de pestaña, volver (las cuatro láminas apagadas en 3D), cerrar la que se ve y
+  «Crear perfil» desde el visor 2D. Consola sin errores.
+- **Sin hacer:** medir el contraste de la barra por separado (usa las mismas piezas y tintas que las otras dos),
+  y ver un perfil **con nube** en el visor 2D.
 
 ## La competencia abierta, y qué se le puede mirar
 

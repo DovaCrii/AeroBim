@@ -297,6 +297,12 @@ devuelve.
 > _Modelo 3D_ y con una obra del registro abierta. Los temas **sin vencimiento van siempre al final**, en
 > los dos sentidos, como en el servidor.
 
+> **El visor 2D de láminas (2026-10-05).** Un plano o un perfil generado se mira **solo**: se abre
+> al generarlo, con el modelo apagado a propósito y una barra arriba —«Volver al modelo» y una pestaña por
+> lámina—. El ojo de la ficha pasa a significar «superponer al modelo 3D», que sirve para ubicar la lámina y
+> para nada más. Mientras se está en él no hay barra de visibilidad ni selector de vista: actúan sobre el
+> modelo, que no está.
+
 | Trabajo                 | Cómo se hace                                                      |
 | ----------------------- | ----------------------------------------------------------------- |
 | Revisar el plano        | **Modo 2D**: el CAD solo, en planta y ortográfica                 |

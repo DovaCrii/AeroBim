@@ -14,6 +14,7 @@
 import * as OBC from "@thatopen/components";
 import { rangoDeS, recortarSegmentos, sDe, type EjeDePerfil, type Franja } from "@aerobim/bim-core";
 import * as THREE from "three";
+import { vistaDeFrenteDeLaLamina } from "./perfiles.js";
 import {
   CuadrosEnPlano,
   exportando,
@@ -847,6 +848,18 @@ export class DrawingMaker {
   }
 
   /** La caja que ocupa un plano generado, para poder encuadrarlo al encenderlo. */
+  /**
+   * Desde dónde hay que mirar un plano generado para verlo **de frente**.
+   *
+   * Un dibujo se orienta según su vista: la planta queda **tumbada**, y el alzado frontal, el lateral
+   * y el perfil —que se orienta como un alzado frontal— quedan **de pie**. Mirarlos todos desde
+   * arriba, como se hacía, dejaba los de pie **de canto**: una línea en vez de un dibujo.
+   */
+  vistaDeFrente(id: string): "top" | "front" | "side" | null {
+    const vista = this.planos.get(id)?.info.view;
+    return vista === undefined ? null : vistaDeFrenteDeLaLamina(vista);
+  }
+
   boxOf(id: string): THREE.Box3 | null {
     const plano = this.planos.get(id);
     if (plano === undefined) return null;
