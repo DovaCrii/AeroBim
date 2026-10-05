@@ -62,19 +62,42 @@ import { Copc, Las, type Getter, type Hierarchy } from "copc";
 import * as THREE from "three";
 
 import {
+  aplicar,
   cajaAArchivo,
   desplazamientoLocal,
   escenaAArchivo,
   planoAArchivo,
+  cupoDeUnNodo,
+  nodosDeLaFranja,
   nodosVisibles,
   presupuesto,
+  puntoEnLaFranja,
   type Atributo,
   type Caja,
   type ClaveDeNodo,
   type Cubo,
+  type Franja,
   type NodoDelArbol,
   type Plano,
 } from "@aerobim/bim-core";
+
+/** Los puntos de una nube que caen en una franja de perfil. */
+export interface PuntosDeFranja {
+  /** La coordenada horizontal del dibujo de cada punto: el PK, o el desplazamiento lateral. */
+  readonly s: Float32Array;
+  /** La cota de cada punto, en metros, la del archivo. */
+  readonly cotaM: Float32Array;
+  /** La clase de cada punto, **si el archivo la trae**. Nunca se calcula: ver `NUBES_DE_PUNTOS.md`. */
+  readonly clase: Uint8Array | null;
+  /** Cuántos nodos se bajaron para esta consulta. */
+  readonly nodos: number;
+  /** Cuántos puntos se leyeron, dentro y fuera de la franja. */
+  readonly puntosLeidos: number;
+  /** `true` si había más nodos en la franja de los que cupieron: el perfil es una muestra. */
+  readonly recortado: boolean;
+  readonly nodosSinCupo: number;
+  readonly ms: number;
+}
 
 /**
  * Dónde se sirve el WASM de `laz-perf`. Local, y por las razones del encabezado.
@@ -759,6 +782,106 @@ export class NubeEnEscena {
       demasiadoPequenos: seleccion.demasiadoPequenos,
       sinPresupuesto: seleccion.sinPresupuesto,
       bytes,
+      ms: performance.now() - t0,
+    };
+  }
+
+  /**
+   * Los puntos de la nube que caen en una franja de perfil, como `(s, cota)` — **sin mirar la
+   * cámara**. (2026-10-05)
+   *
+   * Es una consulta aparte de {@link refrescar} y no la sustituye: ésta baja lo que hace falta para
+   * **medir a lo largo del trazado** y **no toca lo que está en pantalla**. Los nodos que baja se
+   * sueltan al terminar, así que pedir un perfil no cambia lo que se ve ni la memoria que se queda
+   * ocupada.
+   *
+   * `cotaBaseM` es el desplazamiento vertical que Fragments quitó al recentrar el modelo: sumado a la
+   * `y` de la escena da la cota del archivo, la misma que lleva el perfil del IFC.
+   *
+   * Si hay más puntos en la franja que `puntosMaximos`, **entra lo menos profundo** —una muestra
+   * rala de todo el trazado— y `recortado` lo dice. Callarlo dejaría creer que el perfil lleva toda la
+   * nube.
+   */
+  async puntosEnFranja(
+    franja: Franja,
+    opciones: { readonly puntosMaximos: number; readonly cotaBaseM: number },
+  ): Promise<PuntosDeFranja> {
+    const t0 = performance.now();
+    this.objeto.updateMatrixWorld(true);
+    const matriz = this.objeto.matrixWorld.elements.slice();
+
+    const seleccion = nodosDeLaFranja(this.candidatos, {
+      cubo: this.cubo,
+      desplazamiento: this.desplazamiento,
+      matriz,
+      franja,
+    });
+
+    const s: number[] = [];
+    const cotaM: number[] = [];
+    const clases: number[] = [];
+    let conClase = false;
+    let leidos = 0;
+    let agotado = false;
+    let nodosLeidos = 0;
+    let adelgazado = false;
+
+    for (let i = 0; i < seleccion.elegidos.length && !agotado; i += TANDA_DE_NODOS) {
+      const tanda = seleccion.elegidos.slice(i, i + TANDA_DE_NODOS);
+      const traidos = await Promise.all(
+        tanda.map(async (elegido) => {
+          const nodo = this.porClave.get(textoDeClave(elegido.clave));
+          return nodo === undefined ? null : await this.descargar(nodo);
+        }),
+      );
+      for (const cargado of traidos) {
+        if (cargado === null) continue;
+        if (agotado) {
+          cargado.objeto.geometry.dispose();
+          continue;
+        }
+        nodosLeidos += 1;
+        const posiciones = cargado.objeto.geometry.getAttribute("position").array as Float32Array;
+        if (cargado.clase !== undefined) conClase = true;
+        // Primero se mide cuántos puntos del nodo caen en la franja, y después se decide cuántos
+        // entran: el techo cuenta los **aceptados**, no los que el nodo trae.
+        const enLaFranja: { p: number; s: number; cota: number }[] = [];
+        for (let p = 0; p < cargado.puntos; p += 1) {
+          leidos += 1;
+          // De las coordenadas locales de la nube a la escena, con el calce puesto: la franja está en
+          // la escena y es ahí donde se compara.
+          const enEscena = aplicar(matriz, [
+            posiciones[p * 3] as number,
+            posiciones[p * 3 + 1] as number,
+            posiciones[p * 3 + 2] as number,
+          ]);
+          const horizontal = puntoEnLaFranja(franja, enEscena);
+          if (horizontal === null) continue;
+          enLaFranja.push({ p, s: horizontal, cota: enEscena[1] + opciones.cotaBaseM });
+        }
+        const cupo = cupoDeUnNodo(s.length, enLaFranja.length, opciones.puntosMaximos);
+        if (cupo.paso > 1) adelgazado = true;
+        for (let k = 0; k < enLaFranja.length && k / cupo.paso < cupo.admitidos; k += cupo.paso) {
+          const punto = enLaFranja[k]!;
+          s.push(punto.s);
+          cotaM.push(punto.cota);
+          clases.push(cargado.clase?.[punto.p] ?? 0);
+        }
+        if (cupo.agotado) agotado = true;
+        // Se suelta en cuanto se ha leído: un perfil no puede dejar ocupada la memoria de una nube.
+        cargado.objeto.geometry.dispose();
+      }
+    }
+    const nodosSinCupo = seleccion.elegidos.length - nodosLeidos + (adelgazado ? 1 : 0);
+
+    return {
+      s: Float32Array.from(s),
+      cotaM: Float32Array.from(cotaM),
+      clase: conClase ? Uint8Array.from(clases) : null,
+      nodos: seleccion.elegidos.length,
+      puntosLeidos: leidos,
+      recortado: nodosSinCupo > 0,
+      nodosSinCupo,
       ms: performance.now() - t0,
     };
   }

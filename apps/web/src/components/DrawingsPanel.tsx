@@ -162,6 +162,16 @@ export function DrawingsPanel({
                 {plano.segments.toLocaleString("es-CL")} trazos ·{" "}
                 {(plano.elapsedMs / 1000).toFixed(1)} s en generarse
               </p>
+              {plano.puntosDeNube !== undefined && (
+                <p className="pt-0.5 text-nota text-fg-3">
+                  {plano.puntosDeNube.toLocaleString("es-CL")} puntos de la nube, en la capa AB-NUBE
+                </p>
+              )}
+              {plano.nota !== undefined && (
+                <p className="mt-1 rounded-sm border border-borde bg-surface-2 px-2 py-1 text-nota leading-snug text-fg-2">
+                  {plano.nota}
+                </p>
+              )}
 
               <label className="flex items-center gap-2 pt-1 text-nota text-fg-2">
                 <input

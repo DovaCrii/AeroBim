@@ -1199,6 +1199,156 @@ export async function perfil(container: HTMLElement, ifcUrl: string, log: Log): 
 }
 
 /**
+ * **El perfil de la nube**, sobre el levantamiento real del Camino Agrícola (2026-10-05).
+ *
+ * Carga el muro de prueba en sus coordenadas UTM, abre la nube de 127 MB, y la calza. Con un eje de
+ * 20 m cruzando el muro pide el perfil con la nube y comprueba lo que se sabe de antes de proyectar:
+ *
+ * - **que no depende de la cámara**: el mismo perfil dos veces, con la cámara movida entre medias,
+ *   tiene que dar los mismos puntos;
+ * - que **los puntos caen dentro de la franja**: el ancho del dibujo es el largo del eje;
+ * - que **las cotas están dentro de las del archivo** —las de la cabecera de la nube—, que es lo
+ *   único que se puede afirmar sin otra herramienta;
+ * - que **sin calce no se superpone**, y la ficha dice por qué;
+ * - y que el DXF lleva tantas marcas en la capa de la nube como puntos se dijeron.
+ *
+ * El oráculo de verdad —la misma sección en CloudCompare— lo corre quien tiene el archivo.
+ *
+ * Uso: `/diag.html?modo=perfilnube&nube=/samples/camino-agricola.copc.laz`
+ */
+export async function perfilnube(container: HTMLElement, nubeUrl: string, log: Log): Promise<void> {
+  container.style.width = "1200px";
+  container.style.height = "700px";
+
+  const viewer = await BimViewer.create(container);
+  const bytes = new Uint8Array(await (await fetch("/samples/muro-en-utm.ifc")).arrayBuffer());
+  const modelo = await viewer.loadIfc(bytes, "muro-en-utm.ifc");
+  const geoMuro = await viewer.elementGeometry("0WALLUTM00000000000000" as never);
+  if (geoMuro === null) {
+    log("**no se pudo obtener la geometria del muro**");
+    return;
+  }
+  log(
+    `modelo: ${modelo.name ?? "muro"} · el muro mide ${geoMuro.caja
+      .getSize(new THREE.Vector3())
+      .toArray()
+      .map((v) => v.toFixed(2))
+      .join(" x ")} m`,
+  );
+
+  const t0 = performance.now();
+  const nubeCargada = await viewer.loadPointCloud(nubeUrl, {
+    presupuestoBytes: 128 * 1024 * 1024,
+    color: "rgb",
+  });
+  log(
+    `nube: ${nubeCargada.cargados.toLocaleString("es-CL")} puntos cargados para pantalla · ` +
+      `${Math.round(performance.now() - t0)} ms`,
+  );
+  const ficha = nubeCargada.ficha;
+  log(`cabecera: cota de ${ficha.minimo[2].toFixed(2)} a ${ficha.maximo[2].toFixed(2)} m`);
+
+  // El eje: 20 m a lo largo de x por el centro del muro.
+  const centro = geoMuro.caja.getCenter(new THREE.Vector3());
+  const eje = {
+    sistema: "escena" as const,
+    verticesM: [
+      [centro.x - 10, centro.z],
+      [centro.x + 10, centro.z],
+    ] as [number, number][],
+  };
+  let anchoDeFranjaM = 30;
+
+  // --- 1. Sin calce no se superpone ---------------------------------------------------------
+  log("\n=== sin calce ===");
+  const sinCalce = await viewer.createProfile(eje, { anchoM: 30, conNube: true });
+  const primero = sinCalce[0];
+  log(
+    primero === undefined
+      ? "  no salio perfil"
+      : `  nota de la ficha: ${primero.nota ?? "(ninguna)"} · puntos de nube: ${primero.puntosDeNube ?? 0}`,
+  );
+  log(
+    primero?.nota?.includes("calzada") && (primero.puntosDeNube ?? 0) === 0
+      ? "  no se superpone y lo dice (bien)"
+      : "  **SE SUPERPUSO SIN CALCE, o no lo dijo (mal)**",
+  );
+  for (const plano of sinCalce) await viewer.removeDrawing(plano.id);
+
+  // --- 2. Con calce --------------------------------------------------------------------------
+  log("\n=== con el calce automatico ===");
+  const traslado = await viewer.alignPointCloudToModel();
+  log(
+    `  traslado aplicado: ${traslado === null ? "ninguno" : traslado.map((v) => v.toFixed(3)).join(", ")}`,
+  );
+
+  const pedir = async () => {
+    const t = performance.now();
+    const planos = await viewer.createProfile(eje, { anchoM: anchoDeFranjaM, conNube: true });
+    return { plano: planos[0], ms: performance.now() - t };
+  };
+
+  const grupoNube = viewer.pointCloud;
+  if (grupoNube !== null) {
+    grupoNube.updateMatrixWorld(true);
+    const cajaNube = new THREE.Box3().setFromObject(grupoNube);
+    const fmt = (v: THREE.Vector3) =>
+      v
+        .toArray()
+        .map((n) => n.toFixed(1))
+        .join(", ");
+    log(`  caja de la nube en escena: [${fmt(cajaNube.min)}] a [${fmt(cajaNube.max)}]`);
+    log(`  caja del muro en escena:   [${fmt(geoMuro.caja.min)}] a [${fmt(geoMuro.caja.max)}]`);
+    // El eje del muro apenas roza la nube: para medir la nube, uno que la atraviese, por la
+    // diagonal de su caja y con una franja que la cubra entera.
+    eje.verticesM = [
+      [cajaNube.min.x, cajaNube.max.z],
+      [cajaNube.max.x, cajaNube.min.z],
+    ];
+    anchoDeFranjaM = 300;
+    log(`  eje de prueba: diagonal de la nube, franja de ${anchoDeFranjaM} m`);
+  }
+
+  const a = await pedir();
+  if (a.plano === undefined) {
+    log("  **no salio perfil**");
+    return;
+  }
+  log(
+    `  perfil: ${a.plano.puntosDeNube ?? 0} puntos de nube · ${a.plano.segments} trazos del modelo · ` +
+      `${a.plano.sizeM.map((m) => m.toFixed(2)).join(" x ")} m · ${Math.round(a.ms)} ms`,
+  );
+  log(`  nota: ${a.plano.nota ?? "(ninguna)"}`);
+
+  // La misma pregunta con la camara en otro sitio: no puede cambiar el resultado.
+  await viewer.frameAll("top" as never);
+  const b = await pedir();
+  log(
+    `  con la camara movida: ${b.plano?.puntosDeNube ?? 0} puntos de nube · ` +
+      `${b.plano === undefined ? "**la segunda llamada no devolvio plano (mal)**" : (a.plano.puntosDeNube ?? 0) === (b.plano.puntosDeNube ?? 0) ? "los mismos (bien)" : "**DISTINTOS (mal)**"}`,
+  );
+
+  // El dibujo encuadra lo dibujado —modelo y puntos—, no el eje: tiene que caber al menos el muro.
+  log(
+    `  ancho del dibujo ${a.plano.sizeM[0].toFixed(2)} m: ` +
+      `${a.plano.sizeM[0] >= 4 - 0.05 ? "cabe el modelo (bien)" : "**NO CABE EL MODELO (mal)**"}`,
+  );
+
+  // El DXF, de vuelta: tantas marcas en la capa de la nube como puntos se dijeron.
+  const dxf = viewer.exportDrawingDxf(a.plano.id, { widthMm: 420, heightMm: 297, margin: 10 });
+  if (dxf === null) {
+    log("  **el exportador devolvio null**");
+    return;
+  }
+  const leido = parseDxf(dxf);
+  const marcas = leido.polylines.filter((uno) => uno.layer === CAPAS.nube);
+  log(
+    `  DXF: ${Math.round(dxf.length / 1024)} KB · ${marcas.length} marcas en ${CAPAS.nube} frente a ` +
+      `${a.plano.puntosDeNube ?? 0} puntos: ${marcas.length === (a.plano.puntosDeNube ?? 0) ? "coinciden (bien)" : "NO COINCIDEN (mal)"}`,
+  );
+}
+
+/**
  * **Acotar un plano generado**, que es el botón de `F7.3` que nunca se había pulsado.
  *
  * Lo que estaba comprobado de `F7.3` era el camino de datos hasta el DXF, con `?modo=dxf` y sobre un

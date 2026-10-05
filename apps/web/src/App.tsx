@@ -1383,7 +1383,12 @@ export function App() {
         // trazan vértices, seleccionar o medir sería justo lo que no se quiere. Es el punto del
         // modelo con el ajuste del medidor puesto, y un clic al vacío no cuenta.
         if (perfilTrazado !== null) {
-          const punto = await instance.pointOnModel(event.clientX, event.clientY);
+          // Sobre el modelo, y si no hay modelo debajo, sobre la nube: un eje se puede trazar
+          // sobre una nube sola.
+          const punto =
+            (await instance.pointOnModel(event.clientX, event.clientY)) ??
+            instance.pickPointCloud(event.clientX, event.clientY)?.escena ??
+            null;
           if (punto === null) return;
           setPerfilTrazado([...perfilTrazado, [punto[0], punto[2]]]);
           return;
@@ -1845,6 +1850,7 @@ export function App() {
           {
             anchoM: parametros.anchoM,
             anchoTransversalM: parametros.anchoTransversalM,
+            conNube: parametros.conNube,
             ...(parametros.pasoDeEstacionesM === null
               ? {}
               : { pasoDeEstacionesM: parametros.pasoDeEstacionesM }),
@@ -2787,6 +2793,9 @@ export function App() {
             <PerfilFlotante
               vertices={perfilTrazado}
               largoM={largoDelEjeM({ sistema: "escena", verticesM: perfilTrazado })}
+              hayNube={nubeInforme !== null}
+              hayModelo={models.length > 0}
+              nubeCalzada={viewer.current?.pointCloudAligned ?? false}
               generando={generating}
               onDeshacer={() => setPerfilTrazado((actual) => (actual ?? []).slice(0, -1))}
               onCancelar={() => setPerfilTrazado(null)}
