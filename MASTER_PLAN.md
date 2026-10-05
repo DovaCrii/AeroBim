@@ -28,24 +28,26 @@
 > El estado de esos bloques, con lo que destaparon por el camino, está en
 > [HANDOFF.md](HANDOFF.md).
 
-**Diez de las doce fases con trabajo están cerradas**, y lo que queda se cuenta en una línea cada
-cosa. Actualizado el 2026-09-07.
+**Diez de las catorce fases con trabajo están cerradas** —las dos últimas, la 13 y la 14, se abrieron
+el 2026-10-05—, y lo que queda se cuenta en una línea cada cosa. Actualizado el 2026-10-05.
 
-| Fase                           | Estado                                                                                                                            |
-| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
-| **0 · Cimientos**              | ✅ entera — `F0.6` cerró el 2026-09-02 y esta línea llevaba desde entonces sin actualizar                                         |
-| **1 · Visor**                  | ✅ entera — `F1.13` cerró el 2026-09-23: «Referencias», «Vistas guardadas» y «Documentar»                                         |
-| **3 · Backend**                | ✅ entera                                                                                                                         |
-| **4 · Coordinación**           | ✅ salvo `F4.5`, el trazo libre, **condicionado a que el usuario mire un BCF exportado**                                          |
-| **5 · Interferencias**         | ✅ entera                                                                                                                         |
-| **7 · Planos, salida**         | ✅ entera — capas, DXF, PDF con sello, y el plano acotado y con sus llamadas                                                      |
-| **8 · Registro documental**    | ✅ entera                                                                                                                         |
-| **9 · Diseño**                 | ✅ **entera** — `F9.6` cerró el 2026-09-07 al reescribir `docs/UX.md`                                                             |
-| **10 · Etiquetas y tablas**    | ✅ entera                                                                                                                         |
-| **11 · El portal se ve plano** | ✅ entera — incluida la ayuda con su recorrido                                                                                    |
-| **2 · Nubes de puntos**        | 🔶 abre, se maneja, calza y **entra al expediente**. `F2.4` espera **el IFC de la pasarela**                                      |
-| **12 · La interfaz**           | 🔶 los tres bloques cerrados; de `F12.2` queda **señalar tres pares con un ratón** — el par de archivos ya está en el repositorio |
-| **6 · Geo + BIM**              | ⬜ pospuesta a propósito el 2026-09-02, para poner la coordinación delante                                                        |
+| Fase                           | Estado                                                                                                                               |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| **0 · Cimientos**              | ✅ entera — `F0.6` cerró el 2026-09-02 y esta línea llevaba desde entonces sin actualizar                                            |
+| **1 · Visor**                  | ✅ entera — `F1.13` cerró el 2026-09-23: «Referencias», «Vistas guardadas» y «Documentar»                                            |
+| **3 · Backend**                | ✅ entera                                                                                                                            |
+| **4 · Coordinación**           | ✅ salvo `F4.5`, el trazo libre, **condicionado a que el usuario mire un BCF exportado**                                             |
+| **5 · Interferencias**         | ✅ entera                                                                                                                            |
+| **7 · Planos, salida**         | ✅ entera — capas, DXF, PDF con sello, y el plano acotado y con sus llamadas                                                         |
+| **8 · Registro documental**    | ✅ entera                                                                                                                            |
+| **9 · Diseño**                 | ✅ **entera** — `F9.6` cerró el 2026-09-07 al reescribir `docs/UX.md`                                                                |
+| **10 · Etiquetas y tablas**    | ✅ entera                                                                                                                            |
+| **11 · El portal se ve plano** | ✅ entera — incluida la ayuda con su recorrido                                                                                       |
+| **2 · Nubes de puntos**        | 🔶 abre, se maneja, calza y **entra al expediente**. `F2.4` espera **el IFC de la pasarela**                                         |
+| **12 · La interfaz**           | 🔶 los tres bloques cerrados; de `F12.2` queda **señalar tres pares con un ratón** — el par de archivos ya está en el repositorio    |
+| **13 · Perfiles y espacios**   | 🔶 `F13.1`–`F13.4` construidas y verificadas **con muestras**; faltan `F13.5`–`F13.8` (el oráculo externo es de quien tiene la obra) |
+| **14 · Proceso y código**      | ⬜ **solo planificada el 2026-10-05**: nada de ella se ejecuta todavía                                                               |
+| **6 · Geo + BIM**              | ⬜ pospuesta a propósito el 2026-09-02, para poner la coordinación delante                                                           |
 
 **La Fase 2 va por tres cuartos**, y en un orden que no es el de su numeración. Desde el 2026-09-03
 se comprueba contra **el levantamiento real del CC 741 — Camino Agrícola**, no contra un fixture:
@@ -159,23 +161,27 @@ y systemd), las vistas que se pueden pasar a otra persona (`F3.12`), la visibili
 
 ## Lo que queda, por fase
 
-**Quedan nueve filas abiertas, y ninguna la cierra el código** — eran diez hasta que `F1.13` se
-decidió el 2026-09-23; esta tabla la siguió contando hasta el 2026-09-28. `⬜` no empezada · `🔶` `◐` medida a
-medias · `❓` medida y esperando algo.
+**Quedan veinte filas abiertas.** Nueve son las de siempre —las cierra el usuario, un archivo de obra o
+una decisión— y eran todo lo que quedaba hasta el 2026-09-28. Desde el 2026-10-05 se suman cuatro de la
+Fase 13 (`F13.5`–`F13.8`; `F13.6` y `F13.7` piden archivos de obra) y **siete de la Fase 14, que las cierra el
+agente cuando se ejecute y hoy solo están planificadas**. `⬜` no empezada · `🔶` `◐` medida a medias ·
+`❓` medida y esperando algo.
 
 > **Esta tabla decía «veintinueve» y llevaba `F2.1`, `F2.2` y `F2.3` en `⬜` con el código escrito y
 > comprobado desde el 2026-09-03.** Es el mismo error que ya se anotó una vez más abajo —«el tablero
 > decía ⬜ sobre código que existe desde hace días»— y se repitió aquí. Corregido el 2026-09-09
 > contando las filas una por una contra el estado de cada fase, que es lo único que no se desactualiza.
 
-| Fase                         | Filas abiertas                                                                                       | Quién la cierra        |
-| ---------------------------- | ---------------------------------------------------------------------------------------------------- | ---------------------- |
-| **4 — Coordinación**         | `F4.5` ◐ — falta el trazo libre, y depende de mirar un BCF exportado                                 | El usuario, mirando    |
-| **2 — Nubes de puntos**      | `F2.4` 🔶 — la medida funciona y **cuadra con un corrimiento conocido**; falta el IFC de la pasarela | Un archivo de obra     |
-| **12 — La interfaz**         | `F12.2` 🔶 — el par de archivos ya está en el repositorio; queda **señalar tres pares con un ratón** | El usuario, pinchando  |
-| **2 — Nubes de puntos**      | `F2.6` ⬜ — el gaussian splatting                                                                    | Pospuesta por decisión |
-| **6 — Geo + BIM**            | `F6.1` a `F6.5` ⬜ — Cesium, ortofoto y terreno, situar el IFC, 3D Tiles, y recibir de AeroPlanner   | Pospuesta por decisión |
-| **0, 3, 5, 7, 8, 9, 10, 11** | Ninguna: las ocho fases enteras                                                                      | —                      |
+| Fase                         | Filas abiertas                                                                                                                | Quién la cierra                |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| **4 — Coordinación**         | `F4.5` ◐ — falta el trazo libre, y depende de mirar un BCF exportado                                                          | El usuario, mirando            |
+| **2 — Nubes de puntos**      | `F2.4` 🔶 — la medida funciona y **cuadra con un corrimiento conocido**; falta el IFC de la pasarela                          | Un archivo de obra             |
+| **12 — La interfaz**         | `F12.2` 🔶 — el par de archivos ya está en el repositorio; queda **señalar tres pares con un ratón**                          | El usuario, pinchando          |
+| **2 — Nubes de puntos**      | `F2.6` ⬜ — el gaussian splatting                                                                                             | Pospuesta por decisión         |
+| **6 — Geo + BIM**            | `F6.1` a `F6.5` ⬜ — Cesium, ortofoto y terreno, situar el IFC, 3D Tiles, y recibir de AeroPlanner                            | Pospuesta por decisión         |
+| **13 — Perfiles**            | `F13.5` ⬜ `ClipStyler`, sin ensayar · `F13.6` ⬜ oráculos externos · `F13.7` ⬜ la nube real · `F13.8` ⬜ recorrido con nube | El agente / un archivo de obra |
+| **14 — Proceso y código**    | `F14.1`–`F14.7` ⬜ — el kit, la revisión, `R1`–`R4` y la Etapa 3 (**bloqueada**)                                              | El agente                      |
+| **0, 3, 5, 7, 8, 9, 10, 11** | Ninguna: las ocho fases enteras                                                                                               | —                              |
 
 ### Hasta dónde llega este bloque, revisado el 2026-09-03
 
@@ -5290,6 +5296,105 @@ muestra, y cambiar no reconvierte nada (`apps/web/src/espacios.ts`, con pruebas)
 - Revisa la decisión de «una sola ventana» de `docs/UX.md`; allí queda la constancia.
 - Verificado en el navegador con `Piso 5.ifc` y `ACAD-Piso 5_Base.dxf`: el recorrido «Documentar → Crear
   perfil → dos clics → generar» da un perfil de 5,8 × 3,0 m y 1 846 trazos en 0,8 s.
+
+## FASE 14 — Proceso de agentes y base de código (planificada el 2026-10-05)
+
+> **Solo está planificada. Hoy no se ejecuta ninguna de sus filas.** Nace de dos entregas que preparó
+> el usuario fuera del repositorio —un kit de proceso para Claude Code y un plan de revisión y refactor—
+> y de leerlas contra el código antes de ejecutarlas. **`AGENTS.md` y este plan mandan sobre el kit**:
+> lo que choque con ellos está en «Choques detectados» y se resuelve ahí, no en silencio.
+>
+> **La «Regla de oro» de arriba dice que no se abre una fase con la anterior a medio cerrar.** La 13 lo
+> está (`F13.5`–`F13.8`). Se abre porque **el usuario lo pidió**, y ninguna fila de la 14 depende de
+> las de la 13 ni al revés.
+
+Dos objetivos y una restricción: **gastar menos contexto por sesión** (el `HANDOFF.md` ya pesa 1 214
+líneas), **que lo concentrado se pueda leer** (archivos de miles de líneas que ni una persona ni un
+agente abren cómodos) y **no cambiar el comportamiento del producto**. Estructura sí, comportamiento
+no, siempre con red de seguridad y en PR pequeños.
+
+| Fila    | Qué                                                                                                                                                                                                   | Estado           | Oráculo, medible                                                                                                                                                                                                                                                                                                                                                        | Quién la cierra                                                              |
+| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `F14.1` | **Fase 1 del kit**: `CLAUDE.md`, `.claude/` (permisos, reglas por ruta, skills), `scripts/claude/`, `.gitignore`, el parche de `AGENTS.md` (**commit aparte**) y, **al final**, el `HANDOFF.md` corto | ⬜               | `/context` **antes y después**, con cifras en el PR; `fmt:check`, `lint`, `build` y `test` en verde; `git status` versiona `settings.json`, `rules/` y `skills/` y **no** `launch.json`, `settings.local.json` ni `.claude/tmp/`; `verificar.mjs api` probado contra el `verify.ps1` real o declarado sin probar; `HANDOFF.md` ≤120 líneas, verificado contra `git log` | El agente: PR, CI verde y fusión. El usuario revisa las cifras de `/context` |
+| `F14.2` | **Etapa 1 de la Fase 2: revisión de solo lectura** — seguridad (guion D1), arquitectura (D3) y mediciones (cobertura, complejidad, diez archivos más grandes, `impeccable detect`)                    | ⬜               | Informe **fuera del repo**; cada hallazgo con archivo, evidencia y la prueba de 403 o de aislamiento que faltaba; **`git diff` vacío** (no se tocó código); los `alta` entran al plan como filas y el resto a la bandeja; la skill de terceros retirada y su commit anotado                                                                                             | El agente produce; el usuario decide qué hallazgos `alta` entran             |
+| `F14.3` | **R1 · dividir `documents/views.py`** (2 499 líneas, 38 clases) en un paquete por dominio, re-exportando desde `views/__init__.py`                                                                    | ⬜               | **Mismo número de pruebas** (1 675 pasan y 2 se omiten en el CI del 2026-10-05, a re-medir), **misma lista de URL** (`show_urls` antes y después, diferencia vacía), la tabla de `test_permisos.py` intacta y el gate en verde con PostgreSQL                                                                                                                           | El agente: PR, CI verde y fusión                                             |
+| `F14.4` | **R2 · sacar `diag.ts` del camino de la aplicación** (3 481 líneas)                                                                                                                                   | ⬜               | `dist` no lo contiene (**ya hoy**: la lista blanca de `limpiar-dist.mjs` deja fuera `diag.html`); ninguna importación desde `src/` (**0 hoy**); **y todos los modos de `diag.html?modo=…` siguen corriendo en desarrollo**, porque son el oráculo de navegador de decenas de filas ✅. Mover no es borrar                                                               | El agente: PR, CI verde y fusión                                             |
+| `F14.5` | **R3 · guardia de complejidad** en ruff (`C901`) con un umbral que **hoy pase**                                                                                                                       | ⬜               | Medido el 2026-10-05: con `max-complexity = 10` fallan **6** funciones y con **15**, **0**. Se activa en 15. `ruff check .` en verde, y una función de prueba de complejidad >15 **hace fallar el gate** (se prueba y se revierte)                                                                                                                                      | El agente: PR, CI verde y fusión                                             |
+| `F14.6` | **R4 · humo e2e con Playwright y axe-core**: login, abrir una obra, abrir el visor con un IFC sintético del repositorio                                                                               | ⬜               | Corre en el CI y pasa; el IFC es `muro-minimo.ifc` (sintético, ya versionado) subido por el selector de archivos —**las muestras no van al build**—; axe sin violaciones serias en portal y visor, en claro y en oscuro; **sin descargar nada de un CDN en ejecución** (regla 10 de `AGENTS.md`). **Prerrequisito de `F14.7`**                                          | El agente: PR, CI verde y fusión                                             |
+| `F14.7` | **Etapa 3 · `App.tsx`** (3 205 líneas, `App()` desde la 328), **`packages/viewer/src/index.ts`** (5 955) y **`bim-core/plans/dxf.ts`** (1 911, solo si el piloto apunta ahí)                          | ⬜ **BLOQUEADA** | **Desbloqueo: `F14.6` en verde y el piloto arrancado.** Cada paso contrastado **en el navegador con el mismo IFC y su oráculo** (`AGENTS.md`, «Verificación»), con `F14.6` en verde antes y después. Mismo comportamiento                                                                                                                                               | El agente, paso a paso; **no se hace de golpe**                              |
+
+### El orden, y por qué
+
+1. **Cerrar el trabajo en curso** (`#78`, fusionado el 2026-10-05) y partir de un `main` ya actualizado.
+   **No hay hoy ninguna otra rama abierta**: las del trabajo anterior ya están en `main`.
+2. **`F14.1`**, en `codex/mejora-proceso-agentes`, creada desde ese `main`. Dentro de la fila, el orden
+   es: kit y scripts → `.gitignore` → `AGENTS.md` (commit aparte) → **`HANDOFF.md` corto al final**,
+   porque es lo único que se pisaría con trabajo en curso. El `HANDOFF.md` nuevo resume **desde el #72
+   hasta lo último**: el anterior cerraba en el #71.
+3. **`F14.2`, en paralelo con el piloto.** La Fase 2 empieza **solo con `F14.1` fusionada y el piloto en
+   marcha**: la Etapa 1 de `docs/PILOTO.md` —«Registro documental», que su tabla llama «la etapa 0»— no
+   necesita el IFC.
+4. **`F14.3` a `F14.6`.** `F14.3` va **primero** y es **el más sensible a conflictos**: se hace cuando
+   **ninguna rama abierta toque `views.py` ni `api.py`** (se revisa con `git branch -r` y
+   `git log origin/main..<rama>` justo antes). `F14.4` y `F14.5` no dependen entre sí. `F14.6` antes de
+   la Etapa 3.
+5. **`F14.7`** al final, bloqueada hasta que `F14.6` esté en verde y el piloto haya arrancado.
+
+### Lo que no se hace en esta fase
+
+Reescribir el visor, cambiar de librería (That Open, `web-ifc`) ni tocar `COOP`/`COEP`, la CSP o la
+carga de WASM como parte de un refactor. Instalar skills de terceros sin fijar versión y sin leer
+antes sus hooks y scripts; las descartadas por el kit (Superpowers, Graphify, Caveman…) siguen fuera.
+Los plugins de inteligencia de código (`typescript-lsp`, `pyright-lsp`) van a nivel de usuario, no al
+repositorio, y se instalan avisando.
+
+### Los números del diagnóstico, re-medidos el 2026-10-05
+
+El kit los tomó sobre el PR #73; el repositorio **creció** desde entonces (el perfil, los dos espacios,
+el IFC comprimido) y los números cambiaron. **Estos son los vigentes**, y la fila `F14.x` que los usa
+dice cuál:
+
+| Hallazgo                                               | El kit decía    | Medido hoy (`main`, `eccf703`)                                              |
+| ------------------------------------------------------ | --------------- | --------------------------------------------------------------------------- |
+| `documents/views.py`                                   | 2 449 · 38      | **2 499 líneas · 38 clases de vista**                                       |
+| `packages/viewer/src/index.ts`                         | 5 627           | **5 955** (126 métodos de la clase, aprox.)                                 |
+| `apps/web/src/App.tsx`                                 | ~3 013          | **3 205** · `App()` desde la línea 328                                      |
+| `apps/web/src/diag.ts`                                 | 3 208           | **3 481**                                                                   |
+| `packages/bim-core/src/plans/dxf.ts`                   | 1 911           | **1 911** (sin cambio)                                                      |
+| `documents/models.py` · `accounts/views.py` · `api.py` | 965 · 855 · 803 | **965 · 855 · 820**                                                         |
+| TODO / FIXME / HACK / XXX                              | 21              | **21** (sin cambio)                                                         |
+| Reglas de ruff                                         | sin `C901`      | `E, F, W, I, UP, B, DJ` — **sin `C901`**; con umbral 10 fallan 6, con 15, 0 |
+| Pruebas                                                | 1 033 + 523     | **1 675 API** (CI, +2 omitidas) y **646 TS**; sigue sin e2e ni visuales     |
+| `HANDOFF.md`                                           | ~93 KB          | **1 214 líneas**                                                            |
+
+### Choques detectados entre el kit y `AGENTS.md` o el repo
+
+1. **El kit prohíbe fusionar**: su `settings.json` niega `Bash(gh pr merge:*)` y sus instrucciones dicen
+   «nunca fusiones el PR». **Desde el 2026-10-05 `AGENTS.md` dice lo contrario** —el agente fusiona con
+   el CI verde; el usuario solo despliega—. Al aplicar el kit hay que **quitar esa regla de `deny`**, o
+   el agente no podrá cumplir lo que `AGENTS.md` manda. Además pone `Bash(git push:*)` en `ask`: cada
+   empuje pediría confirmación, y el reparto actual es que el agente empuja.
+2. **`R3` no necesita tocar `ci.yml`**, al contrario de lo que dice el kit: `ci.yml` y `verify.ps1`
+   ejecutan ambos `ruff check .`, que lee `pyproject.toml`. Basta la configuración; se comprueba, no se
+   edita el flujo.
+3. **`R2` parte de una premisa ya cumplida en producción**: `diag.ts` no está en el camino de la
+   aplicación (nada de `src/` lo importa y la lista blanca deja `diag.html` fuera del build). Lo que
+   queda es una cuestión de **mantenimiento** —3 481 líneas de herramienta de desarrollo dentro de
+   `apps/web/src`—, no de seguridad. Y **no se puede borrar ni degradar**: es el oráculo de navegador de
+   muchas filas ✅ de este plan y de `AGENTS.md` («verificación en el navegador»).
+4. **La carpeta del kit está dentro del repositorio** (`claude-info/`, sin versionar), y el kit exige
+   estar **fuera**. Hay que moverla o excluirla antes de copiar nada, para que ningún `git add` la
+   arrastre. Los dos documentos aparecen además duplicados dentro y fuera de `aerobim-claude-kit/`.
+5. **«Etapas 0 y 1 del piloto»**: `docs/PILOTO.md` numera 1–4 y su tabla llama a la Etapa 1 «la etapa 0».
+   Se entiende como la de **Registro documental**, la única que no necesita el IFC. Hay que confirmarlo.
+6. **El `HANDOFF` de la plantilla es un borrador** que dice «del #71 al #73»; el repositorio va por el
+   #78. Se rehace desde `git log`, no se copia.
+7. **R4 y las muestras**: el build deja fuera `samples/` a propósito (regla de `AGENTS.md` sobre
+   `apps/web/public/`), así que un e2e contra la aplicación empaquetada **no puede abrir** `muro-minimo.ifc`
+   desde `/samples/`; el archivo se sube por el selector. Y Playwright descarga su navegador: es
+   aceptable en el CI, pero la regla 10 (nada de CDN **en ejecución**) hay que vigilarla en la prueba.
+8. **Playwright (Apache-2.0) y axe-core (MPL-2.0)** son dependencias de desarrollo: caben en la tabla de
+   licencias de `AGENTS.md`, pero **hay que registrarlas en `docs/REFERENCES.md`** al añadirlas.
 
 ## La competencia abierta, y qué se le puede mirar
 
