@@ -6,7 +6,12 @@
 import { describe, expect, it } from "vitest";
 
 import type { EjeDePerfil } from "@aerobim/bim-core";
-import { MAXIMO_FILAS_DE_REFERENCIAS, tablaDePk, textoDePk } from "./perfiles.js";
+import {
+  MAXIMO_FILAS_DE_REFERENCIAS,
+  tablaDePk,
+  textoDePk,
+  vistaDeFrenteDeLaLamina,
+} from "./perfiles.js";
 
 const L: EjeDePerfil = {
   sistema: "escena",
@@ -83,5 +88,22 @@ describe("tablaDePk", () => {
     expect(tabla.rows).toHaveLength(MAXIMO_FILAS_DE_REFERENCIAS + 1);
     expect(tabla.rows[tabla.rows.length - 1]![0]).toBe("…");
     expect(tabla.rows[tabla.rows.length - 1]![1]).toBe("63 más");
+  });
+});
+
+describe("desde dónde se mira una lámina para verla de frente", () => {
+  it("la planta, desde arriba: está tumbada", () => {
+    expect(vistaDeFrenteDeLaLamina("plan")).toBe("top");
+  });
+
+  it("el perfil y el alzado frontal, de frente: están de pie, y desde arriba se verían de canto", () => {
+    // El defecto que lo destapó: al abrir un perfil en el visor 2D salía **una sola línea**, porque la
+    // cámara lo miraba siempre desde arriba.
+    expect(vistaDeFrenteDeLaLamina("profile")).toBe("front");
+    expect(vistaDeFrenteDeLaLamina("front")).toBe("front");
+  });
+
+  it("el alzado lateral, de costado", () => {
+    expect(vistaDeFrenteDeLaLamina("side")).toBe("side");
   });
 });

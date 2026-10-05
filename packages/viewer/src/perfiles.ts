@@ -90,3 +90,19 @@ export function tablaDePk(
     rows,
   };
 }
+
+/**
+ * Desde dónde hay que mirar una lámina generada para verla **de frente** (2026-10-05).
+ *
+ * Un dibujo se orienta según su vista: la **planta** queda tumbada y mira hacia arriba; el **alzado
+ * frontal**, el **lateral** y el **perfil** —que se orienta como un alzado frontal— quedan **de pie**.
+ * Mirarlos todos desde arriba, como se hacía al encenderlos, dejaba los de pie **de canto**: una sola
+ * línea en vez de un dibujo. Lo descubrió el visor 2D de láminas, al abrir un perfil por primera vez.
+ */
+export function vistaDeFrenteDeLaLamina(
+  vista: "plan" | "front" | "side" | "profile",
+): "top" | "front" | "side" {
+  if (vista === "plan") return "top";
+  if (vista === "side") return "side";
+  return "front";
+}

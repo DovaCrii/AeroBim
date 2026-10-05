@@ -93,6 +93,7 @@ export function Ribbon({
   hasPlans,
   modo2D,
   comparando,
+  laminaAbierta,
   onComparar,
   onModo2D,
   gridAxisCount,
@@ -185,6 +186,8 @@ export function Ribbon({
   readonly onModo2D: (activar: boolean) => void;
   /** Hay una comparación 2D–3D en curso. */
   readonly comparando: boolean;
+  /** Hay una lámina en el visor 2D: el modelo está apagado a propósito. */
+  readonly laminaAbierta: boolean;
   /** Entra o sale de la comparación del plano con el modelo. */
   readonly onComparar: (activar: boolean) => void;
   /** Cuántos ejes de replanteo trae el modelo. Cero deshabilita el botón. */
@@ -448,7 +451,7 @@ export function Ribbon({
                       // Abre un modo de trabajo entero: el plano solo, sin modelo.
                       tamano="grande"
                       active={modo2D}
-                      disabled={!hasPlans}
+                      disabled={!hasPlans || laminaAbierta}
                       onClick={() => onModo2D(!modo2D)}
                     />
                     {/* **Comparar es lo contrario del Modo 2D**: el plano y el modelo a la vez, en
@@ -466,7 +469,7 @@ export function Ribbon({
                             : "Hace falta un plano 2D y un modelo abiertos"
                       }
                       active={comparando}
-                      disabled={modo2D || !hasPlans || !hasModels}
+                      disabled={modo2D || laminaAbierta || !hasPlans || !hasModels}
                       onClick={() => onComparar(!comparando)}
                     />
                     {/* Los ejes del modelo: con lo que se habla en obra, y el ancla para calzar un plano

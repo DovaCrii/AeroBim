@@ -5689,6 +5689,18 @@ export class BimViewer {
   }
 
   /**
+   * Enciende o apaga la nube **sin descargarla ni soltarla**.
+   *
+   * Lo usa el visor 2D de láminas: mientras se mira un plano o un perfil solo, la nube —que cae
+   * encima del plano de proyección— se esconde, y al salir vuelve tal como estaba, con lo que ya
+   * se había bajado. Soltarla obligaría a pedirla otra vez por tramos.
+   */
+  setPointCloudVisible(visible: boolean): void {
+    this.assertAlive();
+    if (this.nube !== null) this.nube.objeto.visible = visible;
+  }
+
+  /**
    * Enciende o apaga un plano generado en la vista 3D.
    *
    * **Encenderlo lleva la cámara a él.** El dibujo se coloca en el plano de proyección —encima del
@@ -5700,7 +5712,9 @@ export class BimViewer {
     this.drawings.setVisible(id, visible);
     if (visible) {
       const caja = this.drawings.boxOf(id);
-      if (caja !== null) this.applyFraming(caja, "top");
+      // **De frente, no siempre desde arriba**: una planta está tumbada, pero un alzado o un perfil
+      // están de pie, y desde arriba se ven de canto.
+      if (caja !== null) this.applyFraming(caja, this.drawings.vistaDeFrente(id) ?? "top");
     }
     await this.refresh();
   }
