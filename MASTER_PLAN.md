@@ -31,23 +31,23 @@
 **Diez de las catorce fases con trabajo están cerradas** —las dos últimas, la 13 y la 14, se abrieron
 el 2026-10-05—, y lo que queda se cuenta en una línea cada cosa. Actualizado el 2026-10-05.
 
-| Fase                           | Estado                                                                                                                               |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
-| **0 · Cimientos**              | ✅ entera — `F0.6` cerró el 2026-09-02 y esta línea llevaba desde entonces sin actualizar                                            |
-| **1 · Visor**                  | ✅ entera — `F1.13` cerró el 2026-09-23: «Referencias», «Vistas guardadas» y «Documentar»                                            |
-| **3 · Backend**                | ✅ entera                                                                                                                            |
-| **4 · Coordinación**           | ✅ salvo `F4.5`, el trazo libre, **condicionado a que el usuario mire un BCF exportado**                                             |
-| **5 · Interferencias**         | ✅ entera                                                                                                                            |
-| **7 · Planos, salida**         | ✅ entera — capas, DXF, PDF con sello, y el plano acotado y con sus llamadas                                                         |
-| **8 · Registro documental**    | ✅ entera                                                                                                                            |
-| **9 · Diseño**                 | ✅ **entera** — `F9.6` cerró el 2026-09-07 al reescribir `docs/UX.md`                                                                |
-| **10 · Etiquetas y tablas**    | ✅ entera                                                                                                                            |
-| **11 · El portal se ve plano** | ✅ entera — incluida la ayuda con su recorrido                                                                                       |
-| **2 · Nubes de puntos**        | 🔶 abre, se maneja, calza y **entra al expediente**. `F2.4` espera **el IFC de la pasarela**                                         |
-| **12 · La interfaz**           | 🔶 los tres bloques cerrados; de `F12.2` queda **señalar tres pares con un ratón** — el par de archivos ya está en el repositorio    |
-| **13 · Perfiles y espacios**   | 🔶 `F13.1`–`F13.4` construidas y verificadas **con muestras**; faltan `F13.5`–`F13.8` (el oráculo externo es de quien tiene la obra) |
-| **14 · Proceso y código**      | 🔶 `F14.1` (el kit) aplicada el 2026-10-05, a falta de las cifras de `/context`; el resto, planificada                               |
-| **6 · Geo + BIM**              | ⬜ pospuesta a propósito el 2026-09-02, para poner la coordinación delante                                                           |
+| Fase                           | Estado                                                                                                                                           |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **0 · Cimientos**              | ✅ entera — `F0.6` cerró el 2026-09-02 y esta línea llevaba desde entonces sin actualizar                                                        |
+| **1 · Visor**                  | ✅ entera — `F1.13` cerró el 2026-09-23: «Referencias», «Vistas guardadas» y «Documentar»                                                        |
+| **3 · Backend**                | ✅ entera                                                                                                                                        |
+| **4 · Coordinación**           | ✅ salvo `F4.5`, el trazo libre, **condicionado a que el usuario mire un BCF exportado**                                                         |
+| **5 · Interferencias**         | ✅ entera                                                                                                                                        |
+| **7 · Planos, salida**         | ✅ entera — capas, DXF, PDF con sello, y el plano acotado y con sus llamadas                                                                     |
+| **8 · Registro documental**    | ✅ entera                                                                                                                                        |
+| **9 · Diseño**                 | ✅ **entera** — `F9.6` cerró el 2026-09-07 al reescribir `docs/UX.md`                                                                            |
+| **10 · Etiquetas y tablas**    | ✅ entera                                                                                                                                        |
+| **11 · El portal se ve plano** | ✅ entera — incluida la ayuda con su recorrido                                                                                                   |
+| **2 · Nubes de puntos**        | 🔶 abre, se maneja, calza y **entra al expediente**. `F2.4` espera **el IFC de la pasarela**                                                     |
+| **12 · La interfaz**           | 🔶 los tres bloques cerrados; de `F12.2` queda **señalar tres pares con un ratón** — el par de archivos ya está en el repositorio                |
+| **13 · Perfiles y espacios**   | 🔶 `F13.1`–`F13.4` construidas y verificadas **con muestras**; `F13.8` ✅; faltan `F13.5`–`F13.7` (el oráculo externo es de quien tiene la obra) |
+| **14 · Proceso y código**      | 🔶 `F14.1` (el kit) aplicada el 2026-10-05, a falta de las cifras de `/context`; el resto, planificada                                           |
+| **6 · Geo + BIM**              | ⬜ pospuesta a propósito el 2026-09-02, para poner la coordinación delante                                                                       |
 
 **La Fase 2 va por tres cuartos**, y en un orden que no es el de su numeración. Desde el 2026-09-03
 se comprueba contra **el levantamiento real del CC 741 — Camino Agrícola**, no contra un fixture:
@@ -161,9 +161,9 @@ y systemd), las vistas que se pueden pasar a otra persona (`F3.12`), la visibili
 
 ## Lo que queda, por fase
 
-**Quedan veinte filas abiertas.** Nueve son las de siempre —las cierra el usuario, un archivo de obra o
-una decisión— y eran todo lo que quedaba hasta el 2026-09-28. Desde el 2026-10-05 se suman cuatro de la
-Fase 13 (`F13.5`–`F13.8`; `F13.6` y `F13.7` piden archivos de obra) y **siete de la Fase 14, que las cierra el
+**Quedan diecinueve filas abiertas.** Nueve son las de siempre —las cierra el usuario, un archivo de obra o
+una decisión— y eran todo lo que quedaba hasta el 2026-09-28. Desde el 2026-10-05 se suman tres de la
+Fase 13 (`F13.5`–`F13.7`; `F13.6` y `F13.7` piden archivos de obra; `F13.8` se cerró el mismo día) y **siete de la Fase 14, que las cierra el
 agente cuando se ejecute y hoy solo están planificadas**. `⬜` no empezada · `🔶` `◐` medida a medias ·
 `❓` medida y esperando algo.
 
@@ -172,16 +172,16 @@ agente cuando se ejecute y hoy solo están planificadas**. `⬜` no empezada · 
 > decía ⬜ sobre código que existe desde hace días»— y se repitió aquí. Corregido el 2026-09-09
 > contando las filas una por una contra el estado de cada fase, que es lo único que no se desactualiza.
 
-| Fase                         | Filas abiertas                                                                                                                | Quién la cierra                |
-| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
-| **4 — Coordinación**         | `F4.5` ◐ — falta el trazo libre, y depende de mirar un BCF exportado                                                          | El usuario, mirando            |
-| **2 — Nubes de puntos**      | `F2.4` 🔶 — la medida funciona y **cuadra con un corrimiento conocido**; falta el IFC de la pasarela                          | Un archivo de obra             |
-| **12 — La interfaz**         | `F12.2` 🔶 — el par de archivos ya está en el repositorio; queda **señalar tres pares con un ratón**                          | El usuario, pinchando          |
-| **2 — Nubes de puntos**      | `F2.6` ⬜ — el gaussian splatting                                                                                             | Pospuesta por decisión         |
-| **6 — Geo + BIM**            | `F6.1` a `F6.5` ⬜ — Cesium, ortofoto y terreno, situar el IFC, 3D Tiles, y recibir de AeroPlanner                            | Pospuesta por decisión         |
-| **13 — Perfiles**            | `F13.5` ⬜ `ClipStyler`, sin ensayar · `F13.6` ⬜ oráculos externos · `F13.7` ⬜ la nube real · `F13.8` ⬜ recorrido con nube | El agente / un archivo de obra |
-| **14 — Proceso y código**    | `F14.1` 🔶 · `F14.2`–`F14.7` ⬜ — el kit, la revisión, `R1`–`R4` y la Etapa 3 (**bloqueada**)                                 | El agente                      |
-| **0, 3, 5, 7, 8, 9, 10, 11** | Ninguna: las ocho fases enteras                                                                                               | —                              |
+| Fase                         | Filas abiertas                                                                                       | Quién la cierra                |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------ |
+| **4 — Coordinación**         | `F4.5` ◐ — falta el trazo libre, y depende de mirar un BCF exportado                                 | El usuario, mirando            |
+| **2 — Nubes de puntos**      | `F2.4` 🔶 — la medida funciona y **cuadra con un corrimiento conocido**; falta el IFC de la pasarela | Un archivo de obra             |
+| **12 — La interfaz**         | `F12.2` 🔶 — el par de archivos ya está en el repositorio; queda **señalar tres pares con un ratón** | El usuario, pinchando          |
+| **2 — Nubes de puntos**      | `F2.6` ⬜ — el gaussian splatting                                                                    | Pospuesta por decisión         |
+| **6 — Geo + BIM**            | `F6.1` a `F6.5` ⬜ — Cesium, ortofoto y terreno, situar el IFC, 3D Tiles, y recibir de AeroPlanner   | Pospuesta por decisión         |
+| **13 — Perfiles**            | `F13.5` ⬜ `ClipStyler`, sin ensayar · `F13.6` ⬜ oráculos externos · `F13.7` ⬜ la nube real        | El agente / un archivo de obra |
+| **14 — Proceso y código**    | `F14.1` 🔶 · `F14.2`–`F14.7` ⬜ — el kit, la revisión, `R1`–`R4` y la Etapa 3 (**bloqueada**)        | El agente                      |
+| **0, 3, 5, 7, 8, 9, 10, 11** | Ninguna: las ocho fases enteras                                                                      | —                              |
 
 ### Hasta dónde llega este bloque, revisado el 2026-09-03
 
@@ -5226,7 +5226,7 @@ después**, cuando se sepa qué necesitan.
 | `F13.5` | `ClipStyler` para el relleno y las aristas de un corte, si conserva lo que ya funciona                                  | ⬜ sin ensayar                                   |
 | `F13.6` | **Oráculos externos** del perfil: la misma sección en **Bonsai** (IFC) y **CloudCompare** (nube) con el archivo de obra | ⬜ **lo corre quien tiene el archivo**           |
 | `F13.7` | Medir el perfil de nube con la **nube real de 127 MB** (hoy solo la de muestra) y decidir el techo de puntos            | ⬜ pendiente de los datos del metro              |
-| `F13.8` | Recorrido de clics completo del perfil con **nube** y contraste del selector de espacio en tema claro                   | ⬜                                               |
+| `F13.8` | Recorrido de clics completo del perfil con **nube** y contraste del selector de espacio en tema claro                   | ✅ 2026-10-05                                    |
 
 ### `F13.1`: el perfil IFC
 
@@ -5274,6 +5274,13 @@ DXF y de la lámina. **Son puntos y nunca una línea de terreno** —inferirla s
 - **Medido** (`diag.html?modo=perfilnube`, nube de muestra, eje por su diagonal): 38 952 puntos, los
   mismos con la cámara movida; el DXF lleva 38 952 marcas en `AB-NUBE`; cota del dibujo de 17 m, la de
   la cabecera; 3,3 s. **Sin oráculo externo todavía** (`F13.6`).
+- **Recorrido de interfaz (`F13.8`, 2026-10-05)**, en el navegador con `muro-en-utm.ifc` y su
+  levantamiento: en _Planos y perfiles_ → «Documentar» → «Crear perfil» la tarjeta ofrece «Incluir los
+  puntos de la nube» y, con la nube **sin calzar**, avisa en ámbar; dos clics sobre el muro y el perfil sale
+  **sin** nube y con la nota en su ficha. Tras «Calzar automáticamente», el aviso desaparece y el segundo
+  perfil sale con **3 144 puntos de la nube en `AB-NUBE`** (1,2 × 3,1 m). Consola sin errores.
+  **Contraste del selector de espacio, medido sobre lo renderizado:** oscuro 8,98 (inactivo) y 6,12
+  (activo); claro 6,84 y 8,26 —todos por encima de 4,5 : 1—.
 
 ### `F13.3` y `F13.4`: dos espacios, y comparar
 
