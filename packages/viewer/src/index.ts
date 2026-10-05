@@ -4947,6 +4947,11 @@ export class BimViewer {
   }
 
   /** El objeto de la nube en la escena, o `null`. Para encuadrarla o medir sobre ella. */
+  /** Si la nube abierta está calzada con el modelo (calce a mano o automático). */
+  get pointCloudAligned(): boolean {
+    return this.nube !== null && this.nubeCalzada;
+  }
+
   get pointCloud(): THREE.Group | null {
     return this.nube?.objeto ?? null;
   }

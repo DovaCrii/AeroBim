@@ -6,6 +6,8 @@ export interface ParametrosDePerfil {
   /** Una transversal cada tantos metros, o `null` si no se piden. */
   readonly pasoDeEstacionesM: number | null;
   readonly anchoTransversalM: number;
+  /** Incluir los puntos de la nube abierta en el perfil longitudinal. */
+  readonly conNube: boolean;
 }
 
 /**
@@ -24,6 +26,9 @@ export interface ParametrosDePerfil {
 export function PerfilFlotante({
   vertices,
   largoM,
+  hayNube,
+  hayModelo,
+  nubeCalzada,
   generando,
   onDeshacer,
   onCancelar,
@@ -32,6 +37,12 @@ export function PerfilFlotante({
   readonly vertices: readonly (readonly [number, number])[];
   /** Lo que mide el eje marcado hasta ahora, en metros. */
   readonly largoM: number;
+  /** Hay una nube abierta. */
+  readonly hayNube: boolean;
+  /** Hay algún modelo IFC abierto. */
+  readonly hayModelo: boolean;
+  /** La nube está calzada con el modelo. */
+  readonly nubeCalzada: boolean;
   /** El aviso de avance mientras se proyecta, o `null` si no se está generando. */
   readonly generando: string | null;
   readonly onDeshacer: () => void;
@@ -43,6 +54,7 @@ export function PerfilFlotante({
   const [ancho, setAncho] = useState("1");
   const [paso, setPaso] = useState("");
   const [anchoTransversal, setAnchoTransversal] = useState("40");
+  const [conNube, setConNube] = useState(true);
 
   const anchoM = leer(ancho);
   const pasoM = paso.trim() === "" ? null : leer(paso);
@@ -115,6 +127,32 @@ export function PerfilFlotante({
           </label>
         )}
 
+        {hayNube && (
+          <div className="space-y-1">
+            <label className="flex items-center gap-2 text-fg-2">
+              <input
+                type="checkbox"
+                checked={conNube}
+                onChange={(evento) => setConNube(evento.target.checked)}
+                className="accent-action"
+              />
+              Incluir los puntos de la nube
+            </label>
+            {conNube && hayModelo && !nubeCalzada && (
+              <p className="text-nota leading-snug text-warn">
+                La nube no está calzada con el modelo: no se superpondrá. Calza primero en «Calce y
+                desviación».
+              </p>
+            )}
+            {conNube && (
+              <p className="text-nota leading-snug text-fg-3">
+                Son puntos, no una línea de terreno. Con muchos, se dibuja una muestra y la ficha lo
+                dice.
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Lo que es el resultado, dicho antes de pulsar. */}
         <p className="rounded-sm border border-borde bg-surface-2 px-2 py-1.5 text-nota leading-snug text-fg-3">
           El perfil dibuja los elementos <b className="text-fg-2">encendidos</b> que tocan la
@@ -132,6 +170,7 @@ export function PerfilFlotante({
                 anchoM: anchoM!,
                 pasoDeEstacionesM: pasoM,
                 anchoTransversalM: anchoTransversalM!,
+                conNube: hayNube && conNube,
               })
             }
             className="rounded-sm bg-action px-2 py-1 font-medium text-sobre-accion hover:bg-action-hover disabled:bg-apagado disabled:text-apagado-fg"
