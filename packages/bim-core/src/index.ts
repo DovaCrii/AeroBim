@@ -221,6 +221,16 @@ export {
 } from "./nubes/matriz.js";
 
 export {
+  cajaDeNodoEnEscena,
+  cupoDeUnNodo,
+  nodosDeLaFranja,
+  puntoEnLaFranja,
+  type CriterioDeFranja,
+  type CupoDeNodo,
+  type SeleccionDeFranja,
+} from "./nubes/franja.js";
+
+export {
   cajaDeNodo,
   contenida,
   dentroDeLosPlanos,

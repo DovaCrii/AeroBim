@@ -32,6 +32,13 @@ export interface GeneratedDrawing {
    * fija, sino la de cada franja de su eje.
    */
   readonly view: DrawingView | "profile";
+  /** Cuántos puntos de nube lleva el perfil, si lleva alguno. */
+  readonly puntosDeNube?: number;
+  /**
+   * Algo que quien lo mire tiene que saber: que la nube es una muestra, o por qué no se superpuso.
+   * Va en la ficha y no en un aviso suelto porque **tiene que viajar con el plano**.
+   */
+  readonly nota?: string;
   /**
    * El eje del que sale, si es un perfil. Es lo que permite **volver a su ubicación en el modelo**:
    * un perfil está desarrollado sobre el papel, pero nace de un trazado en la escena.
@@ -68,6 +75,8 @@ export type DrawingView = "plan" | "front" | "side";
 export const CAPAS = {
   visibles: "AB-VISIBLE",
   ocultas: "AB-OCULTA",
+  /** Los puntos de una nube en un perfil, como marcas. Va aparte: se apaga sin tocar el modelo. */
+  nube: "AB-NUBE",
 } as const;
 
 /** Una capa de un plano generado, para poder listarla y apagarla desde la interfaz. */
@@ -514,6 +523,8 @@ export class DrawingMaker {
       readonly view: GeneratedDrawing["view"];
       readonly empezado: number;
       readonly grupos: PlanoGenerado["grupos"];
+      /** Las marcas de la nube, ya en coordenadas del dibujo, o `null`. */
+      readonly nube?: THREE.BufferGeometry | null;
     },
   ): GeneratedDrawing {
     // **Las capas se crean antes de colgar nada** — `F7.2`. `addProjectionLines` avisa y cae a la
@@ -541,10 +552,31 @@ export class DrawingMaker {
     // la capa le ponga su material: sin esto la línea discontinua se dibuja continua.
     lineasOcultas.computeLineDistances();
 
-    // El viewport encuadra lo dibujado: sin márgenes el plano sale pegado al borde del papel.
+    // Las marcas de la nube, en su capa. Se crea **solo si hay**: un dibujo sin nube no lleva una
+    // capa vacía que alguien se pregunte para qué está.
+    const marcas = datos.nube ?? null;
+    if (marcas !== null) {
+      drawing.layers.create(CAPAS.nube, {
+        material: new THREE.LineBasicMaterial({ color: 0x7be3b0 }),
+      });
+      const lineasNube = new THREE.LineSegments(marcas);
+      lineasNube.name = CAPAS.nube;
+      drawing.addProjectionLines(lineasNube, CAPAS.nube);
+    }
+
+    // El viewport encuadra lo dibujado: sin márgenes el plano sale pegado al borde del papel. **Con
+    // la nube dentro**: en un perfil solo de nube no hay aristas de modelo, y encuadrar sin ella
+    // dejaba un viewport vacío que recortaba todos los puntos.
     const caja = new THREE.Box3().setFromBufferAttribute(
       visible.getAttribute("position") as THREE.BufferAttribute,
     );
+    if (marcas !== null) {
+      caja.union(
+        new THREE.Box3().setFromBufferAttribute(
+          marcas.getAttribute("position") as THREE.BufferAttribute,
+        ),
+      );
+    }
     const margen = Math.max(0.5, Math.max(caja.max.x - caja.min.x, caja.max.z - caja.min.z) * 0.03);
 
     // **`top` y `bottom` son coordenadas de papel, no coordenadas Z**, y confundirlas costaba la
@@ -577,6 +609,7 @@ export class DrawingMaker {
       hiddenSegments: contarSegmentos(aristasOcultas),
       sizeM: [caja.max.x - caja.min.x, caja.max.z - caja.min.z],
       elapsedMs: performance.now() - datos.empezado,
+      ...(marcas === null ? {} : { puntosDeNube: contarSegmentos(marcas) }),
     };
 
     // **El mapa de grupos se guarda ahora o se pierde**: lo devuelve la proyección y no hay forma
@@ -690,6 +723,8 @@ export class DrawingMaker {
       readonly eje?: EjeDePerfil;
       /** El desplazamiento de la escena respecto al IFC, en ejes de la escena. */
       readonly origenM?: readonly [number, number, number];
+      /** Lo que hay que saber del plano; viaja en su ficha. */
+      readonly nota?: string;
       readonly onProgress?: (mensaje: string, avance?: number) => void;
     },
   ): Promise<GeneratedDrawing | null> {
@@ -705,7 +740,15 @@ export class DrawingMaker {
 
     const visibles: number[] = [];
     const ocultas: number[] = [];
+    const nubeS: number[] = [];
+    const nubeCota: number[] = [];
     for (const parte of partes) {
+      if (parte.nube !== undefined) {
+        for (let i = 0; i < parte.nube.s.length; i += 1) {
+          nubeS.push(parte.nube.s[i]!);
+          nubeCota.push(parte.nube.cotaM[i]!);
+        }
+      }
       if (Object.keys(parte.modelIdMap).length === 0) continue;
       // Se mira a lo largo de `miraHaciaM`: la misma convención que `VISTAS`, un vector hacia donde
       // mira la proyección, aquí siempre horizontal.
@@ -721,7 +764,9 @@ export class DrawingMaker {
       llevarAlPerfil(proyeccion.visible, parte.franja, cotaBaseM, sMin, sMax, visibles);
       llevarAlPerfil(proyeccion.hidden, parte.franja, cotaBaseM, sMin, sMax, ocultas);
     }
-    if (visibles.length === 0) return null;
+    // Sin aristas **ni** puntos no hay perfil: crearlo vacío afirmaría que no hay nada a lo largo
+    // del trazado, y puede ser solo que la franja es demasiado estrecha.
+    if (visibles.length === 0 && nubeS.length === 0) return null;
 
     const drawing = this.components.get(OBC.TechnicalDrawings).create(world);
     const id = `plano-generado-${this.siguiente++}`;
@@ -736,10 +781,15 @@ export class DrawingMaker {
       view: "profile",
       empezado,
       grupos: null,
+      nube: nubeS.length === 0 ? null : geometriaDeMarcas(nubeS, nubeCota),
     });
-    // `eje` viaja en la ficha para poder volver a su ubicación en el modelo.
-    const conEje: GeneratedDrawing =
-      opciones.eje === undefined ? info : { ...info, eje: opciones.eje };
+    // `eje` viaja en la ficha para poder volver a su ubicación en el modelo, y `nota` para que lo que
+    // hay que saber del plano —que la nube es una muestra, o por qué no se superpuso— lo acompañe.
+    const conEje: GeneratedDrawing = {
+      ...info,
+      ...(opciones.eje === undefined ? {} : { eje: opciones.eje }),
+      ...(opciones.nota === undefined ? {} : { nota: opciones.nota }),
+    };
     const guardado = this.planos.get(id);
     if (guardado !== undefined) this.planos.set(id, { ...guardado, info: conEje });
     return conEje;
@@ -1037,6 +1087,8 @@ export interface ParteDePerfil {
   readonly franja: Franja;
   /** Los elementos visibles cuya caja toca la franja, por modelo. */
   readonly modelIdMap: OBC.ModelIdMap;
+  /** Los puntos de la nube que caen en la franja, como `(s, cota)`, o `undefined` si no hay nube. */
+  readonly nube?: { readonly s: Float32Array; readonly cotaM: Float32Array };
 }
 
 /**
@@ -1083,6 +1135,40 @@ function geometriaDePerfil(pares: readonly number[]): THREE.BufferGeometry {
     posiciones[j + 2] = -pares[i + 1]!;
     posiciones[j + 3] = pares[i + 2]!;
     posiciones[j + 5] = -pares[i + 3]!;
+  }
+  const geometria = new THREE.BufferGeometry();
+  geometria.setAttribute("position", new THREE.BufferAttribute(posiciones, 3));
+  return geometria;
+}
+
+/**
+ * Un punto de nube como un trazo corto horizontal, en las coordenadas del dibujo.
+ *
+ * **El dibujo es de líneas** —el DXF y la lámina PDF escriben segmentos— y no hay un punto que
+ * dibujar, así que cada uno es un tracito centrado en su sitio. El largo se deriva de lo que mide
+ * el perfil: con un largo fijo, uno de 30 m y uno de 5 km no se verían igual de legibles. Es el
+ * mismo recurso que usa el visor para los puntos de una nube en pantalla: marcar, no inventar.
+ */
+function geometriaDeMarcas(s: readonly number[], cotaM: readonly number[]): THREE.BufferGeometry {
+  let sMin = Infinity;
+  let sMax = -Infinity;
+  let cMin = Infinity;
+  let cMax = -Infinity;
+  for (let i = 0; i < s.length; i += 1) {
+    sMin = Math.min(sMin, s[i]!);
+    sMax = Math.max(sMax, s[i]!);
+    cMin = Math.min(cMin, cotaM[i]!);
+    cMax = Math.max(cMax, cotaM[i]!);
+  }
+  const extension = Math.max(sMax - sMin, cMax - cMin, 1);
+  const mitad = Math.max(0.01, extension / 300) / 2;
+
+  const posiciones = new Float32Array(s.length * 6);
+  for (let i = 0, j = 0; i < s.length; i += 1, j += 6) {
+    posiciones[j] = s[i]! - mitad;
+    posiciones[j + 2] = -cotaM[i]!;
+    posiciones[j + 3] = s[i]! + mitad;
+    posiciones[j + 5] = -cotaM[i]!;
   }
   const geometria = new THREE.BufferGeometry();
   geometria.setAttribute("position", new THREE.BufferAttribute(posiciones, 3));

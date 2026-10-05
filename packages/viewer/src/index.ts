@@ -72,7 +72,12 @@ import {
 import type { TablaDeCuadro } from "./cuadro-en-plano.js";
 import { type PartesDeCota, siguienteOrdinal, textoDeCota } from "./cotas.js";
 import { categoriasDe, cuadroDe, encabezadoDeColumna, type Schedule } from "./cuadros.js";
-import { DrawingMaker, type DrawingView, type GeneratedDrawing } from "./drawings.js";
+import {
+  DrawingMaker,
+  type DrawingView,
+  type GeneratedDrawing,
+  type ParteDePerfil,
+} from "./drawings.js";
 import { tablaDePk, textoDePk } from "./perfiles.js";
 import { GridOverlay } from "./grid.js";
 import { masCercanoAlCursor, verticeDelGolpe } from "./senalar.js";
@@ -1650,6 +1655,14 @@ export class BimViewer {
   private modelCount = 0;
   /** La nube de puntos abierta, si hay. Una sola: ver {@link loadPointCloud}. */
   private nube: NubeEnEscena | null = null;
+  /**
+   * Si la nube está **calzada con el modelo**: alguien aplicó un calce, o el calce automático.
+   *
+   * Sin esto el visor solo sabía la matriz, y una matriz identidad es tanto «sin calzar» como «el
+   * calce resultó ser la identidad». Un perfil que superpone la nube al modelo **sin calce** pondría
+   * cotas de dos sistemas distintos en el mismo dibujo, que es justo lo que el plan prohíbe.
+   */
+  private nubeCalzada = false;
   private renderStyle: RenderStyle = "solid";
   /** El modo de navegación actual: la cámara de That Open no lo devuelve, así que se recuerda. */
   private navigationMode: NavigationMode = "Orbit";
@@ -4567,6 +4580,8 @@ export class BimViewer {
 
     const cargada = await abrirNube(url, opciones);
     this.nube = cargada.nube;
+    // Una nube nueva llega sin calzar, aunque la anterior sí lo estuviera.
+    this.nubeCalzada = false;
     // **El recorte local hay que encenderlo en el renderizador**, o los planos del material se
     // ignoran en silencio: el recorte por caja de `F2.3` no haria nada y no habria error que
     // mirar. Se enciende al abrir la primera nube y no antes, porque cuesta una variante de
@@ -4728,6 +4743,7 @@ export class BimViewer {
     objeto.matrixAutoUpdate = false;
     objeto.matrix.fromArray(matrizDeCalce(alineacion, this.nube.desplazamiento));
     objeto.matrixWorldNeedsUpdate = true;
+    this.nubeCalzada = true;
     return true;
   }
 
@@ -4850,6 +4866,7 @@ export class BimViewer {
       objeto.matrixAutoUpdate = false;
       objeto.matrix.identity().setPosition(t[0], t[1], t[2]);
       objeto.matrixWorldNeedsUpdate = true;
+      this.nubeCalzada = true;
       await this.refresh();
       return t;
     }
@@ -4911,6 +4928,7 @@ export class BimViewer {
     if (this.nube === null) return false;
     this.nube.objeto.matrix.identity();
     this.nube.objeto.matrixWorldNeedsUpdate = true;
+    this.nubeCalzada = false;
     return true;
   }
 
@@ -5224,6 +5242,14 @@ export class BimViewer {
       readonly anchoTransversalM?: number;
       /** Grosor de cada transversal a lo largo del eje. Por omisión, 1 m. */
       readonly espesorTransversalM?: number;
+      /**
+       * Incluye los puntos de la nube abierta en el longitudinal. **Solo se superpone al modelo si la
+       * nube está calzada con él**; si no, se deja fuera y la ficha del plano dice por qué. Una nube
+       * sin modelo visible sí se dibuja sola: no hay con qué compararla.
+       */
+      readonly conNube?: boolean;
+      /** Techo de puntos de nube en todo el perfil. Por omisión, 40 000. */
+      readonly puntosDeNubeMaximos?: number;
       readonly onProgress?: (mensaje: string, avance?: number) => void;
     },
   ): Promise<GeneratedDrawing[]> {
@@ -5250,14 +5276,59 @@ export class BimViewer {
     // Con `exactOptionalPropertyTypes` una propiedad opcional no puede valer `undefined`: se omite.
     const avance = opciones.onProgress === undefined ? {} : { onProgress: opciones.onProgress };
 
-    const longitudinal = await this.drawings.createProfile(
-      this.world,
-      tramos.map((tramo) => {
-        const franja = franjaDeTramo(tramo, anchoM);
-        return { franja, modelIdMap: mapaDe(franja) };
-      }),
-      { nombre: "Perfil longitudinal", eje, origenM, ...avance },
-    );
+    // **La nube, y cuándo se puede superponer.** Con modelo a la vista exige estar calzada: sin eso las
+    // cotas son de dos sistemas distintos y el dibujo afirmaría una desviación que no existe. Sin
+    // modelo no hay con qué compararla y se dibuja sola. Lo que se deja fuera **se dice**.
+    const hayModelos = elementos.length > 0;
+    let usarNube = opciones.conNube === true && this.nube !== null;
+    const notas: string[] = [];
+    if (usarNube && hayModelos && !this.nubeCalzada) {
+      usarNube = false;
+      notas.push(
+        "La nube no está calzada con el modelo, así que no se superpone: sus cotas no serían " +
+          "comparables. Calza primero en «Calce y desviación».",
+      );
+    }
+
+    const largoTotalM = tramos.reduce((suma, tramo) => suma + tramo.largoM, 0);
+    const techoDeNube = opciones.puntosDeNubeMaximos ?? 40_000;
+    let sinCupo = 0;
+    let puntosDeNube = 0;
+    const partes: ParteDePerfil[] = [];
+    for (const tramo of tramos) {
+      const franja = franjaDeTramo(tramo, anchoM);
+      const parte: ParteDePerfil = { franja, modelIdMap: mapaDe(franja) };
+      if (usarNube && this.nube !== null) {
+        opciones.onProgress?.(`Leyendo la nube a lo largo del tramo ${tramo.indice + 1}…`);
+        // El techo se reparte por largo: con uno global, el primer tramo se comía todo el cupo.
+        const encontrados = await this.nube.puntosEnFranja(franja, {
+          puntosMaximos: Math.floor((techoDeNube * tramo.largoM) / largoTotalM),
+          cotaBaseM: origenM[1],
+        });
+        sinCupo += encontrados.nodosSinCupo;
+        puntosDeNube += encontrados.s.length;
+        partes.push({ ...parte, nube: { s: encontrados.s, cotaM: encontrados.cotaM } });
+      } else {
+        partes.push(parte);
+      }
+    }
+    if (usarNube && sinCupo > 0) {
+      notas.push(
+        `La nube es una muestra: había más nodos en la franja de los que caben (${sinCupo} sin cupo). ` +
+          "Se dibuja lo menos profundo de todo el trazado.",
+      );
+    }
+    if (usarNube && puntosDeNube === 0) {
+      notas.push("Ningún punto de la nube cae en la franja: ensánchala, o revisa el calce.");
+    }
+
+    const longitudinal = await this.drawings.createProfile(this.world, partes, {
+      nombre: "Perfil longitudinal",
+      eje,
+      origenM,
+      ...(notas.length === 0 ? {} : { nota: notas.join(" ") }),
+      ...avance,
+    });
     if (longitudinal !== null) {
       creados.push(longitudinal);
       const pks = opciones.estacionesM ?? estacionesCada(eje, opciones.pasoDeEstacionesM ?? 0);
