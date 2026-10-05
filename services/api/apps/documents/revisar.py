@@ -370,12 +370,18 @@ def lanzar_en_segundo_plano(proyecto, autor) -> None:
     `running`, `trabajos_colgados` la delata, y a las `HORAS_PARA_DARLA_POR_MUERTA` el botón deja
     lanzar otra.
     """
-    import subprocess
+    # `nosec B404`: bandit avisa de que importar `subprocess` tiene implicaciones, y las tiene. El
+    # unico uso es la llamada de abajo, que lleva su propio motivo. Mismo criterio que en
+    # `conversion.py`: un aviso que no se puede quitar se aprende a ignorar, y tapa al siguiente.
+    import subprocess  # nosec B404
     import sys
 
     from django.conf import settings
 
-    subprocess.Popen(  # noqa: S603 — argumentos fijos, sin nada que venga del usuario salvo dos UUID
+    # `nosec B603`: no hay shell y la lista de argumentos es fija. Lo unico que entra es el UUID de
+    # la obra y la clave del usuario, que salen de objetos ya cargados de la base —no de la
+    # peticion— y viajan como elementos de la lista, nunca concatenados en una cadena.
+    subprocess.Popen(  # nosec B603 # noqa: S603
         [
             sys.executable,
             str(settings.BASE_DIR / "manage.py"),
