@@ -52,6 +52,7 @@ import { CuadrosPanel } from "./components/CuadrosPanel.js";
 import { NotaFlotante } from "./components/NotaFlotante.js";
 import { Origen } from "./components/Origen.js";
 import { PlansPanel } from "./components/PlansPanel.js";
+import { BarraDelVisor } from "./components/BarraDelVisor.js";
 import { PerfilFlotante, type ParametrosDePerfil } from "./components/PerfilFlotante.js";
 import { SelectorDeEspacio } from "./components/SelectorDeEspacio.js";
 import {
@@ -2695,9 +2696,6 @@ export function App() {
         distanceMode={distanceMode}
         hasSections={hasSections}
         hasSelection={selected !== null}
-        selectionVisible={selectionVisible}
-        isolated={isolated}
-        hasHidden={hasHidden}
         hasPlans={plans.length > 0}
         modo2D={modo2D}
         comparando={comparando}
@@ -2728,9 +2726,6 @@ export function App() {
         onTab={setTab}
         gruposOcultos={GRUPOS_OCULTOS[espacio]}
         titulosDePestana={TITULOS_DE_PESTANA[espacio]}
-        onToggleSelectionVisible={onToggleSelectionVisible}
-        onIsolateSelection={onIsolateSelection}
-        onUndoIsolate={onUndoIsolate}
         onFrameAll={() => {
           setStandardView("iso");
           void viewer.current?.frameAll();
@@ -2753,7 +2748,6 @@ export function App() {
         onClearSections={onClearSections}
         trazandoPerfil={perfilTrazado !== null}
         onCrearPerfil={() => setPerfilTrazado((actual) => (actual === null ? [] : null))}
-        onShowAll={onShowAll}
         onTogglePanel={(lado) => {
           if (lado === "izquierda") setPanelIzquierdo((actual) => !actual);
           else setNavegadorPlegado((actual) => !actual);
@@ -2892,6 +2886,22 @@ export function App() {
               proyectoId={origen.proyectoId}
               hoja={publicando}
               onCerrar={() => setPublicando(null)}
+            />
+          )}
+
+          {/* **La barra de visibilidad y selección**, sobre el visor y en los dos espacios. Sin modelo
+              no hay nada que apagar ni aislar, así que no se pinta. */}
+          {models.length > 0 && (
+            <BarraDelVisor
+              tieneSeleccion={selected !== null}
+              seleccionVisible={selectionVisible}
+              aislado={isolated}
+              hayOcultos={hasHidden}
+              onAlternarSeleccion={onToggleSelectionVisible}
+              onAislar={onIsolateSelection}
+              onSalirDelAislamiento={onUndoIsolate}
+              onVerTodo={onShowAll}
+              onEncuadrarSeleccion={() => void viewer.current?.frameSelection()}
             />
           )}
 
