@@ -79,8 +79,12 @@ reconcilia a favor de lo vigente en el repo y se deja constancia en el PR o en
 - Un PR por fase o entrega vertical. No mezclar fases distintas en un commit.
 - `git fetch` **antes** de cualquier push. Puede haber otra sesión de agente
   empujando a la misma rama; si divergió, **nunca** `push --force`.
-- **Nunca fusionar un PR sin permiso explícito del usuario.** Que diga "dale" o
-  "hazlo" significa implementar y empujar, no fusionar.
+- **El agente fusiona sus PR; el usuario solo despliega.** Decidido por el usuario el
+  2026-10-05 («tú debes fusionar, yo solo emito a la vm»), y sustituye la regla anterior de
+  esperar permiso por PR. Se fusiona **solo con el CI verde y sin conflictos**, con
+  `gh pr merge --merge`, en el orden de dependencia (un PR apilado, después de su base, con
+  `main` fusionado antes en su rama: **nunca `push --force`**). Si el CI falla o hay conflicto,
+  no se fusiona: se arregla o se dice. Desplegar a la VM sigue siendo del usuario.
 - Cada fase cerrada marca su fila ✅ en `MASTER_PLAN.md` y actualiza `HANDOFF.md`.
 - Mensajes de commit en español, en imperativo y con ámbito:
   `feat(viewer): ...`, `fix(ifc): ...`, `docs: ...`.
