@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "deny": [
+      "Read(./node_modules/**)",
+      "Read(./**/node_modules/**)",
+      "Read(./**/dist/**)",
+      "Read(./services/api/.venv/**)",
+      "Read(./services/api/staticfiles/**)",
+      "Read(./package-lock.json)",
+      "Read(./services/api/uv.lock)",
+      "Read(./**/*.ifc)",
+      "Read(./**/*.ifczip)",
+      "Read(./**/*.las)",
+      "Read(./**/*.laz)",
+      "Read(./**/*.dwg)",
+      "Read(./**/*.sqlite3)",
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Bash(git push --force *)",
+      "Bash(git push -f *)",
+      "Bash(git push origin main *)",
+      "Bash(git push origin HEAD:main *)"
+    ],
+    "ask": ["Bash(git reset --hard *)", "Bash(git clean *)", "Bash(rm -rf *)"],
+    "allow": [
+      "Bash(node scripts/claude/*)",
+      "Bash(npm test)",
+      "Bash(npm run lint)",
+      "Bash(npm run fmt:check)",
+      "Bash(npm run fmt)",
+      "Bash(npm run build)",
+      "Bash(pwsh -NoProfile -File services/api/scripts/verify.ps1)",
+      "Bash(uv run pytest *)",
+      "Bash(uv run ruff *)",
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git fetch *)",
+      "Bash(git add *)",
+      "Bash(git commit *)"
+    ]
+  }
+}
