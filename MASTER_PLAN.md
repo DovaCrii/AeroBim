@@ -3,8 +3,8 @@
 > **Fuente única de verdad del trabajo pendiente.** Consolida el estudio de
 > alternativas open-source (verificado el 2026-08-18 contra la API de GitHub y los
 > registros de npm/PyPI) en un tablero ejecutable con seguimiento de estado.
-> **Creado:** 2026-08-18 · **Actualizado:** 2026-09-07 (diez fases cerradas; la Fase 12 por su
-> tercer bloque, el visor)
+> **Creado:** 2026-08-18 · **Actualizado:** 2026-09-28 (diez fases cerradas; la tabla de lo que
+> queda recontada fila por fila)
 > **Rama base:** `main`
 > **Regla de oro:** cada fase termina en algo **que alguien puede usar**. No se abre
 > una fase nueva con la anterior a medio cerrar, y no se agrega alcance fuera de lo
@@ -14,9 +14,10 @@
 
 ## Por dónde se empieza
 
-> **Al 2026-09-23: lo que queda no lo cierra el código.** Las doce fases y el plan posterior —«que
-> avise, que cuadre y que no sea plano», cerrado con las PRs #42 a #60— no dejan trabajo de código
-> pendiente. Lo que falta:
+> **Al 2026-09-28: lo que queda no lo cierra el código.** Las doce fases, el plan posterior —«que
+> avise, que cuadre y que no sea plano», PRs #42 a #60— y las pasadas de uso que pidió el usuario
+> después —legibilidad en oscuro, el seguimiento del equipo, archivar de verdad, «cómo se usa» por
+> fases y «sacar y recibir», PRs #61 a #71— no dejan trabajo de código pendiente. Lo que falta:
 >
 > | Qué                                  | Quién                                                  |
 > | ------------------------------------ | ------------------------------------------------------ |
@@ -82,14 +83,17 @@ pospone — y con el mismo criterio que la Fase 6.
 > `diag.html`**. En `apps/web/src` no hay una sola llamada a `loadPointCloud` fuera del diagnóstico:
 > **no existe ningún botón que abra una nube**. Eso es la **Fase 12**, y es lo más valioso del
 > tablero ahora mismo, porque hay trabajo hecho que nadie puede usar.
+>
+> **Resuelto por la Fase 12**, y se deja escrito porque este párrafo siguió diciendo lo contrario
+> semanas después: la nube se abre desde el navegador del visor —«Nube de puntos», en «Lo abierto»—
+> y del registro, sin pasar por `diag.html`.
 
-**Lo que sigue, entonces, es `F0.6`**: la conversión del IFC en un worker. Gana peso justo ahora,
-porque el usuario avisó de que **se van a incorporar diseños de otras especialidades** y el número de
-modelos abiertos a la vez va a crecer: hoy la conversión bloquea el hilo de la interfaz.
+**`F0.6` ya no es lo que sigue**: cerró el 2026-09-02 —la conversión corre en `convert.worker.ts`— y
+este párrafo lo anunció como pendiente durante tres semanas.
 
-**Y dos cosas no las decide este plan**, porque no son trabajo sino elecciones: `F1.13` y el trazo
-libre de `F4.5`. Están reunidas abajo, en «Las decisiones que solo el usuario puede tomar». `F9.6`
-estaba ahí y **se decidió el 2026-09-07**.
+**Y una cosa no la decide este plan**, porque no es trabajo sino una elección: el trazo libre de
+`F4.5`. Está abajo, en «Las decisiones que solo el usuario puede tomar». `F9.6` se decidió el
+2026-09-07 y `F1.13` el 2026-09-23.
 
 ## La prioridad cambió el 2026-09-02, y la puso el usuario
 
@@ -155,7 +159,8 @@ y systemd), las vistas que se pueden pasar a otra persona (`F3.12`), la visibili
 
 ## Lo que queda, por fase
 
-**Quedan diez filas abiertas, y ninguna la cierra el código.** `⬜` no empezada · `🔶` `◐` medida a
+**Quedan nueve filas abiertas, y ninguna la cierra el código** — eran diez hasta que `F1.13` se
+decidió el 2026-09-23; esta tabla la siguió contando hasta el 2026-09-28. `⬜` no empezada · `🔶` `◐` medida a
 medias · `❓` medida y esperando algo.
 
 > **Esta tabla decía «veintinueve» y llevaba `F2.1`, `F2.2` y `F2.3` en `⬜` con el código escrito y
@@ -165,7 +170,6 @@ medias · `❓` medida y esperando algo.
 
 | Fase                         | Filas abiertas                                                                                       | Quién la cierra        |
 | ---------------------------- | ---------------------------------------------------------------------------------------------------- | ---------------------- |
-| **1 — Visor**                | `F1.13` ❓ — auditada; quedan **tres nombres**                                                       | El usuario, decidiendo |
 | **4 — Coordinación**         | `F4.5` ◐ — falta el trazo libre, y depende de mirar un BCF exportado                                 | El usuario, mirando    |
 | **2 — Nubes de puntos**      | `F2.4` 🔶 — la medida funciona y **cuadra con un corrimiento conocido**; falta el IFC de la pasarela | Un archivo de obra     |
 | **12 — La interfaz**         | `F12.2` 🔶 — el par de archivos ya está en el repositorio; queda **señalar tres pares con un ratón** | El usuario, pinchando  |
@@ -220,7 +224,7 @@ caminos que ya están abiertos. Eso es lo que se hace primero, porque cierra dos
    nuestra. Y que lo primero de `F2.1` es comprobar que `copc` + `laz-perf` abren en el navegador el
    archivo que escribe `pdal` — eso está **sin verificar**, y el documento lo dice.
 
-**Y las decisiones que siguen bloqueadas** —`F1.13` y las que aparezcan— no están en
+**Y las decisiones que siguen bloqueadas** —hoy el trazo libre de `F4.5`— no están en
 esta lista porque no son trabajo: son elecciones. Están abajo, en «Las decisiones que solo el usuario
 puede tomar».
 
@@ -470,24 +474,24 @@ Se decide con los números de `F0.5`, no por preferencia.
 **Objetivo de salida:** alguien de oficina técnica revisa un modelo sin abrir
 software de escritorio ni pedir una licencia.
 
-| #       | Tarea                                                                                                                                 | Estado                                                                                                         |
-| ------- | ------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `F1.1`  | Árbol espacial navegable (proyecto → sitio → edificio → planta → elemento) con aislar y ocultar                                       | ✅ ver abajo                                                                                                   |
-| `F1.2`  | Panel de propiedades y **psets** del elemento seleccionado                                                                            | ✅ ver abajo                                                                                                   |
-| `F1.3`  | Planos de corte y secciones                                                                                                           | ✅ ver abajo                                                                                                   |
-| `F1.4`  | Mediciones: distancia, área y ángulo                                                                                                  | ✅ ver abajo                                                                                                   |
-| `F1.5`  | Cargar **varios modelos IFC a la vez** (arquitectura + estructura + instalaciones) y alternarlos                                      | ✅ ver abajo                                                                                                   |
-| `F1.6`  | Vistas guardadas: cámara, visibilidad y cortes, recuperables por nombre                                                               | ✅ ver abajo                                                                                                   |
-| `F1.7`  | **Modos de vista**: proyección perspectiva/ortográfica, navegación (órbita, planta, primera persona) y representación (sólido, malla) | ✅ ver abajo                                                                                                   |
-| `F1.8`  | **Barra de herramientas y panel de modelos** — reubicar y agrupar las herramientas; ordenar, activar y desactivar lo cargado          | ✅ ver abajo                                                                                                   |
-| `F1.9`  | **Unidades de las propiedades** — cada número con la unidad que declara el archivo                                                    | ✅ ver abajo                                                                                                   |
-| `F1.10` | **Geometría que no se carga** — el conversor dejaba fuera `IfcProxy`: 433 elementos de 1.274                                          | ✅ ver abajo                                                                                                   |
-| `F1.11` | **El picker caía desviado** el ancho del panel izquierdo: se seleccionaba otro elemento                                               | ✅ ver abajo                                                                                                   |
-| `F1.12` | **Preselección al pasar el cursor** — se selecciona sin clicar y el usuario lo llama «poco práctico»                                  | ✅ ver abajo                                                                                                   |
-| `F1.13` | **El panel de abajo no se entiende** — reubicar y agrupar las herramientas, mirando cómo lo resuelven Revit y AutoCAD                 | ❓ auditada la cinta entera: siete desajustes cerrados y tres decisiones de nombre para el usuario — ver abajo |
-| `F1.14` | **La medición de distancia no funciona** en uso real, con el modelo del usuario                                                       | ✅ ver abajo                                                                                                   |
-| `F1.15` | **El modo fantasma se cae al mover** la cámara                                                                                        | ✅ ver abajo                                                                                                   |
-| `F1.16` | **El renderizado no da profundidad** — sin sombras creíbles, el modelo se lee peor de lo que debería                                  | ✅ ver abajo                                                                                                   |
+| #       | Tarea                                                                                                                                 | Estado                                                                                    |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `F1.1`  | Árbol espacial navegable (proyecto → sitio → edificio → planta → elemento) con aislar y ocultar                                       | ✅ ver abajo                                                                              |
+| `F1.2`  | Panel de propiedades y **psets** del elemento seleccionado                                                                            | ✅ ver abajo                                                                              |
+| `F1.3`  | Planos de corte y secciones                                                                                                           | ✅ ver abajo                                                                              |
+| `F1.4`  | Mediciones: distancia, área y ángulo                                                                                                  | ✅ ver abajo                                                                              |
+| `F1.5`  | Cargar **varios modelos IFC a la vez** (arquitectura + estructura + instalaciones) y alternarlos                                      | ✅ ver abajo                                                                              |
+| `F1.6`  | Vistas guardadas: cámara, visibilidad y cortes, recuperables por nombre                                                               | ✅ ver abajo                                                                              |
+| `F1.7`  | **Modos de vista**: proyección perspectiva/ortográfica, navegación (órbita, planta, primera persona) y representación (sólido, malla) | ✅ ver abajo                                                                              |
+| `F1.8`  | **Barra de herramientas y panel de modelos** — reubicar y agrupar las herramientas; ordenar, activar y desactivar lo cargado          | ✅ ver abajo                                                                              |
+| `F1.9`  | **Unidades de las propiedades** — cada número con la unidad que declara el archivo                                                    | ✅ ver abajo                                                                              |
+| `F1.10` | **Geometría que no se carga** — el conversor dejaba fuera `IfcProxy`: 433 elementos de 1.274                                          | ✅ ver abajo                                                                              |
+| `F1.11` | **El picker caía desviado** el ancho del panel izquierdo: se seleccionaba otro elemento                                               | ✅ ver abajo                                                                              |
+| `F1.12` | **Preselección al pasar el cursor** — se selecciona sin clicar y el usuario lo llama «poco práctico»                                  | ✅ ver abajo                                                                              |
+| `F1.13` | **El panel de abajo no se entiende** — reubicar y agrupar las herramientas, mirando cómo lo resuelven Revit y AutoCAD                 | ✅ siete desajustes cerrados y los tres nombres decididos el 2026-09-23 (#64) — ver abajo |
+| `F1.14` | **La medición de distancia no funciona** en uso real, con el modelo del usuario                                                       | ✅ ver abajo                                                                              |
+| `F1.15` | **El modo fantasma se cae al mover** la cámara                                                                                        | ✅ ver abajo                                                                              |
+| `F1.16` | **El renderizado no da profundidad** — sin sombras creíbles, el modelo se lee peor de lo que debería                                  | ✅ ver abajo                                                                              |
 
 ### Lo que el usuario pidió el 2026-08-19 y no estaba en ningún tablero
 

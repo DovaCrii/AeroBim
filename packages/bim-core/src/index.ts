@@ -6,6 +6,14 @@
  */
 
 export {
+  esZip,
+  indiceZip,
+  modeloDelZip,
+  type EntradaZip,
+  type ModeloEnZip,
+} from "./inspect/ifczip.js";
+
+export {
   compressUuidToIfcGuid,
   expandIfcGuidToUuid,
   isIfcGuid,

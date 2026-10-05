@@ -4602,11 +4602,26 @@ form.en-linea {
  * de casillas, que tienen un ancho natural y no ganan nada por estirarse. Y la columna de lectura
  * se queda con el resto, con su propio tope más abajo.
  */
+/*
+ * **La columna de lectura mide su lectura, y la ficha va pegada a ella** (2026-09-28). Con
+ * `minmax(0, 1fr)` la columna se estiraba a 951 px mientras el hilo y la respuesta se quedaban en
+ * sus 68ch: **400 px vacíos entre la conversación y la ficha**, medido a 1600 px. Ahora la columna
+ * es la medida de lectura y lo que sobre queda al borde derecho de la pantalla, no en medio.
+ */
 .hallazgo {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
+  grid-template-columns: minmax(0, 72ch) 340px;
+  justify-content: start;
   gap: 26px;
   align-items: start;
+}
+
+/* Dentro de la ficha la medida ya la pone la columna: los topes de 68ch de cada pieza, pensados
+   para cuando iban sueltas, dejaban el hilo más estrecho que su propia columna. */
+.hallazgo-cuerpo .hilo,
+.hallazgo-cuerpo .bloque-campo,
+.hallazgo-cuerpo .hallazgo-descripcion {
+  max-width: none;
 }
 
 /* Por debajo de 980 px se apila, y **el cuerpo va primero**: de qué va antes que qué hacer. */
@@ -4800,6 +4815,56 @@ form.en-linea {
 /* Cerrar es lo que se hace una vez, no todos los días: va al final y en tono menor. */
 .lado-cierre {
   border-style: dashed;
+}
+
+/* Repartir, plegado bajo los datos que reparte: se abre para cambiar algo, no cada vez. */
+.lado-plegable {
+  margin-top: var(--ab-esp-3);
+  padding-top: var(--ab-esp-2);
+  border-top: 1px solid var(--ab-border);
+}
+
+.lado-plegable summary {
+  cursor: pointer;
+  font-size: var(--ab-texto-xs);
+  font-weight: 600;
+  color: var(--ab-text);
+}
+
+.lado-plegable[open] summary {
+  margin-bottom: var(--ab-esp-2);
+}
+
+/*
+ * **Las casillas de etiquetas, como fichas que se envuelven.** `CheckboxSelectMultiple` pinta un
+ * `<div>` por opción, y diez etiquetas eran diez renglones y 375 px de lateral. Envueltas caben en
+ * tres o cuatro líneas, y la casilla sigue siendo la casilla nativa —accesible de fábrica—.
+ */
+.casillas-en-fichas > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ab-esp-1);
+  margin-bottom: var(--ab-esp-2);
+}
+
+.casillas-en-fichas label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0;
+  padding: 2px 9px 2px 6px;
+  font-size: var(--ab-texto-xs);
+  font-weight: 400;
+  color: var(--ab-text-secondary);
+  border: 1px solid var(--ab-border);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.casillas-en-fichas label:has(input:checked) {
+  color: var(--ab-text);
+  border-color: var(--ab-primary);
+  background: var(--ab-primary-soft);
 }
 
 /*

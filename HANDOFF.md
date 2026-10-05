@@ -49,6 +49,24 @@
 > - **`npm run build` no comprueba tipos.** Un import olvidado pasa el build y tumba la aplicación en
 >   el navegador. `npx tsc --noEmit -p apps/web` y mirar la consola antes de dar algo por bueno.
 
+> ## Estado al 2026-09-28: las pasadas de uso, fusionadas hasta #71
+>
+> **Sigue sin haber código pendiente en el plan.** Desde el 23, el usuario fue pidiendo pasadas sobre
+> lo que ya existía, mirándolo en `p340`, y cada una destapó algo que ninguna prueba veía:
+>
+> | Encargo del usuario                             | Lo que había debajo                                                                                                                                                | PR       |
+> | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------- |
+> | «Revisar en oscuro los contrastes»              | **El defecto era el tamaño, no el color**: textos de lectura a 11 px, y el deshabilitado por debajo de AA                                                          | #68      |
+> | «Seguimiento general de atrasos»                | La pregunta de la reunión —«¿quién va atrasado?»— no tenía pantalla. «Seguimiento del equipo», y la bandeja con su resumen                                         | #66      |
+> | «Mejorar la distribución de cómo se usa»        | Tres pantallas de largo con media vacía; luego, **las fases no se distinguían entre sí ni de lo de consulta**                                                      | #67, #70 |
+> | «Pulir el visor y levantar las brechas»         | Aviso de «ocultos» por capas que el DXF trae apagadas, el lienzo a 323 px, y **el anillo de foco recortado en 27 de 54 controles**                                 | #69      |
+> | «Archivar la obra de prueba para no verla»      | **Archivar solo la sacaba de `/proyectos`**: no había un `proyecto__is_active` en todo el código, y sus vencidas seguían en la bandeja, el seguimiento y el correo | #70      |
+> | «Sacar el informe y meter respuesta, sin ruido» | Doce controles a la vista y la ida y vuelta del BCF en dos sitios de la ficha. Tres tarjetas con una acción principal cada una                                     | #71      |
+>
+> **Lo que falta sigue siendo tuyo**: el SMTP de Microsoft 365, desplegar `main` —ahora en `43ada50`—
+> a `p340`, el conversor ODA en la VM (`conversor_cad: ausente` en `/health/`), y las cinco filas de
+> `MASTER_PLAN.md` que esperan una decisión o un archivo de obra.
+
 > ## Estado al 2026-09-23: el plan «que avise, que cuadre y que no sea plano», cerrado
 >
 > **No queda trabajo de código pendiente en el plan.** Lo que falta es tuyo: el **SMTP de Microsoft
