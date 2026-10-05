@@ -16,17 +16,12 @@
 > el plano con el modelo (`F13.4`). El reparto está en `apps/web/src/espacios.ts` y su porqué en
 > `docs/UX.md`; la arquitectura, reescrita contra el código, en `docs/ARCHITECTURE.md`.
 >
-> **PRs abiertos, y el orden en que conviene fusionarlos** (ninguno se fusiona sin permiso explícito):
->
-> | PR  | Qué                                                                                                                                                       |
-> | --- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-> | #76 | Dependencias sin avisos (`pypdf`, `urllib3`): `pip-audit` limpio                                                                                          |
-> | #72 | Documentación del tablero al día                                                                                                                          |
-> | #73 | La ficha del hallazgo                                                                                                                                     |
-> | #74 | Interferencias sin tope, **IFC comprimido** (`.ifczip`), gzip, aviso de nube legible                                                                      |
-> | #75 | Perfil IFC (`F13.1`)                                                                                                                                      |
-> | #77 | Perfil de la nube (`F13.2`), **apilado sobre #75**                                                                                                        |
-> | #78 | Dos espacios, Comparar y la documentación (`F13.3`/`F13.4`), **apilado sobre #77**; `ARCHITECTURE.md` habla del `.ifczip` de #74, así que **#74 primero** |
+> **Reparto del trabajo:** yo empujo, abro y **fusiono** los PR con el CI verde; el usuario **solo
+> despliega** en `p340`. Fusionados hoy, en este orden: #76 (dependencias sin avisos), #72, #73
+> (la ficha del hallazgo), #74 (interferencias sin tope, **IFC comprimido** `.ifczip`, gzip, aviso de
+> nube legible), #75 (perfil IFC), #77 (perfil de la nube) y este (#78, dos espacios, Comparar y la
+> documentación). **`main` está listo para desplegar.** Cuando el despliegue ocurra, anotar aquí el
+> commit que quedó en `p340`.
 >
 > **Lo que sigue pendiente, y no es código** (filas `F13.6`–`F13.8`):
 >
