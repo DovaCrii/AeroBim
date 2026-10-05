@@ -33,7 +33,6 @@
 | `F13.5`               | `ClipStyler` para el relleno de un corte, sin ensayar                                  | El agente               |
 | `F13.6`               | La misma sección en **Bonsai** (IFC) y **CloudCompare** (nube) con el archivo real     | Quien tiene la obra     |
 | `F13.7`               | Medir el perfil de nube con la **nube real de 127 MB** y decidir el techo (hoy 40 000) | Un archivo de obra      |
-| `F13.8`               | Recorrido de clics del perfil **con nube** y contraste del selector en tema claro      | El agente               |
 
 La **Fase 14** (proceso de agentes y base de código, `F14.1`–`F14.7`) está en el plan desde #79.
 `F14.1` (el kit) se aplicó en #80 y queda 🔶: **faltan las cifras de `/context` antes y después**, que
