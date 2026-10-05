@@ -8,7 +8,6 @@ import type {
   RenderStyle,
   SectionAxis,
   SnapMode,
-  StandardView,
 } from "@aerobim/viewer";
 import {
   IconAbrirDelDisco,
@@ -44,11 +43,7 @@ import {
   IconSnapVertex,
   IconSolid,
   IconTrash,
-  IconViewFront,
-  IconViewIso,
   IconViews,
-  IconViewSide,
-  IconViewTop,
 } from "./icons.js";
 
 /**
@@ -115,7 +110,6 @@ export function Ribbon({
   measureInProgress,
   onTab,
   onFrameAll,
-  onView,
   onFrameSelection,
   onProjection,
   onNavigation,
@@ -221,7 +215,6 @@ export function Ribbon({
   readonly measureInProgress: boolean;
   readonly onTab: (tab: RibbonTab) => void;
   readonly onFrameAll: () => void;
-  readonly onView: (view: StandardView) => void;
   readonly onFrameSelection: () => void;
   readonly onProjection: (projection: Projection) => void;
   readonly onNavigation: (mode: NavigationMode) => void;
@@ -483,36 +476,9 @@ export function Ribbon({
                     />
                   </Grupo>
 
-                  <Grupo label="Vistas">
-                    <Boton
-                      icon={<IconViewIso />}
-                      label="Isométrica"
-                      hint="La vista general, en tres cuartos"
-                      disabled={!enabled}
-                      onClick={() => onView("iso")}
-                    />
-                    <Boton
-                      icon={<IconViewTop />}
-                      label="Planta"
-                      hint="Desde arriba, en vertical"
-                      disabled={!enabled}
-                      onClick={() => onView("top")}
-                    />
-                    <Boton
-                      icon={<IconViewFront />}
-                      label="Frontal"
-                      hint="Alzado de frente"
-                      disabled={!enabled}
-                      onClick={() => onView("front")}
-                    />
-                    <Boton
-                      icon={<IconViewSide />}
-                      label="Lateral"
-                      hint="Alzado desde el costado"
-                      disabled={!enabled}
-                      onClick={() => onView("side")}
-                    />
-                  </Grupo>
+                  {/* **«Vistas» —isométrica, planta, frontal y lateral— ya no está en la cinta**: eran las
+                      mismas cuatro del cubo de vistas, y las dos copias se sustituyeron por el
+                      `SelectorDeVista`, arriba a la derecha del lienzo, que además resalta la puesta. */}
 
                   {/* **Grupo aparte y no dentro de «Vistas», a propósito** (`F1.13`).
 

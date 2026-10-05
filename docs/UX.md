@@ -9,7 +9,7 @@
 > **Dos referencias, y cada una manda en lo suyo** (decidido el 2026-09-07).
 >
 > **CAD —AutoCAD, Revit y los modeladores de Bentley— manda en _dónde_ están las herramientas y
-> cómo se comportan**: la cinta con pestañas por tipo de trabajo, el cubo de vistas arriba a la
+> cómo se comportan**: la cinta con pestañas por tipo de trabajo, el selector de vista arriba a la
 > derecha, la barra de estado al pie, la ficha densa, el amarillo del ajuste. De ahí vienen quienes
 > van a usar esto, y no se copia por gusto: se copia para que nadie tenga que aprender otra
 > pantalla.
@@ -44,8 +44,9 @@ gobiernan el resto:
 2. **Los paneles laterales se mueven.** Ancho arrastrable por su borde y **alto de cada sección
    arrastrable por su separador**. Revisar capas de un plano pide panel; medir pide lienzo, y la
    elección cambia cada diez minutos: no puede estar cableada.
-3. **Nada _permanente_ flota sobre el modelo** salvo el cubo de vistas. Los avisos van a la barra de
-   estado, que es donde ya mira quien viene de un CAD.
+3. **Nada _permanente_ flota sobre el modelo** salvo **dos barras de las mismas piezas**: el selector de
+   vista, arriba a la derecha, y la barra de visibilidad y selección, abajo en el centro. Los avisos van a
+   la barra de estado, que es donde ya mira quien viene de un CAD.
 
    **Lo _transitorio_ sí flota** —reescrito el 2026-09-07— y esto es una corrección, no un cambio
    de opinión: la regla decía «nada flota» y el código ya tenía dos cosas flotando desde antes
@@ -66,13 +67,13 @@ gobiernan el resto:
 
 ## Las cinco zonas
 
-| Dónde     | Componente                       | Qué hay                                                                        |
-| --------- | -------------------------------- | ------------------------------------------------------------------------------ |
-| Arriba    | `components/Ribbon.tsx`          | Marca · pestañas Vista/Medición/Modelo · estado · **Abrir**                    |
-| Izquierda | `PropertiesPanel` / `Plan2DCard` | La ficha de lo seleccionado: elemento IFC **o** elemento 2D                    |
-| Centro    | El lienzo + `ViewCube`           | El modelo, el plano y la nube; el cubo arriba a la derecha                     |
-| Derecha   | `ProjectBrowser`                 | **El contenido del proyecto**: estructura, modelos, planos, vistas, mediciones |
-| Al pie    | `StatusBar`                      | Modo, qué falta para medir, resultado, avisos de visibilidad                   |
+| Dónde     | Componente                       | Qué hay                                                                                                 |
+| --------- | -------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Arriba    | `components/Ribbon.tsx`          | Marca · pestañas Vista/Medición/Modelo · estado · **Abrir**                                             |
+| Izquierda | `PropertiesPanel` / `Plan2DCard` | La ficha de lo seleccionado: elemento IFC **o** elemento 2D                                             |
+| Centro    | El lienzo + dos barras flotantes | El modelo, el plano y la nube; el selector de vista arriba a la derecha y la barra de visibilidad abajo |
+| Derecha   | `ProjectBrowser`                 | **El contenido del proyecto**: estructura, modelos, planos, vistas, mediciones                          |
+| Al pie    | `StatusBar`                      | Modo, qué falta para medir, resultado, avisos de visibilidad                                            |
 
 ### Arriba: una barra, no una cabecera y una cinta
 
@@ -168,7 +169,7 @@ El criterio, para que no se decida botón por botón:
 
 **Es grande la herramienta que (a) abre el modo de trabajo de su pestaña, o (b) es la vuelta
 segura.** Como mucho **tres por pestaña** — con cinco, «grande» deja de significar algo. Y las que
-duplican al cubo de vistas son siempre pequeñas: el cubo ya está ahí y es más rápido.
+duplican a una barra flotante del lienzo no existen: se movieron allí en vez de copiarse.
 
 | Pestaña     | Grandes                  |
 | ----------- | ------------------------ |
@@ -292,16 +293,25 @@ devuelve.
 | Calzar el plano         | "Calzar con 2 puntos" en la ficha del plano                       |
 | Medir sobre el plano    | Medición → distancia, con **Al plano** encendido                  |
 
-### Centro: el cubo de vistas
+### Centro: el selector de vista y la barra de visibilidad
 
-Está donde lo pone AutoCAD —arriba a la derecha— y hace las dos cosas que hace el de AutoCAD:
-**dice hacia dónde se está mirando** y **cambia la vista con un clic**. La cara activa va en color
-de marca, y **se apaga en cuanto alguien orbita a mano**: un cubo que sigue diciendo "Planta" con la
-cámara en otro sitio miente.
+**Dos barras flotantes, hechas con las mismas piezas** (`PanelFlotante`): mismo cristal translúcido,
+mismo borde, mismo botón —icono arriba, nombre debajo, 44 px— y mismo estado activo. Dos barras que casi
+se parecen se leen como dos sistemas; con las mismas piezas se leen como uno.
 
-Está dibujado en SVG y no en una escena aparte: un cubo con su propio render cuesta una cámara y un
-fotograma por cuadro para cuatro respuestas útiles —planta, frontal, lateral, isométrica—, y las
-caras dibujadas llevan su nombre escrito, que uno con texturas no siempre consigue.
+**El selector de vista**, arriba a la derecha —donde lo pone AutoCAD—: _Isométrica · Planta · Frontal ·
+Lateral_. Hace las dos cosas del cubo de vistas al que sustituye (2026-10-05): **dice hacia dónde se
+está mirando** —el botón activo— y **cambia la vista con un clic**, y **se apaga en cuanto alguien
+orbita a mano**: un selector que sigue diciendo «Planta» con la cámara en otro sitio miente.
+
+**Por qué no un cubo.** Era un dibujo SVG **estático** de unos 158 px: no giraba con la cámara, así que
+solo decía cuál fue la última vista elegida —que es lo que dice un botón activo—, ocupaba un cuadrado de
+lienzo entero y tumbaba los nombres sobre las caras para que cupieran. Y el grupo «Vistas» de la cinta
+tenía **los mismos cuatro botones**: eran dos copias de lo mismo, y las dos se sustituyeron. Medido:
+268 × 73 px frente a 158 × 158, con los nombres en horizontal; contraste ≥ 4,9 : 1 en los dos temas.
+
+**La barra de visibilidad**, abajo en el centro: _Apagar · Aislar · Salir · Ver todo_ y _Encuadrar_.
+Ver la nota de más arriba sobre la barra flotante.
 
 ### Izquierda: dos fichas, no una con huecos
 

@@ -158,7 +158,11 @@ const SOBRE_LIENZO = ["sobre-lienzo", "sobre-lienzo-2", "sobre-lienzo-3"] as con
  * **no** usen la escala del shell, y que **sí** usen la del lienzo. Un archivo que deje de pintar
  * encima del lienzo se cae de la segunda mitad y hay que quitarlo de aquí.
  */
-const SOBRE_EL_LIENZO = ["PuertaDeEntrada.tsx", "ViewCube.tsx"] as const;
+const SOBRE_EL_LIENZO = ["PuertaDeEntrada.tsx"] as const;
+// `ViewCube.tsx` estuvo aquí: dibujaba sus caras directamente sobre el lienzo. Lo sustituyó
+// `SelectorDeVista` (2026-10-05), que —como la barra de visibilidad— lleva **superficie propia**
+// (`bg-surface/90`): su texto es un par de chrome sobre chrome y no es de esta lista. Su contraste
+// se midió sobre lo renderizado, en los dos temas.
 
 describe("el movimiento está declarado", () => {
   // **Había siete `transition-colors` sueltos y ninguna duración escrita**, así que el producto
