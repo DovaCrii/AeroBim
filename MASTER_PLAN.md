@@ -5230,6 +5230,7 @@ después**, cuando se sepa qué necesitan.
 | `F13.9`  | **Visor 2D de láminas**: un plano o un perfil generado se abre **solo**, sin el modelo debajo, y se vuelve al modelo como estaba               | ✅ 2026-10-05                                          |
 | `F13.10` | **La banda de cruces del perfil**: qué elementos cruza el trazado, por PK y por cota, y qué hay bajo el cursor                                 | ✅ 2026-10-05 · ⬜ lámina con malla y regla (`F13.11`) |
 | `F13.11` | **La lámina de perfil con su malla**: eje de cotas, regla de PK y cuadrícula **dentro del dibujo**, para que salgan también en el DXF y el PDF | ⬜                                                     |
+| `F13.12` | **Paneles laterales contextuales**: la ficha de propiedades flota solo al seleccionar, y el navegador esconde lo que no aplica a lo abierto    | ✅ 2026-10-05                                          |
 
 ### `F13.1`: el perfil IFC
 
@@ -5454,6 +5455,28 @@ momento». El visor 2D de láminas (`F13.9`) resolvió lo primero; esto, lo segu
 - **Falta (`F13.11`):** las láminas de ejemplo traen **la malla dentro del dibujo** —eje de cotas con su
   graduación, abscisado y cuadrícula—. Hoy el perfil dibuja la geometría y una tabla de PK; la regla vive
   solo en la banda HTML, así que **no sale en el DXF ni en el PDF**.
+
+### `F13.12`: paneles laterales contextuales
+
+Pedido por el usuario el 2026-10-05: _«sigue siendo saturado de información y poco práctico el diseño de las
+herramientas laterales»_. Se **midió antes de tocar** (1600 × 1000, un modelo abierto, nada seleccionado):
+
+|                         | Antes                                                  | Después                                      |
+| ----------------------- | ------------------------------------------------------ | -------------------------------------------- |
+| Panel izquierdo         | 346 px (21,6 %) **siempre**, con una frase de 3 líneas | **0 px**: la ficha flota solo al seleccionar |
+| Cabeceras del navegador | **14** (4 grupos + 10 secciones), 3 de ellas «vacío»   | **10**                                       |
+| Lienzo                  | 899 px (**56,2 %** del ancho)                          | **1250 px (78,1 %)**                         |
+
+- **La ficha flota** como una tarjeta del alto de su contenido, con el mismo cristal que las otras barras del
+  lienzo, **y no cambia el tamaño del visor** al seleccionar o soltar. El botón «Propiedades» pasa a **fijar**
+  la columna (o a soltarla). Una ficha en columna que cambia el ancho del lienzo cada vez que se selecciona
+  movería el modelo 173 px en cada clic; flotando, no.
+- **El navegador esconde lo que no aplica a lo abierto** (`seccionesQueNoAplican`, con pruebas): sin nube no hay
+  «Nube de puntos» ni «Calce y desviación»; sin obra del registro no hay «Coordinación» ni «Vistas del
+  proyecto». Aparecen solas cuando hay algo a lo que aplicarlas. Abrir una nube no depende de esa sección:
+  están el botón «Abrir» y soltar el archivo en cualquier parte del lienzo.
+- **Contrapartida, dicha:** la tarjeta tapa una esquina del lienzo mientras hay algo seleccionado (320 px a la
+  izquierda); si estorba, se fija en columna o se cierra con la «×».
 
 ## La competencia abierta, y qué se le puede mirar
 

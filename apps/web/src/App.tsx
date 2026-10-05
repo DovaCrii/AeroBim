@@ -66,6 +66,7 @@ import {
   espacioDeUnArchivo,
   espacioPedido,
   espacioParaVerSeccion,
+  seccionesQueNoAplican,
   type Espacio,
 } from "./espacios.js";
 import { PublicarLamina } from "./components/PublicarLamina.js";
@@ -612,7 +613,15 @@ export function App() {
   );
   /** Las vistas guardadas. Se leen del navegador al arrancar y se escriben al cambiar. */
   const [views, setViews] = useState<readonly SavedView[]>(leerVistas);
-  const [panelIzquierdo, setPanelIzquierdo] = useState(true);
+  /**
+   * **El panel de propiedades está «fijado» cuando es `true`**, y arranca sin fijar (2026-10-05).
+   *
+   * Fijado ocupa su columna entera, sin selección también: en una ventana de 1600 px eran 346 px —el
+   * 21,6 % del ancho— para una frase de tres líneas. Sin fijar, la ficha **aparece flotando sobre el
+   * lienzo solo mientras hay algo seleccionado** y el lienzo no cambia de tamaño. El botón
+   * «Propiedades» de la barra lo fija o lo suelta.
+   */
+  const [panelIzquierdo, setPanelIzquierdo] = useState(false);
   /**
    * `true` con el navegador plegado a rail: 44 px de iconos en vez de 346 de panel.
    *
@@ -2591,7 +2600,6 @@ export function App() {
 
     setSelected(encontrado);
     setSelectedPlan(null);
-    setPanelIzquierdo(true);
     return true;
   }, []);
 
@@ -2730,6 +2738,40 @@ export function App() {
       setCursorDePerfil(null);
     };
   }, [conCruces, laminaEnVisor]);
+
+  /**
+   * La ficha de lo seleccionado: el elemento, el trazo de un plano o el punto de una nube.
+   * Se pinta **en una sola parte** y se coloca en la columna —si está fijada— o flotando.
+   */
+  const haySeleccion = selected !== null || selectedPlan !== null || puntoDeNube !== null;
+  const fichaIzquierda = (
+    <>
+      {/* Tres fichas para tres clases de selección, y el orden es el del clic: el modelo
+                manda, el plano recoge lo que caiga fuera y la nube lo último. */}
+      {selectedPlan !== null && selected === null ? (
+        <Plan2DCard hit={selectedPlan} onClose={() => setSelectedPlan(null)} />
+      ) : puntoDeNube !== null && selected === null ? (
+        <PuntoDeNubeCard
+          punto={puntoDeNube}
+          onClose={() => setPuntoDeNube(null)}
+          observar={sePuedeAnotarLaNube ? () => setNotaAbierta(true) : null}
+          motivoSinObservar={motivoSinAnotarLaNube}
+        />
+      ) : (
+        <PropertiesPanel
+          item={selected}
+          visible={selectionVisible}
+          isolated={isolated}
+          onClose={closeProperties}
+          onToggleVisible={onToggleSelectionVisible}
+          onIsolate={onIsolateSelection}
+          onUndoIsolate={onUndoIsolate}
+          observar={sePuedeAnotar ? () => setNotaAbierta(true) : null}
+          motivoSinObservar={motivoSinAnotar}
+        />
+      )}
+    </>
+  );
 
   return (
     <div className="flex h-full w-full flex-col">
@@ -2947,30 +2989,7 @@ export function App() {
             style={{ width: anchoIzquierdo }}
             className="min-w-0 shrink border-r border-borde bg-surface"
           >
-            {/* Tres fichas para tres clases de selección, y el orden es el del clic: el modelo
-                manda, el plano recoge lo que caiga fuera y la nube lo último. */}
-            {selectedPlan !== null && selected === null ? (
-              <Plan2DCard hit={selectedPlan} onClose={() => setSelectedPlan(null)} />
-            ) : puntoDeNube !== null && selected === null ? (
-              <PuntoDeNubeCard
-                punto={puntoDeNube}
-                onClose={() => setPuntoDeNube(null)}
-                observar={sePuedeAnotarLaNube ? () => setNotaAbierta(true) : null}
-                motivoSinObservar={motivoSinAnotarLaNube}
-              />
-            ) : (
-              <PropertiesPanel
-                item={selected}
-                visible={selectionVisible}
-                isolated={isolated}
-                onClose={closeProperties}
-                onToggleVisible={onToggleSelectionVisible}
-                onIsolate={onIsolateSelection}
-                onUndoIsolate={onUndoIsolate}
-                observar={sePuedeAnotar ? () => setNotaAbierta(true) : null}
-                motivoSinObservar={motivoSinAnotar}
-              />
-            )}
+            {fichaIzquierda}
           </aside>
         )}
 
@@ -3074,6 +3093,14 @@ export function App() {
 
             {/* **La barra de visibilidad y selección**, sobre el visor y en los dos espacios. Sin modelo
               no hay nada que apagar ni aislar, así que no se pinta. */}
+            {/* **La ficha, flotando** cuando la columna no está fijada y hay algo seleccionado. Va sobre el
+                lienzo y no empuja nada: seleccionar un elemento no cambia el tamaño del visor. */}
+            {!panelIzquierdo && haySeleccion && laminaEnVisor === null && (
+              <div className="absolute top-3 left-3 z-20 max-h-[calc(100%-1.5rem)] w-80 max-w-[85%] overflow-y-auto rounded-lg border border-borde bg-surface/95 shadow-[var(--shadow-xl)] backdrop-blur-sm">
+                {fichaIzquierda}
+              </div>
+            )}
+
             {laminaEnVisor !== null && (
               <BarraDeLamina
                 laminas={drawings.map((una) => ({
@@ -3234,6 +3261,11 @@ export function App() {
             ocultas={[
               ...(compartido !== null ? ["registro", "coordinacion", "vistas-proyecto"] : []),
               ...SECCIONES_OCULTAS[espacio],
+              // Y las que no pueden tener contenido con lo que hay abierto: ver `seccionesQueNoAplican`.
+              ...seccionesQueNoAplican({
+                hayNube: nube !== null,
+                hayProyecto: (origen?.proyectoId ?? null) !== null,
+              }),
             ]}
             registro={
               <Selector
