@@ -19,6 +19,7 @@ export function DrawingsPanel({
   onExport,
   onLaminaPdf,
   onPublicar,
+  onVerEje,
   onAddTable,
   cuadroCargado,
   onAddDimensions,
@@ -51,6 +52,8 @@ export function DrawingsPanel({
    * módulos que un rol no puede abrir.
    */
   readonly onPublicar?: (id: string) => void;
+  /** Vuelve de un perfil a su eje en el modelo: lo encuadra y lo dibuja. */
+  readonly onVerEje: (id: string) => void;
   /** Lleva las cotas medidas sobre el modelo a esa lámina. `F7.3`. */
   readonly onAddDimensions: (id: string) => void;
   /** Cuántas mediciones de distancia hay encendidas hoy. */
@@ -123,6 +126,10 @@ export function DrawingsPanel({
       <ul className="pt-1.5">
         {drawings.map((plano) => {
           const visible = !hidden.has(plano.id);
+          // Un perfil está **desarrollado** sobre el papel: su horizontal es el PK y su vertical la
+          // cota. Las mediciones y los hallazgos son puntos 3D, y llevarlos a esa lámina los
+          // pondría en un sitio que no es el suyo — por eso no se ofrecen aquí.
+          const esPerfil = plano.view === "profile";
           return (
             <li key={plano.id} className="mb-1 rounded-md border border-borde px-1.5 py-1">
               <div className="flex items-center gap-1.5">
@@ -171,7 +178,18 @@ export function DrawingsPanel({
                   una oficina hace de verdad: se mide con el ajuste a vértice, se genera la planta, y
                   las cotas van dentro. Acotar encima del dibujo sería medir dos veces la misma cosa
                   y arriesgarse a dos números distintos. */}
-              {cotasDisponibles > 0 && (
+              {esPerfil && plano.eje !== undefined && (
+                <button
+                  type="button"
+                  onClick={() => onVerEje(plano.id)}
+                  className="mt-1 w-full rounded-sm border border-borde px-2 py-1 text-nota text-fg-2 hover:border-accent hover:text-fg"
+                  title="Encuadra en el modelo el eje del que sale este perfil y lo dibuja encima"
+                >
+                  Ver el eje en el modelo
+                </button>
+              )}
+
+              {!esPerfil && cotasDisponibles > 0 && (
                 <button
                   type="button"
                   onClick={() => onAddDimensions(plano.id)}
@@ -206,7 +224,7 @@ export function DrawingsPanel({
                   que dice «aquí falta la cota del vano V-03» es un plano con el que se va a obra;
                   sin ellas, el plano y la lista de hallazgos son dos papeles que hay que cruzar a
                   mano. Solo aparece con hallazgos del modelo cargados. */}
-              {hallazgosDisponibles > 0 && (
+              {!esPerfil && hallazgosDisponibles > 0 && (
                 <button
                   type="button"
                   onClick={() => onAddCallouts(plano.id)}

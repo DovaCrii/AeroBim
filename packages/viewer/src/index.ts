@@ -12,7 +12,14 @@
 
 import {
   angleAtDeg,
+  cajaTocaFranja,
   camaraBcfDesdeEscena,
+  estacionesCada,
+  franjaDeTramo,
+  franjaTransversal,
+  tramosDelEje,
+  type CajaDeEscenaM,
+  type EjeDePerfil,
   corteAEscena,
   corteAIfc,
   countIfcEntities,
@@ -66,6 +73,7 @@ import type { TablaDeCuadro } from "./cuadro-en-plano.js";
 import { type PartesDeCota, siguienteOrdinal, textoDeCota } from "./cotas.js";
 import { categoriasDe, cuadroDe, encabezadoDeColumna, type Schedule } from "./cuadros.js";
 import { DrawingMaker, type DrawingView, type GeneratedDrawing } from "./drawings.js";
+import { tablaDePk, textoDePk } from "./perfiles.js";
 import { GridOverlay } from "./grid.js";
 import { masCercanoAlCursor, verticeDelGolpe } from "./senalar.js";
 
@@ -5157,6 +5165,249 @@ export class BimViewer {
     const plano = await this.drawings.create(this.world, modelIdMap, view, onProgress);
     await this.refresh();
     return plano;
+  }
+
+  /**
+   * Los elementos **visibles** de cada modelo, con su caja en coordenadas de la escena.
+   *
+   * Es lo que hace falta para decidir qué toca una franja: se pide una vez por modelo y se filtra
+   * en el cliente. La caja es la del elemento entero, así que un elemento diagonal puede entrar
+   * sin tocar la franja de verdad — ver `cajaTocaFranja`.
+   */
+  private async elementosVisiblesConCaja(): Promise<
+    { modelId: string; localId: number; caja: CajaDeEscenaM }[]
+  > {
+    const salida: { modelId: string; localId: number; caja: CajaDeEscenaM }[] = [];
+    for (const [modelId, model] of this.fragments.list) {
+      const ids = await model.getItemsByVisibility(true);
+      if (ids.length === 0) continue;
+      const cajas = await model.getBoxes(ids);
+      model.object.updateMatrixWorld(true);
+      ids.forEach((localId, i) => {
+        const caja = cajas[i];
+        if (caja === undefined || caja.isEmpty()) return;
+        // Del modelo a la escena: un modelo desplazado por `autoCoordinate` no está donde su caja.
+        const enEscena = caja.clone().applyMatrix4(model.object.matrixWorld);
+        salida.push({
+          modelId,
+          localId,
+          caja: {
+            min: [enEscena.min.x, enEscena.min.y, enEscena.min.z],
+            max: [enEscena.max.x, enEscena.max.y, enEscena.max.z],
+          },
+        });
+      });
+    }
+    return salida;
+  }
+
+  /**
+   * Crea el perfil de un eje: el **longitudinal** —todos sus tramos, desarrollados por PK— y, si se
+   * piden, una **transversal** por estación. (2026-10-05)
+   *
+   * Es la **proyección de la franja** y no un corte exacto: ver `DrawingMaker.createProfile`. Cada
+   * franja mira solo los elementos visibles cuya caja la toca, así que **lo que se apagó o se aisló
+   * antes de pedirlo no sale**, que es lo que permite sacar el perfil de una sola especialidad.
+   *
+   * Devuelve los planos creados, el longitudinal primero. Si ninguna franja toca nada, no hay plano
+   * y la lista viene vacía: un perfil vacío afirmaría que no hay nada a lo largo del trazado.
+   */
+  async createProfile(
+    eje: EjeDePerfil,
+    opciones: {
+      /** Espesor de la franja longitudinal, centrada en el eje. */
+      readonly anchoM: number;
+      /** PK de cada transversal. Tienen prioridad sobre `pasoDeEstacionesM`. */
+      readonly estacionesM?: readonly number[];
+      /** Una transversal cada tanto, desde el origen y hasta el final. */
+      readonly pasoDeEstacionesM?: number;
+      /** Ancho de lado a lado de cada transversal. Por omisión, 40 m. */
+      readonly anchoTransversalM?: number;
+      /** Grosor de cada transversal a lo largo del eje. Por omisión, 1 m. */
+      readonly espesorTransversalM?: number;
+      readonly onProgress?: (mensaje: string, avance?: number) => void;
+    },
+  ): Promise<GeneratedDrawing[]> {
+    this.assertAlive();
+    const tramos = tramosDelEje(eje);
+    if (tramos.length === 0) return [];
+
+    // El desplazamiento que Fragments quitó al recentrar el primer modelo, que es el origen común de
+    // la escena: los demás se colocan respecto a él (`autoCoordinate`).
+    const base = this.fragments.core.baseCoordinates;
+    const origenM: [number, number, number] = [base?.[0] ?? 0, base?.[1] ?? 0, base?.[2] ?? 0];
+    const elementos = await this.elementosVisiblesConCaja();
+    const mapaDe = (franja: Parameters<typeof cajaTocaFranja>[0]): OBC.ModelIdMap => {
+      const mapa: Record<string, Set<number>> = {};
+      for (const e of elementos) {
+        if (!cajaTocaFranja(franja, e.caja)) continue;
+        (mapa[e.modelId] ??= new Set()).add(e.localId);
+      }
+      return mapa;
+    };
+
+    const creados: GeneratedDrawing[] = [];
+    const anchoM = Math.max(opciones.anchoM, 0.01);
+    // Con `exactOptionalPropertyTypes` una propiedad opcional no puede valer `undefined`: se omite.
+    const avance = opciones.onProgress === undefined ? {} : { onProgress: opciones.onProgress };
+
+    const longitudinal = await this.drawings.createProfile(
+      this.world,
+      tramos.map((tramo) => {
+        const franja = franjaDeTramo(tramo, anchoM);
+        return { franja, modelIdMap: mapaDe(franja) };
+      }),
+      { nombre: "Perfil longitudinal", eje, origenM, ...avance },
+    );
+    if (longitudinal !== null) {
+      creados.push(longitudinal);
+      const pks = opciones.estacionesM ?? estacionesCada(eje, opciones.pasoDeEstacionesM ?? 0);
+      this.drawings.addTable(longitudinal.id, tablaDePk(eje, pks, origenM));
+    }
+
+    for (const pkM of opciones.estacionesM ??
+      estacionesCada(eje, opciones.pasoDeEstacionesM ?? 0)) {
+      const franja = franjaTransversal(
+        eje,
+        pkM,
+        opciones.anchoTransversalM ?? 40,
+        opciones.espesorTransversalM ?? 1,
+      );
+      if (franja === null) continue;
+      const transversal = await this.drawings.createProfile(
+        this.world,
+        [{ franja, modelIdMap: mapaDe(franja) }],
+        {
+          nombre: `Transversal PK ${textoDePk(pkM)}`,
+          eje,
+          origenM,
+          ...avance,
+        },
+      );
+      if (transversal !== null) creados.push(transversal);
+    }
+
+    if (creados.length > 0) await this.refresh();
+    return creados;
+  }
+
+  /**
+   * La caja que ocupan todos los modelos abiertos, en metros de la escena, o `null` si no hay
+   * ninguno. Sirve para proponer un eje que cruce el modelo y para encuadrar sin preguntarle a cada
+   * modelo por separado.
+   */
+  async sceneBounds(): Promise<{ readonly min: Point3; readonly max: Point3 } | null> {
+    this.assertAlive();
+    const caja = new THREE.Box3();
+    for (const [, model] of this.fragments.list) {
+      // Por `boxOf` y no por `expandByObject`: a un modelo recién cargado aún le faltan los
+      // fragmentos del worker y su `Object3D` no tiene geometría. Medido: la primera llamada tras
+      // cargar devolvía «sin modelo» según cuánto tardara el worker.
+      const propia = await this.boxOf(model);
+      if (propia === null) continue;
+      model.object.updateMatrixWorld(true);
+      caja.union(propia.clone().applyMatrix4(model.object.matrixWorld));
+    }
+    if (caja.isEmpty()) return null;
+    return {
+      min: [caja.min.x, caja.min.y, caja.min.z],
+      max: [caja.max.x, caja.max.y, caja.max.z],
+    };
+  }
+
+  /** La caja del eje de un perfil en la escena, para volver a ella. `null` si no hay eje. */
+  async profileAxisBox(id: string): Promise<THREE.Box3 | null> {
+    this.assertAlive();
+    const eje = this.drawings.list.find((plano) => plano.id === id)?.eje;
+    if (eje === undefined || eje.verticesM.length === 0) return null;
+    const caja = new THREE.Box3();
+    // La altura sale de los modelos: el eje es una polilínea en planta y no sabe cuánto sube el túnel.
+    const modelos = await this.sceneBounds();
+    const abajo = modelos?.min[1] ?? 0;
+    const arriba = modelos?.max[1] ?? 10;
+    for (const [x, z] of eje.verticesM) {
+      caja.expandByPoint(new THREE.Vector3(x, abajo, z));
+      caja.expandByPoint(new THREE.Vector3(x, arriba, z));
+    }
+    return caja;
+  }
+
+  /** Lo que marca en la escena el eje de un perfil: su línea y sus vértices. */
+  private ejeDePerfilEnEscena: THREE.Group | null = null;
+
+  /**
+   * Dibuja sobre el modelo un eje de perfil: la línea y un punto por vértice.
+   *
+   * Sirve para dos cosas con el mismo dibujo: **ver el trazado mientras se marca** —sin la línea,
+   * cada clic era un acto de fe— y **volver desde un perfil al sitio de donde sale**. Va a media
+   * altura del modelo y sin prueba de profundidad: tiene que verse a través de los muros, o en un
+   * túnel el trazado quedaría enterrado en la geometría.
+   */
+  async previewProfileAxis(vertices: readonly (readonly [number, number])[]): Promise<void> {
+    this.assertAlive();
+    this.clearProfileAxis();
+    if (vertices.length === 0) return;
+
+    const modelos = await this.sceneBounds();
+    const y = modelos === null ? 0 : (modelos.min[1] + modelos.max[1]) / 2;
+    const puntos = vertices.map(([x, z]) => new THREE.Vector3(x, y, z));
+
+    const grupo = new THREE.Group();
+    grupo.renderOrder = 999;
+    const color = 0xc3a6f0;
+    if (puntos.length >= 2) {
+      const linea = new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints(puntos),
+        new THREE.LineBasicMaterial({ color, depthTest: false, transparent: true }),
+      );
+      linea.renderOrder = 999;
+      grupo.add(linea);
+    }
+    const marcas = new THREE.Points(
+      new THREE.BufferGeometry().setFromPoints(puntos),
+      new THREE.PointsMaterial({
+        color,
+        size: 9,
+        sizeAttenuation: false,
+        depthTest: false,
+        transparent: true,
+      }),
+    );
+    marcas.renderOrder = 999;
+    grupo.add(marcas);
+
+    this.world.scene.three.add(grupo);
+    this.ejeDePerfilEnEscena = grupo;
+    await this.refresh();
+  }
+
+  /**
+   * Encuadra el eje de un perfil en la vista 3D y lo dibuja: volver de un plano al sitio de donde
+   * sale. Sin la línea, el encuadre dejaba al usuario mirando un trozo de modelo sin saber por
+   * dónde pasaba el trazado.
+   */
+  async frameProfileAxis(id: string): Promise<boolean> {
+    const caja = await this.profileAxisBox(id);
+    const eje = this.drawings.list.find((plano) => plano.id === id)?.eje;
+    if (caja === null || eje === undefined) return false;
+
+    await this.previewProfileAxis(eje.verticesM);
+    this.applyFraming(caja);
+    await this.refresh();
+    return true;
+  }
+
+  /** Quita de la escena lo que marca el eje de un perfil. */
+  clearProfileAxis(): void {
+    const grupo = this.ejeDePerfilEnEscena;
+    if (grupo === null) return;
+    this.world.scene.three.remove(grupo);
+    grupo.traverse((objeto) => {
+      const conGeometria = objeto as Partial<THREE.Line>;
+      conGeometria.geometry?.dispose();
+      (conGeometria.material as THREE.Material | undefined)?.dispose();
+    });
+    this.ejeDePerfilEnEscena = null;
   }
 
   /**

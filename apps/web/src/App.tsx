@@ -35,6 +35,7 @@ import {
 import {
   calzarConPuntos,
   escenaAArchivo,
+  largoDelEjeM,
   parseSavedViews,
   type ParDePuntos,
   type RegistryOrigin,
@@ -51,6 +52,7 @@ import { CuadrosPanel } from "./components/CuadrosPanel.js";
 import { NotaFlotante } from "./components/NotaFlotante.js";
 import { Origen } from "./components/Origen.js";
 import { PlansPanel } from "./components/PlansPanel.js";
+import { PerfilFlotante, type ParametrosDePerfil } from "./components/PerfilFlotante.js";
 import { PublicarLamina } from "./components/PublicarLamina.js";
 import { ProjectBrowser } from "./components/ProjectBrowser.js";
 import { PuertaDeEntrada } from "./components/PuertaDeEntrada.js";
@@ -511,6 +513,16 @@ export function App() {
    * — que es exactamente lo que ya pasó con la conversión de los IFC grandes.
    */
   const [generating, setGenerating] = useState<string | null>(null);
+  /**
+   * El eje de un perfil que se está marcando, o `null` si no se está en ello.
+   *
+   * Cada vértice es `[x, z]` de la planta de la escena: el eje es una polilínea en planta, y la
+   * altura la ponen los elementos que toca la franja. Vive en la interfaz porque es un flujo de
+   * pantalla; el visor solo sabe de perfiles cuando ya está el eje entero.
+   */
+  const [perfilTrazado, setPerfilTrazado] = useState<readonly (readonly [number, number])[] | null>(
+    null,
+  );
   /**
    * La alineación de un plano en curso, si la hay.
    *
@@ -1367,6 +1379,16 @@ export function App() {
         // se están señalando pares, seleccionar o medir sería justo lo que no se quiere.
         if (await clicDeCalce(event.clientX, event.clientY)) return;
 
+        // **Marcar el eje de un perfil se come el clic**, por lo mismo que alinear: mientras se
+        // trazan vértices, seleccionar o medir sería justo lo que no se quiere. Es el punto del
+        // modelo con el ajuste del medidor puesto, y un clic al vacío no cuenta.
+        if (perfilTrazado !== null) {
+          const punto = await instance.pointOnModel(event.clientX, event.clientY);
+          if (punto === null) return;
+          setPerfilTrazado([...perfilTrazado, [punto[0], punto[2]]]);
+          return;
+        }
+
         // **Alinear se come el clic**, y antes que nada: mientras se están señalando los cuatro
         // puntos, seleccionar o medir sería justo lo que no se quiere.
         if (aligning !== null) {
@@ -1457,7 +1479,7 @@ export function App() {
     // con la primera versión —la de cuando el calce estaba apagado— y el clic **caía en
     // seleccionar** en vez de tomar el punto. Se vio en pantalla: el muro quedaba seleccionado y
     // el panel seguía pidiendo «pincha el punto en el MODELO» para siempre.
-    [measureMode, aligning, clicDeCalce],
+    [measureMode, aligning, clicDeCalce, perfilTrazado],
   );
 
   /** Doble clic: cierra el contorno si se está midiendo un área, y si no encuadra el elemento. */
@@ -1479,6 +1501,25 @@ export function App() {
     window.addEventListener("keydown", alPulsar);
     return () => window.removeEventListener("keydown", alPulsar);
   }, [aligning]);
+
+  // Escape cancela un trazado de perfil a medias, igual que una alineación.
+  useEffect(() => {
+    if (perfilTrazado === null) return;
+    const alPulsar = (evento: KeyboardEvent) => {
+      if (evento.key === "Escape" && !enUnCampo(evento)) setPerfilTrazado(null);
+    };
+    window.addEventListener("keydown", alPulsar);
+    return () => window.removeEventListener("keydown", alPulsar);
+  }, [perfilTrazado]);
+
+  // El eje se ve sobre el modelo mientras se marca: sin la línea, cada clic era un acto de fe.
+  // `perfilTrazado === null` lo quita, y es lo que hace que cancelar o generar limpie la escena.
+  useEffect(() => {
+    const instance = viewer.current;
+    if (!instance) return;
+    if (perfilTrazado === null) instance.clearProfileAxis();
+    else void instance.previewProfileAxis(perfilTrazado);
+  }, [perfilTrazado]);
 
   // Enter cierra el contorno de un área. Un contorno no tiene un número fijo de vértices, así
   // que alguien tiene que decir cuándo terminó, y buscar el botón con el ratón interrumpe.
@@ -1784,6 +1825,61 @@ export function App() {
       }
     },
     [modo2D],
+  );
+
+  /**
+   * Genera el perfil del eje marcado, y deja los planos en «Planos generados».
+   *
+   * El eje queda marcado si falla —un perfil vacío porque la franja no tocó nada, o una proyección
+   * cortada— para poder ensanchar la franja y volver a intentarlo sin repetir los clics.
+   */
+  const onGenerarPerfil = useCallback(
+    async (parametros: ParametrosDePerfil) => {
+      const instance = viewer.current;
+      if (instance === null || perfilTrazado === null || perfilTrazado.length < 2) return;
+
+      setGenerating("Proyectando las aristas de la franja…");
+      try {
+        const planos = await instance.createProfile(
+          { sistema: "escena", verticesM: perfilTrazado },
+          {
+            anchoM: parametros.anchoM,
+            anchoTransversalM: parametros.anchoTransversalM,
+            ...(parametros.pasoDeEstacionesM === null
+              ? {}
+              : { pasoDeEstacionesM: parametros.pasoDeEstacionesM }),
+            onProgress: (mensaje, avance) => {
+              setGenerating(
+                avance === undefined ? mensaje : `${mensaje} — ${Math.round(avance * 100)} %`,
+              );
+            },
+          },
+        );
+        if (planos.length === 0) {
+          setStatus({
+            kind: "error",
+            message:
+              "La franja no toca ningún elemento encendido. Ensancha la franja, o enciende lo que " +
+              "quieras ver en el perfil.",
+          });
+          return;
+        }
+        // Nacen apagados en la vista 3D, como el resto de los planos generados.
+        setDrawings((actuales) => [...actuales, ...planos]);
+        setHiddenDrawings((actual) => {
+          const siguiente = new Set(actual);
+          for (const plano of planos) siguiente.add(plano.id);
+          return siguiente;
+        });
+        setPerfilTrazado(null);
+        irASeccion("generados");
+      } catch (error: unknown) {
+        setStatus({ kind: "error", message: describe(error) });
+      } finally {
+        setGenerating(null);
+      }
+    },
+    [perfilTrazado],
   );
 
   /**
@@ -2543,6 +2639,8 @@ export function App() {
         onClearMeasurements={onClearMeasurements}
         onSection={onSection}
         onClearSections={onClearSections}
+        trazandoPerfil={perfilTrazado !== null}
+        onCrearPerfil={() => setPerfilTrazado((actual) => (actual === null ? [] : null))}
         onShowAll={onShowAll}
         onTogglePanel={(lado) => {
           if (lado === "izquierda") setPanelIzquierdo((actual) => !actual);
@@ -2685,6 +2783,17 @@ export function App() {
             />
           )}
 
+          {perfilTrazado !== null && (
+            <PerfilFlotante
+              vertices={perfilTrazado}
+              largoM={largoDelEjeM({ sistema: "escena", verticesM: perfilTrazado })}
+              generando={generating}
+              onDeshacer={() => setPerfilTrazado((actual) => (actual ?? []).slice(0, -1))}
+              onCancelar={() => setPerfilTrazado(null)}
+              onGenerar={(parametros) => void onGenerarPerfil(parametros)}
+            />
+          )}
+
           {/* **El cuadro, encima del modelo y no en el panel.** Un cuadro de perfiles de acero
               trae veinticuatro columnas y el panel de la derecha mide unos 320 px: ahí dentro no es
               una tabla, es una lista de celdas cortadas. Mismo reparto que la nota flotante. */}
@@ -2804,6 +2913,7 @@ export function App() {
                 drawings={drawings}
                 hidden={hiddenDrawings}
                 onLaminaPdf={(id) => void onLaminaPdf(id)}
+                onVerEje={(id) => void viewer.current?.frameProfileAxis(id)}
                 onAddTable={onPonerCuadroEnPlano}
                 cuadroCargado={cuadro?.category ?? null}
                 onAddDimensions={onAcotarPlano}
