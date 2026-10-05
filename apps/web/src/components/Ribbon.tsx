@@ -42,6 +42,7 @@ import {
   IconSnapPlan,
   IconSnapVertex,
   IconSolid,
+  IconTable,
   IconTrash,
   IconViews,
 } from "./icons.js";
@@ -126,6 +127,9 @@ export function Ribbon({
   gruposOcultos = [],
   titulosDePestana = {},
   onCrearPerfil,
+  hayProyecto,
+  temasAbiertos,
+  onTemas,
   onTogglePanel,
   panelIzquierdo,
   panelDerecho,
@@ -236,6 +240,11 @@ export function Ribbon({
   readonly trazandoPerfil: boolean;
   /** Empieza o cancela el trazado del eje de un perfil. */
   readonly onCrearPerfil: () => void;
+  /** Hay una obra del registro con temas que mostrar. */
+  readonly hayProyecto: boolean;
+  /** La tabla de temas está abierta abajo. */
+  readonly temasAbiertos: boolean;
+  readonly onTemas: () => void;
   readonly onTogglePanel: (lado: "izquierda" | "derecha") => void;
   readonly panelIzquierdo: boolean;
   readonly panelDerecho: boolean;
@@ -859,6 +868,20 @@ export function Ribbon({
                       }
                       disabled={!puedeObservar}
                       onClick={onObservarDesdeLaCinta}
+                    />
+                    {/* **La tabla de temas, acoplada abajo.** Es el otro lado de «Observar»: uno
+                        deja un tema sobre un elemento, y éste los recorre todos y los compara. */}
+                    <Boton
+                      icon={<IconTable />}
+                      label="Temas"
+                      hint={
+                        hayProyecto
+                          ? "Abre o cierra la tabla de temas de la obra, abajo: quién, para cuándo y qué tan urgente"
+                          : "Abre un modelo del registro: los temas son de su obra"
+                      }
+                      active={temasAbiertos}
+                      disabled={!hayProyecto}
+                      onClick={onTemas}
                     />
                   </Grupo>
                 </>

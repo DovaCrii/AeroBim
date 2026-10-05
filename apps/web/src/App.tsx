@@ -47,6 +47,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DrawingsPanel } from "./components/DrawingsPanel.js";
 import { ModelsPanel } from "./components/ModelsPanel.js";
 import { Coordinacion, type ObservacionDelModelo } from "./components/Coordinacion.js";
+import { TablaDeTemas } from "./components/TablaDeTemas.js";
+import { useTemasDeLaObra } from "./useTemasDeLaObra.js";
 import { CuadroFlotante } from "./components/CuadroFlotante.js";
 import { CuadrosPanel } from "./components/CuadrosPanel.js";
 import { NotaFlotante } from "./components/NotaFlotante.js";
@@ -454,6 +456,8 @@ export function App() {
    * exactamente el caso que ya costó una sesión aprender aislando desde la ficha.
    */
   const [visibilidadDeObservacion, setVisibilidadDeObservacion] = useState(false);
+  /** La tabla de temas está abierta abajo. */
+  const [temasAbiertos, setTemasAbiertos] = useState(false);
   /**
    * De qué revisión del registro salió lo que está abierto, o `null` si es un archivo del disco.
    *
@@ -2417,6 +2421,25 @@ export function App() {
    */
   const [notasGuardadas, setNotasGuardadas] = useState(0);
 
+  /**
+   * Los temas de la obra, **pedidos aquí una sola vez** y leídos por el panel «Coordinación» y por la
+   * tabla acoplada abajo. Si los pidiera el panel al desplegarse, la tabla saldría vacía con el panel
+   * plegado, que es como arranca.
+   */
+  const { estado: estadoDeTemas, quitar: quitarTema } = useTemasDeLaObra(
+    origen?.proyectoId ?? null,
+    notasGuardadas,
+  );
+  // Solo lo que hace falta para señalar en un plano: el GUID y el título. Pasar la observación entera
+  // acoplaría el generador de planos a la forma de la API.
+  useEffect(() => {
+    setHallazgosDelModelo(
+      estadoDeTemas.kind === "listo"
+        ? estadoDeTemas.observaciones.map((una) => ({ guid: una.guid, titulo: una.titulo }))
+        : [],
+    );
+  }, [estadoDeTemas]);
+
   // Cambiar de elemento **o de punto** cierra la tarjeta: estaba anclada al anterior, y dejarla
   // abierta haría que la nota se guardara sobre un ancla distinta de la que se está mirando.
   useEffect(() => setNotaAbierta(false), [selected, puntoDeNube]);
@@ -2743,6 +2766,9 @@ export function App() {
         onSection={onSection}
         onClearSections={onClearSections}
         trazandoPerfil={perfilTrazado !== null}
+        hayProyecto={(origen?.proyectoId ?? null) !== null}
+        temasAbiertos={temasAbiertos}
+        onTemas={() => setTemasAbiertos((abierta) => !abierta)}
         onCrearPerfil={() => setPerfilTrazado((actual) => (actual === null ? [] : null))}
         onTogglePanel={(lado) => {
           if (lado === "izquierda") setPanelIzquierdo((actual) => !actual);
@@ -2820,150 +2846,165 @@ export function App() {
             Con la mitad como suelo, a 1024 ceden a unos 256 cada uno —por encima de los 240 que
             necesita un nombre— y a 1600 o más no se nota: ahí el modelo ya pasa de la mitad. El
             ancho que cada uno arrastró se conserva: solo se encoge mientras la ventana no da. */}
-        <div
-          className="relative flex min-h-0 min-w-[max(240px,50%)] flex-1 shrink-0"
-          onDragOver={(event) => {
-            event.preventDefault();
-            setDragging(true);
-          }}
-          onDragLeave={() => setDragging(false)}
-          onDrop={onDrop}
-        >
+        <div className="flex min-h-0 min-w-[max(240px,50%)] flex-1 shrink-0 flex-col">
           <div
-            ref={canvasHost}
-            // El cursor dice qué va a hacer el próximo clic: la cruz de precisión mientras se mide
-            // y la mano cuando se selecciona. Sin esa señal, los dos modos se ven igual.
-            className={[
-              "min-h-0 min-w-0 flex-1",
-              models.length === 0
-                ? ""
-                : measureMode !== null
-                  ? "cursor-crosshair"
-                  : "cursor-pointer",
-            ].join(" ")}
-            onPointerDown={(event) => {
-              pressPoint.current = { x: event.clientX, y: event.clientY };
-              // Orbitar deja de ser una vista normalizada: el cubo no debe seguir diciendo
-              // "Planta" con la cámara en cualquier otro sitio.
-              setStandardView(null);
+            className="relative flex min-h-0 flex-1"
+            onDragOver={(event) => {
+              event.preventDefault();
+              setDragging(true);
             }}
-            onClick={(event) => void onCanvasClick(event)}
-            onDoubleClick={onCanvasDoubleClick}
-          />
+            onDragLeave={() => setDragging(false)}
+            onDrop={onDrop}
+          >
+            <div
+              ref={canvasHost}
+              // El cursor dice qué va a hacer el próximo clic: la cruz de precisión mientras se mide
+              // y la mano cuando se selecciona. Sin esa señal, los dos modos se ven igual.
+              className={[
+                "min-h-0 min-w-0 flex-1",
+                models.length === 0
+                  ? ""
+                  : measureMode !== null
+                    ? "cursor-crosshair"
+                    : "cursor-pointer",
+              ].join(" ")}
+              onPointerDown={(event) => {
+                pressPoint.current = { x: event.clientX, y: event.clientY };
+                // Orbitar deja de ser una vista normalizada: el cubo no debe seguir diciendo
+                // "Planta" con la cámara en cualquier otro sitio.
+                setStandardView(null);
+              }}
+              onClick={(event) => void onCanvasClick(event)}
+              onDoubleClick={onCanvasDoubleClick}
+            />
 
-          {/* **La tarjeta de nota, encima del modelo.** Va acá —dentro del contenedor del lienzo—
+            {/* **La tarjeta de nota, encima del modelo.** Va acá —dentro del contenedor del lienzo—
               y no en un panel, porque el punto entero es no dejar de ver lo que se está
               describiendo. Se arrastra por su cabecera para destapar justo lo que hace falta. */}
-          {/* **Un ancla o la otra, y la misma tarjeta.** Dejar una nota es el mismo gesto sobre un
+            {/* **Un ancla o la otra, y la misma tarjeta.** Dejar una nota es el mismo gesto sobre un
               elemento del modelo y sobre un punto del levantamiento; lo único que cambia es de qué
               cuelga, así que no hay dos tarjetas. */}
-          {notaAbierta && (selected !== null || puntoDeNube !== null) && origen !== null && (
-            <NotaFlotante
-              item={selected}
-              punto={selected === null ? (puntoDeNube?.archivo ?? null) : null}
-              descripcionInicial={borradorDeDesviacion}
-              revisionId={origen.revisionId}
-              camaraDeAhora={() => viewer.current?.cameraState ?? null}
-              visibilidadDeAhora={async () =>
-                (await viewer.current?.captureVisibilityBcf()) ?? null
-              }
-              fotoDeAhora={() => viewer.current?.capturarImagen() ?? null}
-              marcadoDeAhora={() => viewer.current?.capturarMarcadoBcf() ?? []}
-              onCerrar={() => setNotaAbierta(false)}
-              onGuardada={() => setNotasGuardadas((cuantas) => cuantas + 1)}
-            />
-          )}
-
-          {/* **Archivar la lámina, encima del modelo.** `G.4`. Va con la hoja ya congelada: ver
-              `publicando`, que guarda la hoja y no el identificador del plano para que lo que se
-              archiva sean los mismos bytes que se vieron. */}
-          {publicando !== null && origen?.proyectoId !== undefined && (
-            <PublicarLamina
-              proyectoId={origen.proyectoId}
-              hoja={publicando}
-              onCerrar={() => setPublicando(null)}
-            />
-          )}
-
-          {/* **La barra de visibilidad y selección**, sobre el visor y en los dos espacios. Sin modelo
-              no hay nada que apagar ni aislar, así que no se pinta. */}
-          {models.length > 0 && (
-            <BarraDelVisor
-              tieneSeleccion={selected !== null}
-              seleccionVisible={selectionVisible}
-              aislado={isolated}
-              hayOcultos={hasHidden}
-              onAlternarSeleccion={onToggleSelectionVisible}
-              onAislar={onIsolateSelection}
-              onSalirDelAislamiento={onUndoIsolate}
-              onVerTodo={onShowAll}
-              onEncuadrarSeleccion={() => void viewer.current?.frameSelection()}
-            />
-          )}
-
-          {perfilTrazado !== null && (
-            <PerfilFlotante
-              vertices={perfilTrazado}
-              largoM={largoDelEjeM({ sistema: "escena", verticesM: perfilTrazado })}
-              hayNube={nubeInforme !== null}
-              hayModelo={models.length > 0}
-              nubeCalzada={viewer.current?.pointCloudAligned ?? false}
-              generando={generating}
-              onDeshacer={() => setPerfilTrazado((actual) => (actual ?? []).slice(0, -1))}
-              onCancelar={() => setPerfilTrazado(null)}
-              onGenerar={(parametros) => void onGenerarPerfil(parametros)}
-            />
-          )}
-
-          {/* **El cuadro, encima del modelo y no en el panel.** Un cuadro de perfiles de acero
-              trae veinticuatro columnas y el panel de la derecha mide unos 320 px: ahí dentro no es
-              una tabla, es una lista de celdas cortadas. Mismo reparto que la nota flotante. */}
-          {cuadro !== null && (
-            <CuadroFlotante
-              cuadro={cuadro}
-              onCerrar={() => setCuadro(null)}
-              onDescargar={() => onDescargarCuadro(cuadro)}
-              onIrAlElemento={onIrAlElementoDelCuadro}
-            />
-          )}
-
-          <SelectorDeVista
-            vista={standardView}
-            desactivado={models.length === 0 && plans.length === 0 && nube === null}
-            onVista={(view) => {
-              setStandardView(view);
-              void viewer.current?.frameAll(view);
-            }}
-          />
-
-          {/*
-           * **El recuadro de la suelta va en la marca y a opacidad entera**, y las dos cosas son
-           * medidas. Llevaba `border-accent/70`, y `--color-accent` **sí cambia con el tema**: en
-           * claro es `#5b3a9e`, que sobre el fondo del lienzo —`#202932`, y el lienzo es oscuro en
-           * los dos temas— da **1,79:1**. O sea que la única señal de que la suelta va a entrar
-           * era invisible justo mientras se arrastra el archivo.
-           *
-           * La marca no cambia con el tema y da **3,57:1**, que es lo que WCAG 1.4.11 pide de algo
-           * que informa sin ser texto. Y el `/70` sobra: al 70 % ese mismo violeta se queda por
-           * debajo de 3:1, así que la opacidad se comía el margen entero.
-           */}
-          {dragging && (
-            <div className="pointer-events-none absolute inset-4 rounded-lg border-2 border-dashed border-brand" />
-          )}
-
-          {/* **La nube cuenta como "hay algo abierto".** Sin ella en esta condición, el lienzo
-              seguía diciendo «arrastra un IFC aquí» **por encima de la nube ya cargada** — se vio
-              en la primera prueba de `F12.1`. Una pantalla que pide lo que ya tiene delante. */}
-          {models.length === 0 &&
-            plans.length === 0 &&
-            nube === null &&
-            status.kind !== "loading" && (
-              <PuertaDeEntrada
-                onDelRegistro={() => irASeccion("registro")}
-                onAbrirDelDisco={() => entradaDeArchivo.current?.click()}
-                deshabilitado={status.kind !== "ready"}
+            {notaAbierta && (selected !== null || puntoDeNube !== null) && origen !== null && (
+              <NotaFlotante
+                item={selected}
+                punto={selected === null ? (puntoDeNube?.archivo ?? null) : null}
+                descripcionInicial={borradorDeDesviacion}
+                revisionId={origen.revisionId}
+                camaraDeAhora={() => viewer.current?.cameraState ?? null}
+                visibilidadDeAhora={async () =>
+                  (await viewer.current?.captureVisibilityBcf()) ?? null
+                }
+                fotoDeAhora={() => viewer.current?.capturarImagen() ?? null}
+                marcadoDeAhora={() => viewer.current?.capturarMarcadoBcf() ?? []}
+                onCerrar={() => setNotaAbierta(false)}
+                onGuardada={() => setNotasGuardadas((cuantas) => cuantas + 1)}
               />
             )}
+
+            {/* **Archivar la lámina, encima del modelo.** `G.4`. Va con la hoja ya congelada: ver
+              `publicando`, que guarda la hoja y no el identificador del plano para que lo que se
+              archiva sean los mismos bytes que se vieron. */}
+            {publicando !== null && origen?.proyectoId !== undefined && (
+              <PublicarLamina
+                proyectoId={origen.proyectoId}
+                hoja={publicando}
+                onCerrar={() => setPublicando(null)}
+              />
+            )}
+
+            {/* **La barra de visibilidad y selección**, sobre el visor y en los dos espacios. Sin modelo
+              no hay nada que apagar ni aislar, así que no se pinta. */}
+            {models.length > 0 && (
+              <BarraDelVisor
+                tieneSeleccion={selected !== null}
+                seleccionVisible={selectionVisible}
+                aislado={isolated}
+                hayOcultos={hasHidden}
+                onAlternarSeleccion={onToggleSelectionVisible}
+                onAislar={onIsolateSelection}
+                onSalirDelAislamiento={onUndoIsolate}
+                onVerTodo={onShowAll}
+                onEncuadrarSeleccion={() => void viewer.current?.frameSelection()}
+              />
+            )}
+
+            {perfilTrazado !== null && (
+              <PerfilFlotante
+                vertices={perfilTrazado}
+                largoM={largoDelEjeM({ sistema: "escena", verticesM: perfilTrazado })}
+                hayNube={nubeInforme !== null}
+                hayModelo={models.length > 0}
+                nubeCalzada={viewer.current?.pointCloudAligned ?? false}
+                generando={generating}
+                onDeshacer={() => setPerfilTrazado((actual) => (actual ?? []).slice(0, -1))}
+                onCancelar={() => setPerfilTrazado(null)}
+                onGenerar={(parametros) => void onGenerarPerfil(parametros)}
+              />
+            )}
+
+            {/* **El cuadro, encima del modelo y no en el panel.** Un cuadro de perfiles de acero
+              trae veinticuatro columnas y el panel de la derecha mide unos 320 px: ahí dentro no es
+              una tabla, es una lista de celdas cortadas. Mismo reparto que la nota flotante. */}
+            {cuadro !== null && (
+              <CuadroFlotante
+                cuadro={cuadro}
+                onCerrar={() => setCuadro(null)}
+                onDescargar={() => onDescargarCuadro(cuadro)}
+                onIrAlElemento={onIrAlElementoDelCuadro}
+              />
+            )}
+
+            <SelectorDeVista
+              vista={standardView}
+              desactivado={models.length === 0 && plans.length === 0 && nube === null}
+              onVista={(view) => {
+                setStandardView(view);
+                void viewer.current?.frameAll(view);
+              }}
+            />
+
+            {/*
+             * **El recuadro de la suelta va en la marca y a opacidad entera**, y las dos cosas son
+             * medidas. Llevaba `border-accent/70`, y `--color-accent` **sí cambia con el tema**: en
+             * claro es `#5b3a9e`, que sobre el fondo del lienzo —`#202932`, y el lienzo es oscuro en
+             * los dos temas— da **1,79:1**. O sea que la única señal de que la suelta va a entrar
+             * era invisible justo mientras se arrastra el archivo.
+             *
+             * La marca no cambia con el tema y da **3,57:1**, que es lo que WCAG 1.4.11 pide de algo
+             * que informa sin ser texto. Y el `/70` sobra: al 70 % ese mismo violeta se queda por
+             * debajo de 3:1, así que la opacidad se comía el margen entero.
+             */}
+            {dragging && (
+              <div className="pointer-events-none absolute inset-4 rounded-lg border-2 border-dashed border-brand" />
+            )}
+
+            {/* **La nube cuenta como "hay algo abierto".** Sin ella en esta condición, el lienzo
+              seguía diciendo «arrastra un IFC aquí» **por encima de la nube ya cargada** — se vio
+              en la primera prueba de `F12.1`. Una pantalla que pide lo que ya tiene delante. */}
+            {models.length === 0 &&
+              plans.length === 0 &&
+              nube === null &&
+              status.kind !== "loading" && (
+                <PuertaDeEntrada
+                  onDelRegistro={() => irASeccion("registro")}
+                  onAbrirDelDisco={() => entradaDeArchivo.current?.click()}
+                  deshabilitado={status.kind !== "ready"}
+                />
+              )}
+          </div>
+
+          {/* **La tabla de temas, acoplada bajo el lienzo** y solo en el espacio del modelo con una
+            obra del registro abierta: los temas son de su obra, y en Planos y perfiles no hay
+            árbol ni elementos que seleccionar. Sin obra no se pinta: no hay a qué preguntarle. */}
+          {espacio === "modelo" && temasAbiertos && origen?.proyectoId !== undefined && (
+            <TablaDeTemas
+              estado={estadoDeTemas}
+              proyectoId={origen.proyectoId}
+              guidSeleccionado={selected?.guid ?? null}
+              onAbrir={onAbrirObservacion}
+              onCerrar={() => setTemasAbiertos(false)}
+            />
+          )}
         </div>
 
         {/* Plegado no hay ancho que arrastrar: el rail mide lo que mide un icono con su área de
@@ -3016,16 +3057,12 @@ export function App() {
             coordinacion={
               <Coordinacion
                 proyectoId={origen?.proyectoId ?? null}
+                estado={estadoDeTemas}
                 onAbrir={onAbrirObservacion}
-                recargar={notasGuardadas}
                 sePuedeAnotar={sePuedeAnotar}
-                // Solo lo que hace falta para señalar en un plano: el GUID y el título. Pasar la
-                // observación entera acoplaría el generador de planos a la forma de la API.
-                onCargadas={(lista) =>
-                  setHallazgosDelModelo(
-                    lista.map((una) => ({ guid: una.guid, titulo: una.titulo })),
-                  )
-                }
+                // Descartar se hace aquí, donde se pide el motivo; la tabla de abajo comparte la lista
+                // y tiene que dejar de enseñar lo que se acaba de cerrar.
+                onDescartada={quitarTema}
               />
             }
             modelCount={models.length}

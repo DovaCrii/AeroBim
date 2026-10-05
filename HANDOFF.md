@@ -19,8 +19,8 @@
   **perfiles** (IFC y nube, desarrollados por PK) y **dos espacios de trabajo**, _Modelo 3D_ y _Planos
   y perfiles_, con **Comparar**. Todo verificado en el navegador **con datos de muestra**: falta el
   oráculo externo con los archivos del metro (`F13.6`).
-- Pruebas: **1 675** en `services/api` (+2 omitidas; CI del 2026-10-05) y **631** en TypeScript
-  (`npm test`: 528 de `packages/*` y 103 de `apps/web`).
+- Pruebas: **1 675** en `services/api` (+2 omitidas; CI del 2026-10-05) y **659** en TypeScript
+  (`npm test`: 528 de `bim-core`, 103 de `viewer` y 28 de `apps/web`).
 
 ## Filas abiertas (verificar con `plan-fila.mjs --abiertas`)
 
@@ -74,6 +74,8 @@ empieza con el piloto en marcha.
 - `avance_fisico` mide avance **documental**, no de obra.
 - **El techo de puntos de una consulta de nube se aplica a lo que se acepta**, no a lo que trae el
   nodo: la primera versión dejó el perfil vacío con la nube llena.
+- **`npm test` no ejecutaba `apps/web`** hasta el 2026-10-05: no tenía script `test`, y las pruebas de
+  `espacios.ts` (#78) nunca pasaron por el CI. Ahora lo ejecuta; si añades una prueba allí, ya cuenta.
 - **`npm run build` no comprueba tipos.** Un import olvidado pasa el build y tumba la aplicación en el
   navegador: `npx tsc --noEmit -p apps/web` y mirar la consola antes de dar algo por bueno.
 

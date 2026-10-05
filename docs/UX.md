@@ -286,6 +286,17 @@ devuelve.
 > vuelta segura —ahora a la vista del modelo y no en una pestaña—. Contraste medido: 9,07 y 6,22 en oscuro,
 > 6,79 y 5,05 en claro.
 
+> **La tabla de temas acoplada abajo (2026-10-05).** «Coordinar → Temas» abre, bajo el lienzo, una tabla
+> con **una columna por dato** —prioridad, título, tipo, estado, responsable, vence—, con búsqueda por
+> título, persona o GUID, los mismos filtros del panel y orden por cualquier columna. Es otra idea tomada de
+> That Open Platform: coordinar es **recorrer muchos temas y compararlos mientras se mira el modelo**, y una
+> tarjeta por tema en un panel estrecho no deja comparar. **Es otra vista de los mismos datos**: la lista se
+> pide una sola vez, en `App`, y la leen el panel y la tabla; descartar un tema —que es irreversible— se
+> queda en el panel, donde se pide el motivo. Un clic en una fila hace lo mismo que en el panel (lleva la
+> cámara y selecciona el elemento) y la fila del elemento seleccionado se resalta. Solo existe en el espacio
+> _Modelo 3D_ y con una obra del registro abierta. Los temas **sin vencimiento van siempre al final**, en
+> los dos sentidos, como en el servidor.
+
 | Trabajo                 | Cómo se hace                                                      |
 | ----------------------- | ----------------------------------------------------------------- |
 | Revisar el plano        | **Modo 2D**: el CAD solo, en planta y ortográfica                 |
