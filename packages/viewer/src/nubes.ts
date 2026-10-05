@@ -134,7 +134,21 @@ export function lectorPorRango(url: string): Getter {
     if (!respuesta.ok) {
       throw new Error(`no se pudo leer la nube (${respuesta.status}): ${url}`);
     }
-    return new Uint8Array(await respuesta.arrayBuffer());
+    // **Un `200` a una petición por tramos es otro fallo, y no hay que confundirlo** (2026-09-28).
+    // Si algo entre el navegador y Django ignora `Range`, cada lectura devuelve el archivo desde el
+    // byte cero: el lector busca el índice COPC donde no está y concluye «es un LAZ normal» sobre
+    // un COPC perfecto. Pedir desde el cero sí puede venir entero; desde otro sitio, no.
+    if (respuesta.status === 200 && inicio > 0) {
+      throw new Error(
+        "El servidor no responde por tramos (devuelve 200 en vez de 206), así que la nube no se " +
+          "puede leer por partes. Es de la instalación, no del archivo: revisa el proxy delante " +
+          "de AeroBim — ver docs/DEPLOY.md.",
+      );
+    }
+    const cuerpo = new Uint8Array(await respuesta.arrayBuffer());
+    // Y si pedía el principio y llegó entero, se corta a lo pedido: lo demás del lector cuenta
+    // bytes desde aquí.
+    return respuesta.status === 200 ? cuerpo.subarray(0, fin - inicio) : cuerpo;
   };
 }
 
@@ -248,6 +262,11 @@ export interface OpcionesDeNube {
   rutaWasm?: string;
   /** Cómo se colorean los puntos. Por omisión, por altura. */
   color?: ModoDeColor;
+  /**
+   * El nombre del archivo, para los avisos. La URL no lo lleva: una del disco es `blob:` y termina
+   * en un UUID, y una del registro termina en `/contenido/`.
+   */
+  nombre?: string;
 }
 
 /**
@@ -290,21 +309,26 @@ const RECORRIDO_MINIMO = 24;
  *
  * Lo único que faltaba era decirlo: qué pasa, por qué, y qué hacer.
  */
-export function comoSeCuenta(error: unknown, url: string): Error {
+export function comoSeCuenta(error: unknown, url: string, nombre?: string): Error {
   const texto = error instanceof Error ? error.message : String(error);
   if (/COPC info VLR|copc\.info|not a COPC/i.test(texto)) {
-    const archivo = url.split("/").pop() ?? url;
+    // **El nombre, no la URL** (2026-09-28). Una nube del disco se abre por una URL `blob:`, que
+    // termina en un UUID y no en el nombre del archivo: el aviso le decía al usuario
+    // «0d9c7dac-2200-… es un LAZ normal», que no identifica nada. Y una del registro termina en
+    // `/contenido/`. Quien llama sabe el nombre; la URL, solo a veces.
+    const archivo = nombre || url.split("/").filter(Boolean).pop() || url;
     return new Error(
-      `«${archivo}» es un LAZ normal, no un COPC. ` +
-        "Un LAZ no lleva el índice dentro, así que habría que descargarlo entero para ver el " +
-        "primer punto: por eso el visor solo abre COPC. Conviértelo antes de subirlo — " +
-        "ver docs/NUBES_DE_PUNTOS.md.",
+      `«${archivo}» es un LAZ normal, no un COPC: le falta el índice que deja ver la nube sin ` +
+        "descargarla entera, y el visor solo abre COPC. Conviértelo una vez: ábrelo en QGIS " +
+        "(3.26 o posterior), que deja un «.copc.laz» junto al original, o con PDAL: " +
+        "pdal translate entrada.laz salida.copc.laz --writer copc. Después abre o sube el " +
+        ".copc.laz. Más en docs/NUBES_DE_PUNTOS.md.",
     );
   }
   return error instanceof Error ? error : new Error(texto);
 }
 
-export async function fichaDeNube(url: string): Promise<FichaDeNube> {
+export async function fichaDeNube(url: string, nombre?: string): Promise<FichaDeNube> {
   const getter = lectorPorRango(url);
   let copc;
   try {
@@ -312,7 +336,7 @@ export async function fichaDeNube(url: string): Promise<FichaDeNube> {
   } catch (error) {
     // **Se traduce aquí y no donde se pinta**, porque aquí se sabe **qué archivo** era: el
     // mensaje que llega a la cinta ya no tiene esa información y acabaría diciendo «un archivo».
-    throw comoSeCuenta(error, url);
+    throw comoSeCuenta(error, url, nombre);
   }
   const pagina = await Copc.loadHierarchyPage(getter, copc.info.rootHierarchyPage);
 
@@ -485,9 +509,9 @@ export class NubeEnEscena {
     try {
       copc = await Copc.create(getter);
     } catch (error) {
-      throw comoSeCuenta(error, url);
+      throw comoSeCuenta(error, url, opciones.nombre);
     }
-    const ficha = await fichaDeNube(url);
+    const ficha = await fichaDeNube(url, opciones.nombre);
     const pagina = await Copc.loadHierarchyPage(getter, copc.info.rootHierarchyPage);
     // El WASM se crea una vez y se le pasa a cada nodo: si no, `copc` crea el suyo buscandolo donde
     // no esta. Ver el encabezado del modulo.

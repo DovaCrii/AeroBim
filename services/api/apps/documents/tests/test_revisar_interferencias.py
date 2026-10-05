@@ -407,37 +407,135 @@ def test_tres_modelos_caben_y_cuatro_no():
     assert not cabe_en_una_peticion(cuantos_pares(4))
 
 
-@pytest.mark.django_db
-def test_con_cuatro_modelos_la_pantalla_no_arranca_la_corrida(
-    dos_modelos, proyectista, monkeypatch, client
-):
-    """**Negarse antes es mejor que morir a mitad.**
+@pytest.fixture
+def cuatro_modelos(dos_modelos, monkeypatch):
+    """Una obra con **cuatro** modelos vigentes —seis pares, 120 s—, y lo que se lanzaría.
 
-    Se finge una obra con cuatro modelos vigentes y se exige que `revisar_proyecto` **no llegue a
-    llamarse**: si llegara, en produccion serian dos minutos contra un tope de dos minutos.
+    La vista importa de `apps.documents.revisar` dentro del método, así que basta con pisar el
+    módulo. `lanzados` recoge cada lanzamiento en vez de arrancar un proceso de verdad.
     """
     from apps.documents import revisar as modulo
 
-    proyecto = dos_modelos[0].entregable.proyecto
-    # La vista importa los dos de `apps.documents.revisar` dentro del método, así que basta con
-    # pisarlos en el módulo: es lo que ve cuando los busca.
     monkeypatch.setattr(modulo, "modelos_vigentes", lambda _p: dos_modelos * 2)
 
     def no_deberia_correr(*a, **k):
-        raise AssertionError("arrancó una corrida de seis pares: en producción muere a los 120 s")
+        raise AssertionError("corrió seis pares dentro de la petición: en producción muere a 120 s")
 
     monkeypatch.setattr(modulo, "revisar_proyecto", no_deberia_correr)
+    lanzados: list = []
+    monkeypatch.setattr(modulo, "lanzar_en_segundo_plano", lambda p, a: lanzados.append((p, a)))
+    return dos_modelos[0].entregable.proyecto, lanzados
+
+
+@pytest.fixture
+def sin_cerrojo():
+    """La caché es de proceso en las pruebas: se limpia para que el cerrojo no pase a otra."""
+    from django.core.cache import cache
+
+    cache.clear()
+    yield
+    cache.clear()
+
+
+def mensajes(respuesta) -> str:
+    return " ".join(str(m) for m in respuesta.context["messages"])
+
+
+@pytest.mark.django_db
+def test_con_cuatro_modelos_se_lanza_en_segundo_plano(
+    cuatro_modelos, proyectista, client, sin_cerrojo
+):
+    """**Lo que no cabe se lanza aparte, en vez de negarse** (2026-09-28).
+
+    Antes la pantalla se negaba y mandaba a `detectar_interferencias`, que cruza **un par** de
+    revisiones por sus UUID: con los modelos de un metro eran quince comandos a mano.
+    """
+    proyecto, lanzados = cuatro_modelos
     client.force_login(dar(proyectista, "documents.add_observacion", "projects.view_proyecto"))
 
     respuesta = client.post(ruta_de(proyecto), follow=True)
 
     assert respuesta.status_code == 200
-    texto = " ".join(str(m) for m in respuesta.context["messages"])
-    # Dice **cuántas** comparaciones y **por dónde** se hace, que es lo accionable.
+    assert [p.pk for p, _a in lanzados] == [proyecto.pk]
+    texto = mensajes(respuesta)
+    # Dice **cuántas** comparaciones y **cómo se entera** quien lo pidió, que es lo accionable.
     assert "6" in texto
-    assert "detectar_interferencias" in texto
-    # Y no abrió nada: una corrida a medias deja hallazgos sin decirlo.
+    assert "detectar_interferencias" not in texto
+    # Y dentro de la petición no se abrió nada: eso lo hace el proceso.
     assert not Observacion.objects.filter(proyecto=proyecto).exists()
+
+
+@pytest.mark.django_db
+def test_un_doble_clic_no_lanza_dos(cuatro_modelos, proyectista, client, sin_cerrojo):
+    """La fila de `JobRun` la crea el proceso al arrancar, segundos después: sin el cerrojo, el
+    segundo clic no la encontraba y lanzaba otra corrida sobre los mismos modelos."""
+    proyecto, lanzados = cuatro_modelos
+    client.force_login(dar(proyectista, "documents.add_observacion", "projects.view_proyecto"))
+
+    client.post(ruta_de(proyecto))
+    client.post(ruta_de(proyecto))
+
+    assert len(lanzados) == 1
+
+
+@pytest.mark.django_db
+def test_con_una_en_curso_no_se_lanza_otra(cuatro_modelos, proyectista, client, sin_cerrojo):
+    from django.utils import timezone
+
+    from apps.core.models import JobRun
+    from apps.documents.revisar import nombre_de_corrida
+
+    proyecto, lanzados = cuatro_modelos
+    JobRun.objects.create(command=nombre_de_corrida(proyecto), started_at=timezone.now())
+    client.force_login(dar(proyectista, "documents.add_observacion", "projects.view_proyecto"))
+
+    respuesta = client.post(ruta_de(proyecto), follow=True)
+
+    assert lanzados == []
+    assert "campana" in mensajes(respuesta)
+
+
+@pytest.mark.django_db
+def test_una_colgada_de_hace_un_dia_no_bloquea_para_siempre(
+    cuatro_modelos, proyectista, client, sin_cerrojo
+):
+    """Un reinicio del servicio a mitad de corrida deja la fila en `running`. Si eso bloqueara el
+    botón, la obra no volvería a poder revisarse nunca."""
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from apps.core.models import JobRun
+    from apps.documents.revisar import nombre_de_corrida
+
+    proyecto, lanzados = cuatro_modelos
+    JobRun.objects.create(
+        command=nombre_de_corrida(proyecto), started_at=timezone.now() - timedelta(days=1)
+    )
+    client.force_login(dar(proyectista, "documents.add_observacion", "projects.view_proyecto"))
+
+    client.post(ruta_de(proyecto))
+
+    assert len(lanzados) == 1
+
+
+def test_el_proceso_se_lanza_aparte_y_con_la_obra(monkeypatch):
+    """Lo que de verdad se ejecuta: el comando de la **obra**, en su propia sesión, sin heredar la
+    salida de la petición. Con la sesión compartida, gunicorn lo mataría al reciclar el worker."""
+    import subprocess
+    from types import SimpleNamespace
+
+    from apps.documents import revisar as modulo
+
+    llamadas: list = []
+    monkeypatch.setattr(subprocess, "Popen", lambda *a, **k: llamadas.append((a, k)))
+
+    modulo.lanzar_en_segundo_plano(SimpleNamespace(pk="obra-1"), SimpleNamespace(pk=7))
+
+    (argumentos,), opciones = llamadas[0]
+    assert argumentos[-4:] == ["revisar_obra", "obra-1", "--autor", "7"]
+    assert opciones["start_new_session"] is True
+    assert opciones["stdout"] is subprocess.DEVNULL
 
 
 @pytest.mark.django_db
@@ -468,3 +566,50 @@ def test_la_corrida_deja_su_fila_en_el_historial(dos_modelos, revisor):
     # pantalla y en el historial, así que lleva `ngettext` y no un `f-string`.
     assert "1 par ·" in corrida.summary
     assert "2 interferencias en 1 problema" in corrida.summary
+
+
+# --- El comando de la obra, que es lo que corre en segundo plano ----------------------
+
+
+@pytest.mark.django_db
+def test_revisar_obra_abre_lo_que_encuentra_y_avisa_en_la_campana(dos_modelos, revisor):
+    """Es lo que ve quien pulsó el botón al volver: las observaciones nuevas y un aviso que dice
+    qué encontró. Sin el aviso, la pantalla ya no está esperando y no se entera nadie."""
+    from django.core.management import call_command
+
+    from apps.core.models import Aviso, JobRun
+    from apps.documents.revisar import nombre_de_corrida
+
+    proyecto = dos_modelos[0].entregable.proyecto
+
+    call_command("revisar_obra", str(proyecto.pk), "--autor", revisor.username)
+
+    assert Observacion.objects.filter(proyecto=proyecto, ifc_guid__isnull=False).exists()
+    aviso = Aviso.objects.get(destinatario=revisor, tipo=Aviso.INTERFERENCIAS)
+    assert proyecto.codigo in aviso.titulo
+    assert "1 par" in aviso.detalle
+    assert aviso.url == reverse("projects:proyecto", args=[proyecto.pk])
+    # Y su fila en el historial lleva la obra: es lo que deja saber si hay una en curso.
+    corrida = JobRun.objects.get(command=nombre_de_corrida(proyecto))
+    assert corrida.result == JobRun.RESULT_OK
+
+
+@pytest.mark.django_db
+def test_si_la_corrida_falla_tambien_avisa(dos_modelos, revisor, monkeypatch):
+    """**Un fallo se avisa igual que un éxito**: quien la pidió no está mirando la consola."""
+    from django.core.management import call_command
+
+    from apps.core.models import Aviso
+    from apps.documents import revisar as modulo
+
+    def revienta(*a, **k):
+        raise RuntimeError("el archivo no se pudo leer")
+
+    monkeypatch.setattr(modulo, "detectar", revienta)
+    proyecto = dos_modelos[0].entregable.proyecto
+
+    with pytest.raises(RuntimeError):
+        call_command("revisar_obra", str(proyecto.pk), "--autor", revisor.username)
+
+    aviso = Aviso.objects.get(destinatario=revisor, tipo=Aviso.INTERFERENCIAS)
+    assert "no se pudo leer" in aviso.detalle

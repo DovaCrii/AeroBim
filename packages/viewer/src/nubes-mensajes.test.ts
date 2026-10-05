@@ -28,23 +28,39 @@
 
 import { describe, expect, it } from "vitest";
 
-import { comoSeCuenta } from "./nubes.js";
+import { comoSeCuenta, lectorPorRango } from "./nubes.js";
 
 describe("el mensaje de una nube que no es COPC", () => {
-  it("dice qué archivo era", () => {
+  it("dice qué archivo era, aunque la URL sea un blob", () => {
+    // **Así es una URL `blob:` de verdad**: termina en un UUID. Esta prueba usaba
+    // `blob:https://p340/levantamiento-muro.laz`, que no existe, y por eso pasaba con el defecto
+    // puesto — en `p340` el aviso decía «0d9c7dac-2200-… es un LAZ normal».
     const traducido = comoSeCuenta(
       new Error("COPC info VLR is required"),
-      "blob:https://p340/levantamiento-muro.laz",
+      "blob:https://p340.tailccd107.ts.net:10000/0d9c7dac-2200-4bc9-bfa0-4386ff706008",
+      "levantamiento-muro.laz",
     );
 
-    expect(traducido.message).toContain("levantamiento-muro.laz");
+    expect(traducido.message).toContain("«levantamiento-muro.laz»");
+    expect(traducido.message).not.toContain("0d9c7dac");
+  });
+
+  it("sin nombre, no enseña el tramo vacío de una URL que acaba en barra", () => {
+    const traducido = comoSeCuenta(
+      new Error("COPC info VLR is required"),
+      "/api/revisiones/abc/contenido/",
+    );
+
+    expect(traducido.message).not.toContain("«»");
   });
 
   it("dice qué hacer, y no solo qué falta", () => {
     const traducido = comoSeCuenta(new Error("COPC info VLR is required"), "x.laz");
 
-    // Lo accionable: que hay que convertirlo, y dónde está escrito cómo.
+    // Lo accionable: que hay que convertirlo, **con qué**, y dónde está escrito el resto.
     expect(traducido.message).toContain("Conviértelo");
+    expect(traducido.message).toContain("QGIS");
+    expect(traducido.message).toContain("pdal translate");
     expect(traducido.message).toContain("NUBES_DE_PUNTOS.md");
     // Y ni una palabra del error original, que es lo que no se entiende.
     expect(traducido.message).not.toContain("VLR");
@@ -62,5 +78,48 @@ describe("el mensaje de una nube que no es COPC", () => {
     const otro = new Error("no se pudo leer la nube (404): /x.copc.laz");
 
     expect(comoSeCuenta(otro, "/x.copc.laz")).toBe(otro);
+  });
+});
+
+describe("un servidor que ignora los tramos", () => {
+  /**
+   * **La otra causa del mismo síntoma.** Si el proxy ignora `Range`, cada lectura trae el archivo
+   * desde el byte cero y un COPC perfecto se lee como «LAZ normal». Distinguirlo es lo que evita
+   * mandar a convertir un archivo que está bien.
+   */
+  function servidor(status: number, cuerpo: Uint8Array) {
+    return async () => new Response(cuerpo, { status });
+  }
+
+  it("un 200 lejos del principio es un fallo de la instalación, no del archivo", async () => {
+    const original = globalThis.fetch;
+    globalThis.fetch = servidor(200, new Uint8Array(1000)) as typeof fetch;
+    try {
+      await expect(lectorPorRango("/x.copc.laz")(500, 600)).rejects.toThrow(/por tramos/);
+    } finally {
+      globalThis.fetch = original;
+    }
+  });
+
+  it("un 200 al pedir el principio se corta a lo pedido", async () => {
+    const original = globalThis.fetch;
+    const entero = Uint8Array.from({ length: 1000 }, (_, i) => i % 256);
+    globalThis.fetch = servidor(200, entero) as typeof fetch;
+    try {
+      const leido = await lectorPorRango("/x.copc.laz")(0, 10);
+      expect([...leido]).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    } finally {
+      globalThis.fetch = original;
+    }
+  });
+
+  it("un 206 se devuelve tal cual", async () => {
+    const original = globalThis.fetch;
+    globalThis.fetch = servidor(206, new Uint8Array([7, 8, 9])) as typeof fetch;
+    try {
+      expect([...(await lectorPorRango("/x.copc.laz")(500, 503))]).toEqual([7, 8, 9]);
+    } finally {
+      globalThis.fetch = original;
+    }
   });
 });

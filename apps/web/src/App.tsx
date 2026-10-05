@@ -2,6 +2,8 @@ import {
   BimViewer,
   csvDe,
   queHacerCon,
+  esZip,
+  ifcDelZip,
   type DistanceMode,
   type DrawingView,
   type DrawnMeasurement,
@@ -752,7 +754,11 @@ export function App() {
     // del primero apuntaría a un GUID que ese archivo no contiene.
     setOrigen(null);
     try {
-      const bytes = new Uint8Array(await file.arrayBuffer());
+      let bytes = new Uint8Array(await file.arrayBuffer());
+      // **Un `.ifczip` se abre por el IFC que trae.** Se decide por la firma y no por el nombre:
+      // lo desconocido se intenta como IFC (`formatos.ts`), y un zip llegaba así a `web-ifc`, que
+      // se caía con `memory access out of bounds` sin decir de qué archivo hablaba.
+      if (esZip(bytes)) bytes = await ifcDelZip(bytes);
       const loaded = await instance.loadIfc(bytes, file.name, (stage) => {
         setStatus({ kind: "loading", name: file.name, stage });
       });
@@ -822,6 +828,8 @@ export function App() {
         const cargada = await instance.loadPointCloud(url, {
           presupuestoBytes: 256 * 1024 * 1024,
           color: "rgb",
+          // Para los avisos: la URL de una nube del disco es `blob:` y termina en un UUID.
+          nombre,
           // **La misma trampa que ya costó una sesión con `web-ifc`, y aquí sin arreglar.**
           //
           // El valor por omisión de `laz-perf` es `/wasm/laz-perf.wasm`, absoluto desde la raíz.
@@ -2541,7 +2549,8 @@ export function App() {
                 ref={entradaDeArchivo}
                 type="file"
                 // La nube entra por la misma puerta que el modelo y el plano: `F12.1`.
-                accept=".ifc,.dxf,.laz,.las"
+                // Y el IFC comprimido: sin él en la lista, el diálogo lo escondía.
+                accept=".ifc,.ifczip,.dxf,.laz,.las"
                 // **Varios de una vez, igual que soltándolos**: el modelo y su levantamiento se
                 // eligen juntos, y las dos puertas tienen que hacer lo mismo o una miente.
                 multiple
@@ -3142,13 +3151,51 @@ function StatusBadge({ status }: { readonly status: Status }) {
     );
   }
   if (status.kind === "error") {
-    return (
-      <span className="max-w-md truncate text-xs text-danger" title={status.message}>
-        {status.message}
-      </span>
-    );
+    // `key` con el mensaje: cada error nuevo vuelve a abrirse aunque se cerrara el anterior.
+    return <AvisoDeError key={status.message} message={status.message} />;
   }
   return <span className="text-xs text-fg-3">Listo</span>;
+}
+
+/**
+ * **El error, entero y a la vista** (2026-10-05).
+ *
+ * Iba en una línea truncada de la barra (`max-w-md truncate`), y los avisos que dicen qué hacer son
+ * justo los largos: el de una nube que no es COPC enseñaba «…es un LAZ normal, no un COPC. …» y se
+ * comía la mitad que explica cómo convertirla. El `title` no lo arreglaba —hay que adivinar que existe
+ * y dejar el ratón quieto—. Ahora se abre solo al aparecer, se cierra, y la línea corta de la barra
+ * lo vuelve a abrir.
+ */
+function AvisoDeError({ message }: { readonly message: string }) {
+  const [abierto, setAbierto] = useState(true);
+  return (
+    <span className="relative">
+      <button
+        type="button"
+        onClick={() => setAbierto((actual) => !actual)}
+        aria-expanded={abierto}
+        className="block max-w-md truncate text-xs text-danger hover:underline"
+        title="Ver el aviso entero"
+      >
+        {message}
+      </button>
+      {abierto && (
+        <span
+          role="alert"
+          className="absolute top-full right-0 z-30 mt-2 block w-[min(32rem,90vw)] rounded-md border border-borde bg-surface p-3 text-left text-xs leading-snug text-fg shadow-[var(--shadow-xl)]"
+        >
+          <span className="block whitespace-normal">{message}</span>
+          <button
+            type="button"
+            onClick={() => setAbierto(false)}
+            className="mt-2 rounded-sm px-2 py-0.5 text-fg-2 hover:bg-surface-3 hover:text-fg"
+          >
+            Cerrar
+          </button>
+        </span>
+      )}
+    </span>
+  );
 }
 
 /** Mensaje legible sin exponer la traza cruda. */
