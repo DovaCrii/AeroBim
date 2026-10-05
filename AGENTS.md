@@ -19,7 +19,7 @@ peor que no tener visor — alguien tomará una decisión de obra con ese dato.
 > **Si existe `HANDOFF.md` en la raíz, léelo antes que nada.** Es corto (≤120 líneas) y dice el
 > punto exacto de retome; su historia está en `docs/historial/`. `MASTER_PLAN.md` es la fuente de
 > verdad de qué sigue, pero **no se lee entero** (más de 5.000 líneas): para una fila,
-> `node scripts/claude/plan-fila.mjs F2.4 [--seccion]`; para lo abierto, `--abiertas`.
+> `node scripts/claude/plan-fila.mjs F2.4 [--seccion]`; para lo abierto, `--abiertas`; para saber qué toca, `--siguiente` (o `/siguiente`). Las fases cerradas viven en `docs/historial/plan/`.
 
 ## Decisiones ya tomadas (no reabrir sin que el usuario lo pida)
 

@@ -10,6 +10,9 @@ paths:
 
 - **`MASTER_PLAN.md` no se lee entero.** `node scripts/claude/plan-fila.mjs <código> [--seccion]` y,
   con el número de línea que imprime, lee un rango y edita solo esa fila.
+- **`MASTER_PLAN.md` es un tablero, no una bitácora** (~500 líneas). Al cerrar una fase entera su
+  sección se archiva sin reescribir en `docs/historial/plan/FASE-N.md` (`/siguiente` explica cómo).
+  La narrativa larga de una fila nueva va al PR o al historial, no al tablero.
 - **Al cerrar una fila, hay dos sitios:** su tabla de fase y la tabla «Lo que queda, por fase»;
   actualiza también el conteo. Ese tablero se desactualizó al menos dos veces.
 - **Solo se marca ✅ con el oráculo cumplido** (tabla de `AGENTS.md`, «Verificación»). Cada número
