@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block titulo %}{% translate "Reports" %} · AeroBim{% endblock %}
+
+{% block titulo_pagina %}<h1>{% translate "Reports" %}</h1>{% endblock %}
+
+{% block subtitulo %}
+  <p class="subtitulo">
+    {% blocktranslate trimmed %}
+      How the work stands, at a glance. Every figure says how it is counted: hover over it.
+    {% endblocktranslate %}
+  </p>
+{% endblock %}
+
+{% block contenido %}
+  {% comment %}
+    **El panel de reportes** (`F15.5`): las cifras, dos gráficos y la tabla, en ese orden —lo que se lee
+    primero es lo que más resume—. Qué cuenta cada cifra está en `apps/documents/reportes.py`.
+
+    **Los gráficos van en SVG y CSS, sin JavaScript**: la CSP prohíbe el JavaScript en línea y un
+    gráfico que necesita una librería para dibujarse es una dependencia más que cargar en una faena sin
+    internet. Los colores son los cinco acentos ya medidos del portal, y **cada serie lleva su nombre y
+    su cuenta escritos**: el color no se lee en voz alta ni lo distingue quien no distingue colores.
+
+    **Los selectores son un formulario `GET`** con su botón, por lo mismo que el seguimiento: un
+    `<select>` que se envía solo necesita JavaScript, y así la elección queda en la URL.
+  {% endcomment %}
+
+  <form method="get" class="accion barra-filtros">
+    {% if obras|length > 1 %}
+      <label>
+        {% translate "Work" %}
+        <select name="obra">
+          <option value="">{% translate "All works" %}</option>
+          {% for una in obras %}
+            <option value="{{ una.pk }}"{% if obra and una.pk == obra.pk %} selected{% endif %}>
+              {{ una.codigo }} · {{ una.nombre }}
+            </option>
+          {% endfor %}
+        </select>
+      </label>
+    {% endif %}
+    <label>
+      {% translate "Circle by" %}
+      <select name="circulo">
+        {% for p in propiedades %}
+          <option value="{{ p }}"{% if p == circulo %} selected{% endif %}>
+            {% if p == "responsable" %}{% translate "Owner" %}
+            {% elif p == "estado" %}{% translate "Status" context "observation field" %}
+            {% elif p == "prioridad" %}{% translate "Priority" %}
+            {% elif p == "obra" %}{% translate "Work" %}
+            {% else %}{% translate "Origin" %}{% endif %}
+          </option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      {% translate "Bars by" %}
+      <select name="barras">
+        {% for p in propiedades %}
+          <option value="{{ p }}"{% if p == barras %} selected{% endif %}>
+            {% if p == "responsable" %}{% translate "Owner" %}
+            {% elif p == "estado" %}{% translate "Status" context "observation field" %}
+            {% elif p == "prioridad" %}{% translate "Priority" %}
+            {% elif p == "obra" %}{% translate "Work" %}
+            {% else %}{% translate "Origin" %}{% endif %}
+          </option>
+        {% endfor %}
+      </select>
+    </label>
+    <input type="hidden" name="orden" value="{{ columna }}" />
+    <input type="hidden" name="sentido" value="{{ sentido }}" />
+    <button type="submit" class="boton secundario chico">{% translate "Update" %}</button>
+  </form>
+
+  {# Las cifras. Cada una con su definición en `title`, y el atraso con el filo rojo solo si hay. #}
+  <div class="resumen-de-tramos" role="list">
+    {% for cifra, rotulo, definicion in cifras %}
+      <span role="listitem" title="{{ definicion }}"
+            class="resumen-tramo{% if cifra.alerta and cifra.valor %} resumen-tramo-arde{% elif not cifra.valor %} resumen-tramo-cero{% endif %}">
+        <span class="resumen-tramo-cifra">{{ cifra.valor }}</span>
+        <span class="resumen-tramo-nombre">{{ rotulo }}</span>
+      </span>
+    {% endfor %}
+  </div>
+
+  <div class="reportes-graficos">
+    <section class="bloque" aria-labelledby="titulo-circulo">
+      <h2 class="tramo" id="titulo-circulo">{% translate "Share of the work" %}</h2>
+      {% if segmentos %}
+        <div class="dona-con-leyenda">
+          <svg viewBox="0 0 42 42" class="dona" role="img" aria-label="{% translate 'Donut chart; the same figures are listed beside it' %}">
+            <circle class="dona-fondo" cx="21" cy="21" r="15.91549" fill="none" stroke-width="6" />
+            {% for s in segmentos %}
+              <g class="acento-{{ s.grupo.serie }}">
+                <circle class="dona-arco" cx="21" cy="21" r="15.91549" fill="none" stroke-width="6"
+                        stroke-dasharray="{{ s.dasharray }}" stroke-dashoffset="{{ s.dashoffset }}"
+                        transform="rotate(-90 21 21)" />
+              </g>
+            {% endfor %}
+          </svg>
+          <ul class="leyenda">
+            {% for s in segmentos %}
+              <li class="acento-{{ s.grupo.serie }}">
+                <span class="leyenda-marca" aria-hidden="true"></span>
+                <span class="leyenda-nombre">{{ s.grupo.etiqueta }}</span>
+                <span class="leyenda-cuenta">{{ s.grupo.cantidad }}</span>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% else %}
+        <p class="detalle">{% translate "Nothing to show yet." %}</p>
+      {% endif %}
+    </section>
+
+    <section class="bloque" aria-labelledby="titulo-barras">
+      <h2 class="tramo" id="titulo-barras">{% translate "Count" %}</h2>
+      {% if grupos_de_barras %}
+        <ul class="barras">
+          {% for grupo, ancho in grupos_de_barras %}
+            <li class="acento-{{ grupo.serie }}">
+              <span class="barra-nombre">{{ grupo.etiqueta }}</span>
+              <span class="barra-pista"><span class="barra-relleno" style="width: {{ ancho|stringformat:'s' }}%"></span></span>
+              <span class="barra-cuenta">{{ grupo.cantidad }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="detalle">{% translate "Nothing to show yet." %}</p>
+      {% endif %}
+    </section>
+  </div>
+
+  <section class="bloque" aria-labelledby="titulo-tabla">
+    <h2 class="tramo" id="titulo-tabla">
+      {% translate "Observations" %}
+      <span class="tramo-cifra">{{ total_filas }}</span>
+      <a class="boton secundario chico" style="margin-left: auto"
+         href="{% url 'documents:reportes-csv' %}?obra={{ obra.pk|default:'' }}&amp;orden={{ columna }}&amp;sentido={{ sentido }}">
+        {% translate "Export to Excel" %}
+      </a>
+    </h2>
+
+    {% if filas %}
+      <table class="tabla-reportes">
+        <thead>
+          <tr>
+            {% for c in columnas %}
+              <th scope="col"{% if c == columna %} aria-sort="{% if sentido == 'desc' %}descending{% else %}ascending{% endif %}"{% endif %}>
+                <a href="?obra={{ obra.pk|default:'' }}&amp;circulo={{ circulo }}&amp;barras={{ barras }}&amp;orden={{ c }}&amp;sentido={% if c == columna and sentido == 'asc' %}desc{% else %}asc{% endif %}">
+                  {% if c == "titulo" %}{% translate "Title" %}
+                  {% elif c == "estado" %}{% translate "Status" context "observation field" %}
+                  {% elif c == "prioridad" %}{% translate "Priority" %}
+                  {% elif c == "responsable" %}{% translate "Owner" %}
+                  {% elif c == "vence" %}{% translate "Due" %}
+                  {% else %}{% translate "Work" %}{% endif %}
+                  {% if c == columna %}<span aria-hidden="true">{% if sentido == 'desc' %}▼{% else %}▲{% endif %}</span>{% endif %}
+                </a>
+              </th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for f, dias in filas %}
+            <tr>
+              <td><a href="{% url 'documents:observacion' f.id %}">{{ f.titulo }}</a></td>
+              <td>{{ f.estado_texto }}</td>
+              <td>{{ f.prioridad_texto }}</td>
+              <td>{{ f.responsable }}</td>
+              <td>
+                {% if f.vence %}
+                  {{ f.vence|date:"SHORT_DATE_FORMAT" }}
+                  {% if dias %}
+                    <span class="tarea-vence tarea-vencida">
+                      {% blocktranslate count dias=dias %}{{ dias }} day late{% plural %}{{ dias }} days late{% endblocktranslate %}
+                    </span>
+                  {% endif %}
+                {% else %}
+                  <span class="detalle">—</span>
+                {% endif %}
+              </td>
+              <td>{{ f.obra }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% if total_filas > filas|length %}
+        <p class="detalle">
+          {% blocktranslate trimmed with n=filas|length total=total_filas %}
+            Showing the first {{ n }} of {{ total }}. The export has them all.
+          {% endblocktranslate %}
+        </p>
+      {% endif %}
+    {% else %}
+      <div class="vacio vacio-grande">
+        <svg class="icono-en-linea" aria-hidden="true"><use href="#i-nada"></use></svg>
+        {% translate "There are no observations to report yet." %}
+      </div>
+    {% endif %}
+  </section>
+{% endblock %}

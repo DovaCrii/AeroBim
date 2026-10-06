@@ -185,6 +185,16 @@ CATALOGO: tuple[Modulo, ...] = (
         descripcion=_("Who in the team is behind, and with what: the oldest first."),
         icono="i-seguimiento",
     ),
+    # **El mismo permiso que el seguimiento, por el mismo motivo** (`F15.5`): enseña cuánto lleva
+    # cada persona, y el de lectura lo tiene hasta el mandante.
+    Modulo(
+        grupo=_("Coordination"),
+        titulo=_("Reports"),
+        ruta="documents:reportes",
+        permiso="documents.change_observacion",
+        descripcion=_("Open, overdue and closed at a glance, by person, status or work."),
+        icono="i-seguimiento",
+    ),
     Modulo(
         grupo=_("Coordination"),
         titulo=_("Observations"),

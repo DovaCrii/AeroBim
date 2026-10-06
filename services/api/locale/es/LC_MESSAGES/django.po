@@ -4952,3 +4952,156 @@ msgstr "Nube de revisión"
 #: .\apps\documents\models.py
 msgid "Callout"
 msgstr "Llamada"
+
+#: .\apps\documents\reportes.py
+msgid "Clash"
+msgstr "Interferencia"
+
+#: .\apps\documents\reportes.py
+msgid "Note"
+msgstr "Nota"
+
+#: .\apps\documents\reportes.py
+msgid "Others"
+msgstr "Otros"
+
+#: .\apps\documents\reportes.py
+msgid "Open for over 30 days"
+msgstr "Abiertas hace más de 30 días"
+
+#: .\apps\documents\reportes.py
+msgid "Due this week"
+msgstr "Vencen esta semana"
+
+#: .\apps\documents\reportes.py
+msgid "Assigned to me"
+msgstr "Asignadas a mí"
+
+#: .\apps\documents\reportes.py
+msgid "Closed this week"
+msgstr "Cerradas esta semana"
+
+#: .\apps\documents\reportes.py
+msgid "Closed today"
+msgstr "Cerradas hoy"
+
+#: .\apps\documents\reportes.py
+msgid "Observations that are neither closed nor dismissed."
+msgstr "Observaciones que no están cerradas ni descartadas."
+
+#: .\apps\documents\reportes.py
+msgid "Open observations whose due date is before today."
+msgstr "Observaciones abiertas con plazo anterior a hoy."
+
+#: .\apps\documents\reportes.py
+msgid "Open observations opened more than 30 days ago."
+msgstr "Observaciones abiertas hace más de 30 días."
+
+#: .\apps\documents\reportes.py
+msgid "Open observations due from today until six days from now."
+msgstr "Observaciones abiertas con plazo desde hoy hasta dentro de seis días."
+
+#: .\apps\documents\reportes.py
+msgid "Open observations that are yours."
+msgstr "Observaciones abiertas que son tuyas."
+
+#: .\apps\documents\reportes.py
+msgid "Closed observations. Dismissed ones are not counted: they were not resolved."
+msgstr "Observaciones cerradas. Las descartadas no cuentan: no se resolvieron."
+
+#: .\apps\documents\reportes.py
+msgid "Observations closed in the last seven days, today included."
+msgstr "Observaciones cerradas en los últimos siete días, contando hoy."
+
+#: .\apps\documents\reportes.py
+msgid "Observations closed today."
+msgstr "Observaciones cerradas hoy."
+
+#: .\apps\documents\reportes_views.py
+msgid "Days late"
+msgstr "Días de atraso"
+
+#: .\apps\documents\reportes_views.py
+msgid "Origin"
+msgstr "Origen"
+
+#: .\apps\documents\reportes_views.py
+msgid "Opened"
+msgstr "Abierta el"
+
+#: .\apps\documents\reportes.html
+msgid "Reports"
+msgstr "Reportes"
+
+#: .\apps\documents\reportes.html
+msgid "How the work stands, at a glance. Every figure says how it is counted: hover over it."
+msgstr "Cómo va el trabajo, de un vistazo. Cada cifra dice cómo se cuenta: pasa el cursor por encima."
+
+#: .\apps\documents\reportes.html
+msgid "Circle by"
+msgstr "Círculo por"
+
+#: .\apps\documents\reportes.html
+msgid "Bars by"
+msgstr "Barras por"
+
+#: .\apps\documents\reportes.html
+msgid "Update"
+msgstr "Actualizar"
+
+#: .\apps\documents\reportes.html
+msgid "Share of the work"
+msgstr "Reparto del trabajo"
+
+#: .\apps\documents\reportes.html
+msgid "Donut chart; the same figures are listed beside it"
+msgstr "Gráfico de dona; las mismas cifras están en la lista de al lado"
+
+#: .\apps\documents\reportes.html
+msgid "Nothing to show yet."
+msgstr "Todavía no hay nada que mostrar."
+
+#: .\apps\documents\reportes.html
+msgid "Count"
+msgstr "Cuenta"
+
+#: .\apps\documents\reportes.html
+msgid "Export to Excel"
+msgstr "Exportar a Excel"
+
+#: .\apps\documents\reportes.html
+msgid "Showing the first %(n)s of %(total)s. The export has them all."
+msgstr "Se muestran las primeras %(n)s de %(total)s. La exportación las lleva todas."
+
+#: .\apps\documents\reportes.html
+msgid "There are no observations to report yet."
+msgstr "Todavía no hay observaciones para reportar."
+
+#: .\apps\accounts\modulos.py
+msgid "Open, overdue and closed at a glance, by person, status or work."
+msgstr "Abiertas, vencidas y cerradas de un vistazo, por persona, estado u obra."
+
+#: .\apps\documents\reportes.py
+msgctxt "report figure"
+msgid "Open"
+msgstr "Abiertas"
+
+#: .\apps\documents\reportes.py
+msgctxt "report figure"
+msgid "Overdue"
+msgstr "Vencidas"
+
+#: .\apps\documents\reportes.py
+msgctxt "report figure"
+msgid "Closed"
+msgstr "Cerradas"
+
+#: .\apps\documents\reportes_views.py
+msgctxt "observation field"
+msgid "Status"
+msgstr "Estado"
+
+#: .\apps\documents\models.py
+msgctxt "observation status"
+msgid "Open"
+msgstr "Abierta"
