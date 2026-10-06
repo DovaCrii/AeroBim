@@ -1,7 +1,7 @@
 /** La malla de un perfil, con respuestas calculables a mano. */
 import { describe, expect, it } from "vitest";
 
-import { mallaDePerfil, pasoLimpio } from "./malla.js";
+import { decimalesDelPaso, mallaDePerfil, pasoLimpio, rotulosDeMalla } from "./malla.js";
 
 describe("pasoLimpio", () => {
   it("elige 1, 2 o 5 por una potencia de diez", () => {
@@ -64,5 +64,45 @@ describe("mallaDePerfil", () => {
       if (Math.abs(alto - 0.36) < 1e-9) largas.push(malla.regla[i]);
     }
     expect(largas).toEqual([0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]);
+  });
+});
+
+describe("decimalesDelPaso", () => {
+  it("cuenta los decimales justos para no perder el paso", () => {
+    expect(decimalesDelPaso(5)).toBe(0);
+    expect(decimalesDelPaso(20)).toBe(0);
+    expect(decimalesDelPaso(0.5)).toBe(1);
+    expect(decimalesDelPaso(0.05)).toBe(2);
+    expect(decimalesDelPaso(0.25)).toBe(2);
+  });
+  it("un paso inválido no rompe", () => {
+    expect(decimalesDelPaso(0)).toBe(0);
+    expect(decimalesDelPaso(Number.NaN)).toBe(0);
+  });
+});
+
+describe("rotulosDeMalla", () => {
+  const rango = { sMinM: 0, sMaxM: 100, cotaMinM: 101.3, cotaMaxM: 113.3 };
+  const malla = mallaDePerfil(rango)!;
+  const formato = (s: number, d: number) => `PK${s.toFixed(d)}`;
+
+  it("hay un PK por cada línea vertical, en los mismos valores", () => {
+    const { pk } = rotulosDeMalla(rango, malla, formato);
+    expect(pk.map((r) => r.sM)).toEqual([0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100]);
+    expect(pk[1]!.texto).toBe("PK10");
+  });
+
+  it("hay una cota por cada línea horizontal, con los decimales del paso", () => {
+    const { cotas } = rotulosDeMalla(rango, malla, formato);
+    expect(cotas.map((r) => r.cotaM)).toEqual([102, 104, 106, 108, 110, 112]);
+    expect(cotas.map((r) => r.texto)).toEqual(["102", "104", "106", "108", "110", "112"]);
+  });
+
+  it("con un paso fraccionario las cotas llevan sus decimales", () => {
+    const fino = { sMinM: 0, sMaxM: 6, cotaMinM: 0, cotaMaxM: 0.6 };
+    const m = mallaDePerfil(fino)!;
+    const { cotas } = rotulosDeMalla(fino, m, formato);
+    expect(m.pasoCotaM).toBeCloseTo(0.1);
+    expect(cotas[1]!.texto).toBe("0.1");
   });
 });

@@ -22,6 +22,45 @@ const L: EjeDePerfil = {
   ],
 };
 
+describe("textoDePk con decimales", () => {
+  it("sin decimales escribe metros enteros, y con uno, uno", () => {
+    expect(textoDePk(0, 0)).toBe("0+000");
+    expect(textoDePk(1240, 0)).toBe("1+240");
+    expect(textoDePk(12.5, 1)).toBe("0+012.5");
+  });
+
+  it("redondea antes de partir en kilómetros, también sin decimales", () => {
+    expect(textoDePk(999.6, 0)).toBe("1+000");
+  });
+
+  it("con dos decimales sigue igual que siempre", () => {
+    expect(textoDePk(1234.5)).toBe("1+234.50");
+  });
+});
+
+describe("rótulos sueltos en una tabla", () => {
+  it("salen en su sitio, sin rejilla y sin recalcular", async () => {
+    const { trazarTabla } = await import("./cuadro-en-plano.js");
+    const trazo = trazarTabla(
+      {
+        title: null,
+        headers: [],
+        rows: [],
+        rotulos: [
+          { text: "0+010", x: 1, z: 2, height: 0.3 },
+          { text: "102", x: -1, z: -3, height: 0.3 },
+        ],
+      },
+      { x: 0, z: 0, rowHeight: 1, charWidth: 1 },
+    );
+    expect(trazo.lines).toEqual([]);
+    expect(trazo.texts.map((t) => [t.text, t.x, t.z, t.height])).toEqual([
+      ["0+010", 1, 2, 0.3],
+      ["102", -1, -3, 0.3],
+    ]);
+  });
+});
+
 describe("textoDePk", () => {
   it("escribe kilómetros, un más, y metros con dos decimales", () => {
     expect(textoDePk(0)).toBe("0+000.00");

@@ -1168,6 +1168,17 @@ export async function perfil(container: HTMLElement, ifcUrl: string, log: Log): 
     log(`  DXF: ${Math.round(dxf.length / 1024)} KB · ${leido.texts.length} textos`);
     if (plano.name === "Perfil longitudinal") {
       // La malla (F13.11) va **dentro del dibujo**: tiene que salir en el DXF, con sus capas.
+      // Los rótulos de la malla (F13.11): un PK (`0+010`) bajo cada línea vertical y la cota a la izquierda.
+      const rotulosPk = leido.texts.filter((t) => /^\d+\+\d{3}$/.test(t.text.trim()));
+      const rotulosCota = leido.texts.filter((t) => /^-?\d+(\.\d+)?$/.test(t.text.trim()));
+      log(
+        `  rótulos de la malla en el DXF: ${rotulosPk.length} de PK (${rotulosPk
+          .slice(0, 4)
+          .map((t) => t.text.trim())
+          .join(", ")}…) y ${rotulosCota.length} de cota ${
+          rotulosPk.length > 1 && rotulosCota.length > 1 ? "(bien)" : "(mal)"
+        }`,
+      );
       const cuenta = (capa: string) => dxf.split(capa).length - 1;
       log(
         `  malla en el DXF: ${cuenta("AB-MALLA")} menciones de AB-MALLA y ${cuenta("AB-REGLA")} de AB-REGLA ` +
@@ -1198,9 +1209,19 @@ export async function perfil(container: HTMLElement, ifcUrl: string, log: Log): 
       );
       // La tabla de referencias es del longitudinal. Que una transversal la lleve es la fuga que
       // este modo destapó: el exportador recorría los dibujos de todos.
+      // Una transversal lleva **los rótulos de su propia malla** (F13.11, distancias en metros), pero no la
+      // tabla de referencias del longitudinal: esa es la fuga que este modo vigila.
+      const deLaTabla = leido.texts.filter((t) =>
+        /Referencias|^Punto$|Vértice|Inicio|^Fin$/.test(t.text),
+      );
+      const conPk = leido.texts.filter((t) => /^\d+\+\d{3}$/.test(t.text.trim()));
       log(
         `  sin la tabla de otro plano: ` +
-          `${leido.texts.length === 0 ? "si (bien)" : `NO (mal) — lleva ${leido.texts.length} textos`}`,
+          `${deLaTabla.length === 0 ? "si (bien)" : `NO (mal) — lleva ${deLaTabla.length} textos de ella`}`,
+      );
+      log(
+        `  rótulos como distancia, no como PK: ` +
+          `${conPk.length === 0 ? "si (bien)" : `NO (mal) — ${conPk.length} con forma de PK`}`,
       );
     }
   }

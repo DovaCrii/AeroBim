@@ -53,6 +53,47 @@ function multiplos(min: number, max: number, paso: number): number[] {
   return valores;
 }
 
+/** Cuántos decimales hacen falta para escribir un paso sin perder nada: 5 → 0, 0,5 → 1, 0,05 → 2. */
+export function decimalesDelPaso(pasoM: number): number {
+  if (!(pasoM > 0)) return 0;
+  for (let d = 0; d < 6; d += 1) {
+    const escalado = pasoM * 10 ** d;
+    if (Math.abs(escalado - Math.round(escalado)) < 1e-9) return d;
+  }
+  return 6;
+}
+
+/** Lo que va escrito sobre la malla: el PK en cada línea vertical y la cota en cada horizontal. */
+export interface RotulosDeMalla {
+  readonly pk: readonly { readonly sM: number; readonly texto: string }[];
+  readonly cotas: readonly { readonly cotaM: number; readonly texto: string }[];
+}
+
+/**
+ * Los rótulos de una malla (`F13.11`): **una cifra por línea de la cuadrícula**, en los mismos valores en
+ * que están las líneas, así que lo escrito y lo dibujado no pueden discrepar. El PK se escribe con el
+ * formateador que pase quien llama —aquí no se sabe cómo se escribe un PK— y la cota con los decimales que
+ * pide el paso: con paso de 2 m, «102», no «102,00».
+ */
+export function rotulosDeMalla(
+  rango: RangoDePerfil,
+  malla: MallaDePerfil,
+  textoDePk: (sM: number, decimales: number) => string,
+): RotulosDeMalla {
+  const decPk = decimalesDelPaso(malla.pasoPkM);
+  const decCota = decimalesDelPaso(malla.pasoCotaM);
+  return {
+    pk: multiplos(rango.sMinM, rango.sMaxM, malla.pasoPkM).map((sM) => ({
+      sM,
+      texto: textoDePk(sM, decPk),
+    })),
+    cotas: multiplos(rango.cotaMinM, rango.cotaMaxM, malla.pasoCotaM).map((cotaM) => ({
+      cotaM,
+      texto: cotaM.toFixed(decCota),
+    })),
+  };
+}
+
 /** La malla de un perfil con sus pasos, o `null` si el rango no tiene extensión. */
 export function mallaDePerfil(rango: RangoDePerfil): MallaDePerfil | null {
   const anchoM = rango.sMaxM - rango.sMinM;

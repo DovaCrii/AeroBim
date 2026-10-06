@@ -32,10 +32,13 @@ export {
   type FilaDeBanda,
 } from "./perfiles/cruces.js";
 export {
+  decimalesDelPaso,
   mallaDePerfil,
   pasoLimpio,
+  rotulosDeMalla,
   type MallaDePerfil,
   type RangoDePerfil,
+  type RotulosDeMalla,
 } from "./perfiles/malla.js";
 
 export {

@@ -15,6 +15,7 @@ import * as OBC from "@thatopen/components";
 import {
   mallaDePerfil,
   rangoDeS,
+  rotulosDeMalla,
   recortarSegmentos,
   sDe,
   type CruceDePerfil,
@@ -23,12 +24,13 @@ import {
   type MallaDePerfil,
 } from "@aerobim/bim-core";
 import * as THREE from "three";
-import { vistaDeFrenteDeLaLamina } from "./perfiles.js";
+import { textoDePk, vistaDeFrenteDeLaLamina } from "./perfiles.js";
 import {
   CuadrosEnPlano,
   exportando,
   type MedidasDeTabla,
   registrarExportador,
+  type RotuloSuelto,
   type TablaDeCuadro,
   trazarTabla,
 } from "./cuadro-en-plano.js";
@@ -763,6 +765,11 @@ export class DrawingMaker {
       readonly nota?: string;
       /** Qué elementos cruza el perfil, para la banda de datos bajo el dibujo. */
       readonly cruces?: readonly CruceDePerfil[];
+      /**
+       * Qué mide el eje horizontal: el **PK** (el longitudinal) o la **distancia** al lado (una transversal).
+       * Decide cómo se rotula la malla: en una transversal «0+002» sería un PK que no lo es.
+       */
+      readonly ejeHorizontal?: "pk" | "distancia";
       readonly onProgress?: (mensaje: string, avance?: number) => void;
     },
   ): Promise<GeneratedDrawing | null> {
@@ -848,6 +855,14 @@ export class DrawingMaker {
         ? undefined
         : `Malla cada ${malla.pasoPkM} m de PK y cada ${malla.pasoCotaM} m de cota (capas ${CAPAS.malla} y ${CAPAS.regla}).`;
     const nota = [opciones.nota, notaDeMalla].filter((x) => x !== undefined).join(" ");
+    if (malla !== null) {
+      this.rotularMalla(
+        id,
+        { sMinM: sMin, sMaxM: sMax, cotaMinM: cMin, cotaMaxM: cMax },
+        malla,
+        opciones.ejeHorizontal ?? "pk",
+      );
+    }
     // `eje` viaja en la ficha para poder volver a su ubicación en el modelo, y `nota` para que lo que
     // hay que saber del plano —que la nube es una muestra, o por qué no se superpuso— lo acompañe.
     const conEje: GeneratedDrawing = {
@@ -859,6 +874,71 @@ export class DrawingMaker {
     const guardado = this.planos.get(id);
     if (guardado !== undefined) this.planos.set(id, { ...guardado, info: conEje });
     return conEje;
+  }
+
+  /**
+   * Escribe las cifras de la malla de un perfil: el PK bajo cada línea vertical y la cota a la izquierda de
+   * cada horizontal (`F13.11`).
+   *
+   * **Son texto del dibujo**, no una capa de la pantalla: salen en el DXF y en la lámina del PDF por el
+   * mismo camino que las tablas, que es el único por el que un texto llega ahí. El alto sale de lo que mide
+   * el perfil —con uno fijo, uno de 30 m y uno de 5 km no se leerían igual—, y el viewport crece para
+   * incluirlos: lo que queda fuera de él, el visor y el DXF lo recortan.
+   */
+  private rotularMalla(
+    id: string,
+    rango: { sMinM: number; sMaxM: number; cotaMinM: number; cotaMaxM: number },
+    malla: MallaDePerfil,
+    ejeHorizontal: "pk" | "distancia",
+  ): void {
+    const plano = this.planos.get(id);
+    if (plano === undefined) return;
+
+    // En una transversal la `s` es la distancia al lado, no un PK: se escribe como metros.
+    const formato = ejeHorizontal === "pk" ? textoDePk : (sM: number, d: number) => sM.toFixed(d);
+    const rotulos = rotulosDeMalla(rango, malla, formato);
+    const extension = Math.max(rango.sMaxM - rango.sMinM, rango.cotaMaxM - rango.cotaMinM);
+    const alto = Math.max(0.12, extension / 70);
+    const ancho = (texto: string) => texto.length * alto * 0.62;
+
+    // Z del dibujo es la cota cambiada de signo, y el texto se apoya en su línea de base: el PK queda
+    // **bajo** el borde inferior, y la cota centrada sobre su línea, **a la izquierda** del borde.
+    const libres: RotuloSuelto[] = [];
+    let masAncho = 0;
+    let masAlLaDerecha = rango.sMaxM;
+    for (const { sM, texto } of rotulos.pk) {
+      libres.push({
+        text: texto,
+        x: sM - ancho(texto) / 2,
+        z: -rango.cotaMinM + alto * 1.9,
+        height: alto,
+      });
+      masAlLaDerecha = Math.max(masAlLaDerecha, sM + ancho(texto) / 2);
+    }
+    for (const { cotaM, texto } of rotulos.cotas) {
+      masAncho = Math.max(masAncho, ancho(texto));
+      libres.push({
+        text: texto,
+        x: rango.sMinM - ancho(texto) - alto * 0.6,
+        z: -cotaM + alto * 0.35,
+        height: alto,
+      });
+    }
+    if (libres.length === 0) return;
+
+    this.cuadros ??= this.components.get(OBC.TechnicalDrawings).use(CuadrosEnPlano);
+    registrarExportador(this.components);
+    const medidas = { x: 0, z: 0, rowHeight: alto, charWidth: alto * 0.62 };
+    const tabla: TablaDeCuadro = { title: null, headers: [], rows: [], rotulos: libres };
+    this.cuadros.add(plano.drawing, { tabla, medidas });
+    this.tablas.push({ id, tabla, medidas });
+
+    plano.viewport.left = Math.min(plano.viewport.left, rango.sMinM - masAncho - alto * 1.6);
+    plano.viewport.right = Math.max(plano.viewport.right, masAlLaDerecha + alto);
+    plano.viewport.bottom = Math.min(
+      plano.viewport.bottom,
+      -(-rango.cotaMinM + alto * 1.9) - alto * 0.5,
+    );
   }
 
   /**
