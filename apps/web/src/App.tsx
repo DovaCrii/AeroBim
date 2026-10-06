@@ -48,6 +48,7 @@ import { DrawingsPanel } from "./components/DrawingsPanel.js";
 import { ModelsPanel } from "./components/ModelsPanel.js";
 import { Coordinacion, type ObservacionDelModelo } from "./components/Coordinacion.js";
 import { GlobosDeTemas } from "./components/GlobosDeTemas.js";
+import { HerramientasDelVisor } from "./components/HerramientasDelVisor.js";
 import { TablaDeTemas } from "./components/TablaDeTemas.js";
 import { useTemasDeLaObra } from "./useTemasDeLaObra.js";
 import { CuadroFlotante } from "./components/CuadroFlotante.js";
@@ -3116,6 +3117,23 @@ export function App() {
                 actual={laminaEnVisor}
                 onVer={(id) => void onVerLamina(id)}
                 onSalir={() => void onSalirDeLamina()}
+              />
+            )}
+
+            {/* **La barra vertical de herramientas** (`F15.3`): seleccionar, medir y anotar, con el mismo mandato que
+                la cinta. Se corre a la derecha de la ficha mientras esta flota sobre el lienzo. */}
+            {models.length > 0 && laminaEnVisor === null && (
+              <HerramientasDelVisor
+                modoDeMedicion={measureMode}
+                puedeAnotar={sePuedeAnotar || sePuedeAnotarLaNube}
+                izquierda={
+                  !panelIzquierdo && haySeleccion
+                    ? "calc(var(--spacing) * 83 + 0.5rem)" // left-3 + w-80 de la ficha, y un hueco
+                    : "calc(var(--spacing) * 3)"
+                }
+                onSeleccionar={() => onMeasureMode(null)}
+                onMedir={() => onMeasureMode(measureMode === null ? "distance" : null)}
+                onAnotar={() => setNotaAbierta(true)}
               />
             )}
 
