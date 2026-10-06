@@ -5523,6 +5523,7 @@ export class BimViewer {
         [{ franja, modelIdMap: mapaDe(franja) }],
         {
           nombre: `Transversal PK ${textoDePk(pkM)}`,
+          ejeHorizontal: "distancia",
           eje,
           origenM,
           ...avance,
