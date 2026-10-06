@@ -38,7 +38,13 @@ from apps.core.views import (
 )
 from apps.documents import abribles, rangos, storage
 from apps.documents.abribles import VISOR_MODELO, abre_en, visor_de
-from apps.documents.models import Entregable, MarcaDeCoordinacion, Observacion, Revision
+from apps.documents.models import (
+    Comentario,
+    Entregable,
+    MarcaDeCoordinacion,
+    Observacion,
+    Revision,
+)
 from apps.documents.views import revisiones_visibles
 
 
@@ -626,6 +632,104 @@ class DescartarObservacionAPI(APIView):
 
         set_audit_context(request, observacion, action="descartar_observacion")
         return Response({"estado": observacion.estado, "yaEstaba": False})
+
+
+class HiloDeObservacionAPI(APIView):
+    """El hilo de una observación, **para leerlo y contestar sin salir del visor**. `F15.4`.
+
+    Hasta aquí el hilo vivía en la ficha de Django: el panel de observaciones del documento y la
+    tarjeta de un tema en la escena enseñaban el título y mandaban a otra pantalla para contestar.
+    Esto es lo que permite quedarse mirando el plano o el modelo mientras se responde, como en los
+    dos visores de referencia.
+
+    **Pide `view_comentario` para leer y `add_comentario` para escribir** —el mismo permiso que el
+    formulario de la ficha—, y **acota por organización** a través de la observación:
+    `add_comentario` dice que esta persona puede responder, no en el hilo de quién.
+
+    Solo texto. Adjuntar una imagen sigue siendo de la ficha (`F12.11`): subir un archivo desde una
+    tarjeta flotante duplicaría su validación de firma y su límite de tamaño.
+    """
+
+    permission_classes = [ViewModelPermissions]
+    queryset = Comentario.objects.none()
+
+    def _observacion(self, request, pk):
+        observacion = (
+            scope_queryset_to_organizacion(Observacion.objects.all(), request.user)
+            .filter(pk=pk)
+            .first()
+        )
+        if observacion is None:
+            raise Http404
+        return observacion
+
+    @staticmethod
+    def _comentario(c, request):
+        from django.urls import reverse
+
+        return {
+            "id": str(c.pk),
+            "autor": str(c.autor),
+            "texto": c.texto,
+            "creada": c.created_at.isoformat(),
+            "esMio": c.autor_id == request.user.pk,
+            # La imagen se pide por el id del comentario, nunca por su clave de almacenamiento.
+            "imagen": reverse("documents:imagen-de-comentario", args=[c.pk]) if c.imagen else None,
+        }
+
+    def get(self, request, *args, **kwargs):
+        from rest_framework.response import Response
+
+        observacion = self._observacion(request, kwargs["pk"])
+        comentarios = observacion.comentarios.select_related("autor").order_by("created_at")
+        return Response(
+            {
+                "estado": observacion.estado,
+                "estadoTexto": observacion.get_estado_display(),
+                "puedeComentar": request.user.has_perm("documents.add_comentario"),
+                "comentarios": [self._comentario(c, request) for c in comentarios],
+            }
+        )
+
+    def post(self, request, *args, **kwargs):
+        import logging
+
+        from rest_framework.response import Response
+
+        from apps.documents.notify import avisar_comentario
+
+        observacion = self._observacion(request, kwargs["pk"])
+        texto = str(request.data.get("texto") or "").strip()
+        if not texto:
+            return Response({"error": _("The comment cannot be empty.")}, status=400)
+
+        comentario = Comentario.objects.create(
+            observacion=observacion, autor=request.user, texto=texto
+        )
+        # Responder deja la observación **respondida**, no cerrada: cerrar es de quien la abrió.
+        if observacion.estado == Observacion.ABIERTA:
+            observacion.estado = Observacion.RESPONDIDA
+            observacion.save(update_fields=["estado", "updated_at"])
+        set_audit_context(request, comentario, action="comentar_observacion")
+
+        # **El aviso va después de guardar y no puede tumbar lo guardado**: con el SMTP caído,
+        # un 500 con el comentario ya escrito hace que se reintente y se duplique. Se dice si salió.
+        try:
+            avisados = avisar_comentario(comentario)
+        except Exception:
+            logging.getLogger("aerobim.jobs").exception("aviso_de_comentario_fallo")
+            avisados = None
+
+        return Response(
+            {
+                "comentario": self._comentario(comentario, request),
+                "estado": observacion.estado,
+                "estadoTexto": observacion.get_estado_display(),
+                # `None`: el aviso falló; `[]`: no había a quién avisar; con nombres: salió.
+                "avisados": avisados,
+            },
+            status=201,
+        )
 
 
 class DondePublicarAPI(APIView):
