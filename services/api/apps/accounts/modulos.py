@@ -137,6 +137,16 @@ CATALOGO: tuple[Modulo, ...] = (
         ),
         icono="i-archivos",
     ),
+    # **El buscador, justo después de «Archivos» y antes de «Entregables»** (`F15.6`): es lo que se
+    # hace cuando se sabe qué se busca y no dónde está.
+    Modulo(
+        grupo=_("The document register"),
+        titulo=_("Search"),
+        ruta="documents:buscar",
+        permiso="documents.view_entregable",
+        descripcion=_("Find a deliverable or an observation by what you remember of it."),
+        icono="i-archivos",
+    ),
     Modulo(
         grupo=_("The document register"),
         titulo=_("Deliverables"),

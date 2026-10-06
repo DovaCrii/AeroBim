@@ -1,6 +1,6 @@
 from django.urls import path
 
-from apps.documents import reportes_views, views, vistas_compartir
+from apps.documents import busqueda_views, reportes_views, views, vistas_compartir
 
 app_name = "documents"
 
@@ -9,7 +9,9 @@ urlpatterns = [
     # **Lo atrasado de todo el equipo, por persona.** La bandeja de arriba es la de cada uno; esta
     # es la de quien reparte. Ver `seguimiento.py`.
     path("seguimiento/", views.SeguimientoView.as_view(), name="seguimiento"),
-    # El panel de reportes (`F15.5`): cifras, dos gráficos y la tabla; y la tabla en CSV.
+    # El panel de reportes (`F15.5`): cifras, dos gráficos y la tabla; y la tabla en CSV. El
+    # buscador del registro (`F15.6`): entregables y observaciones por lo que se recuerda de ellos.
+    path("buscar/", busqueda_views.BuscarView.as_view(), name="buscar"),
     path("reportes/", reportes_views.ReportesView.as_view(), name="reportes"),
     path("reportes/exportar.csv", reportes_views.ReportesCsvView.as_view(), name="reportes-csv"),
     # **El repositorio**: todo lo guardado en el servidor, por categoría. Ver `ArchivosView` —

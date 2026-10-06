@@ -12,6 +12,7 @@
 
 import {
   angleAtDeg,
+  buscarElementos as buscarElementosDe,
   cajaTocaFranja,
   intervaloDeCaja,
   type CruceDePerfil,
@@ -88,6 +89,16 @@ import { masCercanoAlCursor, verticeDelGolpe } from "./senalar.js";
 
 export type { DrawingLayerInfo, DrawingView, GeneratedDrawing } from "./drawings.js";
 export type { PuntoEnPantalla } from "./proyeccion.js";
+
+/** Un elemento hallado por el buscador: dónde está (modelo y `localId`) y con qué se le reconoce. */
+export interface ElementoEncontrado {
+  readonly modelId: string;
+  readonly localId: number;
+  readonly guid: string | null;
+  readonly nombre: string | null;
+  /** La clase IFC en mayúsculas: `IFCWALL`. */
+  readonly categoria: string;
+}
 /* `PartesDeCota` sale en `DrawnMeasurement`, que es público: sin reexportarla, quien consuma la
    librería no puede nombrar el tipo de un campo que recibe. Y `textoDeCota` sale para que el panel
    de mediciones pinte la misma cadena que la escena — dos formatos para el mismo número serían dos
@@ -3428,6 +3439,86 @@ export class BimViewer {
   }
 
   /**
+   * El índice de búsqueda de cada modelo: nombre, clase y GUID de **lo que tiene geometría**. Se arma una
+   * vez por modelo y se guarda; un `WeakMap` por modelo hace que se suelte solo al cerrarlo.
+   *
+   * **Solo lo que tiene geometría**, por lo mismo que los cuadros: las tres clases más numerosas de un IFC
+   * son fontanería del formato (valores de propiedad, conjuntos, unidades) y buscar entre ellas llena el
+   * resultado de cosas que no se pueden ver.
+   */
+  private readonly indicesDeBusqueda = new WeakMap<FRAGS.FragmentsModel, ElementoEncontrado[]>();
+
+  private async indiceDe(
+    modelId: string,
+    model: FRAGS.FragmentsModel,
+    onProgress?: (leidos: number, de: number) => void,
+  ): Promise<ElementoEncontrado[]> {
+    const guardado = this.indicesDeBusqueda.get(model);
+    if (guardado !== undefined) return guardado;
+
+    const [porCategoria, conGeometria] = await Promise.all([
+      model.getItemsOfCategories([/^IFC/]),
+      model.getItemsIdsWithGeometry(),
+    ]);
+    const dibujados = new Set(conGeometria);
+    const pendientes: { localId: number; categoria: string }[] = [];
+    for (const [categoria, ids] of Object.entries(porCategoria)) {
+      for (const localId of ids) {
+        if (dibujados.has(localId))
+          pendientes.push({ localId, categoria: categoria.toUpperCase() });
+      }
+    }
+
+    const indice: ElementoEncontrado[] = [];
+    const TANDA_DE_NOMBRES = 1000;
+    for (let i = 0; i < pendientes.length; i += TANDA_DE_NOMBRES) {
+      const tanda = pendientes.slice(i, i + TANDA_DE_NOMBRES);
+      const datos = await model.getItemsData(
+        tanda.map((p) => p.localId),
+        { attributesDefault: false, attributes: ["Name", "GlobalId"] },
+      );
+      tanda.forEach((p, k) => {
+        const dato = datos[k];
+        indice.push({
+          modelId,
+          localId: p.localId,
+          categoria: p.categoria,
+          nombre: dato === undefined ? null : nombreDe(dato),
+          guid: dato === undefined ? null : guidDe(dato),
+        });
+      });
+      onProgress?.(Math.min(i + TANDA_DE_NOMBRES, pendientes.length), pendientes.length);
+    }
+    this.indicesDeBusqueda.set(model, indice);
+    return indice;
+  }
+
+  /**
+   * Busca elementos en **todos los modelos abiertos** por nombre, clase IFC o GUID (`F15.6`).
+   *
+   * La coincidencia es la de `bim-core` (`buscarElementos`): todos los términos, sin acentos ni
+   * mayúsculas, el GUID exacto primero. Lo que se devuelve es **una lista de identidades** —modelo y
+   * `localId`—, que es lo que `selectById` y `isolate` ya saben recibir: el buscador no tiene un camino
+   * propio hacia la pantalla.
+   *
+   * La primera búsqueda de un modelo lo recorre entero y las siguientes no: para uno de 550 elementos es
+   * instantáneo, y el avance se avisa por si es uno de cien mil.
+   */
+  async buscarElementos(
+    consulta: string,
+    max = 200,
+    onProgress?: (leidos: number, de: number) => void,
+  ): Promise<{ readonly resultados: readonly ElementoEncontrado[]; readonly total: number }> {
+    this.assertAlive();
+
+    const todos: ElementoEncontrado[] = [];
+    for (const [modelId, model] of this.fragments.list) {
+      for (const e of await this.indiceDe(modelId, model, onProgress)) todos.push(e);
+    }
+    return buscarElementosDe(consulta, todos, max);
+  }
+
+  /**
    * Dónde está cada elemento, por GUID: **el centro de la cara de arriba de su caja**, en la escena.
    *
    * Es de donde cuelga un globo numerado (`F15.3`): arriba y no en el centro, porque un globo en el
@@ -4437,6 +4528,16 @@ export class BimViewer {
    * encima.
    */
   async isolate(modelId: string, localIds: readonly number[]): Promise<void> {
+    await this.isolateMany(new Map([[modelId, localIds]]));
+  }
+
+  /**
+   * Lo mismo que {@link isolate} para elementos de **varios modelos a la vez** (`F15.6`): lo que halla el
+   * buscador puede estar repartido entre la arquitectura y la estructura, y aislar solo el primer modelo
+   * dejaba fuera la mitad de lo encontrado sin decirlo. Una sola entrada en la pila, así que «Salir»
+   * deshace todo de una vez.
+   */
+  async isolateMany(porModelo: ReadonlyMap<string, readonly number[]>): Promise<void> {
     this.assertAlive();
 
     // Lo de antes se guarda **antes** de tocar nada: es lo que permite salir del aislamiento sin
@@ -4446,7 +4547,8 @@ export class BimViewer {
     for (const [id, model] of this.fragments.list) {
       // `undefined` afecta a todos los elementos del modelo.
       await model.setVisible(undefined, false);
-      if (id === modelId) await model.setVisible([...localIds], true);
+      const ids = porModelo.get(id);
+      if (ids !== undefined) await model.setVisible([...ids], true);
     }
     await this.refresh();
   }

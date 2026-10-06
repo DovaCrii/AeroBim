@@ -293,3 +293,11 @@ export {
   type QuantityKind,
   type ResolvedUnit,
 } from "./units/quantity.js";
+
+export {
+  buscarElementos,
+  normalizarParaBuscar,
+  puntajeDeElemento,
+  terminosDe,
+  type ElementoBuscable,
+} from "./busqueda/elementos.js";
