@@ -186,6 +186,9 @@ def test_la_api_devuelve_el_ancla_y_si_se_puede_observar(
     assert una["pagina"] == 2
     assert (una["x"], una["y"]) == (0.42, 0.35)
     assert una["url"] == f"/documentos/observaciones/{observacion_anclada.pk}/"
+    # Lo del panel lateral: fecha, plazo, atraso y hilo.
+    assert una["creada"].startswith(str(observacion_anclada.created_at.year))
+    assert (una["vence"], una["vencida"], una["comentarios"]) == (None, False, 0)
 
 
 @pytest.mark.django_db

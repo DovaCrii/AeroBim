@@ -21,6 +21,7 @@ Las tres reglas de acceso son las mismas que en las pantallas, y se escriben una
   lo puede decir un permiso.
 """
 
+from django.db.models import Count
 from django.http import Http404
 from django.utils import timezone
 from django.utils.translation import gettext as _
@@ -371,6 +372,7 @@ class ObservacionesDeRevisionAPI(APIView):
             Observacion.objects.filter(revision=revision)
             .exclude(pagina=None)
             .select_related("responsable", "autor")
+            .annotate(n_comentarios=Count("comentarios"))
             .order_by("pagina", "created_at")
         )
         return Response(
@@ -388,6 +390,13 @@ class ObservacionesDeRevisionAPI(APIView):
                         "estadoTexto": o.get_estado_display(),
                         "prioridad": o.prioridad,
                         "responsable": str(o.responsable),
+                        # Lo que el panel de la derecha necesita para ordenar y avisar: cuándo se
+                        # abrió, el plazo, si ya se pasó (la misma regla que la ficha: no cuenta
+                        # una cerrada) y cuántos mensajes tiene el hilo.
+                        "creada": o.created_at.isoformat(),
+                        "vence": o.vence.isoformat() if o.vence is not None else None,
+                        "vencida": o.vencida,
+                        "comentarios": o.n_comentarios,
                         "pagina": o.pagina,
                         # Fracciones de la página, no píxeles: el PDF se dibuja a la escala que
                         # quepa y a la densidad de la pantalla, así que un píxel guardado hoy
