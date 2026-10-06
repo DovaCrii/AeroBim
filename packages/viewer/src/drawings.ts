@@ -13,12 +13,14 @@
 
 import * as OBC from "@thatopen/components";
 import {
+  mallaDePerfil,
   rangoDeS,
   recortarSegmentos,
   sDe,
   type CruceDePerfil,
   type EjeDePerfil,
   type Franja,
+  type MallaDePerfil,
 } from "@aerobim/bim-core";
 import * as THREE from "three";
 import { vistaDeFrenteDeLaLamina } from "./perfiles.js";
@@ -90,6 +92,10 @@ export const CAPAS = {
   ocultas: "AB-OCULTA",
   /** Los puntos de una nube en un perfil, como marcas. Va aparte: se apaga sin tocar el modelo. */
   nube: "AB-NUBE",
+  /** La cuadrícula de un perfil. Va aparte para apagarla sin tocar el modelo. */
+  malla: "AB-MALLA",
+  /** La regla de PK de un perfil, sobre el borde inferior. */
+  regla: "AB-REGLA",
 } as const;
 
 /** Una capa de un plano generado, para poder listarla y apagarla desde la interfaz. */
@@ -538,6 +544,8 @@ export class DrawingMaker {
       readonly grupos: PlanoGenerado["grupos"];
       /** Las marcas de la nube, ya en coordenadas del dibujo, o `null`. */
       readonly nube?: THREE.BufferGeometry | null;
+      /** La cuadrícula y la regla de un perfil, o `null`: van **dentro del dibujo**, así salen en DXF y PDF. */
+      readonly malla?: MallaDePerfil | null;
     },
   ): GeneratedDrawing {
     // **Las capas se crean antes de colgar nada** — `F7.2`. `addProjectionLines` avisa y cae a la
@@ -575,6 +583,21 @@ export class DrawingMaker {
       const lineasNube = new THREE.LineSegments(marcas);
       lineasNube.name = CAPAS.nube;
       drawing.addProjectionLines(lineasNube, CAPAS.nube);
+    }
+
+    // La malla del perfil, en dos capas propias. Se cuelga **antes** de calcular el viewport, aunque no
+    // lo ensancha: sus líneas llegan justo a los bordes de lo dibujado.
+    const malla = datos.malla ?? null;
+    if (malla !== null) {
+      for (const [capa, pares, color] of [
+        [CAPAS.malla, malla.cuadricula, 0x4a5368],
+        [CAPAS.regla, malla.regla, 0x9aa5c0],
+      ] as const) {
+        drawing.layers.create(capa, { material: new THREE.LineBasicMaterial({ color }) });
+        const lineasMalla = new THREE.LineSegments(geometriaDePerfil(pares));
+        lineasMalla.name = capa;
+        drawing.addProjectionLines(lineasMalla, capa);
+      }
     }
 
     // El viewport encuadra lo dibujado: sin márgenes el plano sale pegado al borde del papel. **Con
@@ -783,6 +806,27 @@ export class DrawingMaker {
     // del trazado, y puede ser solo que la franja es demasiado estrecha.
     if (visibles.length === 0 && nubeS.length === 0) return null;
 
+    // El rango de lo dibujado, para la malla: PK en `s` y cota en vertical.
+    let sMin = Infinity;
+    let sMax = -Infinity;
+    let cMin = Infinity;
+    let cMax = -Infinity;
+    for (const lista of [visibles, ocultas]) {
+      for (let i = 0; i + 1 < lista.length; i += 2) {
+        sMin = Math.min(sMin, lista[i]!);
+        sMax = Math.max(sMax, lista[i]!);
+        cMin = Math.min(cMin, lista[i + 1]!);
+        cMax = Math.max(cMax, lista[i + 1]!);
+      }
+    }
+    for (let i = 0; i < nubeS.length; i += 1) {
+      sMin = Math.min(sMin, nubeS[i]!);
+      sMax = Math.max(sMax, nubeS[i]!);
+      cMin = Math.min(cMin, nubeCota[i]!);
+      cMax = Math.max(cMax, nubeCota[i]!);
+    }
+    const malla = mallaDePerfil({ sMinM: sMin, sMaxM: sMax, cotaMinM: cMin, cotaMaxM: cMax });
+
     const drawing = this.components.get(OBC.TechnicalDrawings).create(world);
     const id = `plano-generado-${this.siguiente++}`;
     drawing.three.visible = false;
@@ -797,13 +841,19 @@ export class DrawingMaker {
       empezado,
       grupos: null,
       nube: nubeS.length === 0 ? null : geometriaDeMarcas(nubeS, nubeCota),
+      malla,
     });
+    const notaDeMalla =
+      malla === null
+        ? undefined
+        : `Malla cada ${malla.pasoPkM} m de PK y cada ${malla.pasoCotaM} m de cota (capas ${CAPAS.malla} y ${CAPAS.regla}).`;
+    const nota = [opciones.nota, notaDeMalla].filter((x) => x !== undefined).join(" ");
     // `eje` viaja en la ficha para poder volver a su ubicación en el modelo, y `nota` para que lo que
     // hay que saber del plano —que la nube es una muestra, o por qué no se superpuso— lo acompañe.
     const conEje: GeneratedDrawing = {
       ...info,
       ...(opciones.eje === undefined ? {} : { eje: opciones.eje }),
-      ...(opciones.nota === undefined ? {} : { nota: opciones.nota }),
+      ...(nota === "" ? {} : { nota }),
       ...(opciones.cruces === undefined ? {} : { cruces: opciones.cruces }),
     };
     const guardado = this.planos.get(id);

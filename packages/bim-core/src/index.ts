@@ -31,6 +31,12 @@ export {
   type CruceDePerfil,
   type FilaDeBanda,
 } from "./perfiles/cruces.js";
+export {
+  mallaDePerfil,
+  pasoLimpio,
+  type MallaDePerfil,
+  type RangoDePerfil,
+} from "./perfiles/malla.js";
 
 export {
   cajaTocaFranja,

@@ -1166,6 +1166,14 @@ export async function perfil(container: HTMLElement, ifcUrl: string, log: Log): 
     }
     const leido = parseDxf(dxf);
     log(`  DXF: ${Math.round(dxf.length / 1024)} KB · ${leido.texts.length} textos`);
+    if (plano.name === "Perfil longitudinal") {
+      // La malla (F13.11) va **dentro del dibujo**: tiene que salir en el DXF, con sus capas.
+      const cuenta = (capa: string) => dxf.split(capa).length - 1;
+      log(
+        `  malla en el DXF: ${cuenta("AB-MALLA")} menciones de AB-MALLA y ${cuenta("AB-REGLA")} de AB-REGLA ` +
+          `${cuenta("AB-MALLA") > 1 && cuenta("AB-REGLA") > 1 ? "(bien)" : "(mal)"}`,
+      );
+    }
 
     // El DXF sale en milímetros de papel, a la escala que cupo: las medidas del dibujo se leen del
     // plano mismo (`sizeM`, en metros), que es lo que no depende del papel.
