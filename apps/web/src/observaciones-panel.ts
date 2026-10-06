@@ -24,7 +24,28 @@ export interface ObservacionDeDocumento {
   readonly vencida: boolean;
   /** Mensajes en su hilo. */
   readonly comentarios: number;
+  /** La forma de la marca, o `null` si es un punto (`F15.2`). */
+  readonly forma: FormaDeMarca | null;
+  /** La esquina opuesta (rectángulo, nube) o a lo que apunta la flecha (llamada), en fracciones. */
+  readonly x2: number | null;
+  readonly y2: number | null;
 }
+
+export type FormaDeMarca = "rectangulo" | "nube" | "llamada";
+
+/** Las herramientas de marcado: el punto de siempre y las tres formas. */
+export type HerramientaDeMarca = "punto" | FormaDeMarca;
+
+export const HERRAMIENTAS: readonly {
+  readonly id: HerramientaDeMarca;
+  readonly texto: string;
+  readonly ayuda: string;
+}[] = [
+  { id: "punto", texto: "Punto", ayuda: "Clic en la página para marcar un punto" },
+  { id: "rectangulo", texto: "Rectángulo", ayuda: "Arrastra para marcar una zona" },
+  { id: "nube", texto: "Nube", ayuda: "Arrastra para rodear con una nube de revisión" },
+  { id: "llamada", texto: "Llamada", ayuda: "Arrastra desde la nota hasta lo que señala" },
+];
 
 export type FiltroDeObservaciones = "todas" | "abiertas" | "vencidas" | "cerradas";
 

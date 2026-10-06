@@ -26,6 +26,9 @@ function obs(id: string, parte: Partial<ObservacionDeDocumento> = {}): Observaci
     vence: null,
     vencida: false,
     comentarios: 0,
+    forma: null,
+    x2: null,
+    y2: null,
     ...parte,
   };
 }

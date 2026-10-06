@@ -4932,3 +4932,23 @@ msgid ""
 msgstr ""
 "Dentro de la aplicación, para que nadie tenga que entrar al administrador "
 "técnico a cambiar su propia credencial."
+
+#: .\apps\documents\forms.py
+msgid "A shape needs its anchor on the document."
+msgstr "Una forma necesita su ancla en el documento."
+
+#: .\apps\documents\forms.py
+msgid "A shape needs its second corner."
+msgstr "Una forma necesita su segunda esquina."
+
+#: .\apps\documents\models.py
+msgid "Rectangle"
+msgstr "Rectángulo"
+
+#: .\apps\documents\models.py
+msgid "Revision cloud"
+msgstr "Nube de revisión"
+
+#: .\apps\documents\models.py
+msgid "Callout"
+msgstr "Llamada"

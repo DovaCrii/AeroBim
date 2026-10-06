@@ -480,6 +480,23 @@ class Observacion(StatusFlowMixin, BaseModel):
     ancla_x = models.FloatField(null=True, blank=True)
     ancla_y = models.FloatField(null=True, blank=True)
 
+    # **La forma de la marca sobre la pagina** — `F15.2`. Hasta aqui una observacion era un
+    # punto. En un plano lo que se senala suele ser una zona o un elemento: un rectangulo, una
+    # nube de revision (el contorno festoneado que se usa en obra para decir «esto cambio») o una
+    # llamada con flecha.
+    #
+    # **`ancla_x`/`ancla_y` siguen siendo la esquina o el punto de partida**, y
+    # `ancla_x2`/`ancla_y2` la esquina opuesta (rectangulo, nube) o el punto al que apunta la
+    # flecha (llamada). Son tambien fracciones de la pagina, por la misma razon que las otras.
+    # Sin forma —el valor de siempre— la marca es el punto, y las dos de aqui van vacias.
+    RECTANGULO = "rectangulo"
+    NUBE = "nube"
+    LLAMADA = "llamada"
+    FORMAS = [(RECTANGULO, _("Rectangle")), (NUBE, _("Revision cloud")), (LLAMADA, _("Callout"))]
+    ancla_forma = models.CharField(max_length=10, blank=True, choices=FORMAS)
+    ancla_x2 = models.FloatField(null=True, blank=True)
+    ancla_y2 = models.FloatField(null=True, blank=True)
+
     # Ancla en el levantamiento: un punto de la nube, `F12.14`.
     #
     # **Tres columnas propias y no `ancla_x`/`ancla_y` mas una.** Las de arriba son la posicion

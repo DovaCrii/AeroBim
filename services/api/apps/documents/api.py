@@ -403,6 +403,11 @@ class ObservacionesDeRevisionAPI(APIView):
                         # apunta a otro sitio mañana.
                         "x": o.ancla_x,
                         "y": o.ancla_y,
+                        # La forma de la marca (`F15.2`): vacía es el punto de siempre; con
+                        # forma, la segunda esquina o el punto al que apunta la flecha.
+                        "forma": o.ancla_forma or None,
+                        "x2": o.ancla_x2,
+                        "y2": o.ancla_y2,
                         "url": f"/documentos/observaciones/{o.pk}/",
                     }
                     for o in observaciones

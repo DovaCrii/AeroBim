@@ -26,10 +26,14 @@ import { StrictMode } from "react";
 import { createPdfiumEngine } from "@embedpdf/engines/pdfium-direct-engine";
 import type { PdfDocumentObject, PdfTextRectObject } from "@embedpdf/models";
 import { pedirFicha, testigoCompartido } from "./compartido.js";
+import { CapaDeFormas, type Borrador } from "./components/CapaDeFormas.js";
 import { PanelDeObservaciones } from "./components/PanelDeObservaciones.js";
 import {
+  HERRAMIENTAS,
   numerar,
   type FiltroDeObservaciones,
+  type FormaDeMarca,
+  type HerramientaDeMarca,
   type ObservacionDeDocumento,
 } from "./observaciones-panel.js";
 import "./index.css";
@@ -136,6 +140,8 @@ function Pagina({
   onElegir,
   buscado,
   onClic,
+  herramienta,
+  onForma,
 }: {
   engine: Motor;
   doc: PdfDocumentObject;
@@ -151,6 +157,10 @@ function Pagina({
   /** Lo que se está buscando, en minúsculas, o `""`. Resalta los trozos que lo contienen. */
   buscado: string;
   onClic: ((pagina: number, x: number, y: number) => void) | null;
+  /** Qué se marca al pulsar: el punto de siempre o una forma que se traza arrastrando. */
+  herramienta: HerramientaDeMarca;
+  /** Se suelta una forma trazada, con sus dos esquinas como fracciones de la página. */
+  onForma: ((pagina: number, forma: FormaDeMarca, caja: Omit<Borrador, "forma">) => void) | null;
 }) {
   const [url, setUrl] = useState<string | null>(null);
   const [textos, setTextos] = useState<readonly PdfTextRectObject[]>([]);
@@ -206,8 +216,46 @@ function Pagina({
   const alto = pagina === undefined ? 0 : Math.round(pagina.size.height * escala);
   const ancho = pagina === undefined ? 0 : Math.round(pagina.size.width * escala);
 
+  // El trazo en curso, en fracciones de la página.
+  const [borrador, setBorrador] = useState<Borrador | null>(null);
+  const trazando = herramienta !== "punto" && onForma !== null;
+
+  const fraccion = (evento: React.PointerEvent<HTMLDivElement>) => {
+    const caja = evento.currentTarget.getBoundingClientRect();
+    const acota = (v: number) => Math.min(1, Math.max(0, v));
+    return {
+      x: acota((evento.clientX - caja.left) / caja.width),
+      y: acota((evento.clientY - caja.top) / caja.height),
+    };
+  };
+
+  const empezar = (evento: React.PointerEvent<HTMLDivElement>) => {
+    if (herramienta === "punto" || onForma === null || evento.button !== 0) return;
+    // Sin esto el arrastre selecciona texto de la página en vez de trazar.
+    evento.preventDefault();
+    evento.currentTarget.setPointerCapture(evento.pointerId);
+    const { x, y } = fraccion(evento);
+    setBorrador({ forma: herramienta, x1: x, y1: y, x2: x, y2: y });
+  };
+
+  const arrastrar = (evento: React.PointerEvent<HTMLDivElement>) => {
+    if (borrador === null) return;
+    const { x, y } = fraccion(evento);
+    setBorrador({ ...borrador, x2: x, y2: y });
+  };
+
+  const terminar = (evento: React.PointerEvent<HTMLDivElement>) => {
+    if (borrador === null) return;
+    const { x, y } = fraccion(evento);
+    const final = { x1: borrador.x1, y1: borrador.y1, x2: x, y2: y };
+    setBorrador(null);
+    // Un clic sin arrastre no define una forma: se descarta en vez de guardar una de tamaño cero.
+    if (Math.hypot((final.x2 - final.x1) * ancho, (final.y2 - final.y1) * alto) < 12) return;
+    onForma?.(indice + 1, borrador.forma, final);
+  };
+
   const clic = (evento: React.MouseEvent<HTMLDivElement>) => {
-    if (onClic === null) return;
+    if (onClic === null || herramienta !== "punto") return;
     const caja = evento.currentTarget.getBoundingClientRect();
     // Se guarda la **fracción de la página**, no el píxel: el PDF se dibuja a la escala que
     // quepa y a la densidad de cada pantalla, así que un píxel de hoy apunta a otro sitio mañana.
@@ -222,8 +270,17 @@ function Pagina({
     <div className="mx-auto mb-6" style={{ width: ancho }}>
       <div
         className="relative bg-white shadow-lg"
-        style={{ width: ancho, height: alto, cursor: onClic === null ? "default" : "crosshair" }}
+        style={{
+          width: ancho,
+          height: alto,
+          cursor: onClic === null ? "default" : "crosshair",
+          touchAction: trazando ? "none" : undefined,
+        }}
         onClick={clic}
+        onPointerDown={empezar}
+        onPointerMove={arrastrar}
+        onPointerUp={terminar}
+        onPointerCancel={() => setBorrador(null)}
       >
         {url !== null ? (
           <img src={url} alt="" width={ancho} height={alto} className="block" />
@@ -271,6 +328,14 @@ function Pagina({
           })}
         </div>
 
+        <CapaDeFormas
+          ancho={ancho}
+          alto={alto}
+          observaciones={observaciones}
+          elegida={elegida}
+          borrador={borrador}
+        />
+
         {observaciones.map((observacion) => {
           const esta = observacion.id === elegida;
           return (
@@ -282,6 +347,7 @@ function Pagina({
               title={`${observacion.titulo} · ${observacion.estadoTexto} · ${observacion.responsable}`}
               // El clic en la marca **no debe abrir una observación nueva**: se detiene aquí. Y la
               // elige: el panel la resalta y enseña su ficha, como en ProjectWise.
+              onPointerDown={(evento) => evento.stopPropagation()}
               onClick={(evento) => {
                 evento.stopPropagation();
                 onElegir(observacion.id);
@@ -321,6 +387,7 @@ function Documento() {
   const [puedeObservar, setPuedeObservar] = useState(false);
   const [filtro, setFiltro] = useState<FiltroDeObservaciones>("todas");
   const [elegida, setElegida] = useState<string | null>(null);
+  const [herramienta, setHerramienta] = useState<HerramientaDeMarca>("punto");
   const [escala, setEscala] = useState<number>(1);
   const [pagina, setPagina] = useState(1);
   /**
@@ -445,7 +512,12 @@ function Documento() {
    * navegador sería tener dos reglas que se separan en el primer cambio.
    */
   const abrirObservacion = useCallback(
-    (numero: number, x: number, y: number) => {
+    (
+      numero: number,
+      x: number,
+      y: number,
+      forma?: { readonly tipo: FormaDeMarca; readonly x2: number; readonly y2: number },
+    ) => {
       // **`entregable.id` decide, y no un `if (testigo)`.** Con un enlace compartido ese campo no
       // viene, así que la guarda es la misma que TypeScript ya obliga a poner: sin identificador no
       // hay formulario al que ir. Comprobar el testigo aparte sería una segunda regla que se separa
@@ -458,6 +530,12 @@ function Documento() {
         x: x.toFixed(4),
         y: y.toFixed(4),
       });
+      // La forma viaja por la URL como el punto: el formulario la comprueba, aquí no se guarda nada.
+      if (forma !== undefined) {
+        consulta.set("forma", forma.tipo);
+        consulta.set("x2", forma.x2.toFixed(4));
+        consulta.set("y2", forma.y2.toFixed(4));
+      }
       globalThis.location.href = `/documentos/entregables/${entregableId}/observar/?${consulta}`;
     },
     [revision, revisionId],
@@ -597,6 +675,27 @@ function Documento() {
             )}
           </>
         )}
+        {puedeObservar && (
+          <div role="group" aria-label="herramienta de marcado" className="flex items-center gap-1">
+            <span className="text-fg-3">Marcar</span>
+            {HERRAMIENTAS.map((h) => (
+              <button
+                key={h.id}
+                type="button"
+                title={h.ayuda}
+                aria-pressed={herramienta === h.id}
+                onClick={() => setHerramienta(h.id)}
+                className={`rounded-sm px-2 py-1 ${
+                  herramienta === h.id
+                    ? "bg-accent text-surface"
+                    : "bg-surface-2 text-fg-2 hover:bg-surface-3"
+                }`}
+              >
+                {h.texto}
+              </button>
+            ))}
+          </div>
+        )}
         <span className="ml-auto flex items-center gap-2">
           <form
             onSubmit={(evento) => {
@@ -723,6 +822,17 @@ function Documento() {
                   onElegir={elegir}
                   buscado={buscado}
                   onClic={puedeObservar ? abrirObservacion : null}
+                  herramienta={herramienta}
+                  onForma={
+                    puedeObservar
+                      ? (numero, tipo, caja) =>
+                          abrirObservacion(numero, caja.x1, caja.y1, {
+                            tipo,
+                            x2: caja.x2,
+                            y2: caja.y2,
+                          })
+                      : null
+                  }
                 />
               </div>
             ))}

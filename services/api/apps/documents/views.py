@@ -2111,6 +2111,19 @@ class NuevaObservacionView(ModelPermissionRequiredMixin, View):
                 inicial[campo] = int(crudo) if campo == "pagina" else float(crudo)
             except ValueError:
                 return {}
+        # **La forma de la marca** (`F15.2`): `?forma=nube&x2=0.6&y2=0.4`. Mismo trato que el
+        # resto: se pasa como valor inicial y el formulario decide. Una forma desconocida, o a la
+        # que le falta una esquina, se ignora **entera**: la segunda esquina suelta sería una
+        # marca de dos puntos que nadie definió.
+        forma = request.GET.get("forma")
+        if forma in {valor for valor, _texto in Observacion.FORMAS}:
+            try:
+                x2 = float(request.GET.get("x2", ""))
+                y2 = float(request.GET.get("y2", ""))
+            except ValueError:
+                pass
+            else:
+                inicial.update(ancla_forma=forma, ancla_x2=x2, ancla_y2=y2)
         revision = request.GET.get("revision")
         if revision:
             inicial["revision"] = revision
