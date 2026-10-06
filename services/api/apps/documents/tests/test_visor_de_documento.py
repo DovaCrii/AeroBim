@@ -624,3 +624,144 @@ def test_una_camara_sin_guid_no_se_guarda(client, proyectista, revision_pdf):
     )
 
     assert Observacion.objects.get(titulo="Camara sin elemento").punto_de_vista == {}
+
+
+# --- La forma de la marca (`F15.2`) ---------------------------------------------------
+
+
+def _datos_de_forma(proyectista, revision_pdf, **extra):
+    return {
+        "titulo": "Zona a revisar",
+        "descripcion": "",
+        "prioridad": Observacion.MEDIA,
+        "responsable": proyectista.pk,
+        "vence": "",
+        "revision": revision_pdf.pk,
+        "pagina": "1",
+        "ancla_x": "0.2",
+        "ancla_y": "0.3",
+        **extra,
+    }
+
+
+@pytest.mark.django_db
+def test_la_forma_llega_del_visor_con_su_segunda_esquina(client, proyectista, revision_pdf):
+    client.force_login(dar(proyectista, "documents.add_observacion"))
+    respuesta = client.get(
+        reverse("documents:nueva-observacion", args=[revision_pdf.entregable_id]),
+        {
+            "revision": str(revision_pdf.pk),
+            "pagina": "1",
+            "x": "0.2",
+            "y": "0.3",
+            "forma": "nube",
+            "x2": "0.6",
+            "y2": "0.5",
+        },
+    )
+
+    inicial = respuesta.context["form"].initial
+    assert inicial["ancla_forma"] == "nube"
+    assert (inicial["ancla_x2"], inicial["ancla_y2"]) == (0.6, 0.5)
+
+
+@pytest.mark.django_db
+def test_una_forma_desconocida_o_sin_esquina_se_ignora_entera(client, proyectista, revision_pdf):
+    client.force_login(dar(proyectista, "documents.add_observacion"))
+    ruta = reverse("documents:nueva-observacion", args=[revision_pdf.entregable_id])
+    base = {"revision": str(revision_pdf.pk), "pagina": "1", "x": "0.2", "y": "0.3"}
+
+    desconocida = client.get(ruta, {**base, "forma": "estrella", "x2": "0.6", "y2": "0.5"})
+    sin_esquina = client.get(ruta, {**base, "forma": "nube", "x2": "0.6"})
+
+    for respuesta in (desconocida, sin_esquina):
+        inicial = respuesta.context["form"].initial
+        assert "ancla_forma" not in inicial and "ancla_x2" not in inicial
+        assert inicial["ancla_x"] == 0.2  # el punto sigue, que es lo que se pidió
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("forma", ["rectangulo", "nube", "llamada"])
+def test_una_forma_se_guarda_con_su_segunda_esquina(client, proyectista, revision_pdf, forma):
+    client.force_login(dar(proyectista, "documents.add_observacion"))
+    respuesta = client.post(
+        reverse("documents:nueva-observacion", args=[revision_pdf.entregable_id]),
+        _datos_de_forma(
+            proyectista, revision_pdf, ancla_forma=forma, ancla_x2="0.6", ancla_y2="0.5"
+        ),
+    )
+
+    assert respuesta.status_code == 302
+    guardada = Observacion.objects.get()
+    assert guardada.ancla_forma == forma
+    assert (guardada.ancla_x2, guardada.ancla_y2) == (0.6, 0.5)
+
+
+@pytest.mark.django_db
+def test_una_forma_sin_segunda_esquina_no_se_guarda(client, proyectista, revision_pdf):
+    client.force_login(dar(proyectista, "documents.add_observacion"))
+    respuesta = client.post(
+        reverse("documents:nueva-observacion", args=[revision_pdf.entregable_id]),
+        _datos_de_forma(proyectista, revision_pdf, ancla_forma="nube"),
+    )
+
+    assert respuesta.status_code == 400
+    assert Observacion.objects.count() == 0
+
+
+@pytest.mark.django_db
+def test_la_segunda_esquina_fuera_de_la_hoja_no_se_guarda(client, proyectista, revision_pdf):
+    client.force_login(dar(proyectista, "documents.add_observacion"))
+    respuesta = client.post(
+        reverse("documents:nueva-observacion", args=[revision_pdf.entregable_id]),
+        _datos_de_forma(
+            proyectista, revision_pdf, ancla_forma="rectangulo", ancla_x2="1.7", ancla_y2="0.5"
+        ),
+    )
+
+    assert respuesta.status_code == 400
+    assert respuesta.context["form"].errors["ancla_x2"]
+
+
+@pytest.mark.django_db
+def test_sin_forma_no_se_guarda_una_segunda_esquina_suelta(client, proyectista, revision_pdf):
+    """Un punto con coordenadas de más no es una forma: se limpian, no se arrastran."""
+    client.force_login(dar(proyectista, "documents.add_observacion"))
+    client.post(
+        reverse("documents:nueva-observacion", args=[revision_pdf.entregable_id]),
+        _datos_de_forma(proyectista, revision_pdf, ancla_x2="0.6", ancla_y2="0.5"),
+    )
+
+    guardada = Observacion.objects.get()
+    assert guardada.ancla_forma == ""
+    assert (guardada.ancla_x2, guardada.ancla_y2) == (None, None)
+
+
+@pytest.mark.django_db
+def test_la_api_devuelve_la_forma_y_su_segunda_esquina(
+    client, proyectista, revision_pdf, observacion_anclada
+):
+    observacion_anclada.ancla_forma = "nube"
+    observacion_anclada.ancla_x2 = 0.7
+    observacion_anclada.ancla_y2 = 0.6
+    observacion_anclada.save()
+    client.force_login(dar(proyectista, "documents.view_revision", "documents.view_observacion"))
+
+    [una] = client.get(
+        reverse("documents_api:revision-observaciones", args=[revision_pdf.pk])
+    ).json()["observaciones"]
+
+    assert (una["forma"], una["x2"], una["y2"]) == ("nube", 0.7, 0.6)
+
+
+@pytest.mark.django_db
+def test_la_api_dice_que_un_punto_no_tiene_forma(
+    client, proyectista, revision_pdf, observacion_anclada
+):
+    client.force_login(dar(proyectista, "documents.view_revision", "documents.view_observacion"))
+
+    [una] = client.get(
+        reverse("documents_api:revision-observaciones", args=[revision_pdf.pk])
+    ).json()["observaciones"]
+
+    assert (una["forma"], una["x2"], una["y2"]) == (None, None, None)

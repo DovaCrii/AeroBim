@@ -286,6 +286,9 @@ class ObservacionForm(PersonasConNombre, forms.ModelForm):
             "pagina",
             "ancla_x",
             "ancla_y",
+            "ancla_forma",
+            "ancla_x2",
+            "ancla_y2",
             "ifc_guid",
         )
         widgets = {
@@ -294,6 +297,9 @@ class ObservacionForm(PersonasConNombre, forms.ModelForm):
             "pagina": forms.HiddenInput,
             "ancla_x": forms.HiddenInput,
             "ancla_y": forms.HiddenInput,
+            "ancla_forma": forms.HiddenInput,
+            "ancla_x2": forms.HiddenInput,
+            "ancla_y2": forms.HiddenInput,
             # **El ancla en el modelo también va oculta**, y llega de dos sitios: de un fallo de
             # validación IDS —que trae el GUID del elemento que no cumple— y, más adelante, de un
             # clic sobre el modelo en el visor. Es la identidad estable, y la que viaja en un BCF.
@@ -329,7 +335,20 @@ class ObservacionForm(PersonasConNombre, forms.ModelForm):
                 _("An anchor on the document needs the page and both coordinates.")
             )
 
-        for campo in ("ancla_x", "ancla_y"):
+        # **La forma:** sin ella, la marca es un punto y no lleva segunda esquina; con ella, la
+        # segunda esquina es obligatoria y tiene que caer en la hoja. Una forma sin ancla no se
+        # dibuja.
+        forma = datos.get("ancla_forma") or ""
+        if forma:
+            if datos.get("pagina") is None:
+                raise forms.ValidationError(_("A shape needs its anchor on the document."))
+            if datos.get("ancla_x2") is None or datos.get("ancla_y2") is None:
+                raise forms.ValidationError(_("A shape needs its second corner."))
+        else:
+            datos["ancla_x2"] = None
+            datos["ancla_y2"] = None
+
+        for campo in ("ancla_x", "ancla_y", "ancla_x2", "ancla_y2"):
             valor = datos.get(campo)
             # Fuera de [0, 1] la marca cae fuera de la página. Pasa si alguien edita la URL, y
             # guardarlo produce una observación que existe y no se ve.
