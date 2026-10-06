@@ -26,6 +26,12 @@ import { StrictMode } from "react";
 import { createPdfiumEngine } from "@embedpdf/engines/pdfium-direct-engine";
 import type { PdfDocumentObject, PdfTextRectObject } from "@embedpdf/models";
 import { pedirFicha, testigoCompartido } from "./compartido.js";
+import { PanelDeObservaciones } from "./components/PanelDeObservaciones.js";
+import {
+  numerar,
+  type FiltroDeObservaciones,
+  type ObservacionDeDocumento,
+} from "./observaciones-panel.js";
 import "./index.css";
 
 /**
@@ -86,18 +92,7 @@ interface Revision {
   readonly proyecto: { readonly codigo: string; readonly nombre: string };
 }
 
-interface Observacion {
-  readonly id: string;
-  readonly titulo: string;
-  readonly estado: string;
-  readonly estadoTexto: string;
-  readonly prioridad: string;
-  readonly responsable: string;
-  readonly pagina: number;
-  readonly x: number;
-  readonly y: number;
-  readonly url: string;
-}
+type Observacion = ObservacionDeDocumento;
 
 /** Qué revisión hay que abrir. Se comprueba la forma antes de pedirla. */
 function revisionPedida(): string | null {
@@ -136,6 +131,9 @@ function Pagina({
   escala,
   visible,
   observaciones,
+  numeros,
+  elegida,
+  onElegir,
   buscado,
   onClic,
 }: {
@@ -145,6 +143,11 @@ function Pagina({
   escala: number;
   visible: boolean;
   observaciones: readonly Observacion[];
+  /** El número de cada observación en el documento: el mismo que lleva en el panel. */
+  numeros: ReadonlyMap<string, number>;
+  /** La observación elegida en el panel o en la página, o `null`. */
+  elegida: string | null;
+  onElegir: (id: string) => void;
   /** Lo que se está buscando, en minúsculas, o `""`. Resalta los trozos que lo contienen. */
   buscado: string;
   onClic: ((pagina: number, x: number, y: number) => void) | null;
@@ -268,29 +271,41 @@ function Pagina({
           })}
         </div>
 
-        {observaciones.map((observacion) => (
-          <a
-            key={observacion.id}
-            href={observacion.url}
-            title={`${observacion.titulo} · ${observacion.estadoTexto} · ${observacion.responsable}`}
-            // El clic en la marca **no debe abrir una observación nueva**: se detiene aquí.
-            onClick={(evento) => evento.stopPropagation()}
-            className="absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white text-nota font-bold text-fg shadow"
-            style={{
-              left: `${observacion.x * 100}%`,
-              top: `${observacion.y * 100}%`,
-              width: 22,
-              height: 22,
-              lineHeight: "18px",
-              textAlign: "center",
-              // Cerrada en verde, el resto en el violeta de la marca. Es la única distinción que
-              // hace falta en el plano: lo demás está en la ficha, a un clic.
-              backgroundColor: observacion.estado === "cerrada" ? "#2f9e44" : "#9b5de5",
-            }}
-          >
-            !
-          </a>
-        ))}
+        {observaciones.map((observacion) => {
+          const esta = observacion.id === elegida;
+          return (
+            <button
+              key={observacion.id}
+              type="button"
+              data-observacion={observacion.id}
+              aria-pressed={esta}
+              title={`${observacion.titulo} · ${observacion.estadoTexto} · ${observacion.responsable}`}
+              // El clic en la marca **no debe abrir una observación nueva**: se detiene aquí. Y la
+              // elige: el panel la resalta y enseña su ficha, como en ProjectWise.
+              onClick={(evento) => {
+                evento.stopPropagation();
+                onElegir(observacion.id);
+              }}
+              className={`absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-2 text-nota font-bold text-white shadow ${
+                esta ? "z-10 border-accent ring-4 ring-accent/40" : "border-white"
+              }`}
+              style={{
+                left: `${observacion.x * 100}%`,
+                top: `${observacion.y * 100}%`,
+                width: esta ? 28 : 22,
+                height: esta ? 28 : 22,
+                lineHeight: esta ? "24px" : "18px",
+                textAlign: "center",
+                // Cerrada en verde, el resto en el violeta de la marca. Es la única distinción que
+                // hace falta en el plano: lo demás está en el panel, a la derecha.
+                // Fondos oscuros a propósito: el número va en blanco y tiene que pasar 4,5:1 (5,7 y 5,6).
+                backgroundColor: observacion.estado === "cerrada" ? "#1f7a35" : "#7c3aed",
+              }}
+            >
+              {numeros.get(observacion.id)}
+            </button>
+          );
+        })}
       </div>
       <p className="mt-1 text-center text-xs text-apagado-fg">{indice + 1}</p>
     </div>
@@ -304,6 +319,8 @@ function Documento() {
   const [doc, setDoc] = useState<PdfDocumentObject | null>(null);
   const [observaciones, setObservaciones] = useState<readonly Observacion[]>([]);
   const [puedeObservar, setPuedeObservar] = useState(false);
+  const [filtro, setFiltro] = useState<FiltroDeObservaciones>("todas");
+  const [elegida, setElegida] = useState<string | null>(null);
   const [escala, setEscala] = useState<number>(1);
   const [pagina, setPagina] = useState(1);
   /**
@@ -446,6 +463,16 @@ function Documento() {
     [revision, revisionId],
   );
 
+  /** Numeradas sobre **todas**, no sobre las filtradas: la marca 7 sigue siendo la 7 con un filtro puesto. */
+  const numeros = useMemo(() => numerar(observaciones), [observaciones]);
+
+  /** Hoy, `AAAA-MM-DD` en hora local: para decir cuántos días de atraso lleva un plazo. */
+  const hoy = useMemo(() => {
+    const ahora = new Date();
+    const dos = (n: number) => String(n).padStart(2, "0");
+    return `${ahora.getFullYear()}-${dos(ahora.getMonth() + 1)}-${dos(ahora.getDate())}`;
+  }, []);
+
   const porPagina = useMemo(() => {
     const mapa = new Map<number, Observacion[]>();
     for (const observacion of observaciones) {
@@ -461,6 +488,16 @@ function Documento() {
     paginas.current[numero - 1]?.scrollIntoView({ block: "start" });
     setPagina(numero);
   }, []);
+
+  /** Elegir una observación lleva a su página: desde el panel, o desde su marca. */
+  const elegir = useCallback(
+    (id: string) => {
+      setElegida(id);
+      const una = observaciones.find((o) => o.id === id);
+      if (una !== undefined) irA(una.pagina);
+    },
+    [observaciones, irA],
+  );
 
   /**
    * Buscar en el documento entero.
@@ -654,33 +691,55 @@ function Documento() {
         )}
       </p>
 
-      <div ref={scroller} onScroll={alDesplazar} className="flex-1 overflow-auto bg-surface-2 p-6">
-        {doc !== null &&
-          engine.current !== null &&
-          doc.pages.map((_p, indice) => (
-            <div
-              key={indice}
-              ref={(nodo) => {
-                paginas.current[indice] = nodo;
-              }}
-            >
-              <Pagina
-                engine={engine.current as Motor}
-                doc={doc}
-                indice={indice}
-                escala={escala}
-                // Una página con coincidencias se dibuja aunque esté lejos: si no, saltar a ella
-                // muestra el hueco reservado y el resaltado no se ve hasta que termine de entrar.
-                visible={
-                  Math.abs(indice + 1 - pagina) <= PAGINAS_DE_MARGEN ||
-                  (hallazgos?.includes(indice + 1) ?? false)
-                }
-                observaciones={porPagina.get(indice + 1) ?? []}
-                buscado={buscado}
-                onClic={puedeObservar ? abrirObservacion : null}
-              />
-            </div>
-          ))}
+      <div className="flex min-h-0 flex-1">
+        <div
+          ref={scroller}
+          onScroll={alDesplazar}
+          className="flex-1 overflow-auto bg-surface-2 p-6"
+        >
+          {doc !== null &&
+            engine.current !== null &&
+            doc.pages.map((_p, indice) => (
+              <div
+                key={indice}
+                ref={(nodo) => {
+                  paginas.current[indice] = nodo;
+                }}
+              >
+                <Pagina
+                  engine={engine.current as Motor}
+                  doc={doc}
+                  indice={indice}
+                  escala={escala}
+                  // Una página con coincidencias se dibuja aunque esté lejos: si no, saltar a ella
+                  // muestra el hueco reservado y el resaltado no se ve hasta que termine de entrar.
+                  visible={
+                    Math.abs(indice + 1 - pagina) <= PAGINAS_DE_MARGEN ||
+                    (hallazgos?.includes(indice + 1) ?? false)
+                  }
+                  observaciones={porPagina.get(indice + 1) ?? []}
+                  numeros={numeros}
+                  elegida={elegida}
+                  onElegir={elegir}
+                  buscado={buscado}
+                  onClic={puedeObservar ? abrirObservacion : null}
+                />
+              </div>
+            ))}
+        </div>
+        {/* **Solo con sesión**: con un enlace compartido no se piden las observaciones (son los hallazgos
+          internos de la obra), y un panel vacío diría «sin observaciones» sobre algo que no se preguntó. */}
+        {testigo === null && (
+          <PanelDeObservaciones
+            observaciones={observaciones}
+            numeros={numeros}
+            filtro={filtro}
+            onFiltro={setFiltro}
+            elegida={elegida}
+            onElegir={elegir}
+            hoy={hoy}
+          />
+        )}
       </div>
     </div>
   );
