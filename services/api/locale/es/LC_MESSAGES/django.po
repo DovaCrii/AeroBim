@@ -5106,6 +5106,42 @@ msgctxt "observation status"
 msgid "Open"
 msgstr "Abierta"
 
+#: .\documents\buscar.html
+msgid "Search"
+msgstr "Buscar"
+
+#: .\documents\buscar.html
+msgid "Look for"
+msgstr "Qué buscar"
+
+#: .\documents\buscar.html
+msgid "A code, a title, a word"
+msgstr "Un código, un título, una palabra"
+
+#: .\documents\buscar.html
+msgid "No deliverable matches."
+msgstr "Ningún entregable coincide."
+
+#: .\documents\buscar.html
+msgid "No observation matches."
+msgstr "Ninguna observación coincide."
+
+#: .\documents\buscar.html
+msgid "Deliverables by code or title, and observations by title or description. Every word has to appear. To find an element inside a model, use the search box in the viewer."
+msgstr "Entregables por código o título, y observaciones por título o descripción. Tiene que aparecer cada palabra. Para encontrar un elemento dentro de un modelo, usa la caja de búsqueda del visor."
+
+#: .\documents\buscar.html
+msgid "Type at least %(n)s letters."
+msgstr "Escribe al menos %(n)s letras."
+
+#: .\documents\buscar.html
+msgid "Showing the first %(n)s of %(total)s. Narrow the search."
+msgstr "Se muestran los primeros %(n)s de %(total)s. Afina la búsqueda."
+
+#: .\accounts\modulos.py
+msgid "Find a deliverable or an observation by what you remember of it."
+msgstr "Encuentra un entregable o una observación por lo que recuerdas de él."
+
 #: .\apps\documents\notify.py
 msgid "%(quien)s mentioned you: %(texto)s"
 msgstr "%(quien)s te mencionó: %(texto)s"

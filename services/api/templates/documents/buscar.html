@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block titulo %}{% translate "Search" %} · AeroBim{% endblock %}
+
+{% block titulo_pagina %}<h1>{% translate "Search" %}</h1>{% endblock %}
+
+{% block subtitulo %}
+  <p class="subtitulo">
+    {% blocktranslate trimmed %}
+      Deliverables by code or title, and observations by title or description. Every word has to appear.
+      To find an element inside a model, use the search box in the viewer.
+    {% endblocktranslate %}
+  </p>
+{% endblock %}
+
+{% block contenido %}
+  {% comment %}
+    **El buscador del registro** (`F15.6`): la mitad «ProjectWise» —un documento o un hallazgo por lo que
+    se recuerda de él—. Un formulario `GET` y no un campo que se envía solo: la CSP prohíbe el JavaScript
+    en línea, y así la búsqueda queda en la URL y se puede guardar o pegar en un correo, que es lo que
+    hace una «búsqueda guardada» sin tabla nueva.
+  {% endcomment %}
+  <form method="get" class="accion barra-filtros" role="search">
+    <label>
+      {% translate "Look for" %}
+      <input type="search" name="q" value="{{ consulta }}" autofocus
+             placeholder="{% translate 'A code, a title, a word' %}" style="min-width: 22rem" />
+    </label>
+    <button type="submit" class="boton chico">{% translate "Search" %}</button>
+  </form>
+
+  {% if demasiado_corta %}
+    <p class="detalle">
+      {% blocktranslate with n=minimo_de_letras %}Type at least {{ n }} letters.{% endblocktranslate %}
+    </p>
+  {% elif hay_busqueda %}
+    <section class="bloque" aria-labelledby="titulo-entregables">
+      <h2 class="tramo" id="titulo-entregables">
+        {% translate "Deliverables" %}
+        <span class="tramo-cifra">{{ entregables_total }}</span>
+      </h2>
+      {% if entregables %}
+        <ul class="lista-de-atrasos">
+          {% for e in entregables %}
+            <li>
+              <a href="{% url 'documents:expediente' e.pk %}">{{ e.codigo }} · {{ e.titulo }}</a>
+              <span class="detalle">{{ e.proyecto.codigo }} · {{ e.disciplina }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+        {% if entregables_total > entregables|length %}
+          <p class="detalle">
+            {% blocktranslate with n=entregables|length total=entregables_total %}Showing the first {{ n }} of {{ total }}. Narrow the search.{% endblocktranslate %}
+          </p>
+        {% endif %}
+      {% else %}
+        <p class="detalle">{% translate "No deliverable matches." %}</p>
+      {% endif %}
+    </section>
+
+    {% if puede_ver_observaciones %}
+      <section class="bloque" aria-labelledby="titulo-observaciones">
+        <h2 class="tramo" id="titulo-observaciones">
+          {% translate "Observations" %}
+          <span class="tramo-cifra">{{ observaciones_total }}</span>
+        </h2>
+        {% if observaciones %}
+          <ul class="lista-de-atrasos">
+            {% for o in observaciones %}
+              <li>
+                <a href="{% url 'documents:observacion' o.pk %}">{{ o.titulo }}</a>
+                <span class="detalle">{{ o.proyecto.codigo }} · {{ o.get_estado_display }} · {{ o.responsable }}</span>
+              </li>
+            {% endfor %}
+          </ul>
+          {% if observaciones_total > observaciones|length %}
+            <p class="detalle">
+              {% blocktranslate with n=observaciones|length total=observaciones_total %}Showing the first {{ n }} of {{ total }}. Narrow the search.{% endblocktranslate %}
+            </p>
+          {% endif %}
+        {% else %}
+          <p class="detalle">{% translate "No observation matches." %}</p>
+        {% endif %}
+      </section>
+    {% endif %}
+  {% endif %}
+{% endblock %}
