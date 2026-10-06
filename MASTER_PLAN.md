@@ -46,12 +46,13 @@ el 2026-10-05—, y lo que queda se cuenta en una línea cada cosa. Actualizado 
 | **2 · Nubes de puntos**        | 🔶 abre, se maneja, calza y **entra al expediente**. `F2.4` espera **el IFC de la pasarela**                                                     |
 | **12 · La interfaz**           | 🔶 los tres bloques cerrados; de `F12.2` queda **señalar tres pares con un ratón** — el par de archivos ya está en el repositorio                |
 | **13 · Perfiles y espacios**   | 🔶 `F13.1`–`F13.4` construidas y verificadas **con muestras**; `F13.8` ✅; faltan `F13.5`–`F13.7` (el oráculo externo es de quien tiene la obra) |
+| **15 · Revisión con marcas**   | ⬜ abierta el 2026-10-06 por el usuario, con dos capturas de referencia; ninguna fila empezada                                                   |
 | **14 · Proceso y código**      | 🔶 `F14.1` (el kit) aplicada el 2026-10-05, a falta de las cifras de `/context`; el resto, planificada                                           |
 | **6 · Geo + BIM**              | ⬜ pospuesta a propósito el 2026-09-02, para poner la coordinación delante                                                                       |
 
 ## Lo que queda, por fase
 
-**Quedan veinte filas abiertas.** Nueve son las de siempre —las cierra el usuario, un archivo de obra o
+**Quedan veinticuatro filas abiertas.** Nueve son las de siempre —las cierra el usuario, un archivo de obra o
 una decisión— y eran todo lo que quedaba hasta el 2026-09-28. Desde el 2026-10-05 se suman cuatro de la
 Fase 13 (`F13.5`–`F13.7` y `F13.11`; `F13.6` y `F13.7` piden archivos de obra; `F13.8`, `F13.9` y `F13.10` se cerraron el mismo día) y **siete de la Fase 14, que las cierra el
 agente cuando se ejecute y hoy solo están planificadas**. `⬜` no empezada · `🔶` `◐` medida a medias ·
@@ -62,16 +63,17 @@ agente cuando se ejecute y hoy solo están planificadas**. `⬜` no empezada · 
 > decía ⬜ sobre código que existe desde hace días»— y se repitió aquí. Corregido el 2026-09-09
 > contando las filas una por una contra el estado de cada fase, que es lo único que no se desactualiza.
 
-| Fase                         | Filas abiertas                                                                                                                  | Quién la cierra                |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
-| **4 — Coordinación**         | `F4.5` ◐ — falta el trazo libre, y depende de mirar un BCF exportado                                                            | El usuario, mirando            |
-| **2 — Nubes de puntos**      | `F2.4` 🔶 — la medida funciona y **cuadra con un corrimiento conocido**; falta el IFC de la pasarela                            | Un archivo de obra             |
-| **12 — La interfaz**         | `F12.2` 🔶 — el par de archivos ya está en el repositorio; queda **señalar tres pares con un ratón**                            | El usuario, pinchando          |
-| **2 — Nubes de puntos**      | `F2.6` ⬜ — el gaussian splatting                                                                                               | Pospuesta por decisión         |
-| **6 — Geo + BIM**            | `F6.1` a `F6.5` ⬜ — Cesium, ortofoto y terreno, situar el IFC, 3D Tiles, y recibir de AeroPlanner                              | Pospuesta por decisión         |
-| **13 — Perfiles**            | `F13.5` ⬜ `ClipStyler`, sin ensayar · `F13.6` ⬜ oráculos externos · `F13.7` ⬜ la nube real · `F13.11` ⬜ la malla del perfil | El agente / un archivo de obra |
-| **14 — Proceso y código**    | `F14.1` 🔶 · `F14.2`–`F14.7` ⬜ — el kit, la revisión, `R1`–`R4` y la Etapa 3 (**bloqueada**)                                   | El agente                      |
-| **0, 3, 5, 7, 8, 9, 10, 11** | Ninguna: las ocho fases enteras                                                                                                 | —                              |
+| Fase                         | Filas abiertas                                                                                                                                     | Quién la cierra                |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| **4 — Coordinación**         | `F4.5` ◐ — falta el trazo libre, y depende de mirar un BCF exportado                                                                               | El usuario, mirando            |
+| **2 — Nubes de puntos**      | `F2.4` 🔶 — la medida funciona y **cuadra con un corrimiento conocido**; falta el IFC de la pasarela                                               | Un archivo de obra             |
+| **12 — La interfaz**         | `F12.2` 🔶 — el par de archivos ya está en el repositorio; queda **señalar tres pares con un ratón**                                               | El usuario, pinchando          |
+| **2 — Nubes de puntos**      | `F2.6` ⬜ — el gaussian splatting                                                                                                                  | Pospuesta por decisión         |
+| **6 — Geo + BIM**            | `F6.1` a `F6.5` ⬜ — Cesium, ortofoto y terreno, situar el IFC, 3D Tiles, y recibir de AeroPlanner                                                 | Pospuesta por decisión         |
+| **13 — Perfiles**            | `F13.5` ⬜ `ClipStyler`, sin ensayar · `F13.6` ⬜ oráculos externos · `F13.7` ⬜ la nube real · `F13.11` ⬜ la malla del perfil                    | El agente / un archivo de obra |
+| **15 — Revisión con marcas** | `F15.1` ⬜ panel de observaciones en el 2D · `F15.2` ⬜ marcas en el 2D · `F15.3` ⬜ globos y detalle en el 3D · `F15.4` ⬜ responder y @menciones | El agente                      |
+| **14 — Proceso y código**    | `F14.1` 🔶 · `F14.2`–`F14.7` ⬜ — el kit, la revisión, `R1`–`R4` y la Etapa 3 (**bloqueada**)                                                      | El agente                      |
+| **0, 3, 5, 7, 8, 9, 10, 11** | Ninguna: las ocho fases enteras                                                                                                                    | —                              |
 
 ## Las decisiones que solo el usuario puede tomar
 
@@ -433,6 +435,34 @@ herramientas laterales»_. Se **midió antes de tocar** (1600 × 1000, un modelo
   están el botón «Abrir» y soltar el archivo en cualquier parte del lienzo.
 - **Contrapartida, dicha:** la tarjeta tapa una esquina del lienzo mientras hay algo seleccionado (320 px a la
   izquierda); si estorba, se fija en columna o se cierra con la «×».
+
+## FASE 15 — Revisión con marcas, en 2D y en 3D (abierta el 2026-10-06)
+
+Pedida por el usuario con **dos capturas de referencia**: la del 2D, **ProjectWise** (visor de PDF con marcas y un
+panel «Issues»), y la del 3D, **iTwin Design Review**. Son productos cerrados: se toma la **distribución y el
+gesto**, no el código (`docs/REFERENCES.md`). Lo que dijo: _«las marcaciones son bastante prácticas»_.
+
+**Lo que ya existe, y por eso casi todo es interfaz:** `Observacion` (estado, prioridad, responsable, ancla de
+documento, ancla de modelo, vista guardada, `marcado`), `Comentario` con imagen, y los endpoints de comentar,
+repartir y cerrar. Lo que hoy **no** existe es la pantalla: `documento.html` pinta un punto por observación y manda
+al formulario de Django para abrir una.
+
+| Qué se ve en la referencia | ProjectWise (2D)                                                  | iTwin Design Review (3D)                                                                                           |
+| -------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Herramientas               | Barra superior: mano, selección, llamada, nube, rectángulo, texto | Barra **vertical fina a la izquierda**: seleccionar, comentar, medir…                                              |
+| La marca en el lienzo      | Rectángulo, **nube de revisión** y llamada con texto              | **Globo numerado** (`004`) anclado al elemento                                                                     |
+| Panel derecho              | Lista «Issues»: título, fecha, estado, hilo plegable, responder   | **Detalle** de uno: volver, título y nº, **estado desplegable**, vista guardada, hilo tipo chat, caja con @mención |
+
+| Fila    | Qué                                                                                                                                                                            | Estado |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------ |
+| `F15.1` | **Panel «Observaciones» en `documento.html`**: lista a la derecha con estado, fecha y filtros; las marcas **numeradas**; elegir una lleva a su página y la resalta, y al revés | ⬜     |
+| `F15.2` | **Marcas del 2D**: rectángulo, nube de revisión y llamada con texto sobre la página (campo `forma` en `Observacion`; hoy solo hay un punto)                                    | ⬜     |
+| `F15.3` | **3D**: barra vertical izquierda de herramientas, **globos numerados** en la escena y detalle de una observación (estado, «ir a la vista guardada», hilo)                      | ⬜     |
+| `F15.4` | **Responder desde el panel**, con @menciones del equipo de la obra, sin salir del visor (hoy se va al formulario)                                                              | ⬜     |
+
+**Orden y razón:** `F15.1` primero —no toca el servidor y es lo que más se nota—; `F15.2` después, que pide una
+migración; `F15.3` y `F15.4` comparten el panel de detalle. Verificación: cada una se mira en el navegador, en
+oscuro y en claro, y las que tocan el servidor traen su prueba de 403 y de aislamiento por organización.
 
 ## Historial por fase
 
