@@ -847,6 +847,13 @@ function Documento() {
             onFiltro={setFiltro}
             elegida={elegida}
             onElegir={elegir}
+            onRespondida={(id, estado, estadoTexto) =>
+              setObservaciones((actuales) =>
+                actuales.map((o) =>
+                  o.id === id ? { ...o, estado, estadoTexto, comentarios: o.comentarios + 1 } : o,
+                ),
+              )
+            }
             hoy={hoy}
           />
         )}

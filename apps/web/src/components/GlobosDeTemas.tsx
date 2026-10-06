@@ -14,6 +14,7 @@ import type { BimViewer } from "@aerobim/viewer";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { numeroDeTema, type ObservacionDelModelo } from "../temas.js";
+import { HiloDeObservacion } from "./HiloDeObservacion.js";
 
 interface Posicion {
   readonly x: number;
@@ -44,6 +45,9 @@ export function GlobosDeTemas({
     new Map(),
   );
   const [posiciones, setPosiciones] = useState<ReadonlyMap<string, Posicion>>(new Map());
+
+  // Lo que cambió al contestar (el estado), sin volver a pedir la lista entera de temas.
+  const [estadoLocal, setEstadoLocal] = useState<ReadonlyMap<string, string>>(new Map());
 
   const guids = useMemo(() => [...new Set(temas.map((t) => t.guid))], [temas]);
 
@@ -145,7 +149,7 @@ export function GlobosDeTemas({
           </header>
           <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
             <dt className="text-fg-3">Estado</dt>
-            <dd className="text-fg">{tema.estadoTexto}</dd>
+            <dd className="text-fg">{estadoLocal.get(tema.id) ?? tema.estadoTexto}</dd>
             <dt className="text-fg-3">Prioridad</dt>
             <dd className="text-fg">{tema.prioridadTexto}</dd>
             <dt className="text-fg-3">Responsable</dt>
@@ -166,6 +170,15 @@ export function GlobosDeTemas({
               </>
             )}
           </dl>
+          <div className="mt-3 border-t border-borde pt-3">
+            <HiloDeObservacion
+              key={tema.id}
+              observacionId={tema.id}
+              onEstado={(_estado, texto) =>
+                setEstadoLocal((actual) => new Map(actual).set(tema.id, texto))
+              }
+            />
+          </div>
           <div className="mt-3 flex items-center gap-3 text-xs">
             <button
               type="button"

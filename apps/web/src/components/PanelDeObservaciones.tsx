@@ -9,6 +9,7 @@
 
 import { useEffect, useRef } from "react";
 
+import { HiloDeObservacion } from "./HiloDeObservacion.js";
 import {
   FILTROS,
   cuentas,
@@ -26,6 +27,7 @@ export function PanelDeObservaciones({
   onFiltro,
   elegida,
   onElegir,
+  onRespondida,
   hoy,
 }: {
   observaciones: readonly ObservacionDeDocumento[];
@@ -34,6 +36,8 @@ export function PanelDeObservaciones({
   onFiltro: (filtro: FiltroDeObservaciones) => void;
   elegida: string | null;
   onElegir: (id: string) => void;
+  /** Se contestó en el hilo de una observación: su estado cambió y su hilo creció. */
+  onRespondida: (id: string, estado: string, estadoTexto: string) => void;
   /** Hoy, `AAAA-MM-DD`: entra por parámetro para que lo que dice el plazo no dependa del reloj. */
   hoy: string;
 }) {
@@ -128,11 +132,15 @@ export function PanelDeObservaciones({
                   </span>
                 </button>
                 {esta && (
-                  <p className="px-4 pb-3 pl-13 text-xs">
+                  <div className="flex flex-col gap-2 px-4 pb-3 pl-13 text-xs">
+                    <HiloDeObservacion
+                      observacionId={o.id}
+                      onEstado={(estado, texto) => onRespondida(o.id, estado, texto)}
+                    />
                     <a className="text-accent underline" href={o.url}>
                       Abrir la ficha
                     </a>
-                  </p>
+                  </div>
                 )}
               </li>
             );

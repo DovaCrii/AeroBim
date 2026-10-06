@@ -55,6 +55,12 @@ urlpatterns = [
     # **Descartar sin salir del visor.** Es lo que hace que una corrida de interferencias sirva dos
     # veces: triar decenas de conflictos abriendo la ficha de cada uno en otra pestaña no lo hace
     # nadie, y a la corrida siguiente vuelven todos.
+    # **El hilo de una observación**, para leerlo y contestar desde el panel sin salir del visor.
+    path(
+        "observaciones/<uuid:pk>/hilo/",
+        api.HiloDeObservacionAPI.as_view(),
+        name="hilo-de-observacion",
+    ),
     path(
         "observaciones/<uuid:pk>/descartar/",
         api.DescartarObservacionAPI.as_view(),
