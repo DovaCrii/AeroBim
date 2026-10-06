@@ -145,7 +145,7 @@ def test_si_el_correo_falla_el_comentario_se_guarda_igual(
     def revienta(*args, **kwargs):
         raise OSError("el servidor de correo no contesta")
 
-    monkeypatch.setattr("apps.documents.views.avisar_comentario", revienta)
+    monkeypatch.setattr("apps.documents.views.observaciones.avisar_comentario", revienta)
     client.force_login(dar(proyectista, "documents.add_comentario"))
 
     respuesta = comentar(client, hallazgo)
