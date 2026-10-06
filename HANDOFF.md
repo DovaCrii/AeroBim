@@ -78,15 +78,9 @@ muros, a propósito.
 
 ## La tanda anterior (#72 a #80)
 
-- #76 dependencias sin avisos (`pypdf`, `urllib3`): `pip-audit` limpio.
-- #72 el tablero del plan al día · #73 la ficha del hallazgo.
-- #74 revisión de interferencias **en segundo plano y sin tope**, IFC comprimido (`.ifczip`), gzip en
-  nginx y aviso de nube legible (un LAZ que no es COPC dice cómo convertirlo).
-- #75 perfil IFC sobre una polilínea, con PK y transversales · #77 perfil de la nube (puntos, nunca
-  una línea de terreno).
-- #78 los dos espacios de trabajo y Comparar; `docs/ARCHITECTURE.md` reescrito contra el código.
-- #79 la Fase 14 en el plan · #80 el kit de proceso (`CLAUDE.md`, `.claude/`, `scripts/claude/`) y este
-  `HANDOFF` corto.
+Interferencias **en segundo plano y sin tope**, IFC comprimido (`.ifczip`) con gzip en nginx (#74); perfil
+IFC y de nube (#75, #77); los dos espacios de trabajo y Comparar, y `ARCHITECTURE.md` reescrito (#78); la
+Fase 14 y el kit de proceso (#79, #80).
 
 ## Trampas vigentes (las que más costaron)
 
