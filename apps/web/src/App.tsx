@@ -47,6 +47,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DrawingsPanel } from "./components/DrawingsPanel.js";
 import { ModelsPanel } from "./components/ModelsPanel.js";
 import { Coordinacion, type ObservacionDelModelo } from "./components/Coordinacion.js";
+import { GlobosDeTemas } from "./components/GlobosDeTemas.js";
 import { TablaDeTemas } from "./components/TablaDeTemas.js";
 import { useTemasDeLaObra } from "./useTemasDeLaObra.js";
 import { CuadroFlotante } from "./components/CuadroFlotante.js";
@@ -461,6 +462,8 @@ export function App() {
   const [visibilidadDeObservacion, setVisibilidadDeObservacion] = useState(false);
   /** La tabla de temas está abierta abajo. */
   const [temasAbiertos, setTemasAbiertos] = useState(false);
+  /** El tema elegido en la escena (su globo), para enseñar su detalle. `F15.3`. */
+  const [temaElegido, setTemaElegido] = useState<string | null>(null);
   /**
    * De qué revisión del registro salió lo que está abierto, o `null` si es un archivo del disco.
    *
@@ -3178,6 +3181,23 @@ export function App() {
              * que informa sin ser texto. Y el `/70` sobra: al 70 % ese mismo violeta se queda por
              * debajo de 3:1, así que la opacidad se comía el margen entero.
              */}
+            {/* **Los temas en la escena** (`F15.3`): globos numerados sobre sus elementos, con el panel
+                «Temas» abierto. Solo en el espacio del modelo y con la lista cargada. */}
+            {espacio === "modelo" &&
+              temasAbiertos &&
+              laminaEnVisor === null &&
+              estadoDeTemas.kind === "listo" && (
+                <GlobosDeTemas
+                  viewer={viewer.current}
+                  temas={estadoDeTemas.observaciones}
+                  modelos={models.length}
+                  elegido={temaElegido}
+                  onElegir={setTemaElegido}
+                  onAbrirVista={(tema) => void onAbrirObservacion(tema)}
+                  onCerrar={() => setTemaElegido(null)}
+                />
+              )}
+
             {dragging && (
               <div className="pointer-events-none absolute inset-4 rounded-lg border-2 border-dashed border-brand" />
             )}

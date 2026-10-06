@@ -170,3 +170,12 @@ export const ORDEN_INICIAL: { readonly columna: Columna; readonly sentido: Senti
   columna: "prioridad",
   sentido: "asc",
 };
+
+/**
+ * El número con que se nombra un tema en la escena y en su detalle: la posición en la lista, desde 1, con
+ * tres cifras (`004`) como en la referencia. Es la **posición**, no una identidad: la identidad es el GUID
+ * del elemento y el `id` del tema, y el número cambia si la lista se reordena.
+ */
+export function numeroDeTema(indice: number): string {
+  return String(indice + 1).padStart(3, "0");
+}
