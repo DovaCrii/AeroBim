@@ -12,11 +12,12 @@
  */
 
 /** Dónde se ancla una barra dentro del lienzo. */
-export type Posicion = "abajo-centro" | "arriba-derecha";
+export type Posicion = "abajo-centro" | "arriba-derecha" | "izquierda-arriba";
 
 const ANCLAJE: Record<Posicion, string> = {
   "abajo-centro": "bottom-3 left-1/2 -translate-x-1/2",
   "arriba-derecha": "top-3 right-3",
+  "izquierda-arriba": "top-3",
 };
 
 export function PanelFlotante({
@@ -24,6 +25,7 @@ export function PanelFlotante({
   etiqueta,
   children,
   apagado = false,
+  izquierda = "calc(var(--spacing) * 3)",
 }: {
   readonly posicion: Posicion;
   /** El nombre accesible de la barra. */
@@ -31,13 +33,24 @@ export function PanelFlotante({
   readonly children: React.ReactNode;
   /** Sin nada que mandar, la barra se ve pero se atenúa: ocultarla movería la interfaz. */
   readonly apagado?: boolean;
+  /**
+   * Solo en `izquierda-arriba`: distancia al borde izquierdo, **con la misma variable `--spacing` que la
+   * ficha** que flota en ese borde. `w-80` no son 20 rem aquí: `--spacing` vale 0,275 rem, así que son 22 —352 px—,
+   * y con 340 px o con `21.25rem` la barra quedaba medio tapada. Se corre a la derecha de la ficha mientras
+   * hay algo elegido.
+   */
+  readonly izquierda?: string;
 }) {
+  const vertical = posicion === "izquierda-arriba";
   return (
     <div
       role="toolbar"
+      aria-orientation={vertical ? "vertical" : "horizontal"}
+      style={vertical ? { left: izquierda } : undefined}
       aria-label={etiqueta}
       className={[
-        "absolute z-10 flex items-stretch gap-1 rounded-lg border border-borde bg-surface/90 px-1.5 pt-1 pb-0.5 shadow-[var(--shadow-xl)] backdrop-blur-sm",
+        "absolute z-10 flex gap-1 rounded-lg border border-borde bg-surface/90 px-1.5 pt-1 pb-0.5 shadow-[var(--shadow-xl)] backdrop-blur-sm",
+        vertical ? "flex-col items-center px-1 py-1.5" : "items-stretch",
         ANCLAJE[posicion],
         apagado ? "opacity-60" : "",
       ].join(" ")}
@@ -76,6 +89,7 @@ export function BotonFlotante({
   desactivado = false,
   resaltado = false,
   activo,
+  compacto = false,
 }: {
   readonly icono: React.ReactNode;
   readonly nombre: string;
@@ -86,6 +100,11 @@ export function BotonFlotante({
   readonly resaltado?: boolean;
   /** Un interruptor o una opción elegida: lleva `aria-pressed`. Omitirlo declara un mandato. */
   readonly activo?: boolean;
+  /**
+   * Solo el icono, de 40 px, para una barra vertical estrecha. **El nombre no se pierde**: va en `title` y en
+   * `aria-label`, así que un lector de pantalla lo dice igual.
+   */
+  readonly compacto?: boolean;
 }) {
   const encendido = activo === true || resaltado;
   return (
@@ -95,8 +114,11 @@ export function BotonFlotante({
       disabled={desactivado}
       title={`${nombre} — ${ayuda}`}
       aria-pressed={activo}
+      aria-label={compacto ? nombre : undefined}
       className={[
-        "flex min-h-11 w-14 flex-col items-center justify-center gap-px rounded-sm px-0.5 py-1",
+        compacto
+          ? "flex h-10 w-10 items-center justify-center rounded-sm"
+          : "flex min-h-11 w-14 flex-col items-center justify-center gap-px rounded-sm px-0.5 py-1",
         "transition-colors duration-[--duracion-corta] ease-[--ease-ab]",
         desactivado
           ? "text-apagado-fg"
@@ -112,7 +134,7 @@ export function BotonFlotante({
       >
         {icono}
       </span>
-      <span className="text-nota leading-none">{nombre}</span>
+      {!compacto && <span className="text-nota leading-none">{nombre}</span>}
     </button>
   );
 }
