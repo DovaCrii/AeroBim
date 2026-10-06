@@ -79,7 +79,14 @@ line-length = 100
 extend-exclude = ["*/migrations/*"]
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I", "UP", "B", "DJ"]
+# **`C901` es la guardia de complejidad** (`F14.5`): una funcion con demasiados caminos es la que nadie
+# se atreve a tocar. El umbral es 15 porque **es el mas estricto que el codigo de hoy cumple**: medido el
+# 2026-10-05, con 10 fallaban 6 funciones y con 15, ninguna. Se baja cuando se refactorice, no antes: una
+# guardia que ya falla se apaga a golpe de `noqa` y deja de decir nada.
+select = ["E", "F", "W", "I", "UP", "B", "DJ", "C901"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 15
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "config.settings.dev"
