@@ -1,5 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { buscar, ordenar, pasa, plano, type ObservacionDelModelo } from "./temas.js";
+import { buscar, numeroDeTema, ordenar, pasa, plano, type ObservacionDelModelo } from "./temas.js";
+
+describe("numeroDeTema", () => {
+  it("es la posición desde 1, con tres cifras", () => {
+    expect(numeroDeTema(0)).toBe("001");
+    expect(numeroDeTema(3)).toBe("004");
+    expect(numeroDeTema(98)).toBe("099");
+  });
+
+  it("no se trunca cuando pasa de tres cifras", () => {
+    expect(numeroDeTema(999)).toBe("1000");
+  });
+});
 
 function tema(parcial: Partial<ObservacionDelModelo> & { id: string }): ObservacionDelModelo {
   return {

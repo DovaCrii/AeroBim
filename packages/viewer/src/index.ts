@@ -65,6 +65,7 @@ import * as OBC from "@thatopen/components";
 import * as OBF from "@thatopen/components-front";
 import * as FRAGS from "@thatopen/fragments";
 import * as THREE from "three";
+import { aPantalla, type PuntoEnPantalla } from "./proyeccion.js";
 import {
   mainThreadConverter,
   workerConverter,
@@ -86,6 +87,7 @@ import { GridOverlay } from "./grid.js";
 import { masCercanoAlCursor, verticeDelGolpe } from "./senalar.js";
 
 export type { DrawingLayerInfo, DrawingView, GeneratedDrawing } from "./drawings.js";
+export type { PuntoEnPantalla } from "./proyeccion.js";
 /* `PartesDeCota` sale en `DrawnMeasurement`, que es público: sin reexportarla, quien consuma la
    librería no puede nombrar el tipo de un campo que recibe. Y `textoDeCota` sale para que el panel
    de mediciones pinte la misma cadena que la escena — dos formatos para el mismo número serían dos
@@ -3423,6 +3425,83 @@ export class BimViewer {
       true,
     );
     controls.update(ONE_FRAME_S);
+  }
+
+  /**
+   * Dónde está cada elemento, por GUID: **el centro de la cara de arriba de su caja**, en la escena.
+   *
+   * Es de donde cuelga un globo numerado (`F15.3`): arriba y no en el centro, porque un globo en el
+   * centro de una losa o de un muro queda tapado por el propio elemento, y encima apunta a ninguna parte.
+   * Los GUID que no están en ningún modelo abierto **no salen en el resultado** —suele ser de otra
+   * disciplina— y quien llama decide qué hacer: no se inventa una posición.
+   */
+  async centrosDeElementos(
+    guids: readonly string[],
+  ): Promise<ReadonlyMap<string, readonly [number, number, number]>> {
+    this.assertAlive();
+    const centros = new Map<string, readonly [number, number, number]>();
+    for (const [, model] of this.fragments.list) {
+      const localIds = await model.getLocalIdsByGuids([...guids]);
+      const pares: { guid: string; localId: number }[] = [];
+      localIds.forEach((localId, i) => {
+        const guid = guids[i];
+        if (guid !== undefined && localId !== null && localId !== undefined && !centros.has(guid)) {
+          pares.push({ guid, localId });
+        }
+      });
+      if (pares.length === 0) continue;
+
+      // Uno por uno: `getBoxes` de varios devuelve cajas **sin decir de cuál**, y mezclar la caja de
+      // una viga con el GUID de otra es el error que esto no puede permitirse.
+      for (const { guid, localId } of pares) {
+        const cajas = await model.getBoxes([localId]);
+        const union = new THREE.Box3();
+        for (const caja of cajas) union.union(caja);
+        if (union.isEmpty()) continue;
+        const centro = union.getCenter(new THREE.Vector3());
+        centros.set(guid, [centro.x, union.max.y, centro.z]);
+      }
+    }
+    return centros;
+  }
+
+  /** El ancho del lienzo en píxeles: el mismo con el que se proyecta en {@link puntosEnPantalla}. */
+  anchoDelLienzo(): number {
+    return this.container.clientWidth;
+  }
+
+  /** El alto del lienzo en píxeles. */
+  altoDelLienzo(): number {
+    return this.container.clientHeight;
+  }
+
+  /** Dónde cae cada punto de la escena en el lienzo, en píxeles. Ver {@link aPantalla}. */
+  puntosEnPantalla(puntos: readonly (readonly [number, number, number])[]): PuntoEnPantalla[] {
+    this.assertAlive();
+    const ancho = this.container.clientWidth;
+    const alto = this.container.clientHeight;
+    return puntos.map((punto) => aPantalla(punto, this.camera.three, ancho, alto));
+  }
+
+  /**
+   * Avisa cada vez que la cámara se mueve o el lienzo cambia de tamaño. Devuelve cómo dejar de oír.
+   *
+   * Existe para los globos numerados: cuelgan de un punto de la escena y tienen que seguirlo mientras
+   * se orbita, se acerca o se redimensiona el panel. `update` es el evento de `camera-controls` por
+   * cada paso de movimiento; no se dispara con la cámara quieta.
+   */
+  onCameraChange(listener: () => void): () => void {
+    this.assertAlive();
+    const controls = this.world.camera.controls;
+    controls.addEventListener("update", listener);
+    controls.addEventListener("rest", listener);
+    const observador = new ResizeObserver(() => listener());
+    observador.observe(this.container);
+    return () => {
+      controls.removeEventListener("update", listener);
+      controls.removeEventListener("rest", listener);
+      observador.disconnect();
+    };
   }
 
   /**
