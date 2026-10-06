@@ -4,7 +4,7 @@
 > [`docs/historial/`](docs/historial/) y en `git log`. La fuente de verdad del trabajo pendiente es
 > [`MASTER_PLAN.md`](MASTER_PLAN.md) (tablero de ~500 líneas desde el 2026-10-05; las fases cerradas están en `docs/historial/plan/`; `/siguiente` dice qué toca).
 
-**Estado al:** 2026-10-05 · **`main` en:** `84d3e00` · **Último PR fusionado:** #80
+**Estado al:** 2026-10-06 · **`main` en:** `eb63c43` · **Último PR fusionado:** #98 · **Ninguno abierto**
 
 ## Reparto del trabajo
 
@@ -19,8 +19,8 @@
   **perfiles** (IFC y nube, desarrollados por PK) y **dos espacios de trabajo**, _Modelo 3D_ y _Planos
   y perfiles_, con **Comparar**. Todo verificado en el navegador **con datos de muestra**: falta el
   oráculo externo con los archivos del metro (`F13.6`).
-- Pruebas: **1 675** en `services/api` (+2 omitidas; CI del 2026-10-05) y **659** en TypeScript
-  (`npm test`: 528 de `bim-core`, 103 de `viewer` y 28 de `apps/web`).
+- Pruebas: **1 736** en `services/api` (+7 omitidas; gate local del 2026-10-06) y **~730** en
+  TypeScript (`npm test`: 553 de `bim-core`, 111 de `viewer` y 60 de `apps/web`).
 
 ## Filas abiertas (verificar con `plan-fila.mjs --abiertas`)
 
@@ -33,7 +33,11 @@
 | `F13.5`               | `ClipStyler` para el relleno de un corte, sin ensayar                                  | El agente               |
 | `F13.6`               | La misma sección en **Bonsai** (IFC) y **CloudCompare** (nube) con el archivo real     | Quien tiene la obra     |
 | `F13.7`               | Medir el perfil de nube con la **nube real de 127 MB** y decidir el techo (hoy 40 000) | Un archivo de obra      |
-| `F13.11`              | La **malla dentro del perfil**: eje de cotas, regla de PK y cuadrícula, para el DXF    | El agente               |
+| `F13.11`              | La malla ya va dentro del perfil; **falta el rótulo numérico** de PK y cota            | El agente               |
+| `F15.3`               | 3D: **barra vertical izquierda** de herramientas (globos y detalle ya están)           | El agente               |
+| `F15.4`               | **@menciones** con aviso (el hilo y responder ya están)                                | El agente + decisión    |
+| `F15.6`               | **Buscador del proyecto** (ProjectWise/Synchro): antes, decidir qué se busca más       | El usuario decide       |
+| `F16.1`               | Línea del tiempo 4D, **pospuesta** a otra etapa (lo de That Open)                      | Pospuesta por decisión  |
 
 La **Fase 14** (proceso de agentes y base de código, `F14.1`–`F14.7`) está en el plan desde #79.
 `F14.1` (el kit) se aplicó en #80 y queda 🔶: **faltan las cifras de `/context` antes y después**, que
@@ -53,7 +57,16 @@ empieza con el piloto en marcha.
 - El **piloto** ([`docs/PILOTO.md`](docs/PILOTO.md)): las cinco etapas, de la 0 a la 4, siguen sin
   empezar. La Etapa 1 (registro documental) no necesita el IFC.
 
-## Última tanda (#72 a #80)
+## Última tanda: la Fase 15, revisión con marcas (#89 a #98)
+
+Pedida con tres capturas de referencia (ProjectWise en 2D, iTwin Design Review en 3D y un panel de
+reportes). **Hecho:** `F15.1` panel de observaciones del documento con marcas numeradas · `F15.2`
+rectángulo, nube de revisión y llamada (migración `0016`) · `F15.3` globos numerados en la escena y su
+tarjeta · `F15.4` hilo y responder sin salir del visor (`HiloDeObservacionAPI`) · `F15.5` página
+**Reportes** con cifras, dona, barras y CSV. Además #90 dejó el plan en ~500 líneas con `/siguiente`,
+#91 la malla del perfil y #93 `werkzeug` 3.1.9 (`pip-audit` lo marcó).
+
+## La tanda anterior (#72 a #80)
 
 - #76 dependencias sin avisos (`pypdf`, `urllib3`): `pip-audit` limpio.
 - #72 el tablero del plan al día · #73 la ficha del hallazgo.
@@ -77,6 +90,11 @@ empieza con el piloto en marcha.
   nodo: la primera versión dejó el perfil vacío con la nube llena.
 - **`npm test` no ejecutaba `apps/web`** hasta el 2026-10-05: no tenía script `test`, y las pruebas de
   `espacios.ts` (#78) nunca pasaron por el CI. Ahora lo ejecuta; si añades una prueba allí, ya cuenta.
+- **Un texto ya traducido puede significar otra cosa.** `Open` era el verbo «Abrir» y el estado de una
+  observación salía así en cada pantalla; `Status` era «Código». Mira la pantalla renderizada y usa
+  contexto de traducción (`pgettext`) en vez de reutilizar el texto.
+- **Cada cadena nueva necesita su entrada en `locale/es` y el `.mo` recompilado**: hay una prueba que
+  falla en el CI y no en las pruebas sueltas del archivo que tocas.
 - **`npm run build` no comprueba tipos.** Un import olvidado pasa el build y tumba la aplicación en el
   navegador: `npx tsc --noEmit -p apps/web` y mirar la consola antes de dar algo por bueno.
 
