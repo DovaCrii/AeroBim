@@ -41,6 +41,13 @@ La **Fase 14** (proceso de agentes y base de código, `F14.1`–`F14.7`) está e
 solo se miden en una sesión interactiva. `F14.2` (la revisión de solo lectura) es lo siguiente, y
 empieza con el piloto en marcha.
 
+## Hallazgos de la revisión del 2026-10-06 (bandeja, no `alta`)
+
+Detalle en `.claude/tmp/informes/revision-2026-10-06.md` (fuera de git). **M1:** `AuditoriaView` muestra la auditoría de
+todas las organizaciones —`AuditEvent` no tiene organización—; **decide**: ¿de plataforma (solo superusuario) o por
+organización (campo y migración)? **M2:** `TrabajosView` es de plataforma y hay que declararlo. **B2:** siete funciones con
+complejidad > 10; el umbral baja cuando se refactoricen. Falta un paso de `npm audit` en el CI.
+
 ## Lo que es tuyo (bloqueos que el código no cierra)
 
 - **Desplegar `main` a `p340`**: respaldo primero (`respaldo.sh`), luego `desplegar.sh`
