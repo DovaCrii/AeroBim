@@ -18,6 +18,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
+from django.utils.translation import pgettext_lazy
 
 from apps.core.models import BaseModel, Organizacion, StatusFlowMixin
 from apps.projects.models import Disciplina, PaqueteWBS, Proyecto
@@ -391,7 +392,10 @@ class Observacion(StatusFlowMixin, BaseModel):
     CERRADA = "cerrada"
     DESCARTADA = "descartada"
     STATUS_CHOICES = [
-        (ABIERTA, _("Open")),
+        # **Con contexto**: `Open` solo, en el catálogo, es el verbo «Abrir» de un botón, y el
+        # estado de una observación salía como «Abrir» en cada pantalla que lo imprime — se vio
+        # mirando el panel de reportes. La etiqueta en inglés no cambia: no hay migración.
+        (ABIERTA, pgettext_lazy("observation status", "Open")),
         (RESPONDIDA, _("Answered")),
         (CERRADA, _("Closed")),
         (DESCARTADA, _("Dismissed")),
