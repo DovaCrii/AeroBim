@@ -4,7 +4,7 @@
 > [`docs/historial/`](docs/historial/) y en `git log`. La fuente de verdad del trabajo pendiente es
 > [`MASTER_PLAN.md`](MASTER_PLAN.md) (tablero de ~500 líneas desde el 2026-10-05; las fases cerradas están en `docs/historial/plan/`; `/siguiente` dice qué toca).
 
-**Estado al:** 2026-10-06 · **`main` en:** `eb63c43` · **Último PR fusionado:** #98 · **Ninguno abierto**
+**Estado al:** 2026-10-06 · **`main` en:** `efd0ace` · **Último PR fusionado:** #103 · **Ninguno abierto**
 
 ## Reparto del trabajo
 
@@ -19,25 +19,22 @@
   **perfiles** (IFC y nube, desarrollados por PK) y **dos espacios de trabajo**, _Modelo 3D_ y _Planos
   y perfiles_, con **Comparar**. Todo verificado en el navegador **con datos de muestra**: falta el
   oráculo externo con los archivos del metro (`F13.6`).
-- Pruebas: **1 736** en `services/api` (+7 omitidas; gate local del 2026-10-06) y **~730** en
-  TypeScript (`npm test`: 553 de `bim-core`, 111 de `viewer` y 60 de `apps/web`).
+- Pruebas: **1 756** en `services/api` (+7 omitidas; gate local del 2026-10-06) y **761** en
+  TypeScript (`npm test`: 569 de `bim-core`, 115 de `viewer` y 77 de `apps/web`).
 
 ## Filas abiertas (verificar con `plan-fila.mjs --abiertas`)
 
-| Fila                  | Qué falta                                                                              | Quién la cierra         |
-| --------------------- | -------------------------------------------------------------------------------------- | ----------------------- |
-| `F2.4`                | El IFC de la pasarela (la medida ya cuadra con un corrimiento conocido)                | Un archivo de obra      |
-| `F4.5`                | Trazo libre; depende de mirar un BCF exportado en Solibri/Navisworks                   | El usuario, mirando     |
-| `F12.2`               | Señalar tres pares de puntos con un ratón (el par de archivos ya está)                 | El usuario, pinchando   |
-| `F2.6`, `F6.1`–`F6.5` | Gaussian splatting; Geo + BIM                                                          | Pospuestas por decisión |
-| `F13.5`               | `ClipStyler` para el relleno de un corte, sin ensayar                                  | El agente               |
-| `F13.6`               | La misma sección en **Bonsai** (IFC) y **CloudCompare** (nube) con el archivo real     | Quien tiene la obra     |
-| `F13.7`               | Medir el perfil de nube con la **nube real de 127 MB** y decidir el techo (hoy 40 000) | Un archivo de obra      |
-| `F13.11`              | La malla ya va dentro del perfil; **falta el rótulo numérico** de PK y cota            | El agente               |
-| `F15.3`               | 3D: **barra vertical izquierda** de herramientas (globos y detalle ya están)           | El agente               |
-| `F15.4`               | **@menciones** con aviso (el hilo y responder ya están)                                | El agente + decisión    |
-| `F15.6`               | **Buscador del proyecto** (ProjectWise/Synchro): antes, decidir qué se busca más       | El usuario decide       |
-| `F16.1`               | Línea del tiempo 4D, **pospuesta** a otra etapa (lo de That Open)                      | Pospuesta por decisión  |
+| Fila                  | Qué falta                                                                                   | Quién la cierra         |
+| --------------------- | ------------------------------------------------------------------------------------------- | ----------------------- |
+| `F2.4`                | El IFC de la pasarela (la medida ya cuadra con un corrimiento conocido)                     | Un archivo de obra      |
+| `F4.5`                | Trazo libre; depende de mirar un BCF exportado en Solibri/Navisworks                        | El usuario, mirando     |
+| `F12.2`               | Señalar tres pares de puntos con un ratón (el par de archivos ya está)                      | El usuario, pinchando   |
+| `F2.6`, `F6.1`–`F6.5` | Gaussian splatting; Geo + BIM                                                               | Pospuestas por decisión |
+| `F13.5`               | `ClipStyler` para el relleno de un corte, sin ensayar                                       | El agente               |
+| `F13.6`               | La misma sección en **Bonsai** (IFC) y **CloudCompare** (nube) con el archivo real          | Quien tiene la obra     |
+| `F13.7`               | Medir el perfil de nube con la **nube real de 127 MB** y decidir el techo (hoy 40 000)      | Un archivo de obra      |
+| `F13.11`              | Hecho: PK y cotas sobre la malla del perfil, en DXF y PDF. **Falta mirar el DXF en un CAD** | El usuario, mirando     |
+| `F16.1`               | Línea del tiempo 4D, **pospuesta** a otra etapa (lo de That Open)                           | Pospuesta por decisión  |
 
 La **Fase 14** (proceso de agentes y base de código, `F14.1`–`F14.7`) está en el plan desde #79.
 `F14.1` (el kit) se aplicó en #80 y queda 🔶: **faltan las cifras de `/context` antes y después**, que
@@ -57,14 +54,20 @@ empieza con el piloto en marcha.
 - El **piloto** ([`docs/PILOTO.md`](docs/PILOTO.md)): las cinco etapas, de la 0 a la 4, siguen sin
   empezar. La Etapa 1 (registro documental) no necesita el IFC.
 
-## Última tanda: la Fase 15, revisión con marcas (#89 a #98)
+## Última tanda: la Fase 15, revisión con marcas (#89 a #103) — **cerrada entera**
 
 Pedida con tres capturas de referencia (ProjectWise en 2D, iTwin Design Review en 3D y un panel de
 reportes). **Hecho:** `F15.1` panel de observaciones del documento con marcas numeradas · `F15.2`
-rectángulo, nube de revisión y llamada (migración `0016`) · `F15.3` globos numerados en la escena y su
-tarjeta · `F15.4` hilo y responder sin salir del visor (`HiloDeObservacionAPI`) · `F15.5` página
-**Reportes** con cifras, dona, barras y CSV. Además #90 dejó el plan en ~500 líneas con `/siguiente`,
-#91 la malla del perfil y #93 `werkzeug` 3.1.9 (`pip-audit` lo marcó).
+rectángulo, nube de revisión y llamada (migración `0016`) · `F15.3` globos numerados en la escena, su
+tarjeta y la **barra vertical** de herramientas · `F15.4` hilo, responder y **@menciones** sin salir del
+visor (`HiloDeObservacionAPI`, `avisar_menciones`) · `F15.5` página **Reportes** con cifras, dona, barras y
+CSV · `F15.6` **buscador**: elementos del modelo en el visor (nombre, clase o GUID, con «Aislar») y página
+«Buscar» del registro. Además #90 dejó el plan en ~500 líneas con `/siguiente`, #91 y #100 la malla del
+perfil con sus cifras, y #93 `werkzeug` 3.1.9 (`pip-audit` lo marcó).
+
+**Dicho y no hecho:** búsquedas guardadas como objeto (la URL `?q=` ya sirve) y que el buscador del registro
+ignore acentos (pide `unaccent` de PostgreSQL: decisión de despliegue). Los globos se ven a través de los
+muros, a propósito.
 
 ## La tanda anterior (#72 a #80)
 
