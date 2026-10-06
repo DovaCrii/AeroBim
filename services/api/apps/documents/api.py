@@ -663,6 +663,30 @@ class HiloDeObservacionAPI(APIView):
             raise Http404
         return observacion
 
+    #: Cuántas personas se aceptan por mensaje. Más no es una mención: es un reparto de correo.
+    MAXIMO_DE_MENCIONES = 10
+
+    @staticmethod
+    def _gente_de_la_obra(observacion, request):
+        """Las personas **de la organización de la observación** a quienes se puede mencionar.
+
+        Sale de las membresías y nunca de lo que mande el cliente: un id suelto de otra organización
+        mandaría el enlace de una obra ajena —y el texto del comentario— a quien no debe verlo. Es
+        la misma regla de `_responsable` al crear una observación. Sin quien escribe: nadie se
+        menciona a sí mismo.
+        """
+        from apps.core.models import Membresia
+
+        return [
+            m.usuario
+            for m in Membresia.objects.filter(
+                organizacion=observacion.organizacion, usuario__is_active=True
+            )
+            .exclude(usuario=request.user)
+            .select_related("usuario")
+            .order_by("usuario__first_name", "usuario__username")
+        ]
+
     @staticmethod
     def _comentario(c, request):
         from django.urls import reverse
@@ -682,11 +706,22 @@ class HiloDeObservacionAPI(APIView):
 
         observacion = self._observacion(request, kwargs["pk"])
         comentarios = observacion.comentarios.select_related("autor").order_by("created_at")
+        puede = request.user.has_perm("documents.add_comentario")
         return Response(
             {
                 "estado": observacion.estado,
                 "estadoTexto": observacion.get_estado_display(),
-                "puedeComentar": request.user.has_perm("documents.add_comentario"),
+                "puedeComentar": puede,
+                # A quién se puede mencionar: solo se manda a quien puede contestar, que es quien lo
+                # usa.
+                "mencionables": (
+                    [
+                        {"id": u.pk, "nombre": u.get_full_name() or u.get_username()}
+                        for u in self._gente_de_la_obra(observacion, request)
+                    ]
+                    if puede
+                    else []
+                ),
                 "comentarios": [self._comentario(c, request) for c in comentarios],
             }
         )
@@ -696,7 +731,7 @@ class HiloDeObservacionAPI(APIView):
 
         from rest_framework.response import Response
 
-        from apps.documents.notify import avisar_comentario
+        from apps.documents.notify import avisar_comentario, avisar_menciones
 
         observacion = self._observacion(request, kwargs["pk"])
         texto = str(request.data.get("texto") or "").strip()
@@ -720,6 +755,27 @@ class HiloDeObservacionAPI(APIView):
             logging.getLogger("aerobim.jobs").exception("aviso_de_comentario_fallo")
             avisados = None
 
+        # **Las menciones, validadas contra la gente de la obra**: lo que llega son ids, y solo
+        # cuentan los que son personas de esta organización. Un id ajeno se ignora en silencio: no
+        # es un error de quien escribe, y decir «ese usuario existe en otra empresa» sería filtrar
+        # quién está dónde.
+        pedidos = request.data.get("menciones")
+        ids = set()
+        if isinstance(pedidos, list):
+            for crudo in pedidos[: self.MAXIMO_DE_MENCIONES]:
+                try:
+                    ids.add(int(crudo))
+                except (TypeError, ValueError):
+                    continue
+        mencionados = [u for u in self._gente_de_la_obra(observacion, request) if u.pk in ids]
+        avisados_por_mencion: list[str] | None = []
+        if mencionados:
+            try:
+                avisados_por_mencion = avisar_menciones(comentario, mencionados)
+            except Exception:
+                logging.getLogger("aerobim.jobs").exception("aviso_de_mencion_fallo")
+                avisados_por_mencion = None
+
         return Response(
             {
                 "comentario": self._comentario(comentario, request),
@@ -727,6 +783,8 @@ class HiloDeObservacionAPI(APIView):
                 "estadoTexto": observacion.get_estado_display(),
                 # `None`: el aviso falló; `[]`: no había a quién avisar; con nombres: salió.
                 "avisados": avisados,
+                "mencionados": [u.get_full_name() or u.get_username() for u in mencionados],
+                "avisadosPorMencion": avisados_por_mencion,
             },
             status=201,
         )

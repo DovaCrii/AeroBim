@@ -188,3 +188,165 @@ def test_si_el_aviso_falla_el_mensaje_queda_guardado(client, hallazgo, proyectis
     assert respuesta.status_code == 201
     assert respuesta.json()["avisados"] is None
     assert Comentario.objects.count() == 1
+
+
+# --- Las @menciones (`F15.4`) -----------------------------------------------------------------
+
+
+def persona(organizacion, usuario, nombre):
+    """Alguien **de la obra**: con membresía, con nombre y con correo."""
+    from apps.core.models import Membresia
+
+    u = get_user_model().objects.create_user(
+        usuario, email=f"{usuario}@obra.cl", password="x" * 14, first_name=nombre, last_name="Soto"
+    )
+    Membresia.objects.create(organizacion=organizacion, usuario=u)
+    return u
+
+
+def comentar_con(client, hallazgo, texto, menciones):
+    return client.post(
+        ruta_de(hallazgo),
+        {"texto": texto, "menciones": menciones},
+        content_type="application/json",
+    )
+
+
+@pytest.mark.django_db
+def test_se_puede_mencionar_a_la_gente_de_la_obra_menos_a_uno_mismo(
+    client, hallazgo, organizacion, proyectista
+):
+    ana = persona(organizacion, "ana", "Ana")
+    client.force_login(dar(proyectista, "documents.view_comentario", "documents.add_comentario"))
+
+    datos = client.get(ruta_de(hallazgo)).json()
+
+    ids = [m["id"] for m in datos["mencionables"]]
+    assert ana.pk in ids
+    assert proyectista.pk not in ids  # nadie se menciona a sí mismo
+    assert {"id": ana.pk, "nombre": "Ana Soto"} in datos["mencionables"]
+
+
+@pytest.mark.django_db
+def test_no_se_ofrece_a_gente_de_otra_organizacion(client, hallazgo, proyectista):
+    otra = Organizacion.objects.create(nombre="Otra", slug="otra-m")
+    ajeno = persona(otra, "ajeno", "Ajeno")
+    client.force_login(dar(proyectista, "documents.view_comentario", "documents.add_comentario"))
+
+    ids = [m["id"] for m in client.get(ruta_de(hallazgo)).json()["mencionables"]]
+
+    assert ajeno.pk not in ids
+
+
+@pytest.mark.django_db
+def test_quien_solo_lee_no_recibe_la_lista_de_a_quien_mencionar(
+    client, hallazgo, organizacion, proyectista
+):
+    persona(organizacion, "ana", "Ana")
+    client.force_login(dar(proyectista, "documents.view_comentario"))
+
+    assert client.get(ruta_de(hallazgo)).json()["mencionables"] == []
+
+
+@pytest.mark.django_db
+def test_mencionar_deja_un_aviso_en_la_campana_y_manda_correo(
+    client, hallazgo, organizacion, proyectista
+):
+    from django.core import mail
+
+    from apps.core.models import Aviso
+
+    ana = persona(organizacion, "ana", "Ana")
+    client.force_login(dar(proyectista, "documents.add_comentario"))
+    mail.outbox.clear()
+
+    respuesta = comentar_con(client, hallazgo, "@Ana Soto, ¿confirmas la cota?", [ana.pk])
+
+    assert respuesta.status_code == 201
+    assert respuesta.json()["mencionados"] == ["Ana Soto"]
+    aviso = Aviso.objects.get(destinatario=ana)
+    assert "mentioned you" in aviso.detalle or "mencion" in aviso.detalle.lower()
+    assert "¿confirmas la cota?" in aviso.detalle
+    assert any(m.to == [ana.email] for m in mail.outbox)
+
+
+@pytest.mark.django_db
+def test_un_id_de_otra_organizacion_no_recibe_nada(client, hallazgo, proyectista):
+    """Un id suelto de otra empresa mandaría el enlace de una obra ajena. Se ignora en silencio."""
+    from django.core import mail
+
+    from apps.core.models import Aviso
+
+    otra = Organizacion.objects.create(nombre="Otra", slug="otra-m2")
+    ajeno = persona(otra, "ajeno", "Ajeno")
+    client.force_login(dar(proyectista, "documents.add_comentario"))
+    mail.outbox.clear()
+
+    respuesta = comentar_con(client, hallazgo, "@Ajeno Soto", [ajeno.pk])
+
+    assert respuesta.status_code == 201
+    assert respuesta.json()["mencionados"] == []
+    assert not Aviso.objects.filter(destinatario=ajeno).exists()
+    assert not any(ajeno.email in m.to for m in mail.outbox)
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("basura", [["abc"], [None], [{"x": 1}], "no es una lista", [99999999]])
+def test_menciones_mal_formadas_se_ignoran_y_el_mensaje_se_guarda(
+    client, hallazgo, proyectista, basura
+):
+    client.force_login(dar(proyectista, "documents.add_comentario"))
+
+    respuesta = comentar_con(client, hallazgo, "Hola", basura)
+
+    assert respuesta.status_code == 201
+    assert respuesta.json()["mencionados"] == []
+    assert Comentario.objects.count() == 1
+
+
+@pytest.mark.django_db
+def test_no_se_avisa_dos_veces_a_quien_ya_recibe_el_aviso_del_hilo(
+    client, hallazgo, proyectista, revisor
+):
+    """El autor ya tiene la campana de esta respuesta: mencionarlo no la duplica."""
+    from apps.core.models import Aviso
+
+    client.force_login(dar(proyectista, "documents.add_comentario"))
+
+    comentar_con(client, hallazgo, "@revisor mira esto", [revisor.pk])
+
+    assert Aviso.objects.filter(destinatario=revisor).count() == 1
+
+
+@pytest.mark.django_db
+def test_si_falla_el_aviso_de_la_mencion_el_mensaje_queda_guardado(
+    client, hallazgo, organizacion, proyectista, monkeypatch
+):
+    ana = persona(organizacion, "ana", "Ana")
+
+    def roto(*_args, **_kwargs):
+        raise RuntimeError("SMTP caído")
+
+    monkeypatch.setattr("apps.documents.notify.avisar_menciones", roto)
+    client.force_login(dar(proyectista, "documents.add_comentario"))
+
+    respuesta = comentar_con(client, hallazgo, "@Ana Soto", [ana.pk])
+
+    assert respuesta.status_code == 201
+    assert respuesta.json()["avisadosPorMencion"] is None
+    assert Comentario.objects.count() == 1
+
+
+@pytest.mark.django_db
+def test_se_acepta_un_maximo_de_menciones_por_mensaje(client, hallazgo, organizacion, proyectista):
+    from apps.documents.api import HiloDeObservacionAPI
+
+    gente = [
+        persona(organizacion, f"p{i}", f"P{i}")
+        for i in range(HiloDeObservacionAPI.MAXIMO_DE_MENCIONES + 4)
+    ]
+    client.force_login(dar(proyectista, "documents.add_comentario"))
+
+    respuesta = comentar_con(client, hallazgo, "A todos", [g.pk for g in gente])
+
+    assert len(respuesta.json()["mencionados"]) == HiloDeObservacionAPI.MAXIMO_DE_MENCIONES

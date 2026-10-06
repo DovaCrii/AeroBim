@@ -5105,3 +5105,15 @@ msgstr "Estado"
 msgctxt "observation status"
 msgid "Open"
 msgstr "Abierta"
+
+#: .\apps\documents\notify.py
+msgid "%(quien)s mentioned you: %(texto)s"
+msgstr "%(quien)s te mencionó: %(texto)s"
+
+#: .\apps\documents\notify.py
+msgid "[AeroBim] %(quien)s mentioned you: %(titulo)s"
+msgstr "[AeroBim] %(quien)s te mencionó: %(titulo)s"
+
+#: .\apps\documents\notify.py
+msgid "%(quien)s mentioned you on an observation."
+msgstr "%(quien)s te mencionó en una observación."

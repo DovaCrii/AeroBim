@@ -190,6 +190,84 @@ def avisar_comentario(comentario) -> list[str]:
     return list(destinos)
 
 
+def avisar_menciones(comentario, mencionados) -> list[str]:
+    """Avisa a quienes se **mencionó con @** en un comentario. Devuelve a quién se mandó **correo**.
+
+    ## Qué es una mención aquí
+
+    Una persona de la obra a quien quien escribe quiere poner delante de una respuesta: «@Ana,
+    ¿puedes confirmar la cota?». Es **más dirigido** que el aviso del hilo —que va al autor y al
+    responsable por serlo—: alguien que no tiene nada que ver con el hallazgo entra en él porque
+    otro le habló.
+
+    ## Los dos canales, como el resto de avisos
+
+    **La campana siempre** —no cuesta nada, no sale de la aplicación y no puede ser spam— y **el
+    correo solo si la obra lo tiene encendido** (`al_responder`, el mismo interruptor que el aviso
+    del hilo): un segundo emisor con su propio criterio es justo el ruido que el encargo pidió
+    evitar.
+
+    **A quien ya recibe el aviso del hilo no se le avisa dos veces**: el autor y el responsable de
+    la observación ya tienen la campana de esta misma respuesta, y una segunda entrada igual es
+    ruido.
+    """
+    observacion = comentario.observacion
+    ya_avisados = {observacion.autor_id, observacion.responsable_id, comentario.autor_id}
+
+    destinos: dict[str, None] = {}
+    for persona in mencionados:
+        if persona.pk in ya_avisados:
+            continue
+        avisos.avisar(
+            destinatario=persona,
+            tipo=Aviso.COMENTARIO,
+            titulo=observacion.titulo,
+            detalle=_("%(quien)s mentioned you: %(texto)s")
+            % {
+                "quien": comentario.autor.get_full_name() or comentario.autor.get_username(),
+                "texto": (comentario.texto or "").strip()[:260],
+            },
+            url=f"/documentos/observaciones/{observacion.pk}/",
+            proyecto=str(observacion.proyecto or ""),
+            de_parte_de=comentario.autor,
+            objeto=str(observacion.pk),
+        )
+        correo = _destinatario(persona)
+        if correo is not None:
+            destinos[correo.lower()] = None
+
+    if not destinos or not _la_obra_manda_correo(observacion.proyecto, "al_responder"):
+        return []
+
+    texto = (comentario.texto or "").strip()
+    recortado = texto if len(texto) <= 600 else texto[:600].rstrip() + "…"
+    quien = comentario.autor.get_full_name() or comentario.autor.get_username()
+    send_mail(
+        _("[AeroBim] %(quien)s mentioned you: %(titulo)s")
+        % {"quien": quien, "titulo": observacion.titulo},
+        "\n".join(
+            [
+                _("%(quien)s mentioned you on an observation.") % {"quien": quien},
+                "",
+                observacion.titulo,
+                _("Project: %(p)s") % {"p": observacion.proyecto},
+                "",
+                recortado,
+                "",
+                enlace(f"/documentos/observaciones/{observacion.pk}/"),
+            ]
+        ),
+        settings.DEFAULT_FROM_EMAIL,
+        list(destinos),
+        fail_silently=False,
+    )
+    logger.info(
+        "aviso_de_mencion",
+        extra={"recipient": ", ".join(destinos), "item_count": len(destinos)},
+    )
+    return list(destinos)
+
+
 def avisar_asignacion(objeto, *, de_parte_de=None) -> bool:
     """Avisa al responsable de una observacion o de una actividad recien asignada.
 
