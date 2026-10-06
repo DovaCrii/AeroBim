@@ -46,6 +46,8 @@ ESPERADO = [
     # que se hace diez veces al día —«¿dónde está el modelo?»— mientras que «Entregables» contesta
     # la de planificación, que se hace una vez por semana. Ver `ArchivosView`.
     ("The document register", "Files", "documents:archivos", "documents.view_revision"),
+    # Añadido a propósito el 2026-10-06 (`F15.6`): el buscador del registro.
+    ("The document register", "Search", "documents:buscar", "documents.view_entregable"),
     ("The document register", "Deliverables", "documents:entregables", "documents.view_entregable"),
     (
         "The document register",

@@ -47,6 +47,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DrawingsPanel } from "./components/DrawingsPanel.js";
 import { ModelsPanel } from "./components/ModelsPanel.js";
 import { Coordinacion, type ObservacionDelModelo } from "./components/Coordinacion.js";
+import { BuscadorDelVisor } from "./components/BuscadorDelVisor.js";
 import { GlobosDeTemas } from "./components/GlobosDeTemas.js";
 import { TablaDeTemas } from "./components/TablaDeTemas.js";
 import { useTemasDeLaObra } from "./useTemasDeLaObra.js";
@@ -2641,6 +2642,35 @@ export function App() {
     [hidden, hiddenModels, hiddenElements],
   );
 
+  /**
+   * Aislar lo que halló el buscador, que puede estar en varios modelos (`F15.6`). Mismo estado que
+   * {@link isolate}: una entrada en la pila y lo apagado a mano apuntado, para que «Salir» lo devuelva.
+   */
+  const aislarHallados = useCallback(
+    (elementos: readonly { modelId: string; localId: number }[]) => {
+      const porModelo = new Map<string, number[]>();
+      for (const e of elementos)
+        (porModelo.get(e.modelId) ?? porModelo.set(e.modelId, []).get(e.modelId)!).push(e.localId);
+      setIsolations((actuales) => [...actuales, { hidden, hiddenModels, hiddenElements }]);
+      setHidden(new Set());
+      setHiddenModels(new Set());
+      setHiddenElements(new Set());
+      void viewer.current?.isolateMany(porModelo);
+    },
+    [hidden, hiddenModels, hiddenElements],
+  );
+
+  /** Ir a un elemento hallado: lo selecciona y lo encuadra, como un doble clic sobre él. */
+  const irAlHallado = useCallback(async (e: { modelId: string; localId: number }) => {
+    const instancia = viewer.current;
+    if (instancia === null) return;
+    const elegido = await instancia.selectById(e.modelId, e.localId);
+    if (elegido === null) return;
+    setSelected(elegido);
+    setSelectedPlan(null);
+    await instancia.frameSelection();
+  }, []);
+
   /** Aislar el elemento seleccionado: lo mismo que aislar un nodo del árbol, con un solo id. */
   const onIsolateSelection = useCallback(() => {
     if (selected === null) return;
@@ -3116,6 +3146,16 @@ export function App() {
                 actual={laminaEnVisor}
                 onVer={(id) => void onVerLamina(id)}
                 onSalir={() => void onSalirDeLamina()}
+              />
+            )}
+
+            {/* **El buscador de elementos** (`F15.6`): arriba, al centro; entre las herramientas y el cubo de vistas. */}
+            {laminaEnVisor === null && (
+              <BuscadorDelVisor
+                viewer={viewer.current}
+                modelos={models.length}
+                onElegir={(e) => void irAlHallado(e)}
+                onAislar={aislarHallados}
               />
             )}
 
