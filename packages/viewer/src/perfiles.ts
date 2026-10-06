@@ -26,11 +26,14 @@ export const MAXIMO_FILAS_DE_REFERENCIAS = 40;
  * Se redondea a centímetros **antes** de partir en kilómetros: partiendo primero, `999.996` salía
  * como `0+1000.00` en vez de `1+000.00`.
  */
-export function textoDePk(pkM: number): string {
-  const centimetros = Math.round(pkM * 100);
-  const km = Math.floor(centimetros / 100_000);
-  const metros = (centimetros - km * 100_000) / 100;
-  return `${km}+${metros.toFixed(2).padStart(6, "0")}`;
+export function textoDePk(pkM: number, decimales = 2): string {
+  const unidad = 10 ** decimales;
+  // En unidades del último decimal, enteras: así `999.996` no sale como `0+1000.00`.
+  const enteras = Math.round(pkM * unidad);
+  const km = Math.floor(enteras / (1000 * unidad));
+  const metros = (enteras - km * 1000 * unidad) / unidad;
+  const ancho = decimales === 0 ? 3 : 4 + decimales;
+  return `${km}+${metros.toFixed(decimales).padStart(ancho, "0")}`;
 }
 
 /**

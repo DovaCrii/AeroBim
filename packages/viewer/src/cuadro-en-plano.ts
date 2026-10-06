@@ -36,6 +36,20 @@ export interface TablaDeCuadro {
   readonly rows: readonly (readonly string[])[];
   /** El título que va encima, o `null` si no lleva. */
   readonly title: string | null;
+  /**
+   * **Rótulos sueltos, ya situados** (`F13.11`): si hay, esto no es una tabla sino un conjunto de textos
+   * en coordenadas del dibujo —las cifras de la regla de un perfil—, sin rejilla. Reutiliza el camino
+   * de las tablas porque es el único por el que el texto llega al DXF y a la lámina del PDF.
+   */
+  readonly rotulos?: readonly RotuloSuelto[];
+}
+
+/** Un texto con su sitio, en coordenadas del dibujo. */
+export interface RotuloSuelto {
+  readonly text: string;
+  readonly x: number;
+  readonly z: number;
+  readonly height: number;
 }
 
 /** Dónde y con qué medidas se dibuja la tabla, en unidades del dibujo. */
@@ -90,6 +104,15 @@ export interface TrazoDeTabla {
  * módulo: con dos cálculos, el cuadro que se imprime y el que se ve se separan.
  */
 export function trazarTabla(tabla: TablaDeCuadro, medidas: MedidasDeTabla): TrazoDeTabla {
+  // Rótulos sueltos: ya traen su sitio y no hay rejilla que calcular.
+  if (tabla.rotulos !== undefined) {
+    return {
+      lines: [],
+      texts: tabla.rotulos.map((r) => ({ ...r, bold: false })),
+      width: 0,
+      height: 0,
+    };
+  }
   const { x: x0, z: z0, rowHeight, charWidth } = medidas;
 
   // El ancho de cada columna sale del texto **más largo que va a llevar**, cabecera incluida, y con
