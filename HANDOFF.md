@@ -41,6 +41,13 @@ La **Fase 14** (proceso de agentes y base de código, `F14.1`–`F14.7`) está e
 solo se miden en una sesión interactiva. `F14.2` (la revisión de solo lectura) es lo siguiente, y
 empieza con el piloto en marcha.
 
+## Hallazgos de la revisión del 2026-10-06 (bandeja, no `alta`)
+
+Detalle en `.claude/tmp/informes/revision-2026-10-06.md` (fuera de git). **M1:** `AuditoriaView` muestra la auditoría de
+todas las organizaciones —`AuditEvent` no tiene organización—; **decide**: ¿de plataforma (solo superusuario) o por
+organización (campo y migración)? **M2:** `TrabajosView` es de plataforma y hay que declararlo. **B2:** siete funciones con
+complejidad > 10; el umbral baja cuando se refactoricen. Falta un paso de `npm audit` en el CI.
+
 ## Lo que es tuyo (bloqueos que el código no cierra)
 
 - **Desplegar `main` a `p340`**: respaldo primero (`respaldo.sh`), luego `desplegar.sh`
@@ -71,15 +78,9 @@ muros, a propósito.
 
 ## La tanda anterior (#72 a #80)
 
-- #76 dependencias sin avisos (`pypdf`, `urllib3`): `pip-audit` limpio.
-- #72 el tablero del plan al día · #73 la ficha del hallazgo.
-- #74 revisión de interferencias **en segundo plano y sin tope**, IFC comprimido (`.ifczip`), gzip en
-  nginx y aviso de nube legible (un LAZ que no es COPC dice cómo convertirlo).
-- #75 perfil IFC sobre una polilínea, con PK y transversales · #77 perfil de la nube (puntos, nunca
-  una línea de terreno).
-- #78 los dos espacios de trabajo y Comparar; `docs/ARCHITECTURE.md` reescrito contra el código.
-- #79 la Fase 14 en el plan · #80 el kit de proceso (`CLAUDE.md`, `.claude/`, `scripts/claude/`) y este
-  `HANDOFF` corto.
+Interferencias **en segundo plano y sin tope**, IFC comprimido (`.ifczip`) con gzip en nginx (#74); perfil
+IFC y de nube (#75, #77); los dos espacios de trabajo y Comparar, y `ARCHITECTURE.md` reescrito (#78); la
+Fase 14 y el kit de proceso (#79, #80).
 
 ## Trampas vigentes (las que más costaron)
 
