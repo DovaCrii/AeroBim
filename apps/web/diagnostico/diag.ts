@@ -2504,7 +2504,7 @@ export async function conversion(container: HTMLElement, ifcUrl: string, log: Lo
       propio,
       donde === "worker"
         ? {
-            convertWorker: new Worker(new URL("./convert.worker.ts", import.meta.url), {
+            convertWorker: new Worker(new URL("../src/convert.worker.ts", import.meta.url), {
               type: "module",
             }),
           }

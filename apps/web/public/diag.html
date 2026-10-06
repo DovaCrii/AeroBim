@@ -27,8 +27,8 @@
       Página de medición para F0.4 y F0.5, deliberadamente **sin la interfaz**.
 
       Separa dos preguntas que juntas confunden: si el pipeline de That Open abre el
-      modelo, y si nuestra envoltura lo integra bien. La lógica vive en `src/diag.ts`
-      para que los módulos se resuelvan igual que en la aplicación.
+      modelo, y si nuestra envoltura lo integra bien. La lógica vive en `diagnostico/diag.ts`,
+      **fuera de `src/`** (`F14.4`): es herramienta de desarrollo y no va en el camino de la aplicación.
 
       Modos: `clase` (a través de la envoltura), `manual` (componentes de That Open
       directos), `camara` (por qué los comandos de cámara no surten efecto),
@@ -78,7 +78,7 @@
         `SharedArrayBuffer=${typeof SharedArrayBuffer}`;
 
       try {
-        const diag = await import("/@fs/D:/I+D/AeroBim/apps/web/src/diag.ts");
+        const diag = await import("/diagnostico/diag.ts");
         const ejecutar = diag[modo] ?? diag.clase;
         const espera = Number(params.get("espera") ?? "0");
         // `categoria` solo lo usa el modo `psets`; los demás lo ignoran.
