@@ -1228,6 +1228,88 @@ export async function perfil(container: HTMLElement, ifcUrl: string, log: Log): 
 }
 
 /**
+ * **El relleno de un corte con `ClipStyler`** (`F13.5`, 2026-10-06). Ensaya lo que la fila pedía ensayar:
+ * ¿el relleno y las aristas de una sección **conservan lo que ya funciona**?
+ *
+ * Mide, sobre un modelo con un corte horizontal a media altura:
+ *
+ * - **qué crea**: cuántos rellenos y cuántas mallas, y cuánto tarda;
+ * - **que seleccionar siga funcionando** con el relleno puesto;
+ * - **que aislar y salir sigan funcionando**;
+ * - **que apagar lo deje todo como estaba**: ningún relleno vivo.
+ *
+ * Uso: `/diag.html?modo=relleno&ifc=/samples/Piso%205.ifc`
+ */
+export async function relleno(container: HTMLElement, ifcUrl: string, log: Log): Promise<void> {
+  const viewer = await BimViewer.create(container);
+  const bytes = new Uint8Array(await (await fetch(ifcUrl)).arrayBuffer());
+  await viewer.loadIfc(bytes, ifcUrl);
+  await viewer.frameAll("iso");
+
+  const limites = await viewer.sceneBounds();
+  if (limites === null) return void log("**sin modelo**");
+  const alturaM = (limites.min[1] + limites.max[1]) / 2;
+  log(
+    `modelo en la escena: y ${limites.min[1].toFixed(2)}…${limites.max[1].toFixed(2)} · corte a y = ${alturaM.toFixed(2)}`,
+  );
+
+  await viewer.sectionAtHeight(alturaM);
+  log(`cortes: ${viewer.sectionCount} · con relleno: ${viewer.sectionFillOn ? "sí" : "no"}`);
+
+  const antes = performance.now();
+  const planos = await viewer.setSectionFill(true);
+  const ms = Math.round(performance.now() - antes);
+  await new Promise((r) => setTimeout(r, 2000));
+  const rellenos = viewer.describeSectionFills();
+  log(`relleno encendido en ${ms} ms · planos con relleno: ${planos}`);
+  for (const r of rellenos)
+    log(
+      `  plano ${r.id.slice(0, 8)}: ${r.hijos} mallas, ${r.vertices} vértices, visible=${r.visible}`,
+    );
+  log(`  crea algo: ${rellenos.some((r) => r.hijos > 0) ? "sí (bien)" : "NO (mal)"}`);
+
+  // Lo que ya funcionaba tiene que seguir funcionando con el relleno puesto.
+  const arbol = await viewer.getSpatialTrees();
+  const primero = arbol[0];
+  const hoja = primero?.root.children[0];
+  log(`árbol espacial leído: ${arbol.length} modelo(s)`);
+  const hallados = await viewer.buscarElementos("ifc", 5);
+  const uno = hallados.resultados[0];
+  if (uno !== undefined) {
+    const elegido = await viewer.selectById(uno.modelId, uno.localId);
+    log(`  seleccionar con relleno: ${elegido !== null ? "funciona (bien)" : "NO funciona (mal)"}`);
+    await viewer.isolate(uno.modelId, [uno.localId]);
+    log("  aislar con relleno: sin error (bien)");
+    await viewer.undoIsolation();
+    log("  salir del aislamiento: sin error (bien)");
+  } else {
+    log("  no hay elementos para probar la selección");
+  }
+  void hoja;
+
+  // Un corte nuevo con el relleno encendido también se rellena.
+  await viewer.sectionAtHeight(alturaM - 0.5);
+  const tras = await viewer.setSectionFill(true);
+  log(
+    `segundo corte con el relleno encendido: ${tras} plano(s) con relleno (esperado: ${viewer.sectionCount})`,
+  );
+
+  await viewer.setSectionFill(false);
+  log(
+    `relleno apagado: ${viewer.describeSectionFills().length} vivos ${viewer.describeSectionFills().length === 0 ? "(bien)" : "(mal)"}`,
+  );
+  await viewer.clearSections();
+  log(
+    `cortes tras limpiar: ${viewer.sectionCount} ${viewer.sectionCount === 0 ? "(bien)" : "(mal)"}`,
+  );
+
+  // Y al final se deja encendido y a la vista, para mirarlo.
+  await viewer.sectionAtHeight(alturaM);
+  await viewer.setSectionFill(true);
+  log("\nlisto: queda un corte con relleno a la vista");
+}
+
+/**
  * **El perfil de la nube**, sobre el levantamiento real del Camino Agrícola (2026-10-05).
  *
  * Carga el muro de prueba en sus coordenadas UTM, abre la nube de 127 MB, y la calza. Con un eje de

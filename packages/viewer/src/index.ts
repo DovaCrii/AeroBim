@@ -66,6 +66,7 @@ import * as OBC from "@thatopen/components";
 import * as OBF from "@thatopen/components-front";
 import * as FRAGS from "@thatopen/fragments";
 import * as THREE from "three";
+import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 import { aPantalla, type PuntoEnPantalla } from "./proyeccion.js";
 import {
   mainThreadConverter,
@@ -240,6 +241,9 @@ export type RenderStyle = "solid" | "wireframe";
  * dominio, porque `components-front` no la trae y es la medida que se pide cuando hay una cara de
  * referencia. Ver {@link addMeasurePoint}.
  */
+/** El nombre del estilo de relleno de un corte en el `ClipStyler`. `F13.5`. */
+const ESTILO_DE_CORTE = "aerobim";
+
 export type MeasureMode = "distance" | "angle" | "area" | "perpendicular";
 
 /**
@@ -4434,10 +4438,85 @@ export class BimViewer {
     return this.components.get(OBC.Clipper).list.size;
   }
 
+  /** Los rellenos de corte vivos, por el id del plano del `Clipper` al que cuelgan. `F13.5`. */
+  private readonly rellenosDeCorte = new Map<string, OBF.ClipEdges>();
+  private rellenoDeCorteActivo = false;
+
+  /** `true` si los cortes se dibujan con relleno y aristas. */
+  get sectionFillOn(): boolean {
+    return this.rellenoDeCorteActivo;
+  }
+
+  /**
+   * Enciende o apaga el **relleno y las aristas de un corte** (`F13.5`), con `ClipStyler` de That Open.
+   *
+   * Sin esto un corte es un recorte: se ve el hueco por dentro del modelo y no la sección. Con esto, cada
+   * plano del `Clipper` lleva encima la cara cortada, rellena, y su contorno. El relleno cuelga del plano
+   * (`createFromClipping`): al moverlo se recalcula y al borrarlo se va.
+   *
+   * Devuelve **a cuántos planos se les puso relleno**: 0 con el corte apagado o sin cortes, que es lo que
+   * hay que decir en pantalla en vez de dejar el botón encendido sin efecto.
+   */
+  async setSectionFill(activo: boolean): Promise<number> {
+    this.assertAlive();
+    this.rellenoDeCorteActivo = activo;
+
+    if (!activo) {
+      for (const bordes of this.rellenosDeCorte.values()) bordes.dispose();
+      this.rellenosDeCorte.clear();
+      await this.refresh();
+      return 0;
+    }
+
+    const clipper = this.components.get(OBC.Clipper);
+    const estilista = this.components.get(OBF.ClipStyler);
+    estilista.world = this.world;
+    if (!estilista.styles.has(ESTILO_DE_CORTE)) {
+      estilista.styles.set(ESTILO_DE_CORTE, {
+        // El contorno en el color del trazo de los planos: oscuro y fino, lo que dibuja un cuadro de CAD.
+        linesMaterial: new LineMaterial({ color: 0x111827, linewidth: 2 }),
+        // El relleno **opaco y plano**: un corte translúcido deja ver el interior que se quería tapar.
+        fillsMaterial: new THREE.MeshBasicMaterial({ color: 0xc4b5fd, side: THREE.DoubleSide }),
+      });
+    }
+
+    for (const [id] of clipper.list) {
+      if (this.rellenosDeCorte.has(id)) continue;
+      const bordes = estilista.createFromClipping(id, {
+        world: this.world,
+        items: { todo: { style: ESTILO_DE_CORTE } },
+      });
+      await bordes.update();
+      this.rellenosDeCorte.set(id, bordes);
+    }
+    await this.refresh();
+    return this.rellenosDeCorte.size;
+  }
+
+  /** Los rellenos vivos, para medir el ensayo: cuántos hay y cuántas mallas lleva cada uno. */
+  describeSectionFills(): {
+    readonly id: string;
+    readonly hijos: number;
+    readonly vertices: number;
+    readonly visible: boolean;
+  }[] {
+    return [...this.rellenosDeCorte].map(([id, bordes]) => ({
+      id,
+      hijos: bordes.three.children.length,
+      vertices: bordes.three.children.reduce(
+        (n, h) => n + ((h as THREE.Mesh).geometry?.getAttribute("position")?.count ?? 0),
+        0,
+      ),
+      visible: bordes.three.visible,
+    }));
+  }
+
   /** Quita todos los planos de corte. */
   async clearSections(): Promise<void> {
     this.assertAlive();
 
+    for (const bordes of this.rellenosDeCorte.values()) bordes.dispose();
+    this.rellenosDeCorte.clear();
     const clipper = this.components.get(OBC.Clipper);
     clipper.deleteAll();
     clipper.enabled = false;

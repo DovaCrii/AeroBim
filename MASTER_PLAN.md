@@ -64,17 +64,17 @@ agente cuando se ejecute y hoy solo están planificadas**. `⬜` no empezada · 
 > decía ⬜ sobre código que existe desde hace días»— y se repitió aquí. Corregido el 2026-09-09
 > contando las filas una por una contra el estado de cada fase, que es lo único que no se desactualiza.
 
-| Fase                         | Filas abiertas                                                                                                                      | Quién la cierra                    |
-| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
-| **4 — Coordinación**         | `F4.5` ◐ — falta el trazo libre, y depende de mirar un BCF exportado                                                                | El usuario, mirando                |
-| **2 — Nubes de puntos**      | `F2.4` 🔶 — la medida funciona y **cuadra con un corrimiento conocido**; falta el IFC de la pasarela                                | Un archivo de obra                 |
-| **12 — La interfaz**         | `F12.2` 🔶 — el par de archivos ya está en el repositorio; queda **señalar tres pares con un ratón**                                | El usuario, pinchando              |
-| **2 — Nubes de puntos**      | `F2.6` ⬜ — el gaussian splatting                                                                                                   | Pospuesta por decisión             |
-| **6 — Geo + BIM**            | `F6.1` a `F6.5` ⬜ — Cesium, ortofoto y terreno, situar el IFC, 3D Tiles, y recibir de AeroPlanner                                  | Pospuesta por decisión             |
-| **13 — Perfiles**            | `F13.5` ⬜ `ClipStyler`, sin ensayar · `F13.6` ⬜ oráculos externos · `F13.7` ⬜ la nube real · `F13.11` ✅ falta mirarlo en un CAD | El agente / un archivo de obra     |
-| **16 — Línea del tiempo 4D** | `F16.1` ⬜ — el visor de línea del tiempo (Gantt + modelo)                                                                          | Pospuesta por decisión, 2026-10-06 |
-| **14 — Proceso y código**    | `F14.1` 🔶 · `F14.6` y `F14.7` ⬜ · `F14.2` a `F14.5` ✅ — el kit, la revisión, `R1`–`R4` y la Etapa 3 (**bloqueada**)              | El agente                          |
-| **0, 3, 5, 7, 8, 9, 10, 11** | Ninguna: las ocho fases enteras                                                                                                     | —                                  |
+| Fase                         | Filas abiertas                                                                                                                             | Quién la cierra                    |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------- |
+| **4 — Coordinación**         | `F4.5` ◐ — falta el trazo libre, y depende de mirar un BCF exportado                                                                       | El usuario, mirando                |
+| **2 — Nubes de puntos**      | `F2.4` 🔶 — la medida funciona y **cuadra con un corrimiento conocido**; falta el IFC de la pasarela                                       | Un archivo de obra                 |
+| **12 — La interfaz**         | `F12.2` 🔶 — el par de archivos ya está en el repositorio; queda **señalar tres pares con un ratón**                                       | El usuario, pinchando              |
+| **2 — Nubes de puntos**      | `F2.6` ⬜ — el gaussian splatting                                                                                                          | Pospuesta por decisión             |
+| **6 — Geo + BIM**            | `F6.1` a `F6.5` ⬜ — Cesium, ortofoto y terreno, situar el IFC, 3D Tiles, y recibir de AeroPlanner                                         | Pospuesta por decisión             |
+| **13 — Perfiles**            | `F13.5` 🔶 `ClipStyler` ensayado, sin botón · `F13.6` ⬜ oráculos externos · `F13.7` ⬜ la nube real · `F13.11` ✅ falta mirarlo en un CAD | El agente / un archivo de obra     |
+| **16 — Línea del tiempo 4D** | `F16.1` ⬜ — el visor de línea del tiempo (Gantt + modelo)                                                                                 | Pospuesta por decisión, 2026-10-06 |
+| **14 — Proceso y código**    | `F14.1` 🔶 · `F14.6` y `F14.7` ⬜ · `F14.2` a `F14.5` ✅ — el kit, la revisión, `R1`–`R4` y la Etapa 3 (**bloqueada**)                     | El agente                          |
+| **0, 3, 5, 7, 8, 9, 10, 11** | Ninguna: las ocho fases enteras                                                                                                            | —                                  |
 
 ## Las decisiones que solo el usuario puede tomar
 
