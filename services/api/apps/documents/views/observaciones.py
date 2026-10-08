@@ -472,6 +472,18 @@ class NuevaObservacionView(ModelPermissionRequiredMixin, View):
             scope_queryset_to_organizacion(Entregable.objects.all(), request.user), pk=pk
         )
 
+    def _forma_pedida(self, request) -> dict:
+        """La forma de la marca (`?forma=…&x2=…&y2=…`), o `{}` si no es valida o esta incompleta."""
+        forma = request.GET.get("forma")
+        if forma not in {valor for valor, _texto in Observacion.FORMAS}:
+            return {}
+        try:
+            x2 = float(request.GET.get("x2", ""))
+            y2 = float(request.GET.get("y2", ""))
+        except ValueError:
+            return {}
+        return {"ancla_forma": forma, "ancla_x2": x2, "ancla_y2": y2}
+
     def ancla_pedida(self, request) -> dict:
         """El ancla que trae el visor del documento en la URL, si la trae.
 
@@ -494,15 +506,7 @@ class NuevaObservacionView(ModelPermissionRequiredMixin, View):
         # resto: se pasa como valor inicial y el formulario decide. Una forma desconocida, o a la
         # que le falta una esquina, se ignora **entera**: la segunda esquina suelta sería una
         # marca de dos puntos que nadie definió.
-        forma = request.GET.get("forma")
-        if forma in {valor for valor, _texto in Observacion.FORMAS}:
-            try:
-                x2 = float(request.GET.get("x2", ""))
-                y2 = float(request.GET.get("y2", ""))
-            except ValueError:
-                pass
-            else:
-                inicial.update(ancla_forma=forma, ancla_x2=x2, ancla_y2=y2)
+        inicial.update(self._forma_pedida(request))
         revision = request.GET.get("revision")
         if revision:
             inicial["revision"] = revision
