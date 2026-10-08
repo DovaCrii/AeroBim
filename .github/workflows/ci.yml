@@ -171,3 +171,32 @@ jobs:
       - run: uv run bandit -q -r apps config -x "*/tests/*"
 
       - run: uv run pip-audit
+
+  # Humo e2e (`F14.6`): login, obra, lista de documentos y el visor con `muro-minimo.ifc`, más axe
+  # sobre login y lista. **Usa el Chrome del corredor**: la
+  # aplicación no descarga ningún navegador ni WASM al ejecutarse (regla 10 de `AGENTS.md`).
+  # Va aparte de `verify` y de `api` para no alargarlos y para que su fallo diga de qué es.
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 26
+          cache: npm
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: services/api/uv.lock
+
+      - run: npm ci --ignore-scripts
+      - run: npm run build
+      - run: uv sync --locked
+        working-directory: services/api
+      # El Chrome que ya trae el corredor: bajar el Chromium de Playwright se quedó colgado más
+      # de 30 minutos (2026-10-08), en local y en el CI.
+      - run: npm run e2e -w apps/web
+        env:
+          E2E_CANAL: chrome

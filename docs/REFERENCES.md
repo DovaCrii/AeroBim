@@ -254,3 +254,13 @@ No se integran; se usan para comprobar que lo nuestro dice la verdad.
 | **Navisworks / Solibri**   | Comercial | Que el BCF exportado abra con su viewpoint intacto        |
 
 Todas son GPL o comerciales: **se usan como aplicaciones, jamás se copia su código.**
+
+## Pruebas e2e (solo desarrollo y CI)
+
+Herramientas de `F14.6`. **No entran al build ni al despliegue**: son `devDependencies` de `apps/web`
+y se usan con `npm run e2e`. Se usan como dependencia, sin copiar su código.
+
+| Paquete                | Licencia       | Para qué en AeroBim                                                                                                                                                                                           |
+| ---------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@playwright/test`     | **Apache-2.0** | Humo e2e: login, obra, lista de documentos y visor con `muro-minimo.ifc`. Su Chromium se baja con `npx playwright install chromium`, solo en desarrollo y en el CI; la aplicación nunca descarga un navegador |
+| `@axe-core/playwright` | **MPL-2.0**    | Comprobación de accesibilidad (axe-core) sobre el login y la lista de documentos. Sin modificar archivos suyos                                                                                                |
