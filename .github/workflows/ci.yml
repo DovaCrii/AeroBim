@@ -173,7 +173,7 @@ jobs:
       - run: uv run pip-audit
 
   # Humo e2e (`F14.6`): login, obra, lista de documentos y el visor con `muro-minimo.ifc`, más axe
-  # sobre login y lista. **Playwright baja su Chromium aquí, en el corredor, y solo aquí**: la
+  # sobre login y lista. **Usa el Chrome del corredor**: la
   # aplicación no descarga ningún navegador ni WASM al ejecutarse (regla 10 de `AGENTS.md`).
   # Va aparte de `verify` y de `api` para no alargarlos y para que su fallo diga de qué es.
   e2e:
@@ -193,7 +193,10 @@ jobs:
 
       - run: npm ci --ignore-scripts
       - run: npm run build
-      - run: npx playwright install --with-deps chromium
       - run: uv sync --locked
         working-directory: services/api
+      # El Chrome que ya trae el corredor: bajar el Chromium de Playwright se quedó colgado más
+      # de 30 minutos (2026-10-08), en local y en el CI.
       - run: npm run e2e -w apps/web
+        env:
+          E2E_CANAL: chrome
