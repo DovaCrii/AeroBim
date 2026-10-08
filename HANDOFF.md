@@ -4,7 +4,7 @@
 > [`docs/historial/`](docs/historial/) y en `git log`. La fuente de verdad del trabajo pendiente es
 > [`MASTER_PLAN.md`](MASTER_PLAN.md) (tablero de ~500 líneas desde el 2026-10-05; las fases cerradas están en `docs/historial/plan/`; `/siguiente` dice qué toca).
 
-**Estado al:** 2026-10-08 · **`main` en:** `5a465ed` · **Último PR fusionado:** #121 · **Ninguno abierto** · **Tanda cerrada: lista para la VM**
+**Estado al:** 2026-10-08 · **`main` en:** `30fb8d0` · **Último PR fusionado:** #124 · **Ninguno abierto** · **Tanda cerrada: lista para la VM**
 
 ## Reparto del trabajo
 
@@ -60,7 +60,7 @@ propia por organización** (no hay campo ni migración).
 - El **piloto** ([`docs/PILOTO.md`](docs/PILOTO.md)): las cinco etapas, de la 0 a la 4, siguen sin
   empezar. La Etapa 1 (registro documental) no necesita el IFC.
 
-## Tanda lista para la VM (2026-10-08, #108 a #121)
+## Tanda lista para la VM (2026-10-08, #108 a #124)
 
 **Migración nueva: `documents.0016_observacion_forma`** (la de la Fase 15; sin ella fallan las marcas).
 Sin cambios de configuración, `nginx` ni variables de entorno. Orden: `respaldo.sh`, luego
@@ -69,7 +69,8 @@ espacio se llama «Planos 2D y perfiles» · el buscador de elementos ya no tapa
 humo **e2e** con Playwright y axe en el CI (`F14.6`), `npm audit` en el CI y `npm audit fix` (#108) ·
 la revisión `F14.2` · **cambiar de espacio cambia de verdad entre 3D y 2D** (#118) · auditoría y
 trabajos solo del superusuario con más de una organización (#117) · complejidad ciclomática ≤ 12 (#121) ·
-la skill `/preparar-despliegue`.
+buscador compacto y distintivo 3D/2D (#123) · **un clic marca, el doble clic abre la ficha** y los rótulos
+lejanos del plano DXF se esconden si se amontonan (#124) · la skill `/preparar-despliegue`.
 
 ## La tanda anterior: la Fase 15, revisión con marcas (#89 a #103) — **cerrada entera**
 
@@ -116,5 +117,4 @@ node scripts/claude/plan-fila.mjs --abiertas  # qué sigue
 
 ## Historial
 
-- Tanda #72 a #80: [`docs/historial/HANDOFF-tanda-72-a-80.md`](docs/historial/HANDOFF-tanda-72-a-80.md)
-- Hasta 2026-10-05: [`docs/historial/HANDOFF-hasta-2026-10-05.md`](docs/historial/HANDOFF-hasta-2026-10-05.md).
+- [Tanda #72 a #80](docs/historial/HANDOFF-tanda-72-a-80.md) · [Hasta 2026-10-05](docs/historial/HANDOFF-hasta-2026-10-05.md).
