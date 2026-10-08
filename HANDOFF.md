@@ -63,9 +63,8 @@ migración) sigue siendo **decisión tuya**.
 ## Tanda lista para la VM (2026-10-08, #108 a #118)
 
 **Migración nueva: `documents.0016_observacion_forma`** (la de la Fase 15; sin ella fallan las marcas).
-Sin cambios de configuración, de `nginx` ni de variables de entorno. Orden de siempre: `respaldo.sh` y
-después `desplegar.sh` (`docs/DEPLOY.md`).
-**Qué trae:** botón **Relleno** de los cortes (`F13.5`) · el visor dice si se mira **3D o 2D** y el
+Sin cambios de configuración, `nginx` ni variables de entorno. Orden: `respaldo.sh`, luego
+`desplegar.sh` (`docs/DEPLOY.md`). **Qué trae:** botón **Relleno** de los cortes (`F13.5`) · el visor dice si se mira **3D o 2D** y el
 espacio se llama «Planos 2D y perfiles» · el buscador de elementos ya no tapa el selector de vista ·
 humo **e2e** con Playwright y axe en el CI (`F14.6`), `npm audit` en el CI y `npm audit fix` (#108) ·
 la revisión `F14.2` · **cambiar de espacio cambia de verdad entre 3D y 2D** (#118) · auditoría y
