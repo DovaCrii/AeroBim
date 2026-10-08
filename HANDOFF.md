@@ -4,7 +4,7 @@
 > [`docs/historial/`](docs/historial/) y en `git log`. La fuente de verdad del trabajo pendiente es
 > [`MASTER_PLAN.md`](MASTER_PLAN.md) (tablero de ~500 líneas desde el 2026-10-05; las fases cerradas están en `docs/historial/plan/`; `/siguiente` dice qué toca).
 
-**Estado al:** 2026-10-08 · **`main` en:** `2287043` · **Último PR fusionado:** #115 (luego #114) · **Ninguno abierto** · **Tanda cerrada: lista para la VM**
+**Estado al:** 2026-10-08 · **`main` en:** `6036aab` · **Último PR fusionado:** #118 · **Ninguno abierto** · **Tanda cerrada: lista para la VM**
 
 ## Reparto del trabajo
 
@@ -45,7 +45,7 @@ empieza con el piloto en marcha.
 Detalle en `.claude/tmp/informes/revision-2026-10-06.md` (fuera de git). **M1 y M2 mitigados el 2026-10-08:**
 la auditoría y los trabajos (`SoloPlataformaMixin`) solo los ve el superusuario en cuanto hay **más de una
 organización**; con una se conserva lo de siempre. Dar a cada organización su propia auditoría (campo y
-migración) sigue siendo **decisión tuya**. **B2:** siete funciones con complejidad > 10.
+migración) sigue siendo **decisión tuya**.
 
 ## Lo que es tuyo (bloqueos que el código no cierra)
 
@@ -60,7 +60,7 @@ migración) sigue siendo **decisión tuya**. **B2:** siete funciones con complej
 - El **piloto** ([`docs/PILOTO.md`](docs/PILOTO.md)): las cinco etapas, de la 0 a la 4, siguen sin
   empezar. La Etapa 1 (registro documental) no necesita el IFC.
 
-## Tanda lista para la VM (2026-10-08, #108 a #115)
+## Tanda lista para la VM (2026-10-08, #108 a #118)
 
 **Migración nueva: `documents.0016_observacion_forma`** (la de la Fase 15; sin ella fallan las marcas).
 Sin cambios de configuración, de `nginx` ni de variables de entorno. Orden de siempre: `respaldo.sh` y
@@ -68,7 +68,8 @@ después `desplegar.sh` (`docs/DEPLOY.md`).
 **Qué trae:** botón **Relleno** de los cortes (`F13.5`) · el visor dice si se mira **3D o 2D** y el
 espacio se llama «Planos 2D y perfiles» · el buscador de elementos ya no tapa el selector de vista ·
 humo **e2e** con Playwright y axe en el CI (`F14.6`), `npm audit` en el CI y `npm audit fix` (#108) ·
-la revisión `F14.2` (M1 y M2 esperan tu decisión) · la skill `/preparar-despliegue`.
+la revisión `F14.2` · **cambiar de espacio cambia de verdad entre 3D y 2D** (#118) · auditoría y
+trabajos solo del superusuario con más de una organización (#117) · la skill `/preparar-despliegue`.
 
 ## La tanda anterior: la Fase 15, revisión con marcas (#89 a #103) — **cerrada entera**
 
