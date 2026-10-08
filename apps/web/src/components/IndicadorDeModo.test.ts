@@ -33,9 +33,11 @@ describe("modoDelVisor", () => {
     expect(modo.ayuda).toContain("2D");
   });
 
-  it("Planos y perfiles sin modelo ni plano pide abrir uno", () => {
-    expect(modoDelVisor({ ...base, espacio: "planos", hayModelo: false }).titulo).toBe(
-      "Sin plano abierto",
-    );
+  it("sin nada abierto no promete seleccionar: pide abrir algo, en los dos espacios", () => {
+    for (const espacio of ["modelo", "planos"] as const) {
+      const modo = modoDelVisor({ ...base, espacio, hayModelo: false });
+      expect(modo.titulo).toBe("Nada abierto");
+      expect(modo.ayuda).toContain("Abre");
+    }
   });
 });

@@ -3312,7 +3312,7 @@ export function App() {
                 modo2D,
                 laminaAbierta: laminaEnVisor !== null,
                 comparando,
-                hayModelo: models.length > 0,
+                hayModelo: models.length > 0 || plans.length > 0 || nube !== null,
               })}
             />
 

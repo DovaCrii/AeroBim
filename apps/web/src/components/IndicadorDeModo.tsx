@@ -27,6 +27,15 @@ export function modoDelVisor({
   readonly comparando: boolean;
   readonly hayModelo: boolean;
 }): ModoDelVisor {
+  // **Sin nada abierto no hay nada que seleccionar ni que girar**: decir «clic selecciona» sobre un
+  // lienzo vacío era un rótulo que no describía lo que se veía (2026-10-08).
+  if (!hayModelo && !laminaAbierta && !modo2D) {
+    return {
+      dimension: espacio === "planos" ? "2D" : "3D",
+      titulo: "Nada abierto",
+      ayuda: "Abre un IFC, un plano DXF o una nube de puntos, o arrástralo al lienzo.",
+    };
+  }
   if (laminaAbierta) {
     return {
       dimension: "2D",
@@ -51,10 +60,8 @@ export function modoDelVisor({
   if (espacio === "planos") {
     return {
       dimension: "3D",
-      titulo: hayModelo ? "Modelo en 3D" : "Sin plano abierto",
-      ayuda: hayModelo
-        ? "Para trabajar en 2D: «Generar plano» o «Crear perfil», o abre un DXF."
-        : "Abre un DXF o genera un plano desde el modelo.",
+      titulo: "Modelo en 3D",
+      ayuda: "Para trabajar en 2D: «Generar plano» o «Crear perfil», o abre un DXF.",
     };
   }
   return {
