@@ -20,11 +20,14 @@ const MINIMO_DE_LETRAS = 2;
  * hace un clic sobre el elemento —ficha incluida— y aislar usa el mismo aislamiento que el árbol.
  */
 export function BuscadorDelVisor({
+  izquierda,
   viewer,
   modelos,
   onElegir,
   onAislar,
 }: {
+  /** Dónde empieza la caja, desde el borde izquierdo del lienzo: detrás de lo que flota a ese lado. */
+  izquierda: string;
   viewer: BimViewer | null;
   /** Cuántos modelos hay abiertos: al cambiar, la búsqueda anterior ya no vale. */
   modelos: number;
@@ -68,10 +71,14 @@ export function BuscadorDelVisor({
   const incompleto = hallado !== null && hallado.total > hallado.resultados.length;
 
   // **Ni centrado ni pegado a un borde: en el hueco que dejan las demás piezas.** Por la izquierda lo
-  // ocupan la ficha de lo seleccionado y la barra de herramientas (352 px + 60 px), y por la derecha el
-  // selector de vista; centrado, la caja caía encima de las dos.
+  // ocupa la barra de herramientas (72 px) y, si la ficha flota, también ella (30 rem); por la derecha, el
+  // selector de vista (unos 17 rem). Con 11 rem a la derecha y 30 fijos a la izquierda la caja no cabía
+  // en un lienzo de 930 px y caía encima del selector (2026-10-08).
   return (
-    <div className="absolute top-3 right-[11rem] left-[30rem] z-20 max-w-md min-w-[16rem]">
+    <div
+      className="absolute top-3 right-[19rem] z-20 max-w-md min-w-[12rem]"
+      style={{ left: izquierda }}
+    >
       <div className="flex items-center gap-1 rounded-lg border border-borde bg-surface/90 px-2 py-1 shadow-[var(--shadow-xl)] backdrop-blur-sm">
         <input
           ref={caja}
