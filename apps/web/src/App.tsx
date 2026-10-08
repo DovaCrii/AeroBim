@@ -48,6 +48,7 @@ import { DrawingsPanel } from "./components/DrawingsPanel.js";
 import { ModelsPanel } from "./components/ModelsPanel.js";
 import { Coordinacion, type ObservacionDelModelo } from "./components/Coordinacion.js";
 import { BuscadorDelVisor } from "./components/BuscadorDelVisor.js";
+import { IndicadorDeModo, modoDelVisor } from "./components/IndicadorDeModo.js";
 import { GlobosDeTemas } from "./components/GlobosDeTemas.js";
 import { HerramientasDelVisor } from "./components/HerramientasDelVisor.js";
 import { TablaDeTemas } from "./components/TablaDeTemas.js";
@@ -3168,6 +3169,7 @@ export function App() {
             {/* **El buscador de elementos** (`F15.6`): arriba, al centro; entre las herramientas y el cubo de vistas. */}
             {laminaEnVisor === null && (
               <BuscadorDelVisor
+                izquierda={!panelIzquierdo && haySeleccion ? "30rem" : "4.5rem"}
                 viewer={viewer.current}
                 modelos={models.length}
                 onElegir={(e) => void irAlHallado(e)}
@@ -3242,6 +3244,16 @@ export function App() {
                 }}
               />
             )}
+
+            <IndicadorDeModo
+              modo={modoDelVisor({
+                espacio,
+                modo2D,
+                laminaAbierta: laminaEnVisor !== null,
+                comparando,
+                hayModelo: models.length > 0,
+              })}
+            />
 
             {/*
              * **El recuadro de la suelta va en la marca y a opacidad entera**, y las dos cosas son
