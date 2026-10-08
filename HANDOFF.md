@@ -42,10 +42,11 @@ empieza con el piloto en marcha.
 
 ## Hallazgos de la revisión del 2026-10-06 (bandeja, no `alta`)
 
-Detalle en `.claude/tmp/informes/revision-2026-10-06.md` (fuera de git). **M1:** `AuditoriaView` muestra la auditoría de
-todas las organizaciones —`AuditEvent` no tiene organización—; **decide**: ¿de plataforma (solo superusuario) o por
-organización (campo y migración)? **M2:** `TrabajosView` es de plataforma y hay que declararlo. **B2:** siete funciones con
-complejidad > 10; el umbral baja cuando se refactoricen. Falta un paso de `npm audit` en el CI.
+Detalle en `.claude/tmp/informes/revision-2026-10-06.md` (fuera de git). **M1 y M2 mitigados el 2026-10-08:**
+la auditoría y los trabajos (`SoloPlataformaMixin`) solo los ve el superusuario en cuanto hay **más de una
+organización**; con una se conserva lo de siempre. Dar a cada organización su propia auditoría (campo y
+migración) sigue siendo **decisión tuya**. **B2:** siete funciones con complejidad > 10; el umbral baja
+cuando se refactoricen.
 
 ## Lo que es tuyo (bloqueos que el código no cierra)
 
