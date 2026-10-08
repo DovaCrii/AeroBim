@@ -15,6 +15,10 @@ elemento y el doble clic abre su ficha, y los rótulos lejanos de un plano DXF n
 Las notas llevan color por prioridad y su seguimiento en tres tramos; «Generar plano» y «Crear perfil»
 se ven también en el espacio 3D, y el indicador 3D/2D pasa a una ficha pequeña abajo a la derecha
 (#128, #129).
+Más contraste del texto secundario en oscuro; la barra de desplazamiento del menú lateral deja de ser blanca;
+las láminas de un perfil se agrupan y se recorren con un selector compacto, con ocultar y eliminar; «Crear
+perfil» es compacto y el eje se dibuja con vértices numerados y balizas de PK; cortar, plano y perfil están en
+la barra vertical; el espacio 2D se mira en planta (#132 a #136).
 
 ### Cambiado — áreas de toque y la escala de radios del portal (`F9.4` y `F9.5`, 2026-09-03)
 

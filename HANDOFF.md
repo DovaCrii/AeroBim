@@ -4,7 +4,7 @@
 > [`docs/historial/`](docs/historial/) y en `git log`. La fuente de verdad del trabajo pendiente es
 > [`MASTER_PLAN.md`](MASTER_PLAN.md) (tablero de ~500 líneas desde el 2026-10-05; las fases cerradas están en `docs/historial/plan/`; `/siguiente` dice qué toca).
 
-**Estado al:** 2026-10-08 · **`main` en:** `54d73a3` · **Último PR fusionado:** #130 · **Ninguno abierto** · **Tanda cerrada: lista para la VM**
+**Estado al:** 2026-10-08 · **`main` en:** `54d73a3` · **Último PR fusionado:** #136 · **Ninguno abierto** · **Tanda cerrada: lista para la VM**
 
 ## Reparto del trabajo
 
@@ -59,12 +59,16 @@ propia por organización** (no hay campo ni migración).
 - El **piloto** ([`docs/PILOTO.md`](docs/PILOTO.md)): las cinco etapas, de la 0 a la 4, siguen sin
   empezar. La Etapa 1 (registro documental) no necesita el IFC.
 
-## Desplegado en la VM (2026-10-08)
+## Desplegado y por desplegar (2026-10-08)
 
-**La VM `p340` corre `2b2b8c2` (#130), con todo lo de #108 a #130**: relleno de cortes, 3D/2D, doble clic,
-rótulos del plano, notas con color y seguimiento, «Generar plano» también en el 3D, e2e en el CI. Migraciones
-aplicadas: `documents.0016` y `core.0005`. `/health/` en `ok`; `conversor_cad` sigue ausente (sin él no
-abren los DWG). Último respaldo: `/var/backups/aerobim/20261008-193905`. **No queda nada por desplegar.**
+**La VM `p340` corre `2b2b8c2` (#130).** Respaldo: `/var/backups/aerobim/20261008-193905`. **Falta desplegar
+#131 a #136** (solo interfaz y estilos; **sin migraciones, sin `nginx`, sin variables nuevas**): barra de
+desplazamiento del menú lateral en oscuro (#132) · más contraste del texto secundario en oscuro (#133) ·
+selector compacto de láminas y perfiles agrupados con ocultar y eliminar (#134) · «Crear perfil» compacto y
+**balizado con PK** en el eje (#135) · cortar, plano y perfil en la barra vertical, el espacio 2D se mira en
+planta, y cambiar de lámina solo toca dos (#136). Orden: `respaldo.sh`, `desplegar.sh`, Ctrl+F5.
+**Sin confirmar a ojo:** la cámara en planta del espacio 2D (el panel del navegador no compone el giro) y un
+perfil real de punta a punta con 193 láminas; mírelo al desplegar.
 
 ## La tanda anterior: la Fase 15, revisión con marcas (#89 a #103) — **cerrada entera**
 
