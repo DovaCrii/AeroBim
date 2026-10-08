@@ -42,6 +42,13 @@ export {
 } from "./perfiles/malla.js";
 
 export {
+  balizasDelEje,
+  intervaloDeBalizasM,
+  MAXIMO_DE_BALIZAS,
+  type BalizaDeEje,
+} from "./perfiles/balizado.js";
+
+export {
   cajaTocaFranja,
   estacionesCada,
   franjaDeTramo,
