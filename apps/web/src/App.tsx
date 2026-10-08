@@ -2023,6 +2023,49 @@ export function App() {
   }, [models, plans, drawings, onApplyView]);
 
   /**
+   * **Cambiar de espacio cambia de verdad el visor** (2026-10-08).
+   *
+   * Antes el selector solo cambiaba el rótulo: se podía estar en «Planos 2D y perfiles» con la cámara en
+   * perspectiva mirando el modelo en 3D, y volver a «Modelo 3D» con el Modo 2D o una lámina todavía
+   * puestos. La razón de separar los dos espacios es **no mezclar los dos motores de vista** —la escena
+   * 3D con su postproducción y el dibujo de líneas ortográfico—, así que cada cambio **sale del modo
+   * del otro antes de entrar en el suyo**:
+   *
+   * - hacia «Modelo 3D»: se cierra la lámina, la comparación y el Modo 2D, y se devuelve lo que había;
+   * - hacia «Planos 2D y perfiles»: se entra en el Modo 2D si hay un plano abierto, o se abre la última
+   *   lámina generada. Sin ninguno de los dos se queda en 3D y el indicador dice qué abrir.
+   */
+  const onCambiarDeEspacio = useCallback(
+    async (destino: Espacio) => {
+      if (destino === espacio) return;
+      if (destino === "modelo") {
+        if (laminaEnVisor !== null) await onSalirDeLamina();
+        if (comparando) await onComparar(false);
+        if (modo2D) onModo2D(false);
+        setEspacio("modelo");
+        return;
+      }
+      setEspacio("planos");
+      if (laminaEnVisor !== null || comparando || modo2D) return;
+      const ultima = drawings[drawings.length - 1];
+      if (plans.length > 0) onModo2D(true);
+      else if (ultima !== undefined) await onVerLamina(ultima.id);
+    },
+    [
+      espacio,
+      laminaEnVisor,
+      comparando,
+      modo2D,
+      drawings,
+      plans,
+      onSalirDeLamina,
+      onComparar,
+      onModo2D,
+      onVerLamina,
+    ],
+  );
+
+  /**
    * Genera un plano desde el modelo y lo añade a la lista.
    *
    * **Lo que entra en el plano es lo que está encendido**, así que no hay diálogo de selección:
@@ -2890,7 +2933,7 @@ export function App() {
           <>
             <SelectorDeEspacio
               espacio={espacio}
-              onCambiar={setEspacio}
+              onCambiar={(destino) => void onCambiarDeEspacio(destino)}
               cuantosPlanos={plans.length + drawings.length}
             />
             <StatusBadge status={status} />
