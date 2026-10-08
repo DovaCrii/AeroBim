@@ -10,7 +10,8 @@
     "build": "tsc -b && vite build",
     "postbuild": "node scripts/limpiar-dist.mjs",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "@aerobim/bim-core": "*",
@@ -26,6 +27,8 @@
     "zustand": "^5.0.14"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.10.2",
+    "@playwright/test": "^1.56.1",
     "@tailwindcss/vite": "^4.3.0",
     "@types/node": "^26.2.0",
     "@types/react": "^19.2.16",

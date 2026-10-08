@@ -169,3 +169,29 @@ jobs:
       - run: uv run bandit -q -r apps config -x "*/tests/*"
 
       - run: uv run pip-audit
+
+  # Humo e2e (`F14.6`): login, obra, lista de documentos y el visor con `muro-minimo.ifc`, más axe
+  # sobre login y lista. **Playwright baja su Chromium aquí, en el corredor, y solo aquí**: la
+  # aplicación no descarga ningún navegador ni WASM al ejecutarse (regla 10 de `AGENTS.md`).
+  # Va aparte de `verify` y de `api` para no alargarlos y para que su fallo diga de qué es.
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 26
+          cache: npm
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: services/api/uv.lock
+
+      - run: npm ci --ignore-scripts
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: uv sync --locked
+        working-directory: services/api
+      - run: npm run e2e -w apps/web

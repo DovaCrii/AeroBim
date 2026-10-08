@@ -124,3 +124,7 @@ apps/web/public/wasm/
 # encuadrar los dos el muro medía un pixel — por eso el calce a mano no se podia ejercer. Sale
 # **corrido 0,240 / -0,150 / +0,075 m a proposito**, que es lo que el calce tiene que recuperar.
 !apps/web/public/samples/levantamiento-del-muro.copc.laz
+
+# e2e (F14.6)
+test-results/
+playwright-report/
