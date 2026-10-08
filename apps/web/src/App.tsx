@@ -3495,6 +3495,31 @@ export function App() {
                 onVerEnVisor2D={(id) => void onVerLamina(id)}
                 onExport={onExportDrawing}
                 {...(origen?.proyectoId !== undefined ? { onPublicar: onPublicarLamina } : {})}
+                onToggleMany={(ids, visible) => {
+                  setHiddenDrawings((actual) => {
+                    const siguiente = new Set(actual);
+                    for (const id of ids) {
+                      if (visible) siguiente.delete(id);
+                      else siguiente.add(id);
+                    }
+                    return siguiente;
+                  });
+                  for (const id of ids) void viewer.current?.setDrawingVisible(id, visible);
+                }}
+                onCloseMany={(ids) => {
+                  const fuera = new Set(ids);
+                  const quedan = drawings.filter((uno) => !fuera.has(uno.id));
+                  setDrawings(quedan);
+                  setHiddenDrawings(
+                    (actual) => new Set([...actual].filter((id) => !fuera.has(id))),
+                  );
+                  for (const id of ids) void viewer.current?.removeDrawing(id);
+                  if (laminaEnVisor !== null && fuera.has(laminaEnVisor)) {
+                    const otra = quedan[0];
+                    if (otra !== undefined) void onVerLamina(otra.id, quedan);
+                    else void onSalirDeLamina();
+                  }
+                }}
                 onClose={(id) => {
                   const quedan = drawings.filter((uno) => uno.id !== id);
                   setDrawings(quedan);
