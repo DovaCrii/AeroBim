@@ -61,6 +61,11 @@ export interface GeneratedDrawing {
    * un perfil está desarrollado sobre el papel, pero nace de un trazado en la escena.
    */
   readonly eje?: EjeDePerfil;
+  /**
+   * El perfil del que sale, si sale de uno: lo comparten el longitudinal y todas sus transversales.
+   * Es lo que permite a la interfaz tratarlas como un grupo y no como 193 planos sueltos.
+   */
+  readonly grupoId?: string;
   /** Cuántos segmentos tiene el dibujo visible, que es el tamaño real del plano. */
   readonly segments: number;
   /** Cuántos segmentos quedaron ocultos por el propio modelo. */
@@ -770,6 +775,8 @@ export class DrawingMaker {
        * Decide cómo se rotula la malla: en una transversal «0+002» sería un PK que no lo es.
        */
       readonly ejeHorizontal?: "pk" | "distancia";
+      /** El perfil al que pertenece la lámina; ver {@link GeneratedDrawing.grupoId}. */
+      readonly grupoId?: string;
       readonly onProgress?: (mensaje: string, avance?: number) => void;
     },
   ): Promise<GeneratedDrawing | null> {
@@ -868,6 +875,7 @@ export class DrawingMaker {
     const conEje: GeneratedDrawing = {
       ...info,
       ...(opciones.eje === undefined ? {} : { eje: opciones.eje }),
+      ...(opciones.grupoId === undefined ? {} : { grupoId: opciones.grupoId }),
       ...(nota === "" ? {} : { nota }),
       ...(opciones.cruces === undefined ? {} : { cruces: opciones.cruces }),
     };

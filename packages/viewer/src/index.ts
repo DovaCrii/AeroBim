@@ -5617,6 +5617,8 @@ export class BimViewer {
     };
 
     const creados: GeneratedDrawing[] = [];
+    // Todas las láminas de esta llamada comparten grupo: la interfaz las pliega como un solo perfil.
+    const grupoId = `perfil-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
     const anchoM = Math.max(opciones.anchoM, 0.01);
     // Con `exactOptionalPropertyTypes` una propiedad opcional no puede valer `undefined`: se omite.
     const avance = opciones.onProgress === undefined ? {} : { onProgress: opciones.onProgress };
@@ -5678,6 +5680,7 @@ export class BimViewer {
 
     const longitudinal = await this.drawings.createProfile(this.world, partes, {
       nombre: "Perfil longitudinal",
+      grupoId,
       eje,
       origenM,
       cruces,
@@ -5705,6 +5708,7 @@ export class BimViewer {
         {
           nombre: `Transversal PK ${textoDePk(pkM)}`,
           ejeHorizontal: "distancia",
+          grupoId,
           eje,
           origenM,
           ...avance,
