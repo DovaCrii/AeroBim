@@ -4,7 +4,7 @@
 > [`docs/historial/`](docs/historial/) y en `git log`. La fuente de verdad del trabajo pendiente es
 > [`MASTER_PLAN.md`](MASTER_PLAN.md) (tablero de ~500 líneas desde el 2026-10-05; las fases cerradas están en `docs/historial/plan/`; `/siguiente` dice qué toca).
 
-**Estado al:** 2026-10-08 · **`main` en:** `7f1e605` · **Último PR fusionado:** #126 · **Ninguno abierto** · **Tanda cerrada: lista para la VM**
+**Estado al:** 2026-10-08 · **`main` en:** `54d73a3` · **Último PR fusionado:** #129 · **Ninguno abierto** · **Tanda cerrada: lista para la VM**
 
 ## Reparto del trabajo
 
@@ -59,18 +59,14 @@ propia por organización** (no hay campo ni migración).
 - El **piloto** ([`docs/PILOTO.md`](docs/PILOTO.md)): las cinco etapas, de la 0 a la 4, siguen sin
   empezar. La Etapa 1 (registro documental) no necesita el IFC.
 
-## Tanda lista para la VM (2026-10-08, #108 a #126)
+## Para desplegar en la VM (2026-10-08)
 
-**Migración nueva: `documents.0016_observacion_forma`** (la de la Fase 15; sin ella fallan las marcas).
-Sin cambios de configuración, `nginx` ni variables de entorno. Orden: `respaldo.sh`, luego
-`desplegar.sh` (`docs/DEPLOY.md`). **Qué trae:** botón **Relleno** de los cortes (`F13.5`) · el visor dice si se mira **3D o 2D** y el
-espacio se llama «Planos 2D y perfiles» · el buscador de elementos ya no tapa el selector de vista ·
-humo **e2e** con Playwright y axe en el CI (`F14.6`), `npm audit` en el CI y `npm audit fix` (#108) ·
-la revisión `F14.2` · **cambiar de espacio cambia de verdad entre 3D y 2D** (#118) · auditoría y
-trabajos solo del superusuario con más de una organización (#117) · complejidad ciclomática ≤ 12 (#121) ·
-buscador compacto y distintivo 3D/2D (#123) · **un clic marca, el doble clic abre la ficha** y los rótulos
-lejanos del plano DXF se esconden si se amontonan (#124) · el indicador dice «Nada abierto» con el lienzo
-vacío (#126) · la skill `/preparar-despliegue`.
+**Desplegado el 2026-10-08 hasta `59c7f7f` (#127)**: ya llevan `documents.0016` y `core.0005`, y todo lo de
+#108 a #127 (relleno de cortes, 3D/2D, doble clic, rótulos, e2e). **Falta desplegar #128 y #129**: el
+indicador 3D/2D pasa abajo a la derecha; las notas llevan color por prioridad y seguimiento (abierta,
+respondida, cerrada); y «Generar plano» y «Crear perfil» se ven también en el espacio 3D. **Sin migraciones,
+sin `nginx`, sin variables nuevas.** Orden: `respaldo.sh`, luego `desplegar.sh` (`docs/DEPLOY.md`), y
+Ctrl+F5 en el navegador.
 
 ## La tanda anterior: la Fase 15, revisión con marcas (#89 a #103) — **cerrada entera**
 
