@@ -1,7 +1,7 @@
 import type { BimViewer, ElementoEncontrado } from "@aerobim/viewer";
 import { useEffect, useRef, useState } from "react";
 
-import { IconClose } from "./icons.js";
+import { IconClose, IconSearch } from "./icons.js";
 
 /** Cuántas filas se enseñan; el resto se dice con la cuenta. Más filas no se leen. */
 const FILAS_VISIBLES = 12;
@@ -79,7 +79,17 @@ export function BuscadorDelVisor({
       className="absolute top-3 right-[19rem] z-20 max-w-md min-w-[12rem]"
       style={{ left: izquierda }}
     >
-      <div className="flex items-center gap-1 rounded-lg border border-borde bg-surface/90 px-2 py-1 shadow-[var(--shadow-xl)] backdrop-blur-sm">
+      {/* **Compacto en reposo, entero al usarlo** (2026-10-08): una caja de 28 rem encima del lienzo
+          tapaba la parte alta de la escena todo el tiempo. En reposo mide lo que su aviso, y al enfocarla
+          o escribir ocupa el ancho disponible. */}
+      <div
+        className={[
+          "flex items-center gap-1 rounded-lg border border-borde bg-surface/90 px-2 py-1 shadow-[var(--shadow-xl)] backdrop-blur-sm",
+          "transition-[width] duration-[--duracion-corta] ease-[--ease-ab] focus-within:w-full",
+          texto === "" ? "w-60" : "w-full",
+        ].join(" ")}
+      >
+        <IconSearch />
         <input
           ref={caja}
           type="search"
@@ -88,7 +98,8 @@ export function BuscadorDelVisor({
           onKeyDown={(evento) => {
             if (evento.key === "Escape") setTexto("");
           }}
-          placeholder="Buscar elementos: nombre, clase o GUID"
+          placeholder="Buscar elementos"
+          title="Busca por nombre, clase IFC o GUID"
           aria-label="buscar elementos del modelo"
           className="min-w-0 flex-1 bg-transparent px-1 py-1 text-sm text-fg placeholder:text-fg-3 focus:outline-none"
         />

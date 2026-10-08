@@ -781,3 +781,13 @@ export function IconAbrirDelDisco(props: IconProps) {
     </Svg>
   );
 }
+
+/** Buscar: una lupa. */
+export function IconSearch(props: IconProps) {
+  return (
+    <Svg className={props.className ?? "h-4 w-4 shrink-0 text-fg-3"}>
+      <circle cx="10.5" cy="10.5" r="6" />
+      <path d="m15 15 5 5" />
+    </Svg>
+  );
+}
