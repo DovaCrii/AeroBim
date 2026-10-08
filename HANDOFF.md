@@ -4,7 +4,7 @@
 > [`docs/historial/`](docs/historial/) y en `git log`. La fuente de verdad del trabajo pendiente es
 > [`MASTER_PLAN.md`](MASTER_PLAN.md) (tablero de ~500 líneas desde el 2026-10-05; las fases cerradas están en `docs/historial/plan/`; `/siguiente` dice qué toca).
 
-**Estado al:** 2026-10-08 · **`main` en:** `30fb8d0` · **Último PR fusionado:** #124 · **Ninguno abierto** · **Tanda cerrada: lista para la VM**
+**Estado al:** 2026-10-08 · **`main` en:** `7f1e605` · **Último PR fusionado:** #126 · **Ninguno abierto** · **Tanda cerrada: lista para la VM**
 
 ## Reparto del trabajo
 
@@ -19,8 +19,7 @@
   **perfiles** (IFC y nube, desarrollados por PK) y **dos espacios de trabajo**, _Modelo 3D_ y _Planos
   2D y perfiles_, con **Comparar**. Todo verificado en el navegador **con datos de muestra**: falta el
   oráculo externo con los archivos del metro (`F13.6`).
-- Pruebas: **1 756** en `services/api` (+7 omitidas; gate local del 2026-10-06) y **761** en
-  TypeScript (`npm test`: 569 de `bim-core`, 115 de `viewer` y 77 de `apps/web`).
+- Pruebas (gate local 2026-10-09): **1 775** en `services/api` (+7 omitidas) y **770** en TypeScript.
 
 ## Filas abiertas (verificar con `plan-fila.mjs --abiertas`)
 
@@ -60,7 +59,7 @@ propia por organización** (no hay campo ni migración).
 - El **piloto** ([`docs/PILOTO.md`](docs/PILOTO.md)): las cinco etapas, de la 0 a la 4, siguen sin
   empezar. La Etapa 1 (registro documental) no necesita el IFC.
 
-## Tanda lista para la VM (2026-10-08, #108 a #124)
+## Tanda lista para la VM (2026-10-08, #108 a #126)
 
 **Migración nueva: `documents.0016_observacion_forma`** (la de la Fase 15; sin ella fallan las marcas).
 Sin cambios de configuración, `nginx` ni variables de entorno. Orden: `respaldo.sh`, luego
@@ -70,7 +69,8 @@ humo **e2e** con Playwright y axe en el CI (`F14.6`), `npm audit` en el CI y `np
 la revisión `F14.2` · **cambiar de espacio cambia de verdad entre 3D y 2D** (#118) · auditoría y
 trabajos solo del superusuario con más de una organización (#117) · complejidad ciclomática ≤ 12 (#121) ·
 buscador compacto y distintivo 3D/2D (#123) · **un clic marca, el doble clic abre la ficha** y los rótulos
-lejanos del plano DXF se esconden si se amontonan (#124) · la skill `/preparar-despliegue`.
+lejanos del plano DXF se esconden si se amontonan (#124) · el indicador dice «Nada abierto» con el lienzo
+vacío (#126) · la skill `/preparar-despliegue`.
 
 ## La tanda anterior: la Fase 15, revisión con marcas (#89 a #103) — **cerrada entera**
 
