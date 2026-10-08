@@ -1,6 +1,13 @@
 import type { MeasureMode } from "@aerobim/viewer";
 
-import { IconCursor, IconDistance, IconNota } from "./icons.js";
+import {
+  IconCursor,
+  IconDistance,
+  IconNota,
+  IconPerfil,
+  IconPlanoSalida,
+  IconSectionHorizontal,
+} from "./icons.js";
 import { BotonFlotante, PanelFlotante } from "./PanelFlotante.js";
 
 /**
@@ -18,9 +25,15 @@ export function HerramientasDelVisor({
   modoDeMedicion,
   puedeAnotar,
   izquierda,
+  conCortes,
+  trazandoPerfil,
+  hayModelo,
   onSeleccionar,
   onMedir,
   onAnotar,
+  onCortar,
+  onGenerarPlano,
+  onCrearPerfil,
 }: {
   /** El modo de medición activo, o `null` si se está seleccionando. */
   readonly modoDeMedicion: MeasureMode | null;
@@ -31,6 +44,15 @@ export function HerramientasDelVisor({
   readonly onSeleccionar: () => void;
   readonly onMedir: () => void;
   readonly onAnotar: () => void;
+  /** Los cortes son del 3D: en el espacio de planos no se ofrecen. */
+  readonly conCortes: boolean;
+  /** Se está marcando el eje de un perfil. */
+  readonly trazandoPerfil: boolean;
+  /** Hay un modelo del que sacar un corte, un plano o un perfil. */
+  readonly hayModelo: boolean;
+  readonly onCortar: () => void;
+  readonly onGenerarPlano: () => void;
+  readonly onCrearPerfil: () => void;
 }) {
   return (
     <PanelFlotante posicion="izquierda-arriba" etiqueta="Herramientas" izquierda={izquierda}>
@@ -61,6 +83,49 @@ export function HerramientasDelVisor({
         }
         desactivado={!puedeAnotar}
         onClick={onAnotar}
+      />
+      {/* **Sacar de lo que se mira: cortes, planos y perfiles** (2026-10-08). Estaban solo en la cinta,
+          en la pestaña «Modelo» o «Documentar», y «no encuentro cómo generar los cortes y los planos».
+          Son los mismos mandatos que los de la cinta, a un clic del modelo y en los dos espacios. */}
+      <span aria-hidden="true" className="my-0.5 h-px w-full bg-borde" />
+      {conCortes && (
+        <BotonFlotante
+          compacto
+          icono={<IconSectionHorizontal />}
+          nombre="Cortar"
+          ayuda={
+            hayModelo
+              ? "Corte horizontal del modelo. Más cortes y «Quitar» en la pestaña Modelo"
+              : "Abre un modelo primero"
+          }
+          desactivado={!hayModelo}
+          onClick={onCortar}
+        />
+      )}
+      <BotonFlotante
+        compacto
+        icono={<IconPlanoSalida />}
+        nombre="Plano"
+        ayuda={
+          hayModelo
+            ? "Genera el plano en planta de lo que está encendido y lo abre en 2D"
+            : "Abre un modelo primero"
+        }
+        desactivado={!hayModelo}
+        onClick={onGenerarPlano}
+      />
+      <BotonFlotante
+        compacto
+        icono={<IconPerfil />}
+        nombre="Perfil"
+        ayuda={
+          hayModelo
+            ? "Marca un eje con clics y saca el perfil a lo largo de él, con su PK"
+            : "Abre un modelo primero"
+        }
+        activo={trazandoPerfil}
+        desactivado={!hayModelo}
+        onClick={onCrearPerfil}
       />
     </PanelFlotante>
   );

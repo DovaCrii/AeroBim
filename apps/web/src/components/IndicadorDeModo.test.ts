@@ -7,6 +7,7 @@ const base = {
   modo2D: false,
   laminaAbierta: false,
   comparando: false,
+  enPlanta: false,
   hayModelo: true,
 } as const;
 
@@ -31,6 +32,12 @@ describe("modoDelVisor", () => {
     const modo = modoDelVisor({ ...base, espacio: "planos" });
     expect(modo.dimension).toBe("3D");
     expect(modo.ayuda).toContain("2D");
+  });
+
+  it("el espacio de planos con solo un modelo se mira en planta y dice 2D", () => {
+    const modo = modoDelVisor({ ...base, espacio: "planos", enPlanta: true });
+    expect(modo.dimension).toBe("2D");
+    expect(modo.titulo).toBe("Planta del modelo");
   });
 
   it("sin nada abierto no promete seleccionar: pide abrir algo, en los dos espacios", () => {
