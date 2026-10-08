@@ -5,6 +5,12 @@ Este proyecto sigue [versionado semántico](https://semver.org/lang/es/).
 
 ## [Sin publicar]
 
+### Añadido — relleno de cortes, indicador 3D/2D y humo e2e (2026-10-08)
+
+Botón **Relleno** en Modelo › Cortes (`F13.5`, `ClipStyler`); etiqueta 3D/2D en el visor y el espacio
+pasa a «Planos 2D y perfiles»; el buscador de elementos ya no se superpone al selector de vista; prueba
+e2e de humo con Playwright y axe-core (`F14.6`) y `npm audit` en el CI. Detalle en #108–#115.
+
 ### Cambiado — áreas de toque y la escala de radios del portal (`F9.4` y `F9.5`, 2026-09-03)
 
 **La mitad de las dos filas ya estaba hecha y el plan no lo sabía.** `opacity-0 group-hover`: cero
