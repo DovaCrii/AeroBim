@@ -1317,7 +1317,7 @@ function atlasDeEtiquetas(
 
   // **El rótulo se dibuja del mismo tamaño mire uno de donde mire**, y el rayo lo encuentra contra
   // su caja y no contra la geometría, que no tiene tamaño propio. Ver `etiquetas.ts`.
-  mantenerTamanoEnPantalla(malla, material, alto, ALTO_ETIQUETA_PX);
+  mantenerTamanoEnPantalla(malla, material, alto, ALTO_ETIQUETA_PX, cuantos);
   malla.raycast = (rayo, impactos) => tocarMarcas(malla, material, centros, rayo, impactos);
   // Los rótulos se dibujan **encima** de los trazos: compartiendo plano con las líneas, parpadean
   // contra ellas al orbitar.

@@ -370,6 +370,13 @@ export function App() {
   const [models, setModels] = useState<readonly LoadedModel[]>([]);
   const [dragging, setDragging] = useState(false);
   const [selected, setSelected] = useState<PickedItem | null>(null);
+  /**
+   * **La ficha se abre con doble clic, no con el clic** (2026-10-08). Un clic seleccionaba y abría la
+   * ficha entera encima del lienzo: con la mano un poco floja, cada clic fallido tapaba la escena. Ahora
+   * el clic solo marca el elemento y la ficha se abre con el doble clic (o al ir a un elemento desde el
+   * buscador, el árbol o una observación). Se cierra al deseleccionar.
+   */
+  const [fichaAbierta, setFichaAbierta] = useState(false);
   const [trees, setTrees] = useState<readonly ModelTree[]>([]);
   const [projection, setProjection] = useState<Projection>("Perspective");
   const [navigation, setNavigation] = useState<NavigationMode>("Orbit");
@@ -1563,8 +1570,12 @@ export function App() {
     const instance = viewer.current;
     if (!instance) return;
 
-    if (measureMode === "area") instance.finishMeasurement();
-    else void instance.frameSelection();
+    if (measureMode === "area") {
+      instance.finishMeasurement();
+      return;
+    }
+    setFichaAbierta(true);
+    void instance.frameSelection();
   }, [measureMode]);
 
   // Escape cancela una alineación a medias. Es un gesto de cuatro clics y hay que poder salirse
@@ -2662,6 +2673,7 @@ export function App() {
 
     setSelected(encontrado);
     setSelectedPlan(null);
+    setFichaAbierta(true);
     return true;
   }, []);
 
@@ -2726,6 +2738,7 @@ export function App() {
     if (elegido === null) return;
     setSelected(elegido);
     setSelectedPlan(null);
+    setFichaAbierta(true);
     await instancia.frameSelection();
   }, []);
 
@@ -2835,6 +2848,11 @@ export function App() {
    * Se pinta **en una sola parte** y se coloca en la columna —si está fijada— o flotando.
    */
   const haySeleccion = selected !== null || selectedPlan !== null || puntoDeNube !== null;
+  /** La ficha flotante solo se ve si hay algo seleccionado **y** se pidió con doble clic. */
+  const verFicha = haySeleccion && fichaAbierta;
+  useEffect(() => {
+    if (!haySeleccion) setFichaAbierta(false);
+  }, [haySeleccion]);
   const fichaIzquierda = (
     <>
       {/* Tres fichas para tres clases de selección, y el orden es el del clic: el modelo
@@ -3188,7 +3206,7 @@ export function App() {
               no hay nada que apagar ni aislar, así que no se pinta. */}
             {/* **La ficha, flotando** cuando la columna no está fijada y hay algo seleccionado. Va sobre el
                 lienzo y no empuja nada: seleccionar un elemento no cambia el tamaño del visor. */}
-            {!panelIzquierdo && haySeleccion && laminaEnVisor === null && (
+            {!panelIzquierdo && verFicha && laminaEnVisor === null && (
               <div className="absolute top-3 left-3 z-20 max-h-[calc(100%-1.5rem)] w-80 max-w-[85%] overflow-y-auto rounded-lg border border-borde bg-surface/95 shadow-[var(--shadow-xl)] backdrop-blur-sm">
                 {fichaIzquierda}
               </div>
@@ -3212,7 +3230,7 @@ export function App() {
             {/* **El buscador de elementos** (`F15.6`): arriba, al centro; entre las herramientas y el cubo de vistas. */}
             {laminaEnVisor === null && (
               <BuscadorDelVisor
-                izquierda={!panelIzquierdo && haySeleccion ? "30rem" : "4.5rem"}
+                izquierda={!panelIzquierdo && verFicha ? "30rem" : "4.5rem"}
                 viewer={viewer.current}
                 modelos={models.length}
                 onElegir={(e) => void irAlHallado(e)}
@@ -3227,7 +3245,7 @@ export function App() {
                 modoDeMedicion={measureMode}
                 puedeAnotar={sePuedeAnotar || sePuedeAnotarLaNube}
                 izquierda={
-                  !panelIzquierdo && haySeleccion
+                  !panelIzquierdo && verFicha
                     ? "calc(var(--spacing) * 83 + 0.5rem)" // left-3 + w-80 de la ficha, y un hueco
                     : "calc(var(--spacing) * 3)"
                 }
