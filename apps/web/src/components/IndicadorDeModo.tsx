@@ -75,7 +75,15 @@ export function IndicadorDeModo({ modo }: { readonly modo: ModoDelVisor }) {
       aria-label={`Vista actual: ${modo.titulo}`}
       className="pointer-events-none absolute top-[5.25rem] right-3 z-10 flex max-w-[18rem] items-start gap-2 rounded-lg border border-borde bg-surface/90 px-2.5 py-1.5 shadow-[var(--shadow-xl)] backdrop-blur-sm"
     >
-      <span className="mt-0.5 rounded-sm bg-action px-1.5 py-0.5 text-xs font-semibold text-sobre-accion tabular-nums">
+      <span
+        className={[
+          "mt-0.5 rounded-sm px-1.5 py-0.5 text-xs font-semibold tabular-nums",
+          // El 3D va relleno y el 2D solo con contorno: se distinguen sin depender del color.
+          modo.dimension === "3D"
+            ? "bg-action text-sobre-accion"
+            : "border border-accent text-accent",
+        ].join(" ")}
+      >
         {modo.dimension}
       </span>
       <span className="min-w-0 text-xs leading-snug">
