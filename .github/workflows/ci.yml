@@ -31,6 +31,8 @@ jobs:
 
       # El hook de lefthook no aporta nada en CI y falla sin git hooks.
       - run: npm ci --ignore-scripts
+      - name: npm audit (avisos altos o críticos)
+        run: npm audit --audit-level=high
 
       - run: npm run fmt:check
       - run: npm run lint
