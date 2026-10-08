@@ -52,9 +52,9 @@ export const SECCIONES_OCULTAS: Record<Espacio, readonly string[]> = {
  */
 export const GRUPOS_OCULTOS: Record<Espacio, readonly string[]> = {
   modelo: [
-    // Lo que se saca para entregar es del otro espacio: generar un plano y trazar un eje son trabajo
-    // de papel, y el eje de un metro se traza en planta.
-    "Documentar",
+    // «Documentar» (generar un plano, trazar un eje) **también está en el 3D** desde el 2026-10-08: se
+    // ocultaba aquí por ser trabajo de papel, y quien tenía el modelo delante no encontraba cómo
+    // sacar un plano. Generarlo abre el visor 2D solo.
     // «Modo 2D» y «Comparar» son del plano. No se ocultan como grupo —«Referencias» conserva los
     // ejes, que el 3D sí usa— sino cada uno por su rótulo.
     botonDe("Modo 2D"),

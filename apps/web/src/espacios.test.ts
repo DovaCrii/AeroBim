@@ -45,8 +45,8 @@ describe("los dos espacios", () => {
     expect(GRUPOS_OCULTOS.planos).toContain("Coordinar");
   });
 
-  it("documentar —generar un plano, trazar un eje— es del espacio de planos", () => {
-    expect(GRUPOS_OCULTOS.modelo).toContain("Documentar");
+  it("documentar —generar un plano, trazar un eje— se ve en los dos espacios", () => {
+    expect(GRUPOS_OCULTOS.modelo).not.toContain("Documentar");
     expect(GRUPOS_OCULTOS.planos).not.toContain("Documentar");
   });
 

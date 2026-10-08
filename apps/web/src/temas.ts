@@ -20,6 +20,8 @@ export interface ObservacionDelModelo {
   readonly guid: string;
   readonly prioridad: string;
   readonly prioridadTexto: string;
+  /** El estado como lo guarda el registro: `abierta`, `respondida`, `cerrada` o `descartada`. */
+  readonly estado: string;
   readonly estadoTexto: string;
   readonly responsable: string;
   readonly vence: string | null;
@@ -52,6 +54,20 @@ export interface ObservacionDelModelo {
    */
   readonly esNueva: boolean;
   readonly url: string;
+}
+
+/** Los pasos del seguimiento de una observación, en el orden en que se avanza. */
+export const PASOS_DE_SEGUIMIENTO = ["abierta", "respondida", "cerrada"] as const;
+
+/**
+ * Cuántos pasos lleva el seguimiento de una observación: 1 abierta, 2 respondida, 3 cerrada.
+ *
+ * Una **descartada** devuelve 0 y un estado desconocido también: no es un paso intermedio de nada y
+ * dibujarla como «a medias» diría algo falso.
+ */
+export function pasoDeSeguimiento(estado: string): number {
+  const indice = PASOS_DE_SEGUIMIENTO.indexOf(estado as (typeof PASOS_DE_SEGUIMIENTO)[number]);
+  return indice + 1;
 }
 
 /** Qué se está mirando de la lista. */

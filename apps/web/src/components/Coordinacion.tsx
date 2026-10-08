@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { cabecerasDeEscritura } from "../csrf.js";
-import { FILTROS, pasa, type Filtro, type ObservacionDelModelo } from "../temas.js";
+import {
+  FILTROS,
+  PASOS_DE_SEGUIMIENTO,
+  pasa,
+  pasoDeSeguimiento,
+  type Filtro,
+  type ObservacionDelModelo,
+} from "../temas.js";
 import type { EstadoDeTemas } from "../useTemasDeLaObra.js";
 
 // El tipo y los filtros viven en `temas.ts`: los comparte con la tabla acoplada de abajo.
@@ -9,9 +16,19 @@ export type { ObservacionDelModelo } from "../temas.js";
 /** Cuán fuerte se pinta cada prioridad. **El texto va siempre**; el color es refuerzo. */
 const TONO: Record<string, string> = {
   alta: "text-danger",
-  media: "text-fg-2",
+  media: "text-warn",
   baja: "text-fg-3",
 };
+
+/** El filo de la tarjeta por prioridad: se recorre con la vista bajando por la lista. */
+const FILO: Record<string, string> = {
+  alta: "border-l-danger",
+  media: "border-l-warn",
+  baja: "border-l-fg-3",
+};
+
+/** El color de cada paso del seguimiento ya recorrido. */
+const PASO_TONO = ["bg-warn", "bg-accent", "bg-ok"] as const;
 
 /**
  * Las observaciones del modelo, y el clic que lleva al problema.
@@ -258,8 +275,8 @@ export function Coordinacion({
                  palabra en la segunda línea no se ve en ese barrido—, y la palabra es lo que
                  sobrevive a que uno de cada doce hombres no distinga el color. */
               className={[
-                "mb-1.5 rounded-sm bg-surface-2 transition-colors duration-[--duracion-corta] ease-[--ease-ab] hover:bg-surface-3",
-                observacion.esNueva ? "border-l-2 border-accent" : "",
+                "mb-1.5 rounded-sm border-l-[3px] bg-surface-2 transition-colors duration-[--duracion-corta] ease-[--ease-ab] hover:bg-surface-3",
+                FILO[observacion.prioridad] ?? "border-l-fg-3",
               ].join(" ")}
             >
               <button
@@ -301,6 +318,27 @@ export function Coordinacion({
                   {observacion.vence !== null && ` · vence ${observacion.vence}`}
                   {observacion.vencida && " · ⚠ vencida"}
                   {observacion.camara === null && " · sin cámara guardada"}
+                </span>
+                {/* **El seguimiento**: abierta, respondida, cerrada. Tres tramos y su nombre —el color
+                    solo no basta—; una descartada no avanza y se dice con la palabra. */}
+                <span
+                  className="mt-1 flex items-center gap-1.5 text-nota text-fg-2"
+                  title={`Seguimiento: ${observacion.estadoTexto}`}
+                >
+                  <span className="flex gap-0.5" aria-hidden="true">
+                    {PASOS_DE_SEGUIMIENTO.map((paso, indice) => (
+                      <span
+                        key={paso}
+                        className={[
+                          "h-1 w-5 rounded-full",
+                          indice < pasoDeSeguimiento(observacion.estado)
+                            ? PASO_TONO[indice]
+                            : "bg-surface-3",
+                        ].join(" ")}
+                      />
+                    ))}
+                  </span>
+                  {observacion.estadoTexto}
                 </span>
               </button>
 
