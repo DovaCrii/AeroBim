@@ -19,12 +19,15 @@ export function modoDelVisor({
   modo2D,
   laminaAbierta,
   comparando,
+  enPlanta,
   hayModelo,
 }: {
   readonly espacio: Espacio;
   readonly modo2D: boolean;
   readonly laminaAbierta: boolean;
   readonly comparando: boolean;
+  /** El espacio 2D con solo un modelo: se mira en planta y ortográfico. */
+  readonly enPlanta: boolean;
   readonly hayModelo: boolean;
 }): ModoDelVisor {
   // **Sin nada abierto no hay nada que seleccionar ni que girar**: decir «clic selecciona» sobre un
@@ -55,6 +58,13 @@ export function modoDelVisor({
       dimension: "2D",
       titulo: "Plano y modelo",
       ayuda: "El plano sobre el modelo en alambre, en planta. «Comparar» devuelve la vista.",
+    };
+  }
+  if (espacio === "planos" && enPlanta) {
+    return {
+      dimension: "2D",
+      titulo: "Planta del modelo",
+      ayuda: "El modelo visto en planta, sin perspectiva. «Plano» genera el plano para exportar.",
     };
   }
   if (espacio === "planos") {

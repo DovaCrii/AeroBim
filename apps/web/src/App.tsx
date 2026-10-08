@@ -522,6 +522,15 @@ export function App() {
   const [planSnap, setPlanSnap] = useState(true);
   /** `true` en modo 2D: los modelos apagados, la cámara en planta y proyección ortográfica. */
   const [modo2D, setModo2D] = useState(false);
+  /**
+   * El espacio 2D con solo un modelo abierto: **la planta del modelo**, ortográfica y sin perspectiva.
+   * Sin esto, «Planos 2D y perfiles» enseñaba el 3D con otro rótulo (2026-10-08).
+   */
+  const [enPlanta, setEnPlanta] = useState(false);
+  const antesDeLaPlanta = useRef<{
+    projection: Projection;
+    navigation: NavigationMode;
+  } | null>(null);
   /** Hay una comparación 2D–3D en curso: ver `onComparar`. */
   const [comparando, setComparando] = useState(false);
   /** La lámina que se está viendo **sola** en el visor 2D, o `null`: ver `onVerLamina`. */
@@ -2049,10 +2058,25 @@ export function App() {
   const onCambiarDeEspacio = useCallback(
     async (destino: Espacio) => {
       if (destino === espacio) return;
+      const instance = viewer.current;
       if (destino === "modelo") {
         if (laminaEnVisor !== null) await onSalirDeLamina();
         if (comparando) await onComparar(false);
         if (modo2D) onModo2D(false);
+        if (enPlanta && instance !== null) {
+          const previo = antesDeLaPlanta.current;
+          antesDeLaPlanta.current = null;
+          setEnPlanta(false);
+          instance.setPostproductionEnabled(true);
+          const proyeccion = previo?.projection ?? "Perspective";
+          const navegacion = previo?.navigation ?? "Orbit";
+          setProjection(proyeccion);
+          void instance.setProjection(proyeccion);
+          setNavigation(navegacion);
+          instance.setNavigationMode(navegacion);
+          setStandardView("iso");
+          void instance.frameAll("iso");
+        }
         setEspacio("modelo");
         return;
       }
@@ -2061,20 +2085,45 @@ export function App() {
       const ultima = drawings[drawings.length - 1];
       if (plans.length > 0) onModo2D(true);
       else if (ultima !== undefined) await onVerLamina(ultima.id);
+      else if (models.length > 0 && instance !== null) {
+        // Solo hay un modelo: se ve **en planta y ortográfico**, que es lo que es este espacio.
+        antesDeLaPlanta.current = { projection, navigation };
+        setEnPlanta(true);
+        // La postproducción es para leer un modelo en perspectiva; en ortográfica y planta deja
+        // la imagen sin actualizar. Es lo mismo que hacen el Modo 2D y Comparar.
+        instance.setPostproductionEnabled(false);
+        setProjection("Orthographic");
+        await instance.setProjection("Orthographic");
+        setNavigation("Plan");
+        instance.setNavigationMode("Plan");
+        setStandardView("top");
+        await instance.frameAll("top");
+      }
     },
     [
       espacio,
       laminaEnVisor,
       comparando,
       modo2D,
+      enPlanta,
       drawings,
       plans,
+      models.length,
+      projection,
+      navigation,
       onSalirDeLamina,
       onComparar,
       onModo2D,
       onVerLamina,
     ],
   );
+
+  /** Empieza o cancela el trazado del eje de un perfil. Lo usan la cinta y la barra vertical. */
+  const alternarPerfil = useCallback(() => {
+    // El eje se marca sobre el modelo: en el visor 2D no está, así que se sale primero.
+    if (antesDeLamina.current !== null) void onSalirDeLamina();
+    setPerfilTrazado((actual) => (actual === null ? [] : null));
+  }, [onSalirDeLamina]);
 
   /**
    * Genera un plano desde el modelo y lo añade a la lista.
@@ -3078,11 +3127,7 @@ export function App() {
         hayProyecto={(origen?.proyectoId ?? null) !== null}
         temasAbiertos={temasAbiertos}
         onTemas={() => setTemasAbiertos((abierta) => !abierta)}
-        onCrearPerfil={() => {
-          // El eje se marca sobre el modelo: en el visor 2D no está, así que se sale primero.
-          if (antesDeLamina.current !== null) void onSalirDeLamina();
-          setPerfilTrazado((actual) => (actual === null ? [] : null));
-        }}
+        onCrearPerfil={alternarPerfil}
         onTogglePanel={(lado) => {
           if (lado === "izquierda") setPanelIzquierdo((actual) => !actual);
           else setNavegadorPlegado((actual) => !actual);
@@ -3252,6 +3297,12 @@ export function App() {
                 onSeleccionar={() => onMeasureMode(null)}
                 onMedir={() => onMeasureMode(measureMode === null ? "distance" : null)}
                 onAnotar={() => setNotaAbierta(true)}
+                conCortes={espacio === "modelo"}
+                trazandoPerfil={perfilTrazado !== null}
+                hayModelo={models.length > 0}
+                onCortar={() => onSection("horizontal")}
+                onGenerarPlano={() => void onGenerateDrawing("plan")}
+                onCrearPerfil={alternarPerfil}
               />
             )}
 
@@ -3312,6 +3363,7 @@ export function App() {
                 modo2D,
                 laminaAbierta: laminaEnVisor !== null,
                 comparando,
+                enPlanta,
                 hayModelo: models.length > 0 || plans.length > 0 || nube !== null,
               })}
             />
