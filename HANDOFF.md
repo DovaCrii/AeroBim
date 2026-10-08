@@ -44,8 +44,8 @@ empieza con el piloto en marcha.
 
 Detalle en `.claude/tmp/informes/revision-2026-10-06.md` (fuera de git). **M1 y M2 mitigados el 2026-10-08:**
 la auditoría y los trabajos (`SoloPlataformaMixin`) solo los ve el superusuario en cuanto hay **más de una
-organización**; con una se conserva lo de siempre. Dar a cada organización su propia auditoría (campo y
-migración) sigue siendo **decisión tuya**.
+organización**; con una se conserva lo de siempre. **Decidido el 2026-10-08: de momento sin auditoría
+propia por organización** (no hay campo ni migración).
 
 ## Lo que es tuyo (bloqueos que el código no cierra)
 
