@@ -540,6 +540,68 @@ def atrasos_que_no_avanzan(usuario):
     return list(nulos_al_final(consulta, ("vence",)))
 
 
+def _bloques_de_tramos(tramos, hoy) -> tuple[list[dict], list[str]]:
+    """Los bloques del correo (HTML) y sus lineas (texto plano), un bloque por tramo con algo."""
+    bloques = []
+    lineas = [_("What is on your plate in AeroBim."), ""]
+    for _d, _h, nombre, etiqueta in TRAMOS:
+        items = tramos[nombre]
+        if not items:
+            continue
+        filas = []
+        lineas.append(f"{etiqueta} ({len(items)}):")
+        for item in items:
+            # **Lo vencido dice cuánto lleva.** Una fecha sola obliga a restar mentalmente, y en
+            # una lista de diez nadie lo hace: se leen todas igual de urgentes o ninguna.
+            atraso = (hoy - item.vence).days
+            cuanto = f"  ({atraso} d)" if atraso > 0 else ""
+            lineas.append(f"  · {item.vence.isoformat()}  {item.titulo}  [{item.proyecto}]{cuanto}")
+            filas.append(
+                {
+                    "titulo": item.titulo,
+                    "proyecto": str(item.proyecto),
+                    "vence": item.vence,
+                    "atraso": atraso if atraso > 0 else 0,
+                    # **Un enlace por ítem, que es lo que faltaba.** El resumen traía uno solo, a la
+                    # portada: para llegar a lo que el correo nombra había que buscarlo a mano.
+                    "url": enlace(_ruta_de(item)),
+                }
+            )
+        bloques.append({"etiqueta": etiqueta, "urgente": nombre == "vencido", "filas": filas})
+        lineas.append("")
+    return bloques, lineas
+
+
+def _bloque_de_parados(parados, hoy, bloques: list[dict], lineas: list[str]) -> None:
+    """Agrega al correo el escalado, si lo hay: lo que abriste tú y lleva parado."""
+    # **El escalado, al final y con su propio título.** Va aparte de lo tuyo porque no es tuyo: es
+    # trabajo de otra persona que abriste tú y que lleva parado una semana. Mezclarlo con la lista
+    # de arriba haría creer que hay que hacerlo, y lo que hay que hacer es **preguntar**.
+    if not parados:
+        return
+    etiqueta = _("You opened these, and nobody has touched them")
+    filas = []
+    lineas.append(f"{etiqueta} ({len(parados)}):")
+    for una in parados:
+        atraso = (hoy - una.vence).days
+        lineas.append(
+            f"  · {una.vence.isoformat()}  {una.titulo}  [{una.proyecto}]  "
+            f"({atraso} d, {una.responsable})"
+        )
+        filas.append(
+            {
+                "titulo": una.titulo,
+                "proyecto": str(una.proyecto),
+                "vence": una.vence,
+                "atraso": atraso,
+                "quien": str(una.responsable),
+                "url": enlace(_ruta_de(una)),
+            }
+        )
+    bloques.append({"etiqueta": etiqueta, "urgente": True, "filas": filas})
+    lineas.append("")
+
+
 def enviar_resumen(usuario, *, respetar_cadencia: bool = True, una_vez_al_dia: bool = True) -> int:
     """Un correo con lo que le queda, o ninguno si no le toca.
 
@@ -592,59 +654,8 @@ def enviar_resumen(usuario, *, respetar_cadencia: bool = True, una_vez_al_dia: b
             logger.info("resumen_ya_enviado_hoy", extra={"recipient": correo})
             return 0
 
-    bloques = []
-    lineas = [_("What is on your plate in AeroBim."), ""]
-    for _d, _h, nombre, etiqueta in TRAMOS:
-        items = tramos[nombre]
-        if not items:
-            continue
-        filas = []
-        lineas.append(f"{etiqueta} ({len(items)}):")
-        for item in items:
-            # **Lo vencido dice cuánto lleva.** Una fecha sola obliga a restar mentalmente, y en
-            # una lista de diez nadie lo hace: se leen todas igual de urgentes o ninguna.
-            atraso = (hoy - item.vence).days
-            cuanto = f"  ({atraso} d)" if atraso > 0 else ""
-            lineas.append(f"  · {item.vence.isoformat()}  {item.titulo}  [{item.proyecto}]{cuanto}")
-            filas.append(
-                {
-                    "titulo": item.titulo,
-                    "proyecto": str(item.proyecto),
-                    "vence": item.vence,
-                    "atraso": atraso if atraso > 0 else 0,
-                    # **Un enlace por ítem, que es lo que faltaba.** El resumen traía uno solo, a la
-                    # portada: para llegar a lo que el correo nombra había que buscarlo a mano.
-                    "url": enlace(_ruta_de(item)),
-                }
-            )
-        bloques.append({"etiqueta": etiqueta, "urgente": nombre == "vencido", "filas": filas})
-        lineas.append("")
-
-    # **El escalado, al final y con su propio título.** Va aparte de lo tuyo porque no es tuyo: es
-    # trabajo de otra persona que abriste tú y que lleva parado una semana. Mezclarlo con la lista
-    # de arriba haría creer que hay que hacerlo, y lo que hay que hacer es **preguntar**.
-    if parados:
-        etiqueta = _("You opened these, and nobody has touched them")
-        filas = []
-        lineas.append(f"{etiqueta} ({len(parados)}):")
-        for una in parados:
-            atraso = (hoy - una.vence).days
-            lineas.append(
-                f"  · {una.vence.isoformat()}  {una.titulo}  [{una.proyecto}]  "
-                f"({atraso} d, {una.responsable})"
-            )
-            filas.append(
-                {
-                    "titulo": una.titulo,
-                    "proyecto": str(una.proyecto),
-                    "vence": una.vence,
-                    "atraso": atraso,
-                    "quien": str(una.responsable),
-                    "url": enlace(_ruta_de(una)),
-                }
-            )
-        bloques.append({"etiqueta": etiqueta, "urgente": True, "filas": filas})
-        lineas.append("")
+    bloques, lineas = _bloques_de_tramos(tramos, hoy)
+    _bloque_de_parados(parados, hoy, bloques, lineas)
 
     lineas.append(enlace("/"))
 

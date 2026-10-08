@@ -684,6 +684,77 @@ def vistazo(proyecto, temas: list[TemaLeido], *, con_miniaturas: bool = True) ->
     return salida
 
 
+def _clave_de(guid) -> uuid.UUID | None:
+    """El GUID del tema como `UUID`, o `None` si no tiene esa forma."""
+    try:
+        return uuid.UUID(guid)
+    except (ValueError, AttributeError, TypeError):
+        return None
+
+
+def _actualizar_existente(existente, tema: TemaLeido, gente, por, resultado: Resultado) -> None:
+    """Trae a una observacion conocida lo que dice el otro lado: estado y comentarios nuevos."""
+    from apps.documents.models import Observacion
+
+    cambio = False
+    # **Solo el estado, y solo hacia adelante en el sentido de que lo dice el otro lado.**
+    # Ver el docstring del modulo: la vuelta trae la respuesta, no una version mejor del
+    # hallazgo. Reescribir titulo y prioridad borraria el trabajo local en silencio.
+    if tema.estado != existente.estado:
+        existente.estado = tema.estado
+        if tema.estado == Observacion.CERRADA and existente.cerrada_en is None:
+            existente.cerrada_en = tz.now()
+            existente.cerrada_por = _quien(tema.autor, gente, por)
+        existente.save(update_fields=["estado", "cerrada_en", "cerrada_por", "updated_at"])
+        cambio = True
+
+    nuevos = _sumar_comentarios(existente, tema, gente, por)
+    resultado.comentarios += nuevos
+    if cambio or nuevos:
+        resultado.actualizadas += 1
+    else:
+        resultado.sin_cambios += 1
+
+
+def _crear_nueva(proyecto, tema: TemaLeido, clave, gente, por, resultado: Resultado) -> None:
+    """Crea la observacion de un tema que no conociamos, con su instantanea y comentarios."""
+    from apps.documents.models import Observacion
+
+    autor = _quien(tema.autor, gente, por)
+    observacion = Observacion(
+        organizacion=proyecto.organizacion,
+        proyecto=proyecto,
+        titulo=tema.titulo[:250],
+        descripcion=tema.descripcion,
+        prioridad=tema.prioridad,
+        estado=tema.estado,
+        autor=autor,
+        responsable=_quien(tema.asignado, gente, por),
+        vence=tema.vence,
+        ifc_guid=tema.ifc_guid[:22],
+        punto_de_vista=tema.camara,
+        visibilidad=tema.visibilidad,
+    )
+    # **El `pk` es el GUID del tema cuando se puede**, y eso es lo que cierra el ciclo: el BCF
+    # que el mandante devuelva mañana con otro comentario encuentra esta misma fila en vez de
+    # crear una segunda copia del mismo hallazgo.
+    if clave is not None:
+        observacion.pk = clave
+    if tema.estado == Observacion.CERRADA:
+        observacion.cerrada_en = tz.now()
+        observacion.cerrada_por = autor
+    observacion.save()
+
+    if tema.instantanea is not None:
+        clave_foto = _guardar_instantanea(proyecto, tema.instantanea)
+        if clave_foto:
+            observacion.instantanea = clave_foto
+            observacion.save(update_fields=["instantanea", "updated_at"])
+
+    resultado.comentarios += _sumar_comentarios(observacion, tema, gente, por)
+    resultado.creadas += 1
+
+
 @transaction.atomic
 def aplicar(proyecto, temas: list[TemaLeido], por) -> Resultado:
     """Guarda los temas leidos en el proyecto. **Todo o nada.**
@@ -704,12 +775,7 @@ def aplicar(proyecto, temas: list[TemaLeido], por) -> Resultado:
     }
 
     # Las observaciones que ya existen, por su `pk`: es el GUID que escribio nuestra propia ida.
-    claves = []
-    for tema in temas:
-        try:
-            claves.append(uuid.UUID(tema.guid))
-        except (ValueError, AttributeError, TypeError):
-            continue
+    claves = [clave for clave in (_clave_de(tema.guid) for tema in temas) if clave is not None]
     conocidas = {
         observacion.pk: observacion
         for observacion in Observacion.objects.filter(proyecto=proyecto, pk__in=claves)
@@ -723,67 +789,12 @@ def aplicar(proyecto, temas: list[TemaLeido], por) -> Resultado:
             )
             continue
 
-        try:
-            clave = uuid.UUID(tema.guid)
-        except (ValueError, AttributeError, TypeError):
-            clave = None
-
+        clave = _clave_de(tema.guid)
         existente = conocidas.get(clave) if clave is not None else None
-
         if existente is not None:
-            cambio = False
-            # **Solo el estado, y solo hacia adelante en el sentido de que lo dice el otro lado.**
-            # Ver el docstring del modulo: la vuelta trae la respuesta, no una version mejor del
-            # hallazgo. Reescribir titulo y prioridad borraria el trabajo local en silencio.
-            if tema.estado != existente.estado:
-                existente.estado = tema.estado
-                if tema.estado == Observacion.CERRADA and existente.cerrada_en is None:
-                    existente.cerrada_en = tz.now()
-                    existente.cerrada_por = _quien(tema.autor, gente, por)
-                existente.save(update_fields=["estado", "cerrada_en", "cerrada_por", "updated_at"])
-                cambio = True
-
-            nuevos = _sumar_comentarios(existente, tema, gente, por)
-            resultado.comentarios += nuevos
-            if cambio or nuevos:
-                resultado.actualizadas += 1
-            else:
-                resultado.sin_cambios += 1
-            continue
-
-        autor = _quien(tema.autor, gente, por)
-        observacion = Observacion(
-            organizacion=proyecto.organizacion,
-            proyecto=proyecto,
-            titulo=tema.titulo[:250],
-            descripcion=tema.descripcion,
-            prioridad=tema.prioridad,
-            estado=tema.estado,
-            autor=autor,
-            responsable=_quien(tema.asignado, gente, por),
-            vence=tema.vence,
-            ifc_guid=tema.ifc_guid[:22],
-            punto_de_vista=tema.camara,
-            visibilidad=tema.visibilidad,
-        )
-        # **El `pk` es el GUID del tema cuando se puede**, y eso es lo que cierra el ciclo: el BCF
-        # que el mandante devuelva mañana con otro comentario encuentra esta misma fila en vez de
-        # crear una segunda copia del mismo hallazgo.
-        if clave is not None:
-            observacion.pk = clave
-        if tema.estado == Observacion.CERRADA:
-            observacion.cerrada_en = tz.now()
-            observacion.cerrada_por = autor
-        observacion.save()
-
-        if tema.instantanea is not None:
-            clave_foto = _guardar_instantanea(proyecto, tema.instantanea)
-            if clave_foto:
-                observacion.instantanea = clave_foto
-                observacion.save(update_fields=["instantanea", "updated_at"])
-
-        resultado.comentarios += _sumar_comentarios(observacion, tema, gente, por)
-        resultado.creadas += 1
+            _actualizar_existente(existente, tema, gente, por, resultado)
+        else:
+            _crear_nueva(proyecto, tema, clave, gente, por, resultado)
 
     return resultado
 

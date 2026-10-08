@@ -52,6 +52,18 @@ def _es_guid(valor) -> bool:
     )
 
 
+def _decodificar(crudo):
+    """El objeto que trae `crudo`: decodifica la cadena JSON, o devuelve `None` si no sirve."""
+    if not isinstance(crudo, str):
+        return crudo
+    if not crudo or len(crudo) > LARGO_MAXIMO:
+        return None
+    try:
+        return json.loads(crudo)
+    except (ValueError, TypeError):
+        return None
+
+
 def leer(crudo) -> dict:
     """La visibilidad que venga del visor, validada. `{}` si no hay o si no sirve.
 
@@ -66,16 +78,7 @@ def leer(crudo) -> dict:
     if crudo is None:
         return {}
 
-    if isinstance(crudo, str):
-        if not crudo or len(crudo) > LARGO_MAXIMO:
-            return {}
-        try:
-            datos = json.loads(crudo)
-        except (ValueError, TypeError):
-            return {}
-    else:
-        datos = crudo
-
+    datos = _decodificar(crudo)
     if not isinstance(datos, dict):
         return {}
 

@@ -39,6 +39,7 @@ migracion— no se paga hasta que el caso aparezca sobre una obra de verdad.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from dataclasses import dataclass
 from math import dist
 
@@ -208,6 +209,20 @@ def _vecinas(a: Interferencia, b: Interferencia, radio_m: float) -> bool:
     return dist(_centro(a), _centro(b)) <= radio_m
 
 
+def _pares_por_elemento(interferencias: list[Interferencia]) -> Iterator[tuple[int, int]]:
+    """Los pares de indices que comparten algun GUID, cubeta por cubeta."""
+    cubetas: dict[str, list[int]] = {}
+    for indice, una in enumerate(interferencias):
+        for guid in (una.guid_a, una.guid_b):
+            if guid:
+                cubetas.setdefault(guid, []).append(indice)
+
+    for indices in cubetas.values():
+        for posicion, i in enumerate(indices):
+            for j in indices[posicion + 1 :]:
+                yield i, j
+
+
 def agrupar(
     interferencias: list[Interferencia], *, radio_m: float = RADIO_POR_DEFECTO_M
 ) -> list[Cumulo]:
@@ -245,17 +260,9 @@ def agrupar(
     # **Solo se comparan las que comparten un elemento**, y para eso se agrupan por GUID primero.
     # Comparar todas contra todas seria cuadratico sobre la corrida entera; asi lo es solo dentro de
     # cada cubeta, y una cubeta es «lo que choca contra este elemento».
-    cubetas: dict[str, list[int]] = {}
-    for indice, una in enumerate(interferencias):
-        for guid in (una.guid_a, una.guid_b):
-            if guid:
-                cubetas.setdefault(guid, []).append(indice)
-
-    for indices in cubetas.values():
-        for posicion, i in enumerate(indices):
-            for j in indices[posicion + 1 :]:
-                if _vecinas(interferencias[i], interferencias[j], radio_m):
-                    unir(i, j)
+    for i, j in _pares_por_elemento(interferencias):
+        if _vecinas(interferencias[i], interferencias[j], radio_m):
+            unir(i, j)
 
     por_raiz: dict[int, list[Interferencia]] = {}
     for indice, una in enumerate(interferencias):

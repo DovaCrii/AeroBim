@@ -133,6 +133,84 @@ def _corta(texto: str, largo: int) -> str:
     return texto if len(texto) <= largo else texto[: largo - 1].rstrip() + "…"
 
 
+def _barras_de_disciplinas(lienzo, resumen, izquierda, derecha, y, azul, gris):
+    """Avance por disciplina: una barra por cada una. Devuelve la `y` donde sigue la hoja."""
+    from reportlab.lib import colors
+    from reportlab.lib.units import mm
+
+    util = derecha - izquierda
+    ancho_barra = util - 52 * mm
+    for barra in resumen.disciplinas:
+        lienzo.setFillColor(gris)
+        lienzo.setFont("Helvetica", 8)
+        lienzo.drawString(izquierda, y, _corta(barra.codigo or "Sin disciplina", 16))
+        # El carril, y encima el cumplido con el color de la propia disciplina.
+        lienzo.setFillColor(colors.HexColor("#e4e9f0"))
+        lienzo.rect(izquierda + 26 * mm, y - 0.6 * mm, ancho_barra, 3 * mm, stroke=0, fill=1)
+        try:
+            relleno = colors.HexColor(barra.color)
+        except Exception:  # noqa: BLE001 — un color mal escrito no tumba el papel.
+            relleno = azul
+        lienzo.setFillColor(relleno)
+        lienzo.rect(
+            izquierda + 26 * mm,
+            y - 0.6 * mm,
+            ancho_barra * max(0.0, min(barra.avance_pct, 100.0)) / 100.0,
+            3 * mm,
+            stroke=0,
+            fill=1,
+        )
+        lienzo.setFillColor(gris)
+        lienzo.setFont("Helvetica-Bold", 8)
+        lienzo.drawRightString(derecha, y, f"{barra.avance_pct:g}%")
+        y -= 6 * mm
+    if not resumen.disciplinas:
+        y = _vacio(lienzo, izquierda, y, "Todavía no hay entregables con disciplina.")
+    if resumen.disciplinas_de_mas:
+        y = _vacio(lienzo, izquierda, y, f"y {resumen.disciplinas_de_mas} disciplinas más")
+    return y
+
+
+def _lista_de_atrasos(lienzo, resumen, izquierda, derecha, y, gris):
+    """Lo vencido, lo mas viejo primero. Devuelve la `y` donde sigue la hoja."""
+    from reportlab.lib import colors
+    from reportlab.lib.units import mm
+
+    for una, dias in resumen.atrasos:
+        lienzo.setFillColor(colors.HexColor("#b3261e"))
+        lienzo.setFont("Helvetica-Bold", 8)
+        lienzo.drawString(izquierda, y, f"{dias} d")
+        lienzo.setFillColor(gris)
+        lienzo.setFont("Helvetica", 8)
+        lienzo.drawString(izquierda + 12 * mm, y, _corta(una.titulo, 62))
+        lienzo.drawRightString(derecha, y, _corta(una.responsable or "sin dueño", 26))
+        y -= 5 * mm
+    if not resumen.atrasos:
+        y = _vacio(lienzo, izquierda, y, "Nada vencido. La obra va al día.")
+    if resumen.atrasos_de_mas:
+        y = _vacio(
+            lienzo, izquierda, y, f"y {resumen.atrasos_de_mas} vencidos más en la aplicación"
+        )
+    return y
+
+
+def _lista_de_personas(lienzo, resumen, izquierda, derecha, y, gris) -> None:
+    """Quien tiene trabajo por delante: una linea por persona."""
+    from reportlab.lib.units import mm
+
+    for persona, cuantas in resumen.personas:
+        lienzo.setFillColor(gris)
+        lienzo.setFont("Helvetica", 8)
+        lienzo.drawString(izquierda, y, _corta(persona, 60))
+        lienzo.setFont("Helvetica-Bold", 8)
+        lienzo.drawRightString(derecha, y, f"{cuantas}")
+        y -= 5 * mm
+    if not resumen.personas:
+        y = _vacio(lienzo, izquierda, y, "Nadie tiene hallazgos abiertos a su nombre.")
+    if resumen.personas_de_mas:
+        _vacio(lienzo, izquierda, y, f"y {resumen.personas_de_mas} personas más")
+
+
 def pdf_de(proyecto, *, pedido_por=None) -> bytes:
     """Los bytes de la hoja. Quien llama decide si la manda como descarga o la guarda."""
     from reportlab.lib import colors
@@ -199,73 +277,21 @@ def pdf_de(proyecto, *, pedido_por=None) -> bytes:
 
     # ── Avance por disciplina ──────────────────────────────────────────────────────────
     y = _titulo(lienzo, izquierda, y, "Avance por disciplina", azul)
-    ancho_barra = util - 52 * mm
-    for barra in resumen.disciplinas:
-        lienzo.setFillColor(gris)
-        lienzo.setFont("Helvetica", 8)
-        lienzo.drawString(izquierda, y, _corta(barra.codigo or "Sin disciplina", 16))
-        # El carril, y encima el cumplido con el color de la propia disciplina.
-        lienzo.setFillColor(colors.HexColor("#e4e9f0"))
-        lienzo.rect(izquierda + 26 * mm, y - 0.6 * mm, ancho_barra, 3 * mm, stroke=0, fill=1)
-        try:
-            relleno = colors.HexColor(barra.color)
-        except Exception:  # noqa: BLE001 — un color mal escrito no tumba el papel.
-            relleno = azul
-        lienzo.setFillColor(relleno)
-        lienzo.rect(
-            izquierda + 26 * mm,
-            y - 0.6 * mm,
-            ancho_barra * max(0.0, min(barra.avance_pct, 100.0)) / 100.0,
-            3 * mm,
-            stroke=0,
-            fill=1,
-        )
-        lienzo.setFillColor(gris)
-        lienzo.setFont("Helvetica-Bold", 8)
-        lienzo.drawRightString(derecha, y, f"{barra.avance_pct:g}%")
-        y -= 6 * mm
-    if not resumen.disciplinas:
-        y = _vacio(lienzo, izquierda, y, "Todavía no hay entregables con disciplina.")
-    if resumen.disciplinas_de_mas:
-        y = _vacio(lienzo, izquierda, y, f"y {resumen.disciplinas_de_mas} disciplinas más")
+    y = _barras_de_disciplinas(lienzo, resumen, izquierda, derecha, y, azul, gris)
 
     y -= 3 * mm
     y = _regla(lienzo, izquierda, derecha, y)
 
     # ── Lo vencido, lo más viejo primero ───────────────────────────────────────────────
     y = _titulo(lienzo, izquierda, y, "Vencido, y desde cuándo", azul)
-    for una, dias in resumen.atrasos:
-        lienzo.setFillColor(colors.HexColor("#b3261e"))
-        lienzo.setFont("Helvetica-Bold", 8)
-        lienzo.drawString(izquierda, y, f"{dias} d")
-        lienzo.setFillColor(gris)
-        lienzo.setFont("Helvetica", 8)
-        lienzo.drawString(izquierda + 12 * mm, y, _corta(una.titulo, 62))
-        lienzo.drawRightString(derecha, y, _corta(una.responsable or "sin dueño", 26))
-        y -= 5 * mm
-    if not resumen.atrasos:
-        y = _vacio(lienzo, izquierda, y, "Nada vencido. La obra va al día.")
-    if resumen.atrasos_de_mas:
-        y = _vacio(
-            lienzo, izquierda, y, f"y {resumen.atrasos_de_mas} vencidos más en la aplicación"
-        )
+    y = _lista_de_atrasos(lienzo, resumen, izquierda, derecha, y, gris)
 
     y -= 3 * mm
     y = _regla(lienzo, izquierda, derecha, y)
 
     # ── Quién actúa ────────────────────────────────────────────────────────────────────
     y = _titulo(lienzo, izquierda, y, "Quién tiene trabajo por delante", azul)
-    for persona, cuantas in resumen.personas:
-        lienzo.setFillColor(gris)
-        lienzo.setFont("Helvetica", 8)
-        lienzo.drawString(izquierda, y, _corta(persona, 60))
-        lienzo.setFont("Helvetica-Bold", 8)
-        lienzo.drawRightString(derecha, y, f"{cuantas}")
-        y -= 5 * mm
-    if not resumen.personas:
-        y = _vacio(lienzo, izquierda, y, "Nadie tiene hallazgos abiertos a su nombre.")
-    if resumen.personas_de_mas:
-        _vacio(lienzo, izquierda, y, f"y {resumen.personas_de_mas} personas más")
+    _lista_de_personas(lienzo, resumen, izquierda, derecha, y, gris)
 
     sellar(
         lienzo,

@@ -104,13 +104,8 @@ def leer(crudo: str | None) -> dict:
     camara = {"tipo": tipo, "punto": punto, "direccion": direccion, "arriba": arriba}
 
     if tipo == ORTOGONAL:
-        escala = datos.get("escala")
-        if isinstance(escala, bool) or not isinstance(escala, (int, float)):
-            return {}
-        escala = float(escala)
-        # Una ortogonal sin alto de vista no se puede reproducir: la posicion dice desde donde se
-        # mira y nada dice cuanto se ve.
-        if not (0 < escala <= ALTO_MAXIMO_M):
+        escala = _escala_valida(datos.get("escala"))
+        if escala is None:
             return {}
         camara["escala"] = escala
         return camara
@@ -121,3 +116,15 @@ def leer(crudo: str | None) -> dict:
     if not isinstance(campo, bool) and isinstance(campo, (int, float)) and 0 < float(campo) < 180:
         camara["campoVisual"] = float(campo)
     return camara
+
+
+def _escala_valida(escala) -> float | None:
+    """El alto de vista de una camara ortogonal, o `None` si no sirve.
+
+    Una ortogonal sin alto de vista no se puede reproducir: la posicion dice desde donde se mira y
+    nada dice cuanto se ve.
+    """
+    if isinstance(escala, bool) or not isinstance(escala, (int, float)):
+        return None
+    escala = float(escala)
+    return escala if 0 < escala <= ALTO_MAXIMO_M else None
