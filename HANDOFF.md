@@ -45,8 +45,7 @@ empieza con el piloto en marcha.
 Detalle en `.claude/tmp/informes/revision-2026-10-06.md` (fuera de git). **M1 y M2 mitigados el 2026-10-08:**
 la auditoría y los trabajos (`SoloPlataformaMixin`) solo los ve el superusuario en cuanto hay **más de una
 organización**; con una se conserva lo de siempre. Dar a cada organización su propia auditoría (campo y
-migración) sigue siendo **decisión tuya**. **B2:** siete funciones con complejidad > 10; el umbral baja
-cuando se refactoricen.
+migración) sigue siendo **decisión tuya**. **B2:** siete funciones con complejidad > 10.
 
 ## Lo que es tuyo (bloqueos que el código no cierra)
 
@@ -118,4 +117,4 @@ node scripts/claude/plan-fila.mjs --abiertas  # qué sigue
 
 - Tanda #72 a #80: [`docs/historial/HANDOFF-tanda-72-a-80.md`](docs/historial/HANDOFF-tanda-72-a-80.md)
 - Hasta 2026-10-05: [`docs/historial/HANDOFF-hasta-2026-10-05.md`](docs/historial/HANDOFF-hasta-2026-10-05.md)
-  (las secciones del 2026-09-23, 09-28 y 10-05, las «Trampas ya pagadas» y las decisiones tomadas).
+  (secciones de septiembre y octubre, «Trampas ya pagadas» y decisiones).
