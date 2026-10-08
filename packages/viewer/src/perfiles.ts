@@ -37,6 +37,15 @@ export function textoDePk(pkM: number, decimales = 2): string {
 }
 
 /**
+ * El rótulo de una baliza del eje: «PK 0+005». Las del recorrido van en metros enteros; la del final,
+ * con un decimal si el eje no mide un número entero, para no redondear el largo a otro valor.
+ */
+export function textoDeBaliza(pkM: number, esFinal = false): string {
+  const entero = Math.abs(pkM - Math.round(pkM)) < 0.05;
+  return `PK ${textoDePk(pkM, esFinal && !entero ? 1 : 0)}`;
+}
+
+/**
  * La tabla de referencias de un perfil: cada vértice del trazado y cada transversal, con su PK y sus
  * coordenadas **del IFC** (Este, Norte).
  *

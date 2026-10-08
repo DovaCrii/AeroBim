@@ -83,6 +83,7 @@ import {
   type GeneratedDrawing,
   type ParteDePerfil,
 } from "./drawings.js";
+import { construirBalizado, liberarBalizado } from "./balizado3d.js";
 import { tablaDePk, textoDePk } from "./perfiles.js";
 export { textoDePk } from "./perfiles.js";
 import { GridOverlay } from "./grid.js";
@@ -5780,32 +5781,9 @@ export class BimViewer {
 
     const modelos = await this.sceneBounds();
     const y = modelos === null ? 0 : (modelos.min[1] + modelos.max[1]) / 2;
-    const puntos = vertices.map(([x, z]) => new THREE.Vector3(x, y, z));
 
-    const grupo = new THREE.Group();
-    grupo.renderOrder = 999;
-    const color = 0xc3a6f0;
-    if (puntos.length >= 2) {
-      const linea = new THREE.Line(
-        new THREE.BufferGeometry().setFromPoints(puntos),
-        new THREE.LineBasicMaterial({ color, depthTest: false, transparent: true }),
-      );
-      linea.renderOrder = 999;
-      grupo.add(linea);
-    }
-    const marcas = new THREE.Points(
-      new THREE.BufferGeometry().setFromPoints(puntos),
-      new THREE.PointsMaterial({
-        color,
-        size: 9,
-        sizeAttenuation: false,
-        depthTest: false,
-        transparent: true,
-      }),
-    );
-    marcas.renderOrder = 999;
-    grupo.add(marcas);
-
+    // Línea gruesa, vértices numerados y balizas con su PK, todo de tamaño fijo en pantalla.
+    const grupo = construirBalizado(vertices, y);
     this.world.scene.three.add(grupo);
     this.ejeDePerfilEnEscena = grupo;
     await this.refresh();
@@ -5832,11 +5810,7 @@ export class BimViewer {
     const grupo = this.ejeDePerfilEnEscena;
     if (grupo === null) return;
     this.world.scene.three.remove(grupo);
-    grupo.traverse((objeto) => {
-      const conGeometria = objeto as Partial<THREE.Line>;
-      conGeometria.geometry?.dispose();
-      (conGeometria.material as THREE.Material | undefined)?.dispose();
-    });
+    liberarBalizado(grupo);
     this.ejeDePerfilEnEscena = null;
   }
 
