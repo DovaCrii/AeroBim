@@ -1,7 +1,7 @@
 import { ESPACIOS, TITULO_DE_ESPACIO, type Espacio } from "../espacios.js";
 
 /**
- * El selector de espacio: **Modelo 3D | Planos y perfiles**.
+ * El selector de espacio: **Modelo 3D | Planos 2D y perfiles**.
  *
  * Es un grupo de dos botones y no un menú: son dos y se alterna entre ellos todo el día, y un menú
  * pondría un clic de más en cada cambio. `aria-pressed` y no `role="tab"`, porque no controla un
@@ -39,7 +39,7 @@ export function SelectorDeEspacio({
             title={
               cual === "modelo"
                 ? "Modelo 3D — el modelo, la nube, los cortes y la coordinación"
-                : "Planos y perfiles — los planos 2D, los perfiles generados y sus láminas"
+                : "Planos 2D y perfiles — los planos 2D, los perfiles generados y sus láminas"
             }
             className={[
               "rounded-sm px-2.5 py-1 transition-colors duration-[--duracion-corta] ease-[--ease-ab]",

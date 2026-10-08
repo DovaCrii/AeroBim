@@ -24,7 +24,7 @@ export const ESPACIOS: readonly Espacio[] = ["modelo", "planos"];
 
 export const TITULO_DE_ESPACIO: Record<Espacio, string> = {
   modelo: "Modelo 3D",
-  planos: "Planos y perfiles",
+  planos: "Planos 2D y perfiles",
 };
 
 /**

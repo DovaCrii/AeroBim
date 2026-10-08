@@ -48,6 +48,7 @@ import { DrawingsPanel } from "./components/DrawingsPanel.js";
 import { ModelsPanel } from "./components/ModelsPanel.js";
 import { Coordinacion, type ObservacionDelModelo } from "./components/Coordinacion.js";
 import { BuscadorDelVisor } from "./components/BuscadorDelVisor.js";
+import { IndicadorDeModo, modoDelVisor } from "./components/IndicadorDeModo.js";
 import { GlobosDeTemas } from "./components/GlobosDeTemas.js";
 import { HerramientasDelVisor } from "./components/HerramientasDelVisor.js";
 import { TablaDeTemas } from "./components/TablaDeTemas.js";
@@ -434,6 +435,7 @@ export function App() {
   const [snapMode, setSnapMode] = useState<SnapMode>("vertex");
   const [distanceMode, setDistanceMode] = useState<DistanceMode>("points");
   const [hasSections, setHasSections] = useState(false);
+  const [rellenoDeCorte, setRellenoDeCorte] = useState(false);
   /** Nodos del árbol ocultos, por clave. El árbol los lee para dibujar su icono. */
   const [hidden, setHidden] = useState<ReadonlySet<string>>(new Set());
   /** Modelos apagados enteros, por identificador. Ver el panel de modelos. */
@@ -2379,15 +2381,27 @@ export function App() {
     });
   }, []);
 
-  const onSection = useCallback((axis: SectionAxis) => {
-    setHasSections(true);
-    void viewer.current?.addSection(axis);
-  }, []);
+  const onSection = useCallback(
+    async (axis: SectionAxis) => {
+      setHasSections(true);
+      await viewer.current?.addSection(axis);
+      // Un corte nuevo con el relleno encendido nace rellenado.
+      if (rellenoDeCorte) await viewer.current?.setSectionFill(true);
+    },
+    [rellenoDeCorte],
+  );
 
   const onClearSections = useCallback(() => {
     setHasSections(false);
     void viewer.current?.clearSections();
   }, []);
+
+  /** `F13.5`: relleno y aristas de los cortes, con `ClipStyler`. */
+  const onToggleRellenoDeCorte = useCallback(() => {
+    const nuevo = !rellenoDeCorte;
+    setRellenoDeCorte(nuevo);
+    void viewer.current?.setSectionFill(nuevo);
+  }, [rellenoDeCorte]);
 
   const closeProperties = useCallback(() => {
     setSelected(null);
@@ -2949,6 +2963,8 @@ export function App() {
         snapMode={snapMode}
         distanceMode={distanceMode}
         hasSections={hasSections}
+        rellenoDeCorte={rellenoDeCorte}
+        onToggleRellenoDeCorte={onToggleRellenoDeCorte}
         hasSelection={selected !== null}
         hasPlans={plans.length > 0}
         modo2D={modo2D}
@@ -3153,6 +3169,7 @@ export function App() {
             {/* **El buscador de elementos** (`F15.6`): arriba, al centro; entre las herramientas y el cubo de vistas. */}
             {laminaEnVisor === null && (
               <BuscadorDelVisor
+                izquierda={!panelIzquierdo && haySeleccion ? "30rem" : "4.5rem"}
                 viewer={viewer.current}
                 modelos={models.length}
                 onElegir={(e) => void irAlHallado(e)}
@@ -3227,6 +3244,16 @@ export function App() {
                 }}
               />
             )}
+
+            <IndicadorDeModo
+              modo={modoDelVisor({
+                espacio,
+                modo2D,
+                laminaAbierta: laminaEnVisor !== null,
+                comparando,
+                hayModelo: models.length > 0,
+              })}
+            />
 
             {/*
              * **El recuadro de la suelta va en la marca y a opacidad entera**, y las dos cosas son

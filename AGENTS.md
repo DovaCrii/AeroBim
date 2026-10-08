@@ -87,6 +87,10 @@ reconcilia a favor de lo vigente en el repo y se deja constancia en el PR o en
   `gh pr merge --merge`, en el orden de dependencia (un PR apilado, después de su base, con
   `main` fusionado antes en su rama: **nunca `push --force`**). Si el CI falla o hay conflicto,
   no se fusiona: se arregla o se dice. Desplegar a la VM sigue siendo del usuario.
+- **Producción se pide por tandas cerradas** (decidido por el usuario el 2026-10-08): antes de
+  avisar de que algo está listo para la VM se cierran **todos los bloques** de la tanda, se
+  fusionan **todos sus PR** y `main` queda verificado entero. Nada a medias a producción: un bloque
+  que no cierra se revierte o se declara pendiente en el plan. El procedimiento es `/preparar-despliegue`.
 - Cada fase cerrada marca su fila ✅ en `MASTER_PLAN.md` y actualiza `HANDOFF.md`.
 - Mensajes de commit en español, en imperativo y con ámbito:
   `feat(viewer): ...`, `fix(ifc): ...`, `docs: ...`.
