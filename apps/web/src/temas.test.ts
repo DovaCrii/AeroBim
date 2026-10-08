@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { buscar, numeroDeTema, ordenar, pasa, plano, type ObservacionDelModelo } from "./temas.js";
+import {
+  buscar,
+  numeroDeTema,
+  ordenar,
+  pasa,
+  pasoDeSeguimiento,
+  plano,
+  type ObservacionDelModelo,
+} from "./temas.js";
 
 describe("numeroDeTema", () => {
   it("es la posición desde 1, con tres cifras", () => {
@@ -19,6 +27,7 @@ function tema(parcial: Partial<ObservacionDelModelo> & { id: string }): Observac
     guid: "0000000000000000000000",
     prioridad: "media",
     prioridadTexto: "Media",
+    estado: "abierta",
     estadoTexto: "Abierta",
     responsable: "Ana Pérez",
     vence: null,
@@ -133,5 +142,18 @@ describe("el orden", () => {
   it("una prioridad desconocida va detrás de las conocidas", () => {
     const rara = tema({ id: "r", prioridad: "urgentisima" });
     expect(ordenar([rara, B], "prioridad", "asc").map((t) => t.id)).toEqual(["b", "r"]);
+  });
+});
+
+describe("pasoDeSeguimiento", () => {
+  it("abierta, respondida y cerrada son los pasos 1, 2 y 3", () => {
+    expect(pasoDeSeguimiento("abierta")).toBe(1);
+    expect(pasoDeSeguimiento("respondida")).toBe(2);
+    expect(pasoDeSeguimiento("cerrada")).toBe(3);
+  });
+
+  it("una descartada o un estado desconocido no avanzan: 0", () => {
+    expect(pasoDeSeguimiento("descartada")).toBe(0);
+    expect(pasoDeSeguimiento("otra-cosa")).toBe(0);
   });
 });
