@@ -86,6 +86,7 @@ Thumbs.db
 !.claude/settings.json
 !.claude/rules/
 !.claude/skills/
+!.claude/agents/
 
 # Registros
 *.log
