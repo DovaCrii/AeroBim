@@ -467,6 +467,11 @@ a:hover {
   align-self: start;
   max-height: 100vh;
   overflow-y: auto;
+  /* **La barra de desplazamiento del menú, en los colores del menú** (2026-10-08). Sin esto el
+     navegador la pintaba con su blanco de fábrica: una franja clara pegada al borde derecho de una
+     barra lateral oscura, que es lo que el usuario vio como «se ve mal la barra lateral». */
+  scrollbar-width: thin;
+  scrollbar-color: var(--ab-border) transparent;
   padding: 16px 12px 24px;
   border-right: 1px solid var(--ab-border);
   background: var(--ab-surface);
