@@ -11,7 +11,7 @@ Botón **Relleno** en Modelo › Cortes (`F13.5`, `ClipStyler`); etiqueta 3D/2D 
 pasa a «Planos 2D y perfiles»; el buscador de elementos ya no se superpone al selector de vista; prueba
 e2e de humo con Playwright y axe-core (`F14.6`) y `npm audit` en el CI. Detalle en #108–#115. Después: cambiar de espacio sale del modo del otro y entra en el suyo (#118);
 la auditoría y los trabajos, solo del superusuario con más de una organización (#117); un clic marca el
-elemento y el doble clic abre su ficha, y los rótulos lejanos de un plano DXF no se amontonan (#123, #124).
+elemento y el doble clic abre su ficha, y los rótulos lejanos de un plano DXF no se amontonan (#123, #124); con el lienzo vacío el indicador dice «Nada abierto» (#126).
 
 ### Cambiado — áreas de toque y la escala de radios del portal (`F9.4` y `F9.5`, 2026-09-03)
 
