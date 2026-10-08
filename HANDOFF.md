@@ -4,7 +4,7 @@
 > [`docs/historial/`](docs/historial/) y en `git log`. La fuente de verdad del trabajo pendiente es
 > [`MASTER_PLAN.md`](MASTER_PLAN.md) (tablero de ~500 líneas desde el 2026-10-05; las fases cerradas están en `docs/historial/plan/`; `/siguiente` dice qué toca).
 
-**Estado al:** 2026-10-06 · **`main` en:** `efd0ace` · **Último PR fusionado:** #103 · **Ninguno abierto**
+**Estado al:** 2026-10-08 · **`main` en:** `2287043` · **Último PR fusionado:** #115 (luego #114) · **Ninguno abierto** · **Tanda cerrada: lista para la VM**
 
 ## Reparto del trabajo
 
@@ -17,7 +17,7 @@
 - Versión `0.1.0`, **sin publicar** (no hay etiqueta de git).
 - **El visor, el registro documental ISO 19650 y el portal están construidos.** Desde la Fase 13 hay
   **perfiles** (IFC y nube, desarrollados por PK) y **dos espacios de trabajo**, _Modelo 3D_ y _Planos
-  y perfiles_, con **Comparar**. Todo verificado en el navegador **con datos de muestra**: falta el
+  2D y perfiles_, con **Comparar**. Todo verificado en el navegador **con datos de muestra**: falta el
   oráculo externo con los archivos del metro (`F13.6`).
 - Pruebas: **1 756** en `services/api` (+7 omitidas; gate local del 2026-10-06) y **761** en
   TypeScript (`npm test`: 569 de `bim-core`, 115 de `viewer` y 77 de `apps/web`).
@@ -60,7 +60,17 @@ complejidad > 10; el umbral baja cuando se refactoricen. Falta un paso de `npm a
 - El **piloto** ([`docs/PILOTO.md`](docs/PILOTO.md)): las cinco etapas, de la 0 a la 4, siguen sin
   empezar. La Etapa 1 (registro documental) no necesita el IFC.
 
-## Última tanda: la Fase 15, revisión con marcas (#89 a #103) — **cerrada entera**
+## Tanda lista para la VM (2026-10-08, #108 a #115)
+
+**Migración nueva: `documents.0016_observacion_forma`** (la de la Fase 15; sin ella fallan las marcas).
+Sin cambios de configuración, de `nginx` ni de variables de entorno. Orden de siempre: `respaldo.sh` y
+después `desplegar.sh` (`docs/DEPLOY.md`).
+**Qué trae:** botón **Relleno** de los cortes (`F13.5`) · el visor dice si se mira **3D o 2D** y el
+espacio se llama «Planos 2D y perfiles» · el buscador de elementos ya no tapa el selector de vista ·
+humo **e2e** con Playwright y axe en el CI (`F14.6`), `npm audit` en el CI y `npm audit fix` (#108) ·
+la revisión `F14.2` (M1 y M2 esperan tu decisión) · la skill `/preparar-despliegue`.
+
+## La tanda anterior: la Fase 15, revisión con marcas (#89 a #103) — **cerrada entera**
 
 Pedida con tres capturas de referencia (ProjectWise en 2D, iTwin Design Review en 3D y un panel de
 reportes). **Hecho:** `F15.1` panel de observaciones del documento con marcas numeradas · `F15.2`
@@ -74,12 +84,6 @@ perfil con sus cifras, y #93 `werkzeug` 3.1.9 (`pip-audit` lo marcó).
 **Dicho y no hecho:** búsquedas guardadas como objeto (la URL `?q=` ya sirve) y que el buscador del registro
 ignore acentos (pide `unaccent` de PostgreSQL: decisión de despliegue). Los globos se ven a través de los
 muros, a propósito.
-
-## La tanda anterior (#72 a #80)
-
-Interferencias **en segundo plano y sin tope**, IFC comprimido (`.ifczip`) con gzip en nginx (#74); perfil
-IFC y de nube (#75, #77); los dos espacios de trabajo y Comparar, y `ARCHITECTURE.md` reescrito (#78); la
-Fase 14 y el kit de proceso (#79, #80).
 
 ## Trampas vigentes (las que más costaron)
 
@@ -111,5 +115,6 @@ node scripts/claude/plan-fila.mjs --abiertas  # qué sigue
 
 ## Historial
 
+- Tanda #72 a #80: [`docs/historial/HANDOFF-tanda-72-a-80.md`](docs/historial/HANDOFF-tanda-72-a-80.md)
 - Hasta 2026-10-05: [`docs/historial/HANDOFF-hasta-2026-10-05.md`](docs/historial/HANDOFF-hasta-2026-10-05.md)
   (las secciones del 2026-09-23, 09-28 y 10-05, las «Trampas ya pagadas» y las decisiones tomadas).
