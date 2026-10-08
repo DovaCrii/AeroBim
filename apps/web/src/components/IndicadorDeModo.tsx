@@ -72,19 +72,24 @@ export function modoDelVisor({
 }
 
 /**
- * Una etiqueta pequeña, bajo el selector de vista, que dice **si lo que se mira es 3D o 2D** y qué se
- * puede hacer ahí. No captura el ratón: es un rótulo, no un control.
+ * Una ficha pequeña en la **esquina de abajo a la derecha** del lienzo que dice si lo que se mira es 3D
+ * o 2D. Lo que se puede hacer ahí va en su ayuda (al pasar el ratón).
+ *
+ * Estaba bajo el selector de vista, con el texto entero siempre a la vista, y quedaba encima de la
+ * escena y de lo que se iba a pinchar (2026-10-08). Abajo a la derecha no tapa ninguna herramienta, y
+ * reducida a la etiqueta sigue diciendo en qué modo se está.
  */
 export function IndicadorDeModo({ modo }: { readonly modo: ModoDelVisor }) {
   return (
     <div
       role="status"
-      aria-label={`Vista actual: ${modo.titulo}`}
-      className="pointer-events-none absolute top-[5.25rem] right-3 z-10 flex max-w-[18rem] items-start gap-2 rounded-lg border border-borde bg-surface/90 px-2.5 py-1.5 shadow-[var(--shadow-xl)] backdrop-blur-sm"
+      aria-label={`Vista actual: ${modo.titulo}. ${modo.ayuda}`}
+      title={modo.ayuda}
+      className="absolute right-3 bottom-3 z-10 flex cursor-help items-center gap-1.5 rounded-lg border border-borde bg-surface/90 px-2 py-1 text-xs shadow-[var(--shadow-xl)] backdrop-blur-sm"
     >
       <span
         className={[
-          "mt-0.5 rounded-sm px-1.5 py-0.5 text-xs font-semibold tabular-nums",
+          "rounded-sm px-1.5 py-0.5 text-xs font-semibold tabular-nums",
           // El 3D va relleno y el 2D solo con contorno: se distinguen sin depender del color.
           modo.dimension === "3D"
             ? "bg-action text-sobre-accion"
@@ -93,10 +98,7 @@ export function IndicadorDeModo({ modo }: { readonly modo: ModoDelVisor }) {
       >
         {modo.dimension}
       </span>
-      <span className="min-w-0 text-xs leading-snug">
-        <span className="block font-medium text-fg">{modo.titulo}</span>
-        <span className="block text-fg-2">{modo.ayuda}</span>
-      </span>
+      <span className="font-medium text-fg">{modo.titulo}</span>
     </div>
   );
 }
