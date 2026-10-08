@@ -1306,7 +1306,8 @@ export async function relleno(container: HTMLElement, ifcUrl: string, log: Log):
   // Y al final se deja encendido y a la vista, para mirarlo.
   await viewer.sectionAtHeight(alturaM);
   await viewer.setSectionFill(true);
-  log("\nlisto: queda un corte con relleno a la vista");
+  await viewer.frameAll("top");
+  log("\nlisto: queda un corte con relleno a la vista, en planta");
 }
 
 /**
