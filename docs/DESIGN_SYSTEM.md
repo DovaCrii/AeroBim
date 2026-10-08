@@ -92,8 +92,8 @@ Tres niveles, y **el más apagado sigue pasando AA**. Sustituyen a los 89 usos d
 | Token         | Oscuro    | Ratio  | Claro     | Ratio  |
 | ------------- | --------- | ------ | --------- | ------ |
 | `--ab-text`   | `#eef2f8` | 14,5:1 | `#172238` | 15,9:1 |
-| `--ab-text-2` | `#b6c1d2` | 9,0:1  | `#4f5b72` | 6,8:1  |
-| `--ab-text-3` | `#93a0b4` | 6,2:1  | `#626f85` | 5,1:1  |
+| `--ab-text-2` | `#d0d9e6` | 11,5:1 | `#4f5b72` | 6,8:1  |
+| `--ab-text-3` | `#adb8ca` | 8,2:1  | `#626f85` | 5,1:1  |
 
 ### La marca deja de ser el color de acción
 
@@ -143,7 +143,7 @@ rojo de verde, que es el argumento que `.pildora` ya tiene escrito en `app.css`.
 | `--ab-ok`     | `#5fd3ae` | 8,9:1 | `#0f7a5f` | 5,3:1 |
 | `--ab-warn`   | `#f0b45e` | 8,9:1 | `#8a5a12` | 5,9:1 |
 | `--ab-danger` | `#f08a97` | 6,8:1 | `#c53b4d` | 5,1:1 |
-| neutro        | `#93a0b4` | 6,2:1 | `#626f85` | 5,1:1 |
+| neutro        | `#adb8ca` | 8,2:1 | `#626f85` | 5,1:1 |
 
 ### Deshabilitado, y la tinta del lienzo
 
