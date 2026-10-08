@@ -30,7 +30,6 @@
 | `F4.5`                | Trazo libre; depende de mirar un BCF exportado en Solibri/Navisworks                        | El usuario, mirando     |
 | `F12.2`               | Señalar tres pares de puntos con un ratón (el par de archivos ya está)                      | El usuario, pinchando   |
 | `F2.6`, `F6.1`–`F6.5` | Gaussian splatting; Geo + BIM                                                               | Pospuestas por decisión |
-| `F13.5`               | `ClipStyler` para el relleno de un corte, sin ensayar                                       | El agente               |
 | `F13.6`               | La misma sección en **Bonsai** (IFC) y **CloudCompare** (nube) con el archivo real          | Quien tiene la obra     |
 | `F13.7`               | Medir el perfil de nube con la **nube real de 127 MB** y decidir el techo (hoy 40 000)      | Un archivo de obra      |
 | `F13.11`              | Hecho: PK y cotas sobre la malla del perfil, en DXF y PDF. **Falta mirar el DXF en un CAD** | El usuario, mirando     |

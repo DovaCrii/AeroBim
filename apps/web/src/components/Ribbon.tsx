@@ -37,6 +37,7 @@ import {
   IconPerfil,
   IconSectionHorizontal,
   IconSectionLongitudinal,
+  IconSections,
   IconSectionTransversal,
   IconSnapFree,
   IconSnapPlan,
@@ -89,6 +90,8 @@ export function Ribbon({
   snapMode,
   distanceMode,
   hasSections,
+  rellenoDeCorte,
+  onToggleRellenoDeCorte,
   hasSelection,
   hasPlans,
   modo2D,
@@ -178,6 +181,8 @@ export function Ribbon({
   readonly snapMode: SnapMode;
   readonly distanceMode: DistanceMode;
   readonly hasSections: boolean;
+  readonly rellenoDeCorte: boolean;
+  readonly onToggleRellenoDeCorte: () => void;
   readonly hasSelection: boolean;
   /** `true` con al menos un plano 2D cargado. */
   readonly hasPlans: boolean;
@@ -797,6 +802,17 @@ export function Ribbon({
                       }
                       disabled={!hasModels}
                       onClick={() => onSection("transversal")}
+                    />
+                    <Boton
+                      icon={<IconSections />}
+                      label="Relleno"
+                      hint={
+                        rellenoDeCorte
+                          ? "Quita el relleno y el contorno de los cortes"
+                          : "Rellena la sección cortada y dibuja su contorno"
+                      }
+                      active={rellenoDeCorte}
+                      onClick={onToggleRellenoDeCorte}
                     />
                     <Boton
                       icon={<IconTrash />}
