@@ -56,6 +56,30 @@ class ModelViewPermissionRequiredMixin(ModelPermissionRequiredMixin):
     permission_action = "view"
 
 
+class SoloPlataformaMixin:
+    """Para lo que es de **la instalacion entera** y no de una organizacion.
+
+    La auditoria (`AuditEvent`) y los trabajos (`JobRun`) no llevan organizacion: listarlos
+    muestra lo que hicieron **todas**. Con una sola organizacion eso es lo correcto y el
+    permiso de modelo basta; en cuanto hay una segunda, ese permiso dejaria al administrador
+    de una leer el rastro de la otra (hallazgo M1 de la revision `F14.2`, 2026-10-06).
+
+    Asi que con mas de una organizacion **solo el superusuario** pasa; con una, se conserva el
+    comportamiento de siempre. Se pone **antes** de `ModelViewPermissionRequiredMixin`.
+    Dar a cada organizacion su propia auditoria es otra decision (campo y migracion) y no se
+    toma aqui.
+    """
+
+    def has_permission(self):
+        if not super().has_permission():
+            return False
+        if self.request.user.is_superuser:
+            return True
+        from apps.core.models import Organizacion
+
+        return Organizacion.objects.count() <= 1
+
+
 class OrganizacionScopedQuerysetMixin:
     """Acota la consulta a las organizaciones del usuario.
 

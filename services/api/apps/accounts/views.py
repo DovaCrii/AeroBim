@@ -24,7 +24,11 @@ from apps.core.jobs import trabajos_colgados, ultima_corrida
 from apps.core.mail import mail_is_delivered, undelivered_reason
 from apps.core.models import AuditEvent, JobRun, Organizacion
 from apps.core.tenancy import scope_queryset_to_organizacion
-from apps.core.views import ModelPermissionRequiredMixin, ModelViewPermissionRequiredMixin
+from apps.core.views import (
+    ModelPermissionRequiredMixin,
+    ModelViewPermissionRequiredMixin,
+    SoloPlataformaMixin,
+)
 
 
 class PortalView(LoginRequiredMixin, TemplateView):
@@ -405,7 +409,7 @@ class UsuariosRolesView(ModelViewPermissionRequiredMixin, CsvExportMixin, Templa
         return contexto
 
 
-class AuditoriaView(ModelViewPermissionRequiredMixin, TemplateView):
+class AuditoriaView(SoloPlataformaMixin, ModelViewPermissionRequiredMixin, TemplateView):
     template_name = "accounts/auditoria.html"
     model = AuditEvent
 
@@ -415,7 +419,7 @@ class AuditoriaView(ModelViewPermissionRequiredMixin, TemplateView):
         return contexto
 
 
-class TrabajosView(ModelViewPermissionRequiredMixin, TemplateView):
+class TrabajosView(SoloPlataformaMixin, ModelViewPermissionRequiredMixin, TemplateView):
     """Salud de los trabajos programados, y si el correo sale de la maquina.
 
     Las dos cosas juntas por una razon: un trabajo que corrio bien y un correo que no
