@@ -19,6 +19,28 @@ import * as THREE from "three";
 export const FACTOR_MARCA = { minimo: 0.25, maximo: 12 } as const;
 
 /**
+ * Cuánto de la pantalla taparían las marcas si se dibujaran todas, de 0 a más de 1.
+ *
+ * Se calcula con **lo que ocupa cada marca en píxeles** —el alto fijo por un ancho medio de unas cinco
+ * alturas, que es lo que mide un rótulo corto— sumado y dividido por el área en píxeles de la
+ * zona donde están. Por encima de {@link CUBRIMIENTO_MAXIMO} se montan unas sobre otras y lo que se
+ * ve es una mancha, no texto.
+ */
+export function cubrimientoDeMarcas(cuantas: number, altoPx: number, areaPx: number): number {
+  if (areaPx <= 0 || cuantas <= 0) return 0;
+  return (cuantas * altoPx * altoPx * 5) / areaPx;
+}
+
+/**
+ * Hasta qué cubrimiento se dibujan las marcas.
+ *
+ * Con la planta entera a la vista un plano de 433 rótulos los monta casi todos, y el texto lejano se
+ * veía como una mancha («cuando está lejos se ve extraña la fuente», 2026-10-08). Al acercarse, el área
+ * en píxeles crece con el cuadrado y los rótulos reaparecen solos.
+ */
+export const CUBRIMIENTO_MAXIMO = 0.35;
+
+/**
  * El material de las marcas: la textura del atlas, con el tamaño puesto por el vértice.
  *
  * Un material corriente no sirve: escalaría la malla entera y las marcas se irían de sitio.
@@ -63,6 +85,8 @@ export function mantenerTamanoEnPantalla(
   material: THREE.ShaderMaterial,
   altoBase: number,
   altoPx: number,
+  /** Cuántas marcas lleva la malla: con ellas se decide si se amontonan y se esconden. */
+  cuantas = 0,
 ): void {
   malla.onBeforeRender = (renderer, _escena, camara) => {
     const alturaPx = renderer.getSize(new THREE.Vector2()).y || 1;
@@ -79,6 +103,22 @@ export function mantenerTamanoEnPantalla(
       );
       metrosPorPixel =
         (2 * distancia * Math.tan(((perspectiva.fov || 60) * Math.PI) / 360)) / alturaPx;
+    }
+
+    // **Si se montan unas sobre otras, no se dibujan** (factor 0: la marca queda en su ancla, sin
+    // tamaño). El área es la de la caja que las contiene, vista desde donde está la cámara.
+    if (cuantas > 0) {
+      malla.geometry.boundingBox ??= new THREE.Box3().setFromBufferAttribute(
+        malla.geometry.getAttribute("position") as THREE.BufferAttribute,
+      );
+      const caja = malla.geometry.boundingBox;
+      const anchoM = (caja.max.x - caja.min.x) * (malla.getWorldScale(new THREE.Vector3()).x || 1);
+      const largoM = (caja.max.z - caja.min.z) * escalaMundo;
+      const areaPx = (anchoM * largoM) / (metrosPorPixel * metrosPorPixel);
+      if (cubrimientoDeMarcas(cuantas, altoPx, areaPx) > CUBRIMIENTO_MAXIMO) {
+        material.uniforms["factor"]!.value = 0;
+        return;
+      }
     }
 
     const deseadoM = altoPx * metrosPorPixel;

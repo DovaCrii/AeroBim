@@ -74,10 +74,10 @@ export function StatusBar({
               ? "Ahí no hay geometría: el clic no contó. Apunta al modelo o a un trazo del plano."
               : instruccion(measureMode, measurePoints)
             : selected === null
-              ? "Clic en un elemento para ver sus propiedades · doble clic para acercarse"
+              ? "Clic marca un elemento · doble clic abre sus propiedades y lo acerca"
               : `${selected.category ?? "Elemento"}${
                   selected.name === null ? "" : ` · ${selected.name}`
-                } — doble clic para encuadrarlo`}
+                } — doble clic abre sus propiedades`}
       </span>
 
       {measurement !== null && <Resultado measurement={measurement} />}
