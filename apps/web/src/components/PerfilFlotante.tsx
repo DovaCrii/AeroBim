@@ -100,7 +100,7 @@ export function PerfilFlotante({
       <div
         role="dialog"
         aria-label="Crear un perfil (minimizado)"
-        className="absolute top-3 left-3 z-20 flex max-w-[calc(100%-1.5rem)] items-center gap-1.5 rounded-lg border border-borde bg-surface/95 px-2 py-1 text-xs shadow-[var(--shadow-xl)] backdrop-blur-sm"
+        className="absolute top-16 left-[4.5rem] z-20 flex max-w-[calc(100%-5.5rem)] items-center gap-1.5 rounded-lg border border-borde bg-surface/95 px-2 py-1 text-xs shadow-[var(--shadow-xl)] backdrop-blur-sm"
       >
         <button
           type="button"
@@ -140,7 +140,7 @@ export function PerfilFlotante({
     <div
       role="dialog"
       aria-label="Crear un perfil"
-      className="absolute top-3 left-3 z-20 flex max-h-[calc(100%-1.5rem)] w-[17rem] flex-col rounded-lg border border-borde bg-surface/95 shadow-[var(--shadow-xl)] backdrop-blur-sm"
+      className="absolute top-16 left-[4.5rem] z-20 flex max-h-[calc(100%-9rem)] w-[17rem] flex-col rounded-lg border border-borde bg-surface/95 shadow-[var(--shadow-xl)] backdrop-blur-sm"
     >
       <header className="flex items-center gap-1 border-b border-borde px-2 py-1.5">
         <span className="min-w-0 flex-1 truncate text-xs font-semibold">

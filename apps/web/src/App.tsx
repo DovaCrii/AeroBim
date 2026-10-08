@@ -2004,11 +2004,30 @@ export function App() {
       setEspacio("planos");
       // Las demás láminas se apagan y **esta se enciende, y al encenderse se encuadra**.
       setHiddenDrawings(new Set(todas.filter((una) => una.id !== id).map((una) => una.id)));
-      for (const una of todas) if (una.id !== id) await instance.setDrawingVisible(una.id, false);
+      // **Pasar de una lámina a otra solo toca esas dos.** Con un perfil de 193 láminas, apagar las 192
+      // restantes en cada ←/→ tardaba lo que tardan 192 esperas; la que estaba a la vista es la única
+      // encendida, así que basta con apagar esa. La primera vez —al entrar desde el 3D— sí se apagan todas.
+      if (laminaEnVisor !== null && todas.some((una) => una.id === laminaEnVisor)) {
+        if (laminaEnVisor !== id) await instance.setDrawingVisible(laminaEnVisor, false);
+      } else {
+        for (const una of todas) {
+          if (una.id !== id) await instance.setDrawingVisible(una.id, false);
+        }
+      }
       await instance.setDrawingVisible(id, true);
       setLaminaEnVisor(id);
     },
-    [drawings, models, plans, style, hiddenModels, hiddenPlans, hiddenDrawings, espacio],
+    [
+      drawings,
+      models,
+      plans,
+      style,
+      hiddenModels,
+      hiddenPlans,
+      hiddenDrawings,
+      espacio,
+      laminaEnVisor,
+    ],
   );
 
   /** Sale del visor 2D y deja todo como estaba antes de entrar. */
