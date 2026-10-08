@@ -9,6 +9,7 @@ import type { EjeDePerfil } from "@aerobim/bim-core";
 import {
   MAXIMO_FILAS_DE_REFERENCIAS,
   tablaDePk,
+  textoDeBaliza,
   textoDePk,
   vistaDeFrenteDeLaLamina,
 } from "./perfiles.js";
@@ -21,6 +22,20 @@ const L: EjeDePerfil = {
     [3, 4],
   ],
 };
+
+describe("textoDeBaliza", () => {
+  it("escribe «PK 0+005» en metros enteros", () => {
+    expect(textoDeBaliza(0)).toBe("PK 0+000");
+    expect(textoDeBaliza(5)).toBe("PK 0+005");
+    expect(textoDeBaliza(1240)).toBe("PK 1+240");
+    expect(textoDeBaliza(999.7)).toBe("PK 1+000");
+  });
+
+  it("el final de un eje que no mide un entero lleva un decimal", () => {
+    expect(textoDeBaliza(18.9, true)).toBe("PK 0+018.9");
+    expect(textoDeBaliza(18, true)).toBe("PK 0+018");
+  });
+});
 
 describe("textoDePk con decimales", () => {
   it("sin decimales escribe metros enteros, y con uno, uno", () => {

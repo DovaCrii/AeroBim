@@ -285,8 +285,8 @@
   --ab-border-control: #6b7890;
   --ab-track: #47505e; /* 1,82:1 sobre la tarjeta; el relleno `--ab-primary` encima da 8,4:1 */
   --ab-text: #eef1f6;
-  --ab-text-secondary: #b6c0d1;
-  --ab-text-muted: #97a3b6;
+  --ab-text-secondary: #d0d9e6;
+  --ab-text-muted: #adb8ca;
   --ab-primary: #c3a6f0; /* sobre superficie oscura, 7,09:1 */
   --ab-primary-hover: #d5c2f6;
   /* **Era 1,03:1 sobre la tarjeta**, o sea invisible: las píldoras de conteo de la portada se
@@ -467,6 +467,11 @@ a:hover {
   align-self: start;
   max-height: 100vh;
   overflow-y: auto;
+  /* **La barra de desplazamiento del menú, en los colores del menú** (2026-10-08). Sin esto el
+     navegador la pintaba con su blanco de fábrica: una franja clara pegada al borde derecho de una
+     barra lateral oscura, que es lo que el usuario vio como «se ve mal la barra lateral». */
+  scrollbar-width: thin;
+  scrollbar-color: var(--ab-border) transparent;
   padding: 16px 12px 24px;
   border-right: 1px solid var(--ab-border);
   background: var(--ab-surface);
