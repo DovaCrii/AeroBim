@@ -4,7 +4,7 @@
 > [`docs/historial/`](docs/historial/) y en `git log`. La fuente de verdad del trabajo pendiente es
 > [`MASTER_PLAN.md`](MASTER_PLAN.md) (tablero de ~500 líneas desde el 2026-10-05; las fases cerradas están en `docs/historial/plan/`; `/siguiente` dice qué toca).
 
-**Estado al:** 2026-10-08 · **`main` en:** `54d73a3` · **Último PR fusionado:** #129 · **Ninguno abierto** · **Tanda cerrada: lista para la VM**
+**Estado al:** 2026-10-08 · **`main` en:** `54d73a3` · **Último PR fusionado:** #130 · **Ninguno abierto** · **Tanda cerrada: lista para la VM**
 
 ## Reparto del trabajo
 
@@ -59,14 +59,12 @@ propia por organización** (no hay campo ni migración).
 - El **piloto** ([`docs/PILOTO.md`](docs/PILOTO.md)): las cinco etapas, de la 0 a la 4, siguen sin
   empezar. La Etapa 1 (registro documental) no necesita el IFC.
 
-## Para desplegar en la VM (2026-10-08)
+## Desplegado en la VM (2026-10-08)
 
-**Desplegado el 2026-10-08 hasta `59c7f7f` (#127)**: ya llevan `documents.0016` y `core.0005`, y todo lo de
-#108 a #127 (relleno de cortes, 3D/2D, doble clic, rótulos, e2e). **Falta desplegar #128 y #129**: el
-indicador 3D/2D pasa abajo a la derecha; las notas llevan color por prioridad y seguimiento (abierta,
-respondida, cerrada); y «Generar plano» y «Crear perfil» se ven también en el espacio 3D. **Sin migraciones,
-sin `nginx`, sin variables nuevas.** Orden: `respaldo.sh`, luego `desplegar.sh` (`docs/DEPLOY.md`), y
-Ctrl+F5 en el navegador.
+**La VM `p340` corre `2b2b8c2` (#130), con todo lo de #108 a #130**: relleno de cortes, 3D/2D, doble clic,
+rótulos del plano, notas con color y seguimiento, «Generar plano» también en el 3D, e2e en el CI. Migraciones
+aplicadas: `documents.0016` y `core.0005`. `/health/` en `ok`; `conversor_cad` sigue ausente (sin él no
+abren los DWG). Último respaldo: `/var/backups/aerobim/20261008-193905`. **No queda nada por desplegar.**
 
 ## La tanda anterior: la Fase 15, revisión con marcas (#89 a #103) — **cerrada entera**
 
