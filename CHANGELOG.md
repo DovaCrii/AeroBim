@@ -19,6 +19,10 @@ Más contraste del texto secundario en oscuro; la barra de desplazamiento del me
 las láminas de un perfil se agrupan y se recorren con un selector compacto, con ocultar y eliminar; «Crear
 perfil» es compacto y el eje se dibuja con vértices numerados y balizas de PK; cortar, plano y perfil están en
 la barra vertical; el espacio 2D se mira en planta (#132 a #136).
+El 3D no muestra nada de 2D; las balizas del eje son HTML nítido y cada lámina de un perfil lleva su barra
+de seguimiento con el perfil tipo; «Generar plano» pide vista, alcance y nombre y dice qué entra; la lámina
+tiene su panel de capas, escala, medida e información; el encuadre de la vista lateral se corrigió
+(#138 a #141).
 
 ### Cambiado — áreas de toque y la escala de radios del portal (`F9.4` y `F9.5`, 2026-09-03)
 

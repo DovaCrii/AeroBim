@@ -4,7 +4,7 @@
 > [`docs/historial/`](docs/historial/) y en `git log`. La fuente de verdad del trabajo pendiente es
 > [`MASTER_PLAN.md`](MASTER_PLAN.md) (tablero de ~500 líneas desde el 2026-10-05; las fases cerradas están en `docs/historial/plan/`; `/siguiente` dice qué toca).
 
-**Estado al:** 2026-10-08 · **`main` en:** `54d73a3` · **Último PR fusionado:** #136 · **Ninguno abierto** · **Tanda cerrada: lista para la VM**
+**Estado al:** 2026-10-08 · **`main` en:** `54d73a3` · **Último PR fusionado:** #141 · **Ninguno abierto** · **Tanda cerrada: lista para la VM**
 
 ## Reparto del trabajo
 
@@ -15,11 +15,10 @@
 ## Dónde está el proyecto
 
 - Versión `0.1.0`, **sin publicar** (no hay etiqueta de git).
-- **El visor, el registro documental ISO 19650 y el portal están construidos.** Desde la Fase 13 hay
-  **perfiles** (IFC y nube, desarrollados por PK) y **dos espacios de trabajo**, _Modelo 3D_ y _Planos
-  2D y perfiles_, con **Comparar**. Todo verificado en el navegador **con datos de muestra**: falta el
-  oráculo externo con los archivos del metro (`F13.6`).
-- Pruebas (gate local 2026-10-09): **1 775** en `services/api` (+7 omitidas) y **770** en TypeScript.
+- **El visor, el registro ISO 19650 y el portal están construidos**, con **perfiles** por PK y dos
+  espacios (_Modelo 3D_ y _Planos 2D y perfiles_). Verificado **con datos de muestra**: falta el oráculo
+  externo con los archivos del metro (`F13.6`).
+- Pruebas (gate local 2026-10-09): **1 775** en `services/api` (+7 omitidas) y **249** en TypeScript por paquete.
 
 ## Filas abiertas (verificar con `plan-fila.mjs --abiertas`)
 
@@ -59,16 +58,19 @@ propia por organización** (no hay campo ni migración).
 - El **piloto** ([`docs/PILOTO.md`](docs/PILOTO.md)): las cinco etapas, de la 0 a la 4, siguen sin
   empezar. La Etapa 1 (registro documental) no necesita el IFC.
 
-## Desplegado y por desplegar (2026-10-08)
+## Desplegado y por desplegar (2026-10-09)
 
 **La VM `p340` corre `2b2b8c2` (#130).** Respaldo: `/var/backups/aerobim/20261008-193905`. **Falta desplegar
-#131 a #136** (solo interfaz y estilos; **sin migraciones, sin `nginx`, sin variables nuevas**): barra de
-desplazamiento del menú lateral en oscuro (#132) · más contraste del texto secundario en oscuro (#133) ·
-selector compacto de láminas y perfiles agrupados con ocultar y eliminar (#134) · «Crear perfil» compacto y
-**balizado con PK** en el eje (#135) · cortar, plano y perfil en la barra vertical, el espacio 2D se mira en
-planta, y cambiar de lámina solo toca dos (#136). Orden: `respaldo.sh`, `desplegar.sh`, Ctrl+F5.
-**Sin confirmar a ojo:** la cámara en planta del espacio 2D (el panel del navegador no compone el giro) y un
-perfil real de punta a punta con 193 láminas; mírelo al desplegar.
+#131 a #141** (solo interfaz y estilos; **sin migraciones, sin `nginx`, sin variables nuevas**): menú lateral y
+contraste en oscuro (#132, #133) · láminas de un perfil agrupadas con selector compacto, ocultar y eliminar
+(#134) · «Crear perfil» compacto con balizado de PK nítido en HTML (#135, #138) · barra de seguimiento del
+perfil con **perfil tipo** (silueta de cotas) y salto por baliza (#138, #139) · **Modelo 3D sin nada de 2D** y
+el 2D se mira en planta (#136, #139) · «Generar plano» con vista, alcance, recuento y ficha (#140) · panel «Vista
+de la lámina» con capas, escala y medida, y encuadre de la vista lateral corregido (#141). Orden:
+`respaldo.sh`, `desplegar.sh`, Ctrl+F5.
+**Sin confirmar a ojo:** un perfil real con 193 láminas de punta a punta; la cámara en planta del espacio 2D;
+la orientación izquierda/derecha del lateral contra un visor de escritorio. **Decisión pendiente:** ortofotos e
+imágenes georreferenciadas, ¿en AeroConvert (recomendado) o aquí? Hasta decidirlo, F6.x sigue pospuesta.
 
 ## La tanda anterior: la Fase 15, revisión con marcas (#89 a #103) — **cerrada entera**
 
