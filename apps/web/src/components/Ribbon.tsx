@@ -849,7 +849,7 @@ export function Ribbon({
                       label="Generar plano"
                       hint={
                         enabled
-                          ? "Proyecta la planta de lo que está encendido. El panel «Planos generados» ofrece además el frontal y el lateral"
+                          ? "Abre «Generar plano»: eliges planta, frontal o lateral, qué entra (todo lo encendido o solo la selección) y el nombre, y ves cuántos elementos son antes de generar"
                           : "Abre un modelo primero"
                       }
                       disabled={!enabled}
