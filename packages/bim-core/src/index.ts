@@ -308,3 +308,20 @@ export {
   terminosDe,
   type ElementoBuscable,
 } from "./busqueda/elementos.js";
+
+export {
+  ESCALAS_DE_ESCALIMETRO,
+  ESCALA_MAXIMA_LEGIBLE,
+  HOJAS,
+  MARGEN_DE_HOJA_MM,
+  PX_POR_MM_DE_PAPEL,
+  escalaQueCabe,
+  medirEnLamina,
+  pxPorMetroAEscala,
+  rotuloDeEscala,
+  sugerirHoja,
+  type Hoja,
+  type MedidaDeLamina,
+  type PuntoDeLamina,
+  type SugerenciaDeHoja,
+} from "./views/hojaDeLamina.js";

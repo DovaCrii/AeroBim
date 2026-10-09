@@ -51,7 +51,7 @@ export function SelectorDeVista({
         <BotonFlotante
           icono={<IconViewFront />}
           nombre="Frontal"
-          ayuda="Alzado de frente"
+          ayuda="Alzado visto desde el borde inferior de la planta; la izquierda y la derecha son las de la planta"
           activo={vista === "front"}
           desactivado={desactivado}
           onClick={() => onVista("front")}
@@ -59,7 +59,7 @@ export function SelectorDeVista({
         <BotonFlotante
           icono={<IconViewSide />}
           nombre="Lateral"
-          ayuda="Alzado desde el costado"
+          ayuda="Alzado visto desde el borde derecho de la planta; a la izquierda queda el frente y a la derecha el fondo"
           activo={vista === "side"}
           desactivado={desactivado}
           onClick={() => onVista("side")}
