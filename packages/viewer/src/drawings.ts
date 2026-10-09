@@ -66,6 +66,11 @@ export interface GeneratedDrawing {
    * Es lo que permite a la interfaz tratarlas como un grupo y no como 193 planos sueltos.
    */
   readonly grupoId?: string;
+  /**
+   * En qué PK del eje está una transversal, en metros desde su inicio. Es lo que dice, en la
+   * pantalla, **dónde va el seguimiento del perfil** mientras se recorren las láminas.
+   */
+  readonly pkM?: number;
   /** Cuántos segmentos tiene el dibujo visible, que es el tamaño real del plano. */
   readonly segments: number;
   /** Cuántos segmentos quedaron ocultos por el propio modelo. */
@@ -777,6 +782,8 @@ export class DrawingMaker {
       readonly ejeHorizontal?: "pk" | "distancia";
       /** El perfil al que pertenece la lámina; ver {@link GeneratedDrawing.grupoId}. */
       readonly grupoId?: string;
+      /** El PK de una transversal; ver {@link GeneratedDrawing.pkM}. */
+      readonly pkM?: number;
       readonly onProgress?: (mensaje: string, avance?: number) => void;
     },
   ): Promise<GeneratedDrawing | null> {
@@ -876,6 +883,7 @@ export class DrawingMaker {
       ...info,
       ...(opciones.eje === undefined ? {} : { eje: opciones.eje }),
       ...(opciones.grupoId === undefined ? {} : { grupoId: opciones.grupoId }),
+      ...(opciones.pkM === undefined ? {} : { pkM: opciones.pkM }),
       ...(nota === "" ? {} : { nota }),
       ...(opciones.cruces === undefined ? {} : { cruces: opciones.cruces }),
     };

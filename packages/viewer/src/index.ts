@@ -5710,6 +5710,7 @@ export class BimViewer {
           nombre: `Transversal PK ${textoDePk(pkM)}`,
           ejeHorizontal: "distancia",
           grupoId,
+          pkM,
           eje,
           origenM,
           ...avance,

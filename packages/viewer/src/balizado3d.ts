@@ -97,39 +97,72 @@ function textura(canvas: HTMLCanvasElement): THREE.CanvasTexture {
   return t;
 }
 
-/** Una pastilla oscura con texto claro: se lee sobre un muro blanco y sobre un fondo negro. */
+/**
+ * **El rótulo de una baliza es HTML y no una textura** (2026-10-09). Como `Sprite` pasaba por la
+ * postproducción del visor —ambiente y contornos—, que oscurecía y remarcaba los bordes de las letras:
+ * el PK se veía como una mancha gris con un doble contorno. Un elemento del DOM se pinta **después** de
+ * la escena, con el texto nítido del navegador, y se coloca cada fotograma proyectando su punto.
+ *
+ * Se conserva un `Sprite` invisible por rótulo: es quien recibe `onBeforeRender` con la cámara de ese
+ * fotograma y por eso lo coloca. Mide su pastilla con el mismo tamaño que usa `decidirRotulosQueCaben`.
+ */
 function rotuloDeBaliza(
   texto: string,
   posicion: THREE.Vector3,
   oculto: () => boolean,
+  nodos: HTMLElement[],
 ): { sprite: THREE.Sprite; anchoPx: number; altoPx: number } {
-  const fuente = "600 12px system-ui, sans-serif";
   const [, medidor] = lienzo(10, 10);
-  medidor.font = fuente;
-  const anchoPx = Math.ceil(medidor.measureText(texto).width) + 14;
-  const altoPx = 20;
-  const [canvas, pincel] = lienzo(anchoPx, altoPx);
-  pincel.beginPath();
-  pincel.roundRect(1, 1, anchoPx - 2, altoPx - 2, 5);
-  pincel.fillStyle = "rgba(20,22,28,0.9)";
-  pincel.fill();
-  pincel.lineWidth = 1.5;
-  pincel.strokeStyle = "#ff7a00";
-  pincel.stroke();
-  pincel.font = fuente;
-  pincel.fillStyle = "#ffffff";
-  pincel.textAlign = "center";
-  pincel.textBaseline = "middle";
-  pincel.fillText(texto, anchoPx / 2, altoPx / 2 + 0.5);
-  // El rótulo queda sobre su baliza, sin tapar la línea.
-  const sprite = spriteDeTamanoFijo(
-    textura(canvas),
-    anchoPx,
-    altoPx,
-    posicion,
-    [0.5, -0.45],
-    oculto,
+  medidor.font = "700 13px system-ui, sans-serif";
+  const anchoPx = Math.ceil(medidor.measureText(texto).width) + 16;
+  const altoPx = 22;
+
+  let nodo: HTMLElement | null = null;
+  const sprite = new THREE.Sprite(
+    new THREE.SpriteMaterial({
+      transparent: true,
+      opacity: 0,
+      depthTest: false,
+      depthWrite: false,
+    }),
   );
+  sprite.position.copy(posicion);
+  sprite.frustumCulled = false;
+  sprite.scale.set(1e-6, 1e-6, 1);
+  const punto = new THREE.Vector3();
+  sprite.onBeforeRender = (renderer, _escena, camara) => {
+    const lienzoDom = renderer.domElement;
+    const contenedor = lienzoDom.parentElement;
+    if (contenedor === null) return;
+    if (nodo === null) {
+      nodo = document.createElement("div");
+      nodo.className = "baliza-pk";
+      nodo.textContent = texto;
+      nodo.setAttribute("aria-hidden", "true");
+      nodo.style.cssText =
+        "position:absolute;left:0;top:0;z-index:5;pointer-events:none;white-space:nowrap;" +
+        "font:700 13px/20px system-ui,sans-serif;letter-spacing:.01em;color:#fff;" +
+        "background:#14161c;border:2px solid #ff7a00;border-radius:6px;padding:0 6px;" +
+        "box-shadow:0 1px 4px rgba(0,0,0,.55);will-change:transform;";
+      if (getComputedStyle(contenedor).position === "static")
+        contenedor.style.position = "relative";
+      contenedor.appendChild(nodo);
+      nodos.push(nodo);
+    }
+    const tamano = renderer.getSize(TAMANO);
+    punto.copy(sprite.position).project(camara);
+    const fuera =
+      punto.z <= -1 || punto.z >= 1 || Math.abs(punto.x) > 1.2 || Math.abs(punto.y) > 1.2;
+    if (oculto() || fuera) {
+      nodo.style.display = "none";
+      return;
+    }
+    nodo.style.display = "";
+    const x = Math.round(((punto.x + 1) / 2) * tamano.x);
+    const y = Math.round(((1 - punto.y) / 2) * tamano.y);
+    // Centrado sobre su baliza y un poco por encima, para no tapar la línea.
+    nodo.style.transform = `translate(${x}px, ${y}px) translate(-50%, -135%)`;
+  };
   return { sprite, anchoPx, altoPx };
 }
 
@@ -218,11 +251,14 @@ export function construirBalizado(
     // Qué rótulos caben: los que se montarían unos sobre otros no se dibujan. Se decide antes de cada
     // fotograma, con la cámara de ese momento, y cada rótulo lo consulta al ajustar su tamaño.
     const ocultos: boolean[] = lista.map(() => false);
+    const nodos: HTMLElement[] = [];
+    grupo.userData["nodosDom"] = nodos;
     const rotulos = lista.map((baliza, i) =>
       rotuloDeBaliza(
         textoDeBaliza(baliza.pkM, baliza.esFinal),
         new THREE.Vector3(baliza.puntoM[0], yM, baliza.puntoM[1]),
         () => ocultos[i] === true,
+        nodos,
       ),
     );
     for (const rotulo of rotulos) grupo.add(rotulo.sprite);
@@ -274,6 +310,7 @@ function decidirRotulosQueCaben(
 }
 /** Libera geometrías, materiales y texturas de un grupo hecho por {@link construirBalizado}. */
 export function liberarBalizado(grupo: THREE.Group): void {
+  for (const nodo of (grupo.userData["nodosDom"] as HTMLElement[] | undefined) ?? []) nodo.remove();
   grupo.traverse((objeto) => {
     const dibujable = objeto as Partial<THREE.Mesh>;
     dibujable.geometry?.dispose();
