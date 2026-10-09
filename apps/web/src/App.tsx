@@ -49,6 +49,8 @@ import { ModelsPanel } from "./components/ModelsPanel.js";
 import { Coordinacion, type ObservacionDelModelo } from "./components/Coordinacion.js";
 import { BuscadorDelVisor } from "./components/BuscadorDelVisor.js";
 import { IndicadorDeModo, modoDelVisor } from "./components/IndicadorDeModo.js";
+import { SeguimientoDelPerfil } from "./components/SeguimientoDelPerfil.js";
+import { laMasCercana } from "./seguimiento-perfil.js";
 import { GlobosDeTemas } from "./components/GlobosDeTemas.js";
 import { HerramientasDelVisor } from "./components/HerramientasDelVisor.js";
 import { TablaDeTemas } from "./components/TablaDeTemas.js";
@@ -3290,6 +3292,27 @@ export function App() {
                 onSalir={() => void onSalirDeLamina()}
               />
             )}
+
+            {/* **El seguimiento del perfil** (2026-10-09): dónde va la lámina que se mira dentro del eje,
+                con sus balizas de PK. Solo para las láminas que salen de un perfil. */}
+            {(() => {
+              const dibujo = drawings.find((una) => una.id === laminaEnVisor);
+              if (dibujo?.eje === undefined) return null;
+              return (
+                <SeguimientoDelPerfil
+                  eje={dibujo.eje}
+                  pkM={dibujo.pkM}
+                  nombre={dibujo.name}
+                  onIrA={(pk) => {
+                    const hermanas = drawings.filter(
+                      (una) => una.grupoId !== undefined && una.grupoId === dibujo.grupoId,
+                    );
+                    const destino = laMasCercana(hermanas, pk);
+                    if (destino !== undefined) void onVerLamina(destino.id);
+                  }}
+                />
+              );
+            })()}
 
             {/* **El buscador de elementos** (`F15.6`): arriba, al centro; entre las herramientas y el cubo de vistas. */}
             {laminaEnVisor === null && (
