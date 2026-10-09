@@ -1,7 +1,12 @@
 import type { EjeDePerfil } from "@aerobim/bim-core";
 import { describe, expect, it } from "vitest";
 
-import { balizasConNumero, laMasCercana, seguimientoDeLamina } from "./seguimiento-perfil.js";
+import {
+  balizasConNumero,
+  laMasCercana,
+  seguimientoDeLamina,
+  siluetaDePerfil,
+} from "./seguimiento-perfil.js";
 
 const eje: EjeDePerfil = {
   sistema: "escena",
@@ -69,5 +74,31 @@ describe("laMasCercana", () => {
     expect(laMasCercana(laminas, 10)?.id).toBe("b");
     const sinPk: { id: string; pkM?: number }[] = [{ id: "solo" }];
     expect(laMasCercana(sinPk, 1)).toBeUndefined();
+  });
+});
+
+describe("siluetaDePerfil", () => {
+  const cruce = (desdeM: number, hastaM: number, cotaMinM: number, cotaMaxM: number) => ({
+    categoria: "IFCWALL",
+    nombre: null,
+    guid: null,
+    desdeM,
+    hastaM,
+    cotaMinM,
+    cotaMaxM,
+  });
+
+  it("une las cotas de lo que cruza en cada PK y deja huecos donde no hay nada", () => {
+    const s = siluetaDePerfil([cruce(0, 4, 0, 3), cruce(2, 4, -1, 1)], 10, 11);
+    expect(s?.cotaMinM).toBe(-1);
+    expect(s?.cotaMaxM).toBe(3);
+    expect(s?.columnas[0]).toEqual({ minM: 0, maxM: 3 });
+    expect(s?.columnas[3]).toEqual({ minM: -1, maxM: 3 });
+    expect(s?.columnas[8]).toBeNull();
+  });
+
+  it("sin cruces o sin largo no hay silueta", () => {
+    expect(siluetaDePerfil([], 10, 10)).toBeNull();
+    expect(siluetaDePerfil([cruce(0, 1, 0, 1)], 0, 10)).toBeNull();
   });
 });

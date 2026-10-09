@@ -1,11 +1,13 @@
 import { textoDePk } from "@aerobim/viewer";
 
+import type { CruceDePerfil, EjeDePerfil } from "@aerobim/bim-core";
+
 import {
   balizasConNumero,
   seguimientoDeLamina,
+  siluetaDePerfil,
   type SeguimientoDelPerfil as Seguimiento,
 } from "../seguimiento-perfil.js";
-import type { EjeDePerfil } from "@aerobim/bim-core";
 
 /**
  * **Dónde va la lámina dentro del perfil**, en una barra al pie del visor 2D (2026-10-09).
@@ -20,9 +22,12 @@ export function SeguimientoDelPerfil({
   eje,
   pkM,
   nombre,
+  cruces,
   onIrA,
 }: {
   readonly eje: EjeDePerfil;
+  /** Los cruces del longitudinal: con ellos se dibuja el perfil tipo sobre la barra. */
+  readonly cruces: readonly CruceDePerfil[] | undefined;
   /** El PK de la transversal que se mira, o `undefined` si es el longitudinal. */
   readonly pkM: number | undefined;
   readonly nombre: string;
@@ -32,6 +37,7 @@ export function SeguimientoDelPerfil({
   const s: Seguimiento | null = seguimientoDeLamina(eje, pkM);
   if (s === null) return null;
   const numeradas = balizasConNumero(s.balizas, 6);
+  const silueta = cruces === undefined ? null : siluetaDePerfil(cruces, s.largoM, 80);
   const dondeEstoy =
     s.posicionM === null
       ? `${nombre} · todo el eje, de PK ${textoDePk(0)} a ${textoDePk(s.largoM, 1)}`
@@ -47,6 +53,7 @@ export function SeguimientoDelPerfil({
         <span className="font-semibold text-fg">Seguimiento del perfil</span>
         <span className="truncate text-fg-2 tabular-nums">{dondeEstoy}</span>
       </p>
+      {silueta !== null && <SiluetaDelPerfil silueta={silueta} />}
       <div className="relative h-9">
         {/* El eje: una barra, resaltada entera cuando la lámina es el longitudinal. */}
         <div
@@ -91,6 +98,59 @@ export function SeguimientoDelPerfil({
           </span>
         )}
       </div>
+    </div>
+  );
+}
+
+/**
+ * **El perfil tipo**: la silueta de lo que hay a lo largo del eje, con la cota más baja y la más alta de
+ * cada tramo. Es lo que dice «cómo crece» el trazado —dónde hay más edificio y dónde no— sobre la misma
+ * escala de PK que la barra de abajo, así que una baliza cae justo bajo lo que cruza.
+ */
+function SiluetaDelPerfil({
+  silueta,
+}: {
+  readonly silueta: NonNullable<ReturnType<typeof siluetaDePerfil>>;
+}) {
+  const ancho = 100;
+  const alto = 24;
+  const rango = Math.max(silueta.cotaMaxM - silueta.cotaMinM, 0.01);
+  const x = (i: number) => (i / (silueta.columnas.length - 1)) * ancho;
+  const y = (cota: number) => alto - ((cota - silueta.cotaMinM) / rango) * (alto - 2) - 1;
+  const trozos: string[] = [];
+  let actual: { i: number; c: { minM: number; maxM: number } }[] = [];
+  const cerrar = () => {
+    if (actual.length === 0) return;
+    const arriba = actual.map(({ i, c }) => `${x(i)},${y(c.maxM)}`);
+    const abajo = [...actual].reverse().map(({ i, c }) => `${x(i)},${y(c.minM)}`);
+    trozos.push(`M${arriba.join(" L")} L${abajo.join(" L")} Z`);
+    actual = [];
+  };
+  silueta.columnas.forEach((c, i) => {
+    if (c === null) cerrar();
+    else actual.push({ i, c });
+  });
+  cerrar();
+  return (
+    <div className="mb-0.5">
+      <svg
+        viewBox={`0 0 ${ancho} ${alto}`}
+        preserveAspectRatio="none"
+        className="h-7 w-full"
+        role="img"
+        aria-label={`Perfil tipo: cota de ${silueta.cotaMinM.toFixed(1)} a ${silueta.cotaMaxM.toFixed(1)} m`}
+      >
+        <path
+          d={trozos.join(" ")}
+          className="fill-accent/30 stroke-accent"
+          strokeWidth={0.6}
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
+      <p className="flex justify-between text-nota text-fg-3 tabular-nums">
+        <span>Cota {silueta.cotaMinM.toFixed(1)} m</span>
+        <span>{silueta.cotaMaxM.toFixed(1)} m</span>
+      </p>
     </div>
   );
 }
