@@ -1092,6 +1092,19 @@ export class DrawingMaker {
     return { pkM: local.x, cotaM: -local.z };
   }
 
+  /**
+   * El inverso de {@link puntoDePapel}: dónde cae **en la escena** un punto de la lámina dado por sus
+   * coordenadas de papel (`pkM` es la X local y `cotaM` el opuesto de la Z local). `null` si el plano
+   * no existe.
+   */
+  puntoDePapelAEscena(id: string, pkM: number, cotaM: number): THREE.Vector3 | null {
+    const plano = this.planos.get(id);
+    if (plano === undefined) return null;
+    const contenedor = plano.drawing.three;
+    contenedor.updateMatrixWorld(true);
+    return new THREE.Vector3(pkM, 0, -cotaM).applyMatrix4(contenedor.matrixWorld);
+  }
+
   boxOf(id: string): THREE.Box3 | null {
     const plano = this.planos.get(id);
     if (plano === undefined) return null;

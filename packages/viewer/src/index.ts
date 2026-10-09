@@ -49,6 +49,7 @@ import {
   trasladoAlModelo,
   type Alineacion,
   type BcfCamera,
+  PX_POR_MM_DE_PAPEL,
   type IfcGridAxis,
   type IfcGuid,
   type IfcUnits,
@@ -79,6 +80,7 @@ import { type PartesDeCota, siguienteOrdinal, textoDeCota } from "./cotas.js";
 import { categoriasDe, cuadroDe, encabezadoDeColumna, type Schedule } from "./cuadros.js";
 import {
   DrawingMaker,
+  type DrawingLayerInfo,
   type DrawingView,
   type GeneratedDrawing,
   type ParteDePerfil,
@@ -968,6 +970,9 @@ function liberarDibujo(objeto: THREE.Object3D): void {
 interface Ocultable {
   visible: boolean;
 }
+
+/** Cuánto aire se deja alrededor al encuadrar, como fracción del tamaño de la caja **por cada lado**. */
+const MARGEN_DE_ENCUADRE = 0.05;
 
 /**
  * Ángulos de las vistas normalizadas: azimut y polar de camera-controls.
@@ -6049,6 +6054,61 @@ export class BimViewer {
     };
   }
 
+  /** Las capas de una lámina generada, con cuántos segmentos lleva cada una y si está encendida. */
+  drawingLayers(id: string): readonly DrawingLayerInfo[] {
+    this.assertAlive();
+    return this.drawings.layersOf(id);
+  }
+
+  /** Enciende o apaga una capa de una lámina generada, por su nombre (ver `CAPAS`). */
+  async setDrawingLayerVisible(id: string, layer: string, visible: boolean): Promise<void> {
+    this.assertAlive();
+    this.drawings.setLayerVisible(id, layer, visible);
+    await this.refresh();
+  }
+
+  /** Encuadra una lámina generada **de frente** y entera. `false` si ya no existe. */
+  frameDrawing(id: string): boolean {
+    this.assertAlive();
+    const caja = this.drawings.boxOf(id);
+    if (caja === null) return false;
+    this.applyFraming(caja, this.drawings.vistaDeFrente(id) ?? "top");
+    return true;
+  }
+
+  /**
+   * A qué escala de papel se está viendo la pantalla ahora, como denominador (`100` es 1:100), a
+   * 96 ppp. `null` si la cámara no es ortográfica: en perspectiva no hay escala.
+   */
+  get screenScaleDenominator(): number | null {
+    this.assertAlive();
+    const orto = this.world.camera.three as THREE.OrthographicCamera;
+    if (orto.isOrthographicCamera !== true) return null;
+    const altoVisibleM = Math.abs(orto.top - orto.bottom) / (orto.zoom || 1);
+    const altoPx = this.container.clientHeight;
+    if (!(altoVisibleM > 0) || !(altoPx > 0)) return null;
+    const pxPorMetro = altoPx / altoVisibleM;
+    return 1000 / (pxPorMetro / PX_POR_MM_DE_PAPEL);
+  }
+
+  /**
+   * Lleva el zoom a que la pantalla muestre el dibujo a `escala` (1:`escala`) de una hoja, a 96 ppp:
+   * a 1:100, un metro del modelo mide 10 mm de papel. Solo con cámara ortográfica; devuelve `false`
+   * si no lo es o no se pudo calcular. No mueve el objetivo: solo el zoom.
+   */
+  zoomToPaperScale(escala: number): boolean {
+    this.assertAlive();
+    const orto = this.world.camera.three as THREE.OrthographicCamera;
+    if (orto.isOrthographicCamera !== true) return false;
+    const actual = this.screenScaleDenominator;
+    if (actual === null || !(escala > 0)) return false;
+    const controls = this.world.camera.controls;
+    // Menos denominador es más zoom: de 1:200 a 1:100 hay que acercar el doble.
+    void controls.zoomTo((orto.zoom || 1) * (actual / escala), false);
+    controls.update(ONE_FRAME_S);
+    return true;
+  }
+
   /** Enciende o apaga las aristas ocultas de un plano generado. */
   async setDrawingHiddenVisible(id: string, visible: boolean): Promise<void> {
     this.assertAlive();
@@ -6076,6 +6136,27 @@ export class BimViewer {
     const rayo = new THREE.Raycaster();
     rayo.setFromCamera(ndc, this.camera.three);
     return this.drawings.puntoDePapel(id, rayo.ray);
+  }
+
+  /**
+   * Dónde cae en la pantalla un punto de papel de una lámina (el inverso de {@link pointOnDrawing}),
+   * en píxeles de cliente. `null` si la lámina no existe o el punto queda detrás de la cámara.
+   */
+  drawingPointToClient(
+    id: string,
+    pkM: number,
+    cotaM: number,
+  ): { readonly x: number; readonly y: number } | null {
+    this.assertAlive();
+    const mundo = this.drawings.puntoDePapelAEscena(id, pkM, cotaM);
+    if (mundo === null) return null;
+    const ndc = mundo.project(this.camera.three);
+    if (ndc.z < -1 || ndc.z > 1) return null;
+    const caja = this.container.getBoundingClientRect();
+    return {
+      x: caja.left + ((ndc.x + 1) / 2) * caja.width,
+      y: caja.top + ((1 - ndc.y) / 2) * caja.height,
+    };
   }
 
   /**
@@ -6307,10 +6388,29 @@ export class BimViewer {
   private applyFraming(box: THREE.Box3, view: StandardView = "iso"): void {
     const controls = this.world.camera.controls;
     const [azimuth, polar] = VISTAS[view];
-    // El encuadre va **antes** del giro: `fitToBox` recoloca la cámara y con ello pisa los
-    // ángulos, así que girar primero no dejaba rastro. Rotar después conserva el objetivo y
-    // la distancia que el encuadre calculó.
-    void controls.fitToBox(conGrosor(box), false);
+    // **Se gira antes de encuadrar, y se vuelve a girar después.** `fitToBox` redondea los ángulos
+    // actuales al eje más cercano y calcula la distancia **para esa dirección**, no para la que se
+    // pide. Con el giro solo después, el encuadre dependía de dónde estaba la cámara antes: medido el
+    // 2026-10-09 con `Piso 5.ifc` (21,8 × 22,7 m en planta, 3 m de alto), el lateral venido desde la
+    // planta se **salía del lienzo por los dos lados**, y venido desde la isométrica cabía. Girando
+    // primero, la dirección que se encuadra es la que se va a ver. El segundo giro deja los ángulos
+    // exactos —`fitToBox` los habrá redondeado— conservando el objetivo y la distancia calculados.
+    void controls.rotateTo(azimuth, polar, false);
+    controls.update(ONE_FRAME_S);
+    // **Con aire alrededor**: el encuadre exacto dejaba el modelo **pegado a los cuatro bordes** (medido:
+    // x de 0 a 674 px sobre un lienzo de 674), tapado en parte por las barras flotantes. Un 5 % por
+    // eje a cada lado —cerca del 90 % de ocupación— deja ver los bordes sin quitar tamaño.
+    const holgura = box.getSize(new THREE.Vector3()).multiplyScalar(MARGEN_DE_ENCUADRE);
+    const holgada = conGrosor(box.clone().expandByVector(holgura));
+    if (view === "iso") {
+      // **La isométrica se encuadra por la esfera.** `fitToBox` solo sabe encuadrar mirando a lo largo
+      // de un eje, y una vista a 45° ocupa más: medido con `Piso 5.ifc` en ortográfica, el modelo se
+      // salía del lienzo **87 px por la izquierda y 86 por la derecha**. La esfera no depende de hacia
+      // dónde se mire, así que nunca corta, a costa de dejar algo más de aire en un edificio bajo.
+      void controls.fitToSphere(holgada.getBoundingSphere(new THREE.Sphere()), false);
+    } else {
+      void controls.fitToBox(holgada, false);
+    }
     void controls.rotateTo(azimuth, polar, false);
     controls.update(ONE_FRAME_S);
   }

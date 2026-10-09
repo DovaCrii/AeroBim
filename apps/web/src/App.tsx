@@ -65,6 +65,7 @@ import { Origen } from "./components/Origen.js";
 import { PlansPanel } from "./components/PlansPanel.js";
 import { BandaDeCruces } from "./components/BandaDeCruces.js";
 import { BarraDeLamina } from "./components/BarraDeLamina.js";
+import { OpcionesDeLamina } from "./components/OpcionesDeLamina.js";
 import { BarraDelVisor } from "./components/BarraDelVisor.js";
 import { PerfilFlotante, type ParametrosDePerfil } from "./components/PerfilFlotante.js";
 import { SelectorDeEspacio } from "./components/SelectorDeEspacio.js";
@@ -3338,6 +3339,9 @@ export function App() {
                 onVer={(id) => void onVerLamina(id)}
                 onSalir={() => void onSalirDeLamina()}
               />
+            )}
+            {laminaActual !== null && (
+              <OpcionesDeLamina viewer={viewer.current} lamina={laminaActual} />
             )}
 
             {/* **El seguimiento del perfil** (2026-10-09): dónde va la lámina que se mira dentro del eje,
