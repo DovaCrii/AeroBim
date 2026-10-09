@@ -7,7 +7,12 @@
  * posición de la lámina actual— sin Three ni DOM, para poder probarlo.
  */
 
-import { balizasDelEje, largoDelEjeM, type EjeDePerfil } from "@aerobim/bim-core";
+import {
+  balizasDelEje,
+  largoDelEjeM,
+  type CruceDePerfil,
+  type EjeDePerfil,
+} from "@aerobim/bim-core";
 
 export interface BalizaDeSeguimiento {
   readonly pkM: number;
@@ -82,4 +87,52 @@ export function laMasCercana<T extends { readonly pkM?: number }>(
     }
   }
   return mejor;
+}
+
+/** La silueta del perfil en una columna de PK: de qué cota a qué cota hay algo, o `null` si no hay nada. */
+export interface ColumnaDeSilueta {
+  readonly minM: number;
+  readonly maxM: number;
+}
+
+export interface SiluetaDePerfil {
+  readonly columnas: readonly (ColumnaDeSilueta | null)[];
+  readonly cotaMinM: number;
+  readonly cotaMaxM: number;
+}
+
+/**
+ * La silueta del perfil —**el perfil tipo** que se dibuja en la barra de seguimiento—: para cada una de
+ * `muestras` columnas repartidas a lo largo del eje, la cota más baja y la más alta de los elementos que
+ * lo cruzan en ese PK. Sale de los cruces del longitudinal, que ya traen su tramo de PK y de cota.
+ * Devuelve `null` si no hay cruces o el eje no tiene largo.
+ */
+export function siluetaDePerfil(
+  cruces: readonly CruceDePerfil[],
+  largoM: number,
+  muestras: number,
+): SiluetaDePerfil | null {
+  if (!(largoM > 0) || cruces.length === 0 || muestras < 2) return null;
+  const columnas: (ColumnaDeSilueta | null)[] = [];
+  let cotaMinM = Infinity;
+  let cotaMaxM = -Infinity;
+  for (let i = 0; i < muestras; i++) {
+    const pk = (i / (muestras - 1)) * largoM;
+    let minM = Infinity;
+    let maxM = -Infinity;
+    for (const c of cruces) {
+      if (pk < c.desdeM || pk > c.hastaM) continue;
+      minM = Math.min(minM, c.cotaMinM);
+      maxM = Math.max(maxM, c.cotaMaxM);
+    }
+    if (minM <= maxM) {
+      columnas.push({ minM, maxM });
+      cotaMinM = Math.min(cotaMinM, minM);
+      cotaMaxM = Math.max(cotaMaxM, maxM);
+    } else {
+      columnas.push(null);
+    }
+  }
+  if (!(cotaMinM <= cotaMaxM)) return null;
+  return { columnas, cotaMinM, cotaMaxM };
 }

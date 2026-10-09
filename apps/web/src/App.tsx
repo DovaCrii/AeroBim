@@ -2139,6 +2139,25 @@ export function App() {
     ],
   );
 
+  /**
+   * **En «Modelo 3D» no se ve nada de 2D** (2026-10-09). Los planos de referencia (DXF) y los generados
+   * se dibujan en la misma escena, y en el 3D salían como líneas sueltas flotando alrededor del edificio:
+   * «aún muestra el 2D». Aquí se apagan en la escena **sin tocar** lo que la persona tenía encendido o
+   * apagado (`hiddenPlans`, `hiddenDrawings`), y al volver a «Planos 2D y perfiles» o al comparar se
+   * restituye exactamente eso.
+   */
+  useEffect(() => {
+    const instance = viewer.current;
+    if (instance === null) return;
+    const solo3D = espacio === "modelo" && !comparando && laminaEnVisor === null;
+    for (const dibujo of drawings) {
+      void instance.setDrawingVisible(dibujo.id, !solo3D && !hiddenDrawings.has(dibujo.id));
+    }
+    for (const plan of plans) {
+      void instance.setPlanVisible(plan.id, !solo3D && !hiddenPlans.has(plan.id));
+    }
+  }, [espacio, comparando, laminaEnVisor, drawings, plans, hiddenDrawings, hiddenPlans]);
+
   /** Empieza o cancela el trazado del eje de un perfil. Lo usan la cinta y la barra vertical. */
   const alternarPerfil = useCallback(() => {
     // El eje se marca sobre el modelo: en el visor 2D no está, así que se sale primero.
@@ -3303,6 +3322,11 @@ export function App() {
                   eje={dibujo.eje}
                   pkM={dibujo.pkM}
                   nombre={dibujo.name}
+                  cruces={
+                    drawings.find(
+                      (una) => una.grupoId === dibujo.grupoId && una.cruces !== undefined,
+                    )?.cruces
+                  }
                   onIrA={(pk) => {
                     const hermanas = drawings.filter(
                       (una) => una.grupoId !== undefined && una.grupoId === dibujo.grupoId,
