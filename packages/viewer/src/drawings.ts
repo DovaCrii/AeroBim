@@ -74,6 +74,36 @@ export interface GeneratedDrawing {
   readonly sizeM: readonly [number, number];
   /** Cuánto costó generarlo. Es la cifra que decide si esto se puede usar o no. */
   readonly elapsedMs: number;
+  /**
+   * Qué elementos entraron en la proyección: cuántos y de cuántos modelos. Es lo que permite decir, ya
+   * generado, «salió de 412 elementos de 2 modelos» y no solo «salió». Un perfil no lo trae: entra por
+   * franja, no por selección.
+   */
+  readonly entrada?: { readonly elementos: number; readonly modelos: number };
+  /** Cuándo se generó, en milisegundos desde 1970 (`Date.now()`). */
+  readonly generadoEn?: number;
+  /**
+   * La escala (1:N) a la que cabe en una hoja A3 con margen de 10 mm, que es la del DXF que se
+   * exporta. Es una **sugerencia de lectura**, no una escala de dibujo: el plano mide lo que mide el modelo.
+   */
+  readonly escalaA3?: number;
+}
+
+/** La hoja que usa la exportación a DXF: A3 apaisada, en milímetros y con margen. */
+export const HOJA_A3_MM = { widthMm: 420, heightMm: 297, margin: 10 } as const;
+
+/** La escala normalizada más cercana a la que un dibujo de `anchoM` × `altoM` cabe en la hoja. */
+export function escalaParaHoja(
+  anchoM: number,
+  altoM: number,
+  paper: { readonly widthMm: number; readonly heightMm: number; readonly margin: number },
+): number {
+  const anchoUtil = paper.widthMm - 2 * paper.margin;
+  const altoUtil = paper.heightMm - 2 * paper.margin;
+  for (const escala of ESCALAS) {
+    if ((anchoM * 1000) / escala <= anchoUtil && (altoM * 1000) / escala <= altoUtil) return escala;
+  }
+  return ESCALAS[ESCALAS.length - 1]!;
 }
 
 /** Desde dónde se mira el modelo para dibujarlo. */
@@ -549,6 +579,7 @@ export class DrawingMaker {
       readonly view: GeneratedDrawing["view"];
       readonly empezado: number;
       readonly grupos: PlanoGenerado["grupos"];
+      readonly entrada?: { readonly elementos: number; readonly modelos: number };
       /** Las marcas de la nube, ya en coordenadas del dibujo, o `null`. */
       readonly nube?: THREE.BufferGeometry | null;
       /** La cuadrícula y la regla de un perfil, o `null`: van **dentro del dibujo**, así salen en DXF y PDF. */
@@ -652,6 +683,13 @@ export class DrawingMaker {
       hiddenSegments: contarSegmentos(aristasOcultas),
       sizeM: [caja.max.x - caja.min.x, caja.max.z - caja.min.z],
       elapsedMs: performance.now() - datos.empezado,
+      generadoEn: Date.now(),
+      escalaA3: escalaParaHoja(
+        viewport.right - viewport.left,
+        viewport.top - viewport.bottom,
+        HOJA_A3_MM,
+      ),
+      ...(datos.entrada === undefined ? {} : { entrada: datos.entrada }),
       ...(marcas === null ? {} : { puntosDeNube: contarSegmentos(marcas) }),
     };
 
@@ -681,6 +719,8 @@ export class DrawingMaker {
     modelIdMap: OBC.ModelIdMap,
     view: DrawingView,
     onProgress?: (mensaje: string, avance?: number) => void,
+    /** `nombre`: el que lleva la lámina en lugar del de la vista. */
+    opciones?: { readonly nombre?: string },
   ): Promise<GeneratedDrawing | null> {
     const empezado = performance.now();
 
@@ -727,10 +767,14 @@ export class DrawingMaker {
 
     return this.montar(drawing, proyeccion.visible, proyeccion.hidden, {
       id,
-      nombre: NOMBRES[view],
+      nombre: opciones?.nombre ?? NOMBRES[view],
       view,
       empezado,
       grupos: proyeccion.groups ?? null,
+      entrada: {
+        elementos: Object.values(modelIdMap).reduce((suma, ids) => suma + ids.size, 0),
+        modelos: Object.keys(modelIdMap).length,
+      },
     });
   }
 
@@ -1084,15 +1128,7 @@ export class DrawingMaker {
     // margen del dibujo y lo que haya crecido para meter una tabla.
     const anchoM = plano.viewport.right - plano.viewport.left;
     const altoM = plano.viewport.top - plano.viewport.bottom;
-    const anchoUtil = paper.widthMm - 2 * paper.margin;
-    const altoUtil = paper.heightMm - 2 * paper.margin;
-
-    for (const escala of ESCALAS) {
-      if ((anchoM * 1000) / escala <= anchoUtil && (altoM * 1000) / escala <= altoUtil) {
-        return escala;
-      }
-    }
-    return ESCALAS[ESCALAS.length - 1]!;
+    return escalaParaHoja(anchoM, altoM, paper);
   }
 
   /**

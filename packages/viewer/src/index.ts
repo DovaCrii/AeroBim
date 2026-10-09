@@ -90,6 +90,9 @@ import { GridOverlay } from "./grid.js";
 import { masCercanoAlCursor, verticeDelGolpe } from "./senalar.js";
 
 export type { DrawingLayerInfo, DrawingView, GeneratedDrawing } from "./drawings.js";
+
+/** Qué entra en un plano: todo lo encendido, o solo el elemento seleccionado. */
+export type AlcanceDePlano = "visible" | "seleccion";
 export type { PuntoEnPantalla } from "./proyeccion.js";
 
 /** Un elemento hallado por el buscador: dónde está (modelo y `localId`) y con qué se le reconoce. */
@@ -5439,19 +5442,55 @@ export class BimViewer {
   async createDrawing(
     view: DrawingView,
     onProgress?: (mensaje: string, avance?: number) => void,
+    opciones?: { readonly alcance?: AlcanceDePlano; readonly nombre?: string },
   ): Promise<GeneratedDrawing | null> {
     this.assertAlive();
 
-    const modelIdMap: Record<string, Set<number>> = {};
-    for (const [modelId, model] of this.fragments.list) {
-      const visibles = await model.getItemsByVisibility(true);
-      if (visibles.length > 0) modelIdMap[modelId] = new Set(visibles);
-    }
+    const modelIdMap = await this.mapaDeAlcance(opciones?.alcance ?? "visible");
     if (Object.keys(modelIdMap).length === 0) return null;
 
-    const plano = await this.drawings.create(this.world, modelIdMap, view, onProgress);
+    const plano = await this.drawings.create(
+      this.world,
+      modelIdMap,
+      view,
+      onProgress,
+      opciones?.nombre === undefined ? undefined : { nombre: opciones.nombre },
+    );
     await this.refresh();
     return plano;
+  }
+
+  /**
+   * Cuántos elementos y de cuántos modelos entrarían en un plano con ese alcance, **sin proyectar nada**.
+   * Es lo que la interfaz dice antes de generar («412 elementos de 2 modelos») para que nadie pulse
+   * «Generar» sin saber qué va a salir.
+   */
+  async drawingScope(alcance: AlcanceDePlano): Promise<{ elementos: number; modelos: number }> {
+    this.assertAlive();
+    const mapa = await this.mapaDeAlcance(alcance);
+    return {
+      elementos: Object.values(mapa).reduce((suma, ids) => suma + ids.size, 0),
+      modelos: Object.keys(mapa).length,
+    };
+  }
+
+  /**
+   * Los elementos que alimentan un plano, por modelo. `"visible"` es todo lo encendido —que ya recoge
+   * lo aislado y lo apagado por disciplina o por espacio—; `"seleccion"` es el elemento seleccionado,
+   * **si está encendido** (un elemento apagado no se dibuja en un plano de «lo que se ve»).
+   */
+  private async mapaDeAlcance(alcance: AlcanceDePlano): Promise<Record<string, Set<number>>> {
+    const mapa: Record<string, Set<number>> = {};
+    for (const [modelId, model] of this.fragments.list) {
+      const visibles = await model.getItemsByVisibility(true);
+      if (visibles.length === 0) continue;
+      if (alcance === "visible") {
+        mapa[modelId] = new Set(visibles);
+      } else if (this.selection?.modelId === modelId && visibles.includes(this.selection.localId)) {
+        mapa[modelId] = new Set([this.selection.localId]);
+      }
+    }
+    return mapa;
   }
 
   /**

@@ -5,6 +5,7 @@ import {
   esZip,
   ifcDelZip,
   type DistanceMode,
+  type AlcanceDePlano,
   type DrawingView,
   type DrawnMeasurement,
   type FichaDeNube,
@@ -50,6 +51,8 @@ import { Coordinacion, type ObservacionDelModelo } from "./components/Coordinaci
 import { BuscadorDelVisor } from "./components/BuscadorDelVisor.js";
 import { IndicadorDeModo, modoDelVisor } from "./components/IndicadorDeModo.js";
 import { GlobosDeTemas } from "./components/GlobosDeTemas.js";
+import { GenerarPlanoPanel } from "./components/GenerarPlanoPanel.js";
+import { fichaDeLamina } from "./components/generar-plano.js";
 import { HerramientasDelVisor } from "./components/HerramientasDelVisor.js";
 import { TablaDeTemas } from "./components/TablaDeTemas.js";
 import { useTemasDeLaObra } from "./useTemasDeLaObra.js";
@@ -571,6 +574,8 @@ export function App() {
   const [gridVisible, setGridVisible] = useState(true);
   /** Los planos generados desde el modelo, en el orden en que se hicieron. */
   const [drawings, setDrawings] = useState<readonly GeneratedDrawing[]>([]);
+  /** El diálogo «Generar plano»: la vista con la que abre, o `null` si está cerrado. */
+  const [generarPlanoVista, setGenerarPlanoVista] = useState<DrawingView | null>(null);
   const [hiddenDrawings, setHiddenDrawings] = useState<ReadonlySet<string>>(new Set());
   /**
    * En qué va la proyección, o `null` si no se está generando ninguna.
@@ -2145,13 +2150,26 @@ export function App() {
   }, [onSalirDeLamina]);
 
   /**
+   * Abre el diálogo «Generar plano». En el visor 2D los modelos están apagados y el recuento diría
+   * «nada que proyectar», así que se vuelve al modelo primero: es donde se elige qué entra.
+   */
+  const abrirGenerarPlano = useCallback(
+    (vista: DrawingView) => {
+      if (antesDeLamina.current !== null)
+        void onSalirDeLamina().then(() => setGenerarPlanoVista(vista));
+      else setGenerarPlanoVista(vista);
+    },
+    [onSalirDeLamina],
+  );
+
+  /**
    * Genera un plano desde el modelo y lo añade a la lista.
    *
-   * **Lo que entra en el plano es lo que está encendido**, así que no hay diálogo de selección:
-   * apagar una disciplina antes de generar es la misma decisión que ya se toma para mirar.
+   * **Lo que entra en el plano** lo elige el diálogo «Generar plano»: todo lo encendido —que ya
+   * recoge lo aislado y lo apagado por disciplina— o solo la selección.
    */
   const onGenerateDrawing = useCallback(
-    async (view: DrawingView) => {
+    async (view: DrawingView, opciones?: { alcance: AlcanceDePlano; nombre: string }) => {
       const instance = viewer.current;
       if (instance === null) return;
 
@@ -2160,11 +2178,15 @@ export function App() {
       if (antesDeLamina.current !== null) await onSalirDeLamina();
       setGenerating("Proyectando las aristas del modelo…");
       try {
-        const plano = await instance.createDrawing(view, (mensaje, avance) => {
-          setGenerating(
-            avance === undefined ? mensaje : `${mensaje} — ${Math.round(avance * 100)} %`,
-          );
-        });
+        const plano = await instance.createDrawing(
+          view,
+          (mensaje, avance) => {
+            setGenerating(
+              avance === undefined ? mensaje : `${mensaje} — ${Math.round(avance * 100)} %`,
+            );
+          },
+          opciones,
+        );
         if (plano === null) {
           setStatus({
             kind: "error",
@@ -2172,13 +2194,14 @@ export function App() {
             // el rato de mirar la pantalla sin entender por qué no sale nada.
             message: modo2D
               ? "No hay nada que proyectar: el Modo 2D tiene los modelos apagados."
-              : "No hay nada encendido que proyectar.",
+              : "Lo elegido no tiene geometría que proyectar: los elementos encendidos no dibujan ninguna arista.",
           });
           return;
         }
         // **Se abre solo, en el visor 2D**: nace apagado en la vista 3D —el dibujo cae encima del
         // modelo— y generarlo para no verlo no sirve de nada.
         setDrawings((actuales) => [...actuales, plano]);
+        setGenerarPlanoVista(null);
         await onVerLamina(plano.id, [...drawings, plano]);
       } catch (error: unknown) {
         setStatus({ kind: "error", message: describe(error) });
@@ -3114,7 +3137,7 @@ export function App() {
         onGuardarVista={() => irASeccion("vistas", { enfocar: true })}
         onVerVistas={() => irASeccion("vistas")}
         puedeObservar={sePuedeAnotar || sePuedeAnotarLaNube}
-        onGenerarPlano={() => void onGenerateDrawing("plan")}
+        onGenerarPlano={() => abrirGenerarPlano("plan")}
         onObservarDesdeLaCinta={() => setNotaAbierta(true)}
         planSnap={planSnap}
         onPlanSnap={(activo) => {
@@ -3284,7 +3307,12 @@ export function App() {
                   anchoM: una.sizeM[0],
                   altoM: una.sizeM[1],
                   esPerfil: una.view === "profile",
+                  ficha: fichaDeLamina(una),
                 }))}
+                cotasDisponibles={
+                  drawn.filter((una) => una.visible && una.kind === "distance").length
+                }
+                onAnotarConMediciones={(id) => void onAcotarPlano(id)}
                 actual={laminaEnVisor}
                 onVer={(id) => void onVerLamina(id)}
                 onSalir={() => void onSalirDeLamina()}
@@ -3320,7 +3348,7 @@ export function App() {
                 trazandoPerfil={perfilTrazado !== null}
                 hayModelo={models.length > 0}
                 onCortar={() => onSection("horizontal")}
-                onGenerarPlano={() => void onGenerateDrawing("plan")}
+                onGenerarPlano={() => abrirGenerarPlano("plan")}
                 onCrearPerfil={alternarPerfil}
               />
             )}
@@ -3336,6 +3364,23 @@ export function App() {
                 onSalirDelAislamiento={onUndoIsolate}
                 onVerTodo={onShowAll}
                 onEncuadrarSeleccion={() => void viewer.current?.frameSelection()}
+              />
+            )}
+
+            {generarPlanoVista !== null && models.length > 0 && (
+              <GenerarPlanoPanel
+                vistaInicial={generarPlanoVista}
+                haySeleccion={selected !== null}
+                nombreDeSeleccion={selected?.name ?? null}
+                referencia={models.length === 1 ? (models[0]?.name ?? null) : null}
+                contar={async (alcance) =>
+                  (await viewer.current?.drawingScope(alcance)) ?? { elementos: 0, modelos: 0 }
+                }
+                generando={generating}
+                onGenerar={(p) =>
+                  void onGenerateDrawing(p.vista, { alcance: p.alcance, nombre: p.nombre })
+                }
+                onCancelar={() => setGenerarPlanoVista(null)}
               />
             )}
 
@@ -3548,7 +3593,7 @@ export function App() {
                 hallazgosDisponibles={hallazgosDelModelo.length}
                 llamadasPuestas={llamadasPuestas}
                 generating={generating}
-                onGenerate={(vista) => void onGenerateDrawing(vista)}
+                onGenerate={(vista) => abrirGenerarPlano(vista)}
                 onCancel={() => setGenerating(null)}
                 onToggle={(id, visible) => {
                   setHiddenDrawings((actual) => {

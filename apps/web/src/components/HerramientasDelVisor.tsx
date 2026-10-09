@@ -108,7 +108,7 @@ export function HerramientasDelVisor({
         nombre="Plano"
         ayuda={
           hayModelo
-            ? "Genera el plano en planta de lo que está encendido y lo abre en 2D"
+            ? "Abre «Generar plano»: eliges la vista, qué entra y el nombre, y ves cuántos elementos son"
             : "Abre un modelo primero"
         }
         desactivado={!hayModelo}

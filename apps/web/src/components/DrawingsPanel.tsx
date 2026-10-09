@@ -10,6 +10,7 @@ import {
   IconTrash,
   IconX,
 } from "./icons.js";
+import { fichaDeLamina } from "./generar-plano.js";
 import { agruparLaminas, tituloDeGrupo } from "./laminas.js";
 
 /**
@@ -167,11 +168,12 @@ export function DrawingsPanel({
           {laminaEnVisor === plano.id ? "Viéndola en el visor 2D" : "Ver en el visor 2D"}
         </button>
 
-        <p className="pt-0.5 text-nota text-fg-3">
-          {plano.sizeM[0].toFixed(1)} × {plano.sizeM[1].toFixed(1)} m ·{" "}
-          {plano.segments.toLocaleString("es-CL")} trazos · {(plano.elapsedMs / 1000).toFixed(1)} s
-          en generarse
-        </p>
+        {/* Qué es (vista, qué entró, escala sugerida) y cuánto dibujo hay (trazos, ocultas, tiempo, fecha). */}
+        {fichaDeLamina(plano).map((linea) => (
+          <p key={linea} className="pt-0.5 text-nota leading-snug text-fg-3">
+            {linea}
+          </p>
+        ))}
         {plano.puntosDeNube !== undefined && (
           <p className="pt-0.5 text-nota text-fg-3">
             {plano.puntosDeNube.toLocaleString("es-CL")} puntos de la nube, en la capa AB-NUBE
@@ -342,7 +344,7 @@ export function DrawingsPanel({
             onClick={() => onGenerate(vista)}
             disabled={generating !== null}
             className="flex-1 rounded-sm bg-action px-2 py-1 text-nota font-medium text-sobre-accion hover:bg-action-hover disabled:bg-apagado disabled:text-apagado-fg"
-            title={`Proyecta lo que está a la vista y arma el plano de ${nombre.toLowerCase()}`}
+            title={`Abre «Generar plano» con la vista ${nombre.toLowerCase()}: ahí eliges qué entra y cómo se llama`}
           >
             {nombre}
           </button>
