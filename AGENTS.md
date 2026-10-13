@@ -212,3 +212,46 @@ entregable roto.
 - Configuración de Claude Code: `CLAUDE.md` (importa este archivo) y `.claude/` (permisos, reglas
   por ruta y skills `/verificar`, `/cerrar-tarea`, `/abrir-pr`, `/triar-hallazgo`,
   `/refactor-seguro`).
+
+## Stack y comandos
+
+- Monorepo de npm (workspaces `packages/bim-core`, `packages/viewer`, `apps/web`): TypeScript estricto, That Open Components, Three.js, `web-ifc`.
+- Backend `services/api`: Python con `uv`, Django + DRF, `ifcopenshell`; PostgreSQL en despliegue, SQLite en desarrollo.
+- Formato y lint: Prettier y oxlint; en Python, ruff, bandit y pip-audit. Hook de commit con lefthook.
+- Despliegue: VM propia (`docs/DEPLOY.md`); no es parte del trabajo de un bloque salvo que se pida.
+
+```bash
+npm ci --ignore-scripts                  # instalar
+npm run dev                              # desarrollo del visor
+npm test                                 # pruebas de TypeScript
+npm run lint                             # oxlint
+npm run fmt:check                        # Prettier
+npm run build                            # compilar
+uv run pytest                            # pruebas del backend (desde services/api)
+uv run ruff check .                      # lint de Python (desde services/api)
+node scripts/claude/verificar.mjs todo   # resumen corto de toda la puerta de calidad
+python tools/kit/privacy_scan.py         # revisión de privacidad
+```
+
+## Privacidad
+
+El repositorio es **público**. Sin secretos, claves, `.env`, certificados, datos de clientes ni datos personales en git, logs o
+pruebas; los correos de pruebas usan dominios ficticios (`example.com`). Lo privado vive en variables de entorno o en `private/`
+(ignorado por git). `tools/kit/privacy_scan.py` corre en local y en el CI; los falsos positivos se declaran en
+`.privacy-scan.json` y las reglas no se debilitan. Si algo sensible llegó a un commit: avisar, rotar la clave y decidir con la
+persona cómo limpiar el historial (borrar el archivo no basta). La skill `/revision-privacidad` guía esta revisión.
+
+## Definición de terminado
+
+- Criterios de aceptación cubiertos por pruebas.
+- Build, lint, formato y pruebas en verde, también en el CI del PR (la puerta de calidad de `services/api` incluida si se tocó).
+- Revisión de privacidad en verde (`python tools/kit/privacy_scan.py`).
+- Fila de `MASTER_PLAN.md` y `HANDOFF.md` actualizados.
+- Rama subida y PR abierto con resumen en español (qué cambia, cómo probarlo, qué queda); plantilla en `.github/`.
+
+## Estándar de trabajo y skills
+
+El método general de la suite Aero (plan, bloque pequeño, pruebas, PR, revisión humana, política de modelos y recuperación)
+está en `docs/ESTANDAR_TRABAJO.md`. Aquí manda esta guía cuando choquen. La coordinación con subagentes ya está cubierta por
+`/coordinar` y `.claude/agents/`; se suma `/revision-privacidad`. La guía para compañeros no desarrolladores es
+`docs/guia-companeros.md`.
