@@ -31,29 +31,30 @@
 **Once de las dieciséis fases con trabajo están cerradas** —las dos últimas, la 13 y la 14, se abrieron
 el 2026-10-05—, y lo que queda se cuenta en una línea cada cosa. Actualizado el 2026-10-05.
 
-| Fase                           | Estado                                                                                                                                             |
-| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **0 · Cimientos**              | ✅ entera — `F0.6` cerró el 2026-09-02 y esta línea llevaba desde entonces sin actualizar                                                          |
-| **1 · Visor**                  | ✅ entera — `F1.13` cerró el 2026-09-23: «Referencias», «Vistas guardadas» y «Documentar»                                                          |
-| **3 · Backend**                | ✅ entera                                                                                                                                          |
-| **4 · Coordinación**           | ✅ salvo `F4.5`, el trazo libre, **condicionado a que el usuario mire un BCF exportado**                                                           |
-| **5 · Interferencias**         | ✅ entera                                                                                                                                          |
-| **7 · Planos, salida**         | ✅ entera — capas, DXF, PDF con sello, y el plano acotado y con sus llamadas                                                                       |
-| **8 · Registro documental**    | ✅ entera                                                                                                                                          |
-| **9 · Diseño**                 | ✅ **entera** — `F9.6` cerró el 2026-09-07 al reescribir `docs/UX.md`                                                                              |
-| **10 · Etiquetas y tablas**    | ✅ entera                                                                                                                                          |
-| **11 · El portal se ve plano** | ✅ entera — incluida la ayuda con su recorrido                                                                                                     |
-| **2 · Nubes de puntos**        | 🔶 abre, se maneja, calza y **entra al expediente**. `F2.4` espera **el IFC de la pasarela**                                                       |
-| **12 · La interfaz**           | 🔶 los tres bloques cerrados; de `F12.2` queda **señalar tres pares con un ratón** — el par de archivos ya está en el repositorio                  |
-| **13 · Perfiles y espacios**   | 🔶 `F13.1`–`F13.4` construidas y verificadas **con muestras**; `F13.8` ✅; faltan `F13.6` y `F13.7` (el oráculo externo es de quien tiene la obra) |
-| **16 · Línea del tiempo 4D**   | ⬜ **pospuesta a otra etapa** por decisión del usuario el 2026-10-06; solo apuntada, sin empezar                                                   |
-| **15 · Revisión con marcas**   | ✅ **entera** (2026-10-06): panel y marcas en el 2D, globos y barra en el 3D, hilo con @menciones, reportes y buscador                             |
-| **14 · Proceso y código**      | 🔶 `F14.1` (el kit) aplicada el 2026-10-05, a falta de las cifras de `/context`; el resto, planificada                                             |
-| **6 · Geo + BIM**              | ⬜ pospuesta a propósito el 2026-09-02, para poner la coordinación delante                                                                         |
+| Fase                               | Estado                                                                                                                                             |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **0 · Cimientos**                  | ✅ entera — `F0.6` cerró el 2026-09-02 y esta línea llevaba desde entonces sin actualizar                                                          |
+| **1 · Visor**                      | ✅ entera — `F1.13` cerró el 2026-09-23: «Referencias», «Vistas guardadas» y «Documentar»                                                          |
+| **3 · Backend**                    | ✅ entera                                                                                                                                          |
+| **4 · Coordinación**               | ✅ salvo `F4.5`, el trazo libre, **condicionado a que el usuario mire un BCF exportado**                                                           |
+| **5 · Interferencias**             | ✅ entera                                                                                                                                          |
+| **7 · Planos, salida**             | ✅ entera — capas, DXF, PDF con sello, y el plano acotado y con sus llamadas                                                                       |
+| **8 · Registro documental**        | ✅ entera                                                                                                                                          |
+| **9 · Diseño**                     | ✅ **entera** — `F9.6` cerró el 2026-09-07 al reescribir `docs/UX.md`                                                                              |
+| **10 · Etiquetas y tablas**        | ✅ entera                                                                                                                                          |
+| **11 · El portal se ve plano**     | ✅ entera — incluida la ayuda con su recorrido                                                                                                     |
+| **2 · Nubes de puntos**            | 🔶 abre, se maneja, calza y **entra al expediente**. `F2.4` espera **el IFC de la pasarela**                                                       |
+| **12 · La interfaz**               | 🔶 los tres bloques cerrados; de `F12.2` queda **señalar tres pares con un ratón** — el par de archivos ya está en el repositorio                  |
+| **13 · Perfiles y espacios**       | 🔶 `F13.1`–`F13.4` construidas y verificadas **con muestras**; `F13.8` ✅; faltan `F13.6` y `F13.7` (el oráculo externo es de quien tiene la obra) |
+| **16 · Línea del tiempo 4D**       | ⬜ **pospuesta a otra etapa** por decisión del usuario el 2026-10-06; solo apuntada, sin empezar                                                   |
+| **15 · Revisión con marcas**       | ✅ **entera** (2026-10-06): panel y marcas en el 2D, globos y barra en el 3D, hilo con @menciones, reportes y buscador                             |
+| **14 · Proceso y código**          | 🔶 `F14.1` (el kit) aplicada el 2026-10-05, a falta de las cifras de `/context`; el resto, planificada                                             |
+| **17 · Camino guiado y asistente** | ⬜ planificada el 2026-10-13: barra de ayuda de uso, herramientas por tarea, y un asistente de IA opcional (`docs/ASISTENTE_IA.md`)                |
+| **6 · Geo + BIM**                  | ⬜ pospuesta a propósito el 2026-09-02, para poner la coordinación delante                                                                         |
 
 ## Lo que queda, por fase
 
-**Quedan catorce filas abiertas.** Nueve son las de siempre —las cierra el usuario, un archivo de obra o
+**Quedan dieciocho filas abiertas.** Nueve son las de siempre —las cierra el usuario, un archivo de obra o
 una decisión— y eran todo lo que quedaba hasta el 2026-09-28. Desde el 2026-10-05 se suman cuatro de la
 Fase 13 (`F13.5`–`F13.7` y `F13.11`; `F13.6` y `F13.7` piden archivos de obra; `F13.8`, `F13.9` y `F13.10` se cerraron el mismo día) y **siete de la Fase 14, que las cierra el
 agente cuando se ejecute y hoy solo están planificadas**. `⬜` no empezada · `🔶` `◐` medida a medias ·
@@ -64,17 +65,18 @@ agente cuando se ejecute y hoy solo están planificadas**. `⬜` no empezada · 
 > decía ⬜ sobre código que existe desde hace días»— y se repitió aquí. Corregido el 2026-09-09
 > contando las filas una por una contra el estado de cada fase, que es lo único que no se desactualiza.
 
-| Fase                         | Filas abiertas                                                                                               | Quién la cierra                    |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------ | ---------------------------------- |
-| **4 — Coordinación**         | `F4.5` ◐ — falta el trazo libre, y depende de mirar un BCF exportado                                         | El usuario, mirando                |
-| **2 — Nubes de puntos**      | `F2.4` 🔶 — la medida funciona y **cuadra con un corrimiento conocido**; falta el IFC de la pasarela         | Un archivo de obra                 |
-| **12 — La interfaz**         | `F12.2` 🔶 — el par de archivos ya está en el repositorio; queda **señalar tres pares con un ratón**         | El usuario, pinchando              |
-| **2 — Nubes de puntos**      | `F2.6` ⬜ — el gaussian splatting                                                                            | Pospuesta por decisión             |
-| **6 — Geo + BIM**            | `F6.1` a `F6.5` ⬜ — Cesium, ortofoto y terreno, situar el IFC, 3D Tiles, y recibir de AeroPlanner           | Pospuesta por decisión             |
-| **13 — Perfiles**            | `F13.6` ⬜ oráculos externos · `F13.7` ⬜ la nube real · `F13.11` ✅ falta mirarlo en un CAD                 | El agente / un archivo de obra     |
-| **16 — Línea del tiempo 4D** | `F16.1` ⬜ — el visor de línea del tiempo (Gantt + modelo)                                                   | Pospuesta por decisión, 2026-10-06 |
-| **14 — Proceso y código**    | `F14.1` 🔶 · `F14.7` ⬜ · `F14.2` a `F14.6` ✅ — el kit, la revisión, `R1`–`R4` y la Etapa 3 (**bloqueada**) | El agente                          |
-| **0, 3, 5, 7, 8, 9, 10, 11** | Ninguna: las ocho fases enteras                                                                              | —                                  |
+| Fase                         | Filas abiertas                                                                                                                                                                    | Quién la cierra                    |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| **4 — Coordinación**         | `F4.5` ◐ — falta el trazo libre, y depende de mirar un BCF exportado                                                                                                              | El usuario, mirando                |
+| **2 — Nubes de puntos**      | `F2.4` 🔶 — la medida funciona y **cuadra con un corrimiento conocido**; falta el IFC de la pasarela                                                                              | Un archivo de obra                 |
+| **12 — La interfaz**         | `F12.2` 🔶 — el par de archivos ya está en el repositorio; queda **señalar tres pares con un ratón**                                                                              | El usuario, pinchando              |
+| **2 — Nubes de puntos**      | `F2.6` ⬜ — el gaussian splatting                                                                                                                                                 | Pospuesta por decisión             |
+| **6 — Geo + BIM**            | `F6.1` a `F6.5` ⬜ — Cesium, ortofoto y terreno, situar el IFC, 3D Tiles, y recibir de AeroPlanner                                                                                | Pospuesta por decisión             |
+| **13 — Perfiles**            | `F13.6` ⬜ oráculos externos · `F13.7` ⬜ la nube real · `F13.11` ✅ falta mirarlo en un CAD                                                                                      | El agente / un archivo de obra     |
+| **17 — Camino guiado**       | `F17.1` ⬜ barra de ayuda de uso · `F17.2` ⬜ herramientas agrupadas por tarea · `F17.3` ⬜ asistente de IA, servidor (**espera 3 decisiones tuyas**) · `F17.4` ⬜ chat del visor | El agente / el usuario (`F17.3`)   |
+| **16 — Línea del tiempo 4D** | `F16.1` ⬜ — el visor de línea del tiempo (Gantt + modelo)                                                                                                                        | Pospuesta por decisión, 2026-10-06 |
+| **14 — Proceso y código**    | `F14.1` 🔶 · `F14.7` ⬜ · `F14.2` a `F14.6` ✅ — el kit, la revisión, `R1`–`R4` y la Etapa 3 (**bloqueada**)                                                                      | El agente                          |
+| **0, 3, 5, 7, 8, 9, 10, 11** | Ninguna: las ocho fases enteras                                                                                                                                                   | —                                  |
 
 ## Las decisiones que solo el usuario puede tomar
 
@@ -513,6 +515,22 @@ sus tres ideas: _ver actividades de construcción, compartir con las partes inte
 | Fila    | Qué                                                                                                          | Estado                                            |
 | ------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------- |
 | `F16.1` | **Visor de línea del tiempo 4D**: actividades vinculadas a elementos, Gantt bajo el visor, modelo por estado | ⬜ pospuesta por decisión del usuario, 2026-10-06 |
+
+## Fase 17 · Camino guiado y asistente (planificada el 2026-10-13)
+
+El usuario trajo la captura de _Open BIM Studio_ (otro visor sobre That Open Company) y pidió que el camino
+sea **más visual y más claro con las herramientas**, y un **asistente de IA** como su botón «AI chat». Lo que
+se toma de esa captura es **un patrón de uso, no código**: una cinta por tareas, un panel izquierdo de
+herramientas agrupadas en acordeón (modelos, vista, cortes, medir, interferencias…), una barra flotante de
+opciones sobre el lienzo y **una barra inferior que dice qué hace cada botón del ratón en la herramienta
+activa**. AeroBim ya tiene la cinta, la barra vertical y el panel derecho; lo que falta es **guiar**.
+
+| Fila    | Qué                                                                                                                                                      | Estado                                                          |
+| ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| `F17.1` | **Barra de ayuda de uso**: abajo, qué hace cada botón del ratón y qué tecla cierra la herramienta activa (seleccionar, medir, cortar, perfil, lámina 2D) | ⬜                                                              |
+| `F17.2` | **Herramientas agrupadas por tarea** en un panel izquierdo plegable (Cortes, Medir, Documentar, Coordinar) con el mismo mandato que la cinta             | ⬜ antes, mostrar una captura al usuario                        |
+| `F17.3` | **Asistente de IA, servidor**: proxy en Django, clave solo en la VM, permiso, interruptor por organización, auditoría y 403; apagado por defecto         | ⬜ **espera 3 decisiones del usuario** (`docs/ASISTENTE_IA.md`) |
+| `F17.4` | **Chat del visor** con herramientas de solo lectura (buscar, propiedades, contar, resumen) y acciones con confirmación (aislar, encuadrar, plano)        | ⬜ depende de `F17.3`                                           |
 
 ## Historial por fase
 
