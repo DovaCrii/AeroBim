@@ -240,6 +240,21 @@ multirresolución. **COG** (Cloud Optimized GeoTIFF, <https://cogeo.org/>): rast
 teselado interno y pirámides, legible por rangos HTTP sin servidor de teselas. Los dos
 formatos en que conviene recibir los productos del vuelo.
 
+### OpenUSD y `usd-brep` de NVIDIA — referencia, no dependencia (2026-10-13)
+
+<https://github.com/NVIDIA-Omniverse/usd-brep>: biblioteca **C++ con enlaces Python** de modelado
+sólido **NURBS (B-Rep)** guardado en capas **OpenUSD** (esquema `omniSolid`), con una función que repara
+esos sólidos. **Apache-2.0**, copyright NVIDIA. 3 commits en `main`, «no acepta contribuciones», se
+construye con Packman y Visual Studio; **no hay navegador, ni JS/WASM, ni IFC** (sus pruebas son STEP,
+IGES y JT).
+
+**No encaja y no se adopta:** (1) es un **núcleo de modelado**, y AeroBim no modela ni procesa (decisión
+6); (2) es C++ nativo sin salida a WebAssembly, y el visor corre en el navegador sin servidor para abrir
+un archivo (decisión 5); (3) lo que traería —geometría exacta— ya llega de otra forma: `web-ifc`
+tesela el IFC y el visor proyecta esa malla. **Dónde sí podría importar más adelante:** si un IFC con
+`IfcAdvancedBrep` o superficies B-spline saliera mal teselado, o si se pidiera **exportar a OpenUSD** para
+Omniverse; ambos casos serían una fila nueva, en el backend y a petición del usuario, no ahora.
+
 ---
 
 ## Herramientas de escritorio: oráculos de verificación
