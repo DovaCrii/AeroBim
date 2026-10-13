@@ -15,7 +15,7 @@ usuario solo despliega (`AGENTS.md`); el agente no toca la VM.
    `node scripts/claude/plan-fila.mjs --abiertas`. Separa: (a) bloques **cerrables por el agente**,
    (b) bloques que **dependen del usuario o de archivos de obra** (se listan, no bloquean salvo que
    el usuario diga que sí), (c) ramas huérfanas (se cierran o se borran, nunca se dejan).
-2. **Cerrar los bloques de (a).** Para cada uno: `/siguiente` y `/cerrar-tarea <fila>`; si es
+2. **Cerrar los bloques de (a)**, repartiendo con `/coordinar` (Haiku para lo mecánico, Sonnet para el código). Para cada uno: `/siguiente` y `/cerrar-tarea <fila>`; si es
    trabajo largo y acotado, delégalo a un subagente `ejecutor-de-fila` (Sonnet) con la fila, los
    archivos y el criterio de hecho; revisa su diff antes de aceptarlo. Un bloque a medias se
    **revierte o se declara pendiente** en el plan; no se fusiona roto.
