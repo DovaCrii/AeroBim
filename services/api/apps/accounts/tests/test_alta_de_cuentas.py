@@ -227,7 +227,9 @@ def test_la_lista_de_usuarios_no_enseña_los_de_otra_organizacion(alta):
     """
     ajena = Organizacion.objects.create(nombre="La competencia", slug="competencia")
     suyo = U.objects.create_user(
-        username="de-la-competencia", password="una-clave-larga-99", email="secreto@competencia.example"
+        username="de-la-competencia",
+        password="una-clave-larga-99",
+        email="secreto@competencia.example",
     )
     Membresia.objects.create(organizacion=ajena, usuario=suyo)
 
@@ -246,7 +248,9 @@ def test_no_se_le_reinicia_la_clave_a_alguien_de_otra_organizacion(alta):
     empresa.
     """
     ajena = Organizacion.objects.create(nombre="La competencia", slug="competencia")
-    suyo = U.objects.create_user(username="ajeno", password="una-clave-larga-99", email="a@b.example")
+    suyo = U.objects.create_user(
+        username="ajeno", password="una-clave-larga-99", email="a@b.example"
+    )
     Membresia.objects.create(organizacion=ajena, usuario=suyo)
 
     respuesta = alta.post(reverse("accounts:reiniciar-clave", args=[suyo.pk]))

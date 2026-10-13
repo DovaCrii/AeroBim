@@ -35,6 +35,7 @@ MEMBRETE = {
     "arco": ("img/membrete/jej-arco.png", 40.7, 41.9),
 }
 
+
 #: El bloque de contacto del pie, **como texto y no como imagen**.
 #:
 #: Tres razones y no una: sale **nitido a cualquier resolucion** —una imagen a 300 ppp impresa a

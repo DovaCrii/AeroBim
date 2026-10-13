@@ -35,10 +35,11 @@ marco, y reportlab levanta `LayoutError` — o sea, **el informe completo se cae
 
 ## Lo que NO resulto ser un defecto, dicho
 
-Escribi que el bloque de contacto invadia el marco de texto por ~0,8 mm —el ascendente del «example.com»
-contra el `bottomMargin`— y **no se reproduce**: la rejilla de la tabla nunca baja del margen. La
-comprobacion se queda abajo como invariante, pero no se cambio ningun margen, porque no habia nada
-que cambiar. Tampoco reportlab levanta excepcion con un `&`, que es lo otro que yo daba por hecho.
+Escribi que el bloque de contacto invadia el marco de texto por ~0,8 mm —el ascendente de la web
+del pie contra el `bottomMargin`— y **no se reproduce**: la rejilla de la tabla nunca baja del
+margen. La comprobacion se queda abajo como invariante, pero no se cambio ningun margen, porque
+no habia nada que cambiar. Tampoco reportlab levanta excepcion con un `&`, que es lo otro que yo
+daba por hecho.
 
 ## Por que la bateria anterior no vio ninguno
 
