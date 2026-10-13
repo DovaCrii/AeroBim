@@ -71,7 +71,7 @@ def _cuenta(username, *organizaciones, rol=roles.PROYECTISTA, **extra):
 @pytest.fixture
 def quien_administra(db, grupos, jej, consorcio):
     """Trabaja para dos clientes: el caso que la multi-pertenencia existe para cubrir."""
-    usuario = _cuenta("jefa", jej, consorcio, rol=roles.COORDINADOR, email="jefa@jej.cl")
+    usuario = _cuenta("jefa", jej, consorcio, rol=roles.COORDINADOR, email="jefa@jej.example")
     usuario.user_permissions.add(
         *Permission.objects.filter(
             codename__in=("add_user", "change_user", "delete_user", "view_user"),
@@ -91,7 +91,7 @@ def test_mover_a_alguien_no_le_borra_la_membresia_que_quien_edita_no_ve(
     Consorcio le borraba las dos — y la de `ajena` es un borrado a ciegas: no sale en el
     desplegable, no sale en la pantalla, y no sale en el registro.
     """
-    persona = _cuenta("pedro.silva", jej, ajena, email="pedro@jej.cl", first_name="Pedro")
+    persona = _cuenta("pedro.silva", jej, ajena, email="pedro@jej.example", first_name="Pedro")
     client.force_login(quien_administra)
 
     respuesta = client.post(
@@ -99,7 +99,7 @@ def test_mover_a_alguien_no_le_borra_la_membresia_que_quien_edita_no_ve(
         {
             "nombre": "Pedro",
             "apellido": "Silva",
-            "correo": "pedro@jej.cl",
+            "correo": "pedro@jej.example",
             "organizacion": [consorcio.pk],
             "rol": roles.PROYECTISTA,
         },
@@ -121,7 +121,7 @@ def test_se_puede_estar_en_dos_a_la_vez_y_se_respeta(client, quien_administra, j
     El desplegable era de una sola, así que la pantalla no podía ni enseñar ni conservar el caso
     que el modelo permite. Ahora se marcan las dos y quedan las dos.
     """
-    persona = _cuenta("ana.rojas", jej, email="ana@jej.cl", first_name="Ana")
+    persona = _cuenta("ana.rojas", jej, email="ana@jej.example", first_name="Ana")
     client.force_login(quien_administra)
 
     client.post(
@@ -129,7 +129,7 @@ def test_se_puede_estar_en_dos_a_la_vez_y_se_respeta(client, quien_administra, j
         {
             "nombre": "Ana",
             "apellido": "Rojas",
-            "correo": "ana@jej.cl",
+            "correo": "ana@jej.example",
             "organizacion": [jej.pk, consorcio.pk],
             "rol": roles.PROYECTISTA,
         },
@@ -149,7 +149,7 @@ def test_no_se_deja_a_nadie_sin_ninguna_membresia(client, quien_administra, jej)
     un clic. El formulario tiene que decir que no, porque el resultado no se parece a un error:
     se parece a una aplicación vacía.
     """
-    persona = _cuenta("luis.paz", jej, email="luis@jej.cl", first_name="Luis")
+    persona = _cuenta("luis.paz", jej, email="luis@jej.example", first_name="Luis")
     client.force_login(quien_administra)
 
     respuesta = client.post(
@@ -157,7 +157,7 @@ def test_no_se_deja_a_nadie_sin_ninguna_membresia(client, quien_administra, jej)
         {
             "nombre": "Luis",
             "apellido": "Paz",
-            "correo": "luis@jej.cl",
+            "correo": "luis@jej.example",
             "organizacion": [],
             "rol": roles.PROYECTISTA,
         },
@@ -170,7 +170,7 @@ def test_no_se_deja_a_nadie_sin_ninguna_membresia(client, quien_administra, jej)
 @pytest.mark.django_db
 def test_corregir_un_apellido_no_toca_ninguna_membresia(client, quien_administra, jej, ajena):
     """El caso de todos los días: no debe tener ningún efecto lateral."""
-    persona = _cuenta("eva.luna", jej, ajena, email="eva@jej.cl", first_name="Eva")
+    persona = _cuenta("eva.luna", jej, ajena, email="eva@jej.example", first_name="Eva")
     client.force_login(quien_administra)
 
     client.post(
@@ -178,7 +178,7 @@ def test_corregir_un_apellido_no_toca_ninguna_membresia(client, quien_administra
         {
             "nombre": "Eva",
             "apellido": "Luna Soto",
-            "correo": "eva@jej.cl",
+            "correo": "eva@jej.example",
             "organizacion": [jej.pk],
             "rol": roles.PROYECTISTA,
         },

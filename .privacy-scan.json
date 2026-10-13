@@ -1,0 +1,5 @@
+{
+  "allow_email_domains": ["li.org"],
+  "allow_paths": [],
+  "allow_rules": {}
+}

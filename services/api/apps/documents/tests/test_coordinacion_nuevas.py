@@ -240,7 +240,7 @@ def test_la_marca_nace_en_la_organizacion_de_la_obra(client, proyecto, proyectis
     """Se guarda acotada como el resto: una fila sin organización no se puede acotar después."""
     ajena = Organizacion.objects.create(nombre="Ajena", slug="ajena")
     otro = get_user_model().objects.create_user(
-        username="ajeno", password="una-clave-larga-99", email="ajeno@otra.cl"
+        username="ajeno", password="una-clave-larga-99", email="ajeno@otra.example"
     )
     Membresia.objects.create(organizacion=ajena, usuario=otro)
 

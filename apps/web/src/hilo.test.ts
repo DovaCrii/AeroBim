@@ -47,16 +47,16 @@ describe("avisoDeRespuesta", () => {
   it("distingue el aviso que falló, el que no tenía a quién y el que salió", () => {
     expect(avisoDeRespuesta(null)).toMatch(/no se pudo enviar/);
     expect(avisoDeRespuesta([])).toMatch(/No había a quién avisar/);
-    expect(avisoDeRespuesta(["ana@obra.cl"])).toBeNull();
+    expect(avisoDeRespuesta(["ana@example.net"])).toBeNull();
   });
 
   it("un mencionado avisado cuenta: no se dice «no había a quién» habiéndolo avisado", () => {
-    expect(avisoDeRespuesta([], ["marcos@obra.cl"])).toBeNull();
+    expect(avisoDeRespuesta([], ["marcos@example.net"])).toBeNull();
     expect(avisoDeRespuesta([], [])).toMatch(/No había a quién avisar/);
   });
 
   it("si falló el aviso de la mención se dice, aunque el del hilo saliera", () => {
-    expect(avisoDeRespuesta(["ana@obra.cl"], null)).toMatch(/a quien mencionaste/);
+    expect(avisoDeRespuesta(["ana@example.net"], null)).toMatch(/a quien mencionaste/);
   });
 });
 
@@ -76,7 +76,7 @@ describe("mencionEnCurso", () => {
 
   it("no hay mención si hay un espacio entre la @ y el cursor, o si la @ está dentro de una palabra", () => {
     expect(mencionEnCurso("hola @Ana y", 11)).toBeNull();
-    expect(mencionEnCurso("escribe a ana@obra.cl", 21)).toBeNull();
+    expect(mencionEnCurso("escribe a ana@example.net", 21)).toBeNull();
     expect(mencionEnCurso("sin arroba", 10)).toBeNull();
   });
 

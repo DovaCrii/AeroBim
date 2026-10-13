@@ -198,7 +198,11 @@ def persona(organizacion, usuario, nombre):
     from apps.core.models import Membresia
 
     u = get_user_model().objects.create_user(
-        usuario, email=f"{usuario}@obra.cl", password="x" * 14, first_name=nombre, last_name="Soto"
+        usuario,
+        email=f"{usuario}@example.net",
+        password="x" * 14,
+        first_name=nombre,
+        last_name="Soto",
     )
     Membresia.objects.create(organizacion=organizacion, usuario=u)
     return u

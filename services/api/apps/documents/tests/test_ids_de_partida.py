@@ -124,7 +124,7 @@ def test_un_archivo_que_no_se_puede_leer_no_tumba_la_pantalla(tmp_path):
 @pytest.fixture
 def generado(tmp_path):
     medicion = medir(escribir(tmp_path, modelo(cuantas=5, con_pset=4)))
-    return generar(medicion, titulo="Requisito de partida", autor="cmunoz@ejemplo.cl")
+    return generar(medicion, titulo="Requisito de partida", autor="cmunoz@example.com")
 
 
 def test_ifctester_lo_lee_y_encuentra_su_especificacion(generado, tmp_path):

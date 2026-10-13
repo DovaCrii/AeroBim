@@ -69,7 +69,7 @@ def la_otra_empresa(db, tmp_path):
     """
     ajena = Organizacion.objects.create(nombre="La competencia", slug="competencia")
     suyo = get_user_model().objects.create_user(
-        username="de-la-competencia", password="una-clave-larga-99", email="otro@ejemplo.cl"
+        username="de-la-competencia", password="una-clave-larga-99", email="otro@example.com"
     )
     Membresia.objects.create(organizacion=ajena, usuario=suyo)
 
@@ -336,7 +336,7 @@ def test_sin_membresia_no_se_ve_nada_aunque_haya_permiso(client, la_otra_empresa
     vacías sin un solo mensaje. Aquí se fija que ese silencio sea **hacia el lado seguro**.
     """
     suelto = get_user_model().objects.create_user(
-        username="sin-membresia", password="una-clave-larga-99", email="suelto@ejemplo.cl"
+        username="sin-membresia", password="una-clave-larga-99", email="suelto@example.com"
     )
     client.force_login(dar(suelto, "projects.view_proyecto", "documents.view_observacion"))
 

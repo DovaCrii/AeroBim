@@ -36,7 +36,7 @@ def autenticar(**credenciales):
 @pytest.fixture
 def persona(db):
     return U.objects.create_user(
-        username="carolina.herrera", password=CLAVE, email="carolina@ejemplo.cl"
+        username="carolina.herrera", password=CLAVE, email="carolina@example.com"
     )
 
 
@@ -56,20 +56,20 @@ def test_se_entra_con_el_nombre_de_usuario(client, persona):
 
 @pytest.mark.django_db
 def test_se_entra_con_el_correo(client, persona):
-    assert entrar(client, "carolina@ejemplo.cl").status_code == 302
+    assert entrar(client, "carolina@example.com").status_code == 302
 
 
 @pytest.mark.django_db
 def test_da_igual_como_este_escrito(client, persona):
     """Quien escribe su correo a mano lo escribe como le sale, a veces con mayúscula al empezar."""
-    assert entrar(client, "Carolina@Ejemplo.CL").status_code == 302
+    assert entrar(client, "Carolina@Example.COM").status_code == 302
 
 
 @pytest.mark.django_db
 def test_la_clave_sigue_teniendo_que_ser_la_suya(client, persona):
     """Parece obvio y es justo lo que se rompe al escribir un backend a mano: devolver el usuario
     encontrado sin comprobar nada."""
-    assert entrar(client, "carolina@ejemplo.cl", "otra-cosa").status_code == 200
+    assert entrar(client, "carolina@example.com", "otra-cosa").status_code == 200
 
 
 # --- Y lo que no puede abrir -----------------------------------------------------------
@@ -83,9 +83,9 @@ def test_un_correo_repetido_no_deja_entrar_a_ninguna(client, persona):
     creadas desde el `/admin/` técnico. Con dos, el correo **deja de identificar** — y lo que
     corresponde no es elegir una, es no dejar entrar por ahí.
     """
-    U.objects.create_user(username="otra.persona", password=CLAVE, email="carolina@ejemplo.cl")
+    U.objects.create_user(username="otra.persona", password=CLAVE, email="carolina@example.com")
 
-    assert entrar(client, "carolina@ejemplo.cl").status_code == 200, (
+    assert entrar(client, "carolina@example.com").status_code == 200, (
         "entró con un correo que apunta a dos cuentas: no se sabe a cuál"
     )
     # Y el nombre de usuario sigue funcionando, que es lo que evita dejar a esas dos personas fuera.
@@ -102,7 +102,7 @@ def test_una_cuenta_desactivada_no_entra_por_el_correo(client, persona):
     persona.is_active = False
     persona.save(update_fields=["is_active"])
 
-    assert entrar(client, "carolina@ejemplo.cl").status_code == 200
+    assert entrar(client, "carolina@example.com").status_code == 200
 
 
 @pytest.mark.django_db
@@ -113,8 +113,8 @@ def test_no_se_distingue_un_correo_que_existe_de_uno_que_no(client, persona):
     direcciones aprendería cuáles pertenecen a alguien de la empresa. Es la misma razón por la que
     la pantalla dice «usuario o contraseña incorrectos» y no cuál de los dos.
     """
-    conocido = entrar(client, "carolina@ejemplo.cl", "clave-equivocada-123")
-    desconocido = entrar(client, "nadie@ejemplo.cl", "clave-equivocada-123")
+    conocido = entrar(client, "carolina@example.com", "clave-equivocada-123")
+    desconocido = entrar(client, "nadie@example.com", "clave-equivocada-123")
 
     assert conocido.status_code == desconocido.status_code == 200
     # Se comparan sin el testigo de CSRF, que cambia en cada respuesta por diseño.
@@ -163,7 +163,7 @@ def test_el_bloqueo_no_se_esquiva_cambiando_al_correo(client, persona, con_bloqu
         entrar(client, "carolina.herrera", "clave-mala")
 
     assert entrar(client, "carolina.herrera").status_code == 429, "no llegó a bloquear"
-    assert entrar(client, "carolina@ejemplo.cl").status_code == 429, (
+    assert entrar(client, "carolina@example.com").status_code == 429, (
         "el bloqueo se esquiva escribiendo el correo en vez del usuario"
     )
 
@@ -176,7 +176,7 @@ def test_y_tampoco_al_reves(client, persona, con_bloqueo, settings):
     nombre de usuario con su presupuesto intacto.
     """
     for _ in range(settings.AXES_FAILURE_LIMIT):
-        entrar(client, "carolina@ejemplo.cl", "clave-mala")
+        entrar(client, "carolina@example.com", "clave-mala")
 
     assert entrar(client, "carolina.herrera").status_code == 429
 
@@ -190,7 +190,7 @@ def test_probar_correos_inventados_no_bloquea_a_nadie(client, persona, con_bloqu
     saber el dominio del correo de la empresa.
     """
     for _ in range(settings.AXES_FAILURE_LIMIT + 2):
-        entrar(client, "no.existe@ejemplo.cl", "clave-mala")
+        entrar(client, "no.existe@example.com", "clave-mala")
 
     assert entrar(client, "carolina.herrera").status_code == 302, (
         "bloquearon una cuenta real probando direcciones inventadas"
@@ -213,7 +213,7 @@ def test_el_backend_sigue_siendo_el_de_django_para_todo_lo_demas(persona):
     recargada = U.objects.get(pk=persona.pk)
 
     assert recargada.has_perm("projects.view_proyecto")
-    assert autenticar(username="carolina@ejemplo.cl", password=CLAVE) == persona
+    assert autenticar(username="carolina@example.com", password=CLAVE) == persona
 
 
 @pytest.mark.django_db

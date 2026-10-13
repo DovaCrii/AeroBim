@@ -35,23 +35,28 @@ MEMBRETE = {
     "arco": ("img/membrete/jej-arco.png", 40.7, 41.9),
 }
 
+
 #: El bloque de contacto del pie, **como texto y no como imagen**.
 #:
 #: Tres razones y no una: sale **nitido a cualquier resolucion** —una imagen a 300 ppp impresa a
 #: 600 se ve blanda—, **se puede seleccionar y copiar** del PDF, que es lo que hace alguien que
 #: quiere el telefono, y ademas **el EMF venia recortado por la derecha**: al convertirlo,
-#: «jej.cl» y «jej@jej.cl» perdian la ultima letra, porque el marco del metarchivo es mas estrecho
+#: la web y el correo perdian la ultima letra, porque el marco del metarchivo es mas estrecho
 #: que su contenido. Con texto ese problema no existe.
 #: **Va tal como lo escribe el formato de la casa, y en su orden.** Se dibuja de abajo hacia arriba,
-#: asi que la ultima linea de la tupla es la que queda mas abajo en el papel y la primera —«jej.cl»—
+#: asi que la ultima linea de la tupla es la que queda mas abajo en el papel y la primera —la web—
 #: es la que va destacada en azul.
-CONTACTO = (
-    "jej.cl",
-    "E-mail: jej@jej.cl",
-    "Fono: +56 2 2722 5000",
-    "Avda. Apoquindo 2930, Piso 11",
-    "Las Condes, Santiago de Chile.",
-)
+def contacto() -> tuple[str, ...]:
+    """Las lineas del pie, leidas de `settings.REPORT_CONTACT_*` (genericas por omision)."""
+    from django.conf import settings
+
+    return (
+        settings.REPORT_CONTACT_WEB,
+        f"E-mail: {settings.REPORT_CONTACT_EMAIL}",
+        f"Fono: {settings.REPORT_CONTACT_PHONE}",
+        settings.REPORT_CONTACT_ADDRESS,
+        settings.REPORT_CONTACT_CITY,
+    )
 
 
 def pieza(clave: str):
@@ -114,9 +119,10 @@ def sellar(
 
     # El bloque de contacto, compuesto y no pegado. De abajo hacia arriba, con la ultima linea a
     # 12 mm del borde, que es donde la pone la carta.
-    for indice, linea in enumerate(reversed(CONTACTO)):
+    lineas = contacto()
+    for indice, linea in enumerate(reversed(lineas)):
         alto = (12 + indice * 3.4) * mm
-        if indice == len(CONTACTO) - 1:
+        if indice == len(lineas) - 1:
             lienzo.setFont("Helvetica-Bold", 8)
             lienzo.setFillColor(colors.HexColor(AZUL))
         else:

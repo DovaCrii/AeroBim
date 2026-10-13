@@ -9,6 +9,7 @@ build/
 .vite/
 
 # Entorno — nunca se confirman
+private/
 .env
 .env.*
 !.env.example

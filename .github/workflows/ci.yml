@@ -18,6 +18,15 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
+  # Revisión de privacidad (repositorio público): claves, `.env`, `private/`, correos reales, RUT.
+  # Solo biblioteca estándar de Python; las excepciones están en `.privacy-scan.json`.
+  privacidad:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Revisión de privacidad
+        run: python tools/kit/privacy_scan.py
+
   # La mitad de TypeScript: el visor y el dominio.
   verify:
     runs-on: ubuntu-latest

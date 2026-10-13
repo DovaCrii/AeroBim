@@ -8,5 +8,6 @@
 - **Skills del proyecto:** `/siguiente` (qué toca en el plan), `/verificar`, `/cerrar-tarea F2.4`, `/abrir-pr`, `/preparar-despliegue` (cierra la tanda: todos los bloques y PR fusionados antes de que el usuario despliegue), `/triar-hallazgo <uuid>`, `/refactor-seguro <archivo>`.
 - **Coordinación y subagentes:** la sesión principal es el **coordinador** (Opus; `claude --agent coordinador`) y reparte con `/coordinar`: `explorador`, `verificador` y `redactor-de-cierre` (Haiku), `ejecutor-de-fila` y `revisor-visual` (Sonnet). Revisa siempre el diff de lo que vuelve.
 - **Asistente de IA:** diseño en `docs/ASISTENTE_IA.md` (`F17.3`). **Nunca una clave en el repositorio ni en el chat.**
+- **Privacidad:** el repositorio es público. Antes de cada PR corre `python tools/kit/privacy_scan.py` (o la skill `/revision-privacidad`). El método general de la suite está en `docs/ESTANDAR_TRABAJO.md`.
 - Responde en español. Commits en español, imperativo y con ámbito (`feat(viewer): …`).
 - Lo que choque con `AGENTS.md` se resuelve a favor de `AGENTS.md`.

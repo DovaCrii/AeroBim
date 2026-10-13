@@ -143,7 +143,7 @@ def test_un_responsable_de_otra_organizacion_no_se_asigna(
     usuario de otro cliente escribiendo su id, y le llega un correo con el enlace a una obra que no
     es suya."""
     forastero = get_user_model().objects.create_user(
-        username="forastero", password="clave-larga-99", email="fuera@ejemplo.cl"
+        username="forastero", password="clave-larga-99", email="fuera@example.com"
     )
     otra = Organizacion.objects.create(nombre="Otra", slug="otra")
     Membresia.objects.create(organizacion=otra, usuario=forastero)

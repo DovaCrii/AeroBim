@@ -68,7 +68,7 @@ def bcf_ajeno(
     *,
     titulo="Choque de bandeja con viga",
     descripcion="La bandeja no pasa por el hueco.",
-    autor="otra@oficina.cl",
+    autor="otra@oficina.example",
     estado="Open",
     prioridad="High",
     guid_elemento=GUID,
@@ -105,7 +105,7 @@ def test_se_lee_un_bcf_que_escribio_otra_herramienta():
     assert tema.guid == guid
     assert tema.titulo == "Choque de bandeja con viga"
     assert tema.descripcion == "La bandeja no pasa por el hueco."
-    assert tema.autor == "otra@oficina.cl"
+    assert tema.autor == "otra@oficina.example"
     assert tema.estado == "abierta"
     assert tema.prioridad == "alta"
 
@@ -257,11 +257,11 @@ def test_el_correo_del_archivo_solo_alcanza_a_la_gente_de_la_organizacion(
     """
     ajena = Organizacion.objects.create(nombre="Ajena", slug="ajena")
     forastero = get_user_model().objects.create_user(
-        username="forastero", password="una-clave-larga-99", email="forastero@otra.cl"
+        username="forastero", password="una-clave-larga-99", email="forastero@otra.example"
     )
     Membresia.objects.create(organizacion=ajena, usuario=forastero)
 
-    contenido, _ = bcf_ajeno(autor="forastero@otra.cl")
+    contenido, _ = bcf_ajeno(autor="forastero@otra.example")
     bcf_importar.importar(proyecto, contenido, revisor)
 
     observacion = Observacion.objects.get(proyecto=proyecto)
@@ -269,7 +269,7 @@ def test_el_correo_del_archivo_solo_alcanza_a_la_gente_de_la_organizacion(
     assert observacion.autor == revisor
 
     # Y el de casa sí se reconoce.
-    contenido, _ = bcf_ajeno(autor="proyectista@ejemplo.cl", titulo="Otro hallazgo")
+    contenido, _ = bcf_ajeno(autor="proyectista@example.com", titulo="Otro hallazgo")
     bcf_importar.importar(proyecto, contenido, revisor)
     assert Observacion.objects.get(proyecto=proyecto, titulo="Otro hallazgo").autor == proyectista
 
@@ -377,7 +377,7 @@ def test_el_bcf_que_mandamos_vuelve_con_la_respuesta_y_no_se_duplica(
                 respuesta = (
                     f'<Comment Guid="{uuid.uuid4()}">'
                     "<Date>2026-08-30T09:15:00Z</Date>"
-                    "<Author>jefe@mandante.cl</Author>"
+                    "<Author>jefe@mandante.example</Author>"
                     "<Comment>Revisado en obra, se corrigió el trazado.</Comment>"
                     "</Comment>"
                 )

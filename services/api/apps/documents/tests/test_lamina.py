@@ -89,7 +89,7 @@ def test_la_lamina_es_un_pdf_en_carta_con_el_sello_de_la_casa():
     texto = texto_del_pdf(contenido)
     assert "716-LCD · Planta" in texto
     # El contacto va como texto y se puede copiar: es la razón de que no sea una imagen.
-    assert "jej.cl" in texto
+    assert "example.com" in texto
     assert "AeroBim" in texto
     assert "lo pidió revisor" in texto
 

@@ -355,7 +355,7 @@ def test_no_se_comparte_una_revision_de_otra_organizacion(client, proyectista, d
     """El mismo acotado que el resto: por `revisiones_visibles`, no por el `pk` de la URL."""
     ajena = Organizacion.objects.create(nombre="La competencia", slug="competencia")
     suyo = get_user_model().objects.create_user(
-        username="ajeno", password="una-clave-larga-99", email="a@b.cl"
+        username="ajeno", password="una-clave-larga-99", email="a@b.example"
     )
     Membresia.objects.create(organizacion=ajena, usuario=suyo)
     obra = Proyecto.objects.create(organizacion=ajena, codigo="999-AJENA", nombre="Ajena")
@@ -402,7 +402,7 @@ def test_no_se_revoca_el_enlace_de_otra_organizacion(client, proyectista, modelo
     """Conocer el id de un enlace no puede bastar para cerrar el de otra empresa."""
     ajena = Organizacion.objects.create(nombre="La competencia", slug="competencia")
     suyo = get_user_model().objects.create_user(
-        username="ajeno2", password="una-clave-larga-99", email="a2@b.cl"
+        username="ajeno2", password="una-clave-larga-99", email="a2@b.example"
     )
     Membresia.objects.create(organizacion=ajena, usuario=suyo)
     obra = Proyecto.objects.create(organizacion=ajena, codigo="998-AJENA", nombre="Ajena")
