@@ -4,7 +4,7 @@
 > [`docs/historial/`](docs/historial/) y en `git log`. La fuente de verdad del trabajo pendiente es
 > [`MASTER_PLAN.md`](MASTER_PLAN.md) (tablero de ~500 líneas desde el 2026-10-05; las fases cerradas están en `docs/historial/plan/`; `/siguiente` dice qué toca).
 
-**Estado al:** 2026-10-08 · **`main` en:** `54d73a3` · **Último PR fusionado:** #141 · **Ninguno abierto** · **Tanda cerrada: lista para la VM**
+**Estado al:** 2026-10-08 · **`main` en:** `54d73a3` · **Último PR fusionado:** #142 · **Ninguno abierto** · **Tanda cerrada: lista para la VM**
 
 ## Reparto del trabajo
 
@@ -58,19 +58,15 @@ propia por organización** (no hay campo ni migración).
 - El **piloto** ([`docs/PILOTO.md`](docs/PILOTO.md)): las cinco etapas, de la 0 a la 4, siguen sin
   empezar. La Etapa 1 (registro documental) no necesita el IFC.
 
-## Desplegado y por desplegar (2026-10-09)
+## Desplegado en la VM (2026-10-09)
 
-**La VM `p340` corre `2b2b8c2` (#130).** Respaldo: `/var/backups/aerobim/20261008-193905`. **Falta desplegar
-#131 a #141** (solo interfaz y estilos; **sin migraciones, sin `nginx`, sin variables nuevas**): menú lateral y
-contraste en oscuro (#132, #133) · láminas de un perfil agrupadas con selector compacto, ocultar y eliminar
-(#134) · «Crear perfil» compacto con balizado de PK nítido en HTML (#135, #138) · barra de seguimiento del
-perfil con **perfil tipo** (silueta de cotas) y salto por baliza (#138, #139) · **Modelo 3D sin nada de 2D** y
-el 2D se mira en planta (#136, #139) · «Generar plano» con vista, alcance, recuento y ficha (#140) · panel «Vista
-de la lámina» con capas, escala y medida, y encuadre de la vista lateral corregido (#141). Orden:
-`respaldo.sh`, `desplegar.sh`, Ctrl+F5.
-**Sin confirmar a ojo:** un perfil real con 193 láminas de punta a punta; la cámara en planta del espacio 2D;
-la orientación izquierda/derecha del lateral contra un visor de escritorio. **Decisión pendiente:** ortofotos e
-imágenes georreferenciadas, ¿en AeroConvert (recomendado) o aquí? Hasta decidirlo, F6.x sigue pospuesta.
+**La VM `p340` corre `d54fd5f` (#142), con todo lo de #108 a #142**: 3D sin 2D, planos y perfiles con
+balizado nítido, barra de seguimiento con perfil tipo, «Generar plano» con vista y alcance, panel «Vista de la
+lámina» y lateral corregido. Sin migraciones nuevas; `/health/` en `ok`; `conversor_cad` sigue ausente (sin él
+no abren los DWG). Último respaldo: `/var/backups/aerobim/20261009-124510`. **No queda nada por desplegar.**
+**Sin confirmar a ojo:** un perfil real con muchas láminas de punta a punta; la cámara en planta del espacio 2D;
+la orientación izquierda/derecha del lateral. **Decisión pendiente:** ortofotos e imágenes georreferenciadas,
+¿en AeroConvert (recomendado) o aquí? Hasta decidirlo, F6.x sigue pospuesta.
 
 ## La tanda anterior: la Fase 15, revisión con marcas (#89 a #103) — **cerrada entera**
 
