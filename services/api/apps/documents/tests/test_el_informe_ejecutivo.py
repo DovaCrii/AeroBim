@@ -65,9 +65,9 @@ def alturas_del_contenido(contenido: bytes) -> list[float]:
 
     from pypdf import PdfReader
 
-    from apps.documents.membrete import CONTACTO
+    from apps.documents.membrete import contacto
 
-    del_membrete = {linea.strip() for linea in CONTACTO}
+    del_membrete = {linea.strip() for linea in contacto()}
     alturas: list[float] = []
 
     def mirar(texto, _cm, tm, _fuente, _tamano):
@@ -215,7 +215,7 @@ def test_las_cuatro_cifras_y_el_membrete(proyecto, proyectista, revisor, entrega
     assert "Vencidos" in texto
     # El bloque de contacto del membrete, que va como texto y no como imagen: es lo que hace que la
     # hoja se reconozca como de la casa.
-    assert "jej.cl" in texto
+    assert "example.com" in texto
 
 
 @pytest.mark.django_db

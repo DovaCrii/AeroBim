@@ -190,7 +190,7 @@ def test_el_aviso_no_sale_dos_veces_a_la_misma_direccion(
     revisor.email = proyectista.email
     revisor.save(update_fields=["email"])
     tercero = U.objects.create_user(
-        username="tercero", password="una-clave-larga-99", email="tercero@ejemplo.cl"
+        username="tercero", password="una-clave-larga-99", email="tercero@example.com"
     )
     Membresia.objects.create(organizacion=organizacion, usuario=tercero)
     client.force_login(dar(tercero, "documents.add_comentario"))

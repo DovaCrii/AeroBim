@@ -391,7 +391,7 @@ def test_el_membrete_va_en_todas_las_paginas(proyecto, revisor, proyectista):
     for numero, pagina in enumerate(lector.pages, start=1):
         texto = pagina.extract_text() or ""
         assert proyecto.codigo in texto, f"la página {numero} no dice de qué obra es"
-        assert "jej.cl" in texto, f"la página {numero} va sin el pie de la casa"
+        assert "example.com" in texto, f"la página {numero} va sin el pie de la casa"
         # El logotipo y el arco son imágenes, y van en cada página.
         assert len(pagina.images) >= 2
 
@@ -400,15 +400,15 @@ def test_el_membrete_va_en_todas_las_paginas(proyecto, revisor, proyectista):
 def test_el_contacto_va_como_texto_y_se_puede_copiar(proyecto, revisor, proyectista):
     """**Va compuesto y no pegado como imagen**, por tres razones: sale nítido a cualquier
     resolución, se puede seleccionar del PDF —que es lo que hace quien quiere el teléfono— y el EMF
-    original venía recortado por la derecha, así que «jej.cl» perdía la última letra."""
+    original venía recortado por la derecha, así que «example.com» perdía la última letra."""
     anotar(proyecto, revisor, proyectista, "Un hallazgo")
 
     texto = texto_del_pdf(pdf_de(proyecto, Opciones()))
 
-    assert "jej.cl" in texto
-    assert "jej@jej.cl" in texto
-    assert "+56 2 2722 5000" in texto
-    assert "Avda. Apoquindo 2930" in texto
+    assert "example.com" in texto
+    assert "contacto@example.com" in texto
+    assert "+56 2 0000 0000" in texto
+    assert "Av. Ejemplo 123" in texto
 
 
 def test_las_piezas_del_membrete_estan_donde_se_las_busca():
@@ -441,7 +441,7 @@ def test_un_membrete_que_falta_no_tumba_el_informe(proyecto, revisor, proyectist
     texto = texto_del_pdf(contenido)
     # Sin las imágenes, pero con lo que está compuesto: la obra, el pie y el hallazgo.
     assert proyecto.codigo in texto
-    assert "jej.cl" in texto
+    assert "example.com" in texto
     assert "Un hallazgo" in texto
 
 

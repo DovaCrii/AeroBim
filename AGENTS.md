@@ -241,6 +241,9 @@ pruebas; los correos de pruebas usan dominios ficticios (`example.com`). Lo priv
 `.privacy-scan.json` y las reglas no se debilitan. Si algo sensible llegó a un commit: avisar, rotar la clave y decidir con la
 persona cómo limpiar el historial (borrar el archivo no basta). La skill `/revision-privacidad` guía esta revisión.
 
+El pie de los informes y el autor del PDF salen de `REPORT_CONTACT_*` y `REPORT_ORG_NAME` (valores genéricos por omisión). Los
+reales se ponen en el entorno del despliegue (`docs/DEPLOY.md`), nunca en el código.
+
 ## Definición de terminado
 
 - Criterios de aceptación cubiertos por pruebas.

@@ -33,7 +33,7 @@ def dar(user, *etiquetas):
 @pytest.fixture
 def coordinador(db, organizacion):
     usuario = get_user_model().objects.create_user(
-        username="coordinadora", password="una-clave-larga-99", email="coord@ejemplo.cl"
+        username="coordinadora", password="una-clave-larga-99", email="coord@example.com"
     )
     Membresia.objects.create(organizacion=organizacion, usuario=usuario)
     return usuario
@@ -179,11 +179,11 @@ def test_los_destinatarios_se_acotan_a_la_organizacion_de_quien_arma_el_transmit
     modelo = get_user_model()
     ajena = Organizacion.objects.create(nombre="Ajena", slug="ajena")
     de_otra = modelo.objects.create_user(
-        username="persona-de-otra-empresa", password="una-clave-larga-99", email="otra@ajena.cl"
+        username="persona-de-otra-empresa", password="una-clave-larga-99", email="otra@example.org"
     )
     Membresia.objects.create(organizacion=ajena, usuario=de_otra)
     colega = modelo.objects.create_user(
-        username="colega-de-la-obra", password="una-clave-larga-99", email="colega@ejemplo.cl"
+        username="colega-de-la-obra", password="una-clave-larga-99", email="colega@example.com"
     )
     Membresia.objects.create(organizacion=organizacion, usuario=colega)
     # Existe, está activa y no pertenece a ninguna organización: tampoco es de quien lo arma.
@@ -367,7 +367,7 @@ def test_el_ciclo_completo_del_transmittal(client, coordinador, borrador, revisi
     # 3. **Y el aviso salió con lo necesario**: a quién, qué documentos, y el enlace.
     assert len(mail.outbox) == 1
     aviso = mail.outbox[0]
-    assert aviso.to == ["revisor@ejemplo.cl"]
+    assert aviso.to == ["revisor@example.com"]
     assert borrador.folio in aviso.subject
     # El código del entregable y su revisión: quien lo lee en obra sabe qué le mandaron sin
     # tener que entrar.
@@ -431,7 +431,7 @@ def test_un_destinatario_sin_correo_se_dice_en_vez_de_callarse(
     # Se emitió y salió el correo que podía salir...
     borrador.refresh_from_db()
     assert borrador.status == Transmittal.EMITIDO
-    assert [correo.to for correo in mail.outbox] == [["coord@ejemplo.cl"]]
+    assert [correo.to for correo in mail.outbox] == [["coord@example.com"]]
     # ...y **se dice** que uno quedó sin avisar. Se comprueba por el nombre del usuario, que no
     # depende del idioma, y no por el texto del aviso.
     avisos = [str(mensaje) for mensaje in respuesta.context["messages"]]

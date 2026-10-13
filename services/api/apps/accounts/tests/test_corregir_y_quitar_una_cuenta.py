@@ -74,7 +74,7 @@ def _cuenta(username, organizacion, rol=roles.PROYECTISTA, **extra):
 
 @pytest.fixture
 def quien_administra(db, jej):
-    u = _cuenta("jefa", jej, roles.COORDINADOR, email="jefa@jej.cl")
+    u = _cuenta("jefa", jej, roles.COORDINADOR, email="jefa@jej.example")
     u.user_permissions.add(
         *Permission.objects.filter(
             codename__in=("add_user", "change_user", "delete_user", "view_user"),
@@ -91,7 +91,7 @@ def quien_administra(db, jej):
 def test_se_corrige_el_correo_mal_tecleado(client, jej, quien_administra):
     """**El caso que lo motivó todo.** Un correo mal escrito no da ningún error: la aplicación dice
     «enviado» y el aviso se va a una dirección que no existe."""
-    persona = _cuenta("pedro.silva", jej, email="pedro.slva@jej.cl", first_name="Pedro")
+    persona = _cuenta("pedro.silva", jej, email="pedro.slva@jej.example", first_name="Pedro")
     client.force_login(quien_administra)
 
     respuesta = client.post(
@@ -99,7 +99,7 @@ def test_se_corrige_el_correo_mal_tecleado(client, jej, quien_administra):
         {
             "nombre": "Pedro",
             "apellido": "Silva",
-            "correo": "pedro.silva@jej.cl",
+            "correo": "pedro.silva@jej.example",
             "organizacion": jej.pk,
             "rol": roles.PROYECTISTA,
         },
@@ -107,7 +107,7 @@ def test_se_corrige_el_correo_mal_tecleado(client, jej, quien_administra):
 
     assert respuesta.status_code == 302
     persona.refresh_from_db()
-    assert persona.email == "pedro.silva@jej.cl"
+    assert persona.email == "pedro.silva@jej.example"
     assert persona.last_name == "Silva"
 
 
@@ -118,7 +118,7 @@ def test_guardar_sin_cambiar_el_correo_no_choca_consigo_misma(client, jej, quien
     Sin el `exclude(pk=…)`, corregir solo el apellido se rechazaría con «ya hay una cuenta con ese
     correo» — y la cuenta que choca **es ella misma**.
     """
-    persona = _cuenta("ana.lopez", jej, email="ana@jej.cl")
+    persona = _cuenta("ana.lopez", jej, email="ana@jej.example")
     client.force_login(quien_administra)
 
     respuesta = client.post(
@@ -126,7 +126,7 @@ def test_guardar_sin_cambiar_el_correo_no_choca_consigo_misma(client, jej, quien
         {
             "nombre": "Ana",
             "apellido": "López",
-            "correo": "ana@jej.cl",
+            "correo": "ana@jej.example",
             "organizacion": jej.pk,
             "rol": roles.PROYECTISTA,
         },
@@ -147,7 +147,7 @@ def test_cambiar_el_rol_no_se_lleva_por_delante_el_grupo_de_notificacion(
     tabla de grupos. Vaciarla entera al cambiar de rol es un efecto que nadie relacionaría con esta
     pantalla — el correo deja de llegar y no hay nada que lo explique.
     """
-    persona = _cuenta("carla", jej, roles.PROYECTISTA, email="carla@jej.cl")
+    persona = _cuenta("carla", jej, roles.PROYECTISTA, email="carla@jej.example")
     persona.groups.add(Group.objects.get(name=roles.DIRECCION))
     client.force_login(quien_administra)
 
@@ -156,7 +156,7 @@ def test_cambiar_el_rol_no_se_lleva_por_delante_el_grupo_de_notificacion(
         {
             "nombre": "Carla",
             "apellido": "Rojas",
-            "correo": "carla@jej.cl",
+            "correo": "carla@jej.example",
             "organizacion": jej.pk,
             "rol": roles.REVISOR,
         },
@@ -173,7 +173,7 @@ def test_no_se_edita_a_alguien_de_otra_empresa(client, jej, otra_empresa, quien_
     Con el correo de otra persona cambiado, el paso siguiente es reiniciarle la clave y entrar en su
     cuenta. No es una fuga de lectura: es una toma de control.
     """
-    ajena = _cuenta("de.otra", otra_empresa, email="de.otra@ajena.cl")
+    ajena = _cuenta("de.otra", otra_empresa, email="de.otra@example.org")
     client.force_login(quien_administra)
 
     respuesta = client.post(
@@ -181,7 +181,7 @@ def test_no_se_edita_a_alguien_de_otra_empresa(client, jej, otra_empresa, quien_
         {
             "nombre": "Mía",
             "apellido": "Ahora",
-            "correo": "mia@jej.cl",
+            "correo": "mia@jej.example",
             "organizacion": jej.pk,
             "rol": roles.COORDINADOR,
         },
@@ -189,7 +189,7 @@ def test_no_se_edita_a_alguien_de_otra_empresa(client, jej, otra_empresa, quien_
 
     assert respuesta.status_code == 404
     ajena.refresh_from_db()
-    assert ajena.email == "de.otra@ajena.cl"
+    assert ajena.email == "de.otra@example.org"
 
 
 # ── Desactivar ──────────────────────────────────────────────────────────────────────
@@ -198,7 +198,7 @@ def test_no_se_edita_a_alguien_de_otra_empresa(client, jej, otra_empresa, quien_
 @pytest.mark.django_db
 def test_desactivar_impide_entrar_y_no_borra_nada(client, jej, quien_administra):
     """La columna «Desactivado» se pintaba desde el primer día **y nada podía ponerla**."""
-    persona = _cuenta("se.va", jej, email="se.va@jej.cl")
+    persona = _cuenta("se.va", jej, email="se.va@jej.example")
     client.force_login(quien_administra)
 
     client.post(reverse("accounts:activar-cuenta", kwargs={"pk": persona.pk}))
@@ -232,7 +232,7 @@ def test_nadie_se_desactiva_a_si_mismo(client, jej, quien_administra):
 @pytest.mark.django_db
 def test_una_cuenta_sin_estrenar_se_borra(client, jej, quien_administra):
     """El caso de quien acaba de equivocarse tecleando: no ha entrado, no ha dejado nada."""
-    persona = _cuenta("sobra", jej, email="sobra@jej.cl")
+    persona = _cuenta("sobra", jej, email="sobra@jej.example")
     client.force_login(quien_administra)
 
     confirmacion = client.get(reverse("accounts:borrar-cuenta", kwargs={"pk": persona.pk}))
@@ -254,7 +254,7 @@ def test_quien_subio_una_revision_no_se_borra_y_se_dice_por_que(client, jej, qui
     from apps.documents.models import Comentario, Observacion
     from apps.projects.models import Proyecto
 
-    persona = _cuenta("trabaja", jej, email="trabaja@jej.cl")
+    persona = _cuenta("trabaja", jej, email="trabaja@jej.example")
     obra = Proyecto.objects.create(organizacion=jej, codigo="716-LCD", nombre="Edificio")
     observacion = Observacion.objects.create(
         organizacion=jej,
@@ -279,7 +279,7 @@ def test_quien_subio_una_revision_no_se_borra_y_se_dice_por_que(client, jej, qui
 
 @pytest.mark.django_db
 def test_no_se_borra_a_alguien_de_otra_empresa(client, otra_empresa, quien_administra):
-    ajena = _cuenta("de.otra", otra_empresa, email="de.otra@ajena.cl")
+    ajena = _cuenta("de.otra", otra_empresa, email="de.otra@example.org")
     client.force_login(quien_administra)
 
     assert (
@@ -291,8 +291,8 @@ def test_no_se_borra_a_alguien_de_otra_empresa(client, otra_empresa, quien_admin
 @pytest.mark.django_db
 def test_borrar_pide_su_propio_permiso(client, jej):
     """`delete_user` y no `change_user`: quien corrige un apellido no tiene por qué poder borrar."""
-    persona = _cuenta("cualquiera", jej, email="c@jej.cl")
-    solo_edita = _cuenta("edita", jej, roles.COORDINADOR, email="e@jej.cl")
+    persona = _cuenta("cualquiera", jej, email="c@jej.example")
+    solo_edita = _cuenta("edita", jej, roles.COORDINADOR, email="e@jej.example")
     solo_edita.user_permissions.add(
         Permission.objects.get(codename="change_user", content_type__app_label="auth")
     )
@@ -320,7 +320,7 @@ def test_reiniciar_una_clave_no_dice_que_falta_la_organizacion(client, jej, quie
     Es el riesgo de dos vistas que pintan la misma plantilla: la que la conoce menos se queda atrás
     **sin que nada falle**.
     """
-    persona = _cuenta("olvidadiza", jej, email="olvido@jej.cl")
+    persona = _cuenta("olvidadiza", jej, email="olvido@jej.example")
     client.force_login(quien_administra)
 
     respuesta = client.post(reverse("accounts:reiniciar-clave", kwargs={"pk": persona.pk}))

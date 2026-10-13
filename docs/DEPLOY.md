@@ -624,6 +624,23 @@ apagarlos, y un año sobre un nombre nuevo **no se deshace desde el servidor**. 
 `check --deploy` avisará con `security.W004` mientras tanto; es un aviso, no un error, y no rompe el
 gate.
 
+## Contacto y nombre de la organización en los informes
+
+El pie de los informes (web, correo, teléfono, dirección) y el autor del PDF salen de variables de entorno, con valores
+**genéricos** por omisión. **Hay que definirlas en el entorno del despliegue** (el `.env` de la VM); si no, los informes
+muestran el texto genérico:
+
+| Variable                 | Valor por omisión         |
+| ------------------------ | ------------------------- |
+| `REPORT_ORG_NAME`        | `Organización`            |
+| `REPORT_CONTACT_WEB`     | `example.com`             |
+| `REPORT_CONTACT_EMAIL`   | `contacto@example.com`    |
+| `REPORT_CONTACT_PHONE`   | `+56 2 0000 0000`         |
+| `REPORT_CONTACT_ADDRESS` | `Av. Ejemplo 123, Piso 1` |
+| `REPORT_CONTACT_CITY`    | `Santiago de Chile.`      |
+
+Los valores reales no se versionan: el repositorio es público.
+
 ## Comprobar que quedó bien
 
 ### La pregunta completa, en una orden

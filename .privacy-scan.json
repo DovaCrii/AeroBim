@@ -1,18 +1,5 @@
 {
-  "allow_email_domains": [
-    "ejemplo.cl",
-    "obra.cl",
-    "ajena.cl",
-    "otra.cl",
-    "b.cl",
-    "competencia.cl",
-    "oficina.cl",
-    "mandante.cl",
-    "li.org"
-  ],
+  "allow_email_domains": ["li.org"],
   "allow_paths": [],
-  "allow_rules": {
-    "services/api/apps/*/tests/*": ["email"],
-    "services/api/conftest.py": ["email"]
-  }
+  "allow_rules": {}
 }

@@ -34,7 +34,7 @@ def test_el_aviso_de_asignacion_lleva_el_enlace_y_la_fecha(
     assert len(mail.outbox) == 1
 
     enviado = mail.outbox[0]
-    assert enviado.to == ["proyectista@ejemplo.cl"]
+    assert enviado.to == ["proyectista@example.com"]
     assert "Revisar el eje C" in enviado.subject
     assert str(obs.pk) in enviado.body
     assert "http" in enviado.body

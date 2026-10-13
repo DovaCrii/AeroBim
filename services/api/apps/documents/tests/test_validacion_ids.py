@@ -76,7 +76,7 @@ def ids_con(especificaciones) -> str:
     """
     from ifctester import ids as idsmod
 
-    documento = idsmod.Ids(title="Requisito de prueba", author="prueba@ejemplo.cl", version="1.0")
+    documento = idsmod.Ids(title="Requisito de prueba", author="prueba@example.com", version="1.0")
     for una in especificaciones:
         documento.specifications.append(una)
     return documento.to_string()

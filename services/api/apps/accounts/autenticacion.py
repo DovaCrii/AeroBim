@@ -44,7 +44,7 @@ def nombre_para_el_bloqueo(request, credenciales=None) -> str:
     | | |
     | --- | --- |
     | 5 fallos con `victima` | `429`, bloqueado |
-    | y acto seguido, con `v@ejemplo.cl` y la clave buena | **`302`: entró** |
+    | y acto seguido, con `v@example.com` y la clave buena | **`302`: entró** |
 
     Medido así, no leído. Son dos consecuencias y la segunda es la grave: el presupuesto de intentos
     se duplica —cinco por cada cadena—, y **quien ya está bloqueado se salta el bloqueo cambiando de

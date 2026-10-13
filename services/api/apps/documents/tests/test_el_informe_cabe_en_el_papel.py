@@ -35,7 +35,7 @@ marco, y reportlab levanta `LayoutError` — o sea, **el informe completo se cae
 
 ## Lo que NO resulto ser un defecto, dicho
 
-Escribi que el bloque de contacto invadia el marco de texto por ~0,8 mm —el ascendente del «jej.cl»
+Escribi que el bloque de contacto invadia el marco de texto por ~0,8 mm —el ascendente del «example.com»
 contra el `bottomMargin`— y **no se reproduce**: la rejilla de la tabla nunca baja del margen. La
 comprobacion se queda abajo como invariante, pero no se cambio ningun margen, porque no habia nada
 que cambiar. Tampoco reportlab levanta excepcion con un `&`, que es lo otro que yo daba por hecho.
@@ -260,7 +260,7 @@ def test_una_miniatura_16_9_no_se_sale_de_su_columna(
 def test_nada_se_dibuja_encima_del_bloque_de_contacto(proyecto, proyectista, revisor):
     """**El pie es canvas absoluto y el marco es Platypus: no se hablan.**
 
-    El ascendente del «jej.cl» llega a ~27,6 mm y el `bottomMargin` eran 26,8. Se mide sobre un
+    El ascendente del «example.com» llega a ~27,6 mm y el `bottomMargin` eran 26,8. Se mide sobre un
     informe de varias paginas, que es cuando la tabla llega abajo del todo.
     """
     from apps.documents.membrete import MARGEN_MM

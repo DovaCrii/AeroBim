@@ -65,7 +65,7 @@ def una_instalacion_sana(db, tmp_path, settings):
 
     organizacion = Organizacion.objects.create(nombre="Constructora real", slug="real")
     persona = U.objects.create_user(
-        username="persona", password="una-clave-larga-99", email="persona@ejemplo.cl"
+        username="persona", password="una-clave-larga-99", email="persona@example.com"
     )
     persona.groups.add(Group.objects.get(name=roles.PROYECTISTA))
     Membresia.objects.create(organizacion=organizacion, usuario=persona)
@@ -111,7 +111,7 @@ def test_ve_una_cuenta_sin_organizacion(una_instalacion_sana):
     Sin `Membresia` la persona entra perfectamente y todas las listas salen vacías, sin un solo
     mensaje. Quien creó la cuenta marca «entró y vio la obra» porque entró.
     """
-    U.objects.create_user(username="suelta", password="x" * 20, email="s@ejemplo.cl").groups.add(
+    U.objects.create_user(username="suelta", password="x" * 20, email="s@example.com").groups.add(
         Group.objects.get(name=roles.REVISOR)
     )
 
@@ -132,7 +132,7 @@ def test_ve_una_cuenta_sin_correo(una_instalacion_sana):
 
 
 def test_ve_una_cuenta_sin_rol(una_instalacion_sana):
-    persona = U.objects.create_user(username="sinrol", password="x" * 20, email="r@ejemplo.cl")
+    persona = U.objects.create_user(username="sinrol", password="x" * 20, email="r@example.com")
     Membresia.objects.create(organizacion=una_instalacion_sana["organizacion"], usuario=persona)
 
     assert "sin rol" in correr()
@@ -153,7 +153,7 @@ def test_ve_que_solo_hay_superusuario(db, settings):
         roles.MANDANTE,
     ):
         Group.objects.get_or_create(name=nombre)
-    U.objects.create_superuser(username="jefe", password="x" * 20, email="j@ejemplo.cl")
+    U.objects.create_superuser(username="jefe", password="x" * 20, email="j@example.com")
 
     assert "no sea superusuaria" in correr()
 

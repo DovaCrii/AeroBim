@@ -93,7 +93,7 @@ def test_crear_una_cuenta_la_deja_con_rol_y_con_membresia(alta, organizacion):
         {
             "nombre": "Ana",
             "apellido": "Torres",
-            "correo": "ana@ejemplo.cl",
+            "correo": "ana@example.com",
             "organizacion": str(organizacion.pk),
             "rol": roles.REVISOR,
         },
@@ -105,7 +105,7 @@ def test_crear_una_cuenta_la_deja_con_rol_y_con_membresia(alta, organizacion):
     assert Membresia.objects.filter(usuario=nueva, organizacion=organizacion).exists(), (
         "cuenta sin membresía: entra y ve todas las listas vacías sin un solo mensaje"
     )
-    assert nueva.email == "ana@ejemplo.cl"
+    assert nueva.email == "ana@example.com"
 
 
 @pytest.mark.django_db
@@ -120,7 +120,7 @@ def test_la_clave_se_enseña_una_vez_y_sirve_para_entrar(alta, organizacion, cli
         {
             "nombre": "Luis",
             "apellido": "Gómez",
-            "correo": "luis@ejemplo.cl",
+            "correo": "luis@example.com",
             "organizacion": str(organizacion.pk),
             "rol": roles.PROYECTISTA,
         },
@@ -138,7 +138,7 @@ def test_la_clave_no_se_guarda_en_ningun_sitio(alta, organizacion):
         {
             "nombre": "Sofía",
             "apellido": "Ruiz",
-            "correo": "sofia@ejemplo.cl",
+            "correo": "sofia@example.com",
             "organizacion": str(organizacion.pk),
             "rol": roles.MANDANTE,
         },
@@ -207,7 +207,7 @@ def test_no_se_puede_meter_a_alguien_en_la_obra_de_otra_empresa(alta):
         {
             "nombre": "Topo",
             "apellido": "Infiltrado",
-            "correo": "topo@ejemplo.cl",
+            "correo": "topo@example.com",
             "organizacion": str(ajena.pk),
             "rol": roles.MANDANTE,
         },
@@ -227,7 +227,7 @@ def test_la_lista_de_usuarios_no_enseña_los_de_otra_organizacion(alta):
     """
     ajena = Organizacion.objects.create(nombre="La competencia", slug="competencia")
     suyo = U.objects.create_user(
-        username="de-la-competencia", password="una-clave-larga-99", email="secreto@competencia.cl"
+        username="de-la-competencia", password="una-clave-larga-99", email="secreto@competencia.example"
     )
     Membresia.objects.create(organizacion=ajena, usuario=suyo)
 
@@ -235,7 +235,7 @@ def test_la_lista_de_usuarios_no_enseña_los_de_otra_organizacion(alta):
     csv = alta.get(reverse("accounts:usuarios-roles") + "?formato=csv")
 
     assert suyo not in pantalla.context["usuarios"]
-    assert b"secreto@competencia.cl" not in csv.content, "el CSV se lleva los correos ajenos"
+    assert b"secreto@competencia.example" not in csv.content, "el CSV se lleva los correos ajenos"
 
 
 @pytest.mark.django_db
@@ -246,7 +246,7 @@ def test_no_se_le_reinicia_la_clave_a_alguien_de_otra_organizacion(alta):
     empresa.
     """
     ajena = Organizacion.objects.create(nombre="La competencia", slug="competencia")
-    suyo = U.objects.create_user(username="ajeno", password="una-clave-larga-99", email="a@b.cl")
+    suyo = U.objects.create_user(username="ajeno", password="una-clave-larga-99", email="a@b.example")
     Membresia.objects.create(organizacion=ajena, usuario=suyo)
 
     respuesta = alta.post(reverse("accounts:reiniciar-clave", args=[suyo.pk]))
@@ -283,7 +283,7 @@ def test_con_la_clave_del_alta_no_se_puede_hacer_nada_mas_que_cambiarla(alta, or
         {
             "nombre": "Nueva",
             "apellido": "Persona",
-            "correo": "nueva@ejemplo.cl",
+            "correo": "nueva@example.com",
             "organizacion": str(organizacion.pk),
             "rol": roles.PROYECTISTA,
         },
@@ -317,7 +317,7 @@ def test_al_cambiarla_se_apaga_el_guardian(alta, organizacion, client):
         {
             "nombre": "Pedro",
             "apellido": "Soto",
-            "correo": "pedro@ejemplo.cl",
+            "correo": "pedro@example.com",
             "organizacion": str(organizacion.pk),
             "rol": roles.PROYECTISTA,
         },
@@ -352,7 +352,7 @@ def test_con_la_clave_del_alta_tampoco_se_usa_la_api(alta, organizacion, client)
         {
             "nombre": "Api",
             "apellido": "Persona",
-            "correo": "api@ejemplo.cl",
+            "correo": "api@example.com",
             "organizacion": str(organizacion.pk),
             "rol": roles.PROYECTISTA,
         },

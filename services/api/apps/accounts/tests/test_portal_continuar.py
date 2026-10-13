@@ -165,7 +165,7 @@ def test_con_dos_organizaciones_cada_tarjeta_dice_de_cual_es(client, proyecto):
     otra = Organizacion.objects.create(nombre="La otra constructora", slug="otra")
     Proyecto.objects.create(organizacion=otra, codigo=proyecto.codigo, nombre=proyecto.nombre)
     mandamas = get_user_model().objects.create_superuser(
-        username="mandamas", password="una-clave-larga-99", email="mandamas@ejemplo.cl"
+        username="mandamas", password="una-clave-larga-99", email="mandamas@example.com"
     )
     client.force_login(mandamas)
 

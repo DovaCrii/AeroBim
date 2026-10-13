@@ -27,7 +27,7 @@ def otra_persona(db, organizacion):
     from apps.core.models import Membresia
 
     usuario = get_user_model().objects.create_user(
-        username="otra", password="x" * 14, email="otra@ejemplo.cl"
+        username="otra", password="x" * 14, email="otra@example.com"
     )
     Membresia.objects.create(organizacion=organizacion, usuario=usuario)
     return usuario

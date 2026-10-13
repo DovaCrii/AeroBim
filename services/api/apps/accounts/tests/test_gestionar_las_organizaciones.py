@@ -33,7 +33,7 @@ def otra_empresa(db):
 @pytest.fixture
 def quien_administra(db, organizacion, otra_empresa):
     usuario = get_user_model().objects.create_user(
-        username="jefa", password="x" * 14, email="jefa@jej.cl"
+        username="jefa", password="x" * 14, email="jefa@jej.example"
     )
     Membresia.objects.create(organizacion=organizacion, usuario=usuario)
     Membresia.objects.create(organizacion=otra_empresa, usuario=usuario)

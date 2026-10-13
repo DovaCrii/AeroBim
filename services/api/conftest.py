@@ -31,7 +31,7 @@ def organizacion(db):
 @pytest.fixture
 def proyectista(db, organizacion):
     usuario = get_user_model().objects.create_user(
-        username="proyectista", password="una-clave-larga-99", email="proyectista@ejemplo.cl"
+        username="proyectista", password="una-clave-larga-99", email="proyectista@example.com"
     )
     Membresia.objects.create(organizacion=organizacion, usuario=usuario)
     return usuario
@@ -40,7 +40,7 @@ def proyectista(db, organizacion):
 @pytest.fixture
 def revisor(db, organizacion):
     usuario = get_user_model().objects.create_user(
-        username="revisor", password="una-clave-larga-99", email="revisor@ejemplo.cl"
+        username="revisor", password="una-clave-larga-99", email="revisor@example.com"
     )
     Membresia.objects.create(organizacion=organizacion, usuario=usuario)
     return usuario

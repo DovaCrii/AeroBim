@@ -226,7 +226,7 @@ def test_el_ciclo_completo_de_un_entregable(client, entregable, proyectista, rev
 
         # 3. **Le llegó el correo, con el enlace.** Es la mitad de lo que se vino a hacer.
         assert len(mail.outbox) == 1
-        assert mail.outbox[0].to == ["proyectista@ejemplo.cl"]
+        assert mail.outbox[0].to == ["proyectista@example.com"]
         assert str(observacion.pk) in mail.outbox[0].body
 
         # 4. El proyectista responde: queda «respondida», no cerrada.

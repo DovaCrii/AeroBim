@@ -55,7 +55,7 @@ PERMITIDAS = {settings.SESSION_COOKIE_NAME, settings.CSRF_COOKIE_NAME}
 @pytest.fixture
 def quien(db):
     return U.objects.create_user(
-        username="alguien", password="una-clave-larga-99", email="alguien@ejemplo.cl"
+        username="alguien", password="una-clave-larga-99", email="alguien@example.com"
     )
 
 

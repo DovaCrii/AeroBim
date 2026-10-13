@@ -24,7 +24,7 @@ organizacion, _ = Organizacion.objects.get_or_create(
     slug="e2e", defaults={"nombre": "Organización e2e"}
 )
 usuario, _ = get_user_model().objects.get_or_create(
-    username="e2e", defaults={"email": "e2e@ejemplo.cl"}
+    username="e2e", defaults={"email": "e2e@example.com"}
 )
 usuario.set_password("clave-e2e-solo-para-pruebas-77")
 usuario.save()
