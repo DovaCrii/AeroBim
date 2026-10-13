@@ -118,6 +118,9 @@ class Organizacion(BaseModel):
         through="Membresia",
         related_name="organizaciones",
     )
+    # **Apagado por defecto.** El asistente de IA puede enviar preguntas fuera de la VM, asi que lo
+    # enciende alguien a proposito, organizacion por organizacion (`F17.3`).
+    asistente_activo = models.BooleanField(default=False, verbose_name=_("AI assistant enabled"))
 
     class Meta:
         verbose_name = _("organisation")
