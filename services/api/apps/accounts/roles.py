@@ -115,6 +115,9 @@ PERMISOS_POR_ROL: dict[str, tuple[str, ...]] = {
         # mitad peligrosa sin la mitad que la corrige.
         "documents.add_enlacecompartido",
         "documents.change_enlacecompartido",
+        # **El asistente de IA** (`F17.3`): sus preguntas pueden salir de la VM, asi que no es de
+        # todos los roles. Ademas del permiso, la organizacion tiene que tenerlo encendido.
+        "asistente.usar_asistente",
     ),
     # Sube revisiones y responde. **No cierra observaciones**: quien las abre las cierra,
     # o el registro se convierte en "yo mismo declaro que lo arregle".

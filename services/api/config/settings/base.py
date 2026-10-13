@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     "apps.projects",
     "apps.documents",
     "apps.visor",
+    "apps.asistente",
 ]
 
 MIDDLEWARE = [
@@ -183,6 +184,24 @@ DOCUMENTS_DIR = Path(config("DOCUMENTS_DIR", default=str(BASE_DIR / "documents")
 # Vacio por omision, y no una ruta adivinada: una ruta que no existe da el mismo resultado que
 # no configurar nada, pero cuesta media hora entender por que.
 ODA_CONVERTER = config("ODA_CONVERTER", default="")
+
+# El asistente de IA (`F17.3`), **apagado por defecto**. Habla el protocolo de chat completions de
+# OpenAI, asi que el proveedor es intercambiable (NVIDIA NIM, Ollama, vLLM) sin tocar codigo.
+# Los nombres NIM_* son los que ya usa Academy.
+# **Sin clave el asistente no existe** (el endpoint contesta 404). La clave se pone
+# solo en el `.env` de la VM y no aparece en ninguna respuesta, log ni mensaje de error.
+NIM_BASE_URL = config("NIM_BASE_URL", default="https://integrate.api.nvidia.com/v1")
+NIM_MODEL = config("NIM_MODEL", default="nvidia/nemotron-3.5-lightning-30b-a3b")
+NIM_MODEL_FALLBACKS = config(
+    "NIM_MODEL_FALLBACKS",
+    default="nvidia/nemotron-3-ultra-550b-a55b,nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",
+    cast=lambda v: [s.strip() for s in v.split(",") if s.strip()],
+)
+NIM_API_KEY = config("NIM_API_KEY", default="")
+ASISTENTE_RPM = config("ASISTENTE_RPM", default=30, cast=int)
+ASISTENTE_TIMEOUT_S = config("ASISTENTE_TIMEOUT_S", default=20, cast=int)
+# Tope diario de consultas por persona. Su logica llega con `F17.3b`; aqui solo el ajuste.
+ASISTENTE_LIMITE_DIARIO = config("ASISTENTE_LIMITE_DIARIO", default=40, cast=int)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # **Cuanto cuerpo de peticion se acepta, y por que el valor de fabrica no daba.**

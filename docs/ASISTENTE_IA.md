@@ -28,8 +28,8 @@ trajo el usuario. (La publicación de LinkedIn no se pudo leer desde aquí; el d
 **Servidor** (`services/api/apps/asistente`, app nueva):
 
 - Un único endpoint `POST /api/asistente/chat/`, **con streaming**, que reenvía a
-  `ASISTENTE_BASE_URL` (por defecto `https://integrate.api.nvidia.com/v1`) con `ASISTENTE_MODELO`.
-- La clave sale de la variable de entorno `NVIDIA_API_KEY` (prefijo `nvapi-`), puesta por quien despliega en
+  `NIM_BASE_URL` (por defecto `https://integrate.api.nvidia.com/v1`) con `NIM_MODEL`.
+- La clave sale de la variable de entorno `NIM_API_KEY` (prefijo `nvapi-`), puesta por quien despliega en
   el archivo de entorno del servicio con modo `600`, y **solo se lee ahí**. Si falta, el asistente **no
   aparece**.
 - **Contrato de permisos del proyecto:** permiso propio `asistente.use_asistente`; interruptor por

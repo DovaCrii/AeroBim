@@ -5153,3 +5153,55 @@ msgstr "[AeroBim] %(quien)s te mencionó: %(titulo)s"
 #: .\apps\documents\notify.py
 msgid "%(quien)s mentioned you on an observation."
 msgstr "%(quien)s te mencionó en una observación."
+
+#: .\apps\asistente\api.py
+msgid "Assistant"
+msgstr "Asistente"
+
+#: .\apps\asistente\api.py
+msgid "Rate limited"
+msgstr "Limitada por ritmo"
+
+#: .\apps\asistente\api.py
+msgid "assistant use"
+msgstr "uso del asistente"
+
+#: .\apps\asistente\api.py
+msgid "assistant uses"
+msgstr "usos del asistente"
+
+#: .\apps\asistente\api.py
+msgid "AI assistant enabled"
+msgstr "Asistente de IA activado"
+
+#: .\apps\asistente\api.py
+msgid "The request body must be a JSON object."
+msgstr "El cuerpo de la petición debe ser un objeto JSON."
+
+#: .\apps\asistente\api.py
+msgid "The assistant needs at least one message."
+msgstr "El asistente necesita al menos un mensaje."
+
+#: .\apps\asistente\api.py
+msgid "Too many messages."
+msgstr "Demasiados mensajes."
+
+#: .\apps\asistente\api.py
+msgid "Each message needs a valid role."
+msgstr "Cada mensaje necesita un rol válido."
+
+#: .\apps\asistente\api.py
+msgid "Each message needs some text."
+msgstr "Cada mensaje necesita algún texto."
+
+#: .\apps\asistente\api.py
+msgid "A message is too long."
+msgstr "Un mensaje es demasiado largo."
+
+#: .\apps\asistente\api.py
+msgid "The request body is not valid JSON."
+msgstr "El cuerpo de la petición no es un JSON válido."
+
+#: .\apps\asistente\api.py
+msgid "Pending: the chat is not implemented yet."
+msgstr "Pendiente: el chat aún no está implementado."

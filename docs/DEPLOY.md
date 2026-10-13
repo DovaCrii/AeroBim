@@ -260,6 +260,30 @@ Lo que hay que cambiar sí o sí:
 > lleva comillas, espacios, `#` ni `$`.** La `SECRET_KEY` de `token_urlsafe` es segura por
 > construcción; una contraseña de SMTP puede no serlo.
 
+### El asistente de IA (opcional, apagado por defecto)
+
+**Sin clave el asistente no existe**: el endpoint contesta 404 y el visor no lo ofrece.
+Además, cada organización lo enciende a propósito (campo «Asistente de IA activado» de la
+organización) y quien lo usa necesita el permiso `asistente.usar_asistente` (lo tiene el Coordinador
+BIM; el Administrador, todos). **Con NVIDIA, la pregunta y el contexto elegido salen de la VM**; con
+`NIM_BASE_URL` apuntando a Ollama o vLLM propios se queda todo dentro.
+
+| Variable                  | Valor                                                                                         |
+| ------------------------- | --------------------------------------------------------------------------------------------- |
+| `NIM_API_KEY`             | La clave del proveedor. **Sin valor por omisión**; vacía = asistente inexistente              |
+| `NIM_BASE_URL`            | `https://integrate.api.nvidia.com/v1` por omisión; cualquier API tipo OpenAI                  |
+| `NIM_MODEL`               | `nvidia/nemotron-3.5-lightning-30b-a3b` por omisión (los mismos nombres que usa Academy)      |
+| `NIM_MODEL_FALLBACKS`     | Modelos de reserva, separados por comas, sin espacios dentro del valor                        |
+| `ASISTENTE_RPM`           | Peticiones por minuto permitidas. `30` por omisión (el nivel gratuito ronda 40)               |
+| `ASISTENTE_TIMEOUT_S`     | Segundos de espera al proveedor. `20` por omisión                                             |
+| `ASISTENTE_LIMITE_DIARIO` | Consultas por persona y día. `40` por omisión (el ajuste existe; su lógica llega en `F17.3b`) |
+
+> **La clave solo en el `.env` de la VM, modo 600. Jamás en un chat, un encargo a un agente ni el
+> repositorio.** Si alguna vez se pega en un sitio indebido, se revoca en `build.nvidia.com` y se
+> crea otra. Sigue valiendo la regla del archivo: ningún valor lleva comillas, espacios, `#` ni `$`.
+> En esta entrega (`F17.3a`) el chat aún contesta 501: lo que existe es el estado, el permiso, el
+> interruptor y la validación; el reenvío al proveedor llega en `F17.3b`.
+
 ### El correo, con Microsoft 365
 
 **Es el último bloqueo de `listo_para_produccion`**, y hasta que esté, el correo no sale de la

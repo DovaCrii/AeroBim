@@ -19,6 +19,29 @@ VISTAS_PROTEGIDAS = [
     ("core:organizaciones", "core.view_organizacion"),
 ]
 
+# Las APIs JSON no redirigen al login: DRF contesta 401/403 a quien no ha entrado. Y ademas del
+# permiso piden otras cosas (organizacion con el interruptor encendido, clave configurada), asi
+# que su 200 se prueba en su propia app; aqui va lo que es contrato comun: **sin permiso, 403**.
+# (ruta, metodo)
+APIS_PROTEGIDAS = [
+    ("asistente_api:estado", "get"),
+    ("asistente_api:chat", "post"),
+]
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("ruta,metodo", APIS_PROTEGIDAS)
+def test_api_anonima_no_pasa(client, ruta, metodo):
+    assert getattr(client, metodo)(reverse(ruta)).status_code in (401, 403)
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("ruta,metodo", APIS_PROTEGIDAS)
+def test_api_autenticado_sin_permiso_recibe_403_duro(client, ruta, metodo):
+    client.force_login(usuario())
+
+    assert getattr(client, metodo)(reverse(ruta)).status_code == 403
+
 
 def usuario(**extra):
     return get_user_model().objects.create_user(
