@@ -1,5 +1,99 @@
 import type { MeasureMode, Measurement, PickedItem } from "@aerobim/viewer";
+import { useEffect, useState } from "react";
+import type { Ayuda } from "../ayuda-de-uso.js";
 import { IconEye, IconIsolate } from "./icons.js";
+
+/** Cuántos chips caben en una línea a 1274 px: el resto va en la lista que abre «?». */
+const CHIPS_EN_LINEA = 3;
+/**
+ * Con el resultado de una medición, el aviso de lo oculto o un calce, la barra ya va cargada y los
+ * tres chips dejaban el mensaje del modo en 3 px (medido a 1274 px): se muestran solo los dos
+ * primeros, que en toda herramienta son el clic y `Esc`.
+ */
+const CHIPS_EN_BARRA_CARGADA = 2;
+
+/**
+ * **La ayuda de uso** (`F17.1`): chips «gesto → efecto» con lo que hace cada botón del ratón y la
+ * tecla que sale de la herramienta. Muestra los tres primeros; si hay más, «?» (o la tecla `?`)
+ * abre la lista completa **sobre** la barra, sin crecerla ni mover el lienzo.
+ */
+function AyudaDeUso({
+  ayuda,
+  enLinea,
+}: {
+  readonly ayuda: readonly Ayuda[];
+  readonly enLinea: number;
+}) {
+  const [abierta, setAbierta] = useState(false);
+  const hayMas = ayuda.length > enLinea;
+
+  useEffect(() => {
+    const alPulsar = (evento: KeyboardEvent) => {
+      if (evento.key === "Escape") {
+        setAbierta(false);
+        return;
+      }
+      if (evento.key !== "?" || evento.ctrlKey || evento.metaKey || evento.altKey) return;
+      const destino = evento.target;
+      if (
+        destino instanceof HTMLElement &&
+        (destino instanceof HTMLInputElement ||
+          destino instanceof HTMLTextAreaElement ||
+          destino instanceof HTMLSelectElement ||
+          destino.isContentEditable)
+      ) {
+        return;
+      }
+      setAbierta((antes) => !antes);
+    };
+    window.addEventListener("keydown", alPulsar);
+    return () => window.removeEventListener("keydown", alPulsar);
+  }, []);
+
+  return (
+    <div className="relative flex shrink-0 items-center gap-1.5" aria-label="Ayuda de uso">
+      {ayuda.slice(0, enLinea).map((una) => (
+        <ChipDeAyuda key={una.gesto} ayuda={una} />
+      ))}
+      <button
+        type="button"
+        onClick={() => setAbierta((antes) => !antes)}
+        aria-expanded={abierta}
+        aria-label="Ver toda la ayuda de uso"
+        title={hayMas ? "Toda la ayuda de uso (tecla ?)" : "Ayuda de uso (tecla ?)"}
+        className="flex h-5 w-5 items-center justify-center rounded-sm border border-borde text-fg-2 hover:bg-surface-3 hover:text-fg"
+      >
+        ?
+      </button>
+      {abierta && (
+        <div
+          role="dialog"
+          aria-label="Ayuda de uso"
+          className="absolute right-0 bottom-full z-30 mb-1 flex w-max max-w-[28rem] flex-col gap-1 rounded-md border border-borde bg-surface p-2 shadow-[var(--shadow-xl)]"
+        >
+          {ayuda.map((una) => (
+            <ChipDeAyuda key={una.gesto} ayuda={una} />
+          ))}
+          <span className="pt-1 text-fg-3">Esc o ? cierran esta lista</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ChipDeAyuda({ ayuda }: { readonly ayuda: Ayuda }) {
+  return (
+    <span className="flex items-center gap-1 whitespace-nowrap">
+      <span className="rounded-sm border border-borde bg-surface-3 px-1 text-fg">
+        {ayuda.gesto}
+      </span>
+      <span aria-hidden="true" className="text-fg-3">
+        →
+      </span>
+      <span className="text-fg-2">{ayuda.efecto}</span>
+    </span>
+  );
+}
 
 /**
  * La barra de estado del pie, como la de cualquier software de escritorio.
@@ -25,7 +119,10 @@ export function StatusBar({
   aligning,
   onUndoIsolate,
   onShowAll,
+  ayuda = [],
 }: {
+  /** Qué hace cada botón del ratón y qué tecla sale, según la herramienta: ver `ayuda-de-uso.ts`. */
+  readonly ayuda?: readonly Ayuda[];
   readonly measureMode: MeasureMode | null;
   /** Puntos ya puestos en la medición en curso: dice qué falta. */
   readonly measurePoints: number;
@@ -81,6 +178,17 @@ export function StatusBar({
       </span>
 
       {measurement !== null && <Resultado measurement={measurement} />}
+
+      {ayuda.length > 0 && (
+        <AyudaDeUso
+          ayuda={ayuda}
+          enLinea={
+            measurement !== null || hasHidden || aligning !== null
+              ? CHIPS_EN_BARRA_CARGADA
+              : CHIPS_EN_LINEA
+          }
+        />
+      )}
 
       {hasHidden && (
         <Visibilidad isolated={isolated} onUndoIsolate={onUndoIsolate} onShowAll={onShowAll} />

@@ -90,6 +90,7 @@ import { NubesPanel } from "./components/NubesPanel.js";
 import { Plan2DCard, PropertiesPanel, PuntoDeNubeCard } from "./components/PropertiesPanel.js";
 import { Ribbon, type RibbonTab } from "./components/Ribbon.js";
 import { SpatialTree } from "./components/SpatialTree.js";
+import { ayudaDeUso } from "./ayuda-de-uso.js";
 import { StatusBar } from "./components/StatusBar.js";
 import { SelectorDeVista } from "./components/SelectorDeVista.js";
 import { VistasCompartidas } from "./components/VistasCompartidas.js";
@@ -3874,6 +3875,18 @@ export function App() {
         }
         onUndoIsolate={onUndoIsolate}
         onShowAll={onShowAll}
+        ayuda={ayudaDeUso({
+          modelos: models.length,
+          hayOtroContenido: plans.length > 0 || drawings.length > 0 || nubeInforme !== null,
+          medida: measureMode,
+          calzando: aligning !== null,
+          trazandoPerfil: perfilTrazado !== null,
+          laminaEnVisor: laminaEnVisor !== null,
+          modo2D: modo2D || enPlanta,
+          cortes: hasSections,
+          seleccion: selected !== null,
+          navegacion: navigation,
+        })}
       />
     </div>
   );
