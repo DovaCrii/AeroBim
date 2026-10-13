@@ -351,7 +351,7 @@ AUTHENTICATION_BACKENDS = [
 AXES_ENABLED = config("AXES_ENABLED", default=True, cast=bool)
 # **Con que nombre cuenta `axes` los intentos.** Sin esto, aceptar el correo **rompia el bloqueo**:
 # `axes` cuenta por la cadena tecleada, asi que cinco fallos con `victima` lo bloqueaban y entrar
-# acto seguido con `v@ejemplo.cl` funcionaba. Medido: 429 por un lado y 302 por el otro.
+# acto seguido con `v@example.com` funcionaba. Medido: 429 por un lado y 302 por el otro.
 # Ver `apps/accounts/autenticacion.py`.
 AXES_USERNAME_CALLABLE = "apps.accounts.autenticacion.nombre_para_el_bloqueo"
 AXES_FAILURE_LIMIT = config("AXES_FAILURE_LIMIT", default=5, cast=int)
@@ -488,3 +488,12 @@ if LOG_DIR_MOTIVO is None:
         "formatter": "json",
         "encoding": "utf-8",
     }
+
+# Bloque de contacto del pie de los informes (`apps/documents/membrete.py`). Los valores por
+# omision son genericos; cada instalacion pone los suyos en el entorno, sin tocar el codigo.
+REPORT_CONTACT_WEB = config("REPORT_CONTACT_WEB", default="example.com")
+REPORT_CONTACT_EMAIL = config("REPORT_CONTACT_EMAIL", default="contacto@example.com")
+REPORT_CONTACT_PHONE = config("REPORT_CONTACT_PHONE", default="+56 2 0000 0000")
+REPORT_CONTACT_ADDRESS = config("REPORT_CONTACT_ADDRESS", default="Av. Ejemplo 123, Piso 1")
+REPORT_CONTACT_CITY = config("REPORT_CONTACT_CITY", default="Santiago de Chile.")
+REPORT_ORG_NAME = config("REPORT_ORG_NAME", default="Organización")

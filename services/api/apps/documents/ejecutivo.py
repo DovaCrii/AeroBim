@@ -37,6 +37,7 @@ import io
 from dataclasses import dataclass
 from datetime import timedelta
 
+from django.conf import settings
 from django.utils import timezone
 
 from apps.documents.membrete import AZUL, AZUL_CLARO, GRIS, MARGEN_MM, sellar
@@ -225,7 +226,7 @@ def pdf_de(proyecto, *, pedido_por=None) -> bytes:
     ancho_pagina, alto_pagina = letter
     lienzo = canvas.Canvas(memoria, pagesize=letter)
     lienzo.setTitle(f"Resumen ejecutivo {proyecto.codigo}")
-    lienzo.setAuthor("J.E.J. Ingeniería · AeroBim")
+    lienzo.setAuthor(f"{settings.REPORT_ORG_NAME} · AeroBim")
 
     izquierda = MARGEN_MM["izquierda"] * mm
     derecha = ancho_pagina - MARGEN_MM["derecha"] * mm

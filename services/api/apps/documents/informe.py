@@ -66,8 +66,8 @@ los redibuje a mano.
 **Y el tercero, el bloque de contacto, se compone como texto y no como imagen**, que es mejor por
 tres cosas y no por una: sale **nitido a cualquier resolucion** —una imagen a 300 ppp impresa a 600
 se ve blanda—, **se puede seleccionar y copiar** del PDF, que es lo que hace alguien que quiere el
-telefono, y ademas **el EMF venia recortado por la derecha**: al convertirlo, «jej.cl» y
-«jej@jej.cl» perdian la ultima letra, porque el marco del metarchivo es mas estrecho que su
+telefono, y ademas **el EMF venia recortado por la derecha**: al convertirlo, la web y
+el correo perdian la ultima letra, porque el marco del metarchivo es mas estrecho que su
 contenido. Con texto ese problema no existe.
 
 **Y el membrete que falta no tumba el informe.** Se busca con el buscador de estaticos de Django
@@ -83,6 +83,7 @@ import logging
 from dataclasses import dataclass, replace
 from datetime import date
 
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.utils import timezone
@@ -454,7 +455,7 @@ def pdf_de(proyecto, opciones: Opciones, *, pedido_por=None) -> bytes:
             topMargin=MARGEN_MM["arriba"] * mm,
             bottomMargin=MARGEN_MM["abajo"] * mm,
             title=f"Informe de coordinación {proyecto.codigo}",
-            author="J.E.J. Ingeniería · AeroBim",
+            author=f"{settings.REPORT_ORG_NAME} · AeroBim",
             subject=f"{proyecto.codigo} · {proyecto.nombre}",
         )
 
