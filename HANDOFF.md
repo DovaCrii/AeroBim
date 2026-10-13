@@ -58,30 +58,26 @@ propia por organización** (no hay campo ni migración).
 - El **piloto** ([`docs/PILOTO.md`](docs/PILOTO.md)): las cinco etapas, de la 0 a la 4, siguen sin
   empezar. La Etapa 1 (registro documental) no necesita el IFC.
 
-## Desplegado en la VM (2026-10-09)
+## Desplegado en la VM y en pausa (2026-10-13)
 
-**La VM `p340` corre `d54fd5f` (#142), con todo lo de #108 a #142**: 3D sin 2D, planos y perfiles con
-balizado nítido, barra de seguimiento con perfil tipo, «Generar plano» con vista y alcance, panel «Vista de la
-lámina» y lateral corregido. Sin migraciones nuevas; `/health/` en `ok`; `conversor_cad` sigue ausente (sin él
-no abren los DWG). Último respaldo: `/var/backups/aerobim/20261009-124510`. **No queda nada por desplegar.**
-**Sin confirmar a ojo:** un perfil real con muchas láminas de punta a punta; la cámara en planta del espacio 2D;
-la orientación izquierda/derecha del lateral. **Decisión pendiente:** ortofotos e imágenes georreferenciadas,
-¿en AeroConvert (recomendado) o aquí? Hasta decidirlo, F6.x sigue pospuesta.
+**La VM `p340` corre `d54fd5f` (#142).** Respaldo: `/var/backups/aerobim/20261009-124510`. **Falta desplegar
+#143 a #148**: barra de ayuda de uso (F17.1, #145), documentación y agentes, y el **servidor del asistente de IA
+apagado por defecto** (F17.3a, #148). **Migraciones nuevas: `core/0006_asistente_activo` y `asistente/0001`**
+(aditivas); sin `nginx`; variables nuevas **opcionales** (`NIM_*`, `ASISTENTE_*`, en `docs/DEPLOY.md`): sin
+`NIM_API_KEY` el asistente no existe. Orden: `respaldo.sh`, `desplegar.sh`, Ctrl+F5.
 
-## La tanda anterior: la Fase 15, revisión con marcas (#89 a #103) — **cerrada entera**
+**Pausa: dónde se quedó.** Plan aprobado del asistente (NVIDIA, **apagado por defecto y por organización**;
+nombres de variables alineados con Academy; **sin streaming** al principio): bloque A hecho. **Sigue el B**
+(cliente HTTP a NIM con cadena de modelos de respaldo, `enable_thinking` apagado y limpieza de `<think>`, 429
+amable, límite diario por persona y por organización, auditoría sin texto, comando `asistente_probar`), luego
+C (panel «Asistente»), D (herramientas, opcionales) y E (acciones con confirmación). `F17.2` (herramientas
+por tarea) espera una captura al usuario. El plan completo está en `C:\Users\cmunoz\.claude\plans\`
+(`robust-noodling-quilt.md`) y el diseño en `docs/ASISTENTE_IA.md`.
 
-Pedida con tres capturas de referencia (ProjectWise en 2D, iTwin Design Review en 3D y un panel de
-reportes). **Hecho:** `F15.1` panel de observaciones del documento con marcas numeradas · `F15.2`
-rectángulo, nube de revisión y llamada (migración `0016`) · `F15.3` globos numerados en la escena, su
-tarjeta y la **barra vertical** de herramientas · `F15.4` hilo, responder y **@menciones** sin salir del
-visor (`HiloDeObservacionAPI`, `avisar_menciones`) · `F15.5` página **Reportes** con cifras, dona, barras y
-CSV · `F15.6` **buscador**: elementos del modelo en el visor (nombre, clase o GUID, con «Aislar») y página
-«Buscar» del registro. Además #90 dejó el plan en ~500 líneas con `/siguiente`, #91 y #100 la malla del
-perfil con sus cifras, y #93 `werkzeug` 3.1.9 (`pip-audit` lo marcó).
-
-**Dicho y no hecho:** búsquedas guardadas como objeto (la URL `?q=` ya sirve) y que el buscador del registro
-ignore acentos (pide `unaccent` de PostgreSQL: decisión de despliegue). Los globos se ven a través de los
-muros, a propósito.
+**Es tuyo:** poner `NIM_API_KEY` **solo en el `.env` de la VM** (nunca en chat ni repositorio) y correr
+`asistente_probar` cuando exista; mirar a ojo la barra de ayuda (F17.1); decidir si ortofotos e imágenes van en
+AeroConvert (recomendado). Sin confirmar a ojo desde antes: un perfil real con muchas láminas, la cámara en
+planta del espacio 2D y la orientación del lateral.
 
 ## Trampas vigentes (las que más costaron)
 
@@ -113,4 +109,4 @@ node scripts/claude/plan-fila.mjs --abiertas  # qué sigue
 
 ## Historial
 
-- [Tanda #72 a #80](docs/historial/HANDOFF-tanda-72-a-80.md) · [Hasta 2026-10-05](docs/historial/HANDOFF-hasta-2026-10-05.md).
+- [Fase 15](docs/historial/HANDOFF-tanda-fase-15.md) · [Tanda #72 a #80](docs/historial/HANDOFF-tanda-72-a-80.md) · [Hasta 2026-10-05](docs/historial/HANDOFF-hasta-2026-10-05.md).
