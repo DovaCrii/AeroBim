@@ -17,15 +17,16 @@ nunca `push --force`.
    confirmar nada.
 3. `/verificar todo` en verde. Si no se puede correr el gate `api`, dilo en el PR.
 4. Commits en español, imperativo y con ámbito. No mezcles fases en un commit.
-5. `git push -u origin <rama>`.
-6. PR con `gh pr create` si `gh` está disponible; si no, entrega el texto. Cuerpo en español:
+5. **Publica con los scripts de `terminar-bloques`** (`open_pr.ps1`, `wait_ci.ps1`, `merge_pr.ps1`): empujan con la
+   salida completa, comprueban la rama en `origin` y fusionan solo con los tres trabajos del CI en verde.
+6. Cuerpo del PR (en un archivo, `-BodyFile`), en español:
    - **Qué cambia** (una frase por cambio).
    - **Cómo se midió:** oráculo usado y cifras, con fecha.
    - **Filas del plan** tocadas y su nuevo estado.
    - **Riesgos y lo que queda sin comprobar.**
    - Si cambió `AGENTS.md`, dilo arriba y por qué: esa guía no se cambia en silencio.
-7. **Fusión.** Espera al CI (`gh pr checks <n> --watch`). Con las dos comprobaciones en verde y
-   `mergeStateStatus` en `CLEAN`, `gh pr merge <n> --merge`. Si el CI falla o hay conflicto, **no
+7. **Fusión.** `wait_ci.ps1 -Number <n>` y, con `verify`, `api` y `e2e` en verde y `mergeStateStatus` en `CLEAN`,
+   `merge_pr.ps1 -Number <n>` (nunca `gh pr merge` tras un «no checks reported»). Si el CI falla o hay conflicto, **no
    fusiones**: arregla (merge de `main` en la rama, nunca `push --force`) o dilo. Un PR apilado
    se fusiona después de su base. Si el usuario dijo de una entrega concreta «no la fusiones», se
    respeta: la instrucción expresa manda sobre esta regla general.
