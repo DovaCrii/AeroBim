@@ -12,6 +12,8 @@ import {
   type InformeDeRefresco,
   type MedicionDeDesviacion,
   type ModoDeColor,
+  HUELLA_DEL_CONVERSOR,
+  type ModeloConvertido,
   type GeneratedDrawing,
   type LoadedModel,
   type LoadedPlan,
@@ -46,7 +48,9 @@ import { type FichaCompartida, pedirFicha, testigoCompartido } from "./compartid
 import { cambiarTema, type Tema, temaGuardado } from "./tema.js";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DrawingsPanel } from "./components/DrawingsPanel.js";
+import { CacheLocal } from "./components/CacheLocal.js";
 import { ModelsPanel } from "./components/ModelsPanel.js";
+import { borrarDeCache, guardarEnCache, huellaDeArchivo, leerDeCache } from "./cache-modelos.js";
 import {
   DescargaCancelada,
   descargarConProgreso,
@@ -311,6 +315,14 @@ function revisionPedida(): string | null {
   return pedida !== null && /^[0-9a-f-]{36}$/i.test(pedida) ? pedida : null;
 }
 
+/** Lo que `openIfc` necesita de la caché local: o los Fragments ya hechos, o dónde guardarlos. */
+interface OpcionesDeCache {
+  readonly desdeCache?: ModeloConvertido;
+  /** Si los Fragments de la caché no se pudieron cargar: para descartar esa entrada. */
+  readonly alFallarLaCache?: () => void;
+  readonly alConvertir?: (modelo: ModeloConvertido) => void;
+}
+
 const ETAPAS: Record<LoadStage, string> = {
   converting: "convirtiendo la geometría",
   loading: "cargando en la escena",
@@ -396,6 +408,8 @@ export function App() {
   const [cargas, setCargas] = useState<ReadonlyMap<string, InfoDeCarga>>(new Map());
   /** Aborta la descarga en curso del registro; `null` si no hay ninguna. */
   const descargaEnCurso = useRef<AbortController | null>(null);
+  /** Sube cada vez que la caché local cambia, para que su resumen en el panel se vuelva a leer. */
+  const [versionCache, setVersionCache] = useState(0);
   const [dragging, setDragging] = useState(false);
   const [selected, setSelected] = useState<PickedItem | null>(null);
   /**
@@ -860,25 +874,42 @@ export function App() {
     }
   }, []);
 
-  const openIfc = useCallback(async (file: File) => {
+  const openIfc = useCallback(async (file: File, cache?: OpcionesDeCache) => {
     const instance = viewer.current;
     if (!instance) return;
 
-    setStatus({ kind: "loading", name: file.name, stage: "converting", desde: Date.now() });
+    setStatus({
+      kind: "loading",
+      name: file.name,
+      stage: cache?.desdeCache !== undefined ? "loading" : "converting",
+      desde: Date.now(),
+    });
     // **Un archivo del disco borra el origen en el registro.** Lo vuelve a poner `abrirRevision`
     // cuando la carga viene de ahí. Si se abre una revisión y después se arrastra otro IFC encima,
     // el elemento seleccionado ya puede ser del segundo modelo: anclar la observación a la revisión
     // del primero apuntaría a un GUID que ese archivo no contiene.
     setOrigen(null);
     try {
-      let bytes = new Uint8Array(await file.arrayBuffer());
-      // **Un `.ifczip` se abre por el IFC que trae.** Se decide por la firma y no por el nombre:
-      // lo desconocido se intenta como IFC (`formatos.ts`), y un zip llegaba así a `web-ifc`, que
-      // se caía con `memory access out of bounds` sin decir de qué archivo hablaba.
-      if (esZip(bytes)) bytes = await ifcDelZip(bytes);
-      const loaded = await instance.loadIfc(bytes, file.name, (stage) => {
+      const alCambiarEtapa = (stage: LoadStage) => {
         setStatus({ kind: "loading", name: file.name, stage, desde: Date.now() });
-      });
+      };
+      let loaded: LoadedModel;
+      if (cache?.desdeCache !== undefined) {
+        // **Ya convertido**: sin IFC que leer ni convertir; los Fragments salen de la caché local.
+        loaded = await instance.loadConvertedIfc(cache.desdeCache, file.name, alCambiarEtapa);
+      } else {
+        let bytes = new Uint8Array(await file.arrayBuffer());
+        // **Un `.ifczip` se abre por el IFC que trae.** Se decide por la firma y no por el nombre:
+        // lo desconocido se intenta como IFC (`formatos.ts`), y un zip llegaba así a `web-ifc`, que
+        // se caía con `memory access out of bounds` sin decir de qué archivo hablaba.
+        if (esZip(bytes)) bytes = await ifcDelZip(bytes);
+        loaded = await instance.loadIfc(
+          bytes,
+          file.name,
+          alCambiarEtapa,
+          cache?.alConvertir !== undefined ? { alConvertir: cache.alConvertir } : {},
+        );
+      }
       setModels((current) => [...current, loaded]);
       setTrees(await instance.getSpatialTrees());
       setStatus({ kind: "ready" });
@@ -888,6 +919,17 @@ export function App() {
       // navegador ya aplicó el nuevo ancho.
       requestAnimationFrame(() => void instance.frameAll());
     } catch (error: unknown) {
+      if (cache?.desdeCache !== undefined) {
+        // La copia local no se pudo cargar (dañada o de otra versión): se descarta y se dice qué
+        // hacer, en vez de dejar un error que se repetiría en cada apertura.
+        cache.alFallarLaCache?.();
+        setStatus({
+          kind: "error",
+          message:
+            "La copia local de este modelo no se pudo cargar y se descartó. Vuelve a abrir la revisión: esta vez se descargará de nuevo.",
+        });
+        return;
+      }
       setStatus({ kind: "error", message: describe(error) });
     }
   }, []);
@@ -1240,7 +1282,7 @@ export function App() {
    * IFC, que es deliberado: solo se rechaza lo que se sabe que no se puede.
    */
   const openFile = useCallback(
-    (file: File) => {
+    (file: File, cache?: OpcionesDeCache) => {
       const destino = queHacerCon(file.name);
       if (destino.tipo === "no-se-puede") {
         setStatus({ kind: "error", message: destino.motivo });
@@ -1248,7 +1290,7 @@ export function App() {
       }
       if (destino.tipo === "plano") return openDxf(file);
       if (destino.tipo === "nube") return openCloud(file);
-      return openIfc(file);
+      return openIfc(file, cache);
     },
     [openDxf, openIfc, openCloud],
   );
@@ -1348,49 +1390,86 @@ export function App() {
           // esta línea no serviría de nada.
           await abrirNube(datos.contenido, datos.nombre, { revocable: false });
         } else {
-          // **Se descarga por trozos y con cuenta**: un IFC de 34 MB por una VM lenta tardó más de
-          // dos minutos y la pantalla solo decía «convirtiendo». Ahora dice cuánto lleva y a qué
-          // ritmo, y si no llega un byte en 60 s lo da por atascado en vez de girar para siempre.
-          const controlador = new AbortController();
-          descargaEnCurso.current = controlador;
-          let ultimaPintada = 0;
-          const descargado = await descargarConProgreso(datos.contenido, {
-            controlador,
-            tamanoDeclarado: datos.tamanoBytes ?? null,
-            onProgreso: (estado) => {
-              const ahora = Date.now();
-              if (ahora - ultimaPintada < 200 && estado.sinAvanceMs < 1000) return;
-              ultimaPintada = ahora;
-              setStatus({
-                kind: "loading",
-                name: etiqueta,
-                stage: "reading",
-                desde: ahora - estado.transcurridoMs,
-                descarga: estado,
-              });
-            },
-          });
-          descargaEnCurso.current = null;
-          setStatus({
-            kind: "loading",
-            name: etiqueta,
-            stage: "reading",
-            desde: Date.now(),
-          });
-          // **El nombre que decide el camino es el del archivo servido, no el del entregable.**
-          // `openFile` manda un `.dxf` al lector de planos y todo lo demás al de IFC, y un DWG se
-          // sirve por su DXF convertido: con `datos.nombre` —`planta.dwg`— esos bytes de DXF
-          // acababan en `web-ifc`, que espera texto STEP y tumba el WebAssembly. Lo decide el
-          // servidor, que es quien sabe si hubo conversión (`abribles.nombre_para_el_visor`).
-          await openFile(new File([descargado.bytes], datos.nombreParaElVisor));
-          setCargas((actuales) =>
-            new Map(actuales).set(datos.nombreParaElVisor, {
-              origen: "red",
-              descargaMs: descargado.ms,
-              bytes: descargado.bytes.byteLength,
-              comprimido: descargado.comprimido,
-            }),
-          );
+          // **Caché local de modelos ya convertidos** (solo IFC, y solo si el registro da una
+          // huella estable del archivo). Si esta misma revisión ya se convirtió en este navegador,
+          // se cargan los Fragments guardados: sin descargar y sin convertir.
+          const huella = huellaDeArchivo(datos.sha256, datos.tamanoBytes);
+          const cacheable =
+            huella !== null && queHacerCon(datos.nombreParaElVisor).tipo === "modelo";
+          const guardado = cacheable
+            ? await leerDeCache(revisionId, huella, HUELLA_DEL_CONVERSOR)
+            : null;
+          if (guardado !== null) {
+            await openFile(new File([], datos.nombreParaElVisor), {
+              desdeCache: guardado,
+              alFallarLaCache: () => void borrarDeCache(revisionId),
+            });
+            setCargas((actuales) =>
+              new Map(actuales).set(datos.nombreParaElVisor, {
+                origen: "cache",
+                descargaMs: null,
+                bytes: null,
+                comprimido: null,
+              }),
+            );
+          } else {
+            // **Se descarga por trozos y con cuenta**: un IFC de 34 MB por una VM lenta tardó más de
+            // dos minutos y la pantalla solo decía «convirtiendo». Ahora dice cuánto lleva y a qué
+            // ritmo, y si no llega un byte en 60 s lo da por atascado en vez de girar para siempre.
+            const controlador = new AbortController();
+            descargaEnCurso.current = controlador;
+            let ultimaPintada = 0;
+            const descargado = await descargarConProgreso(datos.contenido, {
+              controlador,
+              tamanoDeclarado: datos.tamanoBytes ?? null,
+              onProgreso: (estado) => {
+                const ahora = Date.now();
+                if (ahora - ultimaPintada < 200 && estado.sinAvanceMs < 1000) return;
+                ultimaPintada = ahora;
+                setStatus({
+                  kind: "loading",
+                  name: etiqueta,
+                  stage: "reading",
+                  desde: ahora - estado.transcurridoMs,
+                  descarga: estado,
+                });
+              },
+            });
+            descargaEnCurso.current = null;
+            setStatus({
+              kind: "loading",
+              name: etiqueta,
+              stage: "reading",
+              desde: Date.now(),
+            });
+            // **El nombre que decide el camino es el del archivo servido, no el del entregable.**
+            // `openFile` manda un `.dxf` al lector de planos y todo lo demás al de IFC, y un DWG se
+            // sirve por su DXF convertido: con `datos.nombre` —`planta.dwg`— esos bytes de DXF
+            // acababan en `web-ifc`, que espera texto STEP y tumba el WebAssembly. Lo decide el
+            // servidor, que es quien sabe si hubo conversión (`abribles.nombre_para_el_visor`).
+            await openFile(
+              new File([descargado.bytes], datos.nombreParaElVisor),
+              cacheable
+                ? {
+                    // Se guarda en segundo plano: el modelo ya se está abriendo y si IndexedDB
+                    // falla (modo privado, cuota) `guardarEnCache` devuelve `false` y no pasa nada.
+                    alConvertir: (modelo) => {
+                      void guardarEnCache(revisionId, huella, datos.nombreParaElVisor, modelo).then(
+                        () => setVersionCache((v) => v + 1),
+                      );
+                    },
+                  }
+                : undefined,
+            );
+            setCargas((actuales) =>
+              new Map(actuales).set(datos.nombreParaElVisor, {
+                origen: "red",
+                descargaMs: descargado.ms,
+                bytes: descargado.bytes.byteLength,
+                comprimido: descargado.comprimido,
+              }),
+            );
+          }
         }
 
         // **Después de abrir, no antes**: `openIfc` borra el origen a propósito —un archivo del
@@ -3895,24 +3974,27 @@ export function App() {
               />
             }
             modelos={
-              models.length === 0 ? (
-                <p className="p-3 text-xs leading-snug text-fg-3">
-                  Ninguno.{" "}
-                  <span className="text-fg-2">
-                    Con dos modelos abiertos, esta lista es donde se apaga uno para mirar el otro —
-                    que es en lo que consiste coordinar.
-                  </span>
-                </p>
-              ) : (
-                <ModelsPanel
-                  models={models}
-                  cargas={cargas}
-                  hidden={hiddenModels}
-                  onToggleVisible={onToggleModel}
-                  onMove={onMoveModel}
-                  onClose={onCloseModel}
-                />
-              )
+              <>
+                {models.length === 0 ? (
+                  <p className="p-3 text-xs leading-snug text-fg-3">
+                    Ninguno.{" "}
+                    <span className="text-fg-2">
+                      Con dos modelos abiertos, esta lista es donde se apaga uno para mirar el otro
+                      — que es en lo que consiste coordinar.
+                    </span>
+                  </p>
+                ) : (
+                  <ModelsPanel
+                    models={models}
+                    cargas={cargas}
+                    hidden={hiddenModels}
+                    onToggleVisible={onToggleModel}
+                    onMove={onMoveModel}
+                    onClose={onCloseModel}
+                  />
+                )}
+                <CacheLocal version={versionCache} onCambio={() => setVersionCache((v) => v + 1)} />
+              </>
             }
           />
         </aside>

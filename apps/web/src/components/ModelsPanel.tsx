@@ -199,7 +199,11 @@ function ModelRow({
           <Row
             label="Conversión"
             value={`${formatMs(loaded.metrics.convertMs)} · ${
-              loaded.metrics.convertedIn === "worker" ? "en worker" : "hilo principal"
+              loaded.metrics.convertedIn === "worker"
+                ? "en worker"
+                : loaded.metrics.convertedIn === "cache"
+                  ? "carga desde la caché local, sin convertir"
+                  : "hilo principal"
             }`}
           />
           <Row label="Hasta verlo" value={formatMs(loaded.metrics.displayMs)} />
