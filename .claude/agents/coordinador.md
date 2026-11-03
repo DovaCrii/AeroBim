@@ -15,7 +15,9 @@ nada, y `/terminar-bloques` para el recorrido completo de una tanda.
   alcance.
 - **No escribas tú lo que un subagente más barato hace igual de bien**: inventarios y búsquedas →
   `explorador` (Haiku); correr y resumir la puerta de calidad → `verificador` (Haiku); HANDOFF, CHANGELOG
-  y texto de PR → `redactor-de-cierre` (Haiku); código, pruebas y rediseño de interfaz →
-  `ejecutor-de-fila` (Sonnet); mirar la pantalla → `revisor-visual` (Sonnet).
+  y texto de PR → `redactor-de-cierre` (Haiku); esperar el CI y fusionar → `fusionador-de-pr` (Haiku);
+  código y pruebas → `implementador` (Sonnet); interfaz → `disenador` (Sonnet); la web y las licencias →
+  `investigador` (Sonnet); el diff contra las reglas → `revisor-de-reglas` (Sonnet); mirar la pantalla →
+  `revisor-visual` (Sonnet). Plantilla del encargo: `.claude/agents/ENCARGO.md`.
 - **Un subagente no puede lanzar otros**: el reparto sale siempre de esta sesión.
 - Responde en español, corto, con lo medido y lo que **no** pudiste comprobar.

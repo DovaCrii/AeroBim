@@ -1,60 +1,62 @@
 ---
 name: orquestar
-description: Reparte una ronda de trabajo de AeroBim entre subagentes - Opus diseña, decide y publica; Sonnet implementa; Haiku revisa e inventaría - para no gastar tokens de más. Úsala cuando una petición tenga varias partes independientes o mucho trabajo mecánico. Mismo esquema que AeroControl.
+description: Reparte una ronda de trabajo de AeroBim entre subagentes - Opus diseña, decide y publica; Sonnet implementa, diseña, investiga y revisa reglas; Haiku busca, verifica, redacta y fusiona con los scripts - para no gastar tokens de más. Úsala cuando una petición tenga varias partes independientes o mucho trabajo mecánico. Mismo esquema que AeroControl, AeroConvert y AeroGeo.
 ---
 
 # Orquestar una ronda
 
-Es el mismo esquema que `AeroControl/.claude/skills/orquestar`. Orden de la persona (2026-10-16):
-**Opus diseña y decide, Sonnet implementa, Haiku revisa.**
+Orden de la persona (2026-10-16): **Opus diseña y decide, Sonnet implementa, Haiku revisa.** Es el mismo
+esquema de AeroControl (`orquestar`, `terminar-bloques`, `pendientes-github`) con el reparto de agentes de
+AeroConvert y AeroGeo, adaptado a AeroBim.
 
-## Quién hace qué
+## Quién hace qué (`.claude/agents/`)
 
-| Modelo                      | Rol                                                                                   | Ejemplos                                                                                            |
-| --------------------------- | ------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| **Opus** (esfuerzo medio)   | Diseña, decide y establece cómo se hace; reparte, revisa, integra y **publica el PR** | Plan, decisiones de alcance, seguridad y licencias, revisar el diff, resolver conflictos, fusionar  |
-| **Sonnet** (esfuerzo medio) | Implementa lo que Opus dejó decidido                                                  | Código y pruebas, interfaz, documentos; **un worktree por agente**                                  |
-| **Haiku** (esfuerzo medio)  | Lo que Opus estime conveniente para no gastar de más                                  | Revisión mecánica del diff, inventarios (`pendientes-github`), buscar dónde está algo, resumir logs |
+| Agente                        | Modelo          | Qué hace                                                           | Cuándo                                                   |
+| ----------------------------- | --------------- | ------------------------------------------------------------------ | -------------------------------------------------------- |
+| **coordinador** (esta sesión) | **Opus**, medio | Entiende, decide, reparte, **revisa el diff**, publica y fusiona   | Siempre                                                  |
+| `implementador`               | Sonnet          | Una fila de código y pruebas en su worktree, **sin push**          | Cada bloque de código                                    |
+| `disenador`                   | Sonnet          | Interfaz: tokens, contraste medido, disposición; maquetas          | Lo visual                                                |
+| `investigador`                | Sonnet          | Web, licencias, APIs, proyectos de referencia; informe con fuentes | Antes de adoptar algo                                    |
+| `revisor-de-reglas`           | Sonnet          | El diff contra las reglas de `AGENTS.md` (solo lectura)            | Filas con permisos, datos, IFC, geometría o dependencias |
+| `revisor-visual`              | Sonnet          | Mirar la pantalla en oscuro, solapes, consola (sin editar)         | Tras un cambio de interfaz                               |
+| `explorador`                  | Haiku           | Dónde está algo y qué lo usa; rutas, no código                     | Antes de repartir                                        |
+| `verificador`                 | Haiku           | `verificar.mjs` y su resumen corto                                 | Antes de publicar                                        |
+| `redactor-de-cierre`          | Haiku           | HANDOFF, CHANGELOG, texto de PR con datos dados                    | Cierre de tanda                                          |
+| `fusionador-de-pr`            | Haiku           | `wait_ci.ps1` y `merge_pr.ps1`; si falla, el extracto              | Mientras se sigue con otro bloque                        |
 
-Los agentes del proyecto ya traen su modelo (`.claude/agents/`): `explorador`, `verificador` y
-`redactor-de-cierre` (Haiku), `ejecutor-de-fila` y `revisor-visual` (Sonnet). **Al lanzar uno pasa siempre
-`model` explícito** (`"opus"`, `"sonnet"` o `"haiku"`) y, para diseño, `subagent_type: "Plan"` (solo lee y
-propone). Un subagente **no puede lanzar otros**: todo reparto sale de esta sesión.
+La plantilla del encargo está en `.claude/agents/ENCARGO.md`. **Pasa siempre `model` explícito** y, para un plan,
+`subagent_type: "Plan"` (solo lee y propone). Un subagente **no puede lanzar otros**: todo reparto sale de aquí.
 
 ## Orden
 
-1. **Entender (Opus).** Separar el pedido en partes independientes; lo que dependa de una decisión de la
-   persona se pregunta antes.
-2. **Explorar (Haiku, opcional).** Ubicar archivos y dueños antes de repartir.
-3. **Repartir (Sonnet, en paralelo).** Un agente por parte, con **dueños de archivos sin cruce**: el prompt
-   dice qué edita y qué **no** toca; cada uno en su `git worktree` (`isolation: "worktree"`).
-   **Los subagentes hacen commit en su rama pero NO hacen `git push` ni abren PR**: publica Opus.
-4. **Integrar (Opus).** Leer el informe, **mirar el diff** (`git diff main...<rama>`) y correr `/verificar`.
-   Lo que toque seguridad, permisos, claves o licencias se lee línea a línea.
-5. **Verificar (Haiku).** `verificador` y la revisión mecánica al final.
-6. **Publicar (Opus).** `terminar-bloques/scripts/open_pr.ps1`, `wait_ci.ps1` y `merge_pr.ps1`.
-   **Opus fusiona** con el CI verde y sin conflictos (decisión del usuario, 2026-10-05, `AGENTS.md`); la
-   persona **solo despliega** en `p340`. Nunca `push --force`.
+1. **Entender (Opus).** Partir el pedido en partes independientes; lo que dependa de una decisión de la persona
+   se pregunta antes.
+2. **Explorar (`explorador`, Haiku).** Ubicar archivos y dueños antes de repartir; si hace falta la web,
+   `investigador`.
+3. **Repartir (Sonnet, en paralelo).** Un agente por parte, con **dueños de archivos sin cruce**; cada uno en su
+   worktree (`isolation: "worktree"`). **Los subagentes hacen commit pero no empujan ni abren PR.**
+4. **Integrar (Opus).** Leer el informe y **el diff**; lo que toque seguridad, permisos, claves, licencias o el
+   IFC, además, `revisor-de-reglas`.
+5. **Verificar (Haiku).** `verificador`; y `/oraculo` antes de un ✅ que lee el modelo.
+6. **Publicar (Opus).** `open_pr.ps1`; el `fusionador-de-pr` espera y fusiona con el CI verde y `CLEAN`
+   (decisión del usuario, 2026-10-05). La persona **solo despliega** en `p340`. Nunca `push --force`.
 
 ## Límites que ya costaron
 
-- **Navegador compartido:** hay **un** panel. Como mucho un subagente lo usa, con su pestaña
-  (`tabs_create`) y `tabId` en cada llamada; un script sin `tabId` corre en la pestaña de otro. Con la
-  ventana oculta `innerWidth` da 0: `resize_window` antes de medir. **El panel no compone fotogramas** (la
-  proyección queda en «Building BVH…», el giro de cámara se ve a medias): lo que no se vio **se dice**.
-- **Paralelismo:** como mucho 3 subagentes de código con archivos disjuntos; `App.tsx` es el cuello de
-  botella (cambios mínimos y localizados, y fusionar `main` antes de publicar).
-- **Un agente cortado** deja trabajo **sin commitear** en su worktree: `git status --short` en su ruta antes
-  de dar nada por perdido; se retoma con `SendMessage`, que conserva su contexto.
-- **Nunca se reparte:** claves y credenciales (jamás en un encargo, archivo del repositorio o chat),
-  licencias, cambios de `AGENTS.md`, migraciones destructivas y el despliegue a la VM.
+- **Navegador compartido:** un solo panel; como mucho un agente lo usa, con su pestaña (`tabs_create`) y `tabId`
+  en cada llamada. `resize_window` antes de medir. **El panel no compone fotogramas** a veces («Building BVH…»,
+  giro de cámara a medias): lo que no se vio **se dice**.
+- **Paralelismo:** como mucho 3 agentes de código con archivos disjuntos; `App.tsx` es el cuello de botella.
+- **Dependencias:** `npm audit` y `pip-audit` van en el CI y se rompen solos con avisos nuevos; si el CI exige
+  los dos, se arreglan en **un** PR o se combinan antes de fusionar.
+- **Un agente cortado** deja trabajo sin commitear en su worktree: `git status --short` allí y `SendMessage`.
+- **Nunca se reparte:** claves y credenciales, decisiones de licencia, cambios de `AGENTS.md`, migraciones
+  destructivas y el despliegue a la VM.
 
 ## Ahorro de tokens
 
-- No dupliques búsquedas entre agentes. Prompts autosuficientes y cortos: contexto, archivos dueños,
-  criterio de aceptación, cómo verificar, qué reportar.
-- Informes concisos (archivos, decisiones, pruebas); el detalle se lee del diff.
-- Si un agente arrancó con el modelo equivocado y lleva poco, detenlo y relánzalo.
+No dupliques búsquedas; encargos autosuficientes y cortos (contexto, archivos dueños, criterio, cómo verificar,
+qué reportar); informes concisos (el detalle se lee del diff). Si un agente arrancó con el modelo equivocado,
+detenlo y relánzalo.
 
-El recorrido completo de una tanda (rama, prueba, gate, PR, CI, fusión y qué falta subir) está en
-`terminar-bloques`; lo que se acumula alrededor (PR sueltos, ramas, worktrees), en `pendientes-github`.
+El recorrido de una tanda está en `/terminar-bloques`; lo que se acumula alrededor, en `/pendientes-github`.

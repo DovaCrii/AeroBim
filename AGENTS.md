@@ -255,6 +255,8 @@ reales se ponen en el entorno del despliegue (`docs/DEPLOY.md`), nunca en el có
 ## Estándar de trabajo y skills
 
 El método general de la suite Aero (plan, bloque pequeño, pruebas, PR, revisión humana, política de modelos y recuperación)
-está en `docs/ESTANDAR_TRABAJO.md`. Aquí manda esta guía cuando choquen. La coordinación con subagentes ya está cubierta por
-`/coordinar` y `.claude/agents/`; se suma `/revision-privacidad`. La guía para compañeros no desarrolladores es
+está en `docs/ESTANDAR_TRABAJO.md`. Aquí manda esta guía cuando choquen. La coordinación con subagentes la cubren
+`/orquestar` (mismo esquema que AeroControl, AeroConvert y AeroGeo: Opus decide y publica, Sonnet implementa,
+Haiku revisa), `/terminar-bloques`, `/pendientes-github` y los roles de `.claude/agents/`; se suman `/oraculo` y
+`/revision-privacidad`. La guía para compañeros no desarrolladores es
 `docs/guia-companeros.md`.
