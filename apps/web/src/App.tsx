@@ -54,7 +54,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DrawingsPanel } from "./components/DrawingsPanel.js";
 import { CacheLocal } from "./components/CacheLocal.js";
 import { ModelsPanel } from "./components/ModelsPanel.js";
-import { borrarDeCache, guardarEnCache, huellaDeArchivo, leerDeCache } from "./cache-modelos.js";
+import {
+  borrarDeCache,
+  guardarEnCache,
+  huellaDeArchivo,
+  leerDeCache,
+  vaciarSiEsDeOtroUsuario,
+} from "./cache-modelos.js";
 import {
   DescargaCancelada,
   descargarConProgreso,
@@ -1390,6 +1396,8 @@ export function App() {
           nombreParaElVisor: string;
           tamanoBytes?: number;
           sha256?: string;
+          /** Quién es la sesión: la caché local solo se reutiliza entre la misma persona. */
+          usuarioId?: string;
           contenido: string;
           correlativo: string;
           puedeObservar?: boolean;
@@ -1418,6 +1426,10 @@ export function App() {
           const huella = huellaDeArchivo(datos.sha256, datos.tamanoBytes);
           const cacheable =
             huella !== null && queHacerCon(datos.nombreParaElVisor).tipo === "modelo";
+          // Si otra persona llenó la caché en este navegador, se vacía antes de usarla.
+          if (cacheable && datos.usuarioId !== undefined) {
+            if (await vaciarSiEsDeOtroUsuario(datos.usuarioId)) setVersionCache((v) => v + 1);
+          }
           const guardado = cacheable
             ? await leerDeCache(revisionId, huella, HUELLA_DEL_CONVERSOR)
             : null;
@@ -1476,9 +1488,13 @@ export function App() {
                     // Se guarda en segundo plano: el modelo ya se está abriendo y si IndexedDB
                     // falla (modo privado, cuota) `guardarEnCache` devuelve `false` y no pasa nada.
                     alConvertir: (modelo) => {
-                      void guardarEnCache(revisionId, huella, datos.nombreParaElVisor, modelo).then(
-                        () => setVersionCache((v) => v + 1),
-                      );
+                      void guardarEnCache(
+                        revisionId,
+                        huella,
+                        datos.nombreParaElVisor,
+                        modelo,
+                        datos.usuarioId,
+                      ).then(() => setVersionCache((v) => v + 1));
                     },
                   }
                 : undefined,

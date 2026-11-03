@@ -88,6 +88,9 @@ def como_json(revision: Revision, user) -> dict:
         # Con esto el visor decide si dibuja el botón «Observar» en la ficha del elemento. Un botón
         # que termina en 403 es peor que no ofrecerlo: enseña a probar puertas.
         "puedeObservar": user.has_perm("documents.add_observacion"),
+        # **Quién es la sesión**, solo su propio id (nada de otras personas): el visor guarda en su
+        # caché local de modelos quién la llenó y la vacía si entra otra persona en el navegador.
+        "usuarioId": str(user.pk),
         "contenido": f"/api/revisiones/{revision.pk}/contenido/",
     }
 
