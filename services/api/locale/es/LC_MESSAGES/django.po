@@ -5208,5 +5208,26 @@ msgid "The request body is not valid JSON."
 msgstr "El cuerpo de la petición no es un JSON válido."
 
 #: .\apps\asistente\api.py
-msgid "Pending: the chat is not implemented yet."
-msgstr "Pendiente: el chat aún no está implementado."
+msgid "You have reached today's limit of questions. Try again tomorrow."
+msgstr "Llegaste al límite de consultas de hoy. Vuelve a intentarlo mañana."
+
+#: .\apps\asistente\api.py
+#, python-format
+msgid "The assistant is busy. Retry in %(segundos)s s."
+msgstr "El asistente está ocupado. Reintenta en %(segundos)s s."
+
+#: .\apps\asistente\api.py
+msgid "The AI provider is receiving too many requests. Try again in a minute."
+msgstr "El proveedor de IA está recibiendo demasiadas peticiones. Vuelve a intentarlo en un minuto."
+
+#: .\apps\asistente\api.py
+msgid "The AI provider rejected the server key. Whoever deploys AeroBim must check NIM_API_KEY."
+msgstr "El proveedor de IA rechazó la clave del servidor. Quien despliega AeroBim debe revisar NIM_API_KEY."
+
+#: .\apps\asistente\api.py
+msgid "The AI provider took too long to answer. Try again."
+msgstr "El proveedor de IA tardó demasiado en responder. Inténtalo de nuevo."
+
+#: .\apps\asistente\api.py
+msgid "The AI provider did not give a usable answer. Try again later."
+msgstr "El proveedor de IA no dio una respuesta utilizable. Inténtalo más tarde."

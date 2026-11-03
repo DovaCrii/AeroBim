@@ -27,7 +27,8 @@ trajo el usuario. (La publicación de LinkedIn no se pudo leer desde aquí; el d
 
 **Servidor** (`services/api/apps/asistente`, app nueva):
 
-- Un único endpoint `POST /api/asistente/chat/`, **con streaming**, que reenvía a
+- Un único endpoint `POST /api/asistente/chat/`, **sin streaming** (respuesta completa; con modelos de
+  razonamiento hay que limpiar `<think>` antes de mostrar, y Academy tampoco lo usa), que reenvía a
   `NIM_BASE_URL` (por defecto `https://integrate.api.nvidia.com/v1`) con `NIM_MODEL`.
 - La clave sale de la variable de entorno `NIM_API_KEY` (prefijo `nvapi-`), puesta por quien despliega en
   el archivo de entorno del servicio con modo `600`, y **solo se lee ahí**. Si falta, el asistente **no
@@ -38,7 +39,25 @@ trajo el usuario. (La publicación de LinkedIn no se pudo leer desde aquí; el d
 - **Auditoría:** un `AuditEvent` por consulta (usuario, organización, modelo, tokens), **sin guardar el
   texto**.
 - **Límite de ritmo** propio (el nivel gratuito ronda **40 peticiones por minuto**, variable según modelo y
-  tráfico) con reintento y mensaje claro, no un error mudo.
+  tráfico): `ASISTENTE_RPM` por organización y `ASISTENTE_LIMITE_DIARIO` por persona y día; al pasarse,
+  **429 con «Reintenta en N s»** o «Llegaste al límite de hoy». Un 429 del proveedor no se reintenta a ciegas.
+
+### Estado de `F17.3b` (servidor B hecho)
+
+- `apps/asistente/cliente.py`: `urllib`, `chat/completions`, `temperature` 0,3, `max_tokens` 600. **Cadena de
+  modelos** `NIM_MODEL` → `NIM_MODEL_FALLBACKS`: 404/410, 5xx o respuesta vacía pasan al siguiente. Para los
+  Nemotron se envía `enable_thinking=false`; si el modelo contesta 400/422 se reintenta una vez sin ella y se
+  recuerda por modelo (en memoria del proceso). Se limpia `<think>…</think>`, un `</think>` suelto y los
+  preámbulos de razonamiento; si solo había razonamiento, siguiente modelo.
+- Errores al navegador: 429 (ritmo del proveedor), 502 (clave rechazada, con el texto que remite a
+  `NIM_API_KEY` sin mostrarla; o ninguna respuesta útil) y 504 (tiempo agotado).
+- Cada llamada deja un `UsoDelAsistente` (modelo, tokens, estado; **sin texto**) y un `AuditEvent` con
+  `action="asistente"` y `metadata` {modelo, estado, tokens, ms}. Los límites se comprueban con la organización
+  bloqueada en una transacción, para que dos peticiones simultáneas no pasen por el mismo hueco.
+- **Probado solo con un proveedor simulado.** El oráculo real es la llamada a NVIDIA con la clave, que hace
+  quien despliega en la VM con `manage.py asistente_probar` (cadena configurada), `--modelos` (lista los
+  modelos del proveedor) y `--buscar` (prueba los de chat y sugiere `NIM_MODEL` y `NIM_MODEL_FALLBACKS`).
+  Nunca imprime la clave.
 
 **Navegador** (`apps/web`):
 

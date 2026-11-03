@@ -11,6 +11,7 @@ from django.contrib.auth.models import Group, Permission
 from django.urls import reverse
 
 from apps.accounts.roles import COORDINADOR
+from apps.asistente import cliente
 from apps.asistente.ajustes import asistente_disponible
 from apps.asistente.models import UsoDelAsistente
 from apps.core.models import Membresia, Organizacion
@@ -23,9 +24,13 @@ CHAT = "asistente_api:chat"
 
 
 @pytest.fixture
-def con_asistente(settings):
+def con_asistente(settings, monkeypatch):
     settings.NIM_API_KEY = CLAVE_DE_MENTIRA
     settings.NIM_MODEL = MODELO
+    # Ninguna prueba de este archivo sale a la red: el proveedor se prueba en test_chat.py.
+    monkeypatch.setattr(
+        cliente, "completar", lambda mensajes: cliente.Respuesta("Respuesta de prueba.", MODELO)
+    )
 
 
 def _usuario(nombre, organizacion, permiso=True):
@@ -56,7 +61,7 @@ def _valido():
     return {"mensajes": [{"rol": "user", "texto": "¿Qué hay en el piso 5?"}]}
 
 
-# --- los ajustes -----------------------------------------------------------------------------
+# --- los ajustes ----------
 
 
 def test_solo_la_clave_decide_si_esta_disponible(settings):
@@ -82,7 +87,7 @@ def test_organizacion_nace_con_el_asistente_apagado():
     assert Organizacion.objects.create(nombre="X", slug="x").asistente_activo is False
 
 
-# --- estado ------------------------------------------------------------------------------------
+# --- estado ----------
 
 
 @pytest.mark.django_db
@@ -130,13 +135,15 @@ def test_estado_disponible(client, con_asistente, org_activa):
     assert respuesta.json() == {"disponible": True, "modelo": MODELO}
 
 
-# --- chat provisional --------------------------------------------------------------------------
+# --- chat (el proveedor esta simulado) ----------
 
 
 @pytest.mark.django_db
-def test_chat_valido_contesta_501(client, con_asistente, org_activa):
+def test_chat_valido_contesta_200(client, con_asistente, org_activa):
     client.force_login(_usuario("ana", org_activa))
-    assert _post(client, _valido()).status_code == 501
+    respuesta = _post(client, _valido())
+    assert respuesta.status_code == 200
+    assert respuesta.json() == {"respuesta": "Respuesta de prueba.", "modelo": MODELO}
 
 
 @pytest.mark.django_db
@@ -165,7 +172,7 @@ def test_chat_rechaza_cuerpos_invalidos(client, con_asistente, org_activa, cuerp
 def test_chat_acepta_los_topes_exactos(client, con_asistente, org_activa):
     client.force_login(_usuario("ana", org_activa))
     cuerpo = {"mensajes": [{"rol": "assistant", "texto": "a" * 4000}] * 20}
-    assert _post(client, cuerpo).status_code == 501
+    assert _post(client, cuerpo).status_code == 200
 
 
 @pytest.mark.django_db
@@ -175,7 +182,7 @@ def test_chat_json_roto_400(client, con_asistente, org_activa):
     assert respuesta.status_code == 400
 
 
-# --- la clave no sale ---------------------------------------------------------------------------
+# --- la clave no sale ----------
 
 
 @pytest.mark.django_db
@@ -203,7 +210,7 @@ def test_la_clave_tampoco_sale_en_el_403(client, con_asistente, org_activa):
     assert CLAVE_DE_MENTIRA not in respuesta.content.decode()
 
 
-# --- el modelo y el rol --------------------------------------------------------------------------
+# --- el modelo y el rol ----------
 
 
 @pytest.mark.django_db
