@@ -13,7 +13,9 @@ if (-not $Branch -or $Branch -eq "main") { throw "No se abre un PR desde main ni
 if (-not (Test-Path $BodyFile)) { throw "No existe el cuerpo del PR: $BodyFile" }
 
 git fetch origin | Out-Null
-git push -u origin $Branch
+# Con las credenciales de `gh`: el selector de credenciales de Git para Windows abre una ventana que nadie
+# ve desde un agente y el push se queda colgado sin error (2026-11-03).
+git -c credential.helper= -c "credential.helper=!gh auth git-credential" push -u origin $Branch
 $remote = git ls-remote origin "refs/heads/$Branch"
 if (-not $remote) { throw "La rama $Branch NO llego a origin." }
 "Rama en origin: $($remote.Split("`t")[0].Substring(0, 7))  $Branch"
