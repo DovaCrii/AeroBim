@@ -89,6 +89,15 @@ import { construirBalizado, liberarBalizado } from "./balizado3d.js";
 import { tablaDePk, textoDePk } from "./perfiles.js";
 export { textoDePk } from "./perfiles.js";
 import { GridOverlay } from "./grid.js";
+import {
+  COLOR_POR_DEFECTO,
+  LUZ_POR_DEFECTO,
+  colorDeVista,
+  direccionDeLuzPrincipal,
+  parametrosDeLuz,
+  type ColorDeVista,
+  type ModoDeLuz,
+} from "./luces.js";
 import { masCercanoAlCursor, verticeDelGolpe } from "./senalar.js";
 
 export type { DrawingLayerInfo, DrawingView, GeneratedDrawing } from "./drawings.js";
@@ -96,6 +105,13 @@ export type { DrawingLayerInfo, DrawingView, GeneratedDrawing } from "./drawings
 /** Qué entra en un plano: todo lo encendido, o solo el elemento seleccionado. */
 export type AlcanceDePlano = "visible" | "seleccion";
 export type { PuntoEnPantalla } from "./proyeccion.js";
+export type { ColorDeVista, ModoDeLuz } from "./luces.js";
+export {
+  COLOR_POR_DEFECTO,
+  LUZ_POR_DEFECTO,
+  guardarEleccion as guardarEleccionDeLuz,
+  leerEleccion as leerEleccionDeLuz,
+} from "./luces.js";
 
 /** Un elemento hallado por el buscador: dónde está (modelo y `localId`) y con qué se le reconoce. */
 export interface ElementoEncontrado {
@@ -731,6 +747,10 @@ const LUZ_AMBIENTE = 0.25;
 /** La direccional sube para compensar el ambiente que baja: el modelo no se oscurece en total. */
 const LUZ_DIRECCIONAL = 2.2;
 
+const LUZ_NOMBRE_AMBIENTE = "aerobim:ambiente";
+const LUZ_NOMBRE_SOL = "aerobim:sol";
+const LUZ_NOMBRE_PRINCIPAL = "aerobim:principal";
+
 /**
  * La luz de cielo y suelo, y **es lo que arregla los interiores**.
  *
@@ -788,9 +808,23 @@ function encenderSombras(world: World): void {
   world.scene.three.traverse((objeto) => {
     const luz = objeto as THREE.Light;
     if (!luz.isLight) return;
-    if ((luz as THREE.AmbientLight).isAmbientLight) luz.intensity = LUZ_AMBIENTE;
-    else if (luz.castShadow) luz.intensity = LUZ_DIRECCIONAL;
+    // Se nombran para que el modo de luz (`luces.ts`) las encuentre sin recorrer la escena a ciegas.
+    if ((luz as THREE.AmbientLight).isAmbientLight) {
+      luz.intensity = LUZ_AMBIENTE;
+      luz.name = LUZ_NOMBRE_AMBIENTE;
+    } else if (luz.castShadow) {
+      luz.intensity = LUZ_DIRECCIONAL;
+      luz.name = LUZ_NOMBRE_SOL;
+    }
   });
+
+  // **La luz principal de revisión, que sigue a la cámara.** Sin sombra proyectada —un mapa de
+  // sombras que cambiara en cada fotograma costaría una pasada de geometría completa—: lo que da es
+  // sombreado por orientación de la cara. Empieza apagada; {@link BimViewer.setLightMode} la enciende.
+  const principal = new THREE.DirectionalLight(0xffffff, 0);
+  principal.name = LUZ_NOMBRE_PRINCIPAL;
+  principal.castShadow = false;
+  world.scene.three.add(principal);
 
   // **La luz de cielo y suelo, que la escena de la librería no trae.** Ver {@link LUZ_HEMISFERIO}:
   // es lo que da orientación a un muro interior, donde la direccional no llega porque la tapa el
@@ -1705,6 +1739,20 @@ export class BimViewer {
   private readonly fragments: OBC.FragmentsManager;
   private readonly container: HTMLElement;
   private disposed = false;
+
+  /** Cómo se ilumina la escena. Ver `luces.ts`. */
+  private modoDeLuz: ModoDeLuz = LUZ_POR_DEFECTO;
+
+  /** De qué color se ve el modelo. `ifc` no toca ningún material. */
+  private modoDeColor: ColorDeVista = COLOR_POR_DEFECTO;
+
+  /**
+   * El color original de cada material al que la vista neutra le puso gris. Es lo que permite
+   * volver **exactamente** al del archivo (se guarda el `Color`, no un hexadecimal redondeado).
+   */
+  private readonly colorOriginal = new WeakMap<THREE.Material, THREE.Color>();
+
+  private luzPrincipal: THREE.DirectionalLight | null = null;
   /** `true` mientras hay una conversión en curso. Ver {@link wireEvents}. */
   private loading = false;
   /** Modelos ya presentes en la escena. Ver {@link wireEvents}. */
@@ -2020,6 +2068,7 @@ export class BimViewer {
     );
     viewer.wireEvents();
     viewer.wireMeasureTools();
+    viewer.iniciarLuces();
     return viewer;
   }
 
@@ -3817,6 +3866,154 @@ export class BimViewer {
   }
 
   /**
+   * Cuelga la luz principal de la cámara y aplica el modo de luz por defecto.
+   *
+   * **La luz no se mueve con el ratón sino con la cámara**: se orienta en cada `update` de los
+   * controles, desde la dirección en que mira. Cuesta un producto vectorial por fotograma de
+   * cámara y ninguna pasada de renderizado.
+   */
+  private iniciarLuces(): void {
+    this.luzPrincipal =
+      (this.world.scene.three.getObjectByName(LUZ_NOMBRE_PRINCIPAL) as THREE.DirectionalLight) ??
+      null;
+    this.world.camera.controls.addEventListener("update", () => this.orientarLuzPrincipal());
+    this.setLightMode(this.modoDeLuz);
+  }
+
+  private readonly vectorAdelante = new THREE.Vector3();
+
+  /** Pone la luz principal arriba y a un lado de donde mira la cámara. */
+  private orientarLuzPrincipal(): void {
+    const luz = this.luzPrincipal;
+    if (luz === null || luz.intensity === 0 || this.disposed) return;
+
+    const camara = this.world.camera.three;
+    const adelante = camara.getWorldDirection(this.vectorAdelante);
+    const posicion = camara.position;
+    // El «objetivo» es el punto al que mira, a una unidad: solo importa la dirección, y así sirve
+    // igual en órbita, en primera persona y en ortográfica.
+    const dir = direccionDeLuzPrincipal(
+      { x: posicion.x, y: posicion.y, z: posicion.z },
+      { x: posicion.x + adelante.x, y: posicion.y + adelante.y, z: posicion.z + adelante.z },
+    );
+    if (dir === null) return;
+    // Una luz direccional ilumina desde su posición hacia su `target` (el origen).
+    luz.position.set(dir.x * 100, dir.y * 100, dir.z * 100);
+  }
+
+  /**
+   * Cambia cómo se ilumina la escena. **Es solo iluminación**: no toca un color del archivo, una
+   * propiedad ni un GUID.
+   *
+   * - `revision` (por defecto): menos luz difusa, la direccional fija con sombras y una principal
+   *   que sigue a la cámara, con mapeo de tonos neutro. Cada cara se sombrea según su orientación.
+   * - `uniforme`: la iluminación de antes.
+   */
+  setLightMode(modo: ModoDeLuz): void {
+    this.assertAlive();
+    this.modoDeLuz = modo;
+    const p = parametrosDeLuz(modo);
+
+    this.world.scene.three.traverse((objeto) => {
+      const luz = objeto as THREE.Light;
+      if (!luz.isLight) return;
+      if (luz.name === LUZ_NOMBRE_AMBIENTE) luz.intensity = p.ambiente;
+      else if (luz.name === LUZ_NOMBRE_SOL) luz.intensity = p.sol;
+      else if (luz.name === "aerobim:hemisferio") luz.intensity = p.hemisferio;
+      else if (luz.name === LUZ_NOMBRE_PRINCIPAL) luz.intensity = p.principal;
+    });
+
+    const renderizador = this.world.renderer?.three;
+    if (renderizador !== undefined) renderizador.toneMappingExposure = p.exposicion;
+    this.actualizarMapeoDeTonos();
+    this.orientarLuzPrincipal();
+
+    // Oclusión ambiental: los valores del modo, o los de la librería si el modo no pide otros.
+    const postproduccion = this.world.renderer?.postproduction;
+    if (postproduccion !== undefined) {
+      postproduccion.aoPass.updateGtaoMaterial({
+        ...postproduccion.defaultAoParameters,
+        ...(p.ao ?? {}),
+      });
+    }
+  }
+
+  /** Modo de luz actual. */
+  get lightMode(): ModoDeLuz {
+    return this.modoDeLuz;
+  }
+
+  /**
+   * El mapeo de tonos solo cuando hay un modelo 3D con postproducción.
+   *
+   * **Un dibujo 2D no se tonaliza**: el mapeo de tonos comprime las luces altas, y un trazo blanco
+   * de un plano dejaría de ser blanco. Se aplica con la postproducción encendida —que es el modo
+   * 3D— y se quita con ella en el Modo 2D y en las láminas.
+   */
+  private actualizarMapeoDeTonos(): void {
+    const renderizador = this.world.renderer?.three;
+    if (renderizador === undefined) return;
+    const quiere = parametrosDeLuz(this.modoDeLuz).tonos === "neutral" && this.postproduction;
+    renderizador.toneMapping = quiere ? THREE.NeutralToneMapping : THREE.NoToneMapping;
+  }
+
+  /**
+   * Cambia el color con que se ve el modelo.
+   *
+   * - `ifc` (por defecto): **el color del archivo, sin tocar nada.**
+   * - `neutro`: **es una vista**, no un cambio del modelo. Pone un gris claro a los materiales
+   *   para leer la forma sin que el color distraiga, y volver a `ifc` restituye cada color tal cual
+   *   estaba. No cambia propiedades, GUID ni el archivo.
+   */
+  async setColorMode(modo: ColorDeVista): Promise<void> {
+    this.assertAlive();
+    this.modoDeColor = modo;
+    this.aplicarColorDeVista();
+    // Los clones del fantasma y el material de la selección se arman desde el material de la
+    // malla: se rehacen para que tomen el color nuevo.
+    if (this.renderStyle === "wireframe" || this.selection !== null) await this.applyHighlights();
+    else await this.refresh();
+  }
+
+  /** Modo de color actual. */
+  get colorMode(): ColorDeVista {
+    return this.modoDeColor;
+  }
+
+  /** Recorre las mallas y deja cada material en gris (`neutro`) o en su color de fábrica (`ifc`). */
+  private aplicarColorDeVista(): void {
+    const gris = colorDeVista(this.modoDeColor);
+    const tocar = (material: THREE.Material): void => {
+      const color = (material as THREE.MeshStandardMaterial).color;
+      if (color?.isColor !== true) return;
+      if (gris === null) {
+        const original = this.colorOriginal.get(material);
+        if (original !== undefined) {
+          color.copy(original);
+          this.colorOriginal.delete(material);
+        }
+      } else {
+        // **El violeta de la selección no se grisa**: Fragments lo pone en un material de las
+        // mismas mallas y la selección tiene que seguir viéndose en la vista neutra.
+        if (color.getHex() === SELECTION_COLOR) return;
+        if (!this.colorOriginal.has(material)) this.colorOriginal.set(material, color.clone());
+        color.setHex(gris);
+      }
+    };
+
+    for (const [, model] of this.fragments.list) {
+      model.object.traverse((objeto) => {
+        const malla = objeto as THREE.Mesh;
+        if (!malla.isMesh) return;
+        const material = malla.material;
+        if (Array.isArray(material)) material.forEach(tocar);
+        else tocar(material);
+      });
+    }
+    // Los clones del fantasma que ya existían conservan el gris o el color: el repintado los rehace.
+  }
+
+  /**
    * Cuántas mallas del modelo llevan puesta la pintura de fantasma y cuántas siguen sólidas.
    *
    * **Es el oráculo de `F1.15`** —"el modo fantasma se cae al mover"—. Esa frase no se puede
@@ -3846,6 +4043,8 @@ export class BimViewer {
    * banderas. Ver {@link repintarGeometriaNueva}.
    */
   private ajustarLuces(): void {
+    // La geometría que llega nueva trae sus materiales de fábrica: en vista neutra hay que grisarla.
+    if (this.modoDeColor !== "ifc") this.aplicarColorDeVista();
     const caja = new THREE.Box3();
     for (const [, model] of this.fragments.list) {
       model.object.traverse((objeto) => {
@@ -6353,6 +6552,7 @@ export class BimViewer {
     this.assertAlive();
     const postproduccion = this.world.renderer?.postproduction;
     if (postproduccion !== undefined) postproduccion.enabled = enabled;
+    this.actualizarMapeoDeTonos();
   }
 
   /** `true` si la postproducción está encendida. */

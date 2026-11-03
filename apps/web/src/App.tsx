@@ -1,5 +1,9 @@
 import {
   BimViewer,
+  guardarEleccionDeLuz,
+  leerEleccionDeLuz,
+  type ColorDeVista,
+  type ModoDeLuz,
   csvDe,
   queHacerCon,
   esZip,
@@ -216,6 +220,15 @@ function leerAncho(lado: "izquierda" | "derecha", porDefecto: number): number {
   }
 }
 
+/** `localStorage` o `undefined` si el navegador no lo deja tocar (ventana privada, datos bloqueados). */
+function almacenLocal(): Storage | undefined {
+  try {
+    return localStorage;
+  } catch {
+    return undefined;
+  }
+}
+
 /** Lee la preferencia de la cinta. Sin almacenamiento, la cinta se muestra desplegada. */
 function leerCintaPlegada(): boolean {
   try {
@@ -423,6 +436,11 @@ export function App() {
   const [projection, setProjection] = useState<Projection>("Perspective");
   const [navigation, setNavigation] = useState<NavigationMode>("Orbit");
   const [style, setStyle] = useState<RenderStyle>("solid");
+  // Luz y color de la revisión. Lo elegido se recuerda en el navegador (`luces.ts`).
+  const [luz, setLuz] = useState<ModoDeLuz>(() => leerEleccionDeLuz(almacenLocal()).luz);
+  const [colorDeVista, setColorDeVista] = useState<ColorDeVista>(
+    () => leerEleccionDeLuz(almacenLocal()).color,
+  );
   const [measureMode, setMeasureMode] = useState<MeasureMode | null>(null);
   const [measurement, setMeasurement] = useState<Measurement | null>(null);
   const [measurementCount, setMeasurementCount] = useState(0);
@@ -809,6 +827,10 @@ export function App() {
       .then((instance) => {
         if (cancelled) return;
         viewer.current = instance;
+        // La luz y el color que la persona dejó la última vez.
+        const guardada = leerEleccionDeLuz(almacenLocal());
+        instance.setLightMode(guardada.luz);
+        void instance.setColorMode(guardada.color);
         // El resultado de una medición no vuelve del clic: llega cuando la medición se cierra,
         // y cuántos clics hacen falta depende de lo que se mida.
         desuscribir = instance.onMeasurement((resultado) => {
@@ -1789,6 +1811,24 @@ export function App() {
     setStyle(next);
     void viewer.current?.setRenderStyle(next);
   }, []);
+
+  const onLuz = useCallback(
+    (next: ModoDeLuz) => {
+      setLuz(next);
+      viewer.current?.setLightMode(next);
+      guardarEleccionDeLuz(almacenLocal(), { luz: next, color: colorDeVista });
+    },
+    [colorDeVista],
+  );
+
+  const onColorDeVista = useCallback(
+    (next: ColorDeVista) => {
+      setColorDeVista(next);
+      void viewer.current?.setColorMode(next);
+      guardarEleccionDeLuz(almacenLocal(), { luz, color: next });
+    },
+    [luz],
+  );
 
   const onMeasureMode = useCallback((mode: MeasureMode | null) => {
     setMeasureMode(mode);
@@ -3316,6 +3356,10 @@ export function App() {
         onProjection={onProjection}
         onNavigation={onNavigation}
         onStyle={onStyle}
+        luz={luz}
+        onLuz={onLuz}
+        colorDeVista={colorDeVista}
+        onColorDeVista={onColorDeVista}
         onMeasureMode={onMeasureMode}
         onSnapMode={onSnapMode}
         onDistanceMode={onDistanceMode}
