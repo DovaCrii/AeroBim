@@ -359,7 +359,7 @@ export interface LoadMetrics {
   /** Dimensiones del modelo en metros, o `null` si no se pudo determinar. */
   readonly sizeM: readonly [number, number, number] | null;
   /** Dónde corrió la conversión. Es el dato con el que se responde `F0.6`. */
-  readonly convertedIn: ConvertLocation;
+  readonly convertedIn: ConvertLocation | "cache";
   /**
    * Clases de elemento que el archivo declara y que **no llegaron a la escena**.
    *
@@ -380,6 +380,32 @@ export interface LoadMetrics {
    * clases del importador.
    */
   readonly emptyClasses: readonly MissingClass[];
+}
+
+/**
+ * Cambia **cuando cambia el resultado de convertir** —versión de `@thatopen/fragments`, clases extra
+ * del importador, factor de unidades—: una caché guardada con otra huella se descarta y se vuelve a
+ * convertir. Hay que subirla a mano al tocar `converter.ts` o actualizar `@thatopen/fragments`;
+ * olvidarlo serviría fragments de otra versión del conversor.
+ */
+export const HUELLA_DEL_CONVERSOR = "fragments-3.4.7+IfcProxy.v1";
+
+/** Un IFC ya convertido, con lo que se leía de su texto: es lo que guarda la caché local. */
+export interface ModeloConvertido {
+  /** Los bytes de Fragments. */
+  readonly fragments: Uint8Array<ArrayBuffer>;
+  readonly units: IfcUnits;
+  readonly gridAxes: readonly IfcGridAxis[];
+  /** Clases del archivo con su cuenta (`[clase, cuántos]`), para el aviso de elementos que faltan. */
+  readonly clasesDelArchivo: readonly (readonly [string, number])[];
+  readonly ifcBytes: number;
+  readonly huellaConversor: string;
+}
+
+/** Opciones de {@link BimViewer.loadIfc}. */
+export interface OpcionesDeCarga {
+  /** Se llama al terminar con el modelo convertido, para guardarlo en la caché. */
+  readonly alConvertir?: (modelo: ModeloConvertido) => void;
 }
 
 export interface LoadedModel {
@@ -2526,6 +2552,7 @@ export class BimViewer {
     bytes: Uint8Array,
     name: string,
     onStage: (stage: LoadStage) => void = () => {},
+    opciones: OpcionesDeCarga = {},
   ): Promise<LoadedModel> {
     this.assertAlive();
 
@@ -2549,6 +2576,7 @@ export class BimViewer {
 
     let fragByteLength: number;
     let model: FRAGS.FragmentsModel;
+    let copiaParaCache: Uint8Array<ArrayBuffer> | null = null;
     try {
       onStage("converting");
       const fragments = await this.conversor.convert(bytes);
@@ -2557,6 +2585,8 @@ export class BimViewer {
       // worker, y un `ArrayBuffer` transferido queda con `byteLength` en 0. Leerlo
       // después reportaba "0 B" para todos los modelos.
       fragByteLength = fragments.byteLength;
+      // La copia para la caché se hace **antes** de `core.load`, por el mismo motivo.
+      if (opciones.alConvertir !== undefined) copiaParaCache = new Uint8Array(fragments);
 
       onStage("loading");
       model = await this.fragments.core.load(fragments, {
@@ -2569,6 +2599,90 @@ export class BimViewer {
       this.loading = false;
     }
     const convertMs = performance.now() - startedAt;
+    const gridAxes = parseIfcGrids(texto).axes;
+
+    const cargado = await this.terminarCarga({
+      model,
+      name,
+      startedAt,
+      units,
+      clasesDelArchivo,
+      gridAxes,
+      ifcBytes,
+      fragBytes: fragByteLength,
+      convertMs,
+      convertedIn: this.conversor.location,
+      onStage,
+    });
+    if (copiaParaCache !== null) {
+      opciones.alConvertir?.({
+        fragments: copiaParaCache,
+        units,
+        gridAxes,
+        clasesDelArchivo: [...clasesDelArchivo],
+        ifcBytes,
+        huellaConversor: HUELLA_DEL_CONVERSOR,
+      });
+    }
+    return cargado;
+  }
+
+  /**
+   * Abre un modelo **ya convertido** —los Fragments que guardó la caché local— sin descargar ni
+   * convertir el IFC. Tiene el mismo final que {@link loadIfc}: lo único que cambia es de dónde
+   * salen los bytes de Fragments y los datos que se leían del texto del IFC (unidades, ejes,
+   * clases), que la caché guardó al convertir.
+   */
+  async loadConvertedIfc(
+    modelo: ModeloConvertido,
+    name: string,
+    onStage: (stage: LoadStage) => void = () => {},
+  ): Promise<LoadedModel> {
+    this.assertAlive();
+    const startedAt = performance.now();
+    this.loading = true;
+    // El tamaño se anota antes: `core.load` transfiere el búfer y lo deja en 0.
+    const fragBytes = modelo.fragments.byteLength;
+    let model: FRAGS.FragmentsModel;
+    try {
+      onStage("loading");
+      model = await this.fragments.core.load(modelo.fragments, {
+        modelId: name,
+        camera: this.world.camera.three,
+      });
+    } finally {
+      this.loading = false;
+    }
+    return this.terminarCarga({
+      model,
+      name,
+      startedAt,
+      units: modelo.units,
+      clasesDelArchivo: new Map(modelo.clasesDelArchivo),
+      gridAxes: modelo.gridAxes,
+      ifcBytes: modelo.ifcBytes,
+      fragBytes,
+      convertMs: performance.now() - startedAt,
+      convertedIn: "cache",
+      onStage,
+    });
+  }
+
+  /** El final común de abrir un modelo: lee, dibuja, encuadra y arma las métricas. */
+  private async terminarCarga(p: {
+    readonly model: FRAGS.FragmentsModel;
+    readonly name: string;
+    readonly startedAt: number;
+    readonly units: IfcUnits;
+    readonly clasesDelArchivo: ReadonlyMap<string, number>;
+    readonly gridAxes: readonly IfcGridAxis[];
+    readonly ifcBytes: number;
+    readonly fragBytes: number;
+    readonly convertMs: number;
+    readonly convertedIn: ConvertLocation | "cache";
+    readonly onStage: (stage: LoadStage) => void;
+  }): Promise<LoadedModel> {
+    const { model, startedAt, onStage } = p;
 
     onStage("reading");
     const [categories, itemsWithGeometry, cargados] = await Promise.all([
@@ -2589,32 +2703,31 @@ export class BimViewer {
     const displayMs = performance.now() - startedAt;
     onStage("done");
 
-    this.unitsByModel.set(model.modelId, units);
+    this.unitsByModel.set(model.modelId, p.units);
 
     // **Los ejes de replanteo se leen del archivo, no del conversor**, que los deja sin geometría.
     // Se dibujan a la base del modelo, que es donde se leen: ver `ifcGrid` en `bim-core`.
-    const rejilla = parseIfcGrids(texto);
-    if (rejilla.axes.length > 0) {
+    if (p.gridAxes.length > 0) {
       const caja = await this.boxOf(model);
-      this.grids.add(model.modelId, rejilla.axes, caja?.min.y ?? 0);
+      this.grids.add(model.modelId, p.gridAxes, caja?.min.y ?? 0);
     }
 
     return {
       id: model.modelId,
-      name,
+      name: p.name,
       model,
-      units,
-      gridAxes: rejilla.axes,
+      units: p.units,
+      gridAxes: p.gridAxes,
       metrics: {
-        ifcBytes,
-        fragBytes: fragByteLength,
-        convertMs,
+        ifcBytes: p.ifcBytes,
+        fragBytes: p.fragBytes,
+        convertMs: p.convertMs,
         displayMs,
         categoryCount: categories.length,
         itemsWithGeometry: itemsWithGeometry.length,
         sizeM,
-        convertedIn: this.conversor.location,
-        missingClasses: missingElementClasses(clasesDelArchivo, cargados.porClase),
+        convertedIn: p.convertedIn,
+        missingClasses: missingElementClasses(p.clasesDelArchivo, cargados.porClase),
         emptyClasses: emptyElementClasses(cargados.sinDibujo),
       },
     };
