@@ -1,5 +1,6 @@
 import type { IfcUnits, LoadedModel, LoadMetrics, MissingClass } from "@aerobim/viewer";
 import { useState } from "react";
+import { resumenDeCarga, type InfoDeCarga } from "../progreso-carga.js";
 import {
   IconArrowDown,
   IconArrowUp,
@@ -28,7 +29,10 @@ export function ModelsPanel({
   onToggleVisible,
   onMove,
   onClose,
+  cargas,
 }: {
+  /** Cómo llegó cada modelo del registro, por id de modelo. */
+  readonly cargas?: ReadonlyMap<string, InfoDeCarga>;
   /** Los modelos en el orden en que se muestran. Ver {@link onMove}. */
   readonly models: readonly LoadedModel[];
   /** Identificadores de los modelos apagados. */
@@ -59,6 +63,7 @@ export function ModelsPanel({
           <ModelRow
             key={`${loaded.id}-${index}`}
             loaded={loaded}
+            carga={cargas?.get(loaded.id)}
             visible={!hidden.has(loaded.id)}
             first={index === 0}
             last={index === models.length - 1}
@@ -80,7 +85,10 @@ function ModelRow({
   onToggleVisible,
   onMove,
   onClose,
+  carga,
 }: {
+  /** Cómo llegó este modelo, si vino del registro. */
+  readonly carga: InfoDeCarga | undefined;
   readonly loaded: LoadedModel;
   readonly visible: boolean;
   readonly first: boolean;
@@ -180,6 +188,9 @@ function ModelRow({
       {abierto && (
         <dl className="space-y-1 px-2 pb-2 text-xs">
           <Row label="Unidades" value={formatUnits(loaded.units)} />
+          {carga !== undefined && (
+            <Row label="Carga" value={resumenDeCarga(carga, loaded.metrics.convertMs)} />
+          )}
           <Row label="Tamaño del IFC" value={formatBytes(loaded.metrics.ifcBytes)} />
           <Row
             label="Fragments"

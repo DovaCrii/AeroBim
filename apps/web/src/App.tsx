@@ -47,6 +47,15 @@ import { cambiarTema, type Tema, temaGuardado } from "./tema.js";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DrawingsPanel } from "./components/DrawingsPanel.js";
 import { ModelsPanel } from "./components/ModelsPanel.js";
+import {
+  DescargaCancelada,
+  descargarConProgreso,
+  fraccionDeDescarga,
+  textoDeDescarga,
+  textoDeEtapa,
+  type EstadoDeDescarga,
+  type InfoDeCarga,
+} from "./progreso-carga.js";
 import { Coordinacion, type ObservacionDelModelo } from "./components/Coordinacion.js";
 import { BuscadorDelVisor } from "./components/BuscadorDelVisor.js";
 import { IndicadorDeModo, modoDelVisor } from "./components/IndicadorDeModo.js";
@@ -128,7 +137,15 @@ type Point3 = readonly [number, number, number];
 type Status =
   | { readonly kind: "starting" }
   | { readonly kind: "ready" }
-  | { readonly kind: "loading"; readonly name: string; readonly stage: LoadStage }
+  | {
+      readonly kind: "loading";
+      readonly name: string;
+      readonly stage: LoadStage;
+      /** Instante (`Date.now()`) en que empezó la etapa, para decir cuánto lleva. */
+      readonly desde?: number;
+      /** Presente mientras se descarga del registro: sustituye al texto de la etapa. */
+      readonly descarga?: EstadoDeDescarga;
+    }
   | { readonly kind: "error"; readonly message: string };
 
 /**
@@ -375,6 +392,10 @@ export function App() {
   const revisionAbierta = useRef<string | null>(null);
   const [status, setStatus] = useState<Status>({ kind: "starting" });
   const [models, setModels] = useState<readonly LoadedModel[]>([]);
+  /** Cómo llegó cada modelo del registro (descarga, tamaño, compresión), por id de modelo. */
+  const [cargas, setCargas] = useState<ReadonlyMap<string, InfoDeCarga>>(new Map());
+  /** Aborta la descarga en curso del registro; `null` si no hay ninguna. */
+  const descargaEnCurso = useRef<AbortController | null>(null);
   const [dragging, setDragging] = useState(false);
   const [selected, setSelected] = useState<PickedItem | null>(null);
   /**
@@ -843,7 +864,7 @@ export function App() {
     const instance = viewer.current;
     if (!instance) return;
 
-    setStatus({ kind: "loading", name: file.name, stage: "converting" });
+    setStatus({ kind: "loading", name: file.name, stage: "converting", desde: Date.now() });
     // **Un archivo del disco borra el origen en el registro.** Lo vuelve a poner `abrirRevision`
     // cuando la carga viene de ahí. Si se abre una revisión y después se arrastra otro IFC encima,
     // el elemento seleccionado ya puede ser del segundo modelo: anclar la observación a la revisión
@@ -856,7 +877,7 @@ export function App() {
       // se caía con `memory access out of bounds` sin decir de qué archivo hablaba.
       if (esZip(bytes)) bytes = await ifcDelZip(bytes);
       const loaded = await instance.loadIfc(bytes, file.name, (stage) => {
-        setStatus({ kind: "loading", name: file.name, stage });
+        setStatus({ kind: "loading", name: file.name, stage, desde: Date.now() });
       });
       setModels((current) => [...current, loaded]);
       setTrees(await instance.getSpatialTrees());
@@ -1303,6 +1324,8 @@ export function App() {
         const datos = (await meta.json()) as {
           nombre: string;
           nombreParaElVisor: string;
+          tamanoBytes?: number;
+          sha256?: string;
           contenido: string;
           correlativo: string;
           puedeObservar?: boolean;
@@ -1325,20 +1348,49 @@ export function App() {
           // esta línea no serviría de nada.
           await abrirNube(datos.contenido, datos.nombre, { revocable: false });
         } else {
-          const archivo = await fetch(datos.contenido, { credentials: "same-origin" });
-          if (!archivo.ok) {
-            setStatus({
-              kind: "error",
-              message: `No se pudo leer el archivo (${archivo.status}).`,
-            });
-            return;
-          }
+          // **Se descarga por trozos y con cuenta**: un IFC de 34 MB por una VM lenta tardó más de
+          // dos minutos y la pantalla solo decía «convirtiendo». Ahora dice cuánto lleva y a qué
+          // ritmo, y si no llega un byte en 60 s lo da por atascado en vez de girar para siempre.
+          const controlador = new AbortController();
+          descargaEnCurso.current = controlador;
+          let ultimaPintada = 0;
+          const descargado = await descargarConProgreso(datos.contenido, {
+            controlador,
+            tamanoDeclarado: datos.tamanoBytes ?? null,
+            onProgreso: (estado) => {
+              const ahora = Date.now();
+              if (ahora - ultimaPintada < 200 && estado.sinAvanceMs < 1000) return;
+              ultimaPintada = ahora;
+              setStatus({
+                kind: "loading",
+                name: etiqueta,
+                stage: "reading",
+                desde: ahora - estado.transcurridoMs,
+                descarga: estado,
+              });
+            },
+          });
+          descargaEnCurso.current = null;
+          setStatus({
+            kind: "loading",
+            name: etiqueta,
+            stage: "reading",
+            desde: Date.now(),
+          });
           // **El nombre que decide el camino es el del archivo servido, no el del entregable.**
           // `openFile` manda un `.dxf` al lector de planos y todo lo demás al de IFC, y un DWG se
           // sirve por su DXF convertido: con `datos.nombre` —`planta.dwg`— esos bytes de DXF
           // acababan en `web-ifc`, que espera texto STEP y tumba el WebAssembly. Lo decide el
           // servidor, que es quien sabe si hubo conversión (`abribles.nombre_para_el_visor`).
-          await openFile(new File([await archivo.blob()], datos.nombreParaElVisor));
+          await openFile(new File([descargado.bytes], datos.nombreParaElVisor));
+          setCargas((actuales) =>
+            new Map(actuales).set(datos.nombreParaElVisor, {
+              origen: "red",
+              descargaMs: descargado.ms,
+              bytes: descargado.bytes.byteLength,
+              comprimido: descargado.comprimido,
+            }),
+          );
         }
 
         // **Después de abrir, no antes**: `openIfc` borra el origen a propósito —un archivo del
@@ -1361,6 +1413,11 @@ export function App() {
           revisionCorrelativo: datos.correlativo,
         });
       } catch (error: unknown) {
+        descargaEnCurso.current = null;
+        if (error instanceof DescargaCancelada) {
+          setStatus({ kind: "ready" });
+          return;
+        }
         setStatus({ kind: "error", message: describe(error) });
       }
     },
@@ -3068,7 +3125,7 @@ export function App() {
               onCambiar={(destino) => void onCambiarDeEspacio(destino)}
               cuantosPlanos={plans.length + drawings.length}
             />
-            <StatusBadge status={status} />
+            <StatusBadge status={status} onCancelar={() => descargaEnCurso.current?.abort()} />
             {/* **El interruptor de tema, junto a Abrir.** Es donde está en el portal —la barra de
                 arriba, a la derecha— así que quien cruza de una mitad a la otra lo busca en el
                 mismo sitio.
@@ -3849,6 +3906,7 @@ export function App() {
               ) : (
                 <ModelsPanel
                   models={models}
+                  cargas={cargas}
                   hidden={hiddenModels}
                   onToggleVisible={onToggleModel}
                   onMove={onMoveModel}
@@ -3892,14 +3950,70 @@ export function App() {
   );
 }
 
-function StatusBadge({ status }: { readonly status: Status }) {
+function StatusBadge({
+  status,
+  onCancelar,
+}: {
+  readonly status: Status;
+  readonly onCancelar: () => void;
+}) {
+  // Un reloj de un segundo mientras se carga: el tiempo de cada etapa es lo que distingue
+  // «tarda» de «se colgó».
+  const [ahora, setAhora] = useState(() => Date.now());
+  const cargando = status.kind === "loading";
+  useEffect(() => {
+    if (!cargando) return;
+    setAhora(Date.now());
+    const reloj = setInterval(() => setAhora(Date.now()), 1000);
+    return () => clearInterval(reloj);
+  }, [cargando]);
+
   if (status.kind === "starting") {
     return <span className="text-xs text-fg-2">Iniciando visor…</span>;
   }
   if (status.kind === "loading") {
+    const descarga = status.descarga;
+    if (descarga !== undefined) {
+      const fraccion = fraccionDeDescarga(descarga.recibidos, descarga.total);
+      // El tiempo sin avance se recalcula con el reloj: entre dos trozos no llega ningún evento.
+      const texto = textoDeDescarga({
+        ...descarga,
+        sinAvanceMs:
+          descarga.sinAvanceMs +
+          Math.max(0, ahora - (status.desde ?? ahora) - descarga.transcurridoMs),
+      });
+      return (
+        <span className="flex items-center gap-2 text-xs text-accent" title={status.name}>
+          <span>
+            {status.name} — {texto}
+          </span>
+          <span
+            className="inline-block h-1.5 w-24 overflow-hidden rounded bg-surface-3"
+            role="progressbar"
+            aria-label="Descarga del archivo"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            {...(fraccion !== null ? { "aria-valuenow": Math.round(fraccion * 100) } : {})}
+          >
+            <span
+              className="block h-full bg-accent"
+              style={{ width: fraccion === null ? "30%" : `${fraccion * 100}%` }}
+            />
+          </span>
+          <button
+            type="button"
+            onClick={onCancelar}
+            className="rounded border border-borde px-1.5 py-0.5 text-fg-2 hover:text-danger"
+          >
+            Cancelar
+          </button>
+        </span>
+      );
+    }
+    const etapa = ETAPAS[status.stage];
     return (
-      <span className="text-xs text-accent" title={`${status.name}: ${ETAPAS[status.stage]}`}>
-        {status.name} — {ETAPAS[status.stage]}…
+      <span className="text-xs text-accent" title={`${status.name}: ${etapa}`}>
+        {status.name} — {textoDeEtapa(etapa, status.desde ?? null, ahora)}
       </span>
     );
   }
