@@ -4,7 +4,7 @@
 > [`docs/historial/`](docs/historial/) y en `git log`. La fuente de verdad del trabajo pendiente es
 > [`MASTER_PLAN.md`](MASTER_PLAN.md) (tablero de ~500 líneas desde el 2026-10-05; las fases cerradas están en `docs/historial/plan/`; `/siguiente` dice qué toca).
 
-**Estado al:** 2026-11-03 · **`main` en:** `511dabe` · **Último PR fusionado:** #158 · **Ninguno abierto** · **Tanda desplegada en la VM**
+**Estado al:** 2026-11-03 · **`main` en:** `2f941cf` · **Último PR fusionado:** #161 · **Ninguno abierto** · **Tanda desplegada en la VM**
 
 ## Reparto del trabajo
 
@@ -60,8 +60,12 @@ propia por organización** (no hay campo ni migración).
 
 ## Desplegado en la VM (2026-11-03)
 
-**La VM `p340` corre `511dabe` (#158)**, con todo hasta #158. Lo nuevo en esta tanda:
+**La VM `p340` corre `2f941cf` (#161)**, con todo hasta #161. Lo nuevo en las dos últimas tandas:
 
+- `F17.3b`: el servidor del asistente habla con NVIDIA (cadena de modelos, límite diario por persona y por
+  minuto por organización, auditoría sin texto, `manage.py asistente_probar`; #161). Probado solo con un
+  proveedor simulado.
+- La caché local se vacía al pulsar «Salir» y al entrar otro usuario (#160).
 - Carga del registro con progreso, «Cancelar» y **caché local** de modelos convertidos (IndexedDB; #155).
 - **Luz de revisión** y color «Neutro» en el visor (#157).
 - Barra de ayuda de uso (`F17.1`, #145).
@@ -71,16 +75,14 @@ propia por organización** (no hay campo ni migración).
 - Dependencias sin avisos de `npm audit` ni `pip-audit` (#153, #156).
 - Agentes por rol y skills `orquestar`, `terminar-bloques`, `pendientes-github` y `oraculo` (#151, #154).
 
-**Migraciones aplicadas en esta tanda:** `core/0006_asistente_activo` y `asistente/0001`.
+**Migraciones aplicadas:** `core/0006_asistente_activo` y `asistente/0001` (#161 y #160 no traen ninguna).
 
 **Lo que sigue:**
 
-- `F17.3b`: el asistente habla con NVIDIA (en curso).
-- Vaciar la caché local al cerrar sesión (en curso; hoy `vaciarCache()` solo lo llama el botón de
-  `CacheLocal.tsx`).
+- `F17.4a` (bloque C): panel «Asistente» en el visor, con el contexto que elige la persona.
 - `F17.2`: herramientas agrupadas por tarea; espera una captura del usuario.
 - Del usuario: poner `NIM_API_KEY` **solo en el `.env` de la VM** (nunca en chat ni en el repositorio) y
-  correr `asistente_probar` cuando exista.
+  correr `manage.py asistente_probar --buscar`.
 
 **Sin confirmar a ojo:** una subida real de 300–500 MB; un IFC grande abierto en el visor; la caché contra la
 VM real; la cámara en planta del espacio 2D. Diseño del asistente: `docs/ASISTENTE_IA.md`.
