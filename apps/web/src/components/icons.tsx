@@ -268,6 +268,52 @@ export function IconGhost(props: IconProps) {
   );
 }
 
+/** Luz de revisión: una bombilla, con la luz que sigue a quien mira. */
+export function IconLightReview(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M9 17.5h6M10 20.5h4" />
+      <path d="M12 3.5a5.5 5.5 0 0 0-3.2 10c.6.5.7 1.1.7 2h5c0-.9.1-1.5.7-2A5.5 5.5 0 0 0 12 3.5Z" />
+    </Svg>
+  );
+}
+
+/** Luz uniforme: el mismo valor en todas las caras. */
+export function IconLightFlat(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <circle cx="12" cy="12" r="3.5" />
+      <path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M18.4 5.6l-1.8 1.8M7.4 16.6l-1.8 1.8" />
+    </Svg>
+  );
+}
+
+/** Colores del IFC: la paleta del archivo. */
+export function IconColorsIfc(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <circle cx="9" cy="9" r="4.5" />
+      <circle cx="15" cy="9" r="4.5" />
+      <circle cx="12" cy="14.5" r="4.5" />
+    </Svg>
+  );
+}
+
+/** Color neutro: un solo gris con sombreado. */
+export function IconColorsNeutral(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <circle cx="12" cy="12" r="8.5" />
+      <path
+        d="M12 3.5a8.5 8.5 0 0 0 0 17c3-2 3-15 0-17Z"
+        fill="currentColor"
+        fillOpacity={0.45}
+        stroke="none"
+      />
+    </Svg>
+  );
+}
+
 /** Cortes: el plano que atraviesa el modelo. */
 export function IconSections(props: IconProps) {
   return (

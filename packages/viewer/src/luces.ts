@@ -17,13 +17,13 @@
 export type ModoDeLuz = "revision" | "uniforme";
 
 /** De qué color se ve el modelo. `ifc` es el del archivo, sin tocarlo; `neutro` es solo una vista. */
-export type ModoDeColor = "ifc" | "neutro";
+export type ColorDeVista = "ifc" | "neutro";
 
 export const MODOS_DE_LUZ: readonly ModoDeLuz[] = ["revision", "uniforme"];
-export const MODOS_DE_COLOR: readonly ModoDeColor[] = ["ifc", "neutro"];
+export const COLORES_DE_VISTA: readonly ColorDeVista[] = ["ifc", "neutro"];
 
 export const LUZ_POR_DEFECTO: ModoDeLuz = "revision";
-export const COLOR_POR_DEFECTO: ModoDeColor = "ifc";
+export const COLOR_POR_DEFECTO: ColorDeVista = "ifc";
 
 /** Vector suelto: `lib` no importa Three.js. */
 export interface Vec3 {
@@ -49,6 +49,12 @@ export interface ParametrosDeLuz {
    * comprime las luces altas, así que no reinterpreta el color del IFC. `ninguno` es lo de antes.
    */
   readonly tonos: "ninguno" | "neutral";
+  /**
+   * Oclusión ambiental de la postproducción: es lo que oscurece los rincones y **las uniones**
+   * (una viga contra otra, un tubo contra una losa), que con luz sola se pierden. `null` deja los
+   * valores de la librería (radio 0,25 y escala 2).
+   */
+  readonly ao: { readonly radius: number; readonly scale: number } | null;
 }
 
 /**
@@ -62,20 +68,30 @@ const UNIFORME: ParametrosDeLuz = {
   principal: 0,
   exposicion: 1,
   tonos: "ninguno",
+  ao: null,
 };
 
 /**
  * Menos luz difusa (que es la que aplana) y más direccional: el sol fija las sombras y la principal
  * da a cada cara un valor según cómo mira a la cámara. La suma queda cerca de la de antes para que
  * el modelo no se oscurezca en total.
+ *
+ * Medido sobre `Piso 5.ifc` en isométrica: luminancia media 159 → 161 (igual) y desviación típica de
+ * la luminancia 45 → 58, sin píxeles quemados. Más desviación = más diferencia entre caras.
  */
 const REVISION: ParametrosDeLuz = {
-  ambiente: 0.1,
-  hemisferio: 0.55,
-  sol: 1.2,
-  principal: 1.6,
+  ambiente: 0.06,
+  hemisferio: 0.4,
+  sol: 0.8,
+  principal: 2.2,
   exposicion: 1,
-  tonos: "neutral",
+  // **Sin mapeo de tonos, a propósito.** Se midió con el mapeo neutro de Khronos y desplaza el
+  // fondo del visor (de #1b2330 a un azul más oscuro) y oscurece los colores bajos del modelo: es
+  // tocar el color del archivo, que es justo lo que «Colores del IFC» promete no hacer.
+  tonos: "ninguno",
+  // Radio y escala más que el doble de los de la librería: sobre el IFC industrial de prueba
+  // oscurece el contacto de los tubos con la losa y la unión de las vigas, que antes no se leía.
+  ao: { radius: 0.6, scale: 3.5 },
 };
 
 export function parametrosDeLuz(modo: ModoDeLuz): ParametrosDeLuz {
@@ -89,7 +105,7 @@ export const GRIS_NEUTRO = 0xc9ccd1;
  * El color con que se ve un material en cada modo de color. `null` significa «el del archivo, no
  * tocar»: es la garantía de fidelidad de `ifc`.
  */
-export function colorDeVista(modo: ModoDeColor): number | null {
+export function colorDeVista(modo: ColorDeVista): number | null {
   return modo === "neutro" ? GRIS_NEUTRO : null;
 }
 
@@ -149,14 +165,14 @@ function esLuz(v: unknown): v is ModoDeLuz {
   return v === "revision" || v === "uniforme";
 }
 
-function esColor(v: unknown): v is ModoDeColor {
+function esColor(v: unknown): v is ColorDeVista {
   return v === "ifc" || v === "neutro";
 }
 
 /** Lo guardado, con valores por defecto si no hay nada, no se puede leer o es de otra versión. */
 export function leerEleccion(almacen: Pick<Storage, "getItem"> | undefined): {
   readonly luz: ModoDeLuz;
-  readonly color: ModoDeColor;
+  readonly color: ColorDeVista;
 } {
   let luz: unknown = null;
   let color: unknown = null;
@@ -174,7 +190,7 @@ export function leerEleccion(almacen: Pick<Storage, "getItem"> | undefined): {
 
 export function guardarEleccion(
   almacen: Pick<Storage, "setItem"> | undefined,
-  eleccion: { readonly luz: ModoDeLuz; readonly color: ModoDeColor },
+  eleccion: { readonly luz: ModoDeLuz; readonly color: ColorDeVista },
 ): void {
   try {
     almacen?.setItem(CLAVE_LUZ, eleccion.luz);

@@ -29,6 +29,19 @@ describe("parámetros de luz", () => {
     });
   });
 
+  it("la revisión refuerza la oclusión ambiental (uniones) y la uniforme deja la de la librería", () => {
+    expect(parametrosDeLuz("uniforme").ao).toBeNull();
+    const ao = parametrosDeLuz("revision").ao;
+    expect(ao).not.toBeNull();
+    expect(ao!.radius).toBeGreaterThan(0.25);
+    expect(ao!.scale).toBeGreaterThan(2);
+  });
+
+  it("ningún modo toca el mapeo de tonos: «Colores del IFC» no cambia el color del archivo", () => {
+    expect(parametrosDeLuz("revision").tonos).toBe("ninguno");
+    expect(parametrosDeLuz("uniforme").tonos).toBe("ninguno");
+  });
+
   it("la revisión tiene luz principal y menos luz difusa que la uniforme", () => {
     const r = parametrosDeLuz("revision");
     const u = parametrosDeLuz("uniforme");
