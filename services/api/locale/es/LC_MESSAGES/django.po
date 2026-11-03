@@ -869,6 +869,11 @@ msgstr "Archivo"
 msgid "Accepted: %(exts)s"
 msgstr "Se aceptan: %(exts)s"
 
+#: .\apps\documents\forms.py
+#, python-format
+msgid "Size limit: %(ifc)s MB for IFC, %(otros)s MB for the rest."
+msgstr "Tope de tamaño: %(ifc)s MB para IFC, %(otros)s MB para el resto."
+
 #: .\apps\documents\forms.py:209
 #, python-format
 msgid "This deliverable already has a revision «%(rev)s»."

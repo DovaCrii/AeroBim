@@ -7,6 +7,7 @@ navegador.
 """
 
 from django import forms
+from django.utils.translation import gettext
 from django.utils.translation import gettext_lazy as _
 
 from apps.core.personas import PersonasConNombre
@@ -25,6 +26,8 @@ from apps.documents.models import (
 )
 from apps.documents.storage import (
     EXTENSIONES_ACEPTADAS,
+    TAMANO_MAXIMO_BYTES,
+    TAMANO_MAXIMO_IFC_BYTES,
     CargaRechazada,
     validar,
     validar_subida,
@@ -161,8 +164,22 @@ class RevisionForm(forms.ModelForm):
 
     archivo = forms.FileField(
         label=_("File"),
-        help_text=_("Accepted: %(exts)s") % {"exts": ", ".join(sorted(EXTENSIONES_ACEPTADAS))},
     )
+
+    def _ayuda_del_archivo(self) -> str:
+        """Extensiones y topes, **leidos de `storage`** para que la pantalla no mienta.
+
+        Se arma al instanciar y no al declarar el campo: un `%` sobre una cadena perezosa la
+        evalua al importar, antes de activar el idioma.
+        """
+        return "{} {}".format(
+            gettext("Accepted: %(exts)s") % {"exts": ", ".join(sorted(EXTENSIONES_ACEPTADAS))},
+            gettext("Size limit: %(ifc)s MB for IFC, %(otros)s MB for the rest.")
+            % {
+                "ifc": TAMANO_MAXIMO_IFC_BYTES // (1024 * 1024),
+                "otros": TAMANO_MAXIMO_BYTES // (1024 * 1024),
+            },
+        )
 
     class Meta:
         model = Revision
@@ -178,6 +195,7 @@ class RevisionForm(forms.ModelForm):
         """
         super().__init__(*args, **kwargs)
         self.entregable = entregable
+        self.fields["archivo"].help_text = self._ayuda_del_archivo()
 
     def clean_correlativo(self):
         """**El correlativo se normaliza y se comprueba antes de tocar el disco.**

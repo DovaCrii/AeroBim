@@ -3,7 +3,7 @@
  *
  * ## Por qué hace falta, y no es cosmética
  *
- * Los archivos de este producto son de obra: un IFC de 200 MB, un COPC de 130. Por una conexión de
+ * Los archivos de este producto son de obra: un IFC de 500 MB, un COPC de 130. Por una conexión de
  * oficina eso son **minutos**, y durante esos minutos el navegador no dice nada — la página se
  * queda quieta con el botón pulsado. Lo que hace cualquiera entonces es **volver a pulsar**, o
  * cerrar y reintentar, y cada reintento vuelve a subir el archivo entero.
@@ -61,7 +61,7 @@
 
       var boton = formulario.querySelector('button[type="submit"]');
       // **Se desactiva el botón, y esa es la mitad que evita el reintento.** La barra informa; lo
-      // que impide subir dos veces los mismos 200 MB es que el botón deje de aceptar pulsaciones.
+      // que impide subir dos veces los mismos 500 MB es que el botón deje de aceptar pulsaciones.
       if (boton) {
         boton.disabled = true;
         boton.dataset.decia = boton.textContent;
@@ -77,7 +77,7 @@
         var parte = avance.loaded / avance.total;
         relleno.style.width = Math.round(parte * 100) + "%";
         // **Los megas van además del porcentaje**, y no en su lugar: «45 %» de un archivo que no se
-        // sabe cómo de grande es no dice cuánto queda. Con «90 de 200 MB» sí.
+        // sabe cómo de grande es no dice cuánto queda. Con «90 de 500 MB» sí.
         dice.textContent =
           Math.round(parte * 100) + "% · " + texto(avance.loaded) + " de " + texto(total);
       });

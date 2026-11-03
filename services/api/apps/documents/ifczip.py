@@ -2,8 +2,9 @@
 
 ## Por qué existe
 
-Por un proyecto de metro, el 2026-09-28. El tope del registro son 200 MB por archivo
-(`storage.TAMANO_MAXIMO_BYTES`, y nginx lleva el mismo) y un modelo de estación o de un tramo de
+Por un proyecto de metro, el 2026-09-28. El tope del registro eran 200 MB por archivo
+(`storage.TAMANO_MAXIMO_BYTES`; desde el 2026-11-03 un IFC/IFCZIP admite 500 MB,
+`TAMANO_MAXIMO_IFC_BYTES`, y nginx lleva el mismo) y un modelo de estación o de un tramo de
 túnel los pasa. Pero un IFC es texto STEP, y comprime entre cinco y diez veces: el formato
 **IFC-ZIP** —un `.zip` con un solo `.ifc` dentro, con la extensión `.ifczip`— es el estándar para
 mandarlo, y lo exportan Revit, Tekla, ArchiCAD y Civil 3D.

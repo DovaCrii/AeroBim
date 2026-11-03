@@ -789,6 +789,29 @@ sudo nginx -t && sudo systemctl reload nginx
 Para verlo funcionando, en el navegador (F12 → Red) al abrir un modelo del registro: la respuesta de
 `/contenido/` tiene que traer `Content-Encoding: gzip`.
 
+**El tope de subida de los IFC sube a 500 MB (2026-11-03).** El registro acepta ahora hasta
+**500 MB** para `.ifc` y `.ifczip` y sigue en 200 MB para todo lo demás
+(`apps/documents/storage.py`, `tamano_maximo_para`). nginx tiene que dejar pasar lo mismo, o el
+usuario ve un `413` sin explicación. En el sitio de AeroBim de la VM, dentro del bloque `server`,
+cambia la línea existente:
+
+```nginx
+client_max_body_size 500M;
+```
+
+y comprueba y recarga como arriba (`sudo nginx -t && sudo systemctl reload nginx`).
+`client_body_timeout 300s` se queda: no es un tope total, sino el máximo entre dos lecturas del
+cuerpo, así que 500 MB a 1–2 MB/s (4–8 minutos) no lo alcanzan mientras lleguen datos. nginx
+guarda el cuerpo entero antes de pasarlo a Django, y desde ahí el proceso (hash, copia al almacén)
+tiene que acabar dentro de los `proxy_read_timeout` (60 s por defecto) y `timeout` de gunicorn
+(120 s); un IFC de 500 MB tarda segundos, pero si en la VM aparece un `504` al terminar la subida,
+ese es el sitio donde mirar.
+
+> **Aviso honesto: que el registro lo guarde no garantiza que el visor lo abra.** Convertir un IFC
+> de cientos de MB en el navegador (el WASM de `web-ifc`, de 32 bits y con un techo de memoria)
+> puede quedarse sin memoria o tardar muchísimo, y eso depende del equipo de quien lo abre. El tope
+> de subida es de archivo, no de visibilidad.
+
 ## Lo que todavía no está
 
 - **La detección de interferencias de una obra grande va en segundo plano** (2026-09-28). Son
