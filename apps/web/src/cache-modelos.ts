@@ -21,7 +21,12 @@
 
 import type { ModeloConvertido } from "@aerobim/viewer";
 
-const NOMBRE_DB = "aerobim-cache-modelos";
+/**
+ * Nombre de la base de IndexedDB. **Lo repite `services/api/static/js/vaciar-cache-al-salir.js`**,
+ * que la borra al pulsar «Salir» desde el portal (que no carga este módulo): una prueba fija que
+ * los dos nombres coincidan.
+ */
+export const NOMBRE_DB = "aerobim-cache-modelos";
 const VERSION_DB = 1;
 const INDICE = "indice";
 const DATOS = "datos";
@@ -37,6 +42,23 @@ export interface EntradaDeIndice {
   readonly bytes: number;
   /** `Date.now()` del último guardado o uso. */
   readonly ultimoUso: number;
+  /**
+   * Quién llenó esta entrada (el id que da el registro). Una entrada sin él —de antes de que se
+   * guardara— cuenta como de otra persona: no se sabe de quién es.
+   */
+  readonly usuarioId?: string;
+}
+
+/**
+ * Si el índice tiene algo que no es de `usuarioId`. Un navegador compartido no debe enseñar a quien
+ * entra los modelos de una obra a la que quizá no tiene acceso: ante cualquier entrada ajena o sin
+ * dueño, se vacía todo.
+ */
+export function hayEntradasDeOtroUsuario(
+  indice: readonly EntradaDeIndice[],
+  usuarioId: string,
+): boolean {
+  return indice.some((e) => e.usuarioId !== usuarioId);
 }
 
 /** La huella del archivo de una revisión, o `null` si el registro no da una estable. */
@@ -180,6 +202,7 @@ export async function guardarEnCache(
   huella: string,
   nombre: string,
   modelo: ModeloConvertido,
+  usuarioId?: string,
 ): Promise<boolean> {
   try {
     const bytes = modelo.fragments.byteLength;
@@ -196,7 +219,14 @@ export async function guardarEnCache(
         tx.objectStore(INDICE).delete(id);
         tx.objectStore(DATOS).delete(id);
       }
-      const entrada: EntradaDeIndice = { revisionId, huella, nombre, bytes, ultimoUso: Date.now() };
+      const entrada: EntradaDeIndice = {
+        revisionId,
+        huella,
+        nombre,
+        bytes,
+        ultimoUso: Date.now(),
+        ...(usuarioId === undefined ? {} : { usuarioId }),
+      };
       tx.objectStore(DATOS).put({ revisionId, modelo } satisfies RegistroDeDatos);
       tx.objectStore(INDICE).put(entrada);
       await terminada(tx);
@@ -241,6 +271,29 @@ export async function resumenDeCache(): Promise<{ modelos: number; bytes: number
     }
   } catch {
     return null;
+  }
+}
+
+/**
+ * Vacía la caché si la llenó otra persona (o no se sabe quién). Se llama al abrir del registro, con
+ * el id del usuario actual, **antes** de leer: así quien entra después en el mismo navegador no
+ * hereda ni usa lo de quien salió sin pulsar «Salir». `true` si vació.
+ */
+export async function vaciarSiEsDeOtroUsuario(usuarioId: string): Promise<boolean> {
+  try {
+    const db = await abrirDb();
+    let ajena: boolean;
+    try {
+      const todas = (await pedir(
+        db.transaction(INDICE, "readonly").objectStore(INDICE).getAll(),
+      )) as EntradaDeIndice[];
+      ajena = hayEntradasDeOtroUsuario(todas, usuarioId);
+    } finally {
+      db.close();
+    }
+    return ajena ? await vaciarCache() : false;
+  } catch {
+    return false;
   }
 }
 

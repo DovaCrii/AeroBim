@@ -52,6 +52,12 @@
       JavaScript en línea y una plantilla no puede añadir un `<script>` a la cabecera.
     {% endcomment %}
     <script src="{% static 'js/subida-con-progreso.js' %}" defer></script>
+    {% comment %}
+      **Al salir, se vacía la caché local de modelos del visor** (IndexedDB), para que en un equipo
+      compartido la persona siguiente no vea modelos de una obra que no es suya. Archivo propio por
+      la CSP; nunca bloquea el cierre. Ver `vaciar-cache-al-salir.js`.
+    {% endcomment %}
+    <script src="{% static 'js/vaciar-cache-al-salir.js' %}" defer></script>
   </head>
   <body>
     <a class="salto" href="#contenido">{% translate "Skip to content" %}</a>
@@ -119,7 +125,7 @@
         {% endcomment %}
         <a href="{% url 'accounts:ayuda' %}">{% translate "Help" %}</a>
         <a href="{% url 'password_change' %}">{% translate "Change password" %}</a>
-        <form method="post" action="{% url 'logout' %}" style="display: inline">
+        <form method="post" action="{% url 'logout' %}" style="display: inline" data-vaciar-cache-local>
           {% csrf_token %}
           <button type="submit">{% translate "Sign out" %}</button>
         </form>

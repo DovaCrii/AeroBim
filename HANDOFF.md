@@ -4,7 +4,7 @@
 > [`docs/historial/`](docs/historial/) y en `git log`. La fuente de verdad del trabajo pendiente es
 > [`MASTER_PLAN.md`](MASTER_PLAN.md) (tablero de ~500 líneas desde el 2026-10-05; las fases cerradas están en `docs/historial/plan/`; `/siguiente` dice qué toca).
 
-**Estado al:** 2026-10-08 · **`main` en:** `54d73a3` · **Último PR fusionado:** #142 · **Ninguno abierto** · **Tanda cerrada: lista para la VM**
+**Estado al:** 2026-11-03 · **`main` en:** `511dabe` · **Último PR fusionado:** #158 · **Ninguno abierto** · **Tanda desplegada en la VM**
 
 ## Reparto del trabajo
 
@@ -47,9 +47,9 @@ propia por organización** (no hay campo ni migración).
 
 ## Lo que es tuyo (bloqueos que el código no cierra)
 
-- **Desplegar `main` a `p340`**: respaldo primero (`respaldo.sh`), luego `desplegar.sh`
-  (`docs/DEPLOY.md`). Las **líneas de compresión de nginx se añaden a mano** («Lo que el guion no
-  toca»); sin ellas el IFC comprimido no viaja comprimido.
+- **Próximo despliegue a `p340`**: respaldo primero (`respaldo.sh`), luego `desplegar.sh`
+  (`docs/DEPLOY.md`). Las **líneas de nginx se añaden a mano** («Lo que el guion no toca»): compresión
+  del IFC y `client_max_body_size 500M`.
 - **SMTP de Microsoft 365**: último bloqueo de `listo_para_produccion`.
 - **Conversor ODA** en la VM (`conversor_cad` en `/health/`); sin él no abren los DWG.
 - Decisiones abiertas: retención de `core_auditevent`; enlace para compartir con externos; dominio y
@@ -58,26 +58,32 @@ propia por organización** (no hay campo ni migración).
 - El **piloto** ([`docs/PILOTO.md`](docs/PILOTO.md)): las cinco etapas, de la 0 a la 4, siguen sin
   empezar. La Etapa 1 (registro documental) no necesita el IFC.
 
-## Desplegado en la VM y en pausa (2026-10-13)
+## Desplegado en la VM (2026-11-03)
 
-**La VM `p340` corre `d54fd5f` (#142).** Respaldo: `/var/backups/aerobim/20261009-124510`. **Falta desplegar
-#143 a #148**: barra de ayuda de uso (F17.1, #145), documentación y agentes, y el **servidor del asistente de IA
-apagado por defecto** (F17.3a, #148). **Migraciones nuevas: `core/0006_asistente_activo` y `asistente/0001`**
-(aditivas); sin `nginx`; variables nuevas **opcionales** (`NIM_*`, `ASISTENTE_*`, en `docs/DEPLOY.md`): sin
-`NIM_API_KEY` el asistente no existe. Orden: `respaldo.sh`, `desplegar.sh`, Ctrl+F5.
+**La VM `p340` corre `511dabe` (#158)**, con todo hasta #158. Lo nuevo en esta tanda:
 
-**Pausa: dónde se quedó.** Plan aprobado del asistente (NVIDIA, **apagado por defecto y por organización**;
-nombres de variables alineados con Academy; **sin streaming** al principio): bloque A hecho. **Sigue el B**
-(cliente HTTP a NIM con cadena de modelos de respaldo, `enable_thinking` apagado y limpieza de `<think>`, 429
-amable, límite diario por persona y por organización, auditoría sin texto, comando `asistente_probar`), luego
-C (panel «Asistente»), D (herramientas, opcionales) y E (acciones con confirmación). `F17.2` (herramientas
-por tarea) espera una captura al usuario. El plan completo está en `C:\Users\cmunoz\.claude\plans\`
-(`robust-noodling-quilt.md`) y el diseño en `docs/ASISTENTE_IA.md`.
+- Carga del registro con progreso, «Cancelar» y **caché local** de modelos convertidos (IndexedDB; #155).
+- **Luz de revisión** y color «Neutro» en el visor (#157).
+- Barra de ayuda de uso (`F17.1`, #145).
+- **Tope de 500 MB para IFC/IFCZIP** (#158; el resto sigue en 200 MB). `client_max_body_size 500M` se puso a
+  mano en el nginx de la VM; el repo lo lleva en `services/api/deploy/nginx-aerobim.conf`.
+- Servidor del asistente de IA **apagado por defecto** (#148; `Organizacion.asistente_activo = False`).
+- Dependencias sin avisos de `npm audit` ni `pip-audit` (#153, #156).
+- Agentes por rol y skills `orquestar`, `terminar-bloques`, `pendientes-github` y `oraculo` (#151, #154).
 
-**Es tuyo:** poner `NIM_API_KEY` **solo en el `.env` de la VM** (nunca en chat ni repositorio) y correr
-`asistente_probar` cuando exista; mirar a ojo la barra de ayuda (F17.1); decidir si ortofotos e imágenes van en
-AeroConvert (recomendado). Sin confirmar a ojo desde antes: un perfil real con muchas láminas, la cámara en
-planta del espacio 2D y la orientación del lateral.
+**Migraciones aplicadas en esta tanda:** `core/0006_asistente_activo` y `asistente/0001`.
+
+**Lo que sigue:**
+
+- `F17.3b`: el asistente habla con NVIDIA (en curso).
+- Vaciar la caché local al cerrar sesión (en curso; hoy `vaciarCache()` solo lo llama el botón de
+  `CacheLocal.tsx`).
+- `F17.2`: herramientas agrupadas por tarea; espera una captura del usuario.
+- Del usuario: poner `NIM_API_KEY` **solo en el `.env` de la VM** (nunca en chat ni en el repositorio) y
+  correr `asistente_probar` cuando exista.
+
+**Sin confirmar a ojo:** una subida real de 300–500 MB; un IFC grande abierto en el visor; la caché contra la
+VM real; la cámara en planta del espacio 2D. Diseño del asistente: `docs/ASISTENTE_IA.md`.
 
 ## Trampas vigentes (las que más costaron)
 
