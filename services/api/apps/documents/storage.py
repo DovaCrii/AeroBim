@@ -103,6 +103,25 @@ EXTENSIONES_ACEPTADAS = set(FIRMAS) | SIN_FIRMA
 # sin explicacion.
 TAMANO_MAXIMO_BYTES = 200 * 1024 * 1024
 
+# **Los modelos IFC tienen un tope propio: 500 MB** (decidido por el usuario el 2026-11-03). Un
+# modelo federado de estacion o de tunel pasa de 200 MB y es justo lo que se archiva aqui; un DXF o
+# un PDF nunca llegan. El `.ifczip` entra en la misma categoria: **el tope se mide sobre el sobre**
+# (lo que viaja por la red), y lo de dentro lo acota `ifczip.TAMANO_MAXIMO_DESCOMPRIMIDO`.
+#
+# **nginx lleva el mismo numero** (`deploy/nginx-aerobim.conf`, `client_max_body_size 500M`), y ese
+# cambio en la VM es manual (`docs/DEPLOY.md`, «Lo que el guion no toca»).
+#
+# **Ojo: que quepa en el registro no garantiza que se abra en el visor.** Convertir un IFC de
+# cientos de MB en el navegador (WASM de `web-ifc`) puede quedarse sin memoria.
+TAMANO_MAXIMO_IFC_BYTES = 500 * 1024 * 1024
+EXTENSIONES_IFC = frozenset({"ifc", "ifczip"})
+
+
+def tamano_maximo_para(extension: str) -> int:
+    """El tope de subida, en bytes, para una extension (con o sin punto, en cualquier caja)."""
+    extension = extension.lower().lstrip(".")
+    return TAMANO_MAXIMO_IFC_BYTES if extension in EXTENSIONES_IFC else TAMANO_MAXIMO_BYTES
+
 
 def extension_de(nombre: str) -> str:
     return Path(nombre).suffix.lower().lstrip(".")
@@ -128,7 +147,7 @@ def normalize_storage_key(clave: str) -> str:
     return "/".join(partes)
 
 
-def validar_tamano(tamano: int) -> None:
+def validar_tamano(tamano: int, extension: str = "") -> None:
     """El tope, comprobado **con el numero y no con los bytes**.
 
     ## Por que existe aparte de `validar`
@@ -146,10 +165,10 @@ def validar_tamano(tamano: int) -> None:
     los bytes en la mano —la API, las pruebas— y quitarla dejaria ese tope sin vigilar segun por
     donde se entre.
     """
-    if tamano > TAMANO_MAXIMO_BYTES:
+    tope = tamano_maximo_para(extension)
+    if tamano > tope:
         raise CargaRechazada(
-            _("The file is larger than the %(mb)s MB limit.")
-            % {"mb": TAMANO_MAXIMO_BYTES // (1024 * 1024)},
+            _("The file is larger than the %(mb)s MB limit.") % {"mb": tope // (1024 * 1024)},
             "demasiado-grande",
         )
 
@@ -210,7 +229,7 @@ def validar(nombre_original: str, contenido: bytes) -> tuple[str, str]:
     """
     if not contenido:
         raise CargaRechazada(_("The file is empty."), "vacio")
-    validar_tamano(len(contenido))
+    validar_tamano(len(contenido), extension_de(nombre_original))
     extension = validar_extension(nombre_original)
     validar_cabecera(extension, contenido[:CABECERA])
     return extension, hashlib.sha256(contenido).hexdigest()
@@ -231,7 +250,7 @@ def validar_subida(archivo) -> tuple[str, str]:
     El `seek(0)` del final no es cortesia: quien llame va a guardar el archivo justo despues, y un
     descriptor dejado al final escribe un archivo vacio sin dar ningun error.
     """
-    validar_tamano(archivo.size)
+    validar_tamano(archivo.size, extension_de(archivo.name))
     if not archivo.size:
         raise CargaRechazada(_("The file is empty."), "vacio")
     extension = validar_extension(archivo.name)

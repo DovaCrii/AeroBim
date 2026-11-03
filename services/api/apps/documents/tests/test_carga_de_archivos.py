@@ -9,6 +9,7 @@ from django.test import override_settings
 
 from apps.documents.storage import (
     TAMANO_MAXIMO_BYTES,
+    TAMANO_MAXIMO_IFC_BYTES,
     CargaRechazada,
     clave_para,
     guardar,
@@ -61,7 +62,7 @@ def test_rechaza_una_extension_que_no_esta_en_la_lista():
 
 def test_rechaza_el_archivo_vacio_y_el_demasiado_grande():
     assert motivo("plano.pdf", b"") == "vacio"
-    assert motivo("modelo.ifc", b"x" * (TAMANO_MAXIMO_BYTES + 1)) == "demasiado-grande"
+    assert motivo("modelo.dxf", b"x" * (TAMANO_MAXIMO_BYTES + 1)) == "demasiado-grande"
 
 
 def test_lo_demasiado_grande_se_rechaza_sin_leerlo():
@@ -81,7 +82,7 @@ def test_lo_demasiado_grande_se_rechaza_sin_leerlo():
     class BombaDeLectura:
         """Dice lo que pesa, y se queja si alguien intenta leerlo."""
 
-        name = "levantamiento.las"
+        name = "levantamiento.dxf"
         size = TAMANO_MAXIMO_BYTES + 1
 
         def read(self, *a, **k):  # pragma: no cover - la prueba falla si esto corre
@@ -108,7 +109,7 @@ def test_el_tope_se_sigue_vigilando_por_los_dos_caminos():
     """
     from apps.documents.storage import validar_tamano
 
-    assert motivo("modelo.ifc", b"x" * (TAMANO_MAXIMO_BYTES + 1)) == "demasiado-grande"
+    assert motivo("modelo.dxf", b"x" * (TAMANO_MAXIMO_BYTES + 1)) == "demasiado-grande"
 
     with pytest.raises(CargaRechazada) as rechazo:
         validar_tamano(TAMANO_MAXIMO_BYTES + 1)
@@ -183,3 +184,62 @@ def test_guardar_dos_veces_lo_mismo_no_duplica_nada(tmp_path):
         assert primero == segundo
         assert leer(clave) == PDF
         assert len(list(tmp_path.rglob("*.pdf"))) == 1
+
+
+MB = 1024 * 1024
+
+
+def test_el_tope_depende_del_tipo_un_ifc_admite_500_mb_y_el_resto_200():
+    """Un IFC de obra llega a cientos de MB; un DXF o un PDF nunca. **Se prueba por tamaño, sin
+    crear los megas en disco**: `validar_tamano` mira el número, no los bytes."""
+    from apps.documents.storage import tamano_maximo_para, validar_tamano
+
+    assert tamano_maximo_para("ifc") == 500 * MB
+    assert tamano_maximo_para(".IFCZIP") == 500 * MB
+    assert tamano_maximo_para("dxf") == 200 * MB
+    assert tamano_maximo_para("") == 200 * MB
+
+    # Un IFC de 300 MB pasa, igual que el borde de 500.
+    validar_tamano(300 * MB, "ifc")
+    validar_tamano(300 * MB, "ifczip")
+    validar_tamano(TAMANO_MAXIMO_IFC_BYTES, "ifc")
+
+    # Un DXF de 300 MB no, y dice 200.
+    with pytest.raises(CargaRechazada) as rechazo:
+        validar_tamano(300 * MB, "dxf")
+    assert rechazo.value.codigo == "demasiado-grande"
+    assert "200" in str(rechazo.value)
+
+    # Un IFC de 501 MB no, y el mensaje dice 500.
+    with pytest.raises(CargaRechazada) as rechazo:
+        validar_tamano(501 * MB, "ifc")
+    assert rechazo.value.codigo == "demasiado-grande"
+    assert "500" in str(rechazo.value)
+
+
+def test_el_formulario_acepta_un_ifc_de_300_mb_y_rechaza_un_dxf_de_300_mb():
+    """Por el camino real de subida (`clean_archivo`), con un archivo que dice pesar 300 MB y
+    sirve una cabecera valida sin tenerla en disco."""
+    import io
+
+    from django import forms as django_forms
+
+    from apps.documents.forms import RevisionForm
+
+    class Grande(io.BytesIO):
+        def __init__(self, name, cabecera, size):
+            super().__init__(cabecera)
+            self.name = name
+            self.size = size
+
+    ifc = Grande("modelo.ifc", b"ISO-10303-21;\nHEADER;\nENDSEC;\n", 300 * MB)
+    form = RevisionForm()
+    form.cleaned_data = {"archivo": ifc}
+    form.clean_archivo()
+    assert form.tamano == 300 * MB
+
+    dxf = Grande("plano.dxf", DXF, 300 * MB)
+    form = RevisionForm()
+    form.cleaned_data = {"archivo": dxf}
+    with pytest.raises(django_forms.ValidationError):
+        form.clean_archivo()

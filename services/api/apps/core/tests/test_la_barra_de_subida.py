@@ -1,8 +1,8 @@
-"""**Subir 200 MB sin señal de vida es cómo se acaba subiéndolos tres veces.**
+"""**Subir 500 MB sin señal de vida es cómo se acaba subiéndolos tres veces.**
 
 ## Por qué existe
 
-Los archivos de este producto son de obra: un IFC de 200 MB, un COPC de 130. Por una conexión de
+Los archivos de este producto son de obra: un IFC de 500 MB, un COPC de 130. Por una conexión de
 oficina eso son **minutos**, y durante esos minutos el navegador no decía nada — la página se
 quedaba quieta con el botón pulsado. Lo que hace cualquiera entonces es volver a pulsar, o cerrar
 y reintentar, y **cada reintento vuelve a subir el archivo entero**.
@@ -75,7 +75,7 @@ def test_usa_xhr_porque_fetch_no_informa_del_progreso_de_subida():
 
 
 def test_el_boton_se_desactiva_mientras_sube():
-    """**La barra informa; lo que impide subir dos veces los mismos 200 MB es el botón.**
+    """**La barra informa; lo que impide subir dos veces los mismos 500 MB es el botón.**
 
     Son dos cosas distintas y la segunda es la que ahorra la subida repetida: alguien que ve la
     barra pero puede seguir pulsando, pulsa.

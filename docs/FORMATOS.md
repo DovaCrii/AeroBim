@@ -23,12 +23,12 @@ que se sostiene en licencias y en lo que un formato de intercambio tiene que gar
 ## Modelos grandes: el IFC comprimido (2026-09-28)
 
 Por un proyecto de metro. Un modelo de estación o de un tramo de túnel pasa de los **200 MB** que
-admite una subida, y un IFC es texto: comprime entre cinco y diez veces (`Piso 5.ifc`: 1 555 KB →
+admitía una subida (desde el 2026-11-03 un IFC admite 500 MB), y un IFC es texto: comprime entre cinco y diez veces (`Piso 5.ifc`: 1 555 KB →
 315 KB). El formato para eso es el **IFC-ZIP** de buildingSMART —un `.zip` con **un solo** `.ifc`
 dentro, con extensión `.ifczip`—, y lo exportan Revit, Tekla, ArchiCAD y Civil 3D.
 
 - **Al registro**: se sube el `.ifczip` y **se archiva el IFC de dentro**, con su huella y su tamaño.
-  El tope de 200 MB se mide sobre lo comprimido; lo descomprimido admite hasta **2 GB**
+  El tope (500 MB para IFC) se mide sobre lo comprimido; lo descomprimido admite hasta **2 GB**
   (`AEROBIM_IFCZIP_MAXIMO_MB`), que es lo que un navegador llega a abrir: `web-ifc` es WebAssembly
   de 32 bits. Todo lo de después —visor, interferencias, IDS, informe— ve un IFC normal.
 - **Al visor, desde el disco**: se suelta o se elige el `.ifczip` y el navegador lo descomprime.

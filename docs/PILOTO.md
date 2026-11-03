@@ -178,7 +178,7 @@ programados estén corriendo, y **que no queden obras de ejemplo**.
 - [ ] Decidida **la rama a desplegar** y la VM.
 - [ ] `sudo deploy/comprobar-vecinos.sh` en verde: **`p340` no está vacía** y un `default_server`
       duplicado tumba también a AeroConvert ([`DEPLOY.md`](DEPLOY.md)).
-- [ ] `/health/` responde `ok`. Sin COOP/COEP, `client_max_body_size 200M`, `conversor_cad` según se
+- [ ] `/health/` responde `ok`. Sin COOP/COEP, `client_max_body_size 500M`, `conversor_cad` según se
       haya decidido sobre ODA ([`DEPLOY.md`](DEPLOY.md)).
 - [ ] `EMAIL_BACKEND` de SMTP **real**. Con el de consola la aplicación diría «enviado» y lo
       imprimiría en el log. — _lo comprueba `listo_para_produccion`_
