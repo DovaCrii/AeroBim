@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  hayEntradasDeOtroUsuario,
   huellaDeArchivo,
+  NOMBRE_DB,
   planificarExpulsion,
   TOPE_MAXIMO_BYTES,
   topeDeCache,
@@ -14,6 +16,35 @@ const e = (revisionId: string, bytes: number, ultimoUso: number): EntradaDeIndic
   nombre: revisionId,
   bytes,
   ultimoUso,
+});
+
+describe("hayEntradasDeOtroUsuario", () => {
+  const de = (usuarioId?: string): EntradaDeIndice => ({
+    ...e("r", 1, 1),
+    ...(usuarioId === undefined ? {} : { usuarioId }),
+  });
+  it("una caché vacía o toda del mismo usuario se conserva", () => {
+    expect(hayEntradasDeOtroUsuario([], "7")).toBe(false);
+    expect(hayEntradasDeOtroUsuario([de("7"), de("7")], "7")).toBe(false);
+  });
+  it("una entrada de otro usuario, o sin dueño, obliga a vaciar", () => {
+    expect(hayEntradasDeOtroUsuario([de("7"), de("8")], "7")).toBe(true);
+    expect(hayEntradasDeOtroUsuario([de()], "7")).toBe(true);
+  });
+});
+
+describe("guion de salida del portal", () => {
+  it("borra la misma base que usa la caché y no depende de nada externo", async () => {
+    const { readFileSync } = await import("node:fs");
+    const ruta = new URL(
+      "../../../services/api/static/js/vaciar-cache-al-salir.js",
+      import.meta.url,
+    );
+    const guion = readFileSync(ruta, "utf-8");
+    expect(guion).toContain(`var NOMBRE_DB = "${NOMBRE_DB}";`);
+    expect(guion).toContain("deleteDatabase");
+    expect(guion).not.toMatch(/https?:\/\//);
+  });
 });
 
 describe("huellaDeArchivo", () => {

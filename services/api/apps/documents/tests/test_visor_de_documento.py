@@ -765,3 +765,12 @@ def test_la_api_dice_que_un_punto_no_tiene_forma(
     ).json()["observaciones"]
 
     assert (una["forma"], una["x2"], una["y2"]) == (None, None, None)
+
+
+@pytest.mark.django_db
+def test_la_ficha_de_la_revision_dice_quien_es_la_sesion(client, proyectista, revision_pdf):
+    """El visor guarda en su caché local quién la llenó; solo recibe su propio id."""
+    client.force_login(dar(proyectista, "documents.view_revision"))
+    datos = client.get(reverse("documents_api:revision", args=[revision_pdf.pk])).json()
+
+    assert datos["usuarioId"] == str(proyectista.pk)
