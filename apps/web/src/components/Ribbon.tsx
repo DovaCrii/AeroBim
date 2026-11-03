@@ -2,6 +2,8 @@ import { createContext, useContext } from "react";
 import { botonDe } from "../espacios.js";
 import type {
   DistanceMode,
+  ColorDeVista,
+  ModoDeLuz,
   MeasureMode,
   NavigationMode,
   Projection,
@@ -16,8 +18,12 @@ import {
   IconChevronDown,
   IconChevronUp,
   IconClose,
+  IconColorsIfc,
+  IconColorsNeutral,
   IconCursor,
   IconDistance,
+  IconLightFlat,
+  IconLightReview,
   IconEdge,
   IconFirstPerson,
   IconFrameAll,
@@ -119,6 +125,10 @@ export function Ribbon({
   onProjection,
   onNavigation,
   onStyle,
+  luz,
+  onLuz,
+  colorDeVista,
+  onColorDeVista,
   onMeasureMode,
   onSnapMode,
   onDistanceMode,
@@ -231,6 +241,12 @@ export function Ribbon({
   readonly onProjection: (projection: Projection) => void;
   readonly onNavigation: (mode: NavigationMode) => void;
   readonly onStyle: (style: RenderStyle) => void;
+  /** Cómo se ilumina el modelo. Es solo luz: no toca ningún color del archivo. */
+  readonly luz: ModoDeLuz;
+  readonly onLuz: (luz: ModoDeLuz) => void;
+  /** `ifc` = colores del archivo; `neutro` = una vista en gris, no un cambio del modelo. */
+  readonly colorDeVista: ColorDeVista;
+  readonly onColorDeVista: (color: ColorDeVista) => void;
   readonly onMeasureMode: (mode: MeasureMode | null) => void;
   readonly onSnapMode: (mode: SnapMode) => void;
   readonly onDistanceMode: (mode: DistanceMode) => void;
@@ -602,6 +618,46 @@ export function Ribbon({
                       active={style === "wireframe"}
                       disabled={!hasModels}
                       onClick={() => onStyle("wireframe")}
+                    />
+                  </Grupo>
+
+                  {/*
+                   * Luz y color. Las dos filas son dos elecciones independientes: arriba cómo se
+                   * ilumina, abajo de qué color se ve. «Colores del IFC» no cambia nada del archivo;
+                   * «Neutro» es una vista, y su ayuda lo dice.
+                   */}
+                  <Grupo label="Luz y color">
+                    <Boton
+                      icon={<IconLightReview />}
+                      label="Luz de revisión"
+                      hint="Una luz que sigue a la cámara: cada cara se sombrea según su orientación"
+                      active={luz === "revision"}
+                      disabled={!hasModels}
+                      onClick={() => onLuz("revision")}
+                    />
+                    <Boton
+                      icon={<IconLightFlat />}
+                      label="Luz uniforme"
+                      hint="La iluminación fija de antes, más plana"
+                      active={luz === "uniforme"}
+                      disabled={!hasModels}
+                      onClick={() => onLuz("uniforme")}
+                    />
+                    <Boton
+                      icon={<IconColorsIfc />}
+                      label="Colores del IFC"
+                      hint="Los colores del archivo, sin tocar"
+                      active={colorDeVista === "ifc"}
+                      disabled={!hasModels}
+                      onClick={() => onColorDeVista("ifc")}
+                    />
+                    <Boton
+                      icon={<IconColorsNeutral />}
+                      label="Neutro"
+                      hint="Es una vista, no cambia el modelo: gris claro con sombreado, para leer la forma sin que el color distraiga"
+                      active={colorDeVista === "neutro"}
+                      disabled={!hasModels}
+                      onClick={() => onColorDeVista("neutro")}
                     />
                   </Grupo>
                 </>
